@@ -159,7 +159,7 @@ AC_DEFUN(AC_ENABLE_STATIC_LIB,
 
 #
 # find out the used gcc version and validate that this one is
-# a working one for lmmc
+# a working one for our compilation
 # 
 AC_DEFUN(AC_PROG_GCC_VERSION,[
 
