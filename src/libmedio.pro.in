@@ -21,27 +21,83 @@
 #
 #***************************************************************************/
 
-TEMPLATE = lib
-CONFIG += qt thread warn_on @ANSI_COLOR@ @QTLINK_LEVEL@
-
-DEPENDPATH += ecat ecat/ecat6 ecat/ecat7 micropet
-INCLUDEPATH += . include ecat ecat/ecat6 ecat/ecat7 micropet
+# main variables
+TEMPLATE  = lib
+CONFIG	 *= qt thread warn_on @ANSI_COLOR@ @QTLINK_LEVEL@
+TARGET    = medio
+VERSION   = 0.1
+DESTDIR   = ../lib/
 
 # directory specification
 OBJECTS_DIR = .obj
-MOC_DIR			= .moc
-UI_DIR			= .ui
+MOC_DIR     = .moc
+UI_DIR      = .ui
 
-# target file specification
-TARGET = medio
-VERSION = 0.1
-DESTDIR = ../lib/
+# define headers and source files for compilation
+# PUB_HEADER: public headers going into /usr/local/include/medio
+# HEADERS...: all headers including private ones
+# SOURCES...: all source files required for the compilation
 
-# find out the GCC version
-# and define some gcc v3+ options only.
-GCC_VERSION = @GCC_VERSION@
-contains(GCC_VERSION, 3) {
-	QMAKE_CXXFLAGS += -fmessage-length=0
+PUB_HEADER =	ecat/CECATDirectory.h \
+							ecat/CECATDirectoryItem.h \
+							ecat/CECATFile.h \
+							ecat/CECATMainHeader.h \
+							ecat/CECATSubHeader.h \
+							ecat/ecat6/CECAT6MainHeader.h \
+							ecat/ecat7/CECAT7MainHeader.h \
+							ecat/ecat7/CECAT7SubHeaderAttenCorr.h \
+							ecat/ecat7/CECAT7SubHeaderImage.h \
+							ecat/ecat7/CECAT7SubHeaderNorm.h \
+							ecat/ecat7/CECAT7SubHeaderNorm3D.h \
+							ecat/ecat7/CECAT7SubHeaderPolarMap.h \
+							ecat/ecat7/CECAT7SubHeaderScan.h \
+							ecat/ecat7/CECAT7SubHeaderScan3D.h
+
+HEADERS  = CDebug.h \
+           $$PUB_HEADER
+
+SOURCES  = CDebug.cpp \
+           ecat/CECATDirectory.cpp \
+					 ecat/CECATDirectoryItem.cpp \
+					 ecat/CECATFile.cpp \
+					 ecat/ecat6/CECAT6MainHeader.cpp \
+					 ecat/ecat7/CECAT7MainHeader.cpp \
+ 					 ecat/ecat7/CECAT7SubHeaderAttenCorr.cpp \
+					 ecat/ecat7/CECAT7SubHeaderImage.cpp \
+					 ecat/ecat7/CECAT7SubHeaderNorm.cpp \
+					 ecat/ecat7/CECAT7SubHeaderNorm3D.cpp \
+					 ecat/ecat7/CECAT7SubHeaderPolarMap.cpp \
+					 ecat/ecat7/CECAT7SubHeaderScan.cpp \
+					 ecat/ecat7/CECAT7SubHeaderScan3D.cpp
+
+DEPENDPATH   = ecat ecat/ecat6 ecat/ecat7 micropet
+INCLUDEPATH  = . include ecat ecat/ecat6 ecat/ecat7 micropet
+
+# UNIX based target platforms installation defines
+unix {
+  # on unix we use configure to define everything like install path
+	PREFIX=@prefix@
+  LIB_DIR=@prefix@/lib
+  INCLUDE_DIR=@prefix@/include
+  DATA_DIR=@prefix@/share
+	
+  # -p option should be -P, so that "make install" as root creates files owned by root
+  # and links are preserved.
+  QMAKE_COPY_FILE = $(COPY) -P
+	
+  # install header 
+  include.path  = $$INCLUDE_DIR/medio
+  include.files = $$PUB_HEADER
+
+  # install documentation html
+  documentation.path = $$DATA_DIR/medio/doc
+  documentation.files = ../doc/*.html ../doc/*.css
+
+  # install library
+  target.path = $$LIB_DIR
+
+  # "make install" configuration options
+  INSTALLS += target include documentation
 }
 
 # own QMAKE Flags definitions
@@ -57,46 +113,20 @@ staticconfig {
 	macx:LIBS += $(QTDIR)/lib/libqt-mt.a -lz -framework Carbon
 }
 
-# find out the system
-HOST_OS = @HOST_OS@
-HOST_CPU = @HOST_CPU@
-contains(HOST_OS, [sS]un[oO][sS]) {
-	QMAKE_CXXFLAGS += -mcpu=v9 -mtune=ultrasparc3
-}
-else {
-  contains(HOST_OS, [dD]arwin) {
-    contains(HOST_CPU, [pP]ower[pP]c) {
-      QMAKE_CXXFLAGS += -Acpu=powerpc # for G5: "-mcpu=970 -mtune=970 -mpowerpc64 -mpowerpc-gpopt -force_cpusubtype_ALL"
-    }
-  }
-  else {
-		contains(HOST_OS, [lL]inux) {
-			#contains(HOST_CPU, [oO]pteron) {			
-			#	QMAKE_CXXFLAGS += -march=athlon-xp -mmmx -msse -msse2 -m3dnow -mfpmath=sse,387
-			#}
-		}
-	}
-}
-
 # set the config to either release or debug
 COMPILE_LEVEL = @COMPILE_LEVEL@
 contains(COMPILE_LEVEL, debug) {
 	CONFIG -= release
 	CONFIG += debug
-	QMAKE_CXXFLAGS_DEBUG += -g -O0
-	DEFINES += DEBUG
+	QMAKE_CXXFLAGS_DEBUG *= -g -O0
+	DEFINES *= DEBUG
 }
 else {
 	CONFIG -= debug
 	CONFIG += release
-	QMAKE_CXXFLAGS_RELEASE += -O3 -funroll-loops
-	QMAKE_LINK += -s # this is for stripping the executable while linking
+	QMAKE_CXXFLAGS_RELEASE *= -O3 -funroll-loops
+	QMAKE_LINK *= -s 
 	DEFINES -= DEBUG
-
-  # depending on the gcc version we set some addition optimization flags
-	contains(GCC_VERSION, 3) {
-		QMAKE_CXXFLAGS_RELEASE += -ftracer
-	}	
 }
 
 # use ANSI colors if it was specified on configure time
@@ -105,34 +135,3 @@ ansi_color {
 	QMAKE_LINK	= @printf '\033[32mLinking \033[1m$@\033[0m\n';$$QMAKE_LINK
 	DEFINES += ANSI_COLOR
 }
-
-# Input
-HEADERS += CDebug.h \
-           ecat/CECATDirectory.h \
-					 ecat/CECATDirectoryItem.h \
-					 ecat/CECATFile.h \
-					 ecat/CECATMainHeader.h \
-					 ecat/CECATSubHeader.h \
-					 ecat/ecat6/CECAT6MainHeader.h \
-					 ecat/ecat7/CECAT7MainHeader.h \
-					 ecat/ecat7/CECAT7SubHeaderAttenCorr.h \
-					 ecat/ecat7/CECAT7SubHeaderImage.h \
-					 ecat/ecat7/CECAT7SubHeaderNorm.h \
-					 ecat/ecat7/CECAT7SubHeaderNorm3D.h \
-					 ecat/ecat7/CECAT7SubHeaderPolarMap.h \
-					 ecat/ecat7/CECAT7SubHeaderScan.h \
-					 ecat/ecat7/CECAT7SubHeaderScan3D.h
-           
-SOURCES += CDebug.cpp \
-           ecat/CECATDirectory.cpp \
-					 ecat/CECATDirectoryItem.cpp \
-					 ecat/CECATFile.cpp \
-					 ecat/ecat6/CECAT6MainHeader.cpp \
-					 ecat/ecat7/CECAT7MainHeader.cpp \
- 					 ecat/ecat7/CECAT7SubHeaderAttenCorr.cpp \
-					 ecat/ecat7/CECAT7SubHeaderImage.cpp \
-					 ecat/ecat7/CECAT7SubHeaderNorm.cpp \
-					 ecat/ecat7/CECAT7SubHeaderNorm3D.cpp \
-					 ecat/ecat7/CECAT7SubHeaderPolarMap.cpp \
-					 ecat/ecat7/CECAT7SubHeaderScan.cpp \
-					 ecat/ecat7/CECAT7SubHeaderScan3D.cpp

@@ -46,6 +46,8 @@ $(top_builddir)/configure:  configure.in aclocal.m4
 aclocal.m4: acinclude.m4
 	$(ACLOCAL)
 
+install:
+
 clean:
 	$(RM) configure config.status config.log
 

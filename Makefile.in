@@ -49,7 +49,7 @@ prefix = @prefix@
 
 SUBDIRS = m4 src
 
-RECURSIVE_TARGETS = all-recursive dist-recursive clean-recursive distclean-recursive
+RECURSIVE_TARGETS = all-recursive dist-recursive clean-recursive distclean-recursive install-recursive
 
 # Which extra files are to distribution
 DIST_COMMON = AUTHORS COPYING ChangeLog README TODO \
@@ -85,6 +85,8 @@ dist:
 	$(GZIP) $(PACKAGE_TARNAME).tar ) && \
 	$(MOVE) `dirname .dist/$(PACKAGE_TARNAME)`/$(PACKAGE_TARNAME).tar.gz . && \
 	$(RMDIR) .dist/$(PACKAGE_TARNAME)
+
+install: install-recursive
 
 clean: clean-recursive
 
