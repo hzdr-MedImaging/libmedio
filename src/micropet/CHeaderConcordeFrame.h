@@ -54,6 +54,8 @@ class CHeaderConcordeFrame
 		std::string trues(void) {return m_Data.trues;}
 		int promptsrate(void) {return m_Data.prompts_rate;}
 		int delaysrate(void) {return m_Data.delays_rate;}
+		float single(int i) {return m_Data.singles[i];}
+		float rawsingle(int i) {return m_Data.rawsingles[i];}
 		
 		//mutator methods
 		void setFrame(int value) { m_Data.frame = value;}
@@ -101,7 +103,8 @@ class CHeaderConcordeFrame
 			std::string	trues;
 			int		prompts_rate;
 			int		delays_rate;
-			//singles
+			float		singles[168];
+			float		rawsingles[168];
 		}
 		ConcordeHeaderFrame;
 		ConcordeHeaderFrame m_Data;

@@ -56,6 +56,7 @@ void CHeaderConcordeFrame::init()
 	literals.push_back("trues");
 	literals.push_back("prompts_rate");
 	literals.push_back("delays_rate");
+	literals.push_back("singles");
 }
 
 //  Class: CHeaderConcordeFrame
@@ -142,6 +143,21 @@ bool CHeaderConcordeFrame::load()
 					if(strcmp(ptr_tok, "trues")	== 0)	m_Data.trues = rest;
 					if(strcmp(ptr_tok, "prompts_rate") == 0)	m_Data.prompts_rate = atoi(rest);
 					if(strcmp(ptr_tok, "delays_rate") == 0)	m_Data.delays_rate = atoi(rest);
+					if(strcmp(ptr_tok, "singles") == 0)
+                                        {       
+                                                char *element = NULL;
+                                                element = strtok(rest, " \0");
+                                                char *single = NULL;
+                                                single = strtok(NULL, " \0");
+						m_Data.singles[atoi(element)] = atof(single);
+						char *rawsingle = NULL;
+						rawsingle = strtok(NULL, "\0");
+						if(rawsingle != NULL)
+                                                	m_Data.rawsingles[atoi(element)] = atof(rawsingle);
+						else
+							m_Data.rawsingles[atoi(element)] = 0.0F;
+						D("block %d : singles %f : rawsingles %f", atoi(element), m_Data.singles[atoi(element)], m_Data.rawsingles[atoi(element)]);
+                                        }
 				}	
 			}
 		}
