@@ -223,7 +223,7 @@ bool CECAT7SubHeaderImage::save(QDataStream& stream)
 	stream << m_Data.Filter_Order;									// 112: Filter_Order
 	stream << m_Data.Filter_Scatter_Fraction;				// 116: Filter_Scatter_Fraction
 	stream << m_Data.Filter_Scatter_Slope;					// 120: Filter_Scatter_Slope
-	stream.readRawBytes(&m_Data.Annotation[0], 40);	// 122: Annotation
+	stream.writeRawBytes(&m_Data.Annotation[0], 40);
 	stream << m_Data.MT_1_1;												// 162: MT_1_1
 	stream << m_Data.MT_1_2;												// 166: MT_1_2
 	stream << m_Data.MT_1_3;												// 170: MT_1_3
@@ -249,7 +249,7 @@ bool CECAT7SubHeaderImage::save(QDataStream& stream)
 	stream << m_Data.Recon_Views;										// 238: Recon_Views
 	for(int i=0; i < 87; i++)
 		stream << m_Data.CTI_Reserved[i];							// 240: CTI_Reserved
-	for(int i=0; i < 48; i++)
+	for(int i=0; i < 49; i++)
 		stream << m_Data.User_Reserved[i];						// 414: User_Reserved
 	
 	return true;
