@@ -199,7 +199,7 @@ bool CECAT7SubHeaderNorm3D::save(void) const
 	return result;
 }
 
-CMedIOHeader& CECAT7SubHeaderNorm3D::operator=(const CMedIOHeader& src)
+CMedIOHeader& CECAT7SubHeaderNorm3D::copyData(const CMedIOHeader& src)
 {
 	ENTER();
 

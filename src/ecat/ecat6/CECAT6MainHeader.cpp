@@ -314,7 +314,7 @@ bool CECAT6MainHeader::save(void) const
 	return result;
 }
 
-CMedIOHeader& CECAT6MainHeader::operator=(const CMedIOHeader& src)
+CMedIOHeader& CECAT6MainHeader::copyData(const CMedIOHeader& src)
 {
 	ENTER();
 

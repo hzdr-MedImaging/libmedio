@@ -6,12 +6,15 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
-2005-03-01  Jens Langner <Jens.Langner@light-speed.de>
+2005-03-02  Jens Langner <Jens.Langner@light-speed.de>
 
   * misc: added a global operator= method to the MedIOHeader interface and
-    adapted all our ECAT headers to take care of that. This way medio now
-    has a global header copy instance which allows to implement own
-    assignment methods for copying data of one format to another one.
+    made it call a pure virtual protected copyData() method. This way we force 
+    classes to implement a proper protected copyData() method which then is
+    used to copy data (shallow copy) out of one MedIOHeader object to the
+    other one. However, please note that currently not all copy operations
+    from one header typ to another one is supported. Especially all the
+    Concorde<>ECAT copy implementations are missing.
   
 2005-02-25  Jens Langner <Jens.Langner@light-speed.de>
 

@@ -512,6 +512,44 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 	return result;
 }
 
+
+bool CECATDirectoryItem::readMatrix(QByteArray*& matrixData, CECATSubHeader*& subHeader)
+{
+	ENTER();
+	bool result = false;
+	char* data = NULL;
+	unsigned int dataLen = 0;
+
+	// we use our method operating on a raw char pointer
+	if(readMatrix(data, dataLen, subHeader) && dataLen > 0)
+	{
+		matrixData = new QByteArray();
+		matrixData->setRawData(data, dataLen);
+
+		result = true;
+	}
+
+	RETURN(result);
+	return result;
+}
+
+bool CECATDirectoryItem::readMatrix(char*& data, unsigned int& len, CECATSubHeader*& subHeader)
+{
+	ENTER();
+	bool result = false;
+
+	// read out the subHeader first
+	if(readSubHeader(subHeader))
+	{
+		// we use our method operating on a raw char pointer
+		if(readMatrix(data, len) && len > 0)
+			result = true;
+	}
+
+	RETURN(result);
+	return result;
+}
+
 bool CECATDirectoryItem::writeSubHeader(const CECATSubHeader& subHeader)
 {
 	ENTER();
@@ -652,6 +690,32 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 	bool result;
 
 	result = writeMatrix(matrixData, matrixSize, CECATSubHeader::UnknownDataType); 
+
+	RETURN(result);
+	return result;
+}
+
+bool CECATDirectoryItem::writeMatrix(const QByteArray& matrixData, const CECATSubHeader& subHeader)
+{
+	ENTER();
+  bool result;
+
+	result = writeMatrix(matrixData.data(), matrixData.size(), subHeader);
+
+	RETURN(result);
+	return result;
+}
+
+bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrixSize,
+																		 const CECATSubHeader& subHeader)
+{
+	ENTER();
+	bool result = false;
+
+	if(writeSubHeader(subHeader))
+	{
+		result = writeMatrix(matrixData, matrixSize, subHeader.data_Type()); 
+	}
 
 	RETURN(result);
 	return result;

@@ -25,6 +25,7 @@
 #define CECAT6MAINHEADER_H
 
 #include <CECATMainHeader.h>
+#include <CMedIOHeader.h>
 
 #include <qdatastream.h>
 #include <qtextstream.h>
@@ -47,8 +48,8 @@ class Q_EXPORT CECAT6MainHeader : public CECATMainHeader
 		bool load(void);
 		bool save(void) const;
 
-		// methods to copy data
-		CMedIOHeader& operator=(const CMedIOHeader& src);	
+		// required method to copy relevant data from another MedIOHeader object
+		CMedIOHeader& copyData(const CMedIOHeader& src);
 
 		// runtime type information methods
 		int rtti() const

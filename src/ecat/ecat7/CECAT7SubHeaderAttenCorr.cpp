@@ -227,7 +227,7 @@ bool CECAT7SubHeaderAttenCorr::save(void) const
 	return result;
 }
 
-CMedIOHeader& CECAT7SubHeaderAttenCorr::operator=(const CMedIOHeader& src)
+CMedIOHeader& CECAT7SubHeaderAttenCorr::copyData(const CMedIOHeader& src)
 {
 	ENTER();
 

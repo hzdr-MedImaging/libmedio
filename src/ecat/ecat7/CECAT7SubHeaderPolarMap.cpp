@@ -233,7 +233,7 @@ bool CECAT7SubHeaderPolarMap::save(void) const
 	return result;
 }
 
-CMedIOHeader& CECAT7SubHeaderPolarMap::operator=(const CMedIOHeader& src)
+CMedIOHeader& CECAT7SubHeaderPolarMap::copyData(const CMedIOHeader& src)
 {
 	ENTER();
 

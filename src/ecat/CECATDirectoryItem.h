@@ -130,6 +130,8 @@ class Q_EXPORT CECATDirectoryItem
 		bool readSubHeader(CECATSubHeader*& subHeader);
 		bool readMatrix(QByteArray*& data);
 		bool readMatrix(char*& data, unsigned int& len);
+		bool readMatrix(QByteArray*& data, CECATSubHeader*& subHeader);
+		bool readMatrix(char*& data, unsigned int& len, CECATSubHeader*& subHeader);
 
 		// write i/o methods
 		bool writeSubHeader(const CECATSubHeader& subHeader);
@@ -137,6 +139,8 @@ class Q_EXPORT CECATDirectoryItem
 		bool writeMatrix(const char* data, unsigned int len);
 		bool writeMatrix(const QByteArray& data, CECATSubHeader::Data_Type type);
 		bool writeMatrix(const char* data, unsigned int len, CECATSubHeader::Data_Type type);
+		bool writeMatrix(const QByteArray& data, const CECATSubHeader& subHeader);
+		bool writeMatrix(const char* data, unsigned int len, const CECATSubHeader& subHeader);
 
 		// our QDataStream operators
 		friend QDataStream& operator<<(QDataStream& stream, const CECATDirectoryItem& item);

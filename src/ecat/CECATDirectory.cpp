@@ -550,6 +550,38 @@ bool CECATDirectory::readMatrix(char*& matrixData, unsigned int& len, short fram
 	return result;
 }
 
+bool CECATDirectory::readMatrix(QByteArray*& matrixData, CECATSubHeader*& subHeader,
+																short frame, short plane, short gate, short bed, short data)
+{
+	ENTER();
+	bool result = false;
+
+	// get the directoryItem so that we can query the matrix from it
+	CECATDirectoryItem* pDirItem = find(convertToMatrixID(frame, plane, gate, bed, data));
+
+	if(pDirItem)
+		result = pDirItem->readMatrix(matrixData, subHeader);
+
+	RETURN(result);
+	return result;
+}
+
+bool CECATDirectory::readMatrix(char*& matrixData, unsigned int& len, CECATSubHeader*& subHeader,
+																short frame, short plane, short gate, short bed, short data)
+{
+	ENTER();
+	bool result = false;
+
+	// get the directoryItem so that we can query the matrix from it
+	CECATDirectoryItem* pDirItem = find(convertToMatrixID(frame, plane, gate, bed, data));
+
+	if(pDirItem)
+		result = pDirItem->readMatrix(matrixData, len, subHeader);
+
+	RETURN(result);
+	return result;
+}
+
 bool CECATDirectory::writeSubHeader(const CECATSubHeader& subHeader, short frame,
 																		short plane, short gate, short bed, short data)
 {
@@ -694,6 +726,66 @@ bool CECATDirectory::writeMatrix(const char* matrixData, unsigned int size,
 
 	// then we make sure the subheader is written to the ECAT file.
 	result = pNewDItem->writeMatrix(matrixData, size, type);
+	if(result)
+		save();
+
+	RETURN(result);
+	return result;
+}
+
+bool CECATDirectory::writeMatrix(const QByteArray& matrixData, const CECATSubHeader& subHeader,
+																 short frame, short plane, short gate, short bed, short data)
+{
+	ENTER();
+	bool result = false;
+
+	// form the MatrixID from the supplied data and create a new
+	// DirectoryItem (or replace an existing one)
+	Q_UINT32 mID = convertToMatrixID(frame, plane, gate, bed, data);
+	D("Generated MatrixID: %08lx", mID);
+
+	// see if we already have an item with the same matrixID in our
+	// dictonary and if so we reuse that one and place a new subheader at
+	// this position
+	CECATDirectoryItem* pNewDItem = find(mID);
+	if(pNewDItem == NULL)
+	{
+		// create a new DirectoryItem which we put in this Directory
+		pNewDItem = newItem(mID);
+	}
+
+	// then we make sure the subheader is written to the ECAT file.
+	result = pNewDItem->writeMatrix(matrixData, subHeader);
+	if(result)
+		save();
+	
+	RETURN(result);
+	return result;
+}
+
+bool CECATDirectory::writeMatrix(const char* matrixData, unsigned int size, const CECATSubHeader& subHeader,
+																 short frame, short plane, short gate, short bed, short data)
+{
+	ENTER();
+	bool result = false;
+
+	// form the MatrixID from the supplied data and create a new
+	// DirectoryItem (or replace an existing one)
+	Q_UINT32 mID = convertToMatrixID(frame, plane, gate, bed, data);
+	D("Generated MatrixID: %08lx", mID);
+
+	// see if we already have an item with the same matrixID in our
+	// dictonary and if so we reuse that one and place a new subheader at
+	// this position
+	CECATDirectoryItem* pNewDItem = find(mID);
+	if(pNewDItem == NULL)
+	{
+		// create a new DirectoryItem which we put in this Directory
+		pNewDItem = newItem(mID);
+	}
+
+	// then we make sure the subheader is written to the ECAT file.
+	result = pNewDItem->writeMatrix(matrixData, size, subHeader);
 	if(result)
 		save();
 

@@ -71,12 +71,16 @@ class Q_EXPORT CECATFile : public CMedIOData
 		short numBedPos(void) const	{ return m_pMainDirectory->numBedPos();	}
 
 		// interface methods to read out specific data from the ECAT files
-		bool readMainHeader(CECATMainHeader*&);
-		bool readSubHeader(CECATSubHeader*&,
+		bool readMainHeader(CECATMainHeader*& mainHeader);
+		bool readSubHeader(CECATSubHeader*& subHeader,
 											 short frame, short plane=1, short gate=1, short bed=0, short data=0);
 		bool readMatrix(QByteArray*& matrixData,
 										short frame, short plane=1, short gate=1, short bed=0, short data=0);
 		bool readMatrix(char*& matrixData, unsigned int& len,
+										short frame, short plane=1, short gate=1, short bed=0, short data=0);
+		bool readMatrix(QByteArray*& matrixData, CECATSubHeader*& subHeader,
+										short frame, short plane=1, short gate=1, short bed=0, short data=0);
+		bool readMatrix(char*& matrixData, unsigned int& len, CECATSubHeader*& subHeader,
 										short frame, short plane=1, short gate=1, short bed=0, short data=0);
 
 		// methods to write out headers/data to the file.
@@ -87,6 +91,10 @@ class Q_EXPORT CECATFile : public CMedIOData
 										 short frame, short plane=1, short gate=1, short bed=0, short data=0);
 		bool writeMatrix(const char* matrixData, unsigned int size,
 										 short frame, short plane=1, short gate=1, short bed=0, short data=0);
+		bool writeMatrix(const QByteArray& matrixData, const CECATSubHeader& subHeader,
+										 short frame, short plane=1, short gate=1, short bed=0, short data=0);
+		bool writeMatrix(const char* matrixData, unsigned int size, const CECATSubHeader& subHeader,
+										 short frame, short plane=1, short gate=1, short bed=0, short data=0);		
 		bool writeMatrix(const QByteArray& matrixData, CECATSubHeader::Data_Type type, 
 										 short frame, short plane=1, short gate=1, short bed=0, short data=0);
 		bool writeMatrix(const char* matrixData, unsigned int size, CECATSubHeader::Data_Type type,

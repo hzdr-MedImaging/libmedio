@@ -64,6 +64,10 @@ class Q_EXPORT CECATDirectory : protected QIntDict<CECATDirectoryItem>
 										short frame, short plane=1, short gate=1, short bed=0, short data=0);
 		bool readMatrix(char*& matrixData, unsigned int& len,
 										short frame, short plane=1, short gate=1, short bed=0, short data=0);
+		bool readMatrix(QByteArray*& matrixData, CECATSubHeader*& subHeader,
+										short frame, short plane=1, short gate=1, short bed=0, short data=0);
+		bool readMatrix(char*& matrixData, unsigned int& len, CECATSubHeader*& subHeader,
+										short frame, short plane=1, short gate=1, short bed=0, short data=0);	
 	
 		// write methods
 		bool writeSubHeader(const CECATSubHeader& subHeader,
@@ -76,6 +80,10 @@ class Q_EXPORT CECATDirectory : protected QIntDict<CECATDirectoryItem>
 										 short frame, short plane=1, short gate=1, short bed=0, short data=0);
 		bool writeMatrix(const char* matrix, unsigned int size, CECATSubHeader::Data_Type type,
 										 short frame, short plane=1, short gate=1, short bed=0, short data=0);		
+		bool writeMatrix(const QByteArray& matrix, const CECATSubHeader& subHeader,
+										 short frame, short plane=1, short gate=1, short bed=0, short data=0);
+		bool writeMatrix(const char* matrix, unsigned int size, const CECATSubHeader& subHeader,
+										 short frame, short plane=1, short gate=1, short bed=0, short data=0);
 
 	private:
 		CECATFile* m_pECATFile;	// ptr to our associated ECATFile

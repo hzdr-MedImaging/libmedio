@@ -54,8 +54,8 @@ class Q_EXPORT CECAT7SubHeaderScan : public CECATSubHeader
 		int size() const 
 		{	return ECAT7_HEADERSIZE_SCAN; }
 
-		// some required operator overloading methods to copy a header
-		CMedIOHeader& operator=(const CMedIOHeader& src);			
+		// required method to copy relevant data from another MedIOHeader object
+		CMedIOHeader& copyData(const CMedIOHeader& src);
 		
 		// data access methods
 		CECATSubHeader::Data_Type data_Type(void) const

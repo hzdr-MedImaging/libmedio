@@ -72,9 +72,14 @@ class CMedIOHeader
 		//! @return specific header format at runtime
 		virtual CMedIOHeader::Format headerFormat() const = 0;
 
-		// some required operator overloading methods to copy a header
-		virtual CMedIOHeader& operator=(const CMedIOHeader& src) = 0;		
-		
+		// overload the default assignment operator to always perform
+		// a shallow copy
+		CMedIOHeader& operator=(const CMedIOHeader& src) { return copyData(src); }
+
+	protected:
+		//! @brief shallow copy method
+		virtual CMedIOHeader& copyData(const CMedIOHeader& src) = 0;
+
 	protected:
 		CMedIOData* m_pMedIOData; //!< the associated MedIOData this header belongs to
 };

@@ -248,7 +248,7 @@ bool CECAT7SubHeaderScan::save(void) const
 	return result;
 }
 
-CMedIOHeader& CECAT7SubHeaderScan::operator=(const CMedIOHeader& src)
+CMedIOHeader& CECAT7SubHeaderScan::copyData(const CMedIOHeader& src)
 {
 	ENTER();
 

@@ -314,7 +314,7 @@ bool CECAT7SubHeaderImage::save(void) const
 
 }
 
-CMedIOHeader& CECAT7SubHeaderImage::operator=(const CMedIOHeader& src)
+CMedIOHeader& CECAT7SubHeaderImage::copyData(const CMedIOHeader& src)
 {
 	ENTER();
 
