@@ -2,6 +2,8 @@
 #include <string>
 #include <list>
 #include <iostream>
+#include <qdatetime.h>
+#include <qstring.h>
 
 #include "debug.h"
 #include "CHeaderConcordeFrame.h"
@@ -307,11 +309,23 @@ bool CHeaderConcorde::load()
 					if(strcmp(ptr_tok, "investigator") == 0)		m_Data.investigator = rest;
 					if(strcmp(ptr_tok, "Operator") == 0)		m_Data.Operator = rest;
 					if(strcmp(ptr_tok, "study_identifier") == 0)		m_Data.study_identifier = rest;
-					if(strcmp(ptr_tok, "scan_time") == 0)		m_Data.scan_time = rest;
+					if(strcmp(ptr_tok, "scan_time") == 0)		
+					{	
+						QString str(rest);
+						QDateTime dt = QDateTime::fromString(str);
+						m_Data.scan_time = (long)dt.toTime_t();
+						D("ScanTime %s in seconds %ld", rest, m_Data.scan_time);
+					}
 					if(strcmp(ptr_tok, "injected_compound") == 0)		m_Data.injected_compound = rest;
 					if(strcmp(ptr_tok, "dose_units") == 0)		m_Data.dose_units = atoi(rest);
 					if(strcmp(ptr_tok, "dose") == 0)		m_Data.dose = atof(rest);
-					if(strcmp(ptr_tok, "injection_time") == 0)		m_Data.injection_time = rest;
+					if(strcmp(ptr_tok, "injection_time") == 0)
+					{
+						QString str(rest);
+						QDateTime dt = QDateTime::fromString(str);
+						m_Data.injection_time = (long)dt.toTime_t();
+						D("InjectionTime %s in seconds %ld", rest, m_Data.injection_time);
+					}
 					if(strcmp(ptr_tok, "injection_decay_correction") == 0)		m_Data.injection_decay_correction = atof(rest);
 					
 					if(strcmp(ptr_tok, "subject_identifier") == 0)		m_Data.subject_identifier = rest;

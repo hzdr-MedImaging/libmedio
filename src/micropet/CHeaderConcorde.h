@@ -114,11 +114,11 @@ class CHeaderConcorde : public CMedIOHeader
 		std::string investigator(void) {return m_Data.investigator;}
 		std::string Operator(void) {return m_Data.Operator;}
 		std::string studyidentifier(void) {return m_Data.study_identifier;}
-		std::string scantime(void) {return m_Data.scan_time;}
+		long scantime(void) {return m_Data.scan_time;}
 		std::string injectedcompound(void) {return m_Data.injected_compound;}
 		int doseunits(void) {return m_Data.dose_units;}
 		float dose(void) {return m_Data.dose;}
-		std::string injectiontime(void) {return m_Data.injection_time;}
+		long injectiontime(void) {return m_Data.injection_time;}
 		float injectiondecaycorrection(void) {return m_Data.injection_decay_correction;}
 		
 		
@@ -191,11 +191,11 @@ class CHeaderConcorde : public CMedIOHeader
 		void setInvestigator(std::string value) { m_Data.investigator = value;}
 		void setOperator(std::string value) { m_Data.Operator = value;}
 		void setStudyIdentifier(std::string value) { m_Data.study_identifier = value;}
-		void setScanTime(std::string value) { m_Data.scan_time = value;}
+		void setScanTime(long value) { m_Data.scan_time = value;}
 		void setInjectedCompound(std::string value) { m_Data.injected_compound = value;}
 		void setDoseUnits(int value) { m_Data.dose_units = value;}
 		void setDose(float value) { m_Data.dose = value;}
-		void setInjectionTime(std::string value) { m_Data.injection_time = value;}
+		void setInjectionTime(long value) { m_Data.injection_time = value;}
 		void setInjectionDecayCorrection(float value) { m_Data.injection_decay_correction = value;}
 		
 		void setSubjectIdentifier(std::string value) { m_Data.subject_identifier = value;}
@@ -275,11 +275,11 @@ class CHeaderConcorde : public CMedIOHeader
 			std::string	investigator;
 			std::string	Operator;
 			std::string	study_identifier;
-			std::string	scan_time;		//Scan_Start_Time;
+			long		scan_time;		//Scan_Start_Time;
 			std::string	injected_compound;
 			int		dose_units;
 			float		dose;
-			std::string	injection_time;
+			long		injection_time;
 			float		injection_decay_correction;
 			std::string	subject_identifier;
 			std::string	subject_genus;
