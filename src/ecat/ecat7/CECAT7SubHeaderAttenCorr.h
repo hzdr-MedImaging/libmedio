@@ -36,15 +36,8 @@ class Q_EXPORT CECAT7SubHeaderAttenCorr : public CECATSubHeader
 														Atten_Meas,
 														Atten_Calc };
 
-		// constructor
-		CECAT7SubHeaderAttenCorr()
-		{
-			// check that the headsize is 512 bytes long
-			ASSERT(sizeof(struct ECAT7SubHeader_AttenCorr) == 512);
-
-			// then clear the structure
-			memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_AttenCorr));
-		}
+		// constructors
+		CECAT7SubHeaderAttenCorr();
 
 		// public methods
 		bool load(QDataStream& stream);

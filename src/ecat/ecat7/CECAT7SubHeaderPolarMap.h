@@ -45,15 +45,8 @@ class Q_EXPORT CECAT7SubHeaderPolarMap : public CECATSubHeader
 														Transform						=	(1<<7),
 														PMapCalcProtoUsed		=	(1<<8) };
 
-		// constructor
-		CECAT7SubHeaderPolarMap()
-		{
-			// check that the headsize is 512 bytes long
-			ASSERT(sizeof(struct ECAT7SubHeader_PolarMap) == 512);
-
-			// then clear the structure
-			memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_PolarMap));			
-		}
+		// constructors
+		CECAT7SubHeaderPolarMap();
 			
 		// public methods
 		bool load(QDataStream& stream);

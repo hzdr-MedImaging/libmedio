@@ -32,6 +32,16 @@
 
 #include "debug.h"
 
+CECAT7MainHeader::CECAT7MainHeader(const CECAT7MainHeader& mh)
+	: CECATMainHeader()
+{
+	// make 100% sure that the ECAT7 MainHeader is just 512bytes long.
+  ASSERT(sizeof(struct ECAT7MainHeader) == 512);
+	
+	// lets copy the mainHeader data but keep an eye on the file type
+	memcpy(&m_Data, &mh.m_Data, sizeof(struct ECAT7MainHeader));
+}
+
 CECAT7MainHeader::CECAT7MainHeader(CECATMainHeader::Type fileType)
 	: CECATMainHeader()
 {

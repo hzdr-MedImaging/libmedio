@@ -28,6 +28,15 @@
 
 #include "debug.h"
 
+CECAT7SubHeaderAttenCorr::CECAT7SubHeaderAttenCorr()
+{
+	// check that the headsize is 512 bytes long
+	ASSERT(sizeof(struct ECAT7SubHeader_AttenCorr) == 512);
+
+	// then clear the structure
+	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_AttenCorr));
+}
+
 bool CECAT7SubHeaderAttenCorr::load(QDataStream& stream)
 {
 	// check if the stream is readable or not.

@@ -28,6 +28,15 @@
 
 #include "debug.h"
 
+CECAT7SubHeaderPolarMap::CECAT7SubHeaderPolarMap()
+{
+	// check that the headsize is 512 bytes long
+	ASSERT(sizeof(struct ECAT7SubHeader_PolarMap) == 512);
+
+	// then clear the structure
+	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_PolarMap));			
+}
+
 bool CECAT7SubHeaderPolarMap::load(QDataStream& stream)
 {
 	// check if the stream is readable or not.

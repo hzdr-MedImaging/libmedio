@@ -49,11 +49,7 @@ class Q_EXPORT CECATFile : public QFile
 	public:
 		enum ECATFormat	{ Undefined=0, ECAT7, ECAT6 };
 
-		CECATFile()
-			: QFile(), m_ECATformat(Undefined), m_pMainHeader(NULL),
-				m_pMainDirectory(NULL)
-		{ }
-
+		CECATFile();
 		CECATFile(const QString& filename,
 							CECATMainHeader::Type fileType = CECATMainHeader::Unknown);
 		~CECATFile();

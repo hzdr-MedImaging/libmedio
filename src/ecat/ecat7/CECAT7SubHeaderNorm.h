@@ -36,15 +36,8 @@ class Q_EXPORT CECAT7SubHeaderNorm : public CECATSubHeader
 		// public enumeration types
 		enum Norm_Qual_Factor_Code	{	TBD };
 
-		// constructor
-		CECAT7SubHeaderNorm()
-		{
-			// check that the headsize is 512 bytes long
-			ASSERT(sizeof(struct ECAT7SubHeader_Norm) == 512);
-
-			// then clear the structure
-			memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Norm));
-		}
+		// constructors
+		CECAT7SubHeaderNorm();
 		
 		// public methods													
 		bool load(QDataStream& stream);

@@ -69,15 +69,8 @@ class Q_EXPORT CECAT7SubHeaderImage : public CECATSubHeader
 														DecayCorrection			=	(1<<9),
 														OnlineCompression		= (1<<10) };
 
-		// constructor
-		CECAT7SubHeaderImage()
-		{
-			// check that the headsize is 512 bytes long
-			ASSERT(sizeof(struct ECAT7SubHeader_Image) == 512);
-
-			// then clear the structure
-			memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Image));
-		}
+		// constructors
+		CECAT7SubHeaderImage();
 
 		// public methods
 		bool load(QDataStream& stream);

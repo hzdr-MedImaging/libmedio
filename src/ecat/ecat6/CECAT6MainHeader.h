@@ -35,13 +35,7 @@ class CECATFile;
 class Q_EXPORT CECAT6MainHeader : public CECATMainHeader
 {
 	public:
-		CECAT6MainHeader(const CECAT6MainHeader& mh)
-			: CECATMainHeader()
-		{
-			// lets copy the mainHeader data but keep an eye on the file type
-			memcpy(&m_Data, &mh.m_Data, sizeof(struct ECAT6MainHeader));
-		}
-		
+		CECAT6MainHeader(const CECAT6MainHeader& mh);
 		CECAT6MainHeader(CECATMainHeader::Type fileType = 
 										 CECATMainHeader::Unknown);
 

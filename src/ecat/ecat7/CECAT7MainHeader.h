@@ -60,14 +60,8 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 																		DualEnergy, UpperEnergy, EmissionTransmission };
 		enum Septa_State							{ Extended=0, Retracted };
 				
-		// public Methods
-		CECAT7MainHeader(const CECAT7MainHeader& mh)
-			: CECATMainHeader()
-		{
-			// lets copy the mainHeader data but keep an eye on the file type
-			memcpy(&m_Data, &mh.m_Data, sizeof(struct ECAT7MainHeader));
-		}
-
+		// constructors
+		CECAT7MainHeader(const CECAT7MainHeader& mh);
 		CECAT7MainHeader(CECATMainHeader::Type fileType =
 										 CECATMainHeader::Unknown);
 

@@ -38,15 +38,8 @@ class Q_EXPORT CECAT7SubHeaderScan : public CECATSubHeader
 																Atten		=	(1<<0),
 																Smooth	=	(1<<1) };
 
-		// constructor
-		CECAT7SubHeaderScan()
-		{
-			// check that the headsize is 1024 bytes long
-			ASSERT(sizeof(struct ECAT7SubHeader_Scan) == 1024);
-
-			// then clear the structure
-			memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Scan));			
-		}
+		// constructors
+		CECAT7SubHeaderScan();
 		
 		// public methods
 		bool load(QDataStream& stream);

@@ -27,6 +27,18 @@
 #include <qdatastream.h>
 #include <qfileinfo.h>
 
+#include "debug.h"
+
+CECAT6MainHeader::CECAT6MainHeader(const CECAT6MainHeader& mh)
+	: CECATMainHeader()
+{
+	// make 100% sure that the ECAT6 MainHeader is just 512bytes long.
+  ASSERT(sizeof(struct ECAT6MainHeader) == 512);
+	
+	// lets copy the mainHeader data but keep an eye on the file type
+	memcpy(&m_Data, &mh.m_Data, sizeof(struct ECAT6MainHeader));
+}
+
 CECAT6MainHeader::CECAT6MainHeader(CECATMainHeader::Type fileType)
 	: CECATMainHeader()
 {
@@ -42,7 +54,7 @@ CECAT6MainHeader::CECAT6MainHeader(CECATMainHeader::Type fileType)
 	// Number field
 
 	// default values for our Main Header
-	m_Data.SW_Version						= 60;		// use v6.0 as the default ECAT6 version
+	m_Data.SW_Version	= 60;		// use v6.0 as the default ECAT6 version
 }
 
 bool CECAT6MainHeader::load(CECATFile* pFile)

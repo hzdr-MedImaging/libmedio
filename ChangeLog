@@ -6,6 +6,12 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2004-08-06  Jens Langner <Jens.Langner@light-speed.de>
+
+  * removed all inline based constructors and put them into
+    their proper .cpp files to make the library interface
+    a bit cleaner.
+
 2004-08-05  Jens Langner <Jens.Langner@light-speed.de>
 
   * added Q_EXPORT to all main classes to export them
