@@ -21,7 +21,7 @@ CHeaderConcorde::~CHeaderConcorde()
 	LEAVE();
 }
 
-CMedIOHeader::Format CHeaderConcorde::rtti()
+int CHeaderConcorde::rtti()
 {
 	return CMedIOHeader::ConcordeMicropet;
 }
@@ -126,7 +126,7 @@ CHeaderConcorde::CHeaderConcorde(string File) : CMedIOHeader(File)
 bool CHeaderConcorde::load()
 {
 	//unset function should be used !!!
-	string File = CMedIOHeader::getFile();
+	string File = file();
 	D("Start Parsing File %s", File.c_str());
 	ifstream pFile(File.c_str());
 	if(pFile.good())
@@ -190,80 +190,80 @@ bool CHeaderConcorde::load()
 						D("Warning: Header is Windowsfile");
 						rest[strlen(rest)-1] = 0;
 					}
-					if(strcmp(ptr_tok, "model") == 0) 		m_Data.model = rest;
+					if(strcmp(ptr_tok, "model") == 0) 		m_Data.model = atoi(rest);
 					if(strcmp(ptr_tok, "institution") == 0)		m_Data.institution = rest;
 					if(strcmp(ptr_tok, "study") == 0) 		m_Data.study = rest;
 					if(strcmp(ptr_tok, "file_name") == 0) 		m_Data.file_name = rest;
-					if(strcmp(ptr_tok, "file_type") == 0) 		m_Data.file_type = rest;
-					if(strcmp(ptr_tok, "acquisition_mode") == 0) 	m_Data.acquisition_mode = rest;
-					if(strcmp(ptr_tok, "bed_motion") == 0) 		m_Data.bed_motion = rest;
-					if(strcmp(ptr_tok, "total_frames") == 0) 	m_Data.total_frames = rest;
+					if(strcmp(ptr_tok, "file_type") == 0) 		m_Data.file_type = atoi(rest);
+					if(strcmp(ptr_tok, "acquisition_mode") == 0) 	m_Data.acquisition_mode = atoi(rest);
+					if(strcmp(ptr_tok, "bed_motion") == 0) 		m_Data.bed_motion = atoi(rest);
+					if(strcmp(ptr_tok, "total_frames") == 0) 	m_Data.total_frames = atoi(rest);
 					
 					if(strcmp(ptr_tok, "isotope") == 0) 		m_Data.isotope = rest;
-					if(strcmp(ptr_tok, "isotope_half_time") == 0) 	m_Data.isotope_half_time = rest;
-					if(strcmp(ptr_tok, "isotope_branching_fraction") == 0)	m_Data.isotope_branching_fraction = rest;
+					if(strcmp(ptr_tok, "isotope_half_time") == 0) 	m_Data.isotope_half_time = atof(rest);
+					if(strcmp(ptr_tok, "isotope_branching_fraction") == 0)	m_Data.isotope_branching_fraction = atof(rest);
 					
-					if(strcmp(ptr_tok, "transaxial_crystals_per_block") == 0)	m_Data.transaxial_crystals_per_block = rest;
-					if(strcmp(ptr_tok, "axial_crystals_per_block") == 0)	m_Data.axial_crystals_per_block = rest;
-					if(strcmp(ptr_tok, "intrinsic_crystal_offset")	== 0)	m_Data.intrinsic_crystal_offset = rest;
-					if(strcmp(ptr_tok, "transaxial_blocks") == 0) 	m_Data.transaxial_blocks = rest;
-					if(strcmp(ptr_tok, "axial_blocks") == 0) m_Data.axial_blocks = rest;
-					if(strcmp(ptr_tok, "axial_crystal_pitch") == 0) m_Data.axial_crystal_pitch = rest;
-					if(strcmp(ptr_tok, "radius") == 0)	m_Data.radius = rest;
-					if(strcmp(ptr_tok, "radial_fov") == 0)	m_Data.radial_fov = rest;
-					if(strcmp(ptr_tok, "src_radius") == 0)	m_Data.src_radius = rest;
-					if(strcmp(ptr_tok, "src_cm_per_rev") == 0) m_Data.src_cm_per_rev = rest;
-					if(strcmp(ptr_tok, "tx_src_type") == 0)	m_Data.tx_src_type = rest;
-					if(strcmp(ptr_tok, "transaxial_bin_size") == 0)	m_Data.transaxial_bin_size = rest;
-					if(strcmp(ptr_tok, "axial_plane_size") == 0)	m_Data.axial_plane_size = rest;
-					if(strcmp(ptr_tok, "lld") == 0)			m_Data.lld = rest;
-					if(strcmp(ptr_tok, "uld") == 0) 		m_Data.uld = rest;
+					if(strcmp(ptr_tok, "transaxial_crystals_per_block") == 0)	m_Data.transaxial_crystals_per_block = atoi(rest);
+					if(strcmp(ptr_tok, "axial_crystals_per_block") == 0)	m_Data.axial_crystals_per_block = atoi(rest);
+					if(strcmp(ptr_tok, "intrinsic_crystal_offset")	== 0)	m_Data.intrinsic_crystal_offset = atoi(rest);
+					if(strcmp(ptr_tok, "transaxial_blocks") == 0) 	m_Data.transaxial_blocks = atoi(rest);
+					if(strcmp(ptr_tok, "axial_blocks") == 0) m_Data.axial_blocks = atoi(rest);
+					if(strcmp(ptr_tok, "axial_crystal_pitch") == 0) m_Data.axial_crystal_pitch = atof(rest);
+					if(strcmp(ptr_tok, "radius") == 0)	m_Data.radius = atof(rest);
+					if(strcmp(ptr_tok, "radial_fov") == 0)	m_Data.radial_fov = atof(rest);
+					if(strcmp(ptr_tok, "src_radius") == 0)	m_Data.src_radius = atof(rest);
+					if(strcmp(ptr_tok, "src_cm_per_rev") == 0) m_Data.src_cm_per_rev = atof(rest);
+					if(strcmp(ptr_tok, "tx_src_type") == 0)	m_Data.tx_src_type = atoi(rest);
+					if(strcmp(ptr_tok, "transaxial_bin_size") == 0)	m_Data.transaxial_bin_size = atof(rest);
+					if(strcmp(ptr_tok, "axial_plane_size") == 0)	m_Data.axial_plane_size = atof(rest);
+					if(strcmp(ptr_tok, "lld") == 0)			m_Data.lld = atof(rest);
+					if(strcmp(ptr_tok, "uld") == 0) 		m_Data.uld = atof(rest);
 					
-					if(strcmp(ptr_tok, "data_order") == 0) 		m_Data.data_order = rest;
-					if(strcmp(ptr_tok, "data_type") == 0)		m_Data.data_type = rest;
-					if(strcmp(ptr_tok, "span") == 0) 		m_Data.span = rest;
-					if(strcmp(ptr_tok, "ring_difference") == 0) 	m_Data.ring_difference = rest;
-					if(strcmp(ptr_tok, "number_of_dimensions") == 0)	m_Data.number_of_dimensions = rest;
-					if(strcmp(ptr_tok, "x_dimension") == 0) 		m_Data.x_dimension = rest;
-					if(strcmp(ptr_tok, "y_dimension") == 0)		m_Data.y_dimension = rest;
-					if(strcmp(ptr_tok, "z_dimension") == 0)		m_Data.z_dimension = rest;
-					if(strcmp(ptr_tok, "w_dimension") == 0)		m_Data.w_dimension = rest;
+					if(strcmp(ptr_tok, "data_order") == 0) 		m_Data.data_order = atoi(rest);
+					if(strcmp(ptr_tok, "data_type") == 0)		m_Data.data_type = atoi(rest);
+					if(strcmp(ptr_tok, "span") == 0) 		m_Data.span = atoi(rest);
+					if(strcmp(ptr_tok, "ring_difference") == 0) 	m_Data.ring_difference = atoi(rest);
+					if(strcmp(ptr_tok, "number_of_dimensions") == 0)	m_Data.number_of_dimensions = atoi(rest);
+					if(strcmp(ptr_tok, "x_dimension") == 0) 		m_Data.x_dimension = atoi(rest);
+					if(strcmp(ptr_tok, "y_dimension") == 0)		m_Data.y_dimension = atoi(rest);
+					if(strcmp(ptr_tok, "z_dimension") == 0)		m_Data.z_dimension = atoi(rest);
+					if(strcmp(ptr_tok, "w_dimension") == 0)		m_Data.w_dimension = atoi(rest);
 					if(strcmp(ptr_tok, "delta_elements") == 0)
 					{ 	
 						char *element = NULL;
 						element = strtok(rest, " ");
 						char *count;
 						count = strtok(NULL, "\0");
-						m_Data.delta_elements[atoi(element)] = count;
+						m_Data.delta_elements[atoi(element)] = atoi(count);
 					}
 					
-					if(strcmp(ptr_tok, "deadtime_correction_applied") == 0)		m_Data.deadtime_correction_applied = rest;
-					if(strcmp(ptr_tok, "decay_correction_applied") == 0)		m_Data.decay_correction_applied = rest;
-					if(strcmp(ptr_tok, "normalization_applied") == 0)		m_Data.normalization_applied = rest;
-					if(strcmp(ptr_tok, "attenuation_applied") == 0)		m_Data.attenuation_applied = rest;
-					if(strcmp(ptr_tok, "scatter_correction") == 0)		m_Data.scatter_correction = rest;
-					if(strcmp(ptr_tok, "arc_correction") == 0)		m_Data.arc_correction = rest;
+					if(strcmp(ptr_tok, "deadtime_correction_applied") == 0)		m_Data.deadtime_correction_applied = atoi(rest);
+					if(strcmp(ptr_tok, "decay_correction_applied") == 0)		m_Data.decay_correction_applied = atoi(rest);
+					if(strcmp(ptr_tok, "normalization_applied") == 0)		m_Data.normalization_applied = atoi(rest);
+					if(strcmp(ptr_tok, "attenuation_applied") == 0)		m_Data.attenuation_applied = atoi(rest);
+					if(strcmp(ptr_tok, "scatter_correction") == 0)		m_Data.scatter_correction = atoi(rest);
+					if(strcmp(ptr_tok, "arc_correction") == 0)		m_Data.arc_correction_applied = atoi(rest);
 					
-					if(strcmp(ptr_tok, "calibration_factor") == 0)		m_Data.calibration_factor = rest;
-					if(strcmp(ptr_tok, "calibration_branching_fraction") == 0)		m_Data.calibration_branching_fraction = rest;
-					if(strcmp(ptr_tok, "number_of_singles_rates") == 0)		m_Data.number_of_singles_rates = rest;
+					if(strcmp(ptr_tok, "calibration_factor") == 0)		m_Data.calibration_factor = atof(rest);
+					if(strcmp(ptr_tok, "calibration_branching_fraction") == 0)		m_Data.calibration_branching_fraction = atof(rest);
+					if(strcmp(ptr_tok, "number_of_singles_rates") == 0)		m_Data.number_of_singles_rates = atoi(rest);
 					
 					if(strcmp(ptr_tok, "investigator") == 0)		m_Data.investigator = rest;
 					if(strcmp(ptr_tok, "Operator") == 0)		m_Data.Operator = rest;
 					if(strcmp(ptr_tok, "study_identifier") == 0)		m_Data.study_identifier = rest;
 					if(strcmp(ptr_tok, "scan_time") == 0)		m_Data.scan_time = rest;
 					if(strcmp(ptr_tok, "injected_compound") == 0)		m_Data.injected_compound = rest;
-					if(strcmp(ptr_tok, "dose_units") == 0)		m_Data.dose_units = rest;
-					if(strcmp(ptr_tok, "dose") == 0)		m_Data.dose = rest;
+					if(strcmp(ptr_tok, "dose_units") == 0)		m_Data.dose_units = atoi(rest);
+					if(strcmp(ptr_tok, "dose") == 0)		m_Data.dose = atof(rest);
 					if(strcmp(ptr_tok, "injection_time") == 0)		m_Data.injection_time = rest;
-					if(strcmp(ptr_tok, "injection_decay_correction") == 0)		m_Data.injection_decay_correction = rest;
+					if(strcmp(ptr_tok, "injection_decay_correction") == 0)		m_Data.injection_decay_correction = atof(rest);
 					
 					if(strcmp(ptr_tok, "subject_identifier") == 0)		m_Data.subject_identifier = rest;
 					if(strcmp(ptr_tok, "subject_genus") == 0)		m_Data.subject_genus = rest;
-					if(strcmp(ptr_tok, "subject_orientation") == 0)		m_Data.subject_orientation = rest;
-					if(strcmp(ptr_tok, "subject_length_units") == 0)		m_Data.subject_length_units = rest;
-					if(strcmp(ptr_tok, "subject_length") == 0)		m_Data.subject_length = rest;
-					if(strcmp(ptr_tok, "subject_weight_units") == 0)		m_Data.subject_weight = rest;
+					if(strcmp(ptr_tok, "subject_orientation") == 0)		m_Data.subject_orientation = atoi(rest);
+					if(strcmp(ptr_tok, "subject_length_units") == 0)		m_Data.subject_length_units = atoi(rest);
+					if(strcmp(ptr_tok, "subject_length") == 0)		m_Data.subject_length = atof(rest);
+					if(strcmp(ptr_tok, "subject_weight_units") == 0)		m_Data.subject_weight = atof(rest);
 					if(strcmp(ptr_tok, "subject_phenotype") == 0)		m_Data.subject_phenotype = rest;
 					if(strcmp(ptr_tok, "study_model") == 0)		m_Data.study_model = rest;
 					
@@ -281,13 +281,9 @@ bool CHeaderConcorde::load()
 		D("Parsing of MainHeader is ok!");
 		//now parse same file for frames
 		
-		for(int i = 0; i < atoi(m_Data.total_frames.c_str()); i++)
+		for(int i = 0; i < m_Data.total_frames; i++)
 		{
-			char vBuf[512];
-			sprintf(vBuf,"%d",i);
-			vBuf[strlen(vBuf)] = 0;
-			string tmp = vBuf;
-			CHeaderConcordeFrame* frame = new CHeaderConcordeFrame(File, tmp);
+			CHeaderConcordeFrame* frame = new CHeaderConcordeFrame(File, i);
 			frames.push_back(frame);
 		}
 		
@@ -315,24 +311,24 @@ unsigned int CHeaderConcorde::getFrameSize()
 	//calculate the frame size: 
 	//frame_size = number_of_sinograms*x_dimension*y_dimension*data_type_size
 	//number_of_dimensions = sum(sinograms) over all delta_elements
-	if(m_Data.data_type == "2" | m_Data.data_type == "6")
+	if(m_Data.data_type == 2 | m_Data.data_type == 6)
 	{
 		typesize = 2;
 	}
 	else 
 		typesize = 4;
 	
-	if(m_Data.data_type == "0")
+	if(m_Data.data_type == 0)
 	{
 		typesize = 1;
 	}
-	if(m_Data.data_type == "1")
+	if(m_Data.data_type == 1)
 	{
 		typesize = 1;
 	}
 	
-	for(int i = 0; i < 11; i++) framesize += atoi(m_Data.delta_elements[i].c_str());
-	framesize = framesize*atoi(m_Data.x_dimension.c_str())*atoi(m_Data.y_dimension.c_str())*typesize;
+	for(int i = 0; i < 11; i++) framesize += m_Data.delta_elements[i];
+	framesize = framesize*m_Data.x_dimension*m_Data.y_dimension*typesize;
 	return framesize;
 }
 
@@ -342,22 +338,22 @@ unsigned int CHeaderConcorde::getImageFrameSize()
 	int typesize = 0;
 	//calculate the imageframe size: 
 	//framesize = x_dimension*y_dimension*z_dimension*data_type_size
-	if(m_Data.data_type == "2" | m_Data.data_type == "6")
+	if(m_Data.data_type == 2 | m_Data.data_type == 6)
 	{
 		typesize = 2;
 	}
 	else 
 		typesize = 4;
 	
-	if(m_Data.data_type == "0")
+	if(m_Data.data_type == 0)
 	{
 		typesize = 1;
 	}
-	if(m_Data.data_type == "1")
+	if(m_Data.data_type == 1)
 	{
 		typesize = 1;
 	}
 	
-	framesize = atoi(m_Data.x_dimension.c_str())*atoi(m_Data.y_dimension.c_str())*atoi(m_Data.z_dimension.c_str())*typesize;
+	framesize = m_Data.x_dimension*m_Data.y_dimension*m_Data.z_dimension*typesize;
 	return framesize;
 }

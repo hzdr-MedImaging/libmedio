@@ -24,12 +24,12 @@ QByteArray* CConcordeSinogram::get(short frame, short plane,
 {
 	ENTER();
 	//check if header is from Concorde
-	if(CMedIOData::getHeader()->rtti() == CMedIOHeader::ConcordeMicropet)
+	if(header()->rtti() == CMedIOHeader::ConcordeMicropet)
 	{
-		CHeaderConcorde* head = (CHeaderConcorde*)CMedIOData::getHeader();
+		CHeaderConcorde* head = (CHeaderConcorde*)header();
 		
 		//create new filepointer to datafile
-		QFile pfile(CMedIOData::getFile());
+		QFile pfile(file());
 		unsigned int framesize = head->getFrameSize();
 		char * data = new char[framesize];
 
@@ -37,7 +37,7 @@ QByteArray* CConcordeSinogram::get(short frame, short plane,
 		if(pfile.open(IO_ReadOnly))
 		{
 			//check if desired frame exists
-			int totalframes = atoi(head->totalframes().c_str());
+			int totalframes = head->numframes();
 			if(frame > totalframes)
 			{
 				//throw exception if frame out of range
@@ -51,13 +51,13 @@ QByteArray* CConcordeSinogram::get(short frame, short plane,
 			QDataStream stream(&pfile);
 		
 			//get byte order from header and set it in datastream
-			if(head->datatype() == "0")
+			if(head->datatype() == 0)
 			{
 				W("No or an unknown data type");
 				stream.readRawBytes(data, framesize);	
 			}
 
-			if(head->datatype() == "1")
+			if(head->datatype() == 1)
 			{
 				// we use the RawBytes() method here.
 				stream.readRawBytes(data, framesize);
@@ -66,7 +66,7 @@ QByteArray* CConcordeSinogram::get(short frame, short plane,
 			// 2 is a little endian short value, so we
 			// need to set the stream to little endian, read the data via the
 			// QDataStream operators to ensure correct byte swapping
-			if(head->datatype() == "2")
+			if(head->datatype() == 2)
 			{
 				stream.setByteOrder(QDataStream::LittleEndian);
 				Q_UINT16* ptr = (Q_UINT16*)data;
@@ -81,7 +81,7 @@ QByteArray* CConcordeSinogram::get(short frame, short plane,
 			// 3 is a little endian 4byte integer value, so we
 			// need to set the stream to little endian, read the data via the
 			// QDataStream operators to ensure correct byte swapping
-			if(head->datatype() == "3")
+			if(head->datatype() == 3)
 			{
 				D("DataType is : little endian integer");
 				D("FrameSize : %d", framesize);
@@ -98,7 +98,7 @@ QByteArray* CConcordeSinogram::get(short frame, short plane,
 			// 4 is a little endian float value, so we
 			// need to set the stream to little endian, read the data via the
 			// QDataStream operators to ensure correct byte swapping			
-			if(head->datatype() == "4")
+			if(head->datatype() == 4)
 			{
 				D("DataType is : little endian float");
 				D("FrameSize : %d", framesize);
@@ -115,7 +115,7 @@ QByteArray* CConcordeSinogram::get(short frame, short plane,
 			// 5 is defined to be a big endian float value. As the QDataStream
 			// is per default big endian, we don't have to set it to another byte order
 			// and just use the QDataStream operators to ensure correct byte swapping
-			if(head->datatype() == "5")
+			if(head->datatype() == 5)
 			{
 				float* ptr = (float*)data;
 				for(unsigned int i=0; i < framesize; i+=sizeof(float))
@@ -128,7 +128,7 @@ QByteArray* CConcordeSinogram::get(short frame, short plane,
 			// 6 is defined to be a big endian short value. As the QDataStream
 			// is per default big endian, we don't have to set it to another byte order
 			// and just use the QDataStream operators to ensure correct byte swapping
-			if(head->datatype() == "6")
+			if(head->datatype() == 6)
 			{
 				Q_UINT16* ptr = (Q_UINT16*)data;
 				for(unsigned int i=0; i < framesize; i+=sizeof(Q_UINT16))
@@ -141,7 +141,7 @@ QByteArray* CConcordeSinogram::get(short frame, short plane,
 			// 7 is defined to be a big endian 4byte integer value. As the QDataStream
 			// is per default big endian, we don't have to set it to another byte order
 			// and just use the QDataStream operators to ensure correct byte swapping
-			if(head->datatype() == "7")
+			if(head->datatype() == 7)
 			{
 				Q_UINT32* ptr = (Q_UINT32*)data;
 				for(unsigned int i=0; i < framesize; i+=sizeof(Q_UINT32))
@@ -164,9 +164,4 @@ QByteArray* CConcordeSinogram::get(short frame, short plane,
 	}
 	else 
 		return NULL;
-}
-
-CMedIOData::Format CConcordeSinogram::rtti()
-{
-	return CMedIOData::ConcordeMicropet_Sinogram;
 }

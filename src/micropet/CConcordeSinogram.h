@@ -20,7 +20,7 @@ class CConcordeSinogram : public CConcordeFile
 	//methods
 		QByteArray* get(short frame, short plane, 
 			short gate, short bed, short data);
-		CMedIOData::Format rtti();
+		int rtti() {return CMedIOData::ConcordeMicropet_Sinogram;}
 		
 	private :
 	//members

@@ -13,9 +13,9 @@ class CConcordeFile : public CMedIOData
 	//members
 		bool load();
 		bool save();
-		virtual Format rtti() = 0;
+		virtual int rtti() = 0;
 	//methods
-		static CMedIOData::Format isoftype(QString file);
+		static int isoftype(QString file);
 		
 	private :
 	//members

@@ -23,7 +23,7 @@ CConcordeFile::~CConcordeFile()
 bool CConcordeFile::load()
 {
 	//initalise and load header
-	CMedIOData::setHeader(new CHeaderConcorde(CMedIOData::getFile() + ".hdr")); 
+	setHeader(new CHeaderConcorde(file() + ".hdr")); 
 	
 	
 	return true;
@@ -34,7 +34,7 @@ bool CConcordeFile::save()
 	return true;
 }
 
-CMedIOData::Format CConcordeFile::isoftype(QString file)
+int CConcordeFile::isoftype(QString file)
 {
 	//try to initialise the header 
 	//check if it is a CConcordeFile
@@ -46,26 +46,26 @@ CMedIOData::Format CConcordeFile::isoftype(QString file)
         
 	CHeaderConcorde head(file+".hdr");
 
-        if(head.model() == "2000")
+        if(head.model() == 2000)
         {
-                cout << "File is from Concorde" << endl;
+                D("File is from Concorde");
 		//file type = 2 -> Sinogram
 		//file type = 3 -> Normalisation
 		//file type = 4 -> Attenuation (transmission)
 		//file type = 5 -> Image
 		//file type = 8 -> Mu map ( also image )
 		// since attenuationfile/Normalisation is a sinogram we could define it as one 
-		if((head.filetype() == "2" || head.filetype() == "3")
-			|| head.filetype() == "4")
+		if((head.filetype() == 2 || head.filetype() == 3)
+			|| head.filetype() == 4)
 			return CMedIOData::ConcordeMicropet_Sinogram;
-		else if(head.filetype() == "5" || head.filetype() == "8")
+		else if(head.filetype() == 5 || head.filetype() == 8)
 			return CMedIOData::ConcordeMicropet_Image;
 		else
 			return CMedIOData::Unknown;
         }
         else
         {
-		cout << "File is not from Concorde" << endl;
+		D("File is not from Concorde");
 		return CMedIOData::Unknown;
 	}
 }

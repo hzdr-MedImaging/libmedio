@@ -7,7 +7,7 @@
 
 using namespace std;
 
-CHeaderConcordeFrame::CHeaderConcordeFrame(string Filename, string frame)
+CHeaderConcordeFrame::CHeaderConcordeFrame(string Filename, int frame)
 {
 	File = Filename;
 	init();
@@ -22,7 +22,7 @@ CHeaderConcordeFrame::CHeaderConcordeFrame(string Filename, string frame)
 
 bool CHeaderConcordeFrame::load()
 {
-	D("Start Parsing File %s for Frame: %s", File.c_str(), m_Data.frame.c_str());
+	D("Start Parsing File %s for Frame: %d", File.c_str(), m_Data.frame);
 	bool foundframe = false;
 	ifstream pFile(File.c_str());
 	if(pFile.good())
@@ -55,10 +55,10 @@ bool CHeaderConcordeFrame::load()
 				{
 					char *rest = NULL;
 					rest = strtok(NULL, "\0");
-					if(strcmp(rest,m_Data.frame.c_str()) == 0)
+					if(atoi(rest) == m_Data.frame)
 					{
 						foundframe = true;
-						D("Frame %s found", m_Data.frame.c_str());
+						D("Frame %d found", m_Data.frame);
 						continue;
 					}
 				}
@@ -73,28 +73,28 @@ bool CHeaderConcordeFrame::load()
 						rest[strlen(rest)-1] = 0;
 					}
 					//D("%s found : value %s", ptr_tok, rest);
-					if(strcmp(ptr_tok, "event_type") == 0) 		m_Data.event_type = rest;
-					if(strcmp(ptr_tok, "gate") == 0)		m_Data.gate = rest;
-					if(strcmp(ptr_tok, "bed") == 0) 		m_Data.bed = rest;
-					if(strcmp(ptr_tok, "bed_offset") == 0) 		m_Data.bed_offset = rest;
-					if(strcmp(ptr_tok, "ending_bed_offset") == 0) 	m_Data.ending_bed_offset = rest;
-					if(strcmp(ptr_tok, "vertical_bed_offset") == 0) m_Data.vertical_bed_offset = rest;
+					if(strcmp(ptr_tok, "event_type") == 0) 		m_Data.event_type = atoi(rest);
+					if(strcmp(ptr_tok, "gate") == 0)		m_Data.gate = atoi(rest);
+					if(strcmp(ptr_tok, "bed") == 0) 		m_Data.bed = atoi(rest);
+					if(strcmp(ptr_tok, "bed_offset") == 0) 		m_Data.bed_offset = atof(rest);
+					if(strcmp(ptr_tok, "ending_bed_offset") == 0) 	m_Data.ending_bed_offset = atof(rest);
+					if(strcmp(ptr_tok, "vertical_bed_offset") == 0) m_Data.vertical_bed_offset = atof(rest);
 					if(strcmp(ptr_tok, "data_file_pointer") == 0) 	m_Data.data_file_pointer = rest;
-					if(strcmp(ptr_tok, "frame_start") == 0) 	m_Data.frame_start = rest;
+					if(strcmp(ptr_tok, "frame_start") == 0) 	m_Data.frame_start = atof(rest);
 					
-					if(strcmp(ptr_tok, "frame_duration") == 0) 	m_Data.frame_duration = rest;
-					if(strcmp(ptr_tok, "scale_factor") == 0) 	m_Data.scale_factor = rest;
-					if(strcmp(ptr_tok, "minimum") == 0)	m_Data.minimum = rest;
+					if(strcmp(ptr_tok, "frame_duration") == 0) 	m_Data.frame_duration = atof(rest);
+					if(strcmp(ptr_tok, "scale_factor") == 0) 	m_Data.scale_factor = atof(rest);
+					if(strcmp(ptr_tok, "minimum") == 0)	m_Data.minimum = atof(rest);
 					
-					if(strcmp(ptr_tok, "maximum") == 0)	m_Data.maximum = rest;
-					if(strcmp(ptr_tok, "deadtime_correction") == 0)	m_Data.deadtime_correction = rest;
-					if(strcmp(ptr_tok, "decay_correction")	== 0)	m_Data.decay_correction = rest;
+					if(strcmp(ptr_tok, "maximum") == 0)	m_Data.maximum = atof(rest);
+					if(strcmp(ptr_tok, "deadtime_correction") == 0)	m_Data.deadtime_correction = atof(rest);
+					if(strcmp(ptr_tok, "decay_correction")	== 0)	m_Data.decay_correction = atof(rest);
 					
 					if(strcmp(ptr_tok, "prompts") == 0)	m_Data.prompts = rest;
 					if(strcmp(ptr_tok, "delays") == 0)	m_Data.delays = rest;
 					if(strcmp(ptr_tok, "trues")	== 0)	m_Data.trues = rest;
-					if(strcmp(ptr_tok, "prompts_rate") == 0)	m_Data.prompts_rate = rest;
-					if(strcmp(ptr_tok, "delays_rate") == 0)	m_Data.delays_rate = rest;
+					if(strcmp(ptr_tok, "prompts_rate") == 0)	m_Data.prompts_rate = atoi(rest);
+					if(strcmp(ptr_tok, "delays_rate") == 0)	m_Data.delays_rate = atoi(rest);
 				}	
 			}
 		}
