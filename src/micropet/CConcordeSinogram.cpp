@@ -30,7 +30,9 @@ QByteArray* CConcordeSinogram::get(short frame, short plane,
 		
 		//create new filepointer to datafile
 		QFile pfile(CMedIOData::getFile());
-		
+		unsigned int framesize = head->getFrameSize();
+		char * data = new char[framesize];
+
 		//check on open file success
 		if(pfile.open(IO_ReadOnly))
 		{
@@ -43,36 +45,117 @@ QByteArray* CConcordeSinogram::get(short frame, short plane,
 			}
 			
 			//set readpointer to appropriate frame
-			pfile.at((frame-1)*head->getFrameSize());
+			pfile.at((frame-1)*framesize);
 			
 			//create new datastream
-			QDataStream data_stream(&pfile);
+			QDataStream stream(&pfile);
 		
 			//get byte order from header and set it in datastream
 			if(head->getDataType() == "0")
 			{
-				return NULL;
+				W("No or an unknown data type");
+				stream.readRawBytes(data, framesize);	
+			}
+
+			if(head->getDataType() == "1")
+			{
+				// we use the RawBytes() method here.
+				stream.readRawBytes(data, framesize);
+			}
+
+			// 2 is a little endian short value, so we
+			// need to set the stream to little endian, read the data via the
+			// QDataStream operators to ensure correct byte swapping
+			if(head->getDataType() == "2")
+			{
+				stream.setByteOrder(QDataStream::LittleEndian);
+				Q_UINT16* ptr = (Q_UINT16*)data;
+				for(unsigned int i=0; i < framesize; i+=sizeof(Q_UINT16))
+				{
+					stream >> *ptr;
+					++ptr;
+				}
+				stream.setByteOrder(QDataStream::BigEndian);
+			}
+
+			// 3 is a little endian 4byte integer value, so we
+			// need to set the stream to little endian, read the data via the
+			// QDataStream operators to ensure correct byte swapping
+			if(head->getDataType() == "3")
+			{
+				D("DataType is : little endian integer");
+				D("FrameSize : %d", framesize);
+				stream.setByteOrder(QDataStream::LittleEndian);
+				Q_UINT32* ptr = (Q_UINT32*)data;
+				for(unsigned int i=0; i < framesize; i+=sizeof(Q_UINT32))
+				{
+					stream >> *ptr;
+					++ptr;
+				}
+				stream.setByteOrder(QDataStream::BigEndian);
 			}
 			
-			if((head->getDataType()=="2" |
-				head->getDataType()=="3") |
-				head->getDataType()=="4")
+			// 4 is a little endian float value, so we
+			// need to set the stream to little endian, read the data via the
+			// QDataStream operators to ensure correct byte swapping			
+			if(head->getDataType() == "4")
 			{
-				data_stream.setByteOrder(QDataStream::LittleEndian);
+				D("DataType is : little endian float");
+				D("FrameSize : %d", framesize);
+				stream.setByteOrder(QDataStream::LittleEndian);
+				float* ptr = (float*)data;
+				for(unsigned int i=0; i < framesize; i+=sizeof(float))
+				{
+					stream >> *ptr;
+					++ptr;
+				}
+				stream.setByteOrder(QDataStream::BigEndian);
 			}
-			else
+
+			// 5 is defined to be a big endian float value. As the QDataStream
+			// is per default big endian, we don't have to set it to another byte order
+			// and just use the QDataStream operators to ensure correct byte swapping
+			if(head->getDataType() == "5")
 			{
-				data_stream.setByteOrder(QDataStream::BigEndian);
+				float* ptr = (float*)data;
+				for(unsigned int i=0; i < framesize; i+=sizeof(float))
+				{
+					stream >> *ptr;
+					++ptr;
+				}
 			}
-		
-			char * data = new char[head->getFrameSize()];
-			data_stream.readRawBytes(data,head->getFrameSize());
+
+			// 6 is defined to be a big endian short value. As the QDataStream
+			// is per default big endian, we don't have to set it to another byte order
+			// and just use the QDataStream operators to ensure correct byte swapping
+			if(head->getDataType() == "6")
+			{
+				Q_UINT16* ptr = (Q_UINT16*)data;
+				for(unsigned int i=0; i < framesize; i+=sizeof(Q_UINT16))
+				{
+					stream >> *ptr;
+					++ptr;
+				}
+			}
+
+			// 7 is defined to be a big endian 4byte integer value. As the QDataStream
+			// is per default big endian, we don't have to set it to another byte order
+			// and just use the QDataStream operators to ensure correct byte swapping
+			if(head->getDataType() == "7")
+			{
+				Q_UINT32* ptr = (Q_UINT32*)data;
+				for(unsigned int i=0; i < framesize; i+=sizeof(Q_UINT32))
+				{
+					stream >> *ptr;
+					++ptr;
+				}
+			}
 			
 			//close file
 			pfile.close();
 			
 			QByteArray* data_bytes = new QByteArray();
-			data_bytes->setRawData(data,head->getFrameSize());
+			data_bytes->setRawData(data, framesize);
 		
 			return data_bytes;
 		}

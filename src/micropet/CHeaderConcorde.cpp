@@ -146,9 +146,7 @@ bool CHeaderConcorde::load()
 					
 					if(strcmp(ptr_tok, "isotope") == 0) 		m_Data.isotope = rest;
 					if(strcmp(ptr_tok, "isotope_half_time") == 0) 	m_Data.isotope_half_time = rest;
-					if(strcmp(ptr_tok, "vertical_bed_offset") == 0)	m_Data.vertical_bed_offset = rest;
 					if(strcmp(ptr_tok, "radial_fov") == 0)		m_Data.radial_fov = rest;
-					if(strcmp(ptr_tok, "event_type") == 0)		m_Data.event_type = rest;
 					if(strcmp(ptr_tok, "subject_weight") == 0) 	m_Data.subject_weight = rest;
 					if(strcmp(ptr_tok, "acquisition_mode") == 0) 	m_Data.acquisition_mode = rest;
 					if(strcmp(ptr_tok, "subject_orientation") == 0)	m_Data.subject_orientation = rest;
@@ -193,7 +191,7 @@ bool CHeaderConcorde::load()
 	}
 	return true;
 }
-int CHeaderConcorde::getFrameSize()
+unsigned int CHeaderConcorde::getFrameSize()
 {	
 	int framesize = 0;
 	int typesize = 0;
@@ -209,7 +207,7 @@ int CHeaderConcorde::getFrameSize()
 	
 	if(getDataType() == "0")
 	{
-		typesize = 0;
+		typesize = 1;
 	}
 	if(getDataType() == "1")
 	{
