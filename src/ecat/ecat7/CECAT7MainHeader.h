@@ -105,10 +105,10 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 		const char* radiopharmaceutical(void) const
 		{ return m_Data.Radiopharmaceutical; }
 		
-		float gantry_tilt(void) const
+		float gantry_Tilt(void) const
 		{ return m_Data.Gantry_Tilt; }
 		
-		float gantry_rotation(void) const
+		float gantry_Rotation(void) const
 		{ return m_Data.Gantry_Rotation; }
 		
 		float bed_Elevation(void) const
