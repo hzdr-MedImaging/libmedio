@@ -1,7 +1,7 @@
 #include "CConcordeFile.h"
 #include "CHeaderConcorde.h"
 #include "CMedIOData.h"
-#include "../include/debug.h"
+#include "debug.h"
 
 #include <iostream>
 

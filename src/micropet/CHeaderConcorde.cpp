@@ -1,5 +1,5 @@
 #include "CHeaderConcorde.h"
-#include "../include/debug.h"
+#include "debug.h"
 
 #include <fstream>
 #include <string>

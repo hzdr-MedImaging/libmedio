@@ -1,7 +1,7 @@
 #ifndef CHEADERCONCORDE_H
 #define CHEADERCONCORDE_H
 
-#include "../CMedIOHeader.h"
+#include "CMedIOHeader.h"
 
 #include <string>
 #include <list>
