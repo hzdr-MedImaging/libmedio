@@ -56,6 +56,7 @@ PUB_HEADER =	CMedIOHeader.h \
 		ecat/ecat7/CECAT7SubHeaderScan.h \
 		ecat/ecat7/CECAT7SubHeaderScan3D.h \
 		micropet/CHeaderConcorde.h \
+		micropet/CHeaderConcordeFrame.h \
 		micropet/CConcordeFile.h \
 		micropet/CConcordeSinogram.h \
            	micropet/CConcordeImage.h
@@ -80,6 +81,7 @@ SOURCES  = CDebug.cpp \
 	   ecat/ecat7/CECAT7SubHeaderScan.cpp \
 	   ecat/ecat7/CECAT7SubHeaderScan3D.cpp \
 	   micropet/CHeaderConcorde.cpp \
+	   micropet/CHeaderConcordeFrame.cpp \
 	   micropet/CConcordeFile.cpp \
 	   micropet/CConcordeSinogram.cpp \
            micropet/CConcordeImage.cpp
