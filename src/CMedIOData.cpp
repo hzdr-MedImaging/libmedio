@@ -1,5 +1,5 @@
 #include "CMedIOData.h"
-#include "include/debug.h"
+#include "debug.h"
 
 #include <qstring.h>
 

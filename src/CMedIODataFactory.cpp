@@ -1,7 +1,7 @@
 #include "CMedIODataFactory.h"
 #include "CMedIOData.h"
-#include "micropet/CConcordeFile.h"
-#include "micropet/CConcordeSinogram.h"
+#include "CConcordeFile.h"
+#include "CConcordeSinogram.h"
 
 CMedIOData* CMedIODataFactory::makeMedIOData(QString file)
 {

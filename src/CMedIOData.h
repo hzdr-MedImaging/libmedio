@@ -14,7 +14,10 @@ class CMedIOData
 		virtual ~CMedIOData();
 		
 	//members
-		enum Format {Unknown = 0,ConcordeMicropet_Sinogram};
+		enum Format {	Unknown = 0,
+				ConcordeMicropet_Sinogram,
+				ECAT7_Volume16
+				};
 		
 	//methods
 		virtual bool load() = 0;

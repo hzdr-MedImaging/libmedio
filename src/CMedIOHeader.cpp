@@ -1,5 +1,5 @@
 #include "CMedIOHeader.h"
-#include "include/debug.h"
+#include "debug.h"
 
 CMedIOHeader::CMedIOHeader(QString file)
 {
