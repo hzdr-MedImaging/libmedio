@@ -30,7 +30,6 @@
 
 #include <unistd.h>
 
-#include "scanner.h"
 #include "debug.h"
 
 CECAT7MainHeader::CECAT7MainHeader(CECATMainHeader::Type fileType)
@@ -47,30 +46,31 @@ CECAT7MainHeader::CECAT7MainHeader(CECATMainHeader::Type fileType)
 	// depending on the supplied fileType we have to have a different Magic
 	// Number field
 
-	// default values for our Main Header
-	m_Data.SW_Version						= 72;		// use v7.2 as the default ECAT version
-	m_Data.System_Type					= 962;	// set ECAT Model 962 (EXACT HR+) by default
-	m_Data.Scan_Start_Time			= time(NULL);
-	m_Data.Isotope_Halflife			= 6586.2;
-	m_Data.Distance_Scanned			= 15.52;
+	// set some default values for the new Main Header
+	// (we mainly set these values like it is set on a EXACT HR+ scanner
+	m_Data.SW_Version						= 72;					// use v7.2 as the default ECAT version
+	m_Data.System_Type					= 962;				// set ECAT Model 962 (EXACT HR+) by default
+	m_Data.Scan_Start_Time			= time(NULL);	// set the start time to the current time
+	m_Data.Isotope_Halflife			= 6586.2;			// halflife time of FDOPA
+	m_Data.Distance_Scanned			= 15.52;		  // scanner depth		
 	m_Data.Transaxial_FOV				= 58.3;
-	m_Data.Angular_Compression	= static_cast<short>(Mash2); // 0=no mash, 1=mash 2, 2=mash 4
+	m_Data.Angular_Compression	= static_cast<short>(Mash2);
 	m_Data.Acquisition_Type			= static_cast<short>(DynamicEmission);
 	m_Data.Acquisition_Mode			= static_cast<short>(Windowed);
 	m_Data.Transm_Source_Type		= static_cast<short>(SRC_RING);
-	m_Data.Lwr_True_Thres				= 350;
+	m_Data.Lwr_True_Thres				= 350;				// energy levels of an ECAT HR+
 	m_Data.Upr_True_Thres				= 650;
-	m_Data.Patient_Orientation	= 3;		// Head first
+	m_Data.Patient_Orientation	= 3;					// Head first + supine
 	m_Data.Branching_Fraction		= 1.0;
-	m_Data.Plane_Separation			= SCANNER_PLANE_DEPTH/10.0;
-	m_Data.Bin_Size							= SCANNER_X_RESOLUTION;
+	m_Data.Plane_Separation			= 0.2425;			// cm
+	m_Data.Bin_Size							= 0.224983;		// cm
 	m_Data.Septa_State					= static_cast<short>(Retracted);
 
 	setFileType(fileType);
 	strcpy(m_Data.Serial_Number, "1");
 	strcpy(m_Data.Isotope_Name, "F-18");
-	strcpy(m_Data.Radiopharmaceutical, "FDG");
-	strcpy(m_Data.Study_Description, "created by libecat++ v0.3");
+	strcpy(m_Data.Radiopharmaceutical, "F-18 Dopa");
+	strcpy(m_Data.Study_Description, "created with libmedio v0.1");
 }
 
 void CECAT7MainHeader::setStudyData(const CECAT7MainHeader& mh)
