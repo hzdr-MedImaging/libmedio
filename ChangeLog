@@ -6,6 +6,12 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2004-09-24  Jens Langner <Jens.Langner@light-speed.de>
+
+  * CECAT7MainHeader.h: the patient birthdate was specified as a "unsigned int"
+    which was slightly wrong as the ECAT format specifies date prior to 1970
+    as negative values for the birth date of the patient.
+
 2004-09-17  Jens Langner <Jens.Langner@light-speed.de>
 
   * CECAT7MainHeader.h: added missing enumeration values for the Patient

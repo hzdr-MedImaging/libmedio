@@ -176,7 +176,7 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 		float patient_Weight(void) const														
 		{ return m_Data.Patient_Weight;	}
 		
-		unsigned int patient_Birth_Date(void) const								
+		int patient_Birth_Date(void) const								
 		{ return m_Data.Patient_Birth_Date;	}
 		
 		const char* physician_Name(void) const										
@@ -359,7 +359,7 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 		void setPatient_Weight(const float weight)													
 		{ m_Data.Patient_Weight = weight;	}
 		
-		void setPatient_Birth_Date(const unsigned int date)										
+		void setPatient_Birth_Date(const int date)										
 		{ m_Data.Patient_Birth_Date = date;	}
 		
 		void setPhysician_Name(const char* name)															
@@ -481,7 +481,7 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
       float					Patient_Age;
       float					Patient_Height;
       float					Patient_Weight;
-      Q_UINT32			Patient_Birth_Date;
+      Q_INT32				Patient_Birth_Date;
       char					Physician_Name[32];
       char					Operator_Name[32];
       char					Study_Description[32];
