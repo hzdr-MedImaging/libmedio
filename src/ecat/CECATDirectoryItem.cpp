@@ -59,6 +59,8 @@ CECATDirectoryItem::CECATDirectoryItem(CECATFile* pFile,
 		m_iGate  = matrixID2Gate(matrixID);
 		m_iBed   = matrixID2Bed(matrixID);
 		m_iData  = matrixID2Data(matrixID);
+
+		D("created new DirItem (%d/%d/%d/%d/%d)", m_iFrame, m_iPlane, m_iGate, m_iBed, m_iData);
 	}
 	
 	LEAVE();
@@ -519,7 +521,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 			W("No or an unknown data type was set for the matrix data of dirItem %08lx",
 					convertToMatrixID(m_iFrame, m_iPlane, m_iGate, m_iBed, m_iData));
 			
-			if(m_pECATFile->writeBlock(matrixData, matrixSize) == matrixSize)
+			if(m_pECATFile->writeBlock(matrixData, matrixSize) == (Q_LONG)matrixSize)
 				result = true;
 		}
 		break;
@@ -527,7 +529,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 		// write out Byte data. (1 byte)
 		case CECATSubHeader::ByteData:
 		{
-			if(m_pECATFile->writeBlock(matrixData, matrixSize) == matrixSize)
+			if(m_pECATFile->writeBlock(matrixData, matrixSize) == (Q_LONG)matrixSize)
 				result = true;
 		}
 		break;
@@ -562,7 +564,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				bufStream.setByteOrder(QDataStream::BigEndian);
 
 				// write out the data from our buffer to the file
-				if(m_pECATFile->writeBlock(bufArray.data(), toWrite) != toWrite)
+				if(m_pECATFile->writeBlock(bufArray.data(), toWrite) != (Q_LONG)toWrite)
 				{
 					result = false;
 					break;
@@ -604,7 +606,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				bufStream.setByteOrder(QDataStream::BigEndian);
 
 				// write out the data from our buffer to the file
-				if(m_pECATFile->writeBlock(bufArray.data(), toWrite) != toWrite)
+				if(m_pECATFile->writeBlock(bufArray.data(), toWrite) != (Q_LONG)toWrite)
 				{
 					result = false;
 					break;
@@ -646,7 +648,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				bufStream.setByteOrder(QDataStream::BigEndian);
 
 				// write out the data from our buffer to the file
-				if(m_pECATFile->writeBlock(bufArray.data(), toWrite) != toWrite)
+				if(m_pECATFile->writeBlock(bufArray.data(), toWrite) != (Q_LONG)toWrite)
 				{
 					result = false;
 					break;
@@ -686,7 +688,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				}
 
 				// write out the data from our buffer to the file
-				if(m_pECATFile->writeBlock(bufArray.data(), toWrite) != toWrite)
+				if(m_pECATFile->writeBlock(bufArray.data(), toWrite) != (Q_LONG)toWrite)
 				{
 					result = false;
 					break;
@@ -726,7 +728,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				}
 
 				// write out the data from our buffer to the file
-				if(m_pECATFile->writeBlock(bufArray.data(), toWrite) != toWrite)
+				if(m_pECATFile->writeBlock(bufArray.data(), toWrite) != (Q_LONG)toWrite)
 				{
 					result = false;
 					break;
@@ -767,7 +769,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				}
 
 				// write out the data from our buffer to the file
-				if(m_pECATFile->writeBlock(bufArray.data(), toWrite) != toWrite)
+				if(m_pECATFile->writeBlock(bufArray.data(), toWrite) != (Q_LONG)toWrite)
 				{
 					result = false;
 					break;

@@ -81,7 +81,7 @@ int main(int argc, char* argv[])
 			unsigned int len = 0;
 
 			if(file.readMatrix(readBuf, len, 1) == false)
-				cout << "Error duing readMatrix() operation" << endl;
+				cout << "Error during readMatrix() operation" << endl;
 			else
 			{
 				cout << "successfully read matrix data from frame 1" << endl;

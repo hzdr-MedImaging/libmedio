@@ -71,27 +71,27 @@ class Q_EXPORT CECATFile : public CMedIOData
 
 		// interface methods to read out specific data from the ECAT files
 		bool readMainHeader(CECATMainHeader*&);
-		bool readSubHeader(CECATSubHeader*&, short frame=1, short plane=1, short gate=1,
+		bool readSubHeader(CECATSubHeader*&, short frame, short plane=1, short gate=1,
 										   short bed=0, short data=0);
-		bool readMatrix(QByteArray*& matrixData, short frame=1, short plane=1, short gate=1,
+		bool readMatrix(QByteArray*& matrixData, short frame, short plane=1, short gate=1,
 									  short bed=0, short data=0);
-		bool readMatrix(char*& matrixData, unsigned int& len, short frame=1, short plane=1,
+		bool readMatrix(char*& matrixData, unsigned int& len, short frame, short plane=1,
 										short gate=1, short bed=0, short data=0);
 
 		// methods to create new and modify existing entries in this file.
 		bool writeMainHeader(CECATMainHeader& mainHeader);
-		bool writeSubHeader(const CECATSubHeader& subHeader, short frame=1, short plane=1,
+		bool writeSubHeader(const CECATSubHeader& subHeader, short frame, short plane=1,
 												short gate=1, short bed=0, short data=0);
-		bool writeMatrix(const QByteArray& matrixData, short frame=1, short plane=1,
+		bool writeMatrix(const QByteArray& matrixData, short frame, short plane=1,
 										 short gate=1, short bed=0, short data=0);
-		bool writeMatrix(const char* matrixData, unsigned int size, short frame=1, short plane=1,
+		bool writeMatrix(const char* matrixData, unsigned int size, short frame, short plane=1,
 										 short gate=1, short bed=0, short data=0);
 
 	private:
 		ECATFormat						m_iECATformat;
 		CECATMainHeader::Type	m_iMainHeaderType;
 		CECATDirectory*				m_pMainDirectory;
-		CECATMainHeader*			m_pCachedMainHeader;
+		CECATMainHeader*			m_pCachedMainHeader; // for speed reasons we cache the loaded main header
 };
 
 #endif // CECATFILE_H

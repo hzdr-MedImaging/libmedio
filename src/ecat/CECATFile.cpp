@@ -403,6 +403,8 @@ bool CECATFile::setFileType(CECATMainHeader::Type fileType)
 
 		result = true;
 	}
+  else
+	  E("Filetype change requested while ECAT file is already open");
 
 	RETURN(result);
 	return result;
@@ -413,8 +415,14 @@ bool CECATFile::readMainHeader(CECATMainHeader*& mainHeader)
 	ENTER();
 	bool result = false;
 	
+  // check if the file was open as readable.
 	if(isReadable())
 	{
+		// let us see if there is already a loaded, cached main header
+		// hanging around which we could use instead of reloading a new
+		// one from scratch.
+		if(m_p
+
 		switch(m_iECATformat)
 		{
 			case CECATFile::ECAT7:

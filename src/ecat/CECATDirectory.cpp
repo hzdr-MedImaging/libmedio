@@ -69,6 +69,8 @@ CECATDirectory::CECATDirectory(CECATFile* ecatFile,
 	ASSERT(sizeof(struct ECAT_DirItem) == 16);	// should be 16bytes
 	ASSERT(sizeof(struct ECAT_DirList) == 512);	// a dirlist should always be 512 bytes
 
+  // create a new value vector for carrying all the different file
+  // positions this directory list is splitted to.
 	m_pFilePositions = new QValueVector<QIODevice::Offset>();
 	m_pFilePositions->clear();
 	m_pFilePositions->append(ECATBlock2FilePos(ECAT_POS_MAINDIR));
@@ -119,13 +121,16 @@ bool CECATDirectory::load(void)
 	{
 		// add each DirList position to our filePositions value list
 		// for later reference
+		SHOWVALUE(m_pECATFile->at());
 		m_pFilePositions->append(m_pECATFile->at());
 
 		// we use a ByteArray buffer to speed up the endianess decoding
 		QByteArray buffer(sizeof(struct ECAT_DirList));
-		if(m_pECATFile->readBlock(buffer.data(), sizeof(struct ECAT_DirList) != 
-					sizeof(struct ECAT_DirList)))
+		if(m_pECATFile->readBlock(buffer.data(), sizeof(struct ECAT_DirList)) != 
+					sizeof(struct ECAT_DirList))
 		{
+			E("An error occurred while reading data");
+
 			result = false;
 			break;
 		}
@@ -141,10 +146,10 @@ bool CECATDirectory::load(void)
 		stream >> dList.head.ItemsToFollow;
 		
 		// output some debug information on the head of the dirList.
-		D("DirHead.FreeItems: %d", dList.head.FreeItems);
-		D("DirHead.Next			: %d", dList.head.Next);
-		D("DirHead.Prev			: %d", dList.head.Prev);
-		D("DirHead.ItemToFol: %d", dList.head.ItemsToFollow);
+		D("DirHead.FreeItems   : %d", dList.head.FreeItems);
+		D("DirHead.Next        : %d", dList.head.Next);
+		D("DirHead.Prev        : %d", dList.head.Prev);
+		D("DirHead.ItemToFollow: %d", dList.head.ItemsToFollow);
 
 		// now we know how many item will follow in the Directory, so we
 		// can populate our Directory here.
@@ -285,6 +290,7 @@ bool CECATDirectory::save(void) const
 				// now we can seek to the file position of the DirList
 				// in the file.
 				m_pECATFile->at((*m_pFilePositions)[curDirList]);
+				SHOWVALUE(m_pECATFile->at());
 
 				// write out everything
 				if(m_pECATFile->writeBlock(dirHeadBuffer) != sizeof(struct ECAT_DirHead) ||
@@ -294,6 +300,8 @@ bool CECATDirectory::save(void) const
 					result = false;
 					break;
 				}
+				else
+					D("DirList #%d successfully wrote", curDirList);
 
 				// clear the dirHead so that we can immediately reuse it
 				memset(&dirHead, 0, sizeof(struct ECAT_DirHead));
@@ -349,6 +357,7 @@ bool CECATDirectory::save(void) const
 		// now we can seek to the file position of the DirList
 		// in the file.
 		m_pECATFile->at((*m_pFilePositions)[curDirList]);
+		SHOWVALUE(m_pECATFile->at());
 
 		// write out everything
 		if(m_pECATFile->writeBlock(dirHeadBuffer) != sizeof(struct ECAT_DirHead) ||
@@ -357,6 +366,8 @@ bool CECATDirectory::save(void) const
 			E("Error while writing DirList");
 			result = false;
 		}
+		else
+			D("DirList #%d successfully wrote", curDirList);
 	}
 
 	RETURN(result);

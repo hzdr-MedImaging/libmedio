@@ -24,7 +24,7 @@
 TARGET = showheader
 
 # programs
-CC		= gcc
+CC		= g++
 RM		= rm -f
 RMDIR = rm -rf
 MKDIR = mkdir

@@ -6,6 +6,12 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-01-17  Jens Langner <Jens.Langner@light-speed.de>
+
+  * misc: checked in some fixes that prevented the ECAT reading routines from
+    working after the big change.
+	 Also removed the default values for the frame in all main methods.
+
 2004-12-07  Jens Langner <Jens.Langner@light-speed.de>
 
   * misc: reworked the whole MedIO API to be somewhat more consistent. Dropped

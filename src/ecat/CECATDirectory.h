@@ -46,7 +46,7 @@ class Q_EXPORT CECATDirectory : protected QIntDict<CECATDirectoryItem>
 		bool save(void) const;
 
 		// accessor methods
-		CECATDirectoryItem* getItem(short frame=1, short plane=1,
+		CECATDirectoryItem* getItem(short frame, short plane=1,
 																short gate=1, short bed=0, short data=0);
 
 		// methods to calculate the real amount
@@ -57,19 +57,19 @@ class Q_EXPORT CECATDirectory : protected QIntDict<CECATDirectoryItem>
 		short numBedPos(void) const;
 
 		// read methods
-		bool readSubHeader(CECATSubHeader*& subHeader, short frame=1, short plane=1,
+		bool readSubHeader(CECATSubHeader*& subHeader, short frame, short plane=1,
 											 short gate=1, short bed=0, short data=0);
-		bool readMatrix(QByteArray*& matrixData, short frame=1, short plane=1, short gate=1,
+		bool readMatrix(QByteArray*& matrixData, short frame, short plane=1, short gate=1,
 										short bed=0, short data=0);
-		bool readMatrix(char*& matrixData, unsigned int& len, short frame=1, short plane=1,
+		bool readMatrix(char*& matrixData, unsigned int& len, short frame, short plane=1,
 										short gate=1, short bed=0, short data=0);
 	
 		// mutabor methods
-		bool writeSubHeader(const CECATSubHeader& subHeader, short frame=1, short plane=1,
+		bool writeSubHeader(const CECATSubHeader& subHeader, short frame, short plane=1,
 												short gate=1, short bed=0, short data=0);
-		bool writeMatrix(const QByteArray& matrix, short frame=1, short plane=1,
+		bool writeMatrix(const QByteArray& matrix, short frame, short plane=1,
 										 short gate=1, short bed=0, short data=0);
-		bool writeMatrix(const char* matrix, unsigned int size, short frame=1,
+		bool writeMatrix(const char* matrix, unsigned int size, short frame,
 										 short plane=1, short gate=1, short bed=0, short data=0);
 
 	private:
