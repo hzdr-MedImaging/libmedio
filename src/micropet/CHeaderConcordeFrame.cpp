@@ -61,6 +61,11 @@ bool CHeaderConcordeFrame::load()
 				{
 					char *rest = NULL;
 					rest = strtok(NULL, "\0");
+					if((int)rest[strlen(rest)-1] == 13)
+					{
+						D("Warning: Header is Windowsfile");
+						rest[strlen(rest)-1] = 0;
+					}
 					//D("%s found : value %s", ptr_tok, rest);
 					if(strcmp(ptr_tok, "event_type") == 0) 		m_Data.event_type = rest;
 					if(strcmp(ptr_tok, "gate") == 0)		m_Data.gate = rest;

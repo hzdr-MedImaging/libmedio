@@ -185,7 +185,11 @@ bool CHeaderConcorde::load()
 					//cout << "3.if CConcordeMicropetHeader::load" << endl;
 					char *rest = NULL;
 					rest = strtok(NULL, "\0");
-					
+					if((int)rest[strlen(rest)-1] == 13)
+					{
+						D("Warning: Header is Windowsfile");
+						rest[strlen(rest)-1] = 0;
+					}
 					if(strcmp(ptr_tok, "model") == 0) 		m_Data.model = rest;
 					if(strcmp(ptr_tok, "institution") == 0)		m_Data.institution = rest;
 					if(strcmp(ptr_tok, "study") == 0) 		m_Data.study = rest;
