@@ -6,6 +6,16 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2004-08-31  Hagen Mölle <draggore@gmx.de>
+
+  * implemeted a Factory to support easier creation of supported fileformats
+  * new fileformat: Concorde Micropet
+  * new base class CMedIOData which defines a interface that should be
+    implemented by all specific file classes
+  * new base class CMedIOHeader which implements a intersection of all 
+    supported headers
+  * changed libmedio.pro.in to support new files  
+
 2004-08-06  Jens Langner <Jens.Langner@light-speed.de>
 
   * removed all inline based constructors and put them into
