@@ -49,10 +49,12 @@ CMedIOData::Format CConcordeFile::isoftype(QString file)
         if(head.getModel() == "2000")
         {
                 cout << "File is from Concorde" << endl;
-		//file type = 2 -> Sinogram|Normalisation
-		//file type = 3 -> Attenuationfile
-		// since attenuationfile is a sinogram we could define it as one 
-		if(head.getFileType() == "2")
+		//file type = 2 -> Sinogram
+		//file type = 3 -> Normalisation
+		//file type = 4 -> Attenuation (transmission)
+		// since attenuationfile/Normalisation is a sinogram we could define it as one 
+		if((head.getFileType() == "2" || head.getFileType() == "3")
+			|| head.getFileType() == "4")
 			return CMedIOData::ConcordeMicropet_Sinogram;
 		else 
 			return CMedIOData::Unknown;
