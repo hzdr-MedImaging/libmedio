@@ -159,6 +159,7 @@ else {
   else {
 		contains(HOST_CPU, [oO]pteron.+) {			
 			QMAKE_CXXFLAGS *= -Acpu=amd64 -march=opteron
+		}
 	}
 }
 
