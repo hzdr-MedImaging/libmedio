@@ -6,6 +6,11 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2004-09-30  Frank Hofheinz <f.hofheinz@fz-rossendorf.de>
+
+  * CECATFile.cpp: completed switch in 'setFileType(...)'
+  * CECATFile.cpp, CECATFile.h: added size of array in call of 'setMatrixData(...)'
+	
 2004-09-29  Jens Langner <Jens.Langner@light-speed.de>
 
   * CECAT7SubHeaderImage.h: fixed minor typo in z_pixel_size get method.
