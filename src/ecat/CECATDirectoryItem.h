@@ -74,6 +74,7 @@ class Q_EXPORT CECATDirectoryItem
 											 CECATSubHeader::Type subHeaderType = CECATSubHeader::Unknown,
 											 Q_UINT32 matrixID = 0);
 	
+		// accessor methods
 		unsigned int matrixID(void) const
 		{ return convertToMatrixID(m_iFrame, m_iPlane, m_iGate, m_iBed, m_iData); }
 
@@ -97,6 +98,28 @@ class Q_EXPORT CECATDirectoryItem
 		
 		short data(void) const
 		{	return m_iData; }
+
+		// mutator methods
+		void setDataBlock_Start(const QIODevice::Offset offset)
+		{ m_iDataBlock_Start = offset; }
+
+		void setDataBlock_End(const QIODevice::Offset offset)
+		{ m_iDataBlock_End = offset; }
+		
+		void setFrame(const short f)
+		{ m_iFrame = f; }
+
+		void setPlane(const short p)
+		{ m_iPlane = p; }
+		
+		void setGate(const short g)
+		{ m_iGate = g; }
+		
+		void setBed(const short b)
+		{ m_iBed = b; }
+		
+		void setData(const short d)
+		{	m_iData = d; }		
 			
 		// read i/o methods
 		bool readSubHeader(CECATSubHeader*& subHeader);
@@ -107,14 +130,17 @@ class Q_EXPORT CECATDirectoryItem
 		bool writeSubHeader(const CECATSubHeader& subHeader);
 		bool writeMatrix(const QByteArray& data);
 		bool writeMatrix(const char* data, unsigned int len);
+		bool writeMatrix(const QByteArray& data, CECATSubHeader::Data_Type type);
+		bool writeMatrix(const char* data, unsigned int len, CECATSubHeader::Data_Type type);
 
 		// our QDataStream operators
 		friend QDataStream& operator<<(QDataStream& stream, const CECATDirectoryItem& item);
 		friend QDataStream& operator>>(QDataStream& stream, CECATDirectoryItem& item);
 
 	private:
-		CECATFile*						m_pECATFile;			// pointer to the ECATFile
-		CECATSubHeader::Type	m_iSubHeaderType;	// the choosen subHeaderType for this item
+		CECATFile*						m_pECATFile;				// pointer to the ECATFile
+		CECATSubHeader::Type	m_iSubHeaderType;		// the choosen subHeaderType for this item
+		CECATSubHeader*				m_pCachedSubHeader;	// pointer to a cached SubHeader object
 
 		// META information about the directory Item
 		short									m_iFrame;						// information normally

@@ -35,6 +35,11 @@ class Q_EXPORT CECATMainHeader : public CMedIOHeader
 {
 	public:
 		// possible ECAT6/7 file types
+		enum HeaderType { UnknownHeaderType=0,
+											ECAT6MainHeader,
+											ECAT7MainHeader
+										};
+		
 		enum Type { Unknown=0, ECAT7_Sinogram, ECAT7_Image16, ECAT7_AttenCorr,
 								ECAT7_Normalization, ECAT7_PolarMap, ECAT7_Volume8,
 								ECAT7_Volume16, ECAT7_Projection8, ECAT7_Projection16,
@@ -51,7 +56,7 @@ class Q_EXPORT CECATMainHeader : public CMedIOHeader
 		// prepresented by this class
 		virtual bool load()	= 0;
 		//virtual bool load(QTextStream& stream)	= 0;
-		virtual bool save() const	= 0;
+		virtual bool save() const = 0;
 		//virtual bool save(QTextStream& stream)	= 0;
 
 		// interface methods that are part of the ECAT6 and
@@ -68,6 +73,7 @@ class Q_EXPORT CECATMainHeader : public CMedIOHeader
 		virtual void setNum_Bed_Pos(short num)	= 0;
 
 		// runtime type information methods
+		virtual int rtti() const = 0;
 		CMedIOHeader::Format headerFormat() const { return CMedIOHeader::ECAT; }
 };
 

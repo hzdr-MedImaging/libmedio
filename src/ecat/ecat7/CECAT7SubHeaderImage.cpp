@@ -54,16 +54,16 @@ bool CECAT7SubHeaderImage::load(void)
 {
 	ENTER();
 
-	// check if the stream is readable or not.
-	if(m_pMedIOData->isReadable() == false)
+	// check if the stream is readable or not and
+	// set our MedIOData to the correct file position so that we can
+	// read the subheader	
+	if(m_pMedIOData->isReadable() == false ||
+		 m_pDirItem->dataBlock_Start() == 0 ||
+		 m_pMedIOData->at(m_pDirItem->dataBlock_Start()) == false)
 	{
 		RETURN(false);
 		return false;
 	}
-
-	// set our MedIOData to the correct file position so that we can
-	// read the subheader
-	m_pMedIOData->at(m_pDirItem->dataBlock_Start());
 
 	// we use a ByteArray buffer to speed up the endianess
 	// decoding
@@ -220,15 +220,13 @@ bool CECAT7SubHeaderImage::save(void) const
 	ENTER();
 
 	// check if this stream is writeable or not
-	if(m_pMedIOData->isWritable() == false)
+	if(m_pMedIOData->isWritable() == false ||
+		 m_pDirItem->dataBlock_Start() == 0 ||
+		 m_pMedIOData->at(m_pDirItem->dataBlock_Start()) == false)
 	{
 		RETURN(false);
 		return false;
 	}
-
-	// set our MedIOData to the correct file position so that we can
-	// read the subheader
-	m_pMedIOData->at(m_pDirItem->dataBlock_Start());
 
 	// we write to a buffer first and write out later directly to the file
 	QByteArray buffer(sizeof(struct ECAT7SubHeader_Image));

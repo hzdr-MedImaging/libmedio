@@ -289,7 +289,13 @@ bool CECATDirectory::save(void) const
 					
 				// now we can seek to the file position of the DirList
 				// in the file.
-				m_pECATFile->at((*m_pFilePositions)[curDirList]);
+				if(m_pECATFile->at((*m_pFilePositions)[curDirList]) == false)
+				{
+					E("Error while seeking to DirList position: %d", (*m_pFilePositions)[curDirList]);
+					result = false;
+					break;
+				}
+					
 				SHOWVALUE(m_pECATFile->at());
 
 				// write out everything
@@ -301,7 +307,7 @@ bool CECATDirectory::save(void) const
 					break;
 				}
 				else
-					D("DirList #%d successfully wrote", curDirList);
+					D("DirList #%d successfully written", curDirList);
 
 				// clear the dirHead so that we can immediately reuse it
 				memset(&dirHead, 0, sizeof(struct ECAT_DirHead));
@@ -356,26 +362,34 @@ bool CECATDirectory::save(void) const
 			
 		// now we can seek to the file position of the DirList
 		// in the file.
-		m_pECATFile->at((*m_pFilePositions)[curDirList]);
-		SHOWVALUE(m_pECATFile->at());
-
-		// write out everything
-		if(m_pECATFile->writeBlock(dirHeadBuffer) != sizeof(struct ECAT_DirHead) ||
-			 m_pECATFile->writeBlock(dirItemBuffer) != 31*sizeof(struct ECAT_DirItem))
+		if(m_pECATFile->at((*m_pFilePositions)[curDirList]) == false)
 		{
-			E("Error while writing DirList");
+			E("Error while seeking to DirList position: %d", (*m_pFilePositions)[curDirList]);
+			
 			result = false;
 		}
 		else
-			D("DirList #%d successfully wrote", curDirList);
+		{
+			SHOWVALUE(m_pECATFile->at());
+
+			// write out everything
+			if(m_pECATFile->writeBlock(dirHeadBuffer) != sizeof(struct ECAT_DirHead) ||
+				 m_pECATFile->writeBlock(dirItemBuffer) != 31*sizeof(struct ECAT_DirItem))
+			{
+				E("Error while writing DirList");
+				result = false;
+			}
+			else
+				D("DirList #%d successfully written", curDirList);
+		}
 	}
 
 	RETURN(result);
 	return result;
 }
 
-CECATDirectoryItem* CECATDirectory::getItem(short frame, short plane,
-																						short gate, short bed, short data)
+CECATDirectoryItem* CECATDirectory::item(short frame, short plane,
+																			 	 short gate, short bed, short data)
 {
 	// form the MatrixID from the supplied data and
 	// process a find in the QIntDict
@@ -383,6 +397,56 @@ CECATDirectoryItem* CECATDirectory::getItem(short frame, short plane,
 	D("Generated MatrixID: %08lx", mID);
 
 	return find(mID);
+}
+
+CECATDirectoryItem* CECATDirectory::newItem(Q_UINT32 matrixID)
+{
+	ENTER();
+
+	// create a new DirectoryItem which we put in this Directory
+	CECATDirectoryItem* pNewDItem = new CECATDirectoryItem(m_pECATFile,
+																												 m_iItemType,
+																												 matrixID);
+
+	// now that we generated a new directory item we want to put
+	// in our directory immediately, we have to first check at which
+	// dataposition it should be placed
+	QIODevice::Offset dataOffset = lastDirItemOffset();
+
+	// modify the Start offset of the item now. So if this is the first
+	// one we place it directly behind the maindirectory, which should
+	// be block 3. If this is not the first one we place it behind the
+	// lastDirItemOffset...
+	if(dataOffset > 0)
+		pNewDItem->setDataBlock_Start(dataOffset+ECAT_BLOCKSIZE);
+	else
+		pNewDItem->setDataBlock_Start(ECATBlock2FilePos(ECAT_POS_MAINDIR+1));
+
+	// insert the new directory item into the directory now.
+	insert(matrixID, pNewDItem);
+
+	// now that we have created a new directory item we have to
+	// sync our main header again
+	m_pECATFile->reWriteMainHeader();
+
+	RETURN(pNewDItem);
+	return pNewDItem;
+}
+
+QIODevice::Offset CECATDirectory::lastDirItemOffset(void)
+{
+	ENTER();
+	QIODevice::Offset offset = 0;
+
+	QIntDictIterator<CECATDirectoryItem> it(*this);
+	for(;it.current(); ++it)
+	{
+		if(it.current()->dataBlock_End() > offset)
+			offset = it.current()->dataBlock_End();
+	}
+
+	RETURN(offset);
+	return offset;
 }
 
 short CECATDirectory::numFrames(void) const
@@ -512,11 +576,7 @@ bool CECATDirectory::writeSubHeader(const CECATSubHeader& subHeader, short frame
 	if(pNewDItem == NULL)
 	{
 		// create a new DirectoryItem which we put in this Directory
-		pNewDItem = new CECATDirectoryItem(m_pECATFile, m_iItemType, mID);		
-		insert(mID, pNewDItem);
-
-		// make sure the directory is saved first
-		save();
+		pNewDItem = newItem(mID);
 	}
 
 	// then we make sure the subheader is written to the ECAT file.
@@ -528,8 +588,8 @@ bool CECATDirectory::writeSubHeader(const CECATSubHeader& subHeader, short frame
 	return result;
 }
 
-bool CECATDirectory::writeMatrix(const QByteArray& matrixData, short frame, short plane,
-																 short gate, short bed, short data)
+bool CECATDirectory::writeMatrix(const QByteArray& matrixData,
+																 short frame, short plane, short gate, short bed, short data)
 {
 	ENTER();
 	bool result = false;
@@ -546,11 +606,7 @@ bool CECATDirectory::writeMatrix(const QByteArray& matrixData, short frame, shor
 	if(pNewDItem == NULL)
 	{
 		// create a new DirectoryItem which we put in this Directory
-		pNewDItem = new CECATDirectoryItem(m_pECATFile, m_iItemType, mID);		
-		insert(mID, pNewDItem);
-
-		// make sure the directory is saved first
-		save();
+		pNewDItem = newItem(mID);
 	}
 
 	// then we make sure the subheader is written to the ECAT file.
@@ -562,8 +618,8 @@ bool CECATDirectory::writeMatrix(const QByteArray& matrixData, short frame, shor
 	return result;
 }
 
-bool CECATDirectory::writeMatrix(const char* matrixData, unsigned int size, short frame,
-																 short plane, short gate, short bed, short data)
+bool CECATDirectory::writeMatrix(const char* matrixData, unsigned int size,
+																 short frame, short plane, short gate, short bed, short data)
 {
 	ENTER();
 	bool result = false;
@@ -580,15 +636,72 @@ bool CECATDirectory::writeMatrix(const char* matrixData, unsigned int size, shor
 	if(pNewDItem == NULL)
 	{
 		// create a new DirectoryItem which we put in this Directory
-		pNewDItem = new CECATDirectoryItem(m_pECATFile, m_iItemType, mID);		
-		insert(mID, pNewDItem);
-
-		// make sure the directory is saved first
-		save();
+		pNewDItem = newItem(mID);
 	}
 
 	// then we make sure the subheader is written to the ECAT file.
 	result = pNewDItem->writeMatrix(matrixData, size);
+	if(result)
+		save();
+
+	RETURN(result);
+	return result;
+}
+
+bool CECATDirectory::writeMatrix(const QByteArray& matrixData, CECATSubHeader::Data_Type type,
+																 short frame, short plane, short gate, short bed, short data)
+{
+	ENTER();
+	bool result = false;
+
+	// form the MatrixID from the supplied data and create a new
+	// DirectoryItem (or replace an existing one)
+	Q_UINT32 mID = convertToMatrixID(frame, plane, gate, bed, data);
+	D("Generated MatrixID: %08lx", mID);
+
+	// see if we already have an item with the same matrixID in our
+	// dictonary and if so we reuse that one and place a new subheader at
+	// this position
+	CECATDirectoryItem* pNewDItem = find(mID);
+	if(pNewDItem == NULL)
+	{
+		// create a new DirectoryItem which we put in this Directory
+		pNewDItem = newItem(mID);
+	}
+
+	// then we make sure the subheader is written to the ECAT file.
+	result = pNewDItem->writeMatrix(matrixData, type);
+	if(result)
+		save();
+	
+	RETURN(result);
+	return result;
+}
+
+bool CECATDirectory::writeMatrix(const char* matrixData, unsigned int size,
+																 CECATSubHeader::Data_Type type,
+																 short frame, short plane, short gate, short bed, short data)
+{
+	ENTER();
+	bool result = false;
+
+	// form the MatrixID from the supplied data and create a new
+	// DirectoryItem (or replace an existing one)
+	Q_UINT32 mID = convertToMatrixID(frame, plane, gate, bed, data);
+	D("Generated MatrixID: %08lx", mID);
+
+	// see if we already have an item with the same matrixID in our
+	// dictonary and if so we reuse that one and place a new subheader at
+	// this position
+	CECATDirectoryItem* pNewDItem = find(mID);
+	if(pNewDItem == NULL)
+	{
+		// create a new DirectoryItem which we put in this Directory
+		pNewDItem = newItem(mID);
+	}
+
+	// then we make sure the subheader is written to the ECAT file.
+	result = pNewDItem->writeMatrix(matrixData, size, type);
 	if(result)
 		save();
 

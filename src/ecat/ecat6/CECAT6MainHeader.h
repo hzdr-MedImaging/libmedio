@@ -49,6 +49,10 @@ class Q_EXPORT CECAT6MainHeader : public CECATMainHeader
 		bool save(void) const;
 		//bool save(QTextStream& stream);
 
+		// runtime type information methods
+		int rtti() const
+		{ return CECATMainHeader::ECAT6MainHeader; }
+		
 		// accessor Methods
 		const char* original_File_Name(void) const
 		{ return m_Data.Original_File_Name;	}

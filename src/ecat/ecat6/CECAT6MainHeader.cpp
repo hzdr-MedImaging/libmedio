@@ -230,8 +230,20 @@ bool CECAT6MainHeader::load(QTextStream& stream)
 bool CECAT6MainHeader::save(void) const
 {
 	// only go on if the device is writeable at all
-	if(m_pMedIOData->isWritable() == false)
+	if(m_pMedIOData->isWritable() == false ||
+		 m_pMedIOData->at(0) == false)
+	{
 		return false;
+	}
+
+	// before we can start reading out some data we have to collect some
+	// out data beforehand which we use instead of the data stored in our
+	// data structure (such as frames/planes/gates etc.)
+	CECATFile* ecatFile = static_cast<CECATFile*>(m_pMedIOData);
+	Q_UINT16 numPlanes = ecatFile->numPlanes();
+	Q_UINT16 numFrames = ecatFile->numFrames();
+	Q_UINT16 numGates  = ecatFile->numGates();
+	Q_UINT16 numBedPos = ecatFile->numBedPos();
 
 	// we write to a buffer first and write out later directly to the file
 	QByteArray buffer(sizeof(struct ECAT6MainHeader));
@@ -282,10 +294,10 @@ bool CECAT6MainHeader::save(void) const
   stream << m_Data.Bed_Type;																// 326: Bed_Type
 	stream << m_Data.Septa_Type;															// 328: Septa_Type
 	stream.writeRawBytes(&m_Data.Facility_Name[0], 20);				// 330: Facility_Name
-	stream << m_Data.Num_Planes;															// 350: Num_Planes
-	stream << m_Data.Num_Frames;															// 352: Num_Frames
-	stream << m_Data.Num_Gates;																// 354: Num_Gates
-	stream << m_Data.Num_Bed_Pos;															// 356: Num_Bed_Pos
+	stream << numPlanes;																			// 350: Num_Planes
+	stream << numFrames;																			// 352: Num_Frames
+	stream << numGates;																				// 354: Num_Gates
+	stream << numBedPos;																			// 356: Num_Bed_Pos
 	stream << m_Data.Init_Bed_Position;												// 358: Init_Bed_Position
 	for(int i=0; i < 15; i++)
 		stream << m_Data.Bed_Offset[i];													// 362: Bed_Offset (15)
@@ -300,7 +312,10 @@ bool CECAT6MainHeader::save(void) const
 	// now write out to our outStream
 	bool result = false;
 	if(m_pMedIOData->writeBlock(buffer) != -1)
+	{
+		ecatFile->mainHeaderWritten(*this);
 		result = true;
+	}
 
 	return result;
 }

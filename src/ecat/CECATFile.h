@@ -39,6 +39,13 @@ class Q_EXPORT CECATFile : public CMedIOData
 	public:
 		enum ECATFormat	{ Undefined=0, ECAT7, ECAT6 };
 
+		// all our methods return specific error messages
+		// so we have different defined error messages here
+		enum Status { SUCCESS			= 1,	// everything went fine
+									ERR_GENERAL = 0,	// a general error occurred
+									ERR_IO			= -1	// an input/output error occurred
+								};
+
 		CECATFile();
 		CECATFile(const QString& filename,
 							CECATMainHeader::Type fileType = CECATMainHeader::Unknown);
@@ -71,21 +78,29 @@ class Q_EXPORT CECATFile : public CMedIOData
 
 		// interface methods to read out specific data from the ECAT files
 		bool readMainHeader(CECATMainHeader*&);
-		bool readSubHeader(CECATSubHeader*&, short frame, short plane=1, short gate=1,
-										   short bed=0, short data=0);
-		bool readMatrix(QByteArray*& matrixData, short frame, short plane=1, short gate=1,
-									  short bed=0, short data=0);
-		bool readMatrix(char*& matrixData, unsigned int& len, short frame, short plane=1,
-										short gate=1, short bed=0, short data=0);
+		bool readSubHeader(CECATSubHeader*&,
+												 short frame, short plane=1, short gate=1, short bed=0, short data=0);
+		bool readMatrix(QByteArray*& matrixData,
+											short frame, short plane=1, short gate=1, short bed=0, short data=0);
+		bool readMatrix(char*& matrixData, unsigned int& len,
+											short frame, short plane=1, short gate=1, short bed=0, short data=0);
 
 		// methods to create new and modify existing entries in this file.
 		bool writeMainHeader(CECATMainHeader& mainHeader);
-		bool writeSubHeader(const CECATSubHeader& subHeader, short frame, short plane=1,
-												short gate=1, short bed=0, short data=0);
-		bool writeMatrix(const QByteArray& matrixData, short frame, short plane=1,
-										 short gate=1, short bed=0, short data=0);
-		bool writeMatrix(const char* matrixData, unsigned int size, short frame, short plane=1,
-										 short gate=1, short bed=0, short data=0);
+		bool writeSubHeader(const CECATSubHeader& subHeader,
+													short frame, short plane=1, short gate=1, short bed=0, short data=0);
+		bool writeMatrix(const QByteArray& matrixData,
+											 short frame, short plane=1, short gate=1, short bed=0, short data=0);
+		bool writeMatrix(const char* matrixData, unsigned int size,
+											 short frame, short plane=1, short gate=1, short bed=0, short data=0);
+		bool writeMatrix(const QByteArray& matrixData, CECATSubHeader::Data_Type type, 
+											 short frame, short plane=1, short gate=1, short bed=0, short data=0);
+		bool writeMatrix(const char* matrixData, unsigned int size, CECATSubHeader::Data_Type type,
+											 short frame, short plane=1, short gate=1, short bed=0, short data=0);
+
+		// methods to sync specific data with our headers
+		void mainHeaderWritten(const CECATMainHeader& mainHeader);
+		bool reWriteMainHeader(void);
 
 	private:
 		ECATFormat						m_iECATformat;

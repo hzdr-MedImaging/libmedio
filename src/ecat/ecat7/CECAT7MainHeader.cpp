@@ -82,7 +82,7 @@ CECAT7MainHeader::CECAT7MainHeader(CECATFile* ecatFile,
 	strcpy(m_Data.Serial_Number, "1");
 	strcpy(m_Data.Isotope_Name, "F-18");
 	strcpy(m_Data.Radiopharmaceutical, "F-18 Dopa");
-	strcpy(m_Data.Study_Description, "created with libmedio v0.1");
+	strcpy(m_Data.Study_Description, "created with libmedio v0.2");
 }
 
 void CECAT7MainHeader::setStudyData(const CECAT7MainHeader& mh)
@@ -202,12 +202,11 @@ void CECAT7MainHeader::updateMagicNumber(void)
 bool CECAT7MainHeader::load(void)
 {
 	// only go on if the device is readable at all
-	if(m_pMedIOData->isReadable() == false)
+	if(m_pMedIOData->isReadable() == false ||
+		 m_pMedIOData->at(0) == false)
+	{
 		return false;
-
-	// the main Header is always at the first block so lets set
-	// our file to this position
-	m_pMedIOData->at(0);
+	}
 
 	// we use a ByteArray buffer to speed up the endianess
 	// decoding
@@ -546,15 +545,23 @@ bool CECAT7MainHeader::save(void) const
 	ENTER();
 
 	// only go on if the device is writeable at all
-	if(m_pMedIOData->isWritable() == false)
+	if(m_pMedIOData->isWritable() == false ||
+		 m_pMedIOData->at(0) == false)
 	{
 		RETURN(false);
 		return false;
 	}
 
-	// the main Header is always at the first block so lets set
-	// our file to this position
-	m_pMedIOData->at(0);
+	// before we can start reading out some data we have to collect some
+	// out data beforehand which we use instead of the data stored in our
+	// data structure (such as frames/planes/gates etc.)
+	// Please note that we do not specify any PLANES here as in ECAT7 the
+	// planes are normally integrated in one matrix file. So we have to
+	// allow the user to specify the planes himself.
+	CECATFile* ecatFile = static_cast<CECATFile*>(m_pMedIOData);
+	Q_UINT16 numFrames = ecatFile->numFrames();
+	Q_UINT16 numGates  = ecatFile->numGates();
+	Q_UINT16 numBedPos = ecatFile->numBedPos();
 	
 	// we write to a buffer first and write out later directly to the file
 	QByteArray buffer(sizeof(struct ECAT7MainHeader));
@@ -604,9 +611,9 @@ bool CECAT7MainHeader::save(void) const
   stream << m_Data.Patient_Orientation;											// 330: Patient_Orientation
   stream.writeRawBytes(&m_Data.Facility_Name[0], 20);				// 332: Facility_Name
   stream << m_Data.Num_Planes;															// 352: Num_Planes
-  stream << m_Data.Num_Frames;															// 354: Num_Frames
-  stream << m_Data.Num_Gates;																// 356: Num_Gates
-  stream << m_Data.Num_Bed_Pos;															// 358: Num_Bed_Pos
+  stream << numFrames;																			// 354: Num_Frames
+  stream << numGates;																				// 356: Num_Gates
+  stream << numBedPos;																			// 358: Num_Bed_Pos
   stream << m_Data.Init_Bed_Position;												// 360: Init_Bed_Position
   stream << m_Data.Bed_Offset[0];														// 364: Bed_Offset 1
   stream << m_Data.Bed_Offset[1];														// 368: Bed_Offset 2
@@ -646,7 +653,10 @@ bool CECAT7MainHeader::save(void) const
 	// now write out to our outStream
 	bool result = false;
 	if(m_pMedIOData->writeBlock(buffer) != -1)
+	{
+		ecatFile->mainHeaderWritten(*this);
 		result = true;
+	}
 
 	RETURN(result);
 	return result;

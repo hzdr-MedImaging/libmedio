@@ -6,6 +6,13 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-01-21  Jens Langner <Jens.Langner@light-speed.de>
+
+  * misc: implemented/fixed the ECAT write methods in may way which were quite
+    broken after the new redesign. Now also matrix­wise writing seems to work
+	 fine so that a user might save different matrices at any time without
+	 having to care about the order.
+  
 2005-01-17  Jens Langner <Jens.Langner@light-speed.de>
 
   * misc: checked in some fixes that prevented the ECAT reading routines from

@@ -41,6 +41,7 @@ CECATDirectoryItem::CECATDirectoryItem(CECATFile* pFile,
 																			 Q_UINT32 matrixID) 
 	: m_pECATFile(pFile),
 		m_iSubHeaderType(subHeaderType),
+		m_pCachedSubHeader(NULL),
 		m_iFrame(-1),
 		m_iPlane(-1),
 		m_iGate(-1),
@@ -48,7 +49,7 @@ CECATDirectoryItem::CECATDirectoryItem(CECATFile* pFile,
 		m_iData(-1),
 		m_iDataBlock_Start(0),
 		m_iDataBlock_End(0),
-		m_iStatus(Deleted)
+		m_iStatus(NotYetWritten)
 {
 	ENTER();
 
@@ -69,56 +70,107 @@ CECATDirectoryItem::CECATDirectoryItem(CECATFile* pFile,
 bool CECATDirectoryItem::readSubHeader(CECATSubHeader*& subHeader)
 {
 	ENTER();
+	bool result = false;	
 
-	// lets prepare the SubHeader depending on the type of the
-	// ECATFile
-	SHOWVALUE(m_iSubHeaderType);
-	switch(m_iSubHeaderType)
+	if(m_pECATFile->isReadable())
 	{
-		case CECATSubHeader::ECAT7_AttenCorr: 
-			subHeader = new CECAT7SubHeaderAttenCorr(m_pECATFile, this);	
-		break;
+		SHOWVALUE(m_iSubHeaderType);
 
-		case CECATSubHeader::ECAT7_Image:	
-			subHeader = new CECAT7SubHeaderImage(m_pECATFile, this);
-		break;
-		
-		case CECATSubHeader::ECAT7_Norm:
-			subHeader = new CECAT7SubHeaderNorm(m_pECATFile, this);
-		break;
-		
-		case CECATSubHeader::ECAT7_Norm3D:
-			subHeader = new CECAT7SubHeaderNorm3D(m_pECATFile, this);
-		break;
-		
-		case CECATSubHeader::ECAT7_PolarMap:
-			subHeader = new CECAT7SubHeaderPolarMap(m_pECATFile, this);
-		break;
-		
-		case CECATSubHeader::ECAT7_Scan:
-			subHeader = new CECAT7SubHeaderScan(m_pECATFile, this);
-		break;
-		
-		case CECATSubHeader::ECAT7_Scan3D:
-			subHeader = new CECAT7SubHeaderScan3D(m_pECATFile, this);
-		break;
-
-		default:
+		// check if we have a cached sub header ready already so that
+		// we can take that one instead of loading the sub header once
+		// more from scratch
+		if(m_pCachedSubHeader)
 		{
-			E("ECAT type isn't specified or not supported yet.");
-		}
-	}
+			switch(m_iSubHeaderType)
+			{
+				case CECATSubHeader::ECAT7_AttenCorr: 
+					subHeader = new CECAT7SubHeaderAttenCorr(*static_cast<CECAT7SubHeaderAttenCorr*>(m_pCachedSubHeader));
+					result = true;
+				break;
 
-	bool result = false;
-	if(subHeader)
-	{
-		if(subHeader->load() == false)
-		{
-			delete subHeader;
-			subHeader = NULL;
+				case CECATSubHeader::ECAT7_Image:	
+					subHeader = new CECAT7SubHeaderImage(*static_cast<CECAT7SubHeaderImage*>(m_pCachedSubHeader));
+					result = true;
+				break;
+		
+				case CECATSubHeader::ECAT7_Norm:
+					subHeader = new CECAT7SubHeaderNorm(*static_cast<CECAT7SubHeaderNorm*>(m_pCachedSubHeader));
+					result = true;
+				break;
+				
+				case CECATSubHeader::ECAT7_Norm3D:
+					subHeader = new CECAT7SubHeaderNorm3D(*static_cast<CECAT7SubHeaderNorm3D*>(m_pCachedSubHeader));
+					result = true;
+				break;
+				
+				case CECATSubHeader::ECAT7_PolarMap:
+					subHeader = new CECAT7SubHeaderPolarMap(*static_cast<CECAT7SubHeaderPolarMap*>(m_pCachedSubHeader));
+					result = true;
+				break;
+				
+				case CECATSubHeader::ECAT7_Scan:
+					subHeader = new CECAT7SubHeaderScan(*static_cast<CECAT7SubHeaderScan*>(m_pCachedSubHeader));
+					result = true;
+				break;
+				
+				case CECATSubHeader::ECAT7_Scan3D:
+					subHeader = new CECAT7SubHeaderScan3D(*static_cast<CECAT7SubHeaderScan3D*>(m_pCachedSubHeader));
+					result = true;
+				break;
+
+				default:
+					E("ECAT type isn't specified or not supported yet.");
+			}
 		}
 		else
-			result = true;
+		{
+			// lets prepare the SubHeader depending on the type of the
+			// ECATFile
+			switch(m_iSubHeaderType)
+			{
+				case CECATSubHeader::ECAT7_AttenCorr: 
+					subHeader = new CECAT7SubHeaderAttenCorr(m_pECATFile, this);
+				break;
+
+				case CECATSubHeader::ECAT7_Image:	
+					subHeader = new CECAT7SubHeaderImage(m_pECATFile, this);
+				break;
+		
+				case CECATSubHeader::ECAT7_Norm:
+					subHeader = new CECAT7SubHeaderNorm(m_pECATFile, this);
+				break;
+				
+				case CECATSubHeader::ECAT7_Norm3D:
+					subHeader = new CECAT7SubHeaderNorm3D(m_pECATFile, this);
+				break;
+				
+				case CECATSubHeader::ECAT7_PolarMap:
+					subHeader = new CECAT7SubHeaderPolarMap(m_pECATFile, this);
+				break;
+				
+				case CECATSubHeader::ECAT7_Scan:
+					subHeader = new CECAT7SubHeaderScan(m_pECATFile, this);
+				break;
+				
+				case CECATSubHeader::ECAT7_Scan3D:
+					subHeader = new CECAT7SubHeaderScan3D(m_pECATFile, this);
+				break;
+
+				default:
+					E("ECAT type isn't specified or not supported yet.");
+			}
+
+			if(subHeader)
+			{
+				if(subHeader->load() == false)
+				{
+					delete subHeader;
+					subHeader = NULL;
+				}
+				else
+					result = true;
+			}			
+		}
 	}
 
 	RETURN(result);
@@ -127,6 +179,7 @@ bool CECATDirectoryItem::readSubHeader(CECATSubHeader*& subHeader)
 
 bool CECATDirectoryItem::readMatrix(QByteArray*& matrixData)
 {
+	ENTER();
 	bool result = false;
 	char* data = NULL;
 	unsigned int dataLen = 0;
@@ -146,13 +199,17 @@ bool CECATDirectoryItem::readMatrix(QByteArray*& matrixData)
 
 bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 {
+	ENTER();
 	bool result = true;
 		
 	// check if the file associated with this item is readable or
 	// not
 	if(m_pECATFile && m_pECATFile->isReadable() == false)
+	{
+		RETURN(false);
 		return false;
-
+	}
+	
 	// we load the MatrixData out of the ECATFile manually but only
 	// if the access status of this item is set to "Finished"
 	if(m_iStatus == Finished)
@@ -162,16 +219,25 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 		// data
 		CECATSubHeader* subHeader = NULL;
 		if(readSubHeader(subHeader) == false || subHeader == NULL)
+		{
+			RETURN(false);
 			return false;
+		}
 
 		// set the ECATFile handle to the correct position of
 		// the matrix start. This should normally be
 		// Matrix_SubHeader_StartPosition+1
-		m_pECATFile->at(m_iDataBlock_Start+subHeader->size());
+		if(m_pECATFile->at(m_iDataBlock_Start+subHeader->size()) == false)
+		{
+			RETURN(false);
+			return false;
+		}
+
+		SHOWVALUE(m_pECATFile->at());
 
 		// then we allocate some memory for loading the matrixdata
 		// this should be:
-		matrixSize = m_iDataBlock_End-m_iDataBlock_Start-subHeader->size();
+		matrixSize = m_iDataBlock_End-m_iDataBlock_Start-subHeader->size()+ECAT_BLOCKSIZE;
 		matrixData = new char[matrixSize];
 
 		// then we process the matrix data that is associated with
@@ -181,7 +247,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 		// system we are running.
 		switch(subHeader->data_Type())
 		{
-			case CECATSubHeader::UnkownMatrixDataType:
+			case CECATSubHeader::UnknownDataType:
 			{
 				W("No or an unknown data type was set for the matrix data of dirItem %08lx",
 						convertToMatrixID(m_iFrame, m_iPlane, m_iGate, m_iBed, m_iData));
@@ -208,6 +274,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 				// what we do is to us a temporarly buffer to which we read
 				// some data from our fileStream and read out to our QByteArray
 				QByteArray bufArray(8192); // read 8KB chunks
+				Q_UINT16* ptr = (Q_UINT16*)matrixData;
 				for(unsigned int read=0; read < matrixSize;)
 				{
 					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
@@ -226,7 +293,6 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 					// converted regarding to little/big endianess
 					QDataStream bufStream(bufArray, IO_ReadOnly);
 					bufStream.setByteOrder(QDataStream::LittleEndian);
-					Q_UINT16* ptr = (Q_UINT16*)matrixData;
 					for(unsigned int i=0; i < curRead; i+=sizeof(Q_UINT16))
 					{
 						bufStream >> *ptr;
@@ -249,6 +315,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 				// what we do is to us a temporarly buffer to which we read
 				// some data from our fileStream and read out to our QByteArray
 				QByteArray bufArray(8192); // read 8KB chunks
+				Q_UINT32* ptr = (Q_UINT32*)matrixData;
 				for(unsigned int read=0; read < matrixSize;)
 				{
 					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
@@ -267,7 +334,6 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 					// converted regarding to little/big endianess
 					QDataStream bufStream(bufArray, IO_ReadOnly);
 					bufStream.setByteOrder(QDataStream::LittleEndian);
-					Q_UINT32* ptr = (Q_UINT32*)matrixData;
 					for(unsigned int i=0; i < curRead; i+=sizeof(Q_UINT32))
 					{
 						bufStream >> *ptr;
@@ -290,6 +356,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 				// what we do is to us a temporarly buffer to which we read
 				// some data from our fileStream and read out to our QByteArray
 				QByteArray bufArray(8192); // read 8KB chunks
+				float* ptr = (float*)matrixData;
 				for(unsigned int read=0; read < matrixSize;)
 				{
 					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
@@ -308,7 +375,6 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 					// converted regarding to little/big endianess
 					QDataStream bufStream(bufArray, IO_ReadOnly);
 					bufStream.setByteOrder(QDataStream::LittleEndian);
-					float* ptr = (float*)matrixData;
 					for(unsigned int i=0; i < curRead; i+=sizeof(float))
 					{
 						bufStream >> *ptr;
@@ -331,6 +397,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 				// what we do is to us a temporarly buffer to which we read
 				// some data from our fileStream and read out to our QByteArray
 				QByteArray bufArray(8192); // read 8KB chunks
+				float* ptr = (float*)matrixData;
 				for(unsigned int read=0; read < matrixSize;)
 				{
 					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
@@ -348,7 +415,6 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 					// out the values from it for making sure our data is correctly
 					// converted regarding to little/big endianess
 					QDataStream bufStream(bufArray, IO_ReadOnly);
-					float* ptr = (float*)matrixData;
 					for(unsigned int i=0; i < curRead; i+=sizeof(float))
 					{
 						bufStream >> *ptr;
@@ -370,6 +436,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 				// what we do is to us a temporarly buffer to which we read
 				// some data from our fileStream and read out to our QByteArray
 				QByteArray bufArray(8192); // read 8KB chunks
+				Q_UINT16* ptr = (Q_UINT16*)matrixData;
 				for(unsigned int read=0; read < matrixSize;)
 				{
 					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
@@ -387,7 +454,6 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 					// out the values from it for making sure our data is correctly
 					// converted regarding to little/big endianess
 					QDataStream bufStream(bufArray, IO_ReadOnly);
-					Q_UINT16* ptr = (Q_UINT16*)matrixData;
 					for(unsigned int i=0; i < curRead; i+=sizeof(Q_UINT16))
 					{
 						bufStream >> *ptr;
@@ -409,6 +475,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 				// what we do is to us a temporarly buffer to which we read
 				// some data from our fileStream and read out to our QByteArray
 				QByteArray bufArray(8192); // read 8KB chunks
+				Q_UINT32* ptr = (Q_UINT32*)matrixData;
 				for(unsigned int read=0; read < matrixSize;)
 				{
 					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
@@ -426,7 +493,6 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 					// out the values from it for making sure our data is correctly
 					// converted regarding to little/big endianess
 					QDataStream bufStream(bufArray, IO_ReadOnly);
-					Q_UINT32* ptr = (Q_UINT32*)matrixData;
 					for(unsigned int i=0; i < curRead; i+=sizeof(Q_UINT32))
 					{
 						bufStream >> *ptr;
@@ -459,13 +525,60 @@ bool CECATDirectoryItem::writeSubHeader(const CECATSubHeader& subHeader)
 	if(m_iSubHeaderType != CECATSubHeader::Unknown)
 	{
 		if(m_iSubHeaderType != subHeader.subHeaderType())
+		{
+			RETURN(false);
 			return false;
+		}
 	}
 	else
 		m_iSubHeaderType = subHeader.subHeaderType();
+
+	// before we can save the subHeader we have to generate the cached copy
+	// and make sure it belongs to this particular directory Item.
+	if(m_pCachedSubHeader)
+		*m_pCachedSubHeader = subHeader;
+	else
+	{
+		switch(m_iSubHeaderType)
+		{
+			case CECATSubHeader::ECAT7_AttenCorr: 
+				m_pCachedSubHeader = new CECAT7SubHeaderAttenCorr(*static_cast<const CECAT7SubHeaderAttenCorr*>(&subHeader));
+			break;
+
+			case CECATSubHeader::ECAT7_Image:	
+				m_pCachedSubHeader = new CECAT7SubHeaderImage(*static_cast<const CECAT7SubHeaderImage*>(&subHeader));
+			break;
+		
+			case CECATSubHeader::ECAT7_Norm:
+				m_pCachedSubHeader = new CECAT7SubHeaderNorm(*static_cast<const CECAT7SubHeaderNorm*>(&subHeader));
+			break;
+				
+			case CECATSubHeader::ECAT7_Norm3D:
+				m_pCachedSubHeader = new CECAT7SubHeaderNorm3D(*static_cast<const CECAT7SubHeaderNorm3D*>(&subHeader));
+			break;
+				
+			case CECATSubHeader::ECAT7_PolarMap:
+				m_pCachedSubHeader = new CECAT7SubHeaderPolarMap(*static_cast<const CECAT7SubHeaderPolarMap*>(&subHeader));
+			break;
+				
+			case CECATSubHeader::ECAT7_Scan:
+				m_pCachedSubHeader = new CECAT7SubHeaderScan(*static_cast<const CECAT7SubHeaderScan*>(&subHeader));
+			break;
+				
+			case CECATSubHeader::ECAT7_Scan3D:
+				m_pCachedSubHeader = new CECAT7SubHeaderScan3D(*static_cast<const CECAT7SubHeaderScan3D*>(&subHeader));
+			break;
+
+			default:
+				E("ECAT type isn't specified or not supported yet.");
+		}
+	}
 	
+	if(m_pCachedSubHeader)
+		m_pCachedSubHeader->setDirectoryItem(this);
+
 	// save the SubHeader to the stream now
-	result = subHeader.save();
+	result = m_pCachedSubHeader->save();
 
 	RETURN(result);
 	return result;
@@ -482,7 +595,31 @@ bool CECATDirectoryItem::writeMatrix(const QByteArray& matrixData)
 	return result;
 }
 
+bool CECATDirectoryItem::writeMatrix(const QByteArray& matrixData,
+																		 CECATSubHeader::Data_Type dataType)
+{
+	ENTER();
+  bool result;
+
+	result = writeMatrix(matrixData.data(), matrixData.size(), dataType);
+
+	RETURN(result);
+	return result;
+}
+
 bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrixSize)
+{
+	ENTER();
+	bool result;
+
+	result = writeMatrix(matrixData, matrixSize, CECATSubHeader::UnknownDataType); 
+
+	RETURN(result);
+	return result;
+}
+
+bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrixSize,
+																		 CECATSubHeader::Data_Type dataType)
 {
 	ENTER();
 	bool result = true;
@@ -494,20 +631,89 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 		return false;
 	}
 
+	SHOWVALUE(m_iDataBlock_Start);
+	SHOWVALUE(matrixSize);
+
 	// before we can write out the raw data we need to read in
 	// the Subheader so that we know the data type of our raw
-	// data
+	// data but before we actually read it out we check the status
+	// of the directory item and eventually generate a new subHeader if
+	// there isn't already one.
 	CECATSubHeader* subHeader = NULL;
-	if(readSubHeader(subHeader) == false || subHeader == NULL)
+
+	if(m_iStatus == NotYetWritten &&
+		 m_iDataBlock_End == 0)
+	{
+		switch(m_iSubHeaderType)
+		{
+			case CECATSubHeader::ECAT7_AttenCorr: 
+				subHeader = new CECAT7SubHeaderAttenCorr(m_pECATFile, this);
+			break;
+
+			case CECATSubHeader::ECAT7_Image:	
+				subHeader = new CECAT7SubHeaderImage(m_pECATFile, this);
+			break;
+		
+			case CECATSubHeader::ECAT7_Norm:
+				subHeader = new CECAT7SubHeaderNorm(m_pECATFile, this);
+			break;
+				
+			case CECATSubHeader::ECAT7_Norm3D:
+				subHeader = new CECAT7SubHeaderNorm3D(m_pECATFile, this);
+			break;
+				
+			case CECATSubHeader::ECAT7_PolarMap:
+				subHeader = new CECAT7SubHeaderPolarMap(m_pECATFile, this);
+			break;
+				
+			case CECATSubHeader::ECAT7_Scan:
+				subHeader = new CECAT7SubHeaderScan(m_pECATFile, this);
+			break;
+				
+			case CECATSubHeader::ECAT7_Scan3D:
+				subHeader = new CECAT7SubHeaderScan3D(m_pECATFile, this);
+			break;
+
+			default:
+				E("ECAT type isn't specified or not supported yet.");
+		}
+	}
+	else if(readSubHeader(subHeader) == false)
+		result = false;
+
+	if(result == false || subHeader == NULL)
 	{
 		RETURN(false);
 		return false;
 	}
 
+	// now that we have a valid subHeader we make sure the dataType is
+	// correctly set or we change it and save the subHeader again before
+	// we are going to write the actual matrix data
+	if(subHeader->data_Type() != dataType &&
+		 dataType != CECATSubHeader::UnknownDataType)
+	{
+		subHeader->setData_Type(dataType);
+
+		if(subHeader->save() == false)
+		{
+			delete subHeader;
+
+			RETURN(false);
+			return false;
+		}
+	}
+
 	// set the ECATFile handle to the correct position of
 	// the matrix start. This should normally be
 	// Matrix_SubHeader_StartPosition+subHeaderSize
-	m_pECATFile->at(m_iDataBlock_Start+subHeader->size());
+	if(m_pECATFile->at(m_iDataBlock_Start+subHeader->size()) == false)
+	{
+		delete subHeader;
+
+		RETURN(false);
+		return false;
+	}
 
 	// then we process the matrix data that is associated with
 	// this directoryitem.
@@ -516,13 +722,12 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 	// system we are running.
 	switch(subHeader->data_Type())
 	{
-		case CECATSubHeader::UnkownMatrixDataType:
+		case CECATSubHeader::UnknownDataType:
 		{
-			W("No or an unknown data type was set for the matrix data of dirItem %08lx",
+			E("No or an unknown data type was set for the matrix data of dirItem %08lx",
 					convertToMatrixID(m_iFrame, m_iPlane, m_iGate, m_iBed, m_iData));
 			
-			if(m_pECATFile->writeBlock(matrixData, matrixSize) == (Q_LONG)matrixSize)
-				result = true;
+			result = false;
 		}
 		break;
 
@@ -598,7 +803,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				// converted regarding to little/big endianess
 				QDataStream bufStream(bufArray, IO_WriteOnly);
 				bufStream.setByteOrder(QDataStream::LittleEndian);
-				for(unsigned int i=0; i < toWrite; i+=sizeof(Q_UINT16))
+				for(unsigned int i=0; i < toWrite; i+=sizeof(Q_UINT32))
 				{
 					bufStream << *ptr;
 					++ptr;
@@ -640,7 +845,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				// converted regarding to little/big endianess
 				QDataStream bufStream(bufArray, IO_WriteOnly);
 				bufStream.setByteOrder(QDataStream::LittleEndian);
-				for(unsigned int i=0; i < toWrite; i+=sizeof(Q_UINT16))
+				for(unsigned int i=0; i < toWrite; i+=sizeof(float))
 				{
 					bufStream << *ptr;
 					++ptr;
@@ -681,7 +886,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				// in the values to it for making sure our data is correctly
 				// converted regarding to little/big endianess
 				QDataStream bufStream(bufArray, IO_WriteOnly);
-				for(unsigned int i=0; i < toWrite; i+=sizeof(Q_UINT16))
+				for(unsigned int i=0; i < toWrite; i+=sizeof(float))
 				{
 					bufStream << *ptr;
 					++ptr;
@@ -762,7 +967,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				// in the values to it for making sure our data is correctly
 				// converted regarding to little/big endianess
 				QDataStream bufStream(bufArray, IO_WriteOnly);
-				for(unsigned int i=0; i < toWrite; i+=sizeof(Q_UINT16))
+				for(unsigned int i=0; i < toWrite; i+=sizeof(Q_UINT32))
 				{
 					bufStream << *ptr;
 					++ptr;
@@ -789,7 +994,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 	if(result)
 	{
 		// at the end of our operation we calculate the new EndPosition
-		m_iDataBlock_End = m_pECATFile->at();
+		m_iDataBlock_End = m_iDataBlock_Start+matrixSize;
 		m_iStatus = CECATDirectoryItem::Finished;
 	}
 
@@ -819,6 +1024,17 @@ QDataStream& operator<<(QDataStream& stream, const CECATDirectoryItem& dItem)
 	Q_INT32 matrixStatus = static_cast<Q_INT32>(dItem.m_iStatus);
 	stream << matrixStatus;
 
+	D("DItem.Matrix_ID    : %08lx (%d/%d/%d/%d/%d)", matrixID,
+																									 dItem.m_iFrame,
+																									 dItem.m_iPlane,
+																									 dItem.m_iGate,
+																									 dItem.m_iBed,
+																									 dItem.m_iData);
+
+	D("DItem.Matrix_Start : %d (%d)", dItem.m_iDataBlock_Start, FilePos2ECATBlock(dItem.m_iDataBlock_Start));
+	D("DItem.Matrix_End   : %d (%d)", dItem.m_iDataBlock_End, FilePos2ECATBlock(dItem.m_iDataBlock_End));
+	D("DItem.Matrix_Status: %d", dItem.m_iStatus);
+	
 	LEAVE();
 	return stream;
 }
@@ -857,8 +1073,8 @@ QDataStream& operator>>(QDataStream& stream, CECATDirectoryItem& dItem)
 																									 dItem.m_iBed,
 																									 dItem.m_iData);
 
-	D("DItem.Matrix_Start : %d", dItem.m_iDataBlock_Start);
-	D("DItem.Matrix_End   : %d", dItem.m_iDataBlock_End);
+	D("DItem.Matrix_Start : %d (%d)", dItem.m_iDataBlock_Start, FilePos2ECATBlock(dItem.m_iDataBlock_Start));
+	D("DItem.Matrix_End   : %d (%d)", dItem.m_iDataBlock_End, FilePos2ECATBlock(dItem.m_iDataBlock_End));
 	D("DItem.Matrix_Status: %d", dItem.m_iStatus);
 	
 	LEAVE();

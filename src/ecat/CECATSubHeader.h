@@ -49,14 +49,14 @@ class Q_EXPORT CECATSubHeader : public CMedIOHeader
 								ECAT7_Scan3D
 							};
 
-		enum Data_Type	{	UnkownMatrixDataType	=	0,
-											ByteData							=	1, // 1: char
-											VAX_Ix2								=	2, // 2: short - little endian
-											VAX_Ix4								=	3, // 4: long  - little endian
-											VAX_Rx4								=	4, // 4: float - little endian
-										  IEEEFloat							=	5, // 4: float - big endian
-											SunShort							=	6, // 2: short - big endian
-											SunLong								=	7  // 4: long  - big endian
+		enum Data_Type	{	UnknownDataType	=	0,
+											ByteData				=	1, // 1: char
+											VAX_Ix2					=	2, // 2: short - little endian
+											VAX_Ix4					=	3, // 4: long  - little endian
+											VAX_Rx4					=	4, // 4: float - little endian
+										  IEEEFloat				=	5, // 4: float - big endian
+											SunShort				=	6, // 2: short - big endian
+											SunLong					=	7  // 4: long  - big endian
 										};	
 
 		// constructor
@@ -78,7 +78,11 @@ class Q_EXPORT CECATSubHeader : public CMedIOHeader
 
 		// runtime type information methods
 		CMedIOHeader::Format headerFormat() const { return CMedIOHeader::ECAT; }		
-		virtual CECATSubHeader::Type subHeaderType(void) const = 0;		
+		virtual CECATSubHeader::Type subHeaderType(void) const = 0;
+
+		// internal method to set the directory Item of a subHeader
+		void setDirectoryItem(CECATDirectoryItem* dItem)
+		{ m_pDirItem = dItem; }
 
 	protected:
 		CECATDirectoryItem* m_pDirItem; // the directory item to which this

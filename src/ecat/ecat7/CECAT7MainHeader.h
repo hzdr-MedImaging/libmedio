@@ -77,6 +77,10 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 		// methods to copy data
 		void setStudyData(const CECAT7MainHeader& mh);
 
+		// runtime type information methods
+		int rtti() const
+		{ return CECATMainHeader::ECAT7MainHeader; }
+
 		// accessor Methods
 		const char* magic_Number(void) const
 		{ return m_Data.Magic_Number;	}
