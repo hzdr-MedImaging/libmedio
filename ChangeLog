@@ -6,6 +6,15 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-02-04  Jens Langner <Jens.Langner@light-speed.de>
+
+  * examples/ecat/ecatcmp: added another small usefull example on how to use
+    libmedio to read out an ECAT file. This utility can be quite handy if one
+	 wants to compare two different ECAT files if they are the same.
+	 It analyses some main Header, SubHeader and also directory list
+	 information outputs there differences and also compares the raw matrix
+	 data of each data item in the ECAT file.
+  
 2005-02-03  Jens Langner <Jens.Langner@light-speed.de>
 
   * CECATDirectoryItem.cpp: fixed the hopefully last bug in the dataBlock_Ënd
