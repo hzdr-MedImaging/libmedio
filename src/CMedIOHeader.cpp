@@ -26,7 +26,7 @@
 //! @author Hagen Moelle
 
 #include "CMedIOHeader.h"
-#include "debug.h"
+#include <rtdebug.h>
 
 //  Class: CMedIOHeader
 //  Destructor:  CMedIOHeader

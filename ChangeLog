@@ -6,14 +6,20 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-01-28  Jens Langner <Jens.Langner@light-speed.de>
+
+  * misc: adapted the debugging mechanism to use the new separated librtdebug
+    debugging library instead of having it directly included in the project
+    tree.
+  
 2005-01-25  Jens Langner <Jens.Langner@light-speed.de>
 
   * misc: did some general adaptions to make MedIO work with lmmc again.
   * CECATFile.h: added additional createEmpty* methods to make it possible to
     easily create an empty MainHeader and SubHeaders which do conform to
-	 the actual file they were created on. However, please note that they might
-	 not just be used with their corresponging save() methods and have to be
-	 passed to one of the write() methods for correctly saving it to the file.
+    the actual file they were created on. However, please note that they might
+    not just be used with their corresponging save() methods and have to be
+    passed to one of the write() methods for correctly saving it to the file.
 
 2005-01-24  Jens Langner <Jens.Langner@light-speed.de>
 
@@ -24,18 +30,18 @@ $Source$
 
   * misc: removed all additional "medio/" pathes from the include statements
     of our header files as a library doesn't have to contain any subdirectory
-	 statments and people should better use "-I/usr/local/lib/medio" in their
-	 makefiles.
+    statments and people should better use "-I/usr/local/lib/medio" in their
+    makefiles.
   * misc: implemented/fixed the ECAT write methods in may way which were quite
     broken after the new redesign. Now also matrix­wise writing seems to work
-	 fine so that a user might save different matrices at any time without
-	 having to care about the order.
+    fine so that a user might save different matrices at any time without
+    having to care about the order.
   
 2005-01-17  Jens Langner <Jens.Langner@light-speed.de>
 
   * misc: checked in some fixes that prevented the ECAT reading routines from
     working after the big change.
-	 Also removed the default values for the frame in all main methods.
+    Also removed the default values for the frame in all main methods.
 
 2004-12-07  Jens Langner <Jens.Langner@light-speed.de>
 
@@ -67,7 +73,7 @@ $Source$
 
   * CECATFile.cpp: completed switch in 'setFileType(...)'
   * CECATFile.cpp, CECATFile.h: added size of array in call of 'setMatrixData(...)'
-	
+  
 2004-09-29  Jens Langner <Jens.Langner@light-speed.de>
 
   * CECAT7SubHeaderImage.h: fixed minor typo in z_pixel_size get method.

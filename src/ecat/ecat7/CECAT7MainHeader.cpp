@@ -31,7 +31,7 @@
 
 #include <unistd.h>
 
-#include "debug.h"
+#include <rtdebug.h>
 
 CECAT7MainHeader::CECAT7MainHeader(const CECAT7MainHeader& mh)
 	: CECATMainHeader(mh.m_pMedIOData)
@@ -545,7 +545,7 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
 		}
 	}
 
-	RETURN(stream);
+	RETURN(&stream);
 	return stream;
 }
 
@@ -749,6 +749,6 @@ QTextStream& operator<<(QTextStream& stream, const CECAT7MainHeader& mHeader)
 	}
 	stream << endl;
 	
-	RETURN(stream);
+	RETURN(&stream);
 	return stream;
 }

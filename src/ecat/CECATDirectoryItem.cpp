@@ -34,7 +34,7 @@
 
 #include <qdatastream.h>
 
-#include "debug.h"
+#include <rtdebug.h>
 
 CECATDirectoryItem::CECATDirectoryItem(CECATFile* pFile,
 																			 Q_UINT32 matrixID) 

@@ -38,7 +38,7 @@
 #include <qdatastream.h>
 #include <qfileinfo.h>
 
-#include "debug.h"
+#include <rtdebug.h>
 
 CECATFile::CECATFile(const QString& filename, CECATMainHeader::Type fileType)
 	: CMedIOData(filename),

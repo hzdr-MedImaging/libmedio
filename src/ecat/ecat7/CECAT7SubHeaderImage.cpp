@@ -27,7 +27,7 @@
 
 #include <qdatastream.h>
 
-#include "debug.h"
+#include <rtdebug.h>
 
 CECAT7SubHeaderImage::CECAT7SubHeaderImage(CECATFile* ecatFile,
 																					 CECATDirectoryItem* pDirItem)

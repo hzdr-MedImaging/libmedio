@@ -27,7 +27,7 @@
 
 #include <qdatastream.h>
 
-#include "debug.h"
+#include <rtdebug.h>
 
 CECAT7SubHeaderAttenCorr::CECAT7SubHeaderAttenCorr(CECATFile* ecatFile,
 																									 CECATDirectoryItem* pDirItem)

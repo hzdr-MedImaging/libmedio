@@ -4,7 +4,7 @@
 //! @date 11/13/2004
 
 #include "CHeaderConcorde.h"
-#include "debug.h"
+#include <rtdebug.h>
 #include "CHeaderConcordeFrame.h"
 #include "CMedIOHeader.h"
 

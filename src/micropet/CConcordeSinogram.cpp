@@ -8,7 +8,7 @@
 #include "CMedIOHeader.h"
 #include "CHeaderConcorde.h"
 #include "CMedIOData.h"
-#include "debug.h"
+#include <rtdebug.h>
 
 #include <qdatastream.h>
 #include <qfile.h>

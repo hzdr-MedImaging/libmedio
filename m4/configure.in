@@ -1,7 +1,7 @@
 #/* vim:set ts=2 nowrap: ****************************************************
 #
 # libmedio - Medical Data C++ I/O Library
-# Copyright (C) 2004 by Jens Langner <Jens.Langner@light-speed.de>
+# Copyright (C) 2004-2005 by Jens Langner <Jens.Langner@light-speed.de>
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -22,8 +22,8 @@
 #****************************************************************************
 
 AC_PREREQ(2.57)
-AC_INIT(Medical IO Library, 0.1, Jens.Langner@light-speed.de, libmedio-0.1)
-AC_COPYRIGHT(Copyright (c) 2004 by Jens Langner <Jens.Langner@light-speed.de>)
+AC_INIT(Medical IO Library, 0.2, Jens.Langner@light-speed.de, libmedio-0.2)
+AC_COPYRIGHT(Copyright (c) 2004-2005 by Jens Langner <Jens.Langner@light-speed.de>)
 AC_REVISION($Revision$)
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_HEADER([src/include/config.h])
@@ -50,8 +50,13 @@ AC_QTSHAREDBUILD
 AC_ENABLE_STATIC_LIB
 AC_ENABLE_STATIC_QT
 
+# Check for the runtime debug library
+AC_PATH_RTDEBUG_LIB
+AC_PATH_RTDEBUG_INC
+AC_ENABLE_STATIC_RTDEBUG
+
 # Check for other libraries.
-AC_CHECK_LIB(pthread, pthread_create)
+AC_CHECK_LIB(pthread, pthread_create, , AC_MSG_ERROR(Cannot find required pthread library in LIBRARY_PATH))
 
 # own macros
 AC_C_BIGENDIAN

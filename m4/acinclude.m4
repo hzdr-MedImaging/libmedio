@@ -1,7 +1,7 @@
 #/* vim:set ts=2 nowrap: ****************************************************
 #
 # libmedio - Medical Data C++ I/O Library
-# Copyright (C) 2004 by Jens Langner <Jens.Langner@light-speed.de>
+# Copyright (C) 2004-2005 by Jens Langner <Jens.Langner@light-speed.de>
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -123,6 +123,31 @@ AC_DEFUN(AC_ENABLE_STATIC_QT,
 
 	if test "$test_on_enable_static_qt" = "yes"; then
 		QTLINK_LEVEL="${QTLINK_LEVEL} staticconfig"
+		AC_MSG_RESULT(yes)
+	else
+		QTLINK_LEVEL="${QTLINK_LEVEL}"
+		AC_MSG_RESULT(no)
+	fi
+
+	AC_SUBST(QTLINK_LEVEL) 
+])
+
+# this macro is used to get the arguments supplied
+# to the configure script (./configure --enable-static-rtdebug)
+AC_DEFUN(AC_ENABLE_STATIC_RTDEBUG,
+[
+	AC_MSG_CHECKING(whether to link the rtdebug library static)
+	AC_ARG_ENABLE(static-rtdebug,
+								[AC_HELP_STRING([--enable-static-rtdebug], [turn on static linking of rtdebug lib [default=no]])],
+								[case "${enableval}" in
+									yes) test_on_enable_static_rtdebug=yes	;;
+									no)	 test_on_enable_static_rtdebug=no	;;
+									*)	 AC_MSG_ERROR(bad value ${enableval} for --enable-static-rtdebug) ;;
+								esac],
+								[test_on_enable_static_rtdebug=no])
+
+	if test "$test_on_enable_static_rtdebug" = "yes"; then
+		QTLINK_LEVEL="${QTLINK_LEVEL} staticrtdebug"
 		AC_MSG_RESULT(yes)
 	else
 		QTLINK_LEVEL="${QTLINK_LEVEL}"
@@ -360,6 +385,132 @@ Try --with-qt-lib to specify the path, manualy.])
   AC_SUBST(QT_LDFLAGS)
   AC_SUBST(QT_LIBDIR)
   AC_SUBST(LIB_QT)
+])
+
+AC_DEFUN(AC_PATH_RTDEBUG_LIB,
+[
+  AC_REQUIRE_CPP()
+  AC_ARG_WITH(rtdebug-lib,
+              [AC_HELP_STRING([--with-rtdebug-lib], [where the librtdebug library is located.])],
+							[ac_rtdebug_libraries="$withval"], ac_rtdebug_libraries="")
+
+  AC_MSG_CHECKING(for runtime debugging library)
+
+  AC_CACHE_VAL(ac_cv_lib_rtdebuglib, [
+
+  rtdebug_libdir=
+
+  dnl No they didnt, so lets look for them...
+  dnl If you need to add extra directories to check, add them here.
+  if test -z "$ac_rtdebug_libraries"; then
+    rtdebug_library_dirs="$rtdebug_library_dirs \
+		                    /usr/local/lib \
+												/usr/local/lib/rtdebug \
+		                    /usr/lib \
+		                    /usr/lib/rtdebug \
+		                    /Developer/rtdebug/lib"
+  else
+    rtdebug_library_dirs="$ac_rtdebug_libraries"
+  fi
+
+  dnl Save some global vars
+  save_LDFLAGS="$LDFLAGS"
+  save_LIBS="$LIBS"
+
+  rtdebug_found="0"
+  ac_rtdebug_libdir=
+  ac_rtdebug_libname="-lrtdebug"
+  
+  LIBS="$ac_rtdebug_libname $save_LIBS"
+  for rtdebug_dir in $rtdebug_library_dirs; do
+    LDFLAGS="-L$rtdebug_dir $save_LDFLAGS"
+    AC_TRY_LINK_FUNC(main, [rtdebug_found="1"], [rtdebug_found="0"])
+    if test $rtdebug_found = 1; then
+      ac_rtdebug_libdir="$rtdebug_dir"
+      break;
+    else
+      echo "tried $rtdebug_dir" >&AC_FD_CC 
+    fi
+  done
+
+  dnl Restore the saved vars
+  LDFLAGS="$save_LDFLAGS"
+  LIBS="$save_LIBS"
+
+  ac_cv_lib_rtdebuglib="ac_rtdebug_libname=$ac_rtdebug_libname ac_rtdebug_libdir=$ac_rtdebug_libdir"
+  ])
+
+  eval "$ac_cv_lib_rtdebuglib"
+
+  dnl Define a shell variable for later checks
+  if test -z "$ac_rtdebug_libdir"; then
+    have_rtdebug_lib="no"
+    AC_MSG_RESULT([no])
+    AC_MSG_ERROR([Cannot find required runtime debugging (librtdebug) library in linker path.
+Try --with-rtdebug-lib to specify the path, manually.])
+  else
+    have_rtdebug_lib="yes"
+    AC_MSG_RESULT([yes, $ac_rtdebug_libname in $ac_rtdebug_libdir found.])
+  fi
+
+  RTDEBUG_LDFLAGS="-L$ac_rtdebug_libdir"
+  RTDEBUG_LIBDIR="$ac_rtdebug_libdir"
+  LIB_RTDEBUG="$ac_rtdebug_libname"
+  AC_SUBST(RTDEBUG_LDFLAGS)
+  AC_SUBST(RTDEBUG_LIBDIR)
+  AC_SUBST(LIB_RTDEBUG)
+])
+
+AC_DEFUN(AC_PATH_RTDEBUG_INC,
+[
+  AC_REQUIRE_CPP()
+  AC_MSG_CHECKING(for librtdebug includes)
+
+  AC_ARG_WITH(rtdebug-inc,
+              [AC_HELP_STRING([--with-rtdebug-inc], [where the librtdebug headers are located.])],
+              [rtdebug_include_dirs="$withval"], rtdebug_include_dirs="")
+
+  AC_CACHE_VAL(ac_cv_header_rtdebuginc, [
+
+    dnl Did the user give --with-rtdebug-includes?
+    if test -z "$rtdebug_include_dirs"; then
+
+      dnl No they didn't, so lets look for them...
+      dnl If you need to add extra directories to check, add them here.
+      rtdebug_include_dirs="\
+        /usr/local/rtdebug/include \
+        /usr/include/rtdebug \
+        /usr/lib/rtdebug/include \
+        /usr/local/include/rtdebug"
+    fi
+
+    for rtdebug_dir in $rtdebug_include_dirs; do
+      if test -r "$rtdebug_dir/CRTDebug.h"; then
+        if test -r "$rtdebug_dir/rtdebug.h"; then
+          ac_rtdebug_includes=$rtdebug_dir
+          break;
+        fi
+      fi
+    done
+
+    ac_cv_header_rtdebuginc=$ac_rtdebug_includes
+
+  ])
+
+  if test -z "$ac_cv_header_rtdebuginc"; then
+    have_rtdebug_inc="no"
+    AC_MSG_RESULT([no])
+    AC_MSG_WARN([librtdebug include directory not found, you may run into problems.
+Try --with-rtdebug-inc to specify the path, manually.])
+  else
+    have_rtdebug_inc="yes"
+    AC_MSG_RESULT([yes, in $ac_cv_header_rtdebuginc])
+  fi
+
+  RTDEBUG_INCLUDES="-I$ac_cv_header_rtdebuginc"
+  RTDEBUG_INCDIR="$ac_cv_header_rtdebuginc"
+  AC_SUBST(RTDEBUG_INCLUDES)
+  AC_SUBST(RTDEBUG_INCDIR)
 ])
 
 AC_DEFUN(AC_PATH_QT_INC,

@@ -30,7 +30,7 @@
 
 #include <qstring.h>
 
-#include "debug.h"
+#include <rtdebug.h>
 
 //  Class: CMedIOData
 //  Constructor: CMedIOData

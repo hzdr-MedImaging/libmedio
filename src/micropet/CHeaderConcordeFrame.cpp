@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 
-#include "debug.h"
+#include <rtdebug.h>
 #include "CMedIOHeader.h"
 #include "CHeaderConcordeFrame.h"
 

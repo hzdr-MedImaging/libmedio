@@ -29,7 +29,7 @@
 #include <qintdict.h>
 #include <qvaluevector.h>
 
-#include "debug.h"
+#include <rtdebug.h>
 
 // the RAW structures used in the ECAT directory blocks
 #pragma pack(2)

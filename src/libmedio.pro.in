@@ -61,10 +61,9 @@ PUB_HEADER =	CMedIOHeader.h \
 #		micropet/CConcordeSinogram.h \
 #   micropet/CConcordeImage.h
 
-HEADERS  = CDebug.h \
-           $$PUB_HEADER
+HEADERS  = $$PUB_HEADER
 
-SOURCES  = CDebug.cpp \
+SOURCES  = \
 	   CMedIOHeader.cpp \
 	   CMedIOData.cpp \
 	   CMedIODataFactory.cpp \
@@ -114,6 +113,17 @@ unix {
 
   # "make install" configuration options
   INSTALLS += target include documentation
+}
+
+### LIBRTDEBUG ############################################################
+# if "staticrtdebug" is specified in the CONFIG variable (by configure)
+# we link wih the static variant of librtdebug instead
+INCLUDEPATH *= @RTDEBUG_INCDIR@
+staticmedio {
+	LIBS *= @RTDEBUG_LIBDIR@/librtdebug.a
+}
+else {
+	LIBS *= -L@RTDEBUG_LIBDIR@ @LIB_RTDEBUG@
 }
 
 # own QMAKE Flags definitions

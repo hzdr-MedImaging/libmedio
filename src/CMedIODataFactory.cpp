@@ -33,7 +33,7 @@
 #include "CConcordeSinogram.h"
 #include "CConcordeImage.h"
 
-#include "debug.h"
+#include <rtdebug.h>
 
 CMedIOData::Format CMedIODataFactory::identify(const QString& fileName)
 {

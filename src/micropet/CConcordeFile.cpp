@@ -28,7 +28,7 @@
 #include "CConcordeFile.h"
 #include "CHeaderConcorde.h"
 #include "CMedIOData.h"
-#include "debug.h"
+#include <rtdebug.h>
 
 //  Class: CConcordeFile
 //  Constructor: CConcordeFile

@@ -27,7 +27,7 @@
 #include <qdatastream.h>
 #include <qfileinfo.h>
 
-#include "debug.h"
+#include <rtdebug.h>
 
 CECAT6MainHeader::CECAT6MainHeader(const CECAT6MainHeader& mh)
 	: CECATMainHeader(mh.m_pMedIOData)

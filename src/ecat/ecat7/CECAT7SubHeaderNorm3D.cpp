@@ -27,7 +27,7 @@
 
 #include <qdatastream.h>
 
-#include "debug.h"
+#include <rtdebug.h>
 
 CECAT7SubHeaderNorm3D::CECAT7SubHeaderNorm3D(CECATFile* ecatFile,
 																						 CECATDirectoryItem* pDirItem)

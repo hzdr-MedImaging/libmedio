@@ -27,7 +27,7 @@
 
 #include <qdatastream.h>
 
-#include "debug.h"
+#include <rtdebug.h>
 
 CECAT7SubHeaderPolarMap::CECAT7SubHeaderPolarMap(CECATFile* ecatFile,
 																								 CECATDirectoryItem* pDirItem)
