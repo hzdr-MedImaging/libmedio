@@ -1,7 +1,7 @@
 /* vim:set ts=2 nowrap: ****************************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2004-2005 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -22,6 +22,7 @@
 ***************************************************************************/
 
 #include "CECAT7MainHeader.h"
+#include "CECAT6MainHeader.h"
 #include "CECATFile.h"
 
 #include <qcstring.h>
@@ -83,35 +84,6 @@ CECAT7MainHeader::CECAT7MainHeader(CECATFile* ecatFile,
 	strcpy(m_Data.Isotope_Name, "F-18");
 	strcpy(m_Data.Radiopharmaceutical, "F-18 Dopa");
 	strcpy(m_Data.Study_Description, "created with libmedio v0.2");
-}
-
-void CECAT7MainHeader::setStudyData(const CECAT7MainHeader& mh)
-{
-	// lets gather all study relevant information from the supplied
-	// main header object and copy it into our own data
-	setScan_Start_Time(mh.scan_Start_Time());
-	setIsotope_Name(mh.isotope_Name());
-	setIsotope_Halflife(mh.isotope_Halflife());
-	setRadiopharmaceutical(mh.radiopharmaceutical());
-	setBed_Elevation(mh.bed_Elevation());
-	setDistance_Scanned(mh.distance_Scanned());
-	setStudy_Type(mh.study_Type());
-	setPatient_ID(mh.patient_ID());
-	setPatient_Name(mh.patient_Name());
-	setPatient_Sex(mh.patient_Sex());
-	setPatient_Dexterity(mh.patient_Dexterity());
-	setPatient_Age(mh.patient_Age());
-	setPatient_Height(mh.patient_Height());
-	setPatient_Weight(mh.patient_Weight());
-	setPatient_Birth_Date(mh.patient_Birth_Date());
-	setPhysician_Name(mh.physician_Name());
-	setOperator_Name(mh.operator_Name());
-	setStudy_Description(mh.study_Description());
-	setPatient_Orientation(mh.patient_Orientation());
-	setFacility_Name(mh.facility_Name());
-	setUser_Process_Code(mh.user_Process_Code());
-	setDose_Start_Time(mh.dose_Start_Time());
-	setDosage(mh.dosage());
 }
 
 void CECAT7MainHeader::setFileType(CECATMainHeader::Type fType)
@@ -670,6 +642,67 @@ bool CECAT7MainHeader::save(void) const
 
 	RETURN(result);
 	return result;
+}
+
+CMedIOHeader& CECAT7MainHeader::operator=(const CMedIOHeader& src)
+{
+	ENTER();
+
+	// depending on the MedIOHeader format we do have to 
+	// distinguish between our copy operations.
+	switch(src.headerFormat())
+	{
+		case CMedIOHeader::ECATMainHeader:
+		{
+			const CECATMainHeader* eMainHeader = static_cast<const CECATMainHeader*>(&src);
+
+			// depending on the source type we have to copy either every data or just 
+			// some data of the src header
+			switch(eMainHeader->rtti())
+			{
+				// if the source header is also an ECAT7 one we can copy it in whole
+				// via a simple memcpy()
+				case CECATMainHeader::ECAT7MainHeader:
+				{
+					memcpy(&(this->m_Data), &(static_cast<const CECAT7MainHeader*>(&src)->m_Data), sizeof(struct ECAT7MainHeader));
+				}
+				break;
+
+				// if this is an ECAT6 Mainheader we have to take care of the fact that
+				// some information is missing in one of the headers.
+				case CECATMainHeader::ECAT6MainHeader:
+				{
+					const CECAT6MainHeader* e6src = static_cast<const CECAT6MainHeader*>(&src);
+					setOriginal_File_Name(e6src->original_File_Name());
+					setSystem_Type(e6src->system_Type());
+
+					#warning "ECAT6->ECAT7 copy not fully implemented yet!"
+				}
+				break;
+			}
+			
+			// afterwards we have to make sure sensible data is restored
+			m_Data.SW_Version = 72; // This header does conform to the ECAT 7.2 standard
+		}
+
+		case CMedIOHeader::ECATSubHeader:
+			// copying a sub header into a main header doesn't make much sense, so we
+			// do nothing here
+		break;
+
+		case CMedIOHeader::ConcordeMicropet:
+		{
+			#warning "Concorde->ECAT7 copy missing"
+		}
+		break;
+
+		case CMedIOHeader::Unknown:
+			// for an unknown header type we do nothing
+		break;
+	}
+
+	LEAVE();
+	return *this;
 }
 
 QTextStream& operator<<(QTextStream& stream, const CECAT7MainHeader& mHeader)

@@ -1,7 +1,7 @@
 /* vim:set ts=2 nowrap: ****************************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2004-2005 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -22,6 +22,7 @@
 ***************************************************************************/
 
 #include "CECAT6MainHeader.h"
+#include "CECAT7MainHeader.h"
 #include "CECATFile.h"
 
 #include <qdatastream.h>
@@ -311,4 +312,65 @@ bool CECAT6MainHeader::save(void) const
 
 	RETURN(result);
 	return result;
+}
+
+CMedIOHeader& CECAT6MainHeader::operator=(const CMedIOHeader& src)
+{
+	ENTER();
+
+	// depending on the MedIOHeader format we do have to 
+	// distinguish between our copy operations.
+	switch(src.headerFormat())
+	{
+		case CMedIOHeader::ECATMainHeader:
+		{
+			const CECATMainHeader* eMainHeader = static_cast<const CECATMainHeader*>(&src);
+
+			// depending on the source type we have to copy either every data or just 
+			// some data of the src header
+			switch(eMainHeader->rtti())
+			{
+				// if the source header is also an ECAT6 one we can copy it in whole
+				// via a simple memcpy()
+				case CECATMainHeader::ECAT6MainHeader:
+				{
+					memcpy(&(this->m_Data), &(static_cast<const CECAT6MainHeader*>(&src)->m_Data), sizeof(struct ECAT6MainHeader));
+				}
+				break;
+
+				// if this is an ECAT7 Mainheader we have to take care of the fact that
+				// some information is missing in one of the headers.
+				case CECATMainHeader::ECAT7MainHeader:
+				{
+					const CECAT7MainHeader* e7src = static_cast<const CECAT7MainHeader*>(&src);
+					setOriginal_File_Name(e7src->original_File_Name());
+					setSystem_Type(e7src->system_Type());
+
+					#warning "ECAT7->ECAT6 copy not fully implemented yet!"
+				}
+				break;
+			}
+	
+			// afterwards we have to make sure sensible data is restored
+			m_Data.SW_Version = 60; // This header does conform to the ECAT 6.0 standard
+		}
+
+		case CMedIOHeader::ECATSubHeader:
+			// copying a sub header into a main header doesn't make much sense, so we
+			// do nothing here
+		break;
+
+		case CMedIOHeader::ConcordeMicropet:
+		{
+			#warning "Concorde->ECAT6 copy missing"
+		}
+		break;
+
+		case CMedIOHeader::Unknown:
+			// for an unknown header type we do nothing
+		break;
+	}
+	
+	LEAVE();
+	return *this;
 }

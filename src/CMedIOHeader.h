@@ -46,7 +46,8 @@ class CMedIOHeader
 	public:
 		enum Format {	Unknown = 0,
 									ConcordeMicropet,	//!< header of concorde microPET scanner
-									ECAT							//!< ECAT6/7 type header
+									ECATMainHeader,		//!< main header of ECAT6/7 PET scanners
+									ECATSubHeader			//!< sub header of ECAT6/7 PET scanners
 								};
 
 		CMedIOHeader(CMedIOData* data)
@@ -70,6 +71,9 @@ class CMedIOHeader
 		//! @brief run time typeinformation  
 		//! @return specific header format at runtime
 		virtual CMedIOHeader::Format headerFormat() const = 0;
+
+		// some required operator overloading methods to copy a header
+		virtual CMedIOHeader& operator=(const CMedIOHeader& src) = 0;		
 		
 	protected:
 		CMedIOData* m_pMedIOData; //!< the associated MedIOData this header belongs to

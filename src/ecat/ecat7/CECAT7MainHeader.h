@@ -77,7 +77,7 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 		friend QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader);
 		
 		// methods to copy data
-		void setStudyData(const CECAT7MainHeader& mh);
+		CMedIOHeader& operator=(const CMedIOHeader& src);
 
 		// runtime type information methods
 		int rtti() const

@@ -83,8 +83,11 @@ class Q_EXPORT CECATSubHeader : public CMedIOHeader
 		virtual int size() const = 0;
 
 		// runtime type information methods
-		CMedIOHeader::Format headerFormat() const { return CMedIOHeader::ECAT; }		
+		CMedIOHeader::Format headerFormat() const { return CMedIOHeader::ECATSubHeader; }		
 		virtual CECATSubHeader::Type subHeaderType(void) const = 0;
+
+		// some required operator overloading methods to copy a header
+		virtual CMedIOHeader& operator=(const CMedIOHeader& src) = 0;	
 
 		// internal method to set the directory Item of a subHeader
 		void setDirectoryItem(CECATDirectoryItem* dItem)

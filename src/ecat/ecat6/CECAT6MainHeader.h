@@ -47,6 +47,9 @@ class Q_EXPORT CECAT6MainHeader : public CECATMainHeader
 		bool load(void);
 		bool save(void) const;
 
+		// methods to copy data
+		CMedIOHeader& operator=(const CMedIOHeader& src);	
+
 		// runtime type information methods
 		int rtti() const
 		{ return CECATMainHeader::ECAT6MainHeader; }

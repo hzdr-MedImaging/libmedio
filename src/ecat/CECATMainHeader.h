@@ -70,9 +70,12 @@ class Q_EXPORT CECATMainHeader : public CMedIOHeader
 		virtual void setNum_Gates(short num)		= 0;
 		virtual void setNum_Bed_Pos(short num)	= 0;
 
+		// some required operator overloading methods to copy a header
+		virtual CMedIOHeader& operator=(const CMedIOHeader& src) = 0;
+
 		// runtime type information methods
 		virtual int rtti() const = 0;
-		CMedIOHeader::Format headerFormat() const { return CMedIOHeader::ECAT; }
+		CMedIOHeader::Format headerFormat() const { return CMedIOHeader::ECATMainHeader; }
 };
 
 #endif // CECATMAINHEADER_H

@@ -185,3 +185,55 @@ bool CECAT7SubHeaderNorm::save(void) const
 	RETURN(result);
 	return result;
 }
+
+CMedIOHeader& CECAT7SubHeaderNorm::operator=(const CMedIOHeader& src)
+{
+	ENTER();
+
+	// depending on the MedIOHeader format we do have to 
+	// distinguish between our copy operations.
+	switch(src.headerFormat())
+	{
+		case CMedIOHeader::ECATSubHeader:
+		{
+			const CECATSubHeader* eSubHeader = static_cast<const CECATSubHeader*>(&src);
+
+			// depending on the source type we have to copy either every data or just 
+			// some data of the src header
+			switch(eSubHeader->subHeaderType())
+			{
+				// if the source header is also an ECAT7 one we can copy it in whole
+				// via a simple memcpy()
+				case CECATSubHeader::ECAT7_Norm:
+				{
+					memcpy(&(this->m_Data), &(static_cast<const CECAT7SubHeaderNorm*>(&src)->m_Data), sizeof(struct ECAT7SubHeader_Norm));
+				}
+				break;
+
+				case CECATSubHeader::Unknown:
+					// for an unknown header type we do nothing
+				break;
+				
+				#warning "non Norm copy not complete"
+			}
+		}
+
+		case CMedIOHeader::ECATMainHeader:
+			// copying a main header into a sub header doesn't make much sense, so we
+			// do nothing here
+		break;
+
+		case CMedIOHeader::ConcordeMicropet:
+		{
+			#warning "Concorde->ECAT7SubHeader copy missing"
+		}
+		break;
+
+		case CMedIOHeader::Unknown:
+			// for an unknown header type we do nothing
+		break;
+	}
+
+	LEAVE();
+	return *this;
+}

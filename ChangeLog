@@ -6,6 +6,13 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-03-01  Jens Langner <Jens.Langner@light-speed.de>
+
+  * misc: added a global operator= method to the MedIOHeader interface and
+    adapted all our ECAT headers to take care of that. This way medio now
+    has a global header copy instance which allows to implement own
+    assignment methods for copying data of one format to another one.
+  
 2005-02-25  Jens Langner <Jens.Langner@light-speed.de>
 
   * SubHeaders: the way ECAT Subheader were cached was done slightly wrong.
