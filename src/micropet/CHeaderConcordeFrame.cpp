@@ -38,6 +38,8 @@ bool CHeaderConcordeFrame::load()
 				continue;
 			if(line[0]!='#')
 			{
+				if((int)line[strlen(line)-1] == 13)
+					line[strlen(line)-1] = 0;
 				char *ptr_tok = NULL;
 				ptr_tok = strtok(line, " ");
 				//cout << ptr_tok << endl;

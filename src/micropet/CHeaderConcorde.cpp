@@ -215,7 +215,8 @@ bool CHeaderConcorde::load()
 				//cout << ptr_tok << " ";
 				//check for end_of_header
 				//if true break for loop
-				
+				if((int)line[strlen(line)-1] == 13)
+					line[strlen(line)-1] = 0;
 				if(strcmp("end_of_header", ptr_tok) == 0)
 				{
 					D("reached end of header"); 
