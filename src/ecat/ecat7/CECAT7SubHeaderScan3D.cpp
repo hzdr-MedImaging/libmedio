@@ -28,6 +28,16 @@
 
 #include "debug.h"
 
+CECAT7SubHeaderScan3D::CECAT7SubHeaderScan3D(const CECAT7SubHeaderScan3D& sh)
+	: CECATSubHeader(sh)
+{
+	// check that the headsize is 1024 bytes long
+	ASSERT(sizeof(struct ECAT7SubHeader_Scan3D) == 1024);
+
+	// then copy the structure
+	memcpy(&m_Data, &sh.m_Data, sizeof(struct ECAT7SubHeader_Scan3D));
+}
+
 CECAT7SubHeaderScan3D::CECAT7SubHeaderScan3D()
 {
 	// check that the headsize is 1024 bytes long

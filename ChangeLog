@@ -6,6 +6,12 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2004-09-28  Jens Langner <Jens.Langner@light-speed.de>
+
+  * misc: added all missing accessor methods to all kind of ECAT7 subheaders and
+    also implemented copy constructors for all of them. Now the ECAT7 support should
+    be more or less complete. Only ECAT6 is missing to have a complete ECAT suite.
+  
 2004-09-24  Jens Langner <Jens.Langner@light-speed.de>
 
   * CECAT7MainHeader.h: the patient birthdate was specified as a "unsigned int"

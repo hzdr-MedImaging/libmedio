@@ -28,6 +28,17 @@
 
 #include "debug.h"
 
+
+CECAT7SubHeaderAttenCorr::CECAT7SubHeaderAttenCorr(const CECAT7SubHeaderAttenCorr& sh)
+	: CECATSubHeader(sh)
+{
+	// check that the headsize is 512 bytes long
+	ASSERT(sizeof(struct ECAT7SubHeader_AttenCorr) == 512);
+
+	// then clear the structure
+	memcpy(&m_Data, &sh.m_Data, sizeof(struct ECAT7SubHeader_AttenCorr));
+}
+
 CECAT7SubHeaderAttenCorr::CECAT7SubHeaderAttenCorr()
 {
 	// check that the headsize is 512 bytes long

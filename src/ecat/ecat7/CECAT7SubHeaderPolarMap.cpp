@@ -28,6 +28,16 @@
 
 #include "debug.h"
 
+CECAT7SubHeaderPolarMap::CECAT7SubHeaderPolarMap(const CECAT7SubHeaderPolarMap& sh)
+	: CECATSubHeader(sh)
+{
+	// check that the headsize is 512 bytes long
+	ASSERT(sizeof(struct ECAT7SubHeader_PolarMap) == 512);
+
+	// then copy the structure
+	memcpy(&m_Data, &sh.m_Data, sizeof(struct ECAT7SubHeader_PolarMap));			
+}
+
 CECAT7SubHeaderPolarMap::CECAT7SubHeaderPolarMap()
 {
 	// check that the headsize is 512 bytes long

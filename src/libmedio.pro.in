@@ -129,6 +129,13 @@ staticconfig {
 	macx:LIBS += $(QTDIR)/lib/libqt-mt.a -lz -framework Carbon
 }
 
+# find out the GCC version
+# and define some gcc v3+ options only.
+GCC_VERSION = @GCC_VERSION@
+contains(GCC_VERSION, 3) {
+	QMAKE_CXXFLAGS *= -fmessage-length=0
+}
+
 # set the config to either release or debug
 COMPILE_LEVEL = @COMPILE_LEVEL@
 contains(COMPILE_LEVEL, debug) {

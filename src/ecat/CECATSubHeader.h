@@ -49,11 +49,11 @@ class Q_EXPORT CECATSubHeader
 		virtual bool save(QDataStream& stream) = 0;
 
 		// some must have accessor methods
-		virtual Data_Type data_Type(void) = 0;
-		virtual void setData_Type(Data_Type dType) = 0;
+		virtual Data_Type data_Type(void) const = 0;
+		virtual void setData_Type(const Data_Type dType) = 0;
 
 		// runtime type information
-		virtual Type rtti(void) = 0;
+		virtual Type rtti(void) const = 0;
 };
 
 #endif // CECATSUBHEADER_H
