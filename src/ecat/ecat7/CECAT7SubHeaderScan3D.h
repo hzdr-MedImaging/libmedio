@@ -30,7 +30,7 @@
 
 // forward declarations
 
-class CECAT7SubHeaderScan3D : public CECATSubHeader
+class Q_EXPORT CECAT7SubHeaderScan3D : public CECATSubHeader
 {
 	public:
 		// public enumeration types
@@ -68,77 +68,209 @@ class CECAT7SubHeaderScan3D : public CECATSubHeader
 		// public methods
 		bool load(QDataStream& stream);
 		bool save(QDataStream& stream);
-		CECATSubHeader::Type rtti(void)		{ return CECATSubHeader::ECAT7_Scan3D;			}
+		CECATSubHeader::Type rtti(void)	
+		{ return CECATSubHeader::ECAT7_Scan3D;			}
 
 		// methods to access elements of the SubHeader
-		CECATSubHeader::Data_Type data_Type(void)	{ return static_cast<CECATSubHeader::Data_Type>(m_Data.Data_Type);	}
-		short num_Dimensions()						{ return m_Data.Num_Dimensions;							}
-		short num_R_Elements()						{ return m_Data.Num_R_Elements;							}
-		short num_Angles()								{	return m_Data.Num_Angles;									}
-		short corrections_Applied()				{ return m_Data.Corrections_Applied;				}
-		short num_Z_Elements(short i)			{ return m_Data.Num_Z_Elements[i];					}
-		short ring_Difference()						{	return m_Data.Ring_Difference;						}
-		Storage_Order storage_Order()			{ return static_cast<Storage_Order>(m_Data.Storage_Order); }
-		short axial_Compression()					{	return m_Data.Axial_Compression;					}
-		float X_Resolution()							{	return m_Data.X_Resolution;								}
-		float V_Resolution()							{	return m_Data.V_Resolution;								}
-		float Z_Resolution()							{	return m_Data.Z_Resolution;								}
-		float W_Resolution()							{	return m_Data.W_Resolution;								}
-		short gate_Reserved(short i)			{ return m_Data.Gate_Reserved[i];						}
-		unsigned int gate_Duration()			{ return m_Data.Gate_Duration;							}
-		unsigned int r_Wave_Offset()			{ return m_Data.R_Wave_Offset;							}
-		unsigned int num_Accepted_Beats()	{	return m_Data.Num_Accepted_Beats;					}
-		float scale_Factor()							{ return m_Data.Scale_Factor;								}
-		short scan_Min()									{ return m_Data.Scan_Min;										}
-		short scan_Max()									{ return m_Data.Scan_Max;										}
-		unsigned int prompts()						{ return m_Data.Prompts;										}
-		unsigned int delayed()						{ return m_Data.Delayed;										}
-		unsigned int multiples()					{ return m_Data.Multiples;									}
-		unsigned int net_Trues()					{ return m_Data.Net_Trues;									}
-		float tot_Avg_Cor()								{ return m_Data.Tot_Avg_Cor;								}
-		float tot_Avg_Uncor()							{ return m_Data.Tot_Avg_Uncor;							}
-		unsigned int total_Coin_Rate()		{ return m_Data.Total_Coin_Rate;						}
-		unsigned int frame_Start_Time()		{ return m_Data.Frame_Start_Time;						}
-		unsigned int frame_Duration()			{ return m_Data.Frame_Duration;							}
-		float deadtime_Correction_Factor(){ return m_Data.Deadtime_Correction_Factor;	}
-		short cti_Reserved(short i)				{ return m_Data.CTI_reserved[i];						}
-		short user_Reserved(short i)			{ return m_Data.User_Reserved[i];						}
-		float uncor_Singles(short bucket)	{	return m_Data.Uncor_Singles[bucket];			}
+		CECATSubHeader::Data_Type data_Type(void)	
+		{ return static_cast<CECATSubHeader::Data_Type>(m_Data.Data_Type);	}
+		
+		short num_Dimensions()						
+		{ return m_Data.Num_Dimensions;	}
+		
+		short num_R_Elements()						
+		{ return m_Data.Num_R_Elements; }
+		
+		short num_Angles()								
+		{	return m_Data.Num_Angles; }
+		
+		short corrections_Applied()				
+		{ return m_Data.Corrections_Applied; }
+		
+		short num_Z_Elements(short i)		
+		{ return m_Data.Num_Z_Elements[i]; }
+		
+		short ring_Difference()					
+		{	return m_Data.Ring_Difference; }
+		
+		Storage_Order storage_Order()			
+		{ return static_cast<Storage_Order>(m_Data.Storage_Order); }
+		
+		short axial_Compression()				
+		{	return m_Data.Axial_Compression; }
+		
+		float X_Resolution()						
+		{	return m_Data.X_Resolution;	}
+		
+		float V_Resolution()						
+		{	return m_Data.V_Resolution;	}
+		
+		float Z_Resolution()						
+		{	return m_Data.Z_Resolution;	}
+		
+		float W_Resolution()							
+		{	return m_Data.W_Resolution;	}
+		
+		short gate_Reserved(short i)		
+		{ return m_Data.Gate_Reserved[i]; }
+		
+		unsigned int gate_Duration()		
+		{ return m_Data.Gate_Duration; }
+		
+		unsigned int r_Wave_Offset()		
+		{ return m_Data.R_Wave_Offset; }
+		
+		unsigned int num_Accepted_Beats()	
+		{	return m_Data.Num_Accepted_Beats; }
+		
+		float scale_Factor()						
+		{ return m_Data.Scale_Factor; }
+		
+		short scan_Min()								
+		{ return m_Data.Scan_Min; }
+		
+		short scan_Max()									
+		{ return m_Data.Scan_Max; }
+		
+		unsigned int prompts()						
+		{ return m_Data.Prompts; }
+		
+		unsigned int delayed()					
+		{ return m_Data.Delayed; }
+		
+		unsigned int multiples()				
+		{ return m_Data.Multiples; }
+		
+		unsigned int net_Trues()				
+		{ return m_Data.Net_Trues; }
+		
+		float tot_Avg_Cor()							
+		{ return m_Data.Tot_Avg_Cor; }
+		
+		float tot_Avg_Uncor()						
+		{ return m_Data.Tot_Avg_Uncor; }
+		
+		unsigned int total_Coin_Rate()	
+		{ return m_Data.Total_Coin_Rate; }
+		
+		unsigned int frame_Start_Time()	
+		{ return m_Data.Frame_Start_Time; }
+		
+		unsigned int frame_Duration()		
+		{ return m_Data.Frame_Duration; }
+		
+		float deadtime_Correction_Factor()
+		{ return m_Data.Deadtime_Correction_Factor;	}
+		
+		short cti_Reserved(short i)				
+		{ return m_Data.CTI_reserved[i]; }
+		
+		short user_Reserved(short i)		
+		{ return m_Data.User_Reserved[i]; }
+		
+		float uncor_Singles(short bucket)
+		{	return m_Data.Uncor_Singles[bucket]; }
+
 
 		// methods to modify elements of the SubHeader
-		void setData_Type(CECATSubHeader::Data_Type dType)	{ m_Data.Data_Type = static_cast<Q_UINT16>(dType); }	
-		void num_Dimensions(short dim)						{ m_Data.Num_Dimensions = dim;						}
-		void num_R_Elements(short elem)						{ m_Data.Num_R_Elements = elem;						}
-		void num_Angles(short angles)							{ m_Data.Num_Angles = angles;							}
-		void corrections_Applied(short cor)				{ m_Data.Corrections_Applied = cor;				}
-		void num_Z_Elements(short i, short num)		{	m_Data.Num_Z_Elements[i] = num;					}
-		void ring_Difference(short diff)					{	m_Data.Ring_Difference = diff;					}
-		void storage_Order(Storage_Order order)		{ m_Data.Storage_Order = static_cast<Q_UINT16>(order); }
-		void axial_Compression(short comp)				{	m_Data.Axial_Compression = comp;				}
-		void X_Resolution(float res)							{ m_Data.X_Resolution = res;							}
-		void V_Resolution(float res)							{ m_Data.V_Resolution = res;							}
-		void Z_Resolution(float res)							{ m_Data.Z_Resolution = res;							}
-		void W_Resolution(float res)							{ m_Data.W_Resolution = res;							}
-		void gate_Reserved(short i, short val)		{ m_Data.Gate_Reserved[i] = val;					}
-		void gate_Duration(unsigned int dur)			{	m_Data.Gate_Duration = dur;							}
-		void r_Wave_Offset(unsigned int off)			{ m_Data.R_Wave_Offset = off;							}
-		void num_Accepted_Beats(unsigned int b)		{ m_Data.Num_Accepted_Beats = b;					}
-		void scale_Factor(float factor)						{ m_Data.Scale_Factor = factor;						}
-		void scan_Min(short min)									{ m_Data.Scan_Min = min;									}
-		void scan_Max(short max)									{ m_Data.Scan_Max = max;									}
-		void prompts(unsigned int n)							{ m_Data.Prompts = n;											}
-		void delayed(unsigned int n)							{ m_Data.Delayed = n;											}
-		void multiples(unsigned int n)						{ m_Data.Multiples = n;										}
-		void net_Trues(unsigned int n)						{ m_Data.Net_Trues = n;										}
-		void tot_Avg_Cor(float value)							{ m_Data.Tot_Avg_Cor = value;							}
-		void tot_Avg_Uncor(float value)						{ m_Data.Tot_Avg_Uncor = value;						}
-		void total_Coin_Rate(unsigned int n)			{ m_Data.Total_Coin_Rate = n;							}
-		void frame_Start_Time(unsigned int t)			{ m_Data.Frame_Start_Time = t;						}
-		void frame_Duration(unsigned int t)				{ m_Data.Frame_Duration = t;							}
-		void deadtime_Correction_Factor(float f)	{ m_Data.Deadtime_Correction_Factor = f;	}
-		void cti_Reserved(short i, short value)		{ m_Data.CTI_reserved[i] = value;					}
-		void user_Reserved(short i, short value)	{ m_Data.User_Reserved[i] = value;				}
-		void uncor_Singles(short b, float value)	{ m_Data.Uncor_Singles[b] = value;				}
+		void setData_Type(CECATSubHeader::Data_Type dType)	
+		{ m_Data.Data_Type = static_cast<Q_UINT16>(dType); }	
+		
+		void setNum_Dimensions(short dim)						
+		{ m_Data.Num_Dimensions = dim; }
+		
+		void setNum_R_Elements(short elem)						
+		{ m_Data.Num_R_Elements = elem; }
+		
+		void setNum_Angles(short angles)							
+		{ m_Data.Num_Angles = angles; }
+		
+		void setCorrections_Applied(short cor)			
+		{ m_Data.Corrections_Applied = cor; }
+		
+		void setNum_Z_Elements(short i, short num)	
+		{	m_Data.Num_Z_Elements[i] = num; }
+		
+		void setRing_Difference(short diff)					
+		{	m_Data.Ring_Difference = diff; }
+		
+		void setStorage_Order(Storage_Order order)	
+		{ m_Data.Storage_Order = static_cast<Q_UINT16>(order); }
+		
+		void setAxial_Compression(short comp)			
+		{	m_Data.Axial_Compression = comp; }
+		
+		void setX_Resolution(float res)						
+		{ m_Data.X_Resolution = res; }
+		
+		void setV_Resolution(float res)						
+		{ m_Data.V_Resolution = res; }
+		
+		void setZ_Resolution(float res)						
+		{ m_Data.Z_Resolution = res; }
+		
+		void setW_Resolution(float res)						
+		{ m_Data.W_Resolution = res; }
+		
+		void setGate_Reserved(short i, short val)	
+		{ m_Data.Gate_Reserved[i] = val; }
+		
+		void setGate_Duration(unsigned int dur)		
+		{	m_Data.Gate_Duration = dur;	}
+		
+		void setR_Wave_Offset(unsigned int off)		
+		{ m_Data.R_Wave_Offset = off;	}
+		
+		void setNum_Accepted_Beats(unsigned int b)		
+		{ m_Data.Num_Accepted_Beats = b; }
+		
+		void setScale_Factor(float factor)					
+		{ m_Data.Scale_Factor = factor; }
+		
+		void setScan_Min(short min)								
+		{ m_Data.Scan_Min = min; }
+		
+		void setScan_Max(short max)								
+		{ m_Data.Scan_Max = max; }
+		
+		void setPrompts(unsigned int n)						
+		{ m_Data.Prompts = n; }
+		
+		void setDelayed(unsigned int n)						
+		{ m_Data.Delayed = n;	}
+		
+		void setMultiples(unsigned int n)					
+		{ m_Data.Multiples = n;	}
+		
+		void setNet_Trues(unsigned int n)					
+		{ m_Data.Net_Trues = n; }
+		
+		void setTot_Avg_Cor(float value)						
+		{ m_Data.Tot_Avg_Cor = value; }
+		
+		void setTot_Avg_Uncor(float value)					
+		{ m_Data.Tot_Avg_Uncor = value; }
+		
+		void setTotal_Coin_Rate(unsigned int n)		
+		{ m_Data.Total_Coin_Rate = n; }
+		
+		void setFrame_Start_Time(unsigned int t)		
+		{ m_Data.Frame_Start_Time = t; }
+		
+		void setFrame_Duration(unsigned int t)			
+		{ m_Data.Frame_Duration = t; }
+		
+		void setDeadtime_Correction_Factor(float f)
+		{ m_Data.Deadtime_Correction_Factor = f; }
+		
+		void setCTI_Reserved(short i, short value)		
+		{ m_Data.CTI_reserved[i] = value; }
+		
+		void setUser_Reserved(short i, short value)
+		{ m_Data.User_Reserved[i] = value; }
+		
+		void setUncor_Singles(short b, float value)
+		{ m_Data.Uncor_Singles[b] = value; }
 
 	private:
 		#pragma pack(2)	// set the structure alignment

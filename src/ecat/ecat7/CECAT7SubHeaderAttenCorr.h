@@ -28,7 +28,7 @@
 
 #include "CECATSubHeader.h"
 
-class CECAT7SubHeaderAttenCorr : public CECATSubHeader
+class Q_EXPORT CECAT7SubHeaderAttenCorr : public CECATSubHeader
 {
 	public:
 		// public available enumeration types
@@ -52,8 +52,11 @@ class CECAT7SubHeaderAttenCorr : public CECATSubHeader
 		CECATSubHeader::Type rtti(void) { return CECATSubHeader::ECAT7_AttenCorr; }
 
 		// data access methods
-		CECATSubHeader::Data_Type data_Type(void)	{ return static_cast<CECATSubHeader::Data_Type>(m_Data.Data_Type);	}
-		void setData_Type(CECATSubHeader::Data_Type dType)	{ m_Data.Data_Type = static_cast<Q_UINT16>(dType);	}
+		CECATSubHeader::Data_Type data_Type(void)
+		{ return static_cast<CECATSubHeader::Data_Type>(m_Data.Data_Type); }
+		
+		void setData_Type(CECATSubHeader::Data_Type dType)
+		{ m_Data.Data_Type = static_cast<Q_UINT16>(dType); }
 
 	private:
 		#pragma pack(2)	// set the structure alignment

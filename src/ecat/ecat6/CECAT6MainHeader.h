@@ -32,7 +32,7 @@
 // forward declarations
 class CECATFile;
 
-class CECAT6MainHeader : public CECATMainHeader
+class Q_EXPORT CECAT6MainHeader : public CECATMainHeader
 {
 	public:
 		CECAT6MainHeader(const CECAT6MainHeader& mh)
@@ -42,7 +42,8 @@ class CECAT6MainHeader : public CECATMainHeader
 			memcpy(&m_Data, &mh.m_Data, sizeof(struct ECAT6MainHeader));
 		}
 		
-		CECAT6MainHeader(CECATMainHeader::Type fileType = CECATMainHeader::Unknown);
+		CECAT6MainHeader(CECATMainHeader::Type fileType = 
+										 CECATMainHeader::Unknown);
 
 		// public methods
 		bool load(CECATFile* pFile);

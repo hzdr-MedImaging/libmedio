@@ -32,7 +32,7 @@
 
 // forward declarations
 
-class CECAT7SubHeaderNorm3D : public CECATSubHeader
+class Q_EXPORT CECAT7SubHeaderNorm3D : public CECATSubHeader
 {
 	public:
 		// public enumeration types
@@ -55,11 +55,20 @@ class CECAT7SubHeaderNorm3D : public CECATSubHeader
 
 		// access methods to get directly data out of
 		// the SubHeader
-		CECATSubHeader::Data_Type data_Type(void)	{ return static_cast<CECATSubHeader::Data_Type>(m_Data.Data_Type);	}
-		void setData_Type(CECATSubHeader::Data_Type dType)	{ m_Data.Data_Type = static_cast<Q_UINT16>(dType);	}			
-		float* RING_DTCOR1(void)		{ float* array = new float[32]; memcpy(array, m_Data.Ring_DTCor1, sizeof(m_Data.Ring_DTCor1));			return array; }
-		float* RING_DTCOR2(void)		{ float* array = new float[32]; memcpy(array, m_Data.Ring_DTCor2, sizeof(m_Data.Ring_DTCor2));			return array; }
-		float* CRYSTAL_DTCOR(void)	{ float* array = new float[8];	memcpy(array, m_Data.Crystal_DTCor, sizeof(m_Data.Crystal_DTCor));	return array; }
+		CECATSubHeader::Data_Type data_Type(void)
+		{ return static_cast<CECATSubHeader::Data_Type>(m_Data.Data_Type);	}
+		
+		void setData_Type(CECATSubHeader::Data_Type dType)
+		{ m_Data.Data_Type = static_cast<Q_UINT16>(dType);	}			
+		
+		float* RING_DTCOR1(void)
+		{ float* array = new float[32]; memcpy(array, m_Data.Ring_DTCor1, sizeof(m_Data.Ring_DTCor1));			return array; }
+		
+		float* RING_DTCOR2(void)
+		{ float* array = new float[32]; memcpy(array, m_Data.Ring_DTCor2, sizeof(m_Data.Ring_DTCor2));			return array; }
+		
+		float* CRYSTAL_DTCOR(void)
+		{ float* array = new float[8];	memcpy(array, m_Data.Crystal_DTCor, sizeof(m_Data.Crystal_DTCor));	return array; }
 
 	private:
 		#pragma pack(2)	// set the structure alignment

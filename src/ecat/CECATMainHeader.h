@@ -29,7 +29,7 @@
 // forward declarations
 class CECATFile;
 
-class CECATMainHeader
+class Q_EXPORT CECATMainHeader
 {
 	public:
 		// possible ECAT6/7 file types

@@ -29,13 +29,10 @@
 
 // special macros to convert the MatrixID to their respect
 // frame/plane/gate/bed and data representation
-//
-// This is based on the specification taken from the CTI ecat library
-// source code
 #define matrixID2Frame(x)	((x) & 0x1FF)
 #define matrixID2Plane(x)	((((x)>>16) & 0xFF) + ((((x)>>9) & 0x3)<<8))
 #define matrixID2Gate(x)	(((x)>>24) & 0x3F)
-#define matrixID2Bed(x)		(((x)>>12)&0xF)
+#define matrixID2Bed(x)		(((x)>>12) & 0xF)
 #define matrixID2Data(x)	((((x)>>9) & 0x4) | (((x)>>30) & 0x3))
 #define frame2MatrixID(x)	((x) & 0x1FF)
 #define plane2MatrixID(x)	((((x) & 0xFF)<<16) | ((((x) & 0x300)>>8)<<9))
@@ -43,36 +40,55 @@
 #define bed2MatrixID(x)		(((x) & 0xF)<<12)
 #define data2MatrixID(x)	((((x) & 0x3)<<30) | (((x) & 0x4)<<9))
 
-#define convertToMatrixID(f, p, g, b, d)	( frame2MatrixID(f) | plane2MatrixID(p) | gate2MatrixID(g) | bed2MatrixID(b) | data2MatrixID(d) )
+#define convertToMatrixID(f, p, g, b, d) ( frame2MatrixID(f) | \
+																					 plane2MatrixID(p) | \
+																					 gate2MatrixID(g)  | \
+																					 bed2MatrixID(b)	 | \
+																					 data2MatrixID(d) )
 
 #include "CECATSubHeader.h"
 
 // forward declarations
 class CECATFile;
 
-class CECATDirectoryItem
+class Q_EXPORT CECATDirectoryItem
 {
 	public:
 		enum AccessStatus { Deleted=-1, NotYetWritten=0, Finished=1 };
 
 		CECATDirectoryItem(CECATSubHeader::Type subHeaderType);
 	
-		unsigned int getMatrixID(void)	{ return m_Entry.Matrix_ID;									}
-		short frameID(void)							{ return matrixID2Frame(m_Entry.Matrix_ID); }
-		short planeID(void)							{ return matrixID2Plane(m_Entry.Matrix_ID); }
-		short gateID(void)							{ return matrixID2Gate(m_Entry.Matrix_ID);	}
-		short bedID(void)								{ return matrixID2Bed(m_Entry.Matrix_ID);		}
-		short dataID(void)							{	return matrixID2Data(m_Entry.Matrix_ID);	}
-		CECATSubHeader* getSubHeader()	{ return m_pSubHeader;											}
+		unsigned int getMatrixID(void)
+		{ return m_Entry.Matrix_ID;									}
+		
+		short frameID(void)
+		{ return matrixID2Frame(m_Entry.Matrix_ID); }
+
+		short planeID(void)
+		{ return matrixID2Plane(m_Entry.Matrix_ID); }
+		
+		short gateID(void)
+		{ return matrixID2Gate(m_Entry.Matrix_ID);	}
+		
+		short bedID(void)
+		{ return matrixID2Bed(m_Entry.Matrix_ID);		}
+		
+		short dataID(void)
+		{	return matrixID2Data(m_Entry.Matrix_ID);	}
+		
+		CECATSubHeader* getSubHeader()
+		{ return m_pSubHeader;											}
 
 		// accessor methods
 		QByteArray* getMatrix(void);
 		void* getMatrixData(void);
 
 		// mutabor methods
-		void setMatrix(QByteArray* pMatrix) { m_pMatrixData = pMatrix; }
 		void setMatrixData(void* matrix, unsigned int size);
 
+		void setMatrix(QByteArray* pMatrix)
+		{ m_pMatrixData = pMatrix; }
+		
 		// file i/o routines
 		bool loadFromFile(CECATFile* pECATFile, long filePosition=0);
 		bool saveToFile(CECATFile* pECATFile);
@@ -81,10 +97,12 @@ class CECATDirectoryItem
 		bool loadMatrixData();
 
 	private:
-		CECATFile*			m_pECATFile;		// pointer to the ECATFile from which we loaded the SubHeader.
+		CECATFile*			m_pECATFile;		// pointer to the ECATFile from
+																		// which we loaded the SubHeader.
 		long						m_FilePosition;	// the position within the ECAT file
 		CECATSubHeader*	m_pSubHeader;		// each item in a directory has a header
-		QByteArray*			m_pMatrixData;	// pointer to the MatrixData (NULL if not available yet)
+		QByteArray*			m_pMatrixData;	// pointer to the MatrixData
+																		// (NULL if not available yet)
 
 		// the matrix structure which we read out
 		// of the ECAT file
@@ -94,7 +112,7 @@ class CECATDirectoryItem
 			Q_UINT32 Matrix_ID;
 			Q_UINT32 Matrix_SubHeader_StartPosition;
 			Q_UINT32 Matrix_DataBlock_EndPosition;
-			Q_UINT32 Matrix_Status;					// the access status of the item
+			Q_UINT32 Matrix_Status;				// the access status of the item
 		} m_Entry;
 		#pragma pack()
 };

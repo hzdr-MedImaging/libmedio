@@ -30,7 +30,7 @@
 
 // forward declarations
 
-class CECAT7SubHeaderNorm : public CECATSubHeader
+class Q_EXPORT CECAT7SubHeaderNorm : public CECATSubHeader
 {
 	public:
 		// public enumeration types
@@ -49,11 +49,15 @@ class CECAT7SubHeaderNorm : public CECATSubHeader
 		// public methods													
 		bool load(QDataStream& stream);
 		bool save(QDataStream& stream);
-		CECATSubHeader::Type rtti(void) { return CECATSubHeader::ECAT7_Norm; }
+		CECATSubHeader::Type rtti(void)
+		{ return CECATSubHeader::ECAT7_Norm; }
 
 		// data access methods
-		CECATSubHeader::Data_Type data_Type(void)	{ return static_cast<CECATSubHeader::Data_Type>(m_Data.Data_Type);	}
-		void setData_Type(CECATSubHeader::Data_Type dType)	{ m_Data.Data_Type = static_cast<Q_UINT16>(dType);	}	
+		CECATSubHeader::Data_Type data_Type(void)
+		{ return static_cast<CECATSubHeader::Data_Type>(m_Data.Data_Type);	}
+		
+		void setData_Type(CECATSubHeader::Data_Type dType)
+		{ m_Data.Data_Type = static_cast<Q_UINT16>(dType);	}	
 
 	private:
 		#pragma pack(2)	// set the structure alignment

@@ -31,30 +31,40 @@
 // forward declarations
 class CECATFile;
 
-class CECATDirectory
+class Q_EXPORT CECATDirectory
 {
 	public:
-		CECATDirectory(CECATSubHeader::Type subHeaderType = CECATSubHeader::Unknown);
+		CECATDirectory(CECATSubHeader::Type subHeaderType =
+									 CECATSubHeader::Unknown);
 
 		// file i/o routines
 		bool load(CECATFile* pFile);
 		bool save(CECATFile* pFile);
 
 		// accessor methods
-		CECATDirectoryItem* getItem(short frame=1, short plane=1, short gate=1, short bed=0, short data=0);
-		CECATSubHeader* getSubHeader(short frame=1, short plane=1, short gate=1, short bed=0, short data=0);
-		QByteArray* getMatrix(short frame=1, short plane=1, short gate=1, short bed=0, short data=0);
-		void* getMatrixData(short frame=1, short plane=1, short gate=1, short bed=0, short data=0);
+		CECATDirectoryItem* getItem(short frame=1, short plane=1,
+																short gate=1, short bed=0, short data=0);
+		CECATSubHeader* getSubHeader(short frame=1, short plane=1,
+																 short gate=1, short bed=0, short data=0);
+		QByteArray* getMatrix(short frame=1, short plane=1, short gate=1,
+													short bed=0, short data=0);
+		void* getMatrixData(short frame=1, short plane=1, short gate=1,
+												short bed=0, short data=0);
 	
 		// mutabor methods
-		CECATSubHeader* newEntry(short frame=1, short plane=1, short gate=1, short bed=0, short data=0);
-		bool setMatrix(QByteArray* matrix, short frame=1, short plane=1, short gate=1, short bed=0, short data=0);
-		bool setMatrixData(void* matrix, unsigned int size, short frame=1, short plane=1, short gate=1, short bed=0, short data=0);
+		CECATSubHeader* newEntry(short frame=1, short plane=1, short gate=1,
+														 short bed=0, short data=0);
+		bool setMatrix(QByteArray* matrix, short frame=1, short plane=1,
+									 short gate=1, short bed=0, short data=0);
+		bool setMatrixData(void* matrix, unsigned int size, short frame=1,
+											 short plane=1, short gate=1, short bed=0, short data=0);
 
 	private:
 		// private data
-		QIntDict<CECATDirectoryItem>	m_ItemDict;			// storage for our directory items
-		CECATSubHeader::Type					m_ItemType;			// this directory manages items of this SubHeaderType
+		QIntDict<CECATDirectoryItem>	m_ItemDict; // storage for our
+																							// directory items
+		CECATSubHeader::Type					m_ItemType;	// this directory manages
+																							// items of this SubHeaderType
 
 		// for convience in load/saving the binary
 		// data we specify some helper structures
@@ -85,7 +95,8 @@ class CECATDirectory
 		#pragma pack()
 
 		// private methods
-		friend QDataStream& operator<<(QDataStream& stream, const struct DirList& dirList);	
+		friend QDataStream& operator<<(QDataStream& stream,
+																	 const struct DirList& dirList);	
 };
 
 #endif // CECATDIRECTORY_H

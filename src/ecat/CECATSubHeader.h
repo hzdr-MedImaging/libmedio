@@ -26,9 +26,7 @@
 
 #include <qdatastream.h>
 
-#include "debug.h"
-
-class CECATSubHeader
+class Q_EXPORT CECATSubHeader
 {
 	public:
 		enum Type	{ Unknown=0, ECAT7_AttenCorr, ECAT7_Image, ECAT7_Norm,

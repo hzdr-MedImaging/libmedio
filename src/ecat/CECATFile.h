@@ -33,8 +33,8 @@
 // the directorylist are refered in this format starting
 // from 1.
 #define ECAT_BLOCKSIZE				512
-#define ECAT_POS_MAINHEADER		1		// the MainHeader is always at blcok 1 (filepos=0)
-#define ECAT_POS_MAINDIR			2		// the MainDir is always at block 2		 (filepos=512)
+#define ECAT_POS_MAINHEADER		1		// the MainHeader is always at block 1
+#define ECAT_POS_MAINDIR			2		// the MainDir is always at block 2
 #define ECATBlock2FilePos(v)	(((v)-1)*ECAT_BLOCKSIZE)
 #define FilePos2ECATBlock(v)	((v)/ECAT_BLOCKSIZE+1)
 
@@ -44,13 +44,14 @@
 // forward declarations
 class CECATDirectory;
 
-class CECATFile : public QFile
+class Q_EXPORT CECATFile : public QFile
 {
 	public:
 		enum ECATFormat	{ Undefined=0, ECAT7, ECAT6 };
 
 		CECATFile()
-			: QFile(), m_ECATformat(Undefined), m_pMainHeader(NULL), m_pMainDirectory(NULL)
+			: QFile(), m_ECATformat(Undefined), m_pMainHeader(NULL),
+				m_pMainDirectory(NULL)
 		{ }
 
 		CECATFile(const QString& filename,
@@ -60,8 +61,8 @@ class CECATFile : public QFile
 		bool load(void);
 		bool save(void);
 
-		ECATFormat						format(void)		{ return m_ECATformat; }
-		CECATMainHeader::Type	fileType(void);
+		ECATFormat format(void) { return m_ECATformat; }
+		CECATMainHeader::Type fileType(void);
 		CECATSubHeader::Type	subHeaderType(void);
 		CECATSubHeader::Type	subHeaderType(CECATMainHeader::Type fileType);
 		void setFileType(CECATMainHeader::Type fileType);
@@ -76,14 +77,20 @@ class CECATFile : public QFile
 
 		// interface methods to get out a specific Matrix or
 		// subheader from the ECATFile
-		CECATSubHeader* getSubHeader(short frame=1, short plane=1, short gate=1, short bed=0, short data=0);
-		QByteArray* getMatrix(short frame=1, short plane=1, short gate=1, short bed=0, short data=0);
-		void* getMatrixData(short frame=1, short plane=1, short gate=1, short bed=0, short data=0);
+		CECATSubHeader* getSubHeader(short frame=1, short plane=1, short gate=1,
+																 short bed=0, short data=0);
+		QByteArray* getMatrix(short frame=1, short plane=1, short gate=1,
+												  short bed=0, short data=0);
+		void* getMatrixData(short frame=1, short plane=1, short gate=1,
+												short bed=0, short data=0);
 
 		// methods to create new and modify existing entries in this file.
-		CECATSubHeader* newEntry(short frame=1, short plane=1, short gate=1, short bed=0, short data=0);
-		bool setMatrix(QByteArray* matrix, short frame=1, short plane=1, short gate=1, short bed=0, short data=0);
-		bool setMatrixData(void* matrix, short frame=1, short plane=1, short gate=1, short bed=0, short data=0);
+		CECATSubHeader* newEntry(short frame=1, short plane=1, short gate=1,
+														 short bed=0, short data=0);
+		bool setMatrix(QByteArray* matrix, short frame=1, short plane=1,
+									 short gate=1, short bed=0, short data=0);
+		bool setMatrixData(void* matrix, short frame=1, short plane=1,
+											 short gate=1, short bed=0, short data=0);
 
 	private:
 		ECATFormat				m_ECATformat;
