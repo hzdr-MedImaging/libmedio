@@ -6,6 +6,10 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2004-10-04  Hagen Mölle <draggore@gmx.de>
+
+  * added concorde micropet image support - possibility to load image files
+
 2004-09-30  Frank Hofheinz <f.hofheinz@fz-rossendorf.de>
 
   * CECATFile.cpp: completed switch in 'setFileType(...)'
