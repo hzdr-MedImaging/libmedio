@@ -83,6 +83,9 @@ class Q_EXPORT CECATDirectoryItem
 		QIODevice::Offset dataBlock_End(void) const
 		{ return m_iDataBlock_End; }
 
+		AccessStatus dataBlock_Status(void) const
+		{ return m_iStatus; }
+
 		short frame(void) const
 		{ return m_iFrame; }
 
@@ -104,6 +107,9 @@ class Q_EXPORT CECATDirectoryItem
 
 		void setDataBlock_End(const QIODevice::Offset offset)
 		{ m_iDataBlock_End = offset; }
+
+		void setDataBlock_Status(const AccessStatus status)
+		{ m_iStatus = status; }
 		
 		void setFrame(const short f)
 		{ m_iFrame = f; }

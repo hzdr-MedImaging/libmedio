@@ -6,6 +6,13 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-02-03  Jens Langner <Jens.Langner@light-speed.de>
+
+  * CECATDirectoryItem.cpp: fixed the hopefully last bug in the dataBlock_Ënd
+    calculation which caused that libmedio wrote either too much or too less
+	 data to the final ECAT file. Also added some more debug output to the
+	 ECAT routines to be on the safe side in future.
+  
 2005-01-28  Jens Langner <Jens.Langner@light-speed.de>
 
   * misc: adapted the debugging mechanism to use the new separated librtdebug

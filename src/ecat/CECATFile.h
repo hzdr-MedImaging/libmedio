@@ -96,6 +96,9 @@ class Q_EXPORT CECATFile : public CMedIOData
 		CECATMainHeader* createEmptyMainHeader(void);
 		CECATSubHeader*  createEmptySubHeader(void);
 
+		// more advanced methods to access the directory list of an ECAT file
+		CECATDirectory* directory(void) { return m_pMainDirectory; }
+
 		// internal methods to sync specific data with our headers
 		void mainHeaderWritten(const CECATMainHeader& mainHeader);
 		bool reWriteMainHeader(void);

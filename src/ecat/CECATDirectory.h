@@ -44,6 +44,9 @@ class Q_EXPORT CECATDirectory : protected QIntDict<CECATDirectoryItem>
 		bool save(void) const;
 
 		// accessor methods
+		bool isEmpty() const { return QIntDict<CECATDirectoryItem>::isEmpty(); }
+		unsigned int count() const { return QIntDict<CECATDirectoryItem>::count(); }
+		CECATDirectoryItem* operator[](long num) const;
 		CECATDirectoryItem* item(short frame, short plane=1,
 														 short gate=1, short bed=0, short data=0);
 

@@ -708,6 +708,8 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 		return false;
 	}
 
+	SHOWVALUE(m_pECATFile->at());
+
 	// then we process the matrix data that is associated with
 	// this directoryitem.
 	// here we have to care about the correct endianess, so that
@@ -981,15 +983,15 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 		break;
 	}		
 
-	// now we delete the subHeader we loaded temporarly
-	delete subHeader;
-
 	if(result)
 	{
 		// at the end of our operation we calculate the new EndPosition
-		m_iDataBlock_End = m_iDataBlock_Start+matrixSize;
+		m_iDataBlock_End = m_iDataBlock_Start+subHeader->size()+matrixSize-ECAT_BLOCKSIZE;
 		m_iStatus = CECATDirectoryItem::Finished;
 	}
+
+	// now we delete the subHeader we loaded temporarly
+	delete subHeader;
 
 	RETURN(result);
 	return result;
@@ -1017,16 +1019,16 @@ QDataStream& operator<<(QDataStream& stream, const CECATDirectoryItem& dItem)
 	Q_INT32 matrixStatus = static_cast<Q_INT32>(dItem.m_iStatus);
 	stream << matrixStatus;
 
-	D("DItem.Matrix_ID    : %08lx (%d/%d/%d/%d/%d)", matrixID,
-																									 dItem.m_iFrame,
-																									 dItem.m_iPlane,
-																									 dItem.m_iGate,
-																									 dItem.m_iBed,
-																									 dItem.m_iData);
+	D("DItem.Matrix_ID       : %08lx (%d/%d/%d/%d/%d)", matrixID,
+																											dItem.m_iFrame,
+																											dItem.m_iPlane,
+																											dItem.m_iGate,
+																											dItem.m_iBed,
+																											dItem.m_iData);
 
-	D("DItem.Matrix_Start : %d (%d)", dItem.m_iDataBlock_Start, FilePos2ECATBlock(dItem.m_iDataBlock_Start));
-	D("DItem.Matrix_End   : %d (%d)", dItem.m_iDataBlock_End, FilePos2ECATBlock(dItem.m_iDataBlock_End));
-	D("DItem.Matrix_Status: %d", dItem.m_iStatus);
+	D("DItem.DataBlock_Start : %d (%d)", dItem.m_iDataBlock_Start, FilePos2ECATBlock(dItem.m_iDataBlock_Start));
+	D("DItem.DataBlock_End   : %d (%d)", dItem.m_iDataBlock_End, FilePos2ECATBlock(dItem.m_iDataBlock_End));
+	D("DItem.DataBlock_Status: %d", dItem.m_iStatus);
 	
 	LEAVE();
 	return stream;
@@ -1059,16 +1061,16 @@ QDataStream& operator>>(QDataStream& stream, CECATDirectoryItem& dItem)
 	dItem.m_iStatus = static_cast<CECATDirectoryItem::AccessStatus>(matrixStatus);
 
 	// output some debug information.
-	D("DItem.Matrix_ID    : %08lx (%d/%d/%d/%d/%d)", matrixID,
-																									 dItem.m_iFrame,
-																									 dItem.m_iPlane,
-																									 dItem.m_iGate,
-																									 dItem.m_iBed,
-																									 dItem.m_iData);
+	D("DItem.Matrix_ID       : %08lx (%d/%d/%d/%d/%d)", matrixID,
+																											dItem.m_iFrame,
+																											dItem.m_iPlane,
+																											dItem.m_iGate,
+																											dItem.m_iBed,
+																											dItem.m_iData);
 
-	D("DItem.Matrix_Start : %d (%d)", dItem.m_iDataBlock_Start, FilePos2ECATBlock(dItem.m_iDataBlock_Start));
-	D("DItem.Matrix_End   : %d (%d)", dItem.m_iDataBlock_End, FilePos2ECATBlock(dItem.m_iDataBlock_End));
-	D("DItem.Matrix_Status: %d", dItem.m_iStatus);
+	D("DItem.DataBlock_Start : %d (%d)", dItem.m_iDataBlock_Start, FilePos2ECATBlock(dItem.m_iDataBlock_Start));
+	D("DItem.DataBlock_End   : %d (%d)", dItem.m_iDataBlock_End, FilePos2ECATBlock(dItem.m_iDataBlock_End));
+	D("DItem.DataBlock_Status: %d", dItem.m_iStatus);
 	
 	LEAVE();
 	return stream;

@@ -154,6 +154,8 @@ bool CECAT7SubHeaderNorm3D::save(void) const
 		return false;
 	}
 
+	SHOWVALUE(m_pMedIOData->at());
+
 	// we write to a buffer first and write out later directly to the file
 	QByteArray buffer(sizeof(struct ECAT7SubHeader_Norm3D));
 	QDataStream stream(buffer, IO_WriteOnly);

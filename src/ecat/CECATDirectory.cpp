@@ -366,17 +366,15 @@ bool CECATDirectory::save(void) const
 		}
 		else
 		{
-			SHOWVALUE(m_pECATFile->at());
-
 			// write out everything
 			if(m_pECATFile->writeBlock(dirHeadBuffer) != sizeof(struct ECAT_DirHead) ||
 				 m_pECATFile->writeBlock(dirItemBuffer) != 31*sizeof(struct ECAT_DirItem))
 			{
-				E("Error while writing DirList");
+				E("Error while writing DirList #%d at %ld", curDirList, m_pECATFile->at());
 				result = false;
 			}
 			else
-				D("DirList #%d successfully written", curDirList);
+				D("DirList #%d successfully written at %ld", curDirList, m_pECATFile->at());
 		}
 	}
 
@@ -701,4 +699,17 @@ bool CECATDirectory::writeMatrix(const char* matrixData, unsigned int size,
 
 	RETURN(result);
 	return result;
+}
+
+CECATDirectoryItem* CECATDirectory::operator[](long num) const
+{
+	ENTER();
+
+	// use an IntDictIterator to iterate until we got the num'th
+	// element in our dictonary and return it
+	QIntDictIterator<CECATDirectoryItem> it(*this);
+	for(long i=0; i < num && it.current(); i++, ++it);
+
+	RETURN(it.current());
+	return it.current();
 }
