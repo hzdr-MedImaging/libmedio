@@ -243,7 +243,6 @@ int main(int argc, char* argv[])
 																		dirItem1->data());							
 						}
 							
-
 						if(dirItem1)
 						{
 							if(dirItem2)

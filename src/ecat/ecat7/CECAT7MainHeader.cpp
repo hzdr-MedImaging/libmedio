@@ -66,18 +66,20 @@ CECAT7MainHeader::CECAT7MainHeader(CECATFile* ecatFile,
 	m_Data.Scan_Start_Time			= time(NULL);	// set the start time to the current time
 	m_Data.Isotope_Halflife			= 6586.2;			// halflife time of FDOPA
 	m_Data.Distance_Scanned			= 15.52;		  // scanner depth		
-	m_Data.Transaxial_FOV				= 58.3;
+	m_Data.Transaxial_FOV				= 58.3;				// transaxial FOV of an ECAT HR+
 	m_Data.Angular_Compression	= static_cast<short>(Mash2);
 	m_Data.Acquisition_Type			= static_cast<short>(DynamicEmission);
 	m_Data.Acquisition_Mode			= static_cast<short>(Windowed);
 	m_Data.Transm_Source_Type		= static_cast<short>(SRC_RING);
 	m_Data.Lwr_True_Thres				= 350;				// energy levels of an ECAT HR+
 	m_Data.Upr_True_Thres				= 650;
+	m_Data.Num_Planes						= 1;					// per default a minimum of 1 planes
 	m_Data.Patient_Orientation	= 3;					// Head first + supine
-	m_Data.Branching_Fraction		= 1.0;
 	m_Data.Plane_Separation			= 0.2425;			// cm
 	m_Data.Bin_Size							= 0.224983;		// cm
+	m_Data.Branching_Fraction		= 1.0;
 	m_Data.Septa_State					= static_cast<short>(Retracted);
+	m_Data.Dose_Start_Time			= time(NULL);	// set the dose start time to the current time	
 
 	setFileType(fileType);
 	strcpy(m_Data.Serial_Number, "1");

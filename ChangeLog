@@ -6,6 +6,14 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-03-07  Jens Langner <Jens.Langner@light-speed.de>
+
+  * CECATDirectoryItem.cpp: fixed bug in the writeMatrix(data, subHeader)
+    sub methods where the supplied subHeader wasn't correctly written to
+    the ECAT file.
+  * CECAT7MainHeader.cpp: added Dose_Start_Time and plane number settings to
+    default settings of the main Header.
+	 
 2005-03-02  Jens Langner <Jens.Langner@light-speed.de>
 
   * misc: added a global operator= method to the MedIOHeader interface and
