@@ -142,6 +142,10 @@ class Q_EXPORT CECATDirectoryItem
 		friend QDataStream& operator<<(QDataStream& stream, const CECATDirectoryItem& item);
 		friend QDataStream& operator>>(QDataStream& stream, CECATDirectoryItem& item);
 
+		// internal methods to sync specific data with our headers
+		void subHeaderWritten(const CECATSubHeader& subHeader);
+		void cacheSubHeader(const CECATSubHeader& subHeader);
+
 	private:
 		CECATFile*						m_pECATFile;				// pointer to the ECATFile
 		CECATSubHeader*				m_pCachedSubHeader;	// pointer to a cached SubHeader object

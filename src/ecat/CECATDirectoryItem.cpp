@@ -1,7 +1,7 @@
 /* vim:set ts=2 nowrap: ****************************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2004-2005 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -517,64 +517,110 @@ bool CECATDirectoryItem::writeSubHeader(const CECATSubHeader& subHeader)
 	ENTER();
 	bool result = false;
 
-	CECATSubHeader::Type shType = m_pECATFile->subHeaderType();
+	// make sure the subHeader is going to be cached
+	cacheSubHeader(subHeader);
 
-	// let us check if the passed subheader is an appropiate one
-	if(shType != subHeader.subHeaderType())
-	{
-		RETURN(false);
-		return false;
-	}
-
-	// before we can save the subHeader we have to generate the cached copy
-	// and make sure it belongs to this particular directory Item.
-	if(m_pCachedSubHeader)
-		*m_pCachedSubHeader = subHeader;
-	else
-	{
-		switch(shType)
-		{
-			case CECATSubHeader::ECAT7_AttenCorr: 
-				m_pCachedSubHeader = new CECAT7SubHeaderAttenCorr(*static_cast<const CECAT7SubHeaderAttenCorr*>(&subHeader));
-			break;
-
-			case CECATSubHeader::ECAT7_Image:	
-				m_pCachedSubHeader = new CECAT7SubHeaderImage(*static_cast<const CECAT7SubHeaderImage*>(&subHeader));
-			break;
-		
-			case CECATSubHeader::ECAT7_Norm:
-				m_pCachedSubHeader = new CECAT7SubHeaderNorm(*static_cast<const CECAT7SubHeaderNorm*>(&subHeader));
-			break;
-				
-			case CECATSubHeader::ECAT7_Norm3D:
-				m_pCachedSubHeader = new CECAT7SubHeaderNorm3D(*static_cast<const CECAT7SubHeaderNorm3D*>(&subHeader));
-			break;
-				
-			case CECATSubHeader::ECAT7_PolarMap:
-				m_pCachedSubHeader = new CECAT7SubHeaderPolarMap(*static_cast<const CECAT7SubHeaderPolarMap*>(&subHeader));
-			break;
-				
-			case CECATSubHeader::ECAT7_Scan:
-				m_pCachedSubHeader = new CECAT7SubHeaderScan(*static_cast<const CECAT7SubHeaderScan*>(&subHeader));
-			break;
-				
-			case CECATSubHeader::ECAT7_Scan3D:
-				m_pCachedSubHeader = new CECAT7SubHeaderScan3D(*static_cast<const CECAT7SubHeaderScan3D*>(&subHeader));
-			break;
-
-			default:
-				E("ECAT type isn't specified or not supported yet.");
-		}
-	}
-	
-	if(m_pCachedSubHeader)
-		m_pCachedSubHeader->setDirectoryItem(this);
-
-	// save the SubHeader to the stream now
+	// now issue a write operation upon the cached subheader
 	result = m_pCachedSubHeader->save();
 
 	RETURN(result);
 	return result;
+}
+
+void CECATDirectoryItem::cacheSubHeader(const CECATSubHeader& subHeader)
+{
+	ENTER();
+
+	// before we can save the subHeader we have to generate the cached copy
+	// and make sure it belongs to this particular directory Item.
+	switch(m_pECATFile->subHeaderType())
+	{
+		case CECATSubHeader::ECAT7_AttenCorr: 
+		{
+			if(m_pCachedSubHeader)
+				*static_cast<CECAT7SubHeaderAttenCorr*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderAttenCorr*>(&subHeader);
+			else
+				m_pCachedSubHeader = new CECAT7SubHeaderAttenCorr(*static_cast<const CECAT7SubHeaderAttenCorr*>(&subHeader));
+		}
+		break;
+
+		case CECATSubHeader::ECAT7_Image:	
+		{
+			if(m_pCachedSubHeader)
+				*static_cast<CECAT7SubHeaderImage*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderImage*>(&subHeader);
+			else
+				m_pCachedSubHeader = new CECAT7SubHeaderImage(*static_cast<const CECAT7SubHeaderImage*>(&subHeader));
+		}
+		break;
+	
+		case CECATSubHeader::ECAT7_Norm:
+		{
+			if(m_pCachedSubHeader)
+				*static_cast<CECAT7SubHeaderNorm*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderNorm*>(&subHeader);
+			else
+				m_pCachedSubHeader = new CECAT7SubHeaderNorm(*static_cast<const CECAT7SubHeaderNorm*>(&subHeader));
+		}
+		break;
+			
+		case CECATSubHeader::ECAT7_Norm3D:
+		{
+			if(m_pCachedSubHeader)
+				*static_cast<CECAT7SubHeaderNorm3D*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderNorm3D*>(&subHeader);
+			else
+				m_pCachedSubHeader = new CECAT7SubHeaderNorm3D(*static_cast<const CECAT7SubHeaderNorm3D*>(&subHeader));
+		}
+		break;
+			
+		case CECATSubHeader::ECAT7_PolarMap:
+		{
+			if(m_pCachedSubHeader)
+				*static_cast<CECAT7SubHeaderPolarMap*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderPolarMap*>(&subHeader);
+			else		
+				m_pCachedSubHeader = new CECAT7SubHeaderPolarMap(*static_cast<const CECAT7SubHeaderPolarMap*>(&subHeader));
+		}
+		break;
+			
+		case CECATSubHeader::ECAT7_Scan:
+		{
+			if(m_pCachedSubHeader)
+				*static_cast<CECAT7SubHeaderScan*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderScan*>(&subHeader);
+			else		
+				m_pCachedSubHeader = new CECAT7SubHeaderScan(*static_cast<const CECAT7SubHeaderScan*>(&subHeader));
+		}
+		break;
+			
+		case CECATSubHeader::ECAT7_Scan3D:
+		{
+			if(m_pCachedSubHeader)
+				*static_cast<CECAT7SubHeaderScan3D*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderScan3D*>(&subHeader);
+			else		
+				m_pCachedSubHeader = new CECAT7SubHeaderScan3D(*static_cast<const CECAT7SubHeaderScan3D*>(&subHeader));
+		}
+		break;
+
+		default:
+			E("ECAT type isn't specified or not supported yet.");
+	}
+	
+	if(m_pCachedSubHeader)
+		m_pCachedSubHeader->setDirectoryItem(this);
+	
+	LEAVE();
+}
+
+void CECATDirectoryItem::subHeaderWritten(const CECATSubHeader& subHeader)
+{
+	ENTER();
+
+	// if the subHeaderWritten is the same as our cached subheader we don't
+	// have to copy it again and can break out immediately
+	if(&subHeader != m_pCachedSubHeader);
+	{
+		// otherwise we make sure the written subHeader is cached
+		cacheSubHeader(subHeader);
+	}
+
+	LEAVE();
 }
 
 bool CECATDirectoryItem::writeMatrix(const QByteArray& matrixData)

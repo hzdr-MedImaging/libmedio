@@ -304,7 +304,10 @@ bool CECAT7SubHeaderImage::save(void) const
 	// now write out to our outStream
 	bool result = false;
 	if(m_pMedIOData->writeBlock(buffer) != -1)
+	{
+		m_pDirItem->subHeaderWritten(*this);
 		result = true;
+	}
 
 	RETURN(result);
 	return result;

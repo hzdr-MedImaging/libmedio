@@ -8,6 +8,9 @@ $Source$
 
 2005-02-25  Jens Langner <Jens.Langner@light-speed.de>
 
+  * SubHeaders: the way ECAT Subheader were cached was done slightly wrong.
+    Now the header should be successfully cached either on a save() or
+    writeSubHeader() execution.
   * CECATFile.cpp: fixed bug in the mainHeaderWritten() method where upon an
     already existing mainHeader the data wasn't correctly copied out of it.
     This caused that on a writeMatrix() operation an already written
