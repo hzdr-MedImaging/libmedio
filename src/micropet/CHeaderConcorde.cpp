@@ -1,10 +1,12 @@
-#include "CHeaderConcorde.h"
-#include "debug.h"
-
 #include <fstream>
 #include <string>
 #include <list>
 #include <iostream>
+
+#include "debug.h"
+#include "CHeaderConcordeFrame.h"
+#include "CMedIOHeader.h"
+#include "CHeaderConcorde.h"
 
 using namespace std;
 
@@ -155,13 +157,13 @@ bool CHeaderConcorde::load()
 				//cout << ptr_tok << " ";
 				//check for end_of_header
 				//if true break for loop
-				/*
+				
 				if(strcmp("end_of_header", ptr_tok) == 0)
 				{
-					cout << "reached end of header" << endl; 
+					D("reached end of header"); 
 					break;
 				}
-				*/
+				
 				//ptr_tok = strtok(NULL, "\0");
 				// compare literal tokens[0] with list
 				list<string>::iterator nums_iter;
@@ -272,7 +274,19 @@ bool CHeaderConcorde::load()
 			
 		}
 		pFile.close();
-		D("Parsing is ok!");
+		D("Parsing of MainHeader is ok!");
+		//now parse same file for frames
+		
+		for(int i = 0; i < atoi(m_Data.total_frames.c_str()); i++)
+		{
+			char vBuf[512];
+			sprintf(vBuf,"%d",i);
+			vBuf[strlen(vBuf)] = 0;
+			string tmp = vBuf;
+			CHeaderConcordeFrame* frame = new CHeaderConcordeFrame(File, tmp);
+			frames.push_back(frame);
+		}
+		
 	}
 	else
 	{
@@ -280,6 +294,14 @@ bool CHeaderConcorde::load()
 		return false;
 	}
 	return true;
+}
+
+CHeaderConcordeFrame* CHeaderConcorde::frame(int i)
+{
+	list<CHeaderConcordeFrame*>::iterator nums_iter;
+	int k = 1;
+	for(nums_iter = frames.begin(); k < i; nums_iter++,k++);
+	return *nums_iter;
 }
 
 unsigned int CHeaderConcorde::getFrameSize()

@@ -1,10 +1,12 @@
 #ifndef CHEADERCONCORDE_H
 #define CHEADERCONCORDE_H
 
-#include "CMedIOHeader.h"
-
 #include <string>
 #include <list>
+
+class CMedIOHeader;
+
+class CHeaderConcordeFrame;
 
 class CHeaderConcorde : public CMedIOHeader
 {
@@ -25,6 +27,9 @@ class CHeaderConcorde : public CMedIOHeader
 		unsigned int getFrameSize();
 		unsigned int getImageFrameSize();
 		//accessor methods
+		//access frames starting with frame 1 as first frame -> i = 1
+		CHeaderConcordeFrame* frame(int i);
+		
 		std::string model(void) {return m_Data.model;}
 		std::string institution(void) {return m_Data.institution;}
 		std::string study(void) {return m_Data.study;}
@@ -181,6 +186,7 @@ class CHeaderConcorde : public CMedIOHeader
 	private :
 	//members
 		std::list<std::string> literals;
+		std::list<CHeaderConcordeFrame*> frames;
 		typedef struct //Concorde Micropet Header <--> ECAT7 Header
     		{
 			std::string	model;			//System_Type;

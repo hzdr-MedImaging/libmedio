@@ -2,13 +2,13 @@
 #define CHEADERCONCORDEFRAME_H
 
 #include <string>
-
+#include <list>
 
 class CHeaderConcordeFrame
 {
 	public :
 	//contructors
-		CHeaderConcordeFrame();
+		CHeaderConcordeFrame(std::string Filename, std::string frame);
 	//destructor
 		~CHeaderConcordeFrame();	
 		
@@ -17,7 +17,7 @@ class CHeaderConcordeFrame
 	//methods
 		//accessor methods
 		std::string frame(void) {return m_Data.frame;}
-		std::string event_type(void) {return m_Data.event_type;}
+		std::string eventtype(void) {return m_Data.event_type;}
 		std::string gate(void) {return m_Data.gate;}
 		std::string bed(void) {return m_Data.bed;}
 		std::string bedoffset(void) {return m_Data.bed_offset;}
@@ -87,7 +87,11 @@ class CHeaderConcordeFrame
 		}
 		ConcordeHeaderFrame;
 		ConcordeHeaderFrame m_Data;
+		std::string File;
+		std::list<std::string> literals;
 	//methods
+		bool load();
+		void init();
 };
 
 #endif
