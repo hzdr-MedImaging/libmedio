@@ -85,7 +85,7 @@ SOURCES  = \
 #	   micropet/CConcordeSinogram.cpp \
 #		 micropet/CConcordeImage.cpp
 
-DEPENDPATH   = ecat ecat/ecat6 ecat/ecat7 micropet
+DEPENDPATH   = . ecat ecat/ecat6 ecat/ecat7 micropet
 INCLUDEPATH  = . include ecat ecat/ecat6 ecat/ecat7 micropet
 
 # UNIX based target platforms installation defines

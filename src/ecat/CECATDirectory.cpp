@@ -207,7 +207,7 @@ bool CECATDirectory::save(void) const
 		RETURN(false);
 		return false;
 	}
-
+	
 	// we need to populate the dirList a bit ordered
 	// frame->plane->gate->bed->data
 	// even if the ECAT standard doesn't define a ordering, but some
