@@ -6,6 +6,13 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-03-17  Jens Langner <Jens.Langner@light-speed.de>
+
+  * CECATDirectoryItem.cpp: fixed bug in the subHeader identification
+    routines which caused that a writeMatrix() did always reset the
+    subHeader of a file, even if a writeSubHeader() operation was done
+    prior to it.
+
 2005-03-07  Jens Langner <Jens.Langner@light-speed.de>
 
   * CECATDirectoryItem.cpp: fixed bug in the writeMatrix(data, subHeader)

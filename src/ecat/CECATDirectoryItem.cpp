@@ -726,7 +726,21 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 	// there isn't already one.
 	CECATSubHeader* subHeader = NULL;
 
-	if(m_iStatus == NotYetWritten &&
+	SHOWVALUE(m_iStatus);
+	SHOWVALUE(m_iDataBlock_Start);
+	SHOWVALUE(m_iDataBlock_End);
+	SHOWPOINTER(m_pCachedSubHeader);
+
+	// try to read the subheader first
+	if(dataType == CECATSubHeader::UnknownDataType ||
+		 m_iStatus != NotYetWritten ||
+		 m_iDataBlock_End != 0)
+	{
+		readSubHeader(subHeader);
+	}
+	
+	if(subHeader == NULL &&
+		 m_iStatus == NotYetWritten &&
 		 m_iDataBlock_End == 0)
 	{
 		switch(m_pECATFile->subHeaderType())
@@ -763,8 +777,6 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				E("ECAT type isn't specified or not supported yet.");
 		}
 	}
-	else if(readSubHeader(subHeader) == false)
-		result = false;
 
 	if(subHeader == NULL)
 		result = false;
