@@ -45,6 +45,12 @@ bool CHeaderConcordeFrame::load()
 				//check for end_of_header
 				//if true break for loop
 				
+				if(foundframe && strcmp("end_of_header", ptr_tok) == 0)
+				{
+					D("reached end of header"); 
+					break;
+				}
+				
 				if(strcmp(ptr_tok, "frame") == 0)
 				{
 					char *rest = NULL;
@@ -89,12 +95,6 @@ bool CHeaderConcordeFrame::load()
 					if(strcmp(ptr_tok, "trues")	== 0)	m_Data.trues = rest;
 					if(strcmp(ptr_tok, "prompts_rate") == 0)	m_Data.prompts_rate = rest;
 					if(strcmp(ptr_tok, "delays_rate") == 0)	m_Data.delays_rate = rest;
-				}
-				
-				if(foundframe && strcmp("end_of_header", ptr_tok) == 0)
-				{
-					D("reached end of header"); 
-					break;
 				}	
 			}
 		}
