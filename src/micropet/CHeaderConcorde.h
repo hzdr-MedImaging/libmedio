@@ -17,6 +17,8 @@ class CHeaderConcorde : public CMedIOHeader
 	//destructor
 		~CHeaderConcorde();	
 	//members
+		void setDefaults();
+		
 		enum FileType{UnknownFile = 0, ListMode, Sinogram, Normalization, Attenuation,
 				Image, Blank, MuMap, Scatter};
 		enum AquisitionMode{UnknownAquisition = 0, BlankAquisition, Emission, Dynamic, Gated,

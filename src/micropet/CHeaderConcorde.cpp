@@ -112,9 +112,65 @@ bool CHeaderConcorde::init()
 	return true;
 }
 
+void CHeaderConcorde::setDefaults()
+{
+	m_Data.model = 0;
+	m_Data.institution = "FZ Rossendorf"; 
+	m_Data.file_type = 0;
+	m_Data.acquisition_mode = 0;
+	m_Data.bed_motion = 0;
+	m_Data.total_frames = 0;
+	m_Data.transaxial_crystals_per_block = 8;
+	m_Data.axial_crystals_per_block = 8;
+	m_Data.intrinsic_crystal_offset = 4;
+	m_Data.transaxial_blocks = 42;
+	m_Data.axial_blocks = 4;
+	m_Data.transaxial_crystal_pitch = 0.2444F;
+	m_Data.axial_crystal_pitch = 0.2423F;
+	m_Data.radius = 13.0673F;
+	m_Data.radial_fov = 12.067F;
+	m_Data.src_radius = 11.2F;
+	m_Data.src_cm_per_rev = 0.05F;
+	m_Data.tx_src_type = 0;
+	m_Data.transaxial_bin_size = 0.1222F;
+	m_Data.axial_plane_size = 0.12115F;
+	m_Data.lld = 350.0F;
+	m_Data.uld = 750.0F;
+	m_Data.data_type = 0;
+	m_Data.data_order = 1;
+
+	m_Data.span = 3;
+	m_Data.ring_difference = 31;
+	m_Data.number_of_dimensions = 4;
+	m_Data.x_dimension = 192;
+	m_Data.y_dimension = 168;
+	m_Data.z_dimension = 63;
+	m_Data.w_dimension = 11;
+
+	m_Data.deadtime_correction_applied = 0;
+	m_Data.decay_correction_applied = 0;
+	m_Data.normalization_applied = 0;
+	m_Data.attenuation_applied = 0;
+	m_Data.scatter_correction = 0;
+	m_Data.arc_correction_applied = 0;
+	m_Data.x_offset = 0.0F;
+	m_Data.y_offset = 0.0F;
+	m_Data.zoom = 1.0F;
+	m_Data.pixel_size = 0.0F;
+	m_Data.calibration_units = 0;
+	m_Data.calibration_factor = 0.0F;
+	m_Data.calibration_branching_fraction = 1.0F;
+	m_Data.number_of_singles_rates = 168;
+	m_Data.dose_units = 0;
+	m_Data.subject_orientation = 0;
+	m_Data.subject_length_units = 0;
+	m_Data.subject_weight_units = 0;
+}
+
 CHeaderConcorde::CHeaderConcorde(string File) : CMedIOHeader(File)
 { 
 	init();
+	setDefaults();
 	if(!this->load())
 	{
 		D("Something is wrong with the headerfile");
