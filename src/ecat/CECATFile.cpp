@@ -115,7 +115,7 @@ bool CECATFile::open(int mode)
 	// depending on the specified open mode we either read some META data from
 	// an existing ECAT file or we create it here
 	if(exists() &&
-		 mode & (IO_ReadOnly|IO_WriteOnly))
+		 mode & (IO_ReadOnly|IO_WriteOnly) == (IO_ReadOnly|IO_WriteOnly))
 	{
 		// we open the file and read in the
 		// main header and directory list of the ecat file
@@ -206,6 +206,8 @@ bool CECATFile::open(int mode)
 	}
 	else if(mode & IO_WriteOnly)
 	{
+		D("preparing IO_WriteOnly mode: %ld", m_iECATformat);
+
 		// the file doesn't exist and therefore we do not have any
 		// main header or directory list. so lets create some empty ones
 		if(m_iECATformat != CECATFile::Undefined)
@@ -230,6 +232,10 @@ bool CECATFile::open(int mode)
 		}
 		else
 			E("ECATformat unknown");
+
+		// make sure the file is removed upon opening it
+		if(result)
+			QFile::remove(name());
 	}
 
 	// to make the open operation a bit safer we mask out the IO operation
@@ -262,6 +268,9 @@ bool CECATFile::open(int mode)
 			m_pCachedMainHeader = NULL;
 		}		
 	}
+
+	SHOWPOINTER(m_pMainDirectory);
+	SHOWPOINTER(m_pCachedMainHeader);
 
 	RETURN(result);
 	return result;
@@ -532,13 +541,12 @@ bool CECATFile::readSubHeader(CECATSubHeader*& subHeader, short frame,
 	ENTER();
 	bool result = false;
 
+	ASSERT(m_pMainDirectory);
+
 	// before we are going to read the SubHeader from the ECAT file we
 	// have to check wheter the file is correctly open in Read mode.
-	if(isReadable())
-	{
-		ASSERT(m_pMainDirectory);
+	if(isReadable() && m_pMainDirectory)
 		result = m_pMainDirectory->readSubHeader(subHeader, frame, plane, gate, bed, data);
-	}
 	
 	RETURN(result);
 	return result;
@@ -548,33 +556,38 @@ bool CECATFile::readSubHeader(CECATSubHeader*& subHeader, short frame,
 bool CECATFile::readMatrix(QByteArray*& matrixData, short frame, short plane,
 													 short gate, short bed, short data)
 {
+	ENTER();
+	bool result = false;
+	ASSERT(m_pMainDirectory);
+	
 	// we have to perform a search within the whole DirectoryList
 	// to get the MatrixData but we just need to query the
 	// Main directory here as it will forward the query to it's sub
 	// directories
-	if(isReadable())
-	{
-		ASSERT(m_pMainDirectory);
-		return m_pMainDirectory->readMatrix(matrixData, frame, plane, gate, bed, data);
-	}
+	if(isReadable() && m_pMainDirectory)
+		result = m_pMainDirectory->readMatrix(matrixData, frame, plane, gate, bed, data);
 
-	return false;
+	RETURN(result);
+	return result;
 }
 
 bool CECATFile::readMatrix(char*& matrixData, unsigned int& len, short frame,
 													 short plane, short gate, short bed, short data)
 {
+	ENTER();
+	bool result = false;
+
+	ASSERT(m_pMainDirectory);
+
 	// we have to perform a search within the whole DirectoryList
 	// to get the MatrixData but we just need to query the
 	// Main directory here as it will forward the query to it's sub
 	// directories
-	if(isReadable())
-	{
-		ASSERT(m_pMainDirectory);
-		return m_pMainDirectory->readMatrix(matrixData, len, frame, plane, gate, bed, data);
-	}
+	if(isReadable() && m_pMainDirectory)
+		result = m_pMainDirectory->readMatrix(matrixData, len, frame, plane, gate, bed, data);
 
-	return false;
+	RETURN(result);
+	return result;
 }
 
 bool CECATFile::writeMainHeader(CECATMainHeader& mainHeader)
@@ -600,7 +613,8 @@ bool CECATFile::writeSubHeader(const CECATSubHeader& subHeader, short frame,
 	
 	// forward the write request to the MainDirectory which is going to manage
 	// everything else for us
-	if(m_pMainDirectory->writeSubHeader(subHeader, frame, plane, gate, bed, data))
+	if(m_pMainDirectory &&
+		 m_pMainDirectory->writeSubHeader(subHeader, frame, plane, gate, bed, data))
 	{
 		// make sure the frames/planes/gates/bedpos parameters in the mainheader
 		// are in sync
@@ -633,7 +647,8 @@ bool CECATFile::writeMatrix(const QByteArray& matrixData,
 	
 	// forward the write request to the MainDirectory which is going to manage
 	// everything else for us
-	if(m_pMainDirectory->writeMatrix(matrixData, frame, plane, gate, bed, data))
+	if(m_pMainDirectory &&
+		 m_pMainDirectory->writeMatrix(matrixData, frame, plane, gate, bed, data))
 	{
 		// make sure the frames/planes/gates/bedpos parameters in the mainheader
 		// are in sync
@@ -666,7 +681,8 @@ bool CECATFile::writeMatrix(const char* matrixData, unsigned int size,
 	
 	// forward the write request to the MainDirectory which is going to manage
 	// everything else for us
-	if(m_pMainDirectory->writeMatrix(matrixData, size, frame, plane, gate, bed, data))
+	if(m_pMainDirectory && 
+		 m_pMainDirectory->writeMatrix(matrixData, size, frame, plane, gate, bed, data))
 	{
 		// make sure the frames/planes/gates/bedpos parameters in the mainheader
 		// are in sync
@@ -699,7 +715,8 @@ bool CECATFile::writeMatrix(const QByteArray& matrixData, CECATSubHeader::Data_T
 	
 	// forward the write request to the MainDirectory which is going to manage
 	// everything else for us
-	if(m_pMainDirectory->writeMatrix(matrixData, type, frame, plane, gate, bed, data))
+	if(m_pMainDirectory &&
+		 m_pMainDirectory->writeMatrix(matrixData, type, frame, plane, gate, bed, data))
 	{
 		// make sure the frames/planes/gates/bedpos parameters in the mainheader
 		// are in sync
@@ -732,7 +749,8 @@ bool CECATFile::writeMatrix(const char* matrixData, unsigned int size, CECATSubH
 	
 	// forward the write request to the MainDirectory which is going to manage
 	// everything else for us
-	if(m_pMainDirectory->writeMatrix(matrixData, size, type, frame, plane, gate, bed, data))
+	if(m_pMainDirectory && 
+		 m_pMainDirectory->writeMatrix(matrixData, size, type, frame, plane, gate, bed, data))
 	{
 		// make sure the frames/planes/gates/bedpos parameters in the mainheader
 		// are in sync

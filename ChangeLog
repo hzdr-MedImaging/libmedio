@@ -6,6 +6,12 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-02-25  Jens Langner <Jens.Langner@light-speed.de>
+
+  * ECATFile.cpp: fixed bug where upon usage of the IO_WriteOnly mode an
+    existing file wasn't overwritten at all and the open() call returned
+	 false.
+
 2005-02-04  Jens Langner <Jens.Langner@light-speed.de>
 
   * examples/ecat/ecatcmp: added another small usefull example on how to use
