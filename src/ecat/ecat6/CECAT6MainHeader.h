@@ -39,15 +39,13 @@ class Q_EXPORT CECAT6MainHeader : public CECATMainHeader
 									 };
 		
 		CECAT6MainHeader(const CECAT6MainHeader& mh);
-		CECAT6MainHeader(CECATFile* ecatFile,
+		CECAT6MainHeader(CECATFile* ecatFile = NULL,
 										 CECATMainHeader::Type fileType = 
 												CECATMainHeader::Unknown);
 
 		// public methods
 		bool load(void);
-		//bool load(QTextStream& stream);
 		bool save(void) const;
-		//bool save(QTextStream& stream);
 
 		// runtime type information methods
 		int rtti() const

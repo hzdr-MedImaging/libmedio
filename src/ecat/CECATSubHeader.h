@@ -44,8 +44,13 @@ class CECATDirectoryItem;
 class Q_EXPORT CECATSubHeader : public CMedIOHeader
 {
 	public:
-		enum Type	{ Unknown=0, ECAT7_AttenCorr, ECAT7_Image, ECAT7_Norm,
-								ECAT7_Norm3D, ECAT7_PolarMap, ECAT7_Scan,
+		enum Type	{ Unknown=0, 
+								ECAT7_AttenCorr, 
+								ECAT7_Image, 
+								ECAT7_Norm,
+								ECAT7_Norm3D, 
+								ECAT7_PolarMap, 
+								ECAT7_Scan,
 								ECAT7_Scan3D
 							};
 
@@ -60,7 +65,8 @@ class Q_EXPORT CECATSubHeader : public CMedIOHeader
 										};	
 
 		// constructor
-		CECATSubHeader(CMedIOData* ecatFile, CECATDirectoryItem* dItem)
+		CECATSubHeader(CMedIOData* ecatFile,
+									 CECATDirectoryItem* dItem = NULL)
 			: CMedIOHeader(ecatFile),
 				m_pDirItem(dItem)
 		{}

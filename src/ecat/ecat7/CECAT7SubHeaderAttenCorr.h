@@ -41,7 +41,7 @@ class Q_EXPORT CECAT7SubHeaderAttenCorr : public CECATSubHeader
 
 		// constructors
 		CECAT7SubHeaderAttenCorr(CECATFile* ecatFile,
-														 CECATDirectoryItem* pDirItem);
+														 CECATDirectoryItem* pDirItem = NULL);
 		CECAT7SubHeaderAttenCorr(const CECAT7SubHeaderAttenCorr& sh);
 
 		// public methods

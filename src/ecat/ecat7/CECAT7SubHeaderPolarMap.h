@@ -48,7 +48,7 @@ class Q_EXPORT CECAT7SubHeaderPolarMap : public CECATSubHeader
 
 		// constructors
 		CECAT7SubHeaderPolarMap(CECATFile* ecatFile,
-														CECATDirectoryItem* pDirItem);
+														CECATDirectoryItem* pDirItem = NULL);
 		CECAT7SubHeaderPolarMap(const CECAT7SubHeaderPolarMap& sh);
 			
 		// public methods

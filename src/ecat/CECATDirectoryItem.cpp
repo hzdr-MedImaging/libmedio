@@ -37,10 +37,8 @@
 #include "debug.h"
 
 CECATDirectoryItem::CECATDirectoryItem(CECATFile* pFile,
-																			 CECATSubHeader::Type subHeaderType,
 																			 Q_UINT32 matrixID) 
 	: m_pECATFile(pFile),
-		m_iSubHeaderType(subHeaderType),
 		m_pCachedSubHeader(NULL),
 		m_iFrame(-1),
 		m_iPlane(-1),
@@ -74,14 +72,12 @@ bool CECATDirectoryItem::readSubHeader(CECATSubHeader*& subHeader)
 
 	if(m_pECATFile->isReadable())
 	{
-		SHOWVALUE(m_iSubHeaderType);
-
 		// check if we have a cached sub header ready already so that
 		// we can take that one instead of loading the sub header once
 		// more from scratch
 		if(m_pCachedSubHeader)
 		{
-			switch(m_iSubHeaderType)
+			switch(m_pECATFile->subHeaderType())
 			{
 				case CECATSubHeader::ECAT7_AttenCorr: 
 					subHeader = new CECAT7SubHeaderAttenCorr(*static_cast<CECAT7SubHeaderAttenCorr*>(m_pCachedSubHeader));
@@ -126,7 +122,7 @@ bool CECATDirectoryItem::readSubHeader(CECATSubHeader*& subHeader)
 		{
 			// lets prepare the SubHeader depending on the type of the
 			// ECATFile
-			switch(m_iSubHeaderType)
+			switch(m_pECATFile->subHeaderType())
 			{
 				case CECATSubHeader::ECAT7_AttenCorr: 
 					subHeader = new CECAT7SubHeaderAttenCorr(m_pECATFile, this);
@@ -521,17 +517,14 @@ bool CECATDirectoryItem::writeSubHeader(const CECATSubHeader& subHeader)
 	ENTER();
 	bool result = false;
 
+	CECATSubHeader::Type shType = m_pECATFile->subHeaderType();
+
 	// let us check if the passed subheader is an appropiate one
-	if(m_iSubHeaderType != CECATSubHeader::Unknown)
+	if(shType != subHeader.subHeaderType())
 	{
-		if(m_iSubHeaderType != subHeader.subHeaderType())
-		{
-			RETURN(false);
-			return false;
-		}
+		RETURN(false);
+		return false;
 	}
-	else
-		m_iSubHeaderType = subHeader.subHeaderType();
 
 	// before we can save the subHeader we have to generate the cached copy
 	// and make sure it belongs to this particular directory Item.
@@ -539,7 +532,7 @@ bool CECATDirectoryItem::writeSubHeader(const CECATSubHeader& subHeader)
 		*m_pCachedSubHeader = subHeader;
 	else
 	{
-		switch(m_iSubHeaderType)
+		switch(shType)
 		{
 			case CECATSubHeader::ECAT7_AttenCorr: 
 				m_pCachedSubHeader = new CECAT7SubHeaderAttenCorr(*static_cast<const CECAT7SubHeaderAttenCorr*>(&subHeader));
@@ -644,7 +637,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 	if(m_iStatus == NotYetWritten &&
 		 m_iDataBlock_End == 0)
 	{
-		switch(m_iSubHeaderType)
+		switch(m_pECATFile->subHeaderType())
 		{
 			case CECATSubHeader::ECAT7_AttenCorr: 
 				subHeader = new CECAT7SubHeaderAttenCorr(m_pECATFile, this);

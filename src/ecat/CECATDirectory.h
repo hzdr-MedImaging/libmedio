@@ -36,9 +36,7 @@ class CECATFile;
 class Q_EXPORT CECATDirectory : protected QIntDict<CECATDirectoryItem>
 {
 	public:
-		CECATDirectory(CECATFile* ecatFile,
-									 CECATSubHeader::Type subHeaderType =
-											CECATSubHeader::Unknown);
+		CECATDirectory(CECATFile* ecatFile);
 		~CECATDirectory();
 
 		// file i/o routines
@@ -64,7 +62,7 @@ class Q_EXPORT CECATDirectory : protected QIntDict<CECATDirectoryItem>
 		bool readMatrix(char*& matrixData, unsigned int& len,
 										short frame, short plane=1, short gate=1, short bed=0, short data=0);
 	
-		// mutabor methods
+		// write methods
 		bool writeSubHeader(const CECATSubHeader& subHeader,
 												short frame, short plane=1, short gate=1, short bed=0, short data=0);
 		bool writeMatrix(const QByteArray& matrix,
@@ -77,9 +75,7 @@ class Q_EXPORT CECATDirectory : protected QIntDict<CECATDirectoryItem>
 										 short frame, short plane=1, short gate=1, short bed=0, short data=0);		
 
 	private:
-		CECATFile*						m_pECATFile;	// ptr to our associated ECATFile
-		CECATSubHeader::Type	m_iItemType;	// this directory manages
-																				// items of this SubHeaderType
+		CECATFile* m_pECATFile;	// ptr to our associated ECATFile
 																				
 		QValueVector<QIODevice::Offset>* m_pFilePositions; // for each DirList we
 																											 // could have different file

@@ -201,18 +201,26 @@ void CECAT7MainHeader::updateMagicNumber(void)
 
 bool CECAT7MainHeader::load(void)
 {
+	ENTER();
+
 	// only go on if the device is readable at all
-	if(m_pMedIOData->isReadable() == false ||
+	if(m_pMedIOData == NULL ||
+		 m_pMedIOData->isReadable() == false ||
 		 m_pMedIOData->at(0) == false)
 	{
+		RETURN(false);
 		return false;
 	}
 
 	// we use a ByteArray buffer to speed up the endianess
 	// decoding
 	QByteArray buffer(sizeof(struct ECAT7MainHeader));
-	if(m_pMedIOData->readBlock(buffer.data(), sizeof(struct ECAT7MainHeader)) != sizeof(struct ECAT7MainHeader))
+	if(m_pMedIOData->readBlock(buffer.data(),
+		 sizeof(struct ECAT7MainHeader)) != sizeof(struct ECAT7MainHeader))
+	{
+		RETURN(false);
 		return false;
+	}
 
 	// now we generate a QDataStream on our buffer so that we can read
 	// out of the buffer instead of the raw file (> speed)
@@ -266,7 +274,7 @@ bool CECAT7MainHeader::load(void)
   stream >> m_Data.Num_Gates;																// 356: Num_Gates
   stream >> m_Data.Num_Bed_Pos;															// 358: Num_Bed_Pos
   stream >> m_Data.Init_Bed_Position;												// 360: Init_Bed_Position
-	for(int i=0; i < 15; i++)
+	for(short i=0; i < 15; i++)
 		stream >> m_Data.Bed_Offset[i];													// 364: Bed_Offset (15)
   stream >> m_Data.Plane_Separation;												// 424: Plane_Separation
   stream >> m_Data.Lwr_Sctr_Thres;													// 428: Lwr_Sctr_Thres
@@ -361,12 +369,13 @@ bool CECAT7MainHeader::load(void)
 	D("CTI reserved            : %lx",						m_Data.CTI_Reserved);
 #endif
 
+	RETURN(true);
 	return true;
 }
 
-/*
-bool CECAT7MainHeader::load(QTextStream& stream)
+QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
 {
+	ENTER();
 	bool success = true;
 	
 	// lets iterate through the textstream until
@@ -390,95 +399,95 @@ bool CECAT7MainHeader::load(QTextStream& stream)
 			// lets check if the typeString matches one of our known
 			// types
 			if(typeString == "MAGIC_NUMBER")
-				strncpy(m_Data.Magic_Number, dataString.ascii(), 14);
+				strncpy(mHeader.m_Data.Magic_Number, dataString.ascii(), 14);
 			else if(typeString == "ORIGINAL_FILE_NAME")
-				strncpy(m_Data.Original_File_Name, dataString.ascii(), 32);
+				strncpy(mHeader.m_Data.Original_File_Name, dataString.ascii(), 32);
 			else if(typeString == "SW_VERSION")
-				m_Data.SW_Version = dataString.toShort(&convertSuccess);
+				mHeader.m_Data.SW_Version = dataString.toShort(&convertSuccess);
 			else if(typeString == "SYSTEM_TYPE")
-				m_Data.System_Type = dataString.toShort(&convertSuccess);
+				mHeader.m_Data.System_Type = dataString.toShort(&convertSuccess);
 			else if(typeString == "FILE_TYPE")
-				m_Data.File_Type = dataString.toShort(&convertSuccess);
+				mHeader.m_Data.File_Type = dataString.toShort(&convertSuccess);
 			else if(typeString == "SERIAL_NUMBER")
-				strncpy(m_Data.Serial_Number, dataString.ascii(), 10);
+				strncpy(mHeader.m_Data.Serial_Number, dataString.ascii(), 10);
 			else if(typeString == "SCAN_START_TIME")
-				m_Data.Scan_Start_Time = dataString.toLong(&convertSuccess);
+				mHeader.m_Data.Scan_Start_Time = dataString.toLong(&convertSuccess);
 			else if(typeString == "ISOTOPE_NAME")
-				strncpy(m_Data.Isotope_Name, dataString.ascii(), 8);
+				strncpy(mHeader.m_Data.Isotope_Name, dataString.ascii(), 8);
 			else if(typeString == "ISOTOPE_HALFLIFE")
-				m_Data.Isotope_Halflife = dataString.toFloat(&convertSuccess);
+				mHeader.m_Data.Isotope_Halflife = dataString.toFloat(&convertSuccess);
 			else if(typeString == "RADIOPHARMACEUTICAL")
-				strncpy(m_Data.Radiopharmaceutical, dataString.ascii(), 32);
+				strncpy(mHeader.m_Data.Radiopharmaceutical, dataString.ascii(), 32);
 			else if(typeString == "GANTRY_TILT")
-				m_Data.Gantry_Tilt = dataString.toFloat(&convertSuccess);
+				mHeader.m_Data.Gantry_Tilt = dataString.toFloat(&convertSuccess);
 			else if(typeString == "ROTATION_TILT")
-				m_Data.Gantry_Rotation = dataString.toFloat(&convertSuccess);
+				mHeader.m_Data.Gantry_Rotation = dataString.toFloat(&convertSuccess);
 			else if(typeString == "BED_ELEVATION")
-				m_Data.Bed_Elevation = dataString.toFloat(&convertSuccess);
+				mHeader.m_Data.Bed_Elevation = dataString.toFloat(&convertSuccess);
 			else if(typeString == "INTRINSIC_TILT")
-				m_Data.Intrinsic_Tilt = dataString.toFloat(&convertSuccess);
+				mHeader.m_Data.Intrinsic_Tilt = dataString.toFloat(&convertSuccess);
 			else if(typeString == "WOBBLE_SPEED")
-				m_Data.Wobble_Speed = dataString.toShort(&convertSuccess);
+				mHeader.m_Data.Wobble_Speed = dataString.toShort(&convertSuccess);
 			else if(typeString == "TRANSM_SOURCE_TYPE")
-				m_Data.Transm_Source_Type = dataString.toShort(&convertSuccess);
+				mHeader.m_Data.Transm_Source_Type = dataString.toShort(&convertSuccess);
 			else if(typeString == "DISTANCE_SCANNED")
-				m_Data.Distance_Scanned = dataString.toFloat(&convertSuccess);
+				mHeader.m_Data.Distance_Scanned = dataString.toFloat(&convertSuccess);
 			else if(typeString == "TRANSAXIAL_FOV")
-				m_Data.Transaxial_FOV = dataString.toFloat(&convertSuccess);
+				mHeader.m_Data.Transaxial_FOV = dataString.toFloat(&convertSuccess);
 			else if(typeString == "ANGULAR_COMPRESSION")
-				m_Data.Angular_Compression = dataString.toShort(&convertSuccess);
+				mHeader.m_Data.Angular_Compression = dataString.toShort(&convertSuccess);
 			else if(typeString == "COIN_SAMP_MODE")
-				m_Data.Coin_Samp_Mode = dataString.toShort(&convertSuccess);
+				mHeader.m_Data.Coin_Samp_Mode = dataString.toShort(&convertSuccess);
 			else if(typeString == "AXIAL_SAMP_MODE")
-				m_Data.Axial_Samp_Mode = dataString.toShort(&convertSuccess);
+				mHeader.m_Data.Axial_Samp_Mode = dataString.toShort(&convertSuccess);
 			else if(typeString == "ECAT_CALIBRATION_FACTOR")
-				m_Data.Calibration_Factor = dataString.toFloat(&convertSuccess);
+				mHeader.m_Data.Calibration_Factor = dataString.toFloat(&convertSuccess);
 			else if(typeString == "CALIBRATION_UNITS")
-				m_Data.Calibration_Units = dataString.toShort(&convertSuccess);
+				mHeader.m_Data.Calibration_Units = dataString.toShort(&convertSuccess);
 			else if(typeString == "CALIBRATION_UNITS_LABEL")
-				m_Data.Calibration_Units_Label = dataString.toShort(&convertSuccess);
+				mHeader.m_Data.Calibration_Units_Label = dataString.toShort(&convertSuccess);
 			else if(typeString == "COMPRESSION_CODE")
-				m_Data.Compression_Code = dataString.toShort(&convertSuccess);
+				mHeader.m_Data.Compression_Code = dataString.toShort(&convertSuccess);
 			else if(typeString == "STUDY_TYPE")
-				strncpy(m_Data.Study_Type, dataString.ascii(), 12);
+				strncpy(mHeader.m_Data.Study_Type, dataString.ascii(), 12);
 			else if(typeString == "PATIENT_ID")
-				strncpy(m_Data.Patient_ID, dataString.ascii(), 16);
+				strncpy(mHeader.m_Data.Patient_ID, dataString.ascii(), 16);
 			else if(typeString == "PATIENT_NAME")
-				strncpy(m_Data.Patient_Name, dataString.ascii(), 32);
+				strncpy(mHeader.m_Data.Patient_Name, dataString.ascii(), 32);
 			else if(typeString == "PATIENT_SEX")
-				m_Data.Patient_Sex[0] = dataString.ascii()[0];
+				mHeader.m_Data.Patient_Sex[0] = dataString.ascii()[0];
 			else if(typeString == "PATIENT_DEXTERITY")
-				m_Data.Patient_Dexterity[0] = dataString.ascii()[0];
+				mHeader.m_Data.Patient_Dexterity[0] = dataString.ascii()[0];
 			else if(typeString == "PATIENT_AGE")
-				m_Data.Patient_Age = dataString.toFloat(&convertSuccess);
+				mHeader.m_Data.Patient_Age = dataString.toFloat(&convertSuccess);
 			else if(typeString == "PATIENT_HEIGHT")
-				m_Data.Patient_Height = dataString.toFloat(&convertSuccess);
+				mHeader.m_Data.Patient_Height = dataString.toFloat(&convertSuccess);
 			else if(typeString == "PATIENT_WEIGHT")
-				m_Data.Patient_Weight = dataString.toFloat(&convertSuccess);
+				mHeader.m_Data.Patient_Weight = dataString.toFloat(&convertSuccess);
 			else if(typeString == "PATIENT_BIRTH_DATE")
-				m_Data.Patient_Birth_Date = dataString.toLong(&convertSuccess);
+				mHeader.m_Data.Patient_Birth_Date = dataString.toLong(&convertSuccess);
 			else if(typeString == "PHYSICIAN_NAME")
-				strncpy(m_Data.Physician_Name, dataString.ascii(), 32);
+				strncpy(mHeader.m_Data.Physician_Name, dataString.ascii(), 32);
 			else if(typeString == "OPERATOR_NAME")
-				strncpy(m_Data.Operator_Name, dataString.ascii(), 32);
+				strncpy(mHeader.m_Data.Operator_Name, dataString.ascii(), 32);
 			else if(typeString == "STUDY_DESCRIPTION")
-				strncpy(m_Data.Study_Description, dataString.ascii(), 32);
+				strncpy(mHeader.m_Data.Study_Description, dataString.ascii(), 32);
 			else if(typeString == "ACQUISITION_TYPE")
-				m_Data.Acquisition_Type = dataString.toShort(&convertSuccess);
+				mHeader.m_Data.Acquisition_Type = dataString.toShort(&convertSuccess);
 			else if(typeString == "PATIENT_ORIENTATION")
-				m_Data.Patient_Orientation = dataString.toShort(&convertSuccess);
+				mHeader.m_Data.Patient_Orientation = dataString.toShort(&convertSuccess);
 			else if(typeString == "FACILITY_NAME")
-				strncpy(m_Data.Facility_Name, dataString.ascii(), 20);
+				strncpy(mHeader.m_Data.Facility_Name, dataString.ascii(), 20);
 			else if(typeString == "NUM_PLANES")
-				m_Data.Num_Planes = dataString.toShort(&convertSuccess);
+				mHeader.m_Data.Num_Planes = dataString.toShort(&convertSuccess);
 			else if(typeString == "NUM_FRAMES")
-				m_Data.Num_Frames = dataString.toShort(&convertSuccess);
+				mHeader.m_Data.Num_Frames = dataString.toShort(&convertSuccess);
 			else if(typeString == "NUM_GATES")
-				m_Data.Num_Gates = dataString.toShort(&convertSuccess);
+				mHeader.m_Data.Num_Gates = dataString.toShort(&convertSuccess);
 			else if(typeString == "NUM_BED_POS")
-				m_Data.Num_Bed_Pos = dataString.toShort(&convertSuccess);
+				mHeader.m_Data.Num_Bed_Pos = dataString.toShort(&convertSuccess);
 			else if(typeString == "INIT_BED_POSITION")
-				m_Data.Init_Bed_Position = dataString.toFloat(&convertSuccess);
+				mHeader.m_Data.Init_Bed_Position = dataString.toFloat(&convertSuccess);
 			else if(typeString == "BED_POSITION")
 			{
 				for(int i=0; i < 15 && convertSuccess; i++)
@@ -487,35 +496,35 @@ bool CECAT7MainHeader::load(QTextStream& stream)
 					if(subString.isEmpty())
 						break;
 
-					m_Data.Bed_Offset[i] = subString.toFloat(&convertSuccess);
+					mHeader.m_Data.Bed_Offset[i] = subString.toFloat(&convertSuccess);
 				}
 			}
 			else if(typeString == "PLANE_SEPARATION")
-				m_Data.Plane_Separation = dataString.toFloat(&convertSuccess);
+				mHeader.m_Data.Plane_Separation = dataString.toFloat(&convertSuccess);
 			else if(typeString == "LWR_SCTR_THRES")
-				m_Data.Lwr_Sctr_Thres = dataString.toShort(&convertSuccess);
+				mHeader.m_Data.Lwr_Sctr_Thres = dataString.toShort(&convertSuccess);
 			else if(typeString == "LWR_TRUE_THRES")
-				m_Data.Lwr_True_Thres = dataString.toShort(&convertSuccess);
+				mHeader.m_Data.Lwr_True_Thres = dataString.toShort(&convertSuccess);
 			else if(typeString == "UPR_TRUE_THRES")
-				m_Data.Upr_True_Thres = dataString.toShort(&convertSuccess);
+				mHeader.m_Data.Upr_True_Thres = dataString.toShort(&convertSuccess);
 			else if(typeString == "USER_PROCESS_CODE")
-				strncpy(m_Data.User_Process_Code, dataString.ascii(), 10);
+				strncpy(mHeader.m_Data.User_Process_Code, dataString.ascii(), 10);
 			else if(typeString == "ACQUISITION_MODE")
-				m_Data.Acquisition_Mode = dataString.toShort(&convertSuccess);
+				mHeader.m_Data.Acquisition_Mode = dataString.toShort(&convertSuccess);
 			else if(typeString == "BIN_SIZE")
-				m_Data.Bin_Size = dataString.toFloat(&convertSuccess);
+				mHeader.m_Data.Bin_Size = dataString.toFloat(&convertSuccess);
 			else if(typeString == "BRANCHING_FRACTION")
-				m_Data.Branching_Fraction = dataString.toFloat(&convertSuccess);
+				mHeader.m_Data.Branching_Fraction = dataString.toFloat(&convertSuccess);
 			else if(typeString == "DOSE_START_TIME")
-				m_Data.Dose_Start_Time = dataString.toLong(&convertSuccess);
+				mHeader.m_Data.Dose_Start_Time = dataString.toLong(&convertSuccess);
 			else if(typeString == "DOSAGE")
-				m_Data.Dosage = dataString.toFloat(&convertSuccess);
+				mHeader.m_Data.Dosage = dataString.toFloat(&convertSuccess);
 			else if(typeString == "WELL_COUNTER_CORR_FACTOR")
-				m_Data.Well_Counter_Corr_Factor = dataString.toFloat(&convertSuccess);
+				mHeader.m_Data.Well_Counter_Corr_Factor = dataString.toFloat(&convertSuccess);
 			else if(typeString == "DATA_UNITS")
-				strncpy(m_Data.Data_Units, dataString.ascii(), 32);
+				strncpy(mHeader.m_Data.Data_Units, dataString.ascii(), 32);
 			else if(typeString == "SEPTA_STATE")
-				m_Data.Septa_State = dataString.toShort(&convertSuccess);
+				mHeader.m_Data.Septa_State = dataString.toShort(&convertSuccess);
 			else if(typeString == "FILL")
 			{
 				for(int i=0; i < 6 && convertSuccess; i++)
@@ -524,7 +533,7 @@ bool CECAT7MainHeader::load(QTextStream& stream)
 					if(subString.isEmpty())
 						break;
 
-					m_Data.CTI_Reserved[i] = subString.toShort(&convertSuccess);
+					mHeader.m_Data.CTI_Reserved[i] = subString.toShort(&convertSuccess);
 				}
 			}
 
@@ -536,16 +545,17 @@ bool CECAT7MainHeader::load(QTextStream& stream)
 		}
 	}
 
-	return success;
+	RETURN(stream);
+	return stream;
 }
-*/
 
 bool CECAT7MainHeader::save(void) const
 {
 	ENTER();
 
 	// only go on if the device is writeable at all
-	if(m_pMedIOData->isWritable() == false ||
+	if(m_pMedIOData == NULL ||
+		 m_pMedIOData->isWritable() == false ||
 		 m_pMedIOData->at(0) == false)
 	{
 		RETURN(false);
@@ -662,84 +672,83 @@ bool CECAT7MainHeader::save(void) const
 	return result;
 }
 
-/*
-bool CECAT7MainHeader::save(QTextStream& stream)
+QTextStream& operator<<(QTextStream& stream, const CECAT7MainHeader& mHeader)
 {
-	bool success = true;
+	ENTER();
 
 	// save all header data to the textstream
 	stream << qSetPrecision(6);
-	stream << "MAGIC_NUMBER "							<< m_Data.Magic_Number							<< endl;
-	stream << "ORIGINAL_FILE_NAME "				<< m_Data.Original_File_Name				<< endl;
-	stream << "SW_VERSION "								<< m_Data.SW_Version								<< endl;
-	stream << "SYSTEM_TYPE "							<< m_Data.System_Type								<< endl;
-	stream << "FILE_TYPE "								<< m_Data.File_Type									<< endl;
-	stream << "SERIAL_NUMBER "						<< m_Data.Serial_Number							<< endl;
-	stream << "SCAN_START_TIME "					<< m_Data.Scan_Start_Time						<< endl;
-	stream << "ISOTOPE_NAME "							<< m_Data.Isotope_Name							<< endl;
-	stream << "ISOTOPE_HALFLIFE "					<< m_Data.Isotope_Halflife					<< endl;
-	stream << "RADIOPHARMACEUTICAL "			<< m_Data.Radiopharmaceutical				<< endl;
-	stream << "GANTRY_TILT "							<< m_Data.Gantry_Tilt								<< endl;
-	stream << "ROTATION_TILT "						<< m_Data.Gantry_Rotation						<< endl;
-	stream << "BED_ELEVATION "						<< m_Data.Bed_Elevation							<< endl;
-	stream << "INTRINSIC_TILT "						<< m_Data.Intrinsic_Tilt						<< endl;
-	stream << "WOBBLE_SPEED "							<< m_Data.Wobble_Speed							<< endl;
-	stream << "TRANSM_SOURCE_TYPE "				<< m_Data.Transm_Source_Type				<< endl;
-	stream << "DISTANCE_SCANNED "					<< m_Data.Distance_Scanned					<< endl;
-	stream << "TRANSAXIAL_FOV "						<< m_Data.Transaxial_FOV						<< endl;
-	stream << "ANGULAR_COMPRESSION "			<< m_Data.Angular_Compression				<< endl;
-	stream << "COIN_SAMP_MODE "						<< m_Data.Coin_Samp_Mode						<< endl;
-	stream << "AXIAL_SAMP_MODE "					<< m_Data.Axial_Samp_Mode						<< endl;
-	stream << "ECAT_CALIBRATION_FACTOR "	<< m_Data.Calibration_Factor				<< endl;
-	stream << "CALIBRATION_UNITS "				<< m_Data.Calibration_Units					<< endl;
-	stream << "CALIBRATION_UNITS_LABEL "	<< m_Data.Calibration_Units_Label		<< endl;
-	stream << "COMPRESSION_CODE "					<< m_Data.Compression_Code					<< endl;
-	stream << "STUDY_TYPE "								<< m_Data.Study_Type								<< endl;
-	stream << "PATIENT_ID "								<< m_Data.Patient_ID								<< endl;
-	stream << "PATIENT_NAME "							<< m_Data.Patient_Name							<< endl;
-	stream << "PATIENT_SEX "							<< m_Data.Patient_Sex[0]						<< endl;
-	stream << "PATIENT_DEXTERITY "				<< m_Data.Patient_Dexterity[0]			<< endl;
-	stream << "PATIENT_AGE "							<< m_Data.Patient_Age								<< endl;
-	stream << "PATIENT_HEIGHT "						<< m_Data.Patient_Height						<< endl;
-	stream << "PATIENT_WEIGHT "						<< m_Data.Patient_Weight						<< endl;
-	stream << "PATIENT_BIRTH_DATE "				<< m_Data.Patient_Birth_Date				<< endl;
-	stream << "PHYSICIAN_NAME "						<< m_Data.Physician_Name						<< endl;
-	stream << "OPERATOR_NAME "						<< m_Data.Operator_Name							<< endl;
-	stream << "STUDY_DESCRIPTION "				<< m_Data.Study_Description					<< endl;
-	stream << "ACQUISITION_TYPE "					<< m_Data.Acquisition_Type					<< endl;
-	stream << "PATIENT_ORIENTATION "			<< m_Data.Patient_Orientation				<< endl;
-	stream << "FACILITY_NAME "						<< m_Data.Facility_Name							<< endl;
-	stream << "NUM_PLANES "								<< m_Data.Num_Planes								<< endl;
-	stream << "NUM_FRAMES "								<< m_Data.Num_Frames								<< endl;
-	stream << "NUM_GATES "								<< m_Data.Num_Gates									<< endl;
-	stream << "NUM_BED_POS "							<< m_Data.Num_Bed_Pos								<< endl;
-	stream << "INIT_BED_POSITION "				<< m_Data.Init_Bed_Position					<< endl;
+	stream << "MAGIC_NUMBER "							<< mHeader.m_Data.Magic_Number							<< endl;
+	stream << "ORIGINAL_FILE_NAME "				<< mHeader.m_Data.Original_File_Name				<< endl;
+	stream << "SW_VERSION "								<< mHeader.m_Data.SW_Version								<< endl;
+	stream << "SYSTEM_TYPE "							<< mHeader.m_Data.System_Type								<< endl;
+	stream << "FILE_TYPE "								<< mHeader.m_Data.File_Type									<< endl;
+	stream << "SERIAL_NUMBER "						<< mHeader.m_Data.Serial_Number							<< endl;
+	stream << "SCAN_START_TIME "					<< mHeader.m_Data.Scan_Start_Time						<< endl;
+	stream << "ISOTOPE_NAME "							<< mHeader.m_Data.Isotope_Name							<< endl;
+	stream << "ISOTOPE_HALFLIFE "					<< mHeader.m_Data.Isotope_Halflife					<< endl;
+	stream << "RADIOPHARMACEUTICAL "			<< mHeader.m_Data.Radiopharmaceutical				<< endl;
+	stream << "GANTRY_TILT "							<< mHeader.m_Data.Gantry_Tilt								<< endl;
+	stream << "ROTATION_TILT "						<< mHeader.m_Data.Gantry_Rotation						<< endl;
+	stream << "BED_ELEVATION "						<< mHeader.m_Data.Bed_Elevation							<< endl;
+	stream << "INTRINSIC_TILT "						<< mHeader.m_Data.Intrinsic_Tilt						<< endl;
+	stream << "WOBBLE_SPEED "							<< mHeader.m_Data.Wobble_Speed							<< endl;
+	stream << "TRANSM_SOURCE_TYPE "				<< mHeader.m_Data.Transm_Source_Type				<< endl;
+	stream << "DISTANCE_SCANNED "					<< mHeader.m_Data.Distance_Scanned					<< endl;
+	stream << "TRANSAXIAL_FOV "						<< mHeader.m_Data.Transaxial_FOV						<< endl;
+	stream << "ANGULAR_COMPRESSION "			<< mHeader.m_Data.Angular_Compression				<< endl;
+	stream << "COIN_SAMP_MODE "						<< mHeader.m_Data.Coin_Samp_Mode						<< endl;
+	stream << "AXIAL_SAMP_MODE "					<< mHeader.m_Data.Axial_Samp_Mode						<< endl;
+	stream << "ECAT_CALIBRATION_FACTOR "	<< mHeader.m_Data.Calibration_Factor				<< endl;
+	stream << "CALIBRATION_UNITS "				<< mHeader.m_Data.Calibration_Units					<< endl;
+	stream << "CALIBRATION_UNITS_LABEL "	<< mHeader.m_Data.Calibration_Units_Label		<< endl;
+	stream << "COMPRESSION_CODE "					<< mHeader.m_Data.Compression_Code					<< endl;
+	stream << "STUDY_TYPE "								<< mHeader.m_Data.Study_Type								<< endl;
+	stream << "PATIENT_ID "								<< mHeader.m_Data.Patient_ID								<< endl;
+	stream << "PATIENT_NAME "							<< mHeader.m_Data.Patient_Name							<< endl;
+	stream << "PATIENT_SEX "							<< mHeader.m_Data.Patient_Sex[0]						<< endl;
+	stream << "PATIENT_DEXTERITY "				<< mHeader.m_Data.Patient_Dexterity[0]			<< endl;
+	stream << "PATIENT_AGE "							<< mHeader.m_Data.Patient_Age								<< endl;
+	stream << "PATIENT_HEIGHT "						<< mHeader.m_Data.Patient_Height						<< endl;
+	stream << "PATIENT_WEIGHT "						<< mHeader.m_Data.Patient_Weight						<< endl;
+	stream << "PATIENT_BIRTH_DATE "				<< mHeader.m_Data.Patient_Birth_Date				<< endl;
+	stream << "PHYSICIAN_NAME "						<< mHeader.m_Data.Physician_Name						<< endl;
+	stream << "OPERATOR_NAME "						<< mHeader.m_Data.Operator_Name							<< endl;
+	stream << "STUDY_DESCRIPTION "				<< mHeader.m_Data.Study_Description					<< endl;
+	stream << "ACQUISITION_TYPE "					<< mHeader.m_Data.Acquisition_Type					<< endl;
+	stream << "PATIENT_ORIENTATION "			<< mHeader.m_Data.Patient_Orientation				<< endl;
+	stream << "FACILITY_NAME "						<< mHeader.m_Data.Facility_Name							<< endl;
+	stream << "NUM_PLANES "								<< mHeader.m_Data.Num_Planes								<< endl;
+	stream << "NUM_FRAMES "								<< mHeader.m_Data.Num_Frames								<< endl;
+	stream << "NUM_GATES "								<< mHeader.m_Data.Num_Gates									<< endl;
+	stream << "NUM_BED_POS "							<< mHeader.m_Data.Num_Bed_Pos								<< endl;
+	stream << "INIT_BED_POSITION "				<< mHeader.m_Data.Init_Bed_Position					<< endl;
 	stream << "BED_POSITION";
 	for(int i=0; i < 15; i++)
 	{
-		stream << " " << m_Data.Bed_Offset[i];
+		stream << " " << mHeader.m_Data.Bed_Offset[i];
 	}
 	stream << endl;
-	stream << "PLANE_SEPARATION "					<< m_Data.Plane_Separation					<< endl;
-	stream << "LWR_SCTR_THRES "						<< m_Data.Lwr_Sctr_Thres						<< endl;
-	stream << "LWR_TRUE_THRES "						<< m_Data.Lwr_True_Thres						<< endl;
-	stream <<	"UPR_TRUE_THRES "						<< m_Data.Upr_True_Thres						<< endl;
-	stream <<	"USER_PROCESS_CODE "				<< m_Data.User_Process_Code					<< endl;
-	stream << "ACQUISITION_MODE "					<< m_Data.Acquisition_Mode					<< endl;
-	stream << "BIN_SIZE "									<< m_Data.Bin_Size									<< endl;
-	stream << "BRANCHING_FRACTION "				<< m_Data.Branching_Fraction				<< endl;
-	stream << "DOSE_START_TIME "					<< m_Data.Dose_Start_Time						<< endl;
-	stream <<	"DOSAGE "										<< m_Data.Dosage										<< endl;
-	stream <<	"WELL_COUNTER_CORR_FACTOR "	<< m_Data.Well_Counter_Corr_Factor	<< endl;
-	stream << "DATA_UNITS "								<< m_Data.Data_Units								<< endl;
-	stream <<	"SEPTA_STATE "							<< m_Data.Septa_State								<< endl;
+	stream << "PLANE_SEPARATION "					<< mHeader.m_Data.Plane_Separation					<< endl;
+	stream << "LWR_SCTR_THRES "						<< mHeader.m_Data.Lwr_Sctr_Thres						<< endl;
+	stream << "LWR_TRUE_THRES "						<< mHeader.m_Data.Lwr_True_Thres						<< endl;
+	stream <<	"UPR_TRUE_THRES "						<< mHeader.m_Data.Upr_True_Thres						<< endl;
+	stream <<	"USER_PROCESS_CODE "				<< mHeader.m_Data.User_Process_Code					<< endl;
+	stream << "ACQUISITION_MODE "					<< mHeader.m_Data.Acquisition_Mode					<< endl;
+	stream << "BIN_SIZE "									<< mHeader.m_Data.Bin_Size									<< endl;
+	stream << "BRANCHING_FRACTION "				<< mHeader.m_Data.Branching_Fraction				<< endl;
+	stream << "DOSE_START_TIME "					<< mHeader.m_Data.Dose_Start_Time						<< endl;
+	stream <<	"DOSAGE "										<< mHeader.m_Data.Dosage										<< endl;
+	stream <<	"WELL_COUNTER_CORR_FACTOR "	<< mHeader.m_Data.Well_Counter_Corr_Factor	<< endl;
+	stream << "DATA_UNITS "								<< mHeader.m_Data.Data_Units								<< endl;
+	stream <<	"SEPTA_STATE "							<< mHeader.m_Data.Septa_State								<< endl;
 	stream <<	"FILL";
 	for(int i=0; i < 6; i++)
 	{
-		stream << " " << m_Data.CTI_Reserved[i];
+		stream << " " << mHeader.m_Data.CTI_Reserved[i];
 	}
 	stream << endl;
 	
-	return success;
+	RETURN(stream);
+	return stream;
 }
-*/

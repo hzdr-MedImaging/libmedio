@@ -72,7 +72,7 @@ class Q_EXPORT CECAT7SubHeaderImage : public CECATSubHeader
 
 		// constructors
 		CECAT7SubHeaderImage(CECATFile* ecatFile,
-												 CECATDirectoryItem* pDirItem);
+												 CECATDirectoryItem* pDirItem = NULL);
 		CECAT7SubHeaderImage(const CECAT7SubHeaderImage& sh);
 
 

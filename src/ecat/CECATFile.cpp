@@ -27,6 +27,13 @@
 #include "CECAT6MainHeader.h"
 #include "CECAT7MainHeader.h"
 #include "CECATDirectory.h"
+#include "CECAT7SubHeaderAttenCorr.h"
+#include "CECAT7SubHeaderImage.h"
+#include "CECAT7SubHeaderNorm.h"
+#include "CECAT7SubHeaderNorm3D.h"
+#include "CECAT7SubHeaderPolarMap.h"
+#include "CECAT7SubHeaderScan.h"
+#include "CECAT7SubHeaderScan3D.h"
 
 #include <qdatastream.h>
 #include <qfileinfo.h>
@@ -203,7 +210,7 @@ bool CECATFile::open(int mode)
 		// main header or directory list. so lets create some empty ones
 		if(m_iECATformat != CECATFile::Undefined)
 		{
-			m_pMainDirectory = new CECATDirectory(this, subHeaderType(m_iMainHeaderType));
+			m_pMainDirectory = new CECATDirectory(this);
 
 			switch(m_iECATformat)
 			{
@@ -746,6 +753,73 @@ bool CECATFile::writeMatrix(const char* matrixData, unsigned int size, CECATSubH
 
 	RETURN(result);
 	return result;
+}
+
+CECATMainHeader* CECATFile::createEmptyMainHeader(void)
+{
+	ENTER();
+	CECATMainHeader* pEmptyMainHeader = NULL;
+
+	switch(m_iECATformat)
+	{
+		case CECATFile::ECAT7:
+			pEmptyMainHeader = new CECAT7MainHeader(this, m_iMainHeaderType);
+		break;
+
+		case CECATFile::ECAT6:
+			pEmptyMainHeader = new CECAT6MainHeader(this, m_iMainHeaderType);
+		break;
+
+		default:
+			// nothing
+		break;
+	}
+
+	RETURN(pEmptyMainHeader);
+	return pEmptyMainHeader;
+}
+
+CECATSubHeader* CECATFile::createEmptySubHeader(void)
+{
+	ENTER();
+	CECATSubHeader* subHeader = NULL;
+
+	switch(subHeaderType())
+	{
+		case CECATSubHeader::ECAT7_AttenCorr: 
+			subHeader = new CECAT7SubHeaderAttenCorr(this);
+		break;
+
+		case CECATSubHeader::ECAT7_Image:	
+			subHeader = new CECAT7SubHeaderImage(this);
+		break;
+
+		case CECATSubHeader::ECAT7_Norm:
+			subHeader = new CECAT7SubHeaderNorm(this);
+		break;
+		
+		case CECATSubHeader::ECAT7_Norm3D:
+			subHeader = new CECAT7SubHeaderNorm3D(this);
+		break;
+		
+		case CECATSubHeader::ECAT7_PolarMap:
+			subHeader = new CECAT7SubHeaderPolarMap(this);
+		break;
+		
+		case CECATSubHeader::ECAT7_Scan:
+			subHeader = new CECAT7SubHeaderScan(this);
+		break;
+		
+		case CECATSubHeader::ECAT7_Scan3D:
+			subHeader = new CECAT7SubHeaderScan3D(this);
+		break;
+
+		default:
+			E("ECAT type isn't specified or not supported yet.");
+	}
+
+	RETURN(subHeader);
+	return subHeader;
 }
 
 void CECATFile::mainHeaderWritten(const CECATMainHeader& mainHeader)

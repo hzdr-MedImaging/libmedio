@@ -6,6 +6,15 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-01-25  Jens Langner <Jens.Langner@light-speed.de>
+
+  * misc: did some general adaptions to make MedIO work with lmmc again.
+  * CECATFile.h: added additional createEmpty* methods to make it possible to
+    easily create an empty MainHeader and SubHeaders which do conform to
+	 the actual file they were created on. However, please note that they might
+	 not just be used with their corresponging save() methods and have to be
+	 passed to one of the write() methods for correctly saving it to the file.
+
 2005-01-24  Jens Langner <Jens.Langner@light-speed.de>
 
   * CMedIOData.h: added errorStatus() method to allow to carry special error

@@ -71,7 +71,6 @@ class Q_EXPORT CECATDirectoryItem
 											};
 
 		CECATDirectoryItem(CECATFile* file,
-											 CECATSubHeader::Type subHeaderType = CECATSubHeader::Unknown,
 											 Q_UINT32 matrixID = 0);
 	
 		// accessor methods
@@ -139,7 +138,6 @@ class Q_EXPORT CECATDirectoryItem
 
 	private:
 		CECATFile*						m_pECATFile;				// pointer to the ECATFile
-		CECATSubHeader::Type	m_iSubHeaderType;		// the choosen subHeaderType for this item
 		CECATSubHeader*				m_pCachedSubHeader;	// pointer to a cached SubHeader object
 
 		// META information about the directory Item

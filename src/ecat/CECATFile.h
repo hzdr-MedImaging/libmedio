@@ -79,7 +79,7 @@ class Q_EXPORT CECATFile : public CMedIOData
 		bool readMatrix(char*& matrixData, unsigned int& len,
 										short frame, short plane=1, short gate=1, short bed=0, short data=0);
 
-		// methods to create new and modify existing entries in this file.
+		// methods to write out headers/data to the file.
 		bool writeMainHeader(CECATMainHeader& mainHeader);
 		bool writeSubHeader(const CECATSubHeader& subHeader,
 												short frame, short plane=1, short gate=1, short bed=0, short data=0);
@@ -91,6 +91,10 @@ class Q_EXPORT CECATFile : public CMedIOData
 										 short frame, short plane=1, short gate=1, short bed=0, short data=0);
 		bool writeMatrix(const char* matrixData, unsigned int size, CECATSubHeader::Data_Type type,
 										 short frame, short plane=1, short gate=1, short bed=0, short data=0);
+
+		// methods to generate some objects just for convienence
+		CECATMainHeader* createEmptyMainHeader(void);
+		CECATSubHeader*  createEmptySubHeader(void);
 
 		// methods to sync specific data with our headers
 		void mainHeaderWritten(const CECATMainHeader& mainHeader);

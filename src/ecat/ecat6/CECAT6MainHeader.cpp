@@ -63,20 +63,19 @@ bool CECAT6MainHeader::load(void)
 	ENTER();
 
 	// only go on if the device is readable at all
-	if(m_pMedIOData->isReadable() == false)
+	if(m_pMedIOData == NULL ||
+		 m_pMedIOData->at(0) == false ||
+		 m_pMedIOData->isReadable() == false)
 	{
 		RETURN(false);
 		return false;
 	}
 
-	// the main Header is always at the first block so lets set
-	// our file to this position
-	m_pMedIOData->at(0);
-
 	// we use a ByteArray buffer to speed up the endianess
 	// decoding
 	QByteArray buffer(sizeof(struct ECAT6MainHeader));
-	if(m_pMedIOData->readBlock(buffer.data(), sizeof(struct ECAT6MainHeader)) != sizeof(struct ECAT6MainHeader))
+	if(m_pMedIOData->readBlock(buffer.data(), 
+		 sizeof(struct ECAT6MainHeader)) != sizeof(struct ECAT6MainHeader))
 	{
 		RETURN(false);
 		return false;
@@ -216,23 +215,16 @@ bool CECAT6MainHeader::load(void)
 	return true;
 }
 
-/*
-bool CECAT6MainHeader::load(QTextStream& stream)
-{
-	bool success = true;
-
-	#warning "Textbased data loading not implemented yet."
-
-	return success;
-}
-*/
-
 bool CECAT6MainHeader::save(void) const
 {
+	ENTER();
+
 	// only go on if the device is writeable at all
-	if(m_pMedIOData->isWritable() == false ||
+	if(m_pMedIOData == NULL ||
+		 m_pMedIOData->isWritable() == false ||
 		 m_pMedIOData->at(0) == false)
 	{
+		RETURN(false);
 		return false;
 	}
 
@@ -317,16 +309,6 @@ bool CECAT6MainHeader::save(void) const
 		result = true;
 	}
 
+	RETURN(result);
 	return result;
 }
-
-/*
-bool CECAT6MainHeader::save(QTextStream& stream)
-{
-	bool success = true;
-
-	#warning "Textbased data saving not implemented yet."
-
-	return success;
-}
-*/

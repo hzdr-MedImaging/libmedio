@@ -39,7 +39,7 @@ class Q_EXPORT CECAT7SubHeaderNorm : public CECATSubHeader
 
 		// constructors
 		CECAT7SubHeaderNorm(CECATFile* ecatFile,
-												CECATDirectoryItem* pDirItem);
+												CECATDirectoryItem* pDirItem = NULL);
 		CECAT7SubHeaderNorm(const CECAT7SubHeaderNorm& sh);
 		
 		// public methods													

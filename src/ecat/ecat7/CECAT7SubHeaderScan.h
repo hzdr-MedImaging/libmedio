@@ -41,7 +41,7 @@ class Q_EXPORT CECAT7SubHeaderScan : public CECATSubHeader
 
 		// constructors
 		CECAT7SubHeaderScan(CECATFile* ecatFile,
-												CECATDirectoryItem* pDirItem);
+												CECATDirectoryItem* pDirItem = NULL);
 		CECAT7SubHeaderScan(const CECAT7SubHeaderScan& sh);
 		
 		// public methods

@@ -56,10 +56,8 @@ struct ECAT_DirList // should be 512 bytes
 };
 #pragma pack()
 
-CECATDirectory::CECATDirectory(CECATFile* ecatFile,
-															 CECATSubHeader::Type subHeaderType)
-	: m_pECATFile(ecatFile),
-		m_iItemType(subHeaderType)
+CECATDirectory::CECATDirectory(CECATFile* ecatFile)
+	: m_pECATFile(ecatFile)
 {
 	ENTER();
 
@@ -107,12 +105,11 @@ bool CECATDirectory::load(void)
 	// before we load the directory information we set the
 	// fileposition according to the normal position of the
 	// main directory.
-	m_pECATFile->at(ECATBlock2FilePos(ECAT_POS_MAINDIR));
-
-	// set the ItemType to the new SubHeaderType we are going
-	// to load now, just in case someone wants to create more of
-	// those items.
-	m_iItemType = m_pECATFile->subHeaderType();
+	if(m_pECATFile->at(ECATBlock2FilePos(ECAT_POS_MAINDIR)) == false)
+	{
+		RETURN(false);
+		return false;
+	}
 
 	// we process the splitted directory list in a do..while loop
 	// and jump from one dirlist to another in the ecat file.
@@ -156,8 +153,7 @@ bool CECATDirectory::load(void)
 		unsigned int iItemsInserted = 0;
 		for(unsigned int i=0; i < dList.head.ItemsToFollow; i++)
 		{
-			CECATDirectoryItem* pNewDirItem = new CECATDirectoryItem(m_pECATFile,
-																															 m_iItemType);
+			CECATDirectoryItem* pNewDirItem = new CECATDirectoryItem(m_pECATFile);
 
 			// let us read out our information directly from the stream
 			stream >> *pNewDirItem;
@@ -404,9 +400,7 @@ CECATDirectoryItem* CECATDirectory::newItem(Q_UINT32 matrixID)
 	ENTER();
 
 	// create a new DirectoryItem which we put in this Directory
-	CECATDirectoryItem* pNewDItem = new CECATDirectoryItem(m_pECATFile,
-																												 m_iItemType,
-																												 matrixID);
+	CECATDirectoryItem* pNewDItem = new CECATDirectoryItem(m_pECATFile, matrixID);
 
 	// now that we generated a new directory item we want to put
 	// in our directory immediately, we have to first check at which

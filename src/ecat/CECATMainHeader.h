@@ -55,9 +55,7 @@ class Q_EXPORT CECATMainHeader : public CMedIOHeader
 		// some pure virtual methods to load/save information
 		// prepresented by this class
 		virtual bool load()	= 0;
-		//virtual bool load(QTextStream& stream)	= 0;
 		virtual bool save() const = 0;
-		//virtual bool save(QTextStream& stream)	= 0;
 
 		// interface methods that are part of the ECAT6 and
 		// ECAT7 standard and each ECAT6/7 implementation has
