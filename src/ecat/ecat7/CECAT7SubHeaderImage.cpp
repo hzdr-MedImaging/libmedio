@@ -30,7 +30,7 @@
 
 CECAT7SubHeaderImage::CECAT7SubHeaderImage()
 {
-	#warning "check structure size again!"
+	//#warning "check structure size again!"
 	// check that the headsize is 1024 bytes long
 	ASSERT(sizeof(struct ECAT7SubHeader_Image) == 512);
 
@@ -108,7 +108,7 @@ bool CECAT7SubHeaderImage::load(QDataStream& stream)
 	stream >> m_Data.Recon_Views;										// 238: Recon_Views
 	for(int i=0; i < 87; i++)
 		stream >> m_Data.CTI_Reserved[i];							// 240: CTI_Reserved
-	for(int i=0; i < 48; i++)
+	for(int i=0; i < 49; i++)
 		stream >> m_Data.User_Reserved[i];						// 414: User_Reserved
 
 	// some more debug output
