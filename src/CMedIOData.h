@@ -1,9 +1,9 @@
 #ifndef CMEDIODATA_H
 #define CMEDIODATA_H
 
-#include "CMedIOHeader.h"
-
 #include <qstring.h>
+
+#include "CMedIOHeader.h"
 
 class CMedIOData
 {
@@ -23,18 +23,17 @@ class CMedIOData
 	//methods
 		virtual bool load() = 0;
 		virtual bool save() = 0;
-		virtual Format rtti() = 0;
-		//virtual Format isoftype(QString file) = 0;
-		CMedIOHeader* getHeader();
+		virtual int rtti() = 0;
+		//virtual int isoftype(QString file) = 0;
+		CMedIOHeader* header();
 		void setHeader(CMedIOHeader* head);
-		QString getFile();
+		QString file();
 		
 		
 	private :
 	//members
-		CMedIOHeader* header;
-		QString file;
-		//CRawData* rawdata;
+		CMedIOHeader* Header;
+		QString File;
 	//methods
 };
 

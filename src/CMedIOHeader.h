@@ -18,12 +18,16 @@ class CMedIOHeader
 	//methods
 		virtual bool load() = 0;
 		virtual bool save() = 0;
-		virtual Format rtti() = 0;
-		QString getFile();
+		virtual int rtti() = 0;
+		
+		virtual int numframes(void) = 0;
+		virtual void setNumFrames(int value) = 0;
+		
+		QString file();
 		
 	private :
 	//members
-		QString file;
+		QString File;
 	//methods
 };
 

@@ -5,27 +5,27 @@
 
 CMedIOData::CMedIOData(QString file)
 {
-	this->file = file;
+	File = file;
 }
 
 CMedIOData::~CMedIOData()
 {
 	ENTER();
-	delete header;
+	delete Header;
 	LEAVE();
 }
 
-CMedIOHeader* CMedIOData::getHeader()
+CMedIOHeader* CMedIOData::header()
 {
-	return header;
+	return Header;
 }
 
 void CMedIOData::setHeader(CMedIOHeader* head)
 {
-	header = head;
+	Header = head;
 }
 
-QString CMedIOData::getFile()
+QString CMedIOData::file()
 {
-	return file;
+	return File;
 }

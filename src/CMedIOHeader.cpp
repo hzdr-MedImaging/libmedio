@@ -3,7 +3,7 @@
 
 CMedIOHeader::CMedIOHeader(QString file)
 {
-	this->file = file;
+	File = file;
 }
 
 CMedIOHeader::~CMedIOHeader()
@@ -12,7 +12,7 @@ CMedIOHeader::~CMedIOHeader()
 	LEAVE();
 }
 
-QString CMedIOHeader::getFile()
+QString CMedIOHeader::file()
 {
-	return file;
+	return File;
 }

@@ -1,8 +1,8 @@
-#include "CMedIODataFactory.h"
 #include "CMedIOData.h"
 #include "CConcordeFile.h"
 #include "CConcordeSinogram.h"
 #include "CConcordeImage.h"
+#include "CMedIODataFactory.h"
 
 CMedIOData* CMedIODataFactory::makeMedIOData(QString file)
 {
