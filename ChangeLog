@@ -8,6 +8,8 @@ $Source$
 
 2005-02-25  Jens Langner <Jens.Langner@light-speed.de>
 
+  * libmedio.pro.in: added optimization level for the different host types
+    found by configure.
   * ECATFile.cpp: fixed bug where upon usage of the IO_WriteOnly mode an
     existing file wasn't overwritten at all and the open() call returned
 	 false.

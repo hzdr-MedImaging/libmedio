@@ -1,7 +1,7 @@
 #/* vim:set ts=2 nowrap: ****************************************************
 #
 # libmedio - Medical Data C++ I/O Library
-# Copyright (C) 2004 by Jens Langner <Jens.Langner@light-speed.de>
+# Copyright (C) 2004-2005 by Jens Langner <Jens.Langner@light-speed.de>
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -146,6 +146,22 @@ contains(GCC_VERSION, 3) {
 	QMAKE_CXXFLAGS *= -fmessage-length=0
 }
 
+# find out the system
+HOST_OS=@HOST_OS@
+HOST_CPU=@HOST_CPU@
+contains(HOST_CPU, sparc) {
+	QMAKE_CXXFLAGS *= -mcpu=v9 -mtune=ultrasparc3
+}
+else {
+	contains(HOST_CPU, [pP]ower[pP]c) {
+      QMAKE_CXXFLAGS *= -Acpu=powerpc -mcpu=G4
+  }
+  else {
+		contains(HOST_CPU, [oO]pteron.+) {			
+			QMAKE_CXXFLAGS *= -Acpu=amd64 -march=opteron
+	}
+}
+
 # set the config to either release or debug
 COMPILE_LEVEL = @COMPILE_LEVEL@
 contains(COMPILE_LEVEL, debug) {
@@ -157,7 +173,7 @@ contains(COMPILE_LEVEL, debug) {
 else {
 	CONFIG -= debug
 	CONFIG += release
-	QMAKE_CXXFLAGS_RELEASE *= -O3 -funroll-loops
+	QMAKE_CXXFLAGS_RELEASE *= -O3 -fomit-frame-pointer -funroll-loops
 	QMAKE_LINK *= -s 
 	DEFINES -= DEBUG
 }
