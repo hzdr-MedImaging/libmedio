@@ -226,6 +226,7 @@ void CECATFile::setFileType(CECATMainHeader::Type fileType)
 		case CECATMainHeader::ECAT7_Volume8:
 		case CECATMainHeader::ECAT7_Volume16:
 		case CECATMainHeader::ECAT7_Image16:					
+		case CECATMainHeader::ECAT7_Image8:					
 		case CECATMainHeader::ECAT7_AttenCorr:				
 		case CECATMainHeader::ECAT7_Normalization:		
 		case CECATMainHeader::ECAT7_Normalization_3D:
@@ -315,12 +316,12 @@ bool CECATFile::setMatrix(QByteArray* matrix, short frame, short plane,
 	return m_pMainDirectory->setMatrix(matrix, frame, plane, gate, bed, data);
 }
 
-bool CECATFile::setMatrixData(void* matrix, short frame, short plane,
+bool CECATFile::setMatrixData(void* matrix, unsigned size, short frame, short plane,
 															short gate, short bed, short data)
 {
 	// we forward the request to set a specific matrix to the supplied
 	// void pointer, the Directory will find the corresponding entry
 	// and replace the matrix associates with it.
 	ASSERT(m_pMainDirectory);
-	return m_pMainDirectory->setMatrixData(matrix, frame, plane, gate, bed, data);
+	return m_pMainDirectory->setMatrixData(matrix, size, frame, plane, gate, bed, data);
 }
