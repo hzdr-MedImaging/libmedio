@@ -86,12 +86,13 @@ class Q_EXPORT CECATSubHeader : public CMedIOHeader
 		CMedIOHeader::Format headerFormat() const { return CMedIOHeader::ECATSubHeader; }		
 		virtual CECATSubHeader::Type subHeaderType(void) const = 0;
 
-		// required method to copy relevant data from another MedIOHeader object
-		virtual CMedIOHeader& copyData(const CMedIOHeader& src) = 0;
-
 		// internal method to set the directory Item of a subHeader
 		void setDirectoryItem(CECATDirectoryItem* dItem)
 		{ m_pDirItem = dItem; }
+
+	protected:
+		// required method to copy relevant data from another MedIOHeader object
+		virtual CMedIOHeader& copyData(const CMedIOHeader& src) = 0;
 
 	protected:
 		CECATDirectoryItem* m_pDirItem; // the directory item to which this

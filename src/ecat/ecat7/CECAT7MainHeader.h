@@ -76,9 +76,6 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 		friend QTextStream& operator<<(QTextStream& stream, const CECAT7MainHeader& mHeader);
 		friend QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader);
 		
-		// required method to copy relevant data from another MedIOHeader object
-		CMedIOHeader& copyData(const CMedIOHeader& src);
-
 		// runtime type information methods
 		int rtti() const
 		{ return CECATMainHeader::ECAT7MainHeader; }
@@ -449,6 +446,9 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 
 	protected:
 		void updateMagicNumber(void);
+
+		// required method to copy relevant data from another MedIOHeader object
+		CMedIOHeader& copyData(const CMedIOHeader& src);		
 
 	private:
 		#pragma pack(2)	// set the structure alignment

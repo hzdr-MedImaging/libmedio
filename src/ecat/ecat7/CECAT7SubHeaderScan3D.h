@@ -60,9 +60,6 @@ class Q_EXPORT CECAT7SubHeaderScan3D : public CECATSubHeader
 		int size() const
 		{	return ECAT7_HEADERSIZE_SCAN3D; }
 
-		// required method to copy relevant data from another MedIOHeader object
-		CMedIOHeader& copyData(const CMedIOHeader& src);
-
 		// methods to access elements of the SubHeader
 		CECATSubHeader::Data_Type data_Type(void)	const
 		{ return static_cast<CECATSubHeader::Data_Type>(m_Data.Data_Type);	}
@@ -263,6 +260,10 @@ class Q_EXPORT CECAT7SubHeaderScan3D : public CECATSubHeader
 		
 		void setUncor_Singles(const short b, const float value)
 		{ m_Data.Uncor_Singles[b] = value; }
+
+	protected:
+		// required method to copy relevant data from another MedIOHeader object
+		CMedIOHeader& copyData(const CMedIOHeader& src);
 
 	private:
 		#pragma pack(2)	// set the structure alignment

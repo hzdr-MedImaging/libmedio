@@ -48,9 +48,6 @@ class Q_EXPORT CECAT6MainHeader : public CECATMainHeader
 		bool load(void);
 		bool save(void) const;
 
-		// required method to copy relevant data from another MedIOHeader object
-		CMedIOHeader& copyData(const CMedIOHeader& src);
-
 		// runtime type information methods
 		int rtti() const
 		{ return CECATMainHeader::ECAT6MainHeader; }
@@ -90,6 +87,10 @@ class Q_EXPORT CECAT6MainHeader : public CECATMainHeader
 		void setNum_Frames(short num)		{ m_Data.Num_Frames = num;		}
 		void setNum_Gates(short num)		{ m_Data.Num_Gates = num;			}
 		void setNum_Bed_Pos(short num)	{ m_Data.Num_Bed_Pos = num;		}
+
+	protected:
+		// required method to copy relevant data from another MedIOHeader object
+		CMedIOHeader& copyData(const CMedIOHeader& src);		
 
 	private:
 		#pragma pack(2)

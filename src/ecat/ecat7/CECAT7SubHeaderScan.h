@@ -53,10 +53,7 @@ class Q_EXPORT CECAT7SubHeaderScan : public CECATSubHeader
 		
 		int size() const 
 		{	return ECAT7_HEADERSIZE_SCAN; }
-
-		// required method to copy relevant data from another MedIOHeader object
-		CMedIOHeader& copyData(const CMedIOHeader& src);
-		
+	
 		// data access methods
 		CECATSubHeader::Data_Type data_Type(void) const
 		{ return static_cast<CECATSubHeader::Data_Type>(m_Data.Data_Type);	}
@@ -256,6 +253,10 @@ class Q_EXPORT CECAT7SubHeaderScan : public CECATSubHeader
 
 		void setUser_Reserved(const short i, const short n)
 		{ m_Data.User_Reserved[i] = n; }
+
+	protected:
+		// required method to copy relevant data from another MedIOHeader object
+		CMedIOHeader& copyData(const CMedIOHeader& src);		
 
 	private:
 		#pragma pack(2)	// set the structure alignment

@@ -70,12 +70,13 @@ class Q_EXPORT CECATMainHeader : public CMedIOHeader
 		virtual void setNum_Gates(short num)		= 0;
 		virtual void setNum_Bed_Pos(short num)	= 0;
 
-		// required method to copy relevant data from another MedIOHeader object
-		virtual CMedIOHeader& copyData(const CMedIOHeader& src) = 0;
-
 		// runtime type information methods
 		virtual int rtti() const = 0;
 		CMedIOHeader::Format headerFormat() const { return CMedIOHeader::ECATMainHeader; }
+	
+	protected:
+		// required method to copy relevant data from another MedIOHeader object
+		virtual CMedIOHeader& copyData(const CMedIOHeader& src) = 0;		
 };
 
 #endif // CECATMAINHEADER_H

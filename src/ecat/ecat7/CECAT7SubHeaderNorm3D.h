@@ -53,10 +53,7 @@ class Q_EXPORT CECAT7SubHeaderNorm3D : public CECATSubHeader
 		
 		int size() const
 		{	return ECAT7_HEADERSIZE_NORM3D; }
-
-		// required method to copy relevant data from another MedIOHeader object
-		CMedIOHeader& copyData(const CMedIOHeader& src);
-		
+	
 		// access methods to get directly data out of
 		// the SubHeader
 		CECATSubHeader::Data_Type data_Type(void) const
@@ -167,6 +164,10 @@ class Q_EXPORT CECAT7SubHeaderNorm3D : public CECATSubHeader
 
 		void setUser_Reserved(const short i, const short n)
 		{ m_Data.User_Reserved[i] = n; }
+
+	protected:
+		// required method to copy relevant data from another MedIOHeader object
+		CMedIOHeader& copyData(const CMedIOHeader& src);
 		
 	private:
 		#pragma pack(2)	// set the structure alignment
