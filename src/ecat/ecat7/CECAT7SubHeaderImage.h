@@ -122,7 +122,7 @@ class Q_EXPORT CECAT7SubHeaderImage : public CECATSubHeader
 		float y_Pixel_Size(void) const
 		{ return m_Data.Y_Pixel_Size; }
 		
-		float setZ_Pixel_Size(void) const
+		float z_Pixel_Size(void) const
 		{ return m_Data.Z_Pixel_Size; }
 		
 		unsigned int frame_Duration(void) const

@@ -6,6 +6,10 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2004-09-29  Jens Langner <Jens.Langner@light-speed.de>
+
+  * CECAT7SubHeaderImage.h: fixed minor typo in z_pixel_size get method.
+  
 2004-09-28  Jens Langner <Jens.Langner@light-speed.de>
 
   * misc: added all missing accessor methods to all kind of ECAT7 subheaders and
