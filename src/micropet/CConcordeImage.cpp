@@ -1,3 +1,8 @@
+//! @file CConcordeImage.cpp
+//! @brief contains the implementation of the class CConcordeImage
+//! @author Hagen Moelle
+//! @date 11/13/2004
+
 #include "CConcordeImage.h"
 #include "CMedIOHeader.h"
 #include "CHeaderConcorde.h"
@@ -7,27 +12,48 @@
 #include <qdatastream.h>
 #include <qfile.h>
 
+//  Class: CConcordeImage
+//  Constructor: CConcordeImage
+//!
+//! constructs a CConcordeImage object
+//!
+////////////////////////////////////////////////////////////////////////////////
 CConcordeImage::CConcordeImage(QString file):CConcordeFile(file)
 {
 	ENTER();
 	LEAVE();
 }
 
+//  Class: CConcordeImage
+//  Destructor:  CConcordeImage
+//!
+//! destructucts a CConcordeImage object.
+//! 
+////////////////////////////////////////////////////////////////////////////////
 CConcordeImage::~CConcordeImage()
 {
 	ENTER();
 	LEAVE();
 }
 
-QByteArray* CConcordeImage::get(short frame, short plane, 
+//  Class: CConcordeImage
+//  Method: getMatrix
+//!
+//! This method loads the data of a imagevolume from file to memory and constructs
+//! a QByteArray which holds the data. The user is responsible for destruction
+//! of the object.
+//!
+//! @return data of specific frame in imagevolume or NULL on error
+////////////////////////////////////////////////////////////////////////////////
+QByteArray* CConcordeImage::getMatrix(short frame, short plane, 
 			short gate, short bed, short data)
 {
 	
 	ENTER();
 	//check if header is from Concorde
-	if(header()->rtti() == CMedIOHeader::ConcordeMicropet)
+	if(Header->rtti() == CMedIOHeader::ConcordeMicropet)
 	{
-		CHeaderConcorde* head = (CHeaderConcorde*)header();
+		CHeaderConcorde* head = (CHeaderConcorde*)Header;
 		
 		//create new filepointer to datafile
 		QFile pfile(file());

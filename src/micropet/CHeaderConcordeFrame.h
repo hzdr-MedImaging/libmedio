@@ -1,15 +1,33 @@
+//! @file CHeaderConcordeFrame.h
+//! @author Hagen Moelle
+//! @date 11/13/2004
+//! @brief contains definition of the class CHeaderConcordeFrame
+
 #ifndef CHEADERCONCORDEFRAME_H
 #define CHEADERCONCORDEFRAME_H
 
 #include <string>
 #include <list>
 
+//! @class CHeaderConcordeFrame
+//! @brief class which holds specific frame information of concorde microPET headers
+//! @bug no bugs reported
+//! @warning still in development
+//!
+//! This class allows easy access and setting of specific frame information in concorde
+//! microPET headers.
+//! 
 class CHeaderConcordeFrame
 {
 	public :
 	//contructors
+		//! @brief constructor
+		//! @param Filename: complete path to file holding header
+		//! @param frame: specific frame of header which holds information
 		CHeaderConcordeFrame(std::string Filename, int frame);
+
 	//destructor
+		//! @brief destructor
 		~CHeaderConcordeFrame();	
 		
 	//members

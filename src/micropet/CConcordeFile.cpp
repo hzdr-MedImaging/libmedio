@@ -1,39 +1,70 @@
+//! @file CConcordeFile.cpp
+//! @brief contains the implementation of the class CConcordeFile
+//! @author Hagen Moelle
+//! @date 11/13/2004
+
 #include "CConcordeFile.h"
 #include "CHeaderConcorde.h"
 #include "CMedIOData.h"
 #include "debug.h"
 
-#include <iostream>
-
-using namespace std;
-
+//  Class: CConcordeFile
+//  Constructor: CConcordeFile
+//!
+//! constructs a CConcordeFile object
+//!
+////////////////////////////////////////////////////////////////////////////////
 CConcordeFile::CConcordeFile(QString file):CMedIOData(file)
 {
 	//simply call load 
-	//in future load method maybe deleted
 	load();
 }
 
+//  Class: CConcordeFile
+//  Destructor:  CConcordeFile
+//!
+//! destructucts a CConcordeFile object.
+//! 
+////////////////////////////////////////////////////////////////////////////////
 CConcordeFile::~CConcordeFile()
 {
 	ENTER();
 	LEAVE();
 }
 
+//  Class: CConcordeFile
+//  Method: load
+//!
+//! This method initalises and loads the header of the concorde microPET medical data.
+//!
+//! @return true if successful otherwise false
+////////////////////////////////////////////////////////////////////////////////
 bool CConcordeFile::load()
 {
 	//initalise and load header
-	setHeader(new CHeaderConcorde(file() + ".hdr")); 
-	
-	
+	Header = new CHeaderConcorde(File + ".hdr"); 
 	return true;
 }
 
+//  Class: CConcordeFile
+//  Method: save
+//!
+//! This method saves the data
+//!
+//! @return true if successful otherwise false
+////////////////////////////////////////////////////////////////////////////////
 bool CConcordeFile::save()
 {
 	return true;
 }
 
+//  Class: CConcordeFile
+//  Method: isoftype
+//!
+//! This method tries to identify the format of the given file.
+//! 
+//! @return type of file or unknown if unknown or error
+////////////////////////////////////////////////////////////////////////////////
 int CConcordeFile::isoftype(QString file)
 {
 	//try to initialise the header 
@@ -48,7 +79,7 @@ int CConcordeFile::isoftype(QString file)
 
         if(head.model() == 2000)
         {
-                D("File is from Concorde");
+                D("file is from concorde");
 		//file type = 2 -> Sinogram
 		//file type = 3 -> Normalisation
 		//file type = 4 -> Attenuation (transmission)
@@ -57,11 +88,17 @@ int CConcordeFile::isoftype(QString file)
 		// since attenuationfile/Normalisation is a sinogram we could define it as one 
 		if((head.filetype() == 2 || head.filetype() == 3)
 			|| head.filetype() == 4)
-			return CMedIOData::ConcordeMicropet_Sinogram;
+		{
+			D("file is a sinogram");
+			return CConcordeFile::ConcordeMicropet_Sinogram;
+		}
 		else if(head.filetype() == 5 || head.filetype() == 8)
-			return CMedIOData::ConcordeMicropet_Image;
+		{
+			D("file is a image");
+			return CConcordeFile::ConcordeMicropet_Image;
+		}
 		else
-			return CMedIOData::Unknown;
+			return CConcordeFile::Unknown;
         }
         else
         {

@@ -1,4 +1,10 @@
+//! @file CConcordeSinogram.cpp
+//! @brief contains the implementation of the class CConcordeSinogram
+//! @author Hagen Moelle
+//! @date 11/13/2004
+
 #include "CConcordeSinogram.h"
+
 #include "CMedIOHeader.h"
 #include "CHeaderConcorde.h"
 #include "CMedIOData.h"
@@ -7,26 +13,47 @@
 #include <qdatastream.h>
 #include <qfile.h>
 
+//  Class: CConcordeSinogram
+//  Constructor: CConcordeSinogram
+//!
+//! constructs a CConcordeSinogram object
+//!
+////////////////////////////////////////////////////////////////////////////////
 CConcordeSinogram::CConcordeSinogram(QString file):CConcordeFile(file)
 {
 	ENTER();
 	LEAVE();
 }
 
+//  Class: CConcordeSinogram
+//  Destructor:  CConcordeSinogram
+//!
+//! destructucts a CConcordeSinogram object.
+//! 
+////////////////////////////////////////////////////////////////////////////////
 CConcordeSinogram::~CConcordeSinogram()
 {
 	ENTER();
 	LEAVE();
 }
 
-QByteArray* CConcordeSinogram::get(short frame, short plane, 
+//  Class: CConcordeSinogram
+//  Method: getMatrix
+//!
+//! This method loads the data of a sinogram from file to memory and constructs
+//! a QByteArray which holds the data. The user is responsible for destruction
+//! of the object.
+//!
+//! @return data of specific frame in sinogram or NULL on error
+////////////////////////////////////////////////////////////////////////////////
+QByteArray* CConcordeSinogram::getMatrix(short frame, short plane, 
 			short gate, short bed, short data)
 {
 	ENTER();
 	//check if header is from Concorde
-	if(header()->rtti() == CMedIOHeader::ConcordeMicropet)
+	if(Header->rtti() == CMedIOHeader::ConcordeMicropet)
 	{
-		CHeaderConcorde* head = (CHeaderConcorde*)header();
+		CHeaderConcorde* head = (CHeaderConcorde*)Header;
 		
 		//create new filepointer to datafile
 		QFile pfile(file());

@@ -1,24 +1,44 @@
+//! @file CHeaderConcorde.h
+//! @author Hagen Moelle
+//! @date 11/13/2004
+//! @brief contains definition of the class CHeaderConcorde
+
 #ifndef CHEADERCONCORDE_H
 #define CHEADERCONCORDE_H
+
+#include "CMedIOHeader.h"
+#include "CHeaderConcordeFrame.h"
 
 #include <string>
 #include <list>
 
-class CMedIOHeader;
-
-class CHeaderConcordeFrame;
-
+//! @class CHeaderConcorde
+//! @brief class which handles concorde microPET headers
+//! @bug no bugs reported
+//! @warning still in development
+//!
+//! This class provides access to all fields of a concorde microPET header.
+//! The concorde microPET header is a text header. There are no differences in
+//! the header between differt data formats. The only thing to pay attention on
+//! is that the names of the keys of the headerfile are changing from version to
+//! version. Furthermore the header is seperated into a mainheader which holds all
+//! common fields and one subheader for each frame in the data file.
+//! 
 class CHeaderConcorde : public CMedIOHeader
 {
 	public :
 	//contructors
+		//! @brief constructor
+		//! @param file: complete path to file holding header
 		CHeaderConcorde(std::string File);
+
+		//! @brief default constructor
 		CHeaderConcorde();
+
 	//destructor
+		//! @brief destructor
 		~CHeaderConcorde();	
 	//members
-		void setDefaults();
-		
 		enum FileType{UnknownFile = 0, ListMode, Sinogram, Normalization, Attenuation,
 				Image, Blank, MuMap, Scatter};
 		enum AquisitionMode{UnknownAquisition = 0, BlankAquisition, Emission, Dynamic, Gated,
@@ -51,14 +71,22 @@ class CHeaderConcorde : public CMedIOHeader
 		enum SubjectLengthUnits{UnknownSubjectLengthUnits = 0, Millimeters, Centimeters, Inches};
 		enum SubjectWeightUnits{UnknownSubjectWeightUnits = 0, Grams, Ounces, Kilograms, Pounds};
 	//methods
+		//! @brief set default values in header
+		void setDefaults();
+
 		bool load();
 		bool save();
 		int rtti();
-		bool init();
+		
+		//! @return framesize of a sinogram in bytes
 		unsigned int getFrameSize();
+		
+		//! @return framesize of a imagevolume in bytes
 		unsigned int getImageFrameSize();
+		
 		//accessor methods
-		//access frames starting with frame 1 as first frame -> i = 1
+		//! @brief access frames starting with frame 1 as first frame -> i = 1
+		//! @return frame specific header
 		CHeaderConcordeFrame* frame(int i);
 		
 		int model(void) {return m_Data.model;}
@@ -298,7 +326,7 @@ class CHeaderConcorde : public CMedIOHeader
     		} ConcordeHeader;
 		ConcordeHeader m_Data;
 	//methods
-	
+		bool init();
 };
 
 #endif

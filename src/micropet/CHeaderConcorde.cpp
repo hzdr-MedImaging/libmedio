@@ -1,3 +1,13 @@
+//! @file CHeaderConcorde.cpp
+//! @brief contains the implementation of the class CHeaderConcorde
+//! @author Hagen Moelle
+//! @date 11/13/2004
+
+#include "CHeaderConcorde.h"
+#include "debug.h"
+#include "CHeaderConcordeFrame.h"
+#include "CMedIOHeader.h"
+
 #include <fstream>
 #include <string>
 #include <list>
@@ -5,115 +15,59 @@
 #include <qdatetime.h>
 #include <qstring.h>
 
-#include "debug.h"
-#include "CHeaderConcordeFrame.h"
-#include "CMedIOHeader.h"
-#include "CHeaderConcorde.h"
-
 using namespace std;
 
+//  Class: CHeaderConcorde
+//  Constructor: CHeaderConcorde
+//!
+//! constructs a CHeaderConcorde object
+//!
+//! @param file: complete path to file holding header
+////////////////////////////////////////////////////////////////////////////////
+CHeaderConcorde::CHeaderConcorde(string File) : CMedIOHeader(File)
+{ 
+	init();
+	setDefaults();
+	if(!this->load())
+	{
+		D("Something is wrong with the headerfile");
+	}
+	else
+		D("Everything ok");
+}
+
+//  Class: CHeaderConcorde
+//  Constructor: CHeaderConcorde
+//!
+//! constructs a CHeaderConcorde object
+//!
+////////////////////////////////////////////////////////////////////////////////
 CHeaderConcorde::CHeaderConcorde()
 {
+	//initialise all keys which should be searched for in
+	//header file
 	init();
 }
 
+//  Class: CHeaderConcorde
+//  Destructor:  CHeaderConcorde
+//!
+//! destructucts a CHeaderConcorde object.
+//! 
+////////////////////////////////////////////////////////////////////////////////
 CHeaderConcorde::~CHeaderConcorde()
 {
 	ENTER();
 	LEAVE();
 }
 
-int CHeaderConcorde::rtti()
-{
-	return CMedIOHeader::ConcordeMicropet;
-}
-
-bool CHeaderConcorde::save()
-{
-	return true;
-}
-
-bool CHeaderConcorde::init()
-{
-	literals.push_back("model");
-	literals.push_back("institution");
-	literals.push_back("study");
-	literals.push_back("file_name");
-	literals.push_back("file_type");
-	literals.push_back("acquisition_mode");
-	literals.push_back("bed_motion");
-	literals.push_back("total_frames");
-	
-	literals.push_back("isotope");
-	literals.push_back("isotope_half_time");
-	literals.push_back("isotope_branching_fraction");
-	
-	literals.push_back("transaxial_crystals_per_block");
-	literals.push_back("axial_crystals_per_block");
-	literals.push_back("intrinsic_crystal_offset");
-	literals.push_back("axial_blocks");
-	literals.push_back("axial_crystal_pitch");
-	literals.push_back("radius");
-	literals.push_back("radial_fov");
-	literals.push_back("src_radius");
-	literals.push_back("src_cm_per_rev");
-	literals.push_back("tx_src_type");
-	literals.push_back("transaxial_bin_size");
-	literals.push_back("axial_plane_size");
-	literals.push_back("lld");
-	literals.push_back("uld");
-	
-	literals.push_back("data_type");
-	literals.push_back("data_order");
-	literals.push_back("span");
-	literals.push_back("ring_difference");
-	literals.push_back("number_of_dimensions");
-	literals.push_back("x_dimension");
-	literals.push_back("y_dimension");
-	literals.push_back("z_dimension");
-	literals.push_back("w_dimension");
-	literals.push_back("delta_elements");	
-	
-	literals.push_back("deadtime_correction_applied");
-	literals.push_back("decay_correction_applied");
-	literals.push_back("normalization_applied");
-	literals.push_back("attenuation_applied");
-	literals.push_back("scatter_correction");
-	literals.push_back("arc_correction");
-	
-	literals.push_back("calibration_factor");
-	literals.push_back("calibration_branching_fraction");
-	literals.push_back("number_of_singles_rates");
-	
-	literals.push_back("investigator");
-	literals.push_back("operator");
-	literals.push_back("study_identifier");
-	literals.push_back("scan_time");
-	literals.push_back("injected_compound");
-	literals.push_back("dose_units");
-	literals.push_back("dose");
-	literals.push_back("injection_time");
-	literals.push_back("injection_decay_correction");
-	
-	literals.push_back("subject_identifier");
-	literals.push_back("subject_genus");
-	literals.push_back("subject_orientation");
-	literals.push_back("subject_length_units");
-	literals.push_back("subject_length");
-	literals.push_back("subject_weight_units");
-	literals.push_back("subject_weight");
-	literals.push_back("subject_phenotype");
-	literals.push_back("study_model");
-	
-	literals.push_back("anesthesia");
-	literals.push_back("analgesia");
-	literals.push_back("other_drugs");
-	literals.push_back("food_access");
-	literals.push_back("water_access");
-			
-	return true;
-}
-
+//  Class: CHeaderConcorde
+//  Method: setDefaults
+//!
+//! This methods sets some default values in the header. That minimizes 
+//! the occurance of errors due to undefined values.
+//!
+////////////////////////////////////////////////////////////////////////////////
 void CHeaderConcorde::setDefaults()
 {
 	m_Data.model = 0;
@@ -169,18 +123,13 @@ void CHeaderConcorde::setDefaults()
 	m_Data.subject_weight_units = 0;
 }
 
-CHeaderConcorde::CHeaderConcorde(string File) : CMedIOHeader(File)
-{ 
-	init();
-	setDefaults();
-	if(!this->load())
-	{
-		D("Something is wrong with the headerfile");
-	}
-	else
-		D("Everything ok");
-}
-
+//  Class: CHeaderConcorde
+//  Method: load
+//!
+//! loades the headerinformation.
+//!
+//! @return true on success otherwise false
+////////////////////////////////////////////////////////////////////////////////
 bool CHeaderConcorde::load()
 {
 	//unset function should be used !!!
@@ -367,14 +316,28 @@ bool CHeaderConcorde::load()
 	return true;
 }
 
-CHeaderConcordeFrame* CHeaderConcorde::frame(int i)
+//  Class: CHeaderConcorde
+//  Method: save
+//!
+//! Saves the headerinformation.
+//!
+//! @return true on success otherwise false
+////////////////////////////////////////////////////////////////////////////////
+bool CHeaderConcorde::save()
 {
-	list<CHeaderConcordeFrame*>::iterator nums_iter;
-	int k = 1;
-	for(nums_iter = frames.begin(); k < i; nums_iter++,k++);
-	return *nums_iter;
+	return true;
 }
 
+int CHeaderConcorde::rtti()
+{
+	return CMedIOHeader::ConcordeMicropet;
+}
+
+//  Class: CHeaderConcorde
+//  Method: getFrameSize
+//!
+//! @return framesize of a sinogram in bytes
+////////////////////////////////////////////////////////////////////////////////
 unsigned int CHeaderConcorde::getFrameSize()
 {	
 	int framesize = 0;
@@ -403,6 +366,11 @@ unsigned int CHeaderConcorde::getFrameSize()
 	return framesize;
 }
 
+//  Class: CHeaderConcorde
+//  Method: getImageFrameSize
+//!
+//! @return framesize of a imagevolume in bytes
+////////////////////////////////////////////////////////////////////////////////
 unsigned int CHeaderConcorde::getImageFrameSize()
 {	
 	int framesize = 0;
@@ -427,4 +395,107 @@ unsigned int CHeaderConcorde::getImageFrameSize()
 	
 	framesize = m_Data.x_dimension*m_Data.y_dimension*m_Data.z_dimension*typesize;
 	return framesize;
+}
+
+//  Class: CHeaderConcorde
+//  Method: getImageFrameSize
+//!
+//! access frames starting with frame 1 as first frame -> i = 1
+//!
+//! @return frame specific header
+////////////////////////////////////////////////////////////////////////////////
+CHeaderConcordeFrame* CHeaderConcorde::frame(int i)
+{
+	list<CHeaderConcordeFrame*>::iterator nums_iter;
+	int k = 1;
+	for(nums_iter = frames.begin(); k < i; nums_iter++,k++);
+	return *nums_iter;
+}
+
+//  Class: CHeaderConcorde
+//  Method: init
+//!
+//! //initialise all keys which should be searched for in header file
+//!
+//! @return true on success otherwise false
+////////////////////////////////////////////////////////////////////////////////
+bool CHeaderConcorde::init()
+{
+	literals.push_back("model");
+	literals.push_back("institution");
+	literals.push_back("study");
+	literals.push_back("file_name");
+	literals.push_back("file_type");
+	literals.push_back("acquisition_mode");
+	literals.push_back("bed_motion");
+	literals.push_back("total_frames");
+	
+	literals.push_back("isotope");
+	literals.push_back("isotope_half_time");
+	literals.push_back("isotope_branching_fraction");
+	
+	literals.push_back("transaxial_crystals_per_block");
+	literals.push_back("axial_crystals_per_block");
+	literals.push_back("intrinsic_crystal_offset");
+	literals.push_back("axial_blocks");
+	literals.push_back("axial_crystal_pitch");
+	literals.push_back("radius");
+	literals.push_back("radial_fov");
+	literals.push_back("src_radius");
+	literals.push_back("src_cm_per_rev");
+	literals.push_back("tx_src_type");
+	literals.push_back("transaxial_bin_size");
+	literals.push_back("axial_plane_size");
+	literals.push_back("lld");
+	literals.push_back("uld");
+	
+	literals.push_back("data_type");
+	literals.push_back("data_order");
+	literals.push_back("span");
+	literals.push_back("ring_difference");
+	literals.push_back("number_of_dimensions");
+	literals.push_back("x_dimension");
+	literals.push_back("y_dimension");
+	literals.push_back("z_dimension");
+	literals.push_back("w_dimension");
+	literals.push_back("delta_elements");	
+	
+	literals.push_back("deadtime_correction_applied");
+	literals.push_back("decay_correction_applied");
+	literals.push_back("normalization_applied");
+	literals.push_back("attenuation_applied");
+	literals.push_back("scatter_correction");
+	literals.push_back("arc_correction");
+	
+	literals.push_back("calibration_factor");
+	literals.push_back("calibration_branching_fraction");
+	literals.push_back("number_of_singles_rates");
+	
+	literals.push_back("investigator");
+	literals.push_back("operator");
+	literals.push_back("study_identifier");
+	literals.push_back("scan_time");
+	literals.push_back("injected_compound");
+	literals.push_back("dose_units");
+	literals.push_back("dose");
+	literals.push_back("injection_time");
+	literals.push_back("injection_decay_correction");
+	
+	literals.push_back("subject_identifier");
+	literals.push_back("subject_genus");
+	literals.push_back("subject_orientation");
+	literals.push_back("subject_length_units");
+	literals.push_back("subject_length");
+	literals.push_back("subject_weight_units");
+	literals.push_back("subject_weight");
+	literals.push_back("subject_phenotype");
+	literals.push_back("study_model");
+	
+	literals.push_back("anesthesia");
+	literals.push_back("analgesia");
+	literals.push_back("other_drugs");
+	literals.push_back("food_access");
+	literals.push_back("water_access");
+			
+	return true;
 }

@@ -7,6 +7,14 @@
 
 using namespace std;
 
+//  Class: CHeaderConcordeFrame
+//  Constructor: CHeaderConcordeFrame
+//!
+//! constructs a CHeaderConcordeFrame object
+//!
+//! @param Filename: complete path to file holding header
+//! @param frame: specific frame of header which holds information
+//!
 CHeaderConcordeFrame::CHeaderConcordeFrame(string Filename, int frame)
 {
 	File = Filename;
@@ -20,6 +28,43 @@ CHeaderConcordeFrame::CHeaderConcordeFrame(string Filename, int frame)
 		D("Everything ok");
 }
 
+//  Class: CHeaderConcordeFrame
+//  Method: init
+//!
+//! //initialise all keys which should be searched for in header file
+//!
+////////////////////////////////////////////////////////////////////////////////
+void CHeaderConcordeFrame::init()
+{
+	literals.push_back("frame");
+	literals.push_back("event_type");
+	literals.push_back("gate");
+	literals.push_back("bed");
+	literals.push_back("bed_offset");
+	literals.push_back("ending_bed_offset");
+	literals.push_back("vertical_bed_offset");
+	literals.push_back("data_file_pointer");
+	literals.push_back("frame_start");
+	literals.push_back("frame_duration");
+	literals.push_back("scale_factor");
+	literals.push_back("minimum");
+	literals.push_back("maximum");
+	literals.push_back("deadtime_correction");
+	literals.push_back("decay_correction");
+	literals.push_back("prompts");
+	literals.push_back("delays");
+	literals.push_back("trues");
+	literals.push_back("prompts_rate");
+	literals.push_back("delays_rate");
+}
+
+//  Class: CHeaderConcordeFrame
+//  Method: load
+//!
+//! loades the headerinformation.
+//!
+//! @return true on success otherwise false
+////////////////////////////////////////////////////////////////////////////////
 bool CHeaderConcordeFrame::load()
 {
 	D("Start Parsing File %s for Frame: %d", File.c_str(), m_Data.frame);
@@ -103,28 +148,4 @@ bool CHeaderConcordeFrame::load()
 		pFile.close();		
 	}
 	return true;
-}
-
-void CHeaderConcordeFrame::init()
-{
-	literals.push_back("frame");
-	literals.push_back("event_type");
-	literals.push_back("gate");
-	literals.push_back("bed");
-	literals.push_back("bed_offset");
-	literals.push_back("ending_bed_offset");
-	literals.push_back("vertical_bed_offset");
-	literals.push_back("data_file_pointer");
-	literals.push_back("frame_start");
-	literals.push_back("frame_duration");
-	literals.push_back("scale_factor");
-	literals.push_back("minimum");
-	literals.push_back("maximum");
-	literals.push_back("deadtime_correction");
-	literals.push_back("decay_correction");
-	literals.push_back("prompts");
-	literals.push_back("delays");
-	literals.push_back("trues");
-	literals.push_back("prompts_rate");
-	literals.push_back("delays_rate");
 }
