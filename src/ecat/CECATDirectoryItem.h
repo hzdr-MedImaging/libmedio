@@ -57,7 +57,7 @@
 																					 bed2MatrixID(b)	 | \
 																					 data2MatrixID(d) )
 
-#include "CECATSubHeader.h"
+#include <CECATSubHeader.h>
 
 // forward declarations
 class CECATFile;

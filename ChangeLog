@@ -8,6 +8,10 @@ $Source$
 
 2005-01-21  Jens Langner <Jens.Langner@light-speed.de>
 
+  * misc: removed all additional "medio/" pathes from the include statements
+    of our header files as a library doesn't have to contain any subdirectory
+	 statments and people should better use "-I/usr/local/lib/medio" in their
+	 makefiles.
   * misc: implemented/fixed the ECAT write methods in may way which were quite
     broken after the new redesign. Now also matrix­wise writing seems to work
 	 fine so that a user might save different matrices at any time without

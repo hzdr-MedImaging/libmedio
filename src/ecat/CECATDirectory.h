@@ -28,7 +28,7 @@
 #include <qiodevice.h>
 #include <qvaluevector.h>
 
-#include "CECATDirectoryItem.h"
+#include <CECATDirectoryItem.h>
 
 // forward declarations
 class CECATFile;

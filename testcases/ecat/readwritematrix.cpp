@@ -21,11 +21,11 @@
 
 ***************************************************************************/
 
-#include <medio/CECATFile.h>
-#include <medio/CECAT6MainHeader.h>
-#include <medio/CECAT7MainHeader.h>
-#include <medio/CECATSubHeader.h>
-#include <medio/CECAT7SubHeaderImage.h>
+#include <CECATFile.h>
+#include <CECAT6MainHeader.h>
+#include <CECAT7MainHeader.h>
+#include <CECATSubHeader.h>
+#include <CECAT7SubHeaderImage.h>
 
 #include <iostream>
 

@@ -26,7 +26,7 @@
 
 #include <qdatastream.h>
 
-#include "CECATSubHeader.h"
+#include <CECATSubHeader.h>
 
 // forward declarations
 class CECATFile;

@@ -28,7 +28,7 @@
 #ifndef CMEDIODATAFACTORY_H
 #define CMEDIODATAFACTORY_H
 
-#include "CMedIOData.h"
+#include <CMedIOData.h>
 
 #include <qstring.h>
 

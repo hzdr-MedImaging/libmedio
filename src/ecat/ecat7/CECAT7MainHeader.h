@@ -24,7 +24,7 @@
 #ifndef CECAT7MAINHEADER_H
 #define CECAT7MAINHEADER_H
 
-#include "CECATMainHeader.h"
+#include <CECATMainHeader.h>
 
 #include <qdatastream.h>
 

@@ -34,7 +34,7 @@ PREFIX = .
 
 # Compiler/Linker Flags
 WARN    = -W -Wall
-CFLAGS  = -I../../src -I../../src/ecat -I$(QTDIR)/include $(WARN) -c
+CFLAGS  = -I/usr/local/include/medio -I$(QTDIR)/include $(WARN) -c
 LDFLAGS = -L../../lib -L$(QTDIR)/lib
 LDLIBS  = -lqt-mt -lmedio
 
