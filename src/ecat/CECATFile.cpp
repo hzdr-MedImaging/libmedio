@@ -22,6 +22,7 @@
 ***************************************************************************/
 
 #include "CECATFile.h"
+#include "CMedIOData.h"
 #include "CECATMainHeader.h"
 #include "CECAT6MainHeader.h"
 #include "CECAT7MainHeader.h"
@@ -32,7 +33,7 @@
 #include "debug.h"
 
 CECATFile::CECATFile(const QString& filename, CECATMainHeader::Type fileType)
-	: QFile(filename),
+	: QFile(filename), CMedIOData(filename),
 		m_ECATformat(Undefined),
 		m_pMainHeader(NULL),
 		m_pMainDirectory(NULL)
@@ -47,6 +48,25 @@ CECATFile::~CECATFile()
 {
 	if(m_pMainDirectory)	delete m_pMainDirectory;
 	if(m_pMainHeader)			delete m_pMainHeader;
+}
+
+int CECATFile::isoftype(QString filename)
+{
+	CECATFile file(filename);
+	if(file.load() && file.format() != CECATFile::Undefined)
+	{
+		return file.fileType();
+	}
+	else
+		return CMedIOData::Unknown;		
+}
+
+int CECATFile::rtti() 
+{
+	if(m_ECATformat == CECATFile::Undefined)
+		return CMedIOData::Unknown;
+	else
+		return CMedIOData::ECAT;
 }
 
 bool CECATFile::load(void)

@@ -38,13 +38,14 @@
 #define ECATBlock2FilePos(v)	(((v)-1)*ECAT_BLOCKSIZE)
 #define FilePos2ECATBlock(v)	((v)/ECAT_BLOCKSIZE+1)
 
+#include "CMedIOData.h"
 #include "CECATMainHeader.h"
 #include "CECATSubHeader.h"
 
 // forward declarations
 class CECATDirectory;
 
-class Q_EXPORT CECATFile : public QFile
+class Q_EXPORT CECATFile : public QFile, public CMedIOData
 {
 	public:
 		enum ECATFormat	{ Undefined=0, ECAT7, ECAT6 };
@@ -53,6 +54,9 @@ class Q_EXPORT CECATFile : public QFile
 		CECATFile(const QString& filename,
 							CECATMainHeader::Type fileType = CECATMainHeader::Unknown);
 		~CECATFile();
+		
+		static int isoftype(QString filename);		
+		int rtti();
 
 		bool load(void);
 		bool save(void);

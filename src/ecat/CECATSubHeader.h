@@ -24,6 +24,14 @@
 #ifndef CECATSUBHEADER_H
 #define CECATSUBHEADER_H
 
+#define ECAT7_ATTENCORR_HEADER_SIZE 512
+#define ECAT7_IMAGE_HEADER_SIZE 512
+#define ECAT7_NORM_HEADER_SIZE 512
+#define ECAT7_NORM3D_HEADER_SIZE 512
+#define ECAT7_POLARMAP_HEADER_SIZE 512
+#define ECAT7_SCAN_HEADER_SIZE 512
+#define ECAT7_SCAN3D_HEADER_SIZE 1024
+
 #include <qdatastream.h>
 
 class Q_EXPORT CECATSubHeader
@@ -54,6 +62,9 @@ class Q_EXPORT CECATSubHeader
 
 		// runtime type information
 		virtual Type rtti(void) const = 0;
+
+		//size information in bytes of specific subheader
+		virtual int size() const = 0;
 };
 
 #endif // CECATSUBHEADER_H

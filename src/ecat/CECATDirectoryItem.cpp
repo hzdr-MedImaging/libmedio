@@ -285,12 +285,12 @@ bool CECATDirectoryItem::loadMatrixData()
 		// set the ECATFile handle to the correct position of
 		// the matrix start. This should normally be
 		// Matrix_SubHeader_StartPosition+1
-		m_pECATFile->at(ECATBlock2FilePos(m_Entry.Matrix_SubHeader_StartPosition+1));
+		m_pECATFile->at(ECATBlock2FilePos(m_Entry.Matrix_SubHeader_StartPosition+m_pSubHeader->size()/512));
 
 		// then we allocate some memory for loading the matrixdata
 		// this should be:
 		// Size = (Matrix_DataBlock_EndPosition-Matrix_SubHeader_StartPosition+1)*512
-		m_pMatrixData = new QByteArray((m_Entry.Matrix_DataBlock_EndPosition-m_Entry.Matrix_SubHeader_StartPosition+1)*512);
+		m_pMatrixData = new QByteArray((m_Entry.Matrix_DataBlock_EndPosition-m_Entry.Matrix_SubHeader_StartPosition+1-m_pSubHeader->size()/512)*512);
 
 		// now that we have our MatrixData we can
 		// fill it with the raw data from the file
