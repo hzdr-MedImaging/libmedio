@@ -6,6 +6,11 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2004-09-17  Jens Langner <Jens.Langner@light-speed.de>
+
+  * CECAT7MainHeader.h: added missing enumeration values for the Patient
+    Orientation header field.
+
 2004-08-31  Hagen Mölle <draggore@gmx.de>
 
   * implemeted a Factory to support easier creation of supported fileformats

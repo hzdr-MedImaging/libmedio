@@ -52,6 +52,8 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 		enum Compression_Code					{	Comp_None=0 };
 		enum Patient_Sex							{ Sex_Male='M', Sex_Female='F', Sex_Unknown='U' };
 		enum Patient_Dexterity				{ Dext_RT='R', Dext_LF='L', Dext_Unknown='U' };
+		enum Patient_Orientation			{ FF_Prone=0, HF_Prone, FF_Supine, HF_Supine,
+																		FF_Right, HF_Right, FF_Left, HF_Left };
 		enum Acquisition_Type					{	Undefined=0, Blank, Transmission,
 																		StaticEmission, DynamicEmission,
 																		GatedEmission, TransmissionRectilinear,
@@ -189,8 +191,8 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 		Acquisition_Type acquisition_Type(void) const							
 		{ return static_cast<Acquisition_Type>(m_Data.Acquisition_Type); }
 		
-		short patient_Orientation(void) const											
-		{ return m_Data.Patient_Orientation; }
+		Patient_Orientation patient_Orientation(void) const											
+		{ return static_cast<Patient_Orientation>(m_Data.Patient_Orientation); }
 		
 		const char* facility_Name(void) const											
 		{ return m_Data.Facility_Name; }
@@ -372,7 +374,7 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 		void setAcquisition_Type(const Acquisition_Type type)								
 		{ m_Data.Acquisition_Type = type; }
 		
-		void setPatient_Orientation(const short orient)											
+		void setPatient_Orientation(const Patient_Orientation orient)											
 		{ m_Data.Patient_Orientation = orient; }
 		
 		void setFacility_Name(const char* name)															
