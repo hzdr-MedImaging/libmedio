@@ -37,9 +37,9 @@ bool CHeaderConcorde::init()
 	literals.push_back("scan_time");
 	literals.push_back("isotope");
 	literals.push_back("isotope_half_time");
-	literals.push_back("vertical_bed_offset");
+	//literals.push_back("vertical_bed_offset");
 	literals.push_back("radial_fov");
-	literals.push_back("event_type");
+	//literals.push_back("event_type");
 	literals.push_back("subject_weight");
 	literals.push_back("acquisition_mode");
 	literals.push_back("subject_orientation");
@@ -53,6 +53,7 @@ bool CHeaderConcorde::init()
 	literals.push_back("number_of_dimensions");
 	literals.push_back("x_dimension");
 	literals.push_back("y_dimension");
+	literals.push_back("z_dimension");
 	literals.push_back("delta_elements");
 	literals.push_back("ring_difference");
 	literals.push_back("data_order");
@@ -60,6 +61,7 @@ bool CHeaderConcorde::init()
 	literals.push_back("axial_plane_size");
 	literals.push_back("bed_motion");
 	literals.push_back("arc_correction_applied");
+	literals.push_back("scale_factor");
 	
 	return true;
 }
@@ -161,6 +163,7 @@ bool CHeaderConcorde::load()
 					if(strcmp(ptr_tok, "number_of_dimensions") == 0)	m_Data.number_of_dimensions = rest;
 					if(strcmp(ptr_tok, "x_dimension") == 0) 		m_Data.x_dimension = rest;
 					if(strcmp(ptr_tok, "y_dimension") == 0)		m_Data.y_dimension = rest;
+					if(strcmp(ptr_tok, "z_dimension") == 0)		m_Data.z_dimension = rest;
 					if(strcmp(ptr_tok, "delta_elements") == 0)
 					{ 	
 						char *element = NULL;
@@ -174,8 +177,8 @@ bool CHeaderConcorde::load()
 					if(strcmp(ptr_tok, "axial_plane_size") == 0) 	m_Data.axial_plane_size = rest;
 					if(strcmp(ptr_tok, "bed_motion") == 0) 		m_Data.bed_motion = rest;
 					if(strcmp(ptr_tok, "arc_correction_applied") == 0) 	m_Data.arc_correction = rest;
-					if(strcmp(ptr_tok, "total_frames") == 0) 	m_Data.total_frames = rest;
 					if(strcmp(ptr_tok, "data_order") == 0) 		m_Data.data_order = rest;
+					if(strcmp(ptr_tok, "scale_factor") == 0) 	m_Data.scale_factor = rest;
 				}
 			}
 			
@@ -191,6 +194,7 @@ bool CHeaderConcorde::load()
 	}
 	return true;
 }
+
 unsigned int CHeaderConcorde::getFrameSize()
 {	
 	int framesize = 0;
@@ -216,5 +220,31 @@ unsigned int CHeaderConcorde::getFrameSize()
 	
 	for(int i = 0; i < 11; i++) framesize += atoi(m_Data.delta_elements[i].c_str());
 	framesize = framesize*atoi(m_Data.x_dimension.c_str())*atoi(m_Data.y_dimension.c_str())*typesize;
+	return framesize;
+}
+
+unsigned int CHeaderConcorde::getImageFrameSize()
+{	
+	int framesize = 0;
+	int typesize = 0;
+	//calculate the imageframe size: 
+	//framesize = x_dimension*y_dimension*z_dimension*data_type_size
+	if(getDataType() == "2" | getDataType() == "6")
+	{
+		typesize = 2;
+	}
+	else 
+		typesize = 4;
+	
+	if(getDataType() == "0")
+	{
+		typesize = 1;
+	}
+	if(getDataType() == "1")
+	{
+		typesize = 1;
+	}
+	
+	framesize = atoi(m_Data.x_dimension.c_str())*atoi(m_Data.y_dimension.c_str())*atoi(m_Data.z_dimension.c_str())*typesize;
 	return framesize;
 }

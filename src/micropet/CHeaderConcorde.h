@@ -23,6 +23,7 @@ class CHeaderConcorde : public CMedIOHeader
 		CMedIOHeader::Format rtti();
 		bool init();
 		unsigned int getFrameSize();
+		unsigned int getImageFrameSize();
 		//accessor methods
 		std::string getFileName(void) {return m_Data.file_name;}
 		std::string getModel(void) {return m_Data.model;}
@@ -51,6 +52,7 @@ class CHeaderConcorde : public CMedIOHeader
 		std::string getTotalFrames(void) {return m_Data.total_frames;}
 		std::string getDataOrder(void){return m_Data.data_order;}
 		std::string getDataType(void) {return m_Data.data_type;}
+		std::string getScaleFactor(void) {return m_Data.scale_factor;}
 		
 		//mutator methods
 		void setFileName(std::string FileName) { m_Data.file_name = FileName;}
@@ -155,6 +157,7 @@ class CHeaderConcorde : public CMedIOHeader
 			std::string	other_drugs;
 			std::string	food_access;
 			std::string	water_access;
+			std::string	scale_factor;
     		} ConcordeHeader;
 		ConcordeHeader m_Data;
 	//methods

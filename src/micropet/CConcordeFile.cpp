@@ -52,11 +52,15 @@ CMedIOData::Format CConcordeFile::isoftype(QString file)
 		//file type = 2 -> Sinogram
 		//file type = 3 -> Normalisation
 		//file type = 4 -> Attenuation (transmission)
+		//file type = 5 -> Image
+		//file type = 8 -> Mu map ( also image )
 		// since attenuationfile/Normalisation is a sinogram we could define it as one 
 		if((head.getFileType() == "2" || head.getFileType() == "3")
 			|| head.getFileType() == "4")
 			return CMedIOData::ConcordeMicropet_Sinogram;
-		else 
+		else if(head.getFileType() == "5" || head.getFileType() == "8")
+			return CMedIOData::ConcordeMicropet_Image;
+		else
 			return CMedIOData::Unknown;
         }
         else
