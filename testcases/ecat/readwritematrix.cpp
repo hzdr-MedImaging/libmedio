@@ -98,6 +98,7 @@ int main(int argc, char* argv[])
 			else
 				cout << "successfully written matrix data for frame 1" << endl;
 
+			// write the subheaders of frame 1 & 2 separatly
 			CECATSubHeader* subHeader;
 			if(file.readSubHeader(subHeader, 1) &&
 				 subHeader->subHeaderType() == CECATSubHeader::ECAT7_Image)
@@ -116,6 +117,16 @@ int main(int argc, char* argv[])
 
 				file.writeSubHeader(*imageHeader, 2);
 			}
+
+			// and to test the write operations to write the matrix together
+			// with the subheader lets do it now and write frame 3
+			if(file.writeMatrix((char*)matrixData_frame2, MATRIX_SIZE*sizeof(Q_UINT16),
+													*subHeader, 3) == false)
+			{
+				cout << "Error during writeMatrix(data, subheader) operation for frame 3" << endl;
+			}
+			else
+				cout << "successfully written matrix&subheader to frame 3" << endl;
 
 			CECATMainHeader* mainHeader;
 			if(file.readMainHeader(mainHeader) &&

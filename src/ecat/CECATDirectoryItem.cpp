@@ -707,35 +707,17 @@ bool CECATDirectoryItem::writeMatrix(const QByteArray& matrixData, const CECATSu
 }
 
 bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrixSize,
-																		 const CECATSubHeader& subHeader)
-{
-	ENTER();
-	bool result = false;
-
-	if(writeSubHeader(subHeader))
-	{
-		result = writeMatrix(matrixData, matrixSize, subHeader.data_Type()); 
-	}
-
-	RETURN(result);
-	return result;
-}
-
-bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrixSize,
 																		 CECATSubHeader::Data_Type dataType)
 {
 	ENTER();
 	bool result = true;
-	
+
 	// check if the file associated with this item is writeable at all
 	if(m_pECATFile && m_pECATFile->isWritable() == false)
 	{
 		RETURN(false);
 		return false;
 	}
-
-	SHOWVALUE(m_iDataBlock_Start);
-	SHOWVALUE(matrixSize);
 
 	// before we can write out the raw data we need to read in
 	// the Subheader so that we know the data type of our raw
@@ -784,36 +766,52 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 	else if(readSubHeader(subHeader) == false)
 		result = false;
 
-	if(result == false || subHeader == NULL)
+	if(subHeader == NULL)
+		result = false;
+	else
+	{
+		if(subHeader->data_Type() != dataType &&
+			 dataType != CECATSubHeader::UnknownDataType)
+		{
+			subHeader->setData_Type(dataType);
+		}
+
+		result = writeMatrix(matrixData, matrixSize, *subHeader);
+	}
+
+	// make sure to delete the new subHeader
+	delete subHeader;
+	
+	RETURN(result);
+	return result;
+}
+
+bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrixSize,
+																		 const CECATSubHeader& subHeader)
+{
+	ENTER();
+	bool result = true;
+	
+	// check if the file associated with this item is writeable at all
+	if(m_pECATFile && m_pECATFile->isWritable() == false)
 	{
 		RETURN(false);
 		return false;
 	}
 
-	// now that we have a valid subHeader we make sure the dataType is
-	// correctly set or we change it and save the subHeader again before
-	// we are going to write the actual matrix data
-	if(subHeader->data_Type() != dataType &&
-		 dataType != CECATSubHeader::UnknownDataType)
+	// now that we have the proper subHeader here we make sure to write it to
+	// out file prior to saving the matrixData
+	if(writeSubHeader(subHeader) == false)
 	{
-		subHeader->setData_Type(dataType);
-
-		if(subHeader->save() == false)
-		{
-			delete subHeader;
-
-			RETURN(false);
-			return false;
-		}
+		RETURN(false);
+		return false;
 	}
 
 	// set the ECATFile handle to the correct position of
 	// the matrix start. This should normally be
 	// Matrix_SubHeader_StartPosition+subHeaderSize
-	if(m_pECATFile->at(m_iDataBlock_Start+subHeader->size()) == false)
+	if(m_pECATFile->at(m_iDataBlock_Start+subHeader.size()) == false)
 	{
-		delete subHeader;
-
 		RETURN(false);
 		return false;
 	}
@@ -825,7 +823,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 	// here we have to care about the correct endianess, so that
 	// we convert BIG->LITTLE or vise versa depending on the
 	// system we are running.
-	switch(subHeader->data_Type())
+	switch(subHeader.data_Type())
 	{
 		case CECATSubHeader::UnknownDataType:
 		{
@@ -1096,12 +1094,9 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 	if(result)
 	{
 		// at the end of our operation we calculate the new EndPosition
-		m_iDataBlock_End = m_iDataBlock_Start+subHeader->size()+matrixSize-ECAT_BLOCKSIZE;
+		m_iDataBlock_End = m_iDataBlock_Start+subHeader.size()+matrixSize-ECAT_BLOCKSIZE;
 		m_iStatus = CECATDirectoryItem::Finished;
 	}
-
-	// now we delete the subHeader we loaded temporarly
-	delete subHeader;
 
 	RETURN(result);
 	return result;
