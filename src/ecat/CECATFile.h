@@ -85,7 +85,7 @@ class Q_EXPORT CECATFile : public QFile
 														 short bed=0, short data=0);
 		bool setMatrix(QByteArray* matrix, short frame=1, short plane=1,
 									 short gate=1, short bed=0, short data=0);
-		bool setMatrixData(void* matrix, short frame=1, short plane=1,
+		bool setMatrixData(void* matrix, unsigned size, short frame=1, short plane=1,
 											 short gate=1, short bed=0, short data=0);
 
 	private:
