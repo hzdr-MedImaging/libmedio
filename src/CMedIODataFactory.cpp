@@ -1,0 +1,29 @@
+#include "CMedIODataFactory.h"
+#include "CMedIOData.h"
+#include "micropet/CConcordeFile.h"
+#include "micropet/CConcordeSinogram.h"
+
+CMedIOData* CMedIODataFactory::makeMedIOData(QString file)
+{
+	//test all available formats
+	//return fitting format
+	//return NULL if unknown format
+	
+	//test if its a concorde format -> return format_type
+	if(CConcordeFile::isoftype(file) == CMedIOData::ConcordeMicropet_Sinogram)
+	{
+		return new CConcordeSinogram(file);
+	}
+	else
+		return NULL;
+}
+
+CMedIOData* CMedIODataFactory::makeMedIOData(CMedIOData::Format format, QString file)
+{
+	if(format == CMedIOData::ConcordeMicropet_Sinogram)
+	{
+		return new CConcordeSinogram(file);
+	}
+	else
+		return NULL;
+}
