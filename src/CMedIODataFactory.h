@@ -1,6 +1,28 @@
+/* vim:set ts=2 nowrap: ****************************************************
+
+ libmedio - Medical Data C++ I/O Library
+ Copyright (C) 2004 by Jens Langner <Jens.Langner@light-speed.de>
+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 2.1 of the License, or (at your option) any later version.
+
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public
+ License along with this library; if not, write to the Free Software
+ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+ $Id$
+
+***************************************************************************/
+
 //! @file CMedIODataFactory.h
 //! @author Hagen Moelle
-//! @date 11/13/2004
 //! @brief contains definition of the class CMedIODataFactory
 
 #ifndef CMEDIODATAFACTORY_H
@@ -20,28 +42,14 @@
 //! can be instancieted by this class.
 class CMedIODataFactory
 {
-	public :
-	//contructors
-		
-	//destructor
-				
-	//members
-				
-	//methods
+	public:
+		//! @brief identifies fileformat and returns the type of it
+		static CMedIOData::Format identify(const QString& fileName);
+
 		//! @brief identifies fileformat and constructs CMedIOData object
 		//! @param file: filename where medical data is located
 		//! @return CMedIOData object if format is known otherwise NULL
-		static CMedIOData* makeMedIOData(QString file);
-		//! @brief verifies fileformat and constructs CMedIOData object
-		//! @param format: fileformat of file
-		//! @param file: filename where medical data is located
-		//! @return CMedIOData object if verification is true otherwise NULL
-		static CMedIOData* makeMedIOData(CMedIOData::Format format, QString file);
-		
-	private :
-	//members
-		
-	//methods
+		static CMedIOData* create(const QString& fileName);
 };
 
 #endif

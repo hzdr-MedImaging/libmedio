@@ -22,26 +22,19 @@
 ***************************************************************************/
 
 #include "CECAT7SubHeaderScan3D.h"
+#include "CECATDirectoryItem.h"
 #include "CECATFile.h"
 
 #include <qdatastream.h>
 
 #include "debug.h"
 
-CECAT7SubHeaderScan3D::CECAT7SubHeaderScan3D(const CECAT7SubHeaderScan3D& sh)
-	: CECATSubHeader(sh)
+CECAT7SubHeaderScan3D::CECAT7SubHeaderScan3D(CECATFile* ecatFile,
+																						 CECATDirectoryItem* pDirItem)
+	: CECATSubHeader(ecatFile, pDirItem)
 {
 	// check that the headsize is 1024 bytes long
-	ASSERT(sizeof(struct ECAT7SubHeader_Scan3D) == 1024);
-
-	// then copy the structure
-	memcpy(&m_Data, &sh.m_Data, sizeof(struct ECAT7SubHeader_Scan3D));
-}
-
-CECAT7SubHeaderScan3D::CECAT7SubHeaderScan3D()
-{
-	// check that the headsize is 1024 bytes long
-	ASSERT(sizeof(struct ECAT7SubHeader_Scan3D) == 1024);
+	ASSERT(sizeof(struct ECAT7SubHeader_Scan3D) == ECAT7_HEADERSIZE_SCAN3D);
 
 	// then clear the structure
 	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Scan3D));
@@ -59,11 +52,44 @@ CECAT7SubHeaderScan3D::CECAT7SubHeaderScan3D()
 	m_Data.Deadtime_Correction_Factor = 1.0;
 }
 
-bool CECAT7SubHeaderScan3D::load(QDataStream& stream)
+CECAT7SubHeaderScan3D::CECAT7SubHeaderScan3D(const CECAT7SubHeaderScan3D& sh)
+	: CECATSubHeader(sh)
 {
+	// check that the headsize is 1024 bytes long
+	ASSERT(sizeof(struct ECAT7SubHeader_Scan3D) == ECAT7_HEADERSIZE_SCAN3D);
+
+	// then copy the structure
+	memcpy(&m_Data, &sh.m_Data, sizeof(struct ECAT7SubHeader_Scan3D));
+}
+
+bool CECAT7SubHeaderScan3D::load(void)
+{
+	ENTER();
+
 	// check if the stream is readable or not.
-	if(stream.device()->isReadable() == false)
+	if(m_pMedIOData->isReadable() == false)
+	{
+		RETURN(false);
 		return false;
+	}
+
+	// set our MedIOData to the correct file position so that we can
+	// read the subheader
+	m_pMedIOData->at(m_pDirItem->dataBlock_Start());
+	
+	// we use a ByteArray buffer to speed up the endianess
+	// decoding
+	QByteArray buffer(sizeof(struct ECAT7SubHeader_Scan3D));
+	if(m_pMedIOData->readBlock(buffer.data(), sizeof(struct ECAT7SubHeader_Scan3D)) 
+			!= sizeof(struct ECAT7SubHeader_Scan3D))
+	{
+		RETURN(false);
+		return false;
+	}
+
+	// now we generate a QDataStream on our buffer so that we can read
+	// out of the buffer instead of the raw file (> speed)
+	QDataStream stream(buffer, IO_ReadOnly);	
 
 	// lets read in each single data element of our
 	// data structure to maintain the correct endianess of the
@@ -152,14 +178,28 @@ bool CECAT7SubHeaderScan3D::load(QDataStream& stream)
 	}
 #endif
 
+	RETURN(true);
 	return true;
 }
 
-bool CECAT7SubHeaderScan3D::save(QDataStream& stream)
+bool CECAT7SubHeaderScan3D::save(void) const
 {
+	ENTER();
+
 	// check if this stream is writeable or not
-	if(stream.device()->isWritable() == false)
+	if(m_pMedIOData->isWritable() == false)
+	{
+		RETURN(false);
 		return false;
+	}
+
+	// set our MedIOData to the correct file position so that we can
+	// read the subheader
+	m_pMedIOData->at(m_pDirItem->dataBlock_Start());
+	
+	// we write to a buffer first and write out later directly to the file
+	QByteArray buffer(sizeof(struct ECAT7SubHeader_Scan3D));
+	QDataStream stream(buffer, IO_WriteOnly);
 	
 	// lets write out each single data element of our
 	// data structure to maintain the correct endianess of the
@@ -203,5 +243,11 @@ bool CECAT7SubHeaderScan3D::save(QDataStream& stream)
 	for(int i=0; i < 128; i++)
 		stream << m_Data.Uncor_Singles[i];						// 512: Uncor_Singles
 	
-	return true;
+	// now write out to our outStream
+	bool result = false;
+	if(m_pMedIOData->writeBlock(buffer) != -1)
+		result = true;
+
+	RETURN(result);
+	return result;
 }

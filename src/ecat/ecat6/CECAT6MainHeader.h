@@ -35,23 +35,51 @@ class CECATFile;
 class Q_EXPORT CECAT6MainHeader : public CECATMainHeader
 {
 	public:
+		enum File_Type { Unknown=0, // FIXME: Others are missing for the moment
+									 };
+		
 		CECAT6MainHeader(const CECAT6MainHeader& mh);
-		CECAT6MainHeader(CECATMainHeader::Type fileType = 
-										 CECATMainHeader::Unknown);
+		CECAT6MainHeader(CECATFile* ecatFile,
+										 CECATMainHeader::Type fileType = 
+												CECATMainHeader::Unknown);
 
 		// public methods
-		bool load(CECATFile* pFile);
-		bool load(QTextStream& stream);
-		bool save(CECATFile* pFile);
-		bool save(QTextStream& stream);
+		bool load(void);
+		//bool load(QTextStream& stream);
+		bool save(void) const;
+		//bool save(QTextStream& stream);
 
 		// accessor Methods
+		const char* original_File_Name(void) const
+		{ return m_Data.Original_File_Name;	}
+
+		short sw_Version(void) const
+		{ return m_Data.SW_Version;	}
+
+		short system_Type(void) const
+		{ return m_Data.System_Type; }
+
+		File_Type file_Type(void)	const
+		{ return static_cast<File_Type>(m_Data.File_Type); }
+		
 		short num_Planes(void) const	{ return m_Data.Num_Planes;		}
 		short num_Frames(void) const	{ return m_Data.Num_Frames;		}
 		short num_Gates(void) const		{	return m_Data.Num_Gates;		}
 		short num_Bed_Pos(void) const	{ return m_Data.Num_Bed_Pos;	}
 
 		// mutator methods
+		void setOriginal_File_Name(const char* name)
+		{ strncpy(m_Data.Original_File_Name, name, 20);	}
+		
+		void setSW_Version(const short ver)
+		{ m_Data.SW_Version = ver; }
+		
+		void setSystem_Type(const short type)
+		{ m_Data.System_Type = type; }
+		
+		void setFileType(const File_Type fType)
+		{ m_Data.File_Type = fType;	} 
+
 		void setNum_Planes(short num)		{ m_Data.Num_Planes = num;		}
 		void setNum_Frames(short num)		{ m_Data.Num_Frames = num;		}
 		void setNum_Gates(short num)		{ m_Data.Num_Gates = num;			}
@@ -118,6 +146,7 @@ class Q_EXPORT CECAT6MainHeader : public CECATMainHeader
       float			Collimator;
       char			User_Process_Code[10];
       Q_UINT16	Acquisition_Mode;
+			Q_UINT16	CTI_Reserved[33];
 		} m_Data;
 		#pragma pack()
 };

@@ -24,17 +24,24 @@
 #ifndef CECATSUBHEADER_H
 #define CECATSUBHEADER_H
 
-#define ECAT7_ATTENCORR_HEADER_SIZE 512
-#define ECAT7_IMAGE_HEADER_SIZE 512
-#define ECAT7_NORM_HEADER_SIZE 512
-#define ECAT7_NORM3D_HEADER_SIZE 512
-#define ECAT7_POLARMAP_HEADER_SIZE 512
-#define ECAT7_SCAN_HEADER_SIZE 512
-#define ECAT7_SCAN3D_HEADER_SIZE 1024
+// as per ECAT file format definition we list here
+// the differenz sizes of the subHeaders
+#define ECAT7_HEADERSIZE_ATTENCORR	512
+#define ECAT7_HEADERSIZE_IMAGE			512
+#define ECAT7_HEADERSIZE_NORM				512
+#define ECAT7_HEADERSIZE_NORM3D			512
+#define ECAT7_HEADERSIZE_POLARMAP		512
+#define ECAT7_HEADERSIZE_SCAN				512
+#define ECAT7_HEADERSIZE_SCAN3D			1024
+
+#include <CMedIOHeader.h>
 
 #include <qdatastream.h>
 
-class Q_EXPORT CECATSubHeader
+// forward declarations
+class CECATDirectoryItem;
+
+class Q_EXPORT CECATSubHeader : public CMedIOHeader
 {
 	public:
 		enum Type	{ Unknown=0, ECAT7_AttenCorr, ECAT7_Image, ECAT7_Norm,
@@ -50,21 +57,32 @@ class Q_EXPORT CECATSubHeader
 										  IEEEFloat							=	5, // 4: float - big endian
 											SunShort							=	6, // 2: short - big endian
 											SunLong								=	7  // 4: long  - big endian
-										};							
+										};	
+
+		// constructor
+		CECATSubHeader(CMedIOData* ecatFile, CECATDirectoryItem* dItem)
+			: CMedIOHeader(ecatFile),
+				m_pDirItem(dItem)
+		{}
 
 		// our virtual load/save I/O routines
-		virtual bool load(QDataStream& stream) = 0;
-		virtual bool save(QDataStream& stream) = 0;
+		virtual bool load(void) = 0;
+		virtual bool save(void) const = 0;
 
 		// some must have accessor methods
 		virtual Data_Type data_Type(void) const = 0;
 		virtual void setData_Type(const Data_Type dType) = 0;
 
-		// runtime type information
-		virtual Type rtti(void) const = 0;
-
-		//size information in bytes of specific subheader
+		// size information in bytes of specific subheader
 		virtual int size() const = 0;
+
+		// runtime type information methods
+		CMedIOHeader::Format headerFormat() const { return CMedIOHeader::ECAT; }		
+		virtual CECATSubHeader::Type subHeaderType(void) const = 0;		
+
+	protected:
+		CECATDirectoryItem* m_pDirItem; // the directory item to which this
+																		// subHeader belongs
 };
 
 #endif // CECATSUBHEADER_H

@@ -29,6 +29,7 @@
 #include "CECATSubHeader.h"
 
 // forward declarations
+class CECATFile;
 
 class Q_EXPORT CECAT7SubHeaderImage : public CECATSubHeader
 {
@@ -70,15 +71,20 @@ class Q_EXPORT CECAT7SubHeaderImage : public CECATSubHeader
 														OnlineCompression		= (1<<10) };
 
 		// constructors
+		CECAT7SubHeaderImage(CECATFile* ecatFile,
+												 CECATDirectoryItem* pDirItem);
 		CECAT7SubHeaderImage(const CECAT7SubHeaderImage& sh);
-		CECAT7SubHeaderImage();
+
 
 		// public methods
-		bool load(QDataStream& stream);
-		bool save(QDataStream& stream);
-		CECATSubHeader::Type rtti(void) const
+		bool load(void);
+		bool save(void) const;
+
+		CECATSubHeader::Type subHeaderType(void) const
 		{ return CECATSubHeader::ECAT7_Image; }
-		int size() const {return ECAT7_IMAGE_HEADER_SIZE;}
+		
+		int size() const
+		{	return ECAT7_HEADERSIZE_IMAGE; }
 
 		// data acess methods
 		CECATSubHeader::Data_Type data_Type(void) const

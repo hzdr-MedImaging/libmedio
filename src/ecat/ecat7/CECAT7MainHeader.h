@@ -64,14 +64,15 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 				
 		// constructors
 		CECAT7MainHeader(const CECAT7MainHeader& mh);
-		CECAT7MainHeader(CECATMainHeader::Type fileType =
-										 CECATMainHeader::Unknown);
+		CECAT7MainHeader(CECATFile* ecatFile, 
+										 CECATMainHeader::Type fileType =
+												CECATMainHeader::Unknown);
 
 		// file i/o Methods
-		bool load(CECATFile* pFile);
-		bool load(QTextStream& stream);
-		bool save(CECATFile *pFile);
-		bool save(QTextStream& stream);
+		bool load();
+		//bool load(QTextStream& stream);
+		bool save() const;
+		//bool save(QTextStream& stream);
 
 		// methods to copy data
 		void setStudyData(const CECAT7MainHeader& mh);

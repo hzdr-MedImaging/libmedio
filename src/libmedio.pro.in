@@ -25,7 +25,7 @@
 TEMPLATE  = lib
 CONFIG	 *= qt thread warn_on @ANSI_COLOR@ @QTLINK_LEVEL@
 TARGET    = medio
-VERSION   = 0.1
+VERSION   = 0.2
 DESTDIR   = ../lib/
 
 # directory specification
@@ -55,11 +55,11 @@ PUB_HEADER =	CMedIOHeader.h \
 		ecat/ecat7/CECAT7SubHeaderPolarMap.h \
 		ecat/ecat7/CECAT7SubHeaderScan.h \
 		ecat/ecat7/CECAT7SubHeaderScan3D.h \
-		micropet/CHeaderConcorde.h \
-		micropet/CHeaderConcordeFrame.h \
-		micropet/CConcordeFile.h \
-		micropet/CConcordeSinogram.h \
-           	micropet/CConcordeImage.h
+#		micropet/CHeaderConcorde.h \
+#		micropet/CHeaderConcordeFrame.h \
+#		micropet/CConcordeFile.h \
+#		micropet/CConcordeSinogram.h \
+#   micropet/CConcordeImage.h
 
 HEADERS  = CDebug.h \
            $$PUB_HEADER
@@ -80,11 +80,11 @@ SOURCES  = CDebug.cpp \
 	   ecat/ecat7/CECAT7SubHeaderPolarMap.cpp \
 	   ecat/ecat7/CECAT7SubHeaderScan.cpp \
 	   ecat/ecat7/CECAT7SubHeaderScan3D.cpp \
-	   micropet/CHeaderConcorde.cpp \
-	   micropet/CHeaderConcordeFrame.cpp \
-	   micropet/CConcordeFile.cpp \
-	   micropet/CConcordeSinogram.cpp \
-           micropet/CConcordeImage.cpp
+#	   micropet/CHeaderConcorde.cpp \
+#	   micropet/CHeaderConcordeFrame.cpp \
+#	   micropet/CConcordeFile.cpp \
+#	   micropet/CConcordeSinogram.cpp \
+#		 micropet/CConcordeImage.cpp
 
 DEPENDPATH   = ecat ecat/ecat6 ecat/ecat7 micropet
 INCLUDEPATH  = . include ecat ecat/ecat6 ecat/ecat7 micropet

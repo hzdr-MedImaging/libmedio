@@ -27,25 +27,14 @@
 #include <qfile.h>
 #include <qstring.h>
 
-// some useful defines on the ECAT file format
-// especially for ECATBlock calculation as ECAT Files
-// are seperated in 512 byte blocks and positions within
-// the directorylist are refered in this format starting
-// from 1.
-#define ECAT_BLOCKSIZE				512
-#define ECAT_POS_MAINHEADER		1		// the MainHeader is always at block 1
-#define ECAT_POS_MAINDIR			2		// the MainDir is always at block 2
-#define ECATBlock2FilePos(v)	(((v)-1)*ECAT_BLOCKSIZE)
-#define FilePos2ECATBlock(v)	((v)/ECAT_BLOCKSIZE+1)
-
-#include "CMedIOData.h"
-#include "CECATMainHeader.h"
-#include "CECATSubHeader.h"
+#include <CMedIOData.h>
+#include <CECATDirectory.h>
+#include <CECATMainHeader.h>
+#include <CECATSubHeader.h>
 
 // forward declarations
-class CECATDirectory;
 
-class Q_EXPORT CECATFile : public QFile, public CMedIOData
+class Q_EXPORT CECATFile : public CMedIOData
 {
 	public:
 		enum ECATFormat	{ Undefined=0, ECAT7, ECAT6 };
@@ -55,49 +44,54 @@ class Q_EXPORT CECATFile : public QFile, public CMedIOData
 							CECATMainHeader::Type fileType = CECATMainHeader::Unknown);
 		~CECATFile();
 		
-		static int isoftype(QString filename);		
-		int rtti();
+		// static methods for the MedIOData interface
+		static bool isOfType(const QString& fileName);
+		static CMedIOData* createFromFile(const QString& fileName);
 
-		bool load(void);
-		bool save(void);
+		// runtime type information
+		int rtti() const { return CMedIOData::ECAT; }
 
-		ECATFormat format(void) { return m_ECATformat; }
+		bool open(int mode);
+		void close(void);
+
+		ECATFormat format(void) const { return m_iECATformat; }
 		CECATMainHeader::Type fileType(void);
-		CECATSubHeader::Type	subHeaderType(void);
-		CECATSubHeader::Type	subHeaderType(CECATMainHeader::Type fileType);
-		void setFileType(CECATMainHeader::Type fileType);
+		bool setFileType(CECATMainHeader::Type fileType);
 
-		// interface methods for directly obtaining information from
-		// the mainheader
-		CECATMainHeader* mainHeader(void) { return m_pMainHeader;									}
-		short	numPlanes(void)							{ return m_pMainHeader->num_Planes();		}
-		short numFrames(void)							{	return m_pMainHeader->num_Frames();		}
-		short numGates(void)							{	return m_pMainHeader->num_Gates();		}
-		short numBedPos(void)							{ return m_pMainHeader->num_Bed_Pos();	}
+		// methods to query some information on the subHeader type
+		CECATSubHeader::Type subHeaderType(void);
+		CECATSubHeader::Type subHeaderType(CECATMainHeader::Type fileType);
 
-		// interface methods to get out a specific Matrix or
-		// subheader from the ECATFile
-		CECATSubHeader* getSubHeader(short frame=1, short plane=1, short gate=1,
-																 short bed=0, short data=0);
-		QByteArray* getMatrix(short frame=1, short plane=1, short gate=1,
-												  short bed=0, short data=0);
-		void* getMatrixData(short frame=1, short plane=1, short gate=1,
-												short bed=0, short data=0);
+		// methods to calculate the real amount
+		// of frame/plane/gate numbers carried in the directory.
+		short numFrames(void) const { return m_pMainDirectory->numFrames();	}
+		short numPlanes(void) const	{ return m_pMainDirectory->numPlanes();	}
+		short numGates(void) const	{ return m_pMainDirectory->numGates();	}
+		short numBedPos(void) const	{ return m_pMainDirectory->numBedPos();	}
+
+		// interface methods to read out specific data from the ECAT files
+		bool readMainHeader(CECATMainHeader*&);
+		bool readSubHeader(CECATSubHeader*&, short frame=1, short plane=1, short gate=1,
+										   short bed=0, short data=0);
+		bool readMatrix(QByteArray*& matrixData, short frame=1, short plane=1, short gate=1,
+									  short bed=0, short data=0);
+		bool readMatrix(char*& matrixData, unsigned int& len, short frame=1, short plane=1,
+										short gate=1, short bed=0, short data=0);
 
 		// methods to create new and modify existing entries in this file.
-		CECATSubHeader* newEntry(short frame=1, short plane=1, short gate=1,
-														 short bed=0, short data=0);
-		bool setMatrix(QByteArray* matrix, short frame=1, short plane=1,
-									 short gate=1, short bed=0, short data=0);
-		bool setMatrixData(void* matrix, unsigned size, short frame=1, short plane=1,
-											 short gate=1, short bed=0, short data=0);
+		bool writeMainHeader(CECATMainHeader& mainHeader);
+		bool writeSubHeader(const CECATSubHeader& subHeader, short frame=1, short plane=1,
+												short gate=1, short bed=0, short data=0);
+		bool writeMatrix(const QByteArray& matrixData, short frame=1, short plane=1,
+										 short gate=1, short bed=0, short data=0);
+		bool writeMatrix(const char* matrixData, unsigned int size, short frame=1, short plane=1,
+										 short gate=1, short bed=0, short data=0);
 
 	private:
-		ECATFormat				m_ECATformat;
-
-		// components of the ECAT file
-		CECATMainHeader*	m_pMainHeader;
-		CECATDirectory*		m_pMainDirectory;
+		ECATFormat						m_iECATformat;
+		CECATMainHeader::Type	m_iMainHeaderType;
+		CECATDirectory*				m_pMainDirectory;
+		CECATMainHeader*			m_pCachedMainHeader;
 };
 
 #endif // CECATFILE_H

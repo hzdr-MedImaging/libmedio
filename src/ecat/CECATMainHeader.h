@@ -26,10 +26,12 @@
 
 #include <qtextstream.h>
 
+#include <CMedIOHeader.h>
+
 // forward declarations
 class CECATFile;
 
-class Q_EXPORT CECATMainHeader
+class Q_EXPORT CECATMainHeader : public CMedIOHeader
 {
 	public:
 		// possible ECAT6/7 file types
@@ -40,12 +42,17 @@ class Q_EXPORT CECATMainHeader
 								ECAT7_Normalization_3D, ECAT7_Sinogram3D_Float
 							};
 
+		// constructor
+		CECATMainHeader(CMedIOData* ecatFile)
+			: CMedIOHeader(ecatFile)
+		{}
+
 		// some pure virtual methods to load/save information
 		// prepresented by this class
-		virtual bool load(CECATFile* pFile)			= 0;
-		virtual bool load(QTextStream& stream)	= 0;
-		virtual bool save(CECATFile* pFile)			= 0;
-		virtual bool save(QTextStream& stream)	= 0;
+		virtual bool load()	= 0;
+		//virtual bool load(QTextStream& stream)	= 0;
+		virtual bool save() const	= 0;
+		//virtual bool save(QTextStream& stream)	= 0;
 
 		// interface methods that are part of the ECAT6 and
 		// ECAT7 standard and each ECAT6/7 implementation has
@@ -59,6 +66,9 @@ class Q_EXPORT CECATMainHeader
 		virtual void setNum_Frames(short num)		= 0;
 		virtual void setNum_Gates(short num)		= 0;
 		virtual void setNum_Bed_Pos(short num)	= 0;
+
+		// runtime type information methods
+		CMedIOHeader::Format headerFormat() const { return CMedIOHeader::ECAT; }
 };
 
 #endif // CECATMAINHEADER_H

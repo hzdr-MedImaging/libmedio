@@ -22,36 +22,62 @@
 ***************************************************************************/
 
 #include "CECAT7SubHeaderPolarMap.h"
+#include "CECATDirectoryItem.h"
 #include "CECATFile.h"
 
 #include <qdatastream.h>
 
 #include "debug.h"
 
-CECAT7SubHeaderPolarMap::CECAT7SubHeaderPolarMap(const CECAT7SubHeaderPolarMap& sh)
-	: CECATSubHeader(sh)
+CECAT7SubHeaderPolarMap::CECAT7SubHeaderPolarMap(CECATFile* ecatFile,
+																								 CECATDirectoryItem* pDirItem)
+	: CECATSubHeader(ecatFile, pDirItem)
 {
 	// check that the headsize is 512 bytes long
-	ASSERT(sizeof(struct ECAT7SubHeader_PolarMap) == 512);
-
-	// then copy the structure
-	memcpy(&m_Data, &sh.m_Data, sizeof(struct ECAT7SubHeader_PolarMap));			
-}
-
-CECAT7SubHeaderPolarMap::CECAT7SubHeaderPolarMap()
-{
-	// check that the headsize is 512 bytes long
-	ASSERT(sizeof(struct ECAT7SubHeader_PolarMap) == 512);
+	ASSERT(sizeof(struct ECAT7SubHeader_PolarMap) == ECAT7_HEADERSIZE_POLARMAP);
 
 	// then clear the structure
 	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_PolarMap));			
 }
 
-bool CECAT7SubHeaderPolarMap::load(QDataStream& stream)
+CECAT7SubHeaderPolarMap::CECAT7SubHeaderPolarMap(const CECAT7SubHeaderPolarMap& sh)
+	: CECATSubHeader(sh)
 {
+	// check that the headsize is 512 bytes long
+	ASSERT(sizeof(struct ECAT7SubHeader_PolarMap) == ECAT7_HEADERSIZE_POLARMAP);
+
+	// then copy the structure
+	memcpy(&m_Data, &sh.m_Data, sizeof(struct ECAT7SubHeader_PolarMap));			
+}
+
+bool CECAT7SubHeaderPolarMap::load(void)
+{
+	ENTER();
+
 	// check if the stream is readable or not.
-	if(stream.device()->isReadable() == false)
+	if(m_pMedIOData->isReadable() == false)
+	{
+		RETURN(false);
 		return false;
+	}
+
+	// set our MedIOData to the correct file position so that we can
+	// read the subheader
+	m_pMedIOData->at(m_pDirItem->dataBlock_Start());
+	
+	// we use a ByteArray buffer to speed up the endianess
+	// decoding
+	QByteArray buffer(sizeof(struct ECAT7SubHeader_PolarMap));
+	if(m_pMedIOData->readBlock(buffer.data(), sizeof(struct ECAT7SubHeader_PolarMap)) 
+			!= sizeof(struct ECAT7SubHeader_PolarMap))
+	{
+		RETURN(false);
+		return false;
+	}
+
+	// now we generate a QDataStream on our buffer so that we can read
+	// out of the buffer instead of the raw file (> speed)
+	QDataStream stream(buffer, IO_ReadOnly);	
 
 	// lets read in each single data element of our
 	// data structure to maintain the correct endianess of the
@@ -135,14 +161,28 @@ bool CECAT7SubHeaderPolarMap::load(QDataStream& stream)
 	D("Database_Name             : %s",				m_Data.Database_Name);
 #endif
 
+	RETURN(true);
 	return true;
 }
 
-bool CECAT7SubHeaderPolarMap::save(QDataStream& stream)
+bool CECAT7SubHeaderPolarMap::save(void) const
 {
+	ENTER();
+
 	// check if this stream is writeable or not
-	if(stream.device()->isWritable() == false)
+	if(m_pMedIOData->isWritable() == false)
+	{
+		RETURN(false);
 		return false;
+	}
+
+	// set our MedIOData to the correct file position so that we can
+	// read the subheader
+	m_pMedIOData->at(m_pDirItem->dataBlock_Start());
+	
+	// we write to a buffer first and write out later directly to the file
+	QByteArray buffer(sizeof(struct ECAT7SubHeader_PolarMap));
+	QDataStream stream(buffer, IO_WriteOnly);
 	
 	// lets read in each single data element of our
 	// data structure to maintain the correct endianess of the
@@ -180,6 +220,12 @@ bool CECAT7SubHeaderPolarMap::save(QDataStream& stream)
 		stream << m_Data.CTI_reserved[i];											// 404: CTI_reserved
 	for(int i=0; i < 27; i++)
 		stream << m_Data.User_Reserved[i];										// 464: User_Reserved
-	
-	return true;
+
+	// now write out to our outStream
+	bool result = false;
+	if(m_pMedIOData->writeBlock(buffer) != -1)
+		result = true;
+
+	RETURN(result);
+	return result;
 }

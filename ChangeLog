@@ -6,6 +6,28 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2004-12-07  Jens Langner <Jens.Langner@light-speed.de>
+
+  * misc: reworked the whole MedIO API to be somewhat more consistent. Dropped
+    the load/save methods and replaced them by proper open/close methods that
+    have to be used like normal QFile objects. Also renamed the get/set
+    Matrix/Subheader methods to read/write methods which all return bool now
+    and if a new object like a subheader or mainheader or even raw matrix data
+    is created the data is not shared with the MedIO library anymore, which
+    previously caused some troubles when a return matrix data was freed by the
+    user.
+    Also adapted the ECAT file format to the new API of the MedIO library and
+    started to implement some faster read/write methods that are automatically
+    buffered by QByteArray objects.
+    Also bumped the version of libmedio to 0.2 and tagged the old version in the
+    cvs as "ALPHA_0_1".
+    
+    NOTE: Please note, however, that this is still work in progress, which
+    means that the Concorde I/O routines are currently disabled until they are
+    ported to the new API and that the new ECAT file I/O routines should be
+    considered experimentel and not finished. They need some more work until they
+    can be used in normal applications like the previous routines.
+    
 2004-10-04  Hagen Mölle <draggore@gmx.de>
 
   * added concorde micropet image support - possibility to load image files

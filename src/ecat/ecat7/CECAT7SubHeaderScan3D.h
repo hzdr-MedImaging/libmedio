@@ -29,6 +29,7 @@
 #include "CECATSubHeader.h"
 
 // forward declarations
+class CECATFile;
 
 class Q_EXPORT CECAT7SubHeaderScan3D : public CECATSubHeader
 {
@@ -45,15 +46,19 @@ class Q_EXPORT CECAT7SubHeaderScan3D : public CECATSubHeader
 															};
 
 		// constructors
-		CECAT7SubHeaderScan3D();
+		CECAT7SubHeaderScan3D(CECATFile* ecatFile,
+													CECATDirectoryItem* pDirItem);
 		CECAT7SubHeaderScan3D(const CECAT7SubHeaderScan3D& sh);
 			
 		// public methods
-		bool load(QDataStream& stream);
-		bool save(QDataStream& stream);
-		CECATSubHeader::Type rtti(void)	const
-		{ return CECATSubHeader::ECAT7_Scan3D;			}
-		int size() const {return ECAT7_SCAN3D_HEADER_SIZE;}
+		bool load(void);
+		bool save(void) const;
+		
+		CECATSubHeader::Type subHeaderType(void) const
+		{ return CECATSubHeader::ECAT7_Scan3D; }
+		
+		int size() const
+		{	return ECAT7_HEADERSIZE_SCAN3D; }
 
 		// methods to access elements of the SubHeader
 		CECATSubHeader::Data_Type data_Type(void)	const

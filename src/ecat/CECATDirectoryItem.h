@@ -27,6 +27,17 @@
 #include <qcstring.h>
 #include <qdatastream.h>
 
+// some useful defines on the ECAT file format
+// especially for ECATBlock calculation as ECAT Files
+// are seperated in 512 byte blocks and positions within
+// the directorylist are refered in this format starting
+// from 1.
+#define ECAT_BLOCKSIZE				512
+#define ECAT_POS_MAINHEADER		1		// the MainHeader is always at block 1
+#define ECAT_POS_MAINDIR			2		// the MainDir is always at block 2
+#define ECATBlock2FilePos(v)	(((v)-1)*ECAT_BLOCKSIZE)
+#define FilePos2ECATBlock(v)	((v)/ECAT_BLOCKSIZE+1)
+
 // special macros to convert the MatrixID to their respect
 // frame/plane/gate/bed and data representation
 #define matrixID2Frame(x)	((x) & 0x1FF)
@@ -54,67 +65,66 @@ class CECATFile;
 class Q_EXPORT CECATDirectoryItem
 {
 	public:
-		enum AccessStatus { Deleted=-1, NotYetWritten=0, Finished=1 };
+		enum AccessStatus { Deleted=-1, 
+												NotYetWritten=0, 
+												Finished=1
+											};
 
-		CECATDirectoryItem(CECATSubHeader::Type subHeaderType);
+		CECATDirectoryItem(CECATFile* file,
+											 CECATSubHeader::Type subHeaderType = CECATSubHeader::Unknown,
+											 Q_UINT32 matrixID = 0);
 	
-		unsigned int getMatrixID(void)
-		{ return m_Entry.Matrix_ID;									}
-		
-		short frameID(void)
-		{ return matrixID2Frame(m_Entry.Matrix_ID); }
+		unsigned int matrixID(void) const
+		{ return convertToMatrixID(m_iFrame, m_iPlane, m_iGate, m_iBed, m_iData); }
 
-		short planeID(void)
-		{ return matrixID2Plane(m_Entry.Matrix_ID); }
+		QIODevice::Offset dataBlock_Start(void) const
+		{ return m_iDataBlock_Start; }
 		
-		short gateID(void)
-		{ return matrixID2Gate(m_Entry.Matrix_ID);	}
-		
-		short bedID(void)
-		{ return matrixID2Bed(m_Entry.Matrix_ID);		}
-		
-		short dataID(void)
-		{	return matrixID2Data(m_Entry.Matrix_ID);	}
-		
-		CECATSubHeader* getSubHeader()
-		{ return m_pSubHeader;											}
+		QIODevice::Offset dataBlock_End(void) const
+		{ return m_iDataBlock_End; }
 
-		// accessor methods
-		QByteArray* getMatrix(void);
-		void* getMatrixData(void);
+		short frame(void) const
+		{ return m_iFrame; }
 
-		// mutabor methods
-		void setMatrixData(void* matrix, unsigned int size);
-
-		void setMatrix(QByteArray* pMatrix)
-		{ m_pMatrixData = pMatrix; }
+		short plane(void) const
+		{ return m_iPlane; }
 		
-		// file i/o routines
-		bool loadFromFile(CECATFile* pECATFile, long filePosition=0);
-		bool saveToFile(CECATFile* pECATFile);
+		short gate(void) const
+		{ return m_iGate; }
+		
+		short bed(void) const
+		{ return m_iBed; }
+		
+		short data(void) const
+		{	return m_iData; }
+			
+		// read i/o methods
+		bool readSubHeader(CECATSubHeader*& subHeader);
+		bool readMatrix(QByteArray*& data);
+		bool readMatrix(char*& data, unsigned int& len);
 
-	protected:
-		bool loadMatrixData();
+		// write i/o methods
+		bool writeSubHeader(const CECATSubHeader& subHeader);
+		bool writeMatrix(const QByteArray& data);
+		bool writeMatrix(const char* data, unsigned int len);
+
+		// our QDataStream operators
+		friend QDataStream& operator<<(QDataStream& stream, const CECATDirectoryItem& item);
+		friend QDataStream& operator>>(QDataStream& stream, CECATDirectoryItem& item);
 
 	private:
-		CECATFile*			m_pECATFile;		// pointer to the ECATFile from
-																		// which we loaded the SubHeader.
-		long						m_FilePosition;	// the position within the ECAT file
-		CECATSubHeader*	m_pSubHeader;		// each item in a directory has a header
-		QByteArray*			m_pMatrixData;	// pointer to the MatrixData
-																		// (NULL if not available yet)
+		CECATFile*						m_pECATFile;			// pointer to the ECATFile
+		CECATSubHeader::Type	m_iSubHeaderType;	// the choosen subHeaderType for this item
 
-		// the matrix structure which we read out
-		// of the ECAT file
-		#pragma pack(2)
-		struct
-		{
-			Q_UINT32 Matrix_ID;
-			Q_UINT32 Matrix_SubHeader_StartPosition;
-			Q_UINT32 Matrix_DataBlock_EndPosition;
-			Q_UINT32 Matrix_Status;				// the access status of the item
-		} m_Entry;
-		#pragma pack()
+		// META information about the directory Item
+		short									m_iFrame;						// information normally
+		short									m_iPlane;						// encoded in
+		short									m_iGate;						// the MatrixID
+		short									m_iBed;
+		short									m_iData;
+		QIODevice::Offset			m_iDataBlock_Start; // also start of SubHeader
+		QIODevice::Offset			m_iDataBlock_End;		// end of raw Data area
+		enum AccessStatus			m_iStatus;
 };
 
 #endif // CECATDIRECTORYITEM_H

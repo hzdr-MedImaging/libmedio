@@ -21,7 +21,7 @@
 #
 #****************************************************************************
 
-TARGET = showheader
+TARGET = readwritematrix
 
 # programs
 CC		= gcc
@@ -34,11 +34,11 @@ PREFIX = .
 
 # Compiler/Linker Flags
 WARN    = -W -Wall
-CFLAGS  = -I../../../src -I../../../src/ecat -I$(QTDIR)/include $(WARN) -c
-LDFLAGS = -L../../../lib -L$(QTDIR)/lib
+CFLAGS  = -I../../src -I$(QTDIR)/include $(WARN) -c
+LDFLAGS = -L../../lib -L$(QTDIR)/lib
 LDLIBS  = -lqt-mt -lmedio
 
-OBJS = showheader.o
+OBJS = readwritematrix.o
 
 #
 all: $(TARGET)

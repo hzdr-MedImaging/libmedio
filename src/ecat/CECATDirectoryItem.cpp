@@ -36,421 +36,829 @@
 
 #include "debug.h"
 
-CECATDirectoryItem::CECATDirectoryItem(CECATSubHeader::Type subHeaderType) 
-	: m_pECATFile(NULL),
-		m_FilePosition(-1),
-		m_pSubHeader(NULL),
-		m_pMatrixData(NULL)
+CECATDirectoryItem::CECATDirectoryItem(CECATFile* pFile,
+																			 CECATSubHeader::Type subHeaderType,
+																			 Q_UINT32 matrixID) 
+	: m_pECATFile(pFile),
+		m_iSubHeaderType(subHeaderType),
+		m_iFrame(-1),
+		m_iPlane(-1),
+		m_iGate(-1),
+		m_iBed(-1),
+		m_iData(-1),
+		m_iDataBlock_Start(0),
+		m_iDataBlock_End(0),
+		m_iStatus(Deleted)
 {
-	// make sure our entry structure is really 16bytes wide
-	ASSERT(sizeof(m_Entry) == 16);
+	ENTER();
 
-	// clear our item structure
-	memset(&m_Entry, 0, sizeof(m_Entry));
+	if(matrixID != 0)
+	{
+		m_iFrame = matrixID2Frame(matrixID);
+		m_iPlane = matrixID2Plane(matrixID);
+		m_iGate  = matrixID2Gate(matrixID);
+		m_iBed   = matrixID2Bed(matrixID);
+		m_iData  = matrixID2Data(matrixID);
+	}
+	
+	LEAVE();
+}
+
+bool CECATDirectoryItem::readSubHeader(CECATSubHeader*& subHeader)
+{
+	ENTER();
 
 	// lets prepare the SubHeader depending on the type of the
 	// ECATFile
-	SHOWVALUE(subHeaderType);
-	switch(subHeaderType)
+	SHOWVALUE(m_iSubHeaderType);
+	switch(m_iSubHeaderType)
 	{
-		case CECATSubHeader::ECAT7_AttenCorr:	m_pSubHeader = new CECAT7SubHeaderAttenCorr();	break;
-		case CECATSubHeader::ECAT7_Image:			m_pSubHeader = new CECAT7SubHeaderImage();			break;
-		case CECATSubHeader::ECAT7_Norm:			m_pSubHeader = new CECAT7SubHeaderNorm();				break;
-		case CECATSubHeader::ECAT7_Norm3D:		m_pSubHeader = new CECAT7SubHeaderNorm3D();			break;
-		case CECATSubHeader::ECAT7_PolarMap:	m_pSubHeader = new CECAT7SubHeaderPolarMap();		break;
-		case CECATSubHeader::ECAT7_Scan:			m_pSubHeader = new CECAT7SubHeaderScan();				break;
-		case CECATSubHeader::ECAT7_Scan3D:		m_pSubHeader = new CECAT7SubHeaderScan3D();			break;
+		case CECATSubHeader::ECAT7_AttenCorr: 
+			subHeader = new CECAT7SubHeaderAttenCorr(m_pECATFile, this);	
+		break;
+
+		case CECATSubHeader::ECAT7_Image:	
+			subHeader = new CECAT7SubHeaderImage(m_pECATFile, this);
+		break;
+		
+		case CECATSubHeader::ECAT7_Norm:
+			subHeader = new CECAT7SubHeaderNorm(m_pECATFile, this);
+		break;
+		
+		case CECATSubHeader::ECAT7_Norm3D:
+			subHeader = new CECAT7SubHeaderNorm3D(m_pECATFile, this);
+		break;
+		
+		case CECATSubHeader::ECAT7_PolarMap:
+			subHeader = new CECAT7SubHeaderPolarMap(m_pECATFile, this);
+		break;
+		
+		case CECATSubHeader::ECAT7_Scan:
+			subHeader = new CECAT7SubHeaderScan(m_pECATFile, this);
+		break;
+		
+		case CECATSubHeader::ECAT7_Scan3D:
+			subHeader = new CECAT7SubHeaderScan3D(m_pECATFile, this);
+		break;
 
 		default:
 		{
 			E("ECAT type isn't specified or not supported yet.");
 		}
 	}
-}
 
-bool CECATDirectoryItem::loadFromFile(CECATFile* pECATFile, long filePosition)
-{
 	bool result = false;
-	
-	if(pECATFile)
+	if(subHeader)
 	{
-		bool openedByUs = false;
-
-		// check if the file associated with this item is already open or not
-		if(pECATFile->isReadable() == false)
+		if(subHeader->load() == false)
 		{
-			pECATFile->open(IO_ReadOnly);
-			openedByUs = true;
+			delete subHeader;
+			subHeader = NULL;
 		}
-		
-		// set the file to the fileposition we initialized this item to
-		m_FilePosition = filePosition;
-		pECATFile->at(m_FilePosition);
-
-		// first we read out the Entry information in our help structure
-		QDataStream stream(pECATFile);
-
-		// lets stream out each structure element separatly so that we
-		// maintain the correct endianess
-		stream >> m_Entry.Matrix_ID;
-		stream >> m_Entry.Matrix_SubHeader_StartPosition;
-		stream >> m_Entry.Matrix_DataBlock_EndPosition;
-		stream >> m_Entry.Matrix_Status;
-
-		// output some debug information.
-		D("DItem.Matrix_ID    : %08lx", m_Entry.Matrix_ID);
-		D("DItem.Matrix_Start : %d",		m_Entry.Matrix_SubHeader_StartPosition);
-		D("DItem.Matrix_End   : %d",		m_Entry.Matrix_DataBlock_EndPosition);
-		D("DItem.Matrix_Status: %d",		m_Entry.Matrix_Status);
-
-		// now that we have generated the correct SubHeader object we go
-		// and read out the information we need
-		if(m_pSubHeader)
-		{
-			// now that we have identify and load the SubHeader
-			// but before we load the SubHeader via a stream operation, we
-			// have to "remember" the current file position so that we can 
-			// jump back after we got the subheader information
-			long posAfterDItem = pECATFile->at();
-
-			// set the file to the start position of the SubHeader of this
-			// directory item and load the subheader information from the stream
-			pECATFile->at(ECATBlock2FilePos(m_Entry.Matrix_SubHeader_StartPosition));
-			m_pSubHeader->load(stream);
-
-			// set the IODevice position back to the position after the DItem,
-			// so that other following operations can start from this
-			// position
-			pECATFile->at(posAfterDItem);
-		}
-
-		if(openedByUs) pECATFile->close();
-
-		// because we don't load the matrixdata now we have to save the
-		// pointer to the ECATFile in our instance data for later reference
-		m_pECATFile = pECATFile;
-
-		result=true;
+		else
+			result = true;
 	}
 
+	RETURN(result);
 	return result;
 }
 
-bool CECATDirectoryItem::saveToFile(CECATFile* pECATFile)
+bool CECATDirectoryItem::readMatrix(QByteArray*& matrixData)
 {
 	bool result = false;
+	char* data = NULL;
+	unsigned int dataLen = 0;
 
-	// we only continue if the file is actually writeable
-	if(pECATFile->isWritable() && m_pMatrixData)
+	// we use our method operating on a raw char pointer
+	if(readMatrix(data, dataLen) && dataLen > 0)
 	{
-		QDataStream stream(pECATFile);
-		
-		// first we stream out the SubHeader
-		m_pSubHeader->save(stream);
-
-		// then we process the matrix data that is associated with
-		// this directoryitem.
-		// here we have to care about the correct endianess, so that
-		// we convert BIG->LITTLE or vise versa depending on the
-		// system we are running.
-		switch(m_pSubHeader->data_Type())
-		{
-			case CECATSubHeader::UnkownMatrixDataType:
-			{
-				W("No or an unknown data type was set for the matrix data of dirItem %ld", m_Entry.Matrix_ID);
-				stream.writeRawBytes(m_pMatrixData->data(), m_pMatrixData->count());	
-			}
-			break;
-
-			// write out Byte data. (1 byte)
-			case CECATSubHeader::ByteData:
-			{
-				// we use the RawBytes() method here.
-				stream.writeRawBytes(m_pMatrixData->data(), m_pMatrixData->count());
-			}
-			break;
-
-			// VAX_Ix2 is a little endian short value, so we
-			// need to set the stream to little endian, write the data via the
-			// QDataStream operators to ensure correct byte swapping
-			case CECATSubHeader::VAX_Ix2:
-			{
-				stream.setByteOrder(QDataStream::LittleEndian);
-				Q_UINT16* ptr = (Q_UINT16*)m_pMatrixData->data();
-				for(unsigned int i=0; i < m_pMatrixData->count(); i+=sizeof(Q_UINT16))
-				{
-					stream << *ptr;
-					++ptr;
-				}
-				stream.setByteOrder(QDataStream::BigEndian);
-			}
-			break;
-
-			// VAX_Ix4 is a little endian long value, so we
-			// need to set the stream to little endian, write the data via the
-			// QDataStream operators to ensure correct byte swapping
-			case CECATSubHeader::VAX_Ix4:
-			{
-				stream.setByteOrder(QDataStream::LittleEndian);
-				Q_UINT32* ptr = (Q_UINT32*)m_pMatrixData->data();
-				for(unsigned int i=0; i < m_pMatrixData->count(); i+=sizeof(Q_UINT32))
-				{
-					stream << *ptr;
-					++ptr;
-				}
-				stream.setByteOrder(QDataStream::BigEndian);
-			}
-			break;
-			
-			// VAX_Rx4 is a little endian float value, so we
-			// need to set the stream to little endian, write the data via the
-			// QDataStream operators to ensure correct byte swapping			
-			case CECATSubHeader::VAX_Rx4:
-			{
-				stream.setByteOrder(QDataStream::LittleEndian);
-				float* ptr = (float*)m_pMatrixData->data();
-				for(unsigned int i=0; i < m_pMatrixData->count(); i+=sizeof(float))
-				{
-					stream << *ptr;
-					++ptr;
-				}
-				stream.setByteOrder(QDataStream::BigEndian);
-			}
-			break;
-
-			// IEEEFloat is defined to be a big endian float value. As the QDataStream
-			// is per default big endian, we don't have to set it to another byte order
-			// and just use the QDataStream operators to ensure correct byte swapping
-			case CECATSubHeader::IEEEFloat:
-			{
-				float* ptr = (float*)m_pMatrixData->data();
-				for(unsigned int i=0; i < m_pMatrixData->count(); i+=sizeof(float))
-				{
-					stream << *ptr;
-					++ptr;
-				}
-			}
-			break;
-
-			// SunShort is defined to be a big endian short value. As the QDataStream
-			// is per default big endian, we don't have to set it to another byte order
-			// and just use the QDataStream operators to ensure correct byte swapping
-			case CECATSubHeader::SunShort:
-			{
-				Q_UINT16* ptr = (Q_UINT16*)m_pMatrixData->data();
-				for(unsigned int i=0; i < m_pMatrixData->count(); i+=sizeof(Q_UINT16))
-				{
-					stream << *ptr;
-					++ptr;
-				}
-			}
-			break;
-
-			// SunLong is defined to be a big endian long value. As the QDataStream
-			// is per default big endian, we don't have to set it to another byte order
-			// and just use the QDataStream operators to ensure correct byte swapping
-			case CECATSubHeader::SunLong:
-			{
-				Q_UINT32* ptr = (Q_UINT32*)m_pMatrixData->data();
-				for(unsigned int i=0; i < m_pMatrixData->count(); i+=sizeof(Q_UINT32))
-				{
-					stream << *ptr;
-					++ptr;
-				}
-			}
-			break;
-		}
-	}
-	
-	return result;
-}
-
-bool CECATDirectoryItem::loadMatrixData()
-{
-	bool result = false;
-
-	// we load the MatrixData out of the ECATFile manually but only
-	// if the access status of this item is set to "Finished"
-	if(m_Entry.Matrix_Status == Finished && m_pECATFile && m_pSubHeader)
-	{
-		bool openedByUs = false;
-
-		// check if the file associated with this item is already open or not
-		if(m_pECATFile->isReadable() == false)
-		{
-			if(m_pECATFile->open(IO_ReadOnly) == false) return false;
-			openedByUs = true;
-		}
-
-		// set the ECATFile handle to the correct position of
-		// the matrix start. This should normally be
-		// Matrix_SubHeader_StartPosition+1
-		m_pECATFile->at(ECATBlock2FilePos(m_Entry.Matrix_SubHeader_StartPosition+m_pSubHeader->size()/512));
-
-		// then we allocate some memory for loading the matrixdata
-		// this should be:
-		// Size = (Matrix_DataBlock_EndPosition-Matrix_SubHeader_StartPosition+1)*512
-		m_pMatrixData = new QByteArray((m_Entry.Matrix_DataBlock_EndPosition-m_Entry.Matrix_SubHeader_StartPosition+1-m_pSubHeader->size()/512)*512);
-
-		// now that we have our MatrixData we can
-		// fill it with the raw data from the file
-		QDataStream stream(m_pECATFile);
-
-		// then we process the matrix data that is associated with
-		// this directoryitem.
-		// here we have to care about the correct endianess, so that
-		// we convert BIG->LITTLE or vise versa depending on the
-		// system we are running.
-		switch(m_pSubHeader->data_Type())
-		{
-			case CECATSubHeader::UnkownMatrixDataType:
-			{
-				W("No or an unknown data type was set for the matrix data of dirItem %ld", m_Entry.Matrix_ID);
-				stream.readRawBytes(m_pMatrixData->data(), m_pMatrixData->size());	
-			}
-			break;
-
-			// write out Byte data. (1 byte)
-			case CECATSubHeader::ByteData:
-			{
-				// we use the RawBytes() method here.
-				stream.readRawBytes(m_pMatrixData->data(), m_pMatrixData->size());
-			}
-			break;
-
-			// VAX_Ix2 is a little endian short value, so we
-			// need to set the stream to little endian, read the data via the
-			// QDataStream operators to ensure correct byte swapping
-			case CECATSubHeader::VAX_Ix2:
-			{
-				stream.setByteOrder(QDataStream::LittleEndian);
-				Q_UINT16* ptr = (Q_UINT16*)m_pMatrixData->data();
-				for(unsigned int i=0; i < m_pMatrixData->size(); i+=sizeof(Q_UINT16))
-				{
-					stream >> *ptr;
-					++ptr;
-				}
-				stream.setByteOrder(QDataStream::BigEndian);
-			}
-			break;
-
-			// VAX_Ix4 is a little endian long value, so we
-			// need to set the stream to little endian, read the data via the
-			// QDataStream operators to ensure correct byte swapping
-			case CECATSubHeader::VAX_Ix4:
-			{
-				stream.setByteOrder(QDataStream::LittleEndian);
-				Q_UINT32* ptr = (Q_UINT32*)m_pMatrixData->data();
-				for(unsigned int i=0; i < m_pMatrixData->size(); i+=sizeof(Q_UINT32))
-				{
-					stream >> *ptr;
-					++ptr;
-				}
-				stream.setByteOrder(QDataStream::BigEndian);
-			}
-			break;
-			
-			// VAX_Rx4 is a little endian float value, so we
-			// need to set the stream to little endian, read the data via the
-			// QDataStream operators to ensure correct byte swapping			
-			case CECATSubHeader::VAX_Rx4:
-			{
-				stream.setByteOrder(QDataStream::LittleEndian);
-				float* ptr = (float*)m_pMatrixData->data();
-				for(unsigned int i=0; i < m_pMatrixData->size(); i+=sizeof(float))
-				{
-					stream >> *ptr;
-					++ptr;
-				}
-				stream.setByteOrder(QDataStream::BigEndian);
-			}
-			break;
-
-			// IEEEFloat is defined to be a big endian float value. As the QDataStream
-			// is per default big endian, we don't have to set it to another byte order
-			// and just use the QDataStream operators to ensure correct byte swapping
-			case CECATSubHeader::IEEEFloat:
-			{
-				float* ptr = (float*)m_pMatrixData->data();
-				for(unsigned int i=0; i < m_pMatrixData->size(); i+=sizeof(float))
-				{
-					stream >> *ptr;
-					++ptr;
-				}
-			}
-			break;
-
-			// SunShort is defined to be a big endian short value. As the QDataStream
-			// is per default big endian, we don't have to set it to another byte order
-			// and just use the QDataStream operators to ensure correct byte swapping
-			case CECATSubHeader::SunShort:
-			{
-				Q_UINT16* ptr = (Q_UINT16*)m_pMatrixData->data();
-				for(unsigned int i=0; i < m_pMatrixData->size(); i+=sizeof(Q_UINT16))
-				{
-					stream >> *ptr;
-					++ptr;
-				}
-			}
-			break;
-
-			// SunLong is defined to be a big endian long value. As the QDataStream
-			// is per default big endian, we don't have to set it to another byte order
-			// and just use the QDataStream operators to ensure correct byte swapping
-			case CECATSubHeader::SunLong:
-			{
-				Q_UINT32* ptr = (Q_UINT32*)m_pMatrixData->data();
-				for(unsigned int i=0; i < m_pMatrixData->size(); i+=sizeof(Q_UINT32))
-				{
-					stream >> *ptr;
-					++ptr;
-				}
-			}
-			break;
-		}		
-	
-		// and close the ECATFile
-		if(openedByUs)
-			m_pECATFile->close();
+		matrixData = new QByteArray();
+		matrixData->setRawData(data, dataLen);
 
 		result = true;
 	}
 
+	RETURN(result);
 	return result;
 }
 
-QByteArray* CECATDirectoryItem::getMatrix(void)
+bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 {
-	// first we check wheter we already have loaded the Matrix
-	// data and if not we have to first load the whole data into
-	// our private ByteArray
-	if(m_pMatrixData == NULL && loadMatrixData() == false)
+	bool result = true;
+		
+	// check if the file associated with this item is readable or
+	// not
+	if(m_pECATFile && m_pECATFile->isReadable() == false)
+		return false;
+
+	// we load the MatrixData out of the ECATFile manually but only
+	// if the access status of this item is set to "Finished"
+	if(m_iStatus == Finished)
 	{
-		return NULL;
-	}
-	
-	return m_pMatrixData;
-}
+		// before we can read in the raw data we need to read in
+		// the Subheader so that we know the data type of our raw
+		// data
+		CECATSubHeader* subHeader = NULL;
+		if(readSubHeader(subHeader) == false || subHeader == NULL)
+			return false;
 
-void* CECATDirectoryItem::getMatrixData(void)
-{
-	QByteArray* mData = getMatrix();
+		// set the ECATFile handle to the correct position of
+		// the matrix start. This should normally be
+		// Matrix_SubHeader_StartPosition+1
+		m_pECATFile->at(m_iDataBlock_Start+subHeader->size());
 
-	if(mData)
-		return mData->data();
+		// then we allocate some memory for loading the matrixdata
+		// this should be:
+		matrixSize = m_iDataBlock_End-m_iDataBlock_Start-subHeader->size();
+		matrixData = new char[matrixSize];
 
-	return NULL;
-}
+		// then we process the matrix data that is associated with
+		// this directoryitem.
+		// here we have to care about the correct endianess, so that
+		// we convert BIG->LITTLE or vise versa depending on the
+		// system we are running.
+		switch(subHeader->data_Type())
+		{
+			case CECATSubHeader::UnkownMatrixDataType:
+			{
+				W("No or an unknown data type was set for the matrix data of dirItem %08lx",
+						convertToMatrixID(m_iFrame, m_iPlane, m_iGate, m_iBed, m_iData));
 
-void CECATDirectoryItem::setMatrixData(void* pMatrix, unsigned int size)
-{
-	if(m_pMatrixData)
-	{
-		m_pMatrixData->resetRawData(static_cast<char*>(pMatrix), size);
+				if(m_pECATFile->readBlock(matrixData, matrixSize) > 0)
+					result = true;
+			}
+			break;
+
+			// write out Byte data. (1 byte)
+			case CECATSubHeader::ByteData:
+			{
+				if(m_pECATFile->readBlock(matrixData, matrixSize) > 0)
+					result = true;
+			}
+			break;
+
+			// VAX_Ix2 is a little endian short value, so we
+			// need to set the stream to little endian, read the data via the
+			// QDataStream operators to ensure correct byte swapping
+			case CECATSubHeader::VAX_Ix2:
+			{
+				// the endianess conversion takes quite some time, so
+				// what we do is to us a temporarly buffer to which we read
+				// some data from our fileStream and read out to our QByteArray
+				QByteArray bufArray(8192); // read 8KB chunks
+				for(unsigned int read=0; read < matrixSize;)
+				{
+					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
+					unsigned int curRead = m_pECATFile->readBlock(bufArray.data(), toRead);
+					if(curRead != toRead)
+					{
+						result = false;
+						break;
+					}
+
+					// check if the curRead value is divide able through our data type 
+					ASSERT(curRead % sizeof(Q_UINT16) == 0);
+
+					// now that we have our chunk we use a bufferStream to stream
+					// out the values from it for making sure our data is correctly
+					// converted regarding to little/big endianess
+					QDataStream bufStream(bufArray, IO_ReadOnly);
+					bufStream.setByteOrder(QDataStream::LittleEndian);
+					Q_UINT16* ptr = (Q_UINT16*)matrixData;
+					for(unsigned int i=0; i < curRead; i+=sizeof(Q_UINT16))
+					{
+						bufStream >> *ptr;
+						++ptr;
+					}
+					bufStream.setByteOrder(QDataStream::BigEndian);
+
+					// increase our read counter
+					read += curRead;
+				}
+			}
+			break;
+
+			// VAX_Ix4 is a little endian long value, so we
+			// need to set the stream to little endian, read the data via the
+			// QDataStream operators to ensure correct byte swapping
+			case CECATSubHeader::VAX_Ix4:
+			{
+				// the endianess conversion takes quite some time, so
+				// what we do is to us a temporarly buffer to which we read
+				// some data from our fileStream and read out to our QByteArray
+				QByteArray bufArray(8192); // read 8KB chunks
+				for(unsigned int read=0; read < matrixSize;)
+				{
+					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
+					unsigned int curRead = m_pECATFile->readBlock(bufArray.data(), toRead);
+					if(curRead != toRead)
+					{
+						result = false;
+						break;
+					}
+
+					// check if the curRead value is divide able through our data type 
+					ASSERT(curRead % sizeof(Q_UINT32) == 0);
+
+					// now that we have our chunk we use a bufferStream to stream
+					// out the values from it for making sure our data is correctly
+					// converted regarding to little/big endianess
+					QDataStream bufStream(bufArray, IO_ReadOnly);
+					bufStream.setByteOrder(QDataStream::LittleEndian);
+					Q_UINT32* ptr = (Q_UINT32*)matrixData;
+					for(unsigned int i=0; i < curRead; i+=sizeof(Q_UINT32))
+					{
+						bufStream >> *ptr;
+						++ptr;
+					}
+					bufStream.setByteOrder(QDataStream::BigEndian);
+
+					// increase our read counter
+					read += curRead;
+				}
+			}
+			break;
+			
+			// VAX_Rx4 is a little endian float value, so we
+			// need to set the stream to little endian, read the data via the
+			// QDataStream operators to ensure correct byte swapping			
+			case CECATSubHeader::VAX_Rx4:
+			{
+				// the endianess conversion takes quite some time, so
+				// what we do is to us a temporarly buffer to which we read
+				// some data from our fileStream and read out to our QByteArray
+				QByteArray bufArray(8192); // read 8KB chunks
+				for(unsigned int read=0; read < matrixSize;)
+				{
+					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
+					unsigned int curRead = m_pECATFile->readBlock(bufArray.data(), toRead);
+					if(curRead != toRead)
+					{
+						result = false;
+						break;
+					}
+
+					// check if the curRead value is divide able through our data type 
+					ASSERT(curRead % sizeof(float) == 0);
+
+					// now that we have our chunk we use a bufferStream to stream
+					// out the values from it for making sure our data is correctly
+					// converted regarding to little/big endianess
+					QDataStream bufStream(bufArray, IO_ReadOnly);
+					bufStream.setByteOrder(QDataStream::LittleEndian);
+					float* ptr = (float*)matrixData;
+					for(unsigned int i=0; i < curRead; i+=sizeof(float))
+					{
+						bufStream >> *ptr;
+						++ptr;
+					}
+					bufStream.setByteOrder(QDataStream::BigEndian);
+
+					// increase our read counter
+					read += curRead;
+				}
+			}
+			break;
+
+			// IEEEFloat is defined to be a big endian float value. As the QDataStream
+			// is per default big endian, we don't have to set it to another byte order
+			// and just use the QDataStream operators to ensure correct byte swapping
+			case CECATSubHeader::IEEEFloat:
+			{
+				// the endianess conversion takes quite some time, so
+				// what we do is to us a temporarly buffer to which we read
+				// some data from our fileStream and read out to our QByteArray
+				QByteArray bufArray(8192); // read 8KB chunks
+				for(unsigned int read=0; read < matrixSize;)
+				{
+					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
+					unsigned int curRead = m_pECATFile->readBlock(bufArray.data(), toRead);
+					if(curRead != toRead)
+					{
+						result = false;
+						break;
+					}
+
+					// check if the curRead value is divide able through our data type 
+					ASSERT(curRead % sizeof(float) == 0);
+
+					// now that we have our chunk we use a bufferStream to stream
+					// out the values from it for making sure our data is correctly
+					// converted regarding to little/big endianess
+					QDataStream bufStream(bufArray, IO_ReadOnly);
+					float* ptr = (float*)matrixData;
+					for(unsigned int i=0; i < curRead; i+=sizeof(float))
+					{
+						bufStream >> *ptr;
+						++ptr;
+					}
+
+					// increase our read counter
+					read += curRead;
+				}
+			}
+			break;
+
+			// SunShort is defined to be a big endian short value. As the QDataStream
+			// is per default big endian, we don't have to set it to another byte order
+			// and just use the QDataStream operators to ensure correct byte swapping
+			case CECATSubHeader::SunShort:
+			{
+				// the endianess conversion takes quite some time, so
+				// what we do is to us a temporarly buffer to which we read
+				// some data from our fileStream and read out to our QByteArray
+				QByteArray bufArray(8192); // read 8KB chunks
+				for(unsigned int read=0; read < matrixSize;)
+				{
+					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
+					unsigned int curRead = m_pECATFile->readBlock(bufArray.data(), toRead);
+					if(curRead != toRead)
+					{
+						result = false;
+						break;
+					}
+
+					// check if the curRead value is divide able through our data type 
+					ASSERT(curRead % sizeof(Q_UINT16) == 0);
+
+					// now that we have our chunk we use a bufferStream to stream
+					// out the values from it for making sure our data is correctly
+					// converted regarding to little/big endianess
+					QDataStream bufStream(bufArray, IO_ReadOnly);
+					Q_UINT16* ptr = (Q_UINT16*)matrixData;
+					for(unsigned int i=0; i < curRead; i+=sizeof(Q_UINT16))
+					{
+						bufStream >> *ptr;
+						++ptr;
+					}
+
+					// increase our read counter
+					read += curRead;
+				}
+			}
+			break;
+
+			// SunLong is defined to be a big endian long value. As the QDataStream
+			// is per default big endian, we don't have to set it to another byte order
+			// and just use the QDataStream operators to ensure correct byte swapping
+			case CECATSubHeader::SunLong:
+			{
+				// the endianess conversion takes quite some time, so
+				// what we do is to us a temporarly buffer to which we read
+				// some data from our fileStream and read out to our QByteArray
+				QByteArray bufArray(8192); // read 8KB chunks
+				for(unsigned int read=0; read < matrixSize;)
+				{
+					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
+					unsigned int curRead = m_pECATFile->readBlock(bufArray.data(), toRead);
+					if(curRead != toRead)
+					{
+						result = false;
+						break;
+					}
+					
+					// check if the curRead value is divide able through our data type 
+					ASSERT(curRead % sizeof(Q_UINT32) == 0);
+
+					// now that we have our chunk we use a bufferStream to stream
+					// out the values from it for making sure our data is correctly
+					// converted regarding to little/big endianess
+					QDataStream bufStream(bufArray, IO_ReadOnly);
+					Q_UINT32* ptr = (Q_UINT32*)matrixData;
+					for(unsigned int i=0; i < curRead; i+=sizeof(Q_UINT32))
+					{
+						bufStream >> *ptr;
+						++ptr;
+					}
+
+					// increase our read counter
+					read += curRead;
+				}
+			}
+			break;
+		}		
+
+		// now we delete the subHeader we loaded temporarly
+		delete subHeader;
 	}
 	else
+		result = false;
+
+	RETURN(result);
+	return result;
+}
+
+bool CECATDirectoryItem::writeSubHeader(const CECATSubHeader& subHeader)
+{
+	ENTER();
+	bool result = false;
+
+	// let us check if the passed subheader is an appropiate one
+	if(m_iSubHeaderType != CECATSubHeader::Unknown)
 	{
-		m_pMatrixData = new QByteArray(size);
-		m_pMatrixData->setRawData(static_cast<char*>(pMatrix), size);
+		if(m_iSubHeaderType != subHeader.subHeaderType())
+			return false;
 	}
+	else
+		m_iSubHeaderType = subHeader.subHeaderType();
+	
+	// save the SubHeader to the stream now
+	result = subHeader.save();
+
+	RETURN(result);
+	return result;
+}
+
+bool CECATDirectoryItem::writeMatrix(const QByteArray& matrixData)
+{
+	ENTER();
+  bool result;
+
+	result = writeMatrix(matrixData.data(), matrixData.size());
+
+	RETURN(result);
+	return result;
+}
+
+bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrixSize)
+{
+	ENTER();
+	bool result = true;
+	
+	// check if the file associated with this item is writeable at all
+	if(m_pECATFile && m_pECATFile->isWritable() == false)
+	{
+		RETURN(false);
+		return false;
+	}
+
+	// before we can write out the raw data we need to read in
+	// the Subheader so that we know the data type of our raw
+	// data
+	CECATSubHeader* subHeader = NULL;
+	if(readSubHeader(subHeader) == false || subHeader == NULL)
+	{
+		RETURN(false);
+		return false;
+	}
+
+	// set the ECATFile handle to the correct position of
+	// the matrix start. This should normally be
+	// Matrix_SubHeader_StartPosition+subHeaderSize
+	m_pECATFile->at(m_iDataBlock_Start+subHeader->size());
+
+	// then we process the matrix data that is associated with
+	// this directoryitem.
+	// here we have to care about the correct endianess, so that
+	// we convert BIG->LITTLE or vise versa depending on the
+	// system we are running.
+	switch(subHeader->data_Type())
+	{
+		case CECATSubHeader::UnkownMatrixDataType:
+		{
+			W("No or an unknown data type was set for the matrix data of dirItem %08lx",
+					convertToMatrixID(m_iFrame, m_iPlane, m_iGate, m_iBed, m_iData));
+			
+			if(m_pECATFile->writeBlock(matrixData, matrixSize) == matrixSize)
+				result = true;
+		}
+		break;
+
+		// write out Byte data. (1 byte)
+		case CECATSubHeader::ByteData:
+		{
+			if(m_pECATFile->writeBlock(matrixData, matrixSize) == matrixSize)
+				result = true;
+		}
+		break;
+
+		// VAX_Ix2 is a little endian short value, so we
+		// need to set the stream to little endian, read the data via the
+		// QDataStream operators to ensure correct byte swapping
+		case CECATSubHeader::VAX_Ix2:
+		{
+			// the endianess conversion takes quite some time, so
+			// what we do is to us a temporarly buffer to which we read
+			// some data from our fileStream and read out to our QByteArray
+			QByteArray bufArray(8192); // write in 8KB chunks
+			Q_UINT16* ptr = (Q_UINT16*)matrixData;
+			for(unsigned int written=0; written < matrixSize;)
+			{
+				unsigned int toWrite = matrixSize-written >= 8192 ? 8192 : matrixSize-written;
+
+				// check if the curRead value is divide able through our data type 
+				ASSERT(toWrite % sizeof(Q_UINT16) == 0);
+
+				// now that we have our chunk we use a bufferStream to stream
+				// in the values to it for making sure our data is correctly
+				// converted regarding to little/big endianess
+				QDataStream bufStream(bufArray, IO_WriteOnly);
+				bufStream.setByteOrder(QDataStream::LittleEndian);
+				for(unsigned int i=0; i < toWrite; i+=sizeof(Q_UINT16))
+				{
+					bufStream << *ptr;
+					++ptr;
+				}
+				bufStream.setByteOrder(QDataStream::BigEndian);
+
+				// write out the data from our buffer to the file
+				if(m_pECATFile->writeBlock(bufArray.data(), toWrite) != toWrite)
+				{
+					result = false;
+					break;
+				}
+				
+				// increase our read counter
+				written += toWrite;
+			}
+		}
+		break;
+
+		// VAX_Ix4 is a little endian long value, so we
+		// need to set the stream to little endian, read the data via the
+		// QDataStream operators to ensure correct byte swapping
+		case CECATSubHeader::VAX_Ix4:
+		{
+			// the endianess conversion takes quite some time, so
+			// what we do is to us a temporarly buffer to which we read
+			// some data from our fileStream and read out to our QByteArray
+			QByteArray bufArray(8192); // write in 8KB chunks
+			Q_UINT32* ptr = (Q_UINT32*)matrixData;
+			for(unsigned int written=0; written < matrixSize;)
+			{
+				unsigned int toWrite = matrixSize-written >= 8192 ? 8192 : matrixSize-written;
+
+				// check if the curRead value is divide able through our data type 
+				ASSERT(toWrite % sizeof(Q_UINT32) == 0);
+
+				// now that we have our chunk we use a bufferStream to stream
+				// in the values to it for making sure our data is correctly
+				// converted regarding to little/big endianess
+				QDataStream bufStream(bufArray, IO_WriteOnly);
+				bufStream.setByteOrder(QDataStream::LittleEndian);
+				for(unsigned int i=0; i < toWrite; i+=sizeof(Q_UINT16))
+				{
+					bufStream << *ptr;
+					++ptr;
+				}
+				bufStream.setByteOrder(QDataStream::BigEndian);
+
+				// write out the data from our buffer to the file
+				if(m_pECATFile->writeBlock(bufArray.data(), toWrite) != toWrite)
+				{
+					result = false;
+					break;
+				}
+				
+				// increase our read counter
+				written += toWrite;
+			}
+		}
+		break;
+		
+		// VAX_Rx4 is a little endian float value, so we
+		// need to set the stream to little endian, read the data via the
+		// QDataStream operators to ensure correct byte swapping			
+		case CECATSubHeader::VAX_Rx4:
+		{
+			// the endianess conversion takes quite some time, so
+			// what we do is to us a temporarly buffer to which we read
+			// some data from our fileStream and read out to our QByteArray
+			QByteArray bufArray(8192); // write in 8KB chunks
+			float* ptr = (float*)matrixData;
+			for(unsigned int written=0; written < matrixSize;)
+			{
+				unsigned int toWrite = matrixSize-written >= 8192 ? 8192 : matrixSize-written;
+
+				// check if the curRead value is divide able through our data type 
+				ASSERT(toWrite % sizeof(float) == 0);
+
+				// now that we have our chunk we use a bufferStream to stream
+				// in the values to it for making sure our data is correctly
+				// converted regarding to little/big endianess
+				QDataStream bufStream(bufArray, IO_WriteOnly);
+				bufStream.setByteOrder(QDataStream::LittleEndian);
+				for(unsigned int i=0; i < toWrite; i+=sizeof(Q_UINT16))
+				{
+					bufStream << *ptr;
+					++ptr;
+				}
+				bufStream.setByteOrder(QDataStream::BigEndian);
+
+				// write out the data from our buffer to the file
+				if(m_pECATFile->writeBlock(bufArray.data(), toWrite) != toWrite)
+				{
+					result = false;
+					break;
+				}
+				
+				// increase our read counter
+				written += toWrite;
+			}
+		}
+		break;
+
+		// IEEEFloat is defined to be a big endian float value. As the QDataStream
+		// is per default big endian, we don't have to set it to another byte order
+		// and just use the QDataStream operators to ensure correct byte swapping
+		case CECATSubHeader::IEEEFloat:
+		{
+			// the endianess conversion takes quite some time, so
+			// what we do is to us a temporarly buffer to which we read
+			// some data from our fileStream and read out to our QByteArray
+			QByteArray bufArray(8192); // write in 8KB chunks
+			float* ptr = (float*)matrixData;
+			for(unsigned int written=0; written < matrixSize;)
+			{
+				unsigned int toWrite = matrixSize-written >= 8192 ? 8192 : matrixSize-written;
+
+				// check if the curRead value is divide able through our data type 
+				ASSERT(toWrite % sizeof(float) == 0);
+
+				// now that we have our chunk we use a bufferStream to stream
+				// in the values to it for making sure our data is correctly
+				// converted regarding to little/big endianess
+				QDataStream bufStream(bufArray, IO_WriteOnly);
+				for(unsigned int i=0; i < toWrite; i+=sizeof(Q_UINT16))
+				{
+					bufStream << *ptr;
+					++ptr;
+				}
+
+				// write out the data from our buffer to the file
+				if(m_pECATFile->writeBlock(bufArray.data(), toWrite) != toWrite)
+				{
+					result = false;
+					break;
+				}
+				
+				// increase our read counter
+				written += toWrite;
+			}
+		}
+		break;
+
+		// SunShort is defined to be a big endian short value. As the QDataStream
+		// is per default big endian, we don't have to set it to another byte order
+		// and just use the QDataStream operators to ensure correct byte swapping
+		case CECATSubHeader::SunShort:
+		{
+			// the endianess conversion takes quite some time, so
+			// what we do is to us a temporarly buffer to which we read
+			// some data from our fileStream and read out to our QByteArray
+			QByteArray bufArray(8192); // write in 8KB chunks
+			Q_UINT16* ptr = (Q_UINT16*)matrixData;
+			for(unsigned int written=0; written < matrixSize;)
+			{
+				unsigned int toWrite = matrixSize-written >= 8192 ? 8192 : matrixSize-written;
+
+				// check if the curRead value is divide able through our data type 
+				ASSERT(toWrite % sizeof(Q_UINT16) == 0);
+
+				// now that we have our chunk we use a bufferStream to stream
+				// in the values to it for making sure our data is correctly
+				// converted regarding to little/big endianess
+				QDataStream bufStream(bufArray, IO_WriteOnly);
+				for(unsigned int i=0; i < toWrite; i+=sizeof(Q_UINT16))
+				{
+					bufStream << *ptr;
+					++ptr;
+				}
+
+				// write out the data from our buffer to the file
+				if(m_pECATFile->writeBlock(bufArray.data(), toWrite) != toWrite)
+				{
+					result = false;
+					break;
+				}
+				
+				// increase our read counter
+				written += toWrite;
+			}
+
+		}
+		break;
+
+		// SunLong is defined to be a big endian long value. As the QDataStream
+		// is per default big endian, we don't have to set it to another byte order
+		// and just use the QDataStream operators to ensure correct byte swapping
+		case CECATSubHeader::SunLong:
+		{
+			// the endianess conversion takes quite some time, so
+			// what we do is to us a temporarly buffer to which we read
+			// some data from our fileStream and read out to our QByteArray
+			QByteArray bufArray(8192); // write in 8KB chunks
+			Q_UINT32* ptr = (Q_UINT32*)matrixData;
+			for(unsigned int written=0; written < matrixSize;)
+			{
+				unsigned int toWrite = matrixSize-written >= 8192 ? 8192 : matrixSize-written;
+
+				// check if the curRead value is divide able through our data type 
+				ASSERT(toWrite % sizeof(Q_UINT32) == 0);
+
+				// now that we have our chunk we use a bufferStream to stream
+				// in the values to it for making sure our data is correctly
+				// converted regarding to little/big endianess
+				QDataStream bufStream(bufArray, IO_WriteOnly);
+				for(unsigned int i=0; i < toWrite; i+=sizeof(Q_UINT16))
+				{
+					bufStream << *ptr;
+					++ptr;
+				}
+
+				// write out the data from our buffer to the file
+				if(m_pECATFile->writeBlock(bufArray.data(), toWrite) != toWrite)
+				{
+					result = false;
+					break;
+				}
+				
+				// increase our read counter
+				written += toWrite;
+			}
+
+		}
+		break;
+	}		
+
+	// now we delete the subHeader we loaded temporarly
+	delete subHeader;
+
+	if(result)
+	{
+		// at the end of our operation we calculate the new EndPosition
+		m_iDataBlock_End = m_pECATFile->at();
+		m_iStatus = CECATDirectoryItem::Finished;
+	}
+
+	RETURN(result);
+	return result;
+}
+
+QDataStream& operator<<(QDataStream& stream, const CECATDirectoryItem& dItem)
+{
+	ENTER();
+
+	// first convert and write out the matrixID
+	Q_UINT32 matrixID = convertToMatrixID(dItem.m_iFrame,
+																				dItem.m_iPlane,
+																				dItem.m_iGate,
+																				dItem.m_iBed,
+																				dItem.m_iData);
+	stream << matrixID;
+	
+	// then we read out the rest
+	Q_UINT32 dataBlock_Start = FilePos2ECATBlock(dItem.m_iDataBlock_Start);
+	stream << dataBlock_Start;
+
+	Q_UINT32 dataBlock_End = FilePos2ECATBlock(dItem.m_iDataBlock_End);
+	stream << dataBlock_End;
+	
+	Q_INT32 matrixStatus = static_cast<Q_INT32>(dItem.m_iStatus);
+	stream << matrixStatus;
+
+	LEAVE();
+	return stream;
+}
+
+QDataStream& operator>>(QDataStream& stream, CECATDirectoryItem& dItem)
+{
+	ENTER();
+
+	// first read and convert the matrixID
+	Q_UINT32 matrixID;
+	stream >> matrixID;
+	dItem.m_iFrame = matrixID2Frame(matrixID);
+	dItem.m_iPlane = matrixID2Plane(matrixID);
+	dItem.m_iGate  = matrixID2Gate(matrixID);
+	dItem.m_iBed   = matrixID2Bed(matrixID);
+	dItem.m_iData  = matrixID2Data(matrixID);
+
+	// then we read out the rest
+	Q_UINT32 dataBlock_Start;
+	stream >> dataBlock_Start;
+	dItem.m_iDataBlock_Start = ECATBlock2FilePos(dataBlock_Start);
+
+	Q_UINT32 dataBlock_End;
+	stream >> dataBlock_End;
+	dItem.m_iDataBlock_End = ECATBlock2FilePos(dataBlock_End);
+
+	Q_INT32 matrixStatus;
+	stream >> matrixStatus;
+	dItem.m_iStatus = static_cast<CECATDirectoryItem::AccessStatus>(matrixStatus);
+
+	// output some debug information.
+	D("DItem.Matrix_ID    : %08lx (%d/%d/%d/%d/%d)", matrixID,
+																									 dItem.m_iFrame,
+																									 dItem.m_iPlane,
+																									 dItem.m_iGate,
+																									 dItem.m_iBed,
+																									 dItem.m_iData);
+
+	D("DItem.Matrix_Start : %d", dItem.m_iDataBlock_Start);
+	D("DItem.Matrix_End   : %d", dItem.m_iDataBlock_End);
+	D("DItem.Matrix_Status: %d", dItem.m_iStatus);
+	
+	LEAVE();
+	return stream;
 }

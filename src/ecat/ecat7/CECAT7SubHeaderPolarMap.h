@@ -29,6 +29,7 @@
 #include "CECATSubHeader.h"
 
 // forward declarations
+class CECATFile;
 
 class Q_EXPORT CECAT7SubHeaderPolarMap : public CECATSubHeader
 {
@@ -46,15 +47,19 @@ class Q_EXPORT CECAT7SubHeaderPolarMap : public CECATSubHeader
 														PMapCalcProtoUsed		=	(1<<8) };
 
 		// constructors
-		CECAT7SubHeaderPolarMap();
+		CECAT7SubHeaderPolarMap(CECATFile* ecatFile,
+														CECATDirectoryItem* pDirItem);
 		CECAT7SubHeaderPolarMap(const CECAT7SubHeaderPolarMap& sh);
 			
 		// public methods
-		bool load(QDataStream& stream);
-		bool save(QDataStream& stream);
-		CECATSubHeader::Type rtti(void) const
+		bool load(void);
+		bool save(void) const;
+
+		CECATSubHeader::Type subHeaderType(void) const
 		{ return CECATSubHeader::ECAT7_PolarMap; }
-		int size() const {return ECAT7_POLARMAP_HEADER_SIZE;}
+		
+		int size() const 
+		{	return ECAT7_HEADERSIZE_POLARMAP; }
 
 		// data access methods
 		CECATSubHeader::Data_Type data_Type(void) const

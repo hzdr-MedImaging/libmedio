@@ -25,78 +25,62 @@
 #define CECATDIRECTORY_H
 
 #include <qintdict.h>
+#include <qiodevice.h>
+#include <qvaluevector.h>
 
 #include "CECATDirectoryItem.h"
 
 // forward declarations
 class CECATFile;
 
-class Q_EXPORT CECATDirectory
+class Q_EXPORT CECATDirectory : protected QIntDict<CECATDirectoryItem>
 {
 	public:
-		CECATDirectory(CECATSubHeader::Type subHeaderType =
-									 CECATSubHeader::Unknown);
+		CECATDirectory(CECATFile* ecatFile,
+									 CECATSubHeader::Type subHeaderType =
+											CECATSubHeader::Unknown);
+		~CECATDirectory();
 
 		// file i/o routines
-		bool load(CECATFile* pFile);
-		bool save(CECATFile* pFile);
+		bool load(void);
+		bool save(void) const;
 
 		// accessor methods
 		CECATDirectoryItem* getItem(short frame=1, short plane=1,
 																short gate=1, short bed=0, short data=0);
-		CECATSubHeader* getSubHeader(short frame=1, short plane=1,
-																 short gate=1, short bed=0, short data=0);
-		QByteArray* getMatrix(short frame=1, short plane=1, short gate=1,
-													short bed=0, short data=0);
-		void* getMatrixData(short frame=1, short plane=1, short gate=1,
-												short bed=0, short data=0);
+
+		// methods to calculate the real amount
+		// of frame/plane/gate numbers carried in the directory.
+		short numFrames(void) const;
+		short numPlanes(void) const;
+		short numGates(void) const;
+		short numBedPos(void) const;
+
+		// read methods
+		bool readSubHeader(CECATSubHeader*& subHeader, short frame=1, short plane=1,
+											 short gate=1, short bed=0, short data=0);
+		bool readMatrix(QByteArray*& matrixData, short frame=1, short plane=1, short gate=1,
+										short bed=0, short data=0);
+		bool readMatrix(char*& matrixData, unsigned int& len, short frame=1, short plane=1,
+										short gate=1, short bed=0, short data=0);
 	
 		// mutabor methods
-		CECATSubHeader* newEntry(short frame=1, short plane=1, short gate=1,
-														 short bed=0, short data=0);
-		bool setMatrix(QByteArray* matrix, short frame=1, short plane=1,
-									 short gate=1, short bed=0, short data=0);
-		bool setMatrixData(void* matrix, unsigned int size, short frame=1,
-											 short plane=1, short gate=1, short bed=0, short data=0);
+		bool writeSubHeader(const CECATSubHeader& subHeader, short frame=1, short plane=1,
+												short gate=1, short bed=0, short data=0);
+		bool writeMatrix(const QByteArray& matrix, short frame=1, short plane=1,
+										 short gate=1, short bed=0, short data=0);
+		bool writeMatrix(const char* matrix, unsigned int size, short frame=1,
+										 short plane=1, short gate=1, short bed=0, short data=0);
 
 	private:
-		// private data
-		QIntDict<CECATDirectoryItem>	m_ItemDict; // storage for our
-																							// directory items
-		CECATSubHeader::Type					m_ItemType;	// this directory manages
-																							// items of this SubHeaderType
-
-		// for convience in load/saving the binary
-		// data we specify some helper structures
-		// here which we use within the loading and
-		// saving routines.
-		#pragma pack(2)
-		struct DirHead
-		{
-			Q_UINT32 FreeItems;
-			Q_UINT32 Next;
-			Q_UINT32 Prev;
-			Q_UINT32 ItemsToFollow;
-		};
-
-		struct DirItem
-		{
-			Q_UINT32 matrixID;
-			Q_UINT32 dataBlock_Start;
-			Q_UINT32 dataBlock_End;
-			Q_UINT32 matrixStatus;
-		};
-
-		struct DirList // should be 512 bytes
-		{
-			struct DirHead head;
-			struct DirItem items[31];
-		};
-		#pragma pack()
-
-		// private methods
-		friend QDataStream& operator<<(QDataStream& stream,
-																	 const struct DirList& dirList);	
+		CECATFile*						m_pECATFile;	// ptr to our associated ECATFile
+		CECATSubHeader::Type	m_iItemType;	// this directory manages
+																				// items of this SubHeaderType
+																				
+		QValueVector<QIODevice::Offset>* m_pFilePositions; // for each DirList we
+																											 // could have different file
+																											 // positions which we have
+																											 // to store
 };
 
 #endif // CECATDIRECTORY_H

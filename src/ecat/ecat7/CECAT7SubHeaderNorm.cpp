@@ -22,36 +22,62 @@
 ***************************************************************************/
 
 #include "CECAT7SubHeaderNorm.h"
+#include "CECATDirectoryItem.h"
 #include "CECATFile.h"
 
 #include <qdatastream.h>
 
 #include "debug.h"
 
-CECAT7SubHeaderNorm::CECAT7SubHeaderNorm(const CECAT7SubHeaderNorm& sh)
-	: CECATSubHeader(sh)
+CECAT7SubHeaderNorm::CECAT7SubHeaderNorm(CECATFile* ecatFile,
+																				 CECATDirectoryItem* pDirItem)
+	: CECATSubHeader(ecatFile, pDirItem)
 {
 	// check that the headsize is 512 bytes long
-	ASSERT(sizeof(struct ECAT7SubHeader_Norm) == 512);
-
-	// then copy the structure
-	memcpy(&m_Data, &sh.m_Data, sizeof(struct ECAT7SubHeader_Norm));
-}
-
-CECAT7SubHeaderNorm::CECAT7SubHeaderNorm()
-{
-	// check that the headsize is 512 bytes long
-	ASSERT(sizeof(struct ECAT7SubHeader_Norm) == 512);
+	ASSERT(sizeof(struct ECAT7SubHeader_Norm) == ECAT7_HEADERSIZE_NORM);
 
 	// then clear the structure
 	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Norm));
 }
 
-bool CECAT7SubHeaderNorm::load(QDataStream& stream)
+CECAT7SubHeaderNorm::CECAT7SubHeaderNorm(const CECAT7SubHeaderNorm& sh)
+	: CECATSubHeader(sh)
 {
+	// check that the headsize is 512 bytes long
+	ASSERT(sizeof(struct ECAT7SubHeader_Norm) == ECAT7_HEADERSIZE_NORM);
+
+	// then copy the structure
+	memcpy(&m_Data, &sh.m_Data, sizeof(struct ECAT7SubHeader_Norm));
+}
+
+bool CECAT7SubHeaderNorm::load(void)
+{
+	ENTER();
+
 	// check if the stream is readable or not.
-	if(stream.device()->isReadable() == false)
+	if(m_pMedIOData->isReadable() == false)
+	{
+		RETURN(false);
 		return false;
+	}
+
+	// set our MedIOData to the correct file position so that we can
+	// read the subheader
+	m_pMedIOData->at(m_pDirItem->dataBlock_Start());
+	
+	// we use a ByteArray buffer to speed up the endianess
+	// decoding
+	QByteArray buffer(sizeof(struct ECAT7SubHeader_Norm));
+	if(m_pMedIOData->readBlock(buffer.data(), sizeof(struct ECAT7SubHeader_Norm)) 
+			!= sizeof(struct ECAT7SubHeader_Norm))
+	{
+		RETURN(false);
+		return false;
+	}
+
+	// now we generate a QDataStream on our buffer so that we can read
+	// out of the buffer instead of the raw file (> speed)
+	QDataStream stream(buffer, IO_ReadOnly);	
 
 	// lets read in each single data element of our
 	// data structure to maintain the correct endianess of the
@@ -101,14 +127,28 @@ bool CECAT7SubHeaderNorm::load(QDataStream& stream)
 	}
 #endif
 
+	RETURN(true);
 	return true;
 }
 
-bool CECAT7SubHeaderNorm::save(QDataStream& stream)
+bool CECAT7SubHeaderNorm::save(void) const
 {
+	ENTER();
+
 	// check if this stream is writeable or not
-	if(stream.device()->isWritable() == false)
+	if(m_pMedIOData->isWritable() == false)
+	{
+		RETURN(false);
 		return false;
+	}
+
+	// set our MedIOData to the correct file position so that we can
+	// read the subheader
+	m_pMedIOData->at(m_pDirItem->dataBlock_Start());
+	
+	// we write to a buffer first and write out later directly to the file
+	QByteArray buffer(sizeof(struct ECAT7SubHeader_Norm));
+	QDataStream stream(buffer, IO_WriteOnly);
 
 	// lets write out each single data element of our
 	// data structure to maintain the correct endianess of the
@@ -133,6 +173,12 @@ bool CECAT7SubHeaderNorm::save(QDataStream& stream)
 		stream << m_Data.CTI_reserved[i];							// 123: CTI_reserved
 	for(int i=0; i < 50; i++)
 		stream << m_Data.User_Reserved[i];						// 412: User_Reserved
-	
-	return true;
+
+	// now write out to our outStream
+	bool result = false;
+	if(m_pMedIOData->writeBlock(buffer) != -1)
+		result = true;
+
+	RETURN(result);
+	return result;
 }

@@ -24,6 +24,7 @@
 #include "CECAT7MainHeader.h"
 #include "CECATFile.h"
 
+#include <qcstring.h>
 #include <qdatastream.h>
 #include <qdatetime.h>
 #include <qfileinfo.h>
@@ -33,7 +34,7 @@
 #include "debug.h"
 
 CECAT7MainHeader::CECAT7MainHeader(const CECAT7MainHeader& mh)
-	: CECATMainHeader()
+	: CECATMainHeader(mh.m_pMedIOData)
 {
 	// make 100% sure that the ECAT7 MainHeader is just 512bytes long.
   ASSERT(sizeof(struct ECAT7MainHeader) == 512);
@@ -42,8 +43,9 @@ CECAT7MainHeader::CECAT7MainHeader(const CECAT7MainHeader& mh)
 	memcpy(&m_Data, &mh.m_Data, sizeof(struct ECAT7MainHeader));
 }
 
-CECAT7MainHeader::CECAT7MainHeader(CECATMainHeader::Type fileType)
-	: CECATMainHeader()
+CECAT7MainHeader::CECAT7MainHeader(CECATFile* ecatFile, 
+																	 CECATMainHeader::Type fileType)
+	: CECATMainHeader(ecatFile)
 {
 	// make 100% sure that the ECAT7 MainHeader is just 512bytes long.
   ASSERT(sizeof(struct ECAT7MainHeader) == 512);
@@ -197,165 +199,173 @@ void CECAT7MainHeader::updateMagicNumber(void)
 	}	
 }
 
-bool CECAT7MainHeader::load(CECATFile* pFile)
+bool CECAT7MainHeader::load(void)
 {
-	// open the ECAT7 file and get out our Main Header
-	// information
-	if(pFile->open(IO_ReadOnly))
-	{
-		QDataStream stream(pFile);
+	// only go on if the device is readable at all
+	if(m_pMedIOData->isReadable() == false)
+		return false;
 
-    // we now read out the header information stepwise
-    // as we have to care about big/little endianess, which
-		// is automatically done by the QT framework
-    stream.readRawBytes(&m_Data.Magic_Number[0], 14);         //   0: Magic_Number
-    stream.readRawBytes(&m_Data.Original_File_Name[0], 32);   //  14: Original_File_Name
-    stream >> m_Data.SW_Version;                              //  46: SW_Version
-    stream >> m_Data.System_Type;                             //  48: System_Type
-    stream >> m_Data.File_Type;                               //  50: File_Type
-    stream.readRawBytes(&m_Data.Serial_Number[0], 10);        //  52: Original_File_Name
-    stream >> m_Data.Scan_Start_Time;                         //  62: Scan_Start_Time
-    stream.readRawBytes(&m_Data.Isotope_Name[0], 8);          //  66: Isotope_Name
-    stream >> m_Data.Isotope_Halflife;                        //  74: Isotope_Halflife
-    stream.readRawBytes(&m_Data.Radiopharmaceutical[0], 32);	//  78: Radiopharmaceutical
-    stream >> m_Data.Gantry_Tilt;															// 110: Gantry_Tilt
-    stream >> m_Data.Gantry_Rotation;													// 114: Gantry_Rotation
-    stream >> m_Data.Bed_Elevation;														// 118: Bed_Elevation
-    stream >> m_Data.Intrinsic_Tilt;													// 122: Intrinsic_Tilt
-    stream >> m_Data.Wobble_Speed;														// 126: Wobble_Speed
-    stream >> m_Data.Transm_Source_Type;											// 128: Transm_Source_Type
-    stream >> m_Data.Distance_Scanned;												// 130: Distance_Scanned
-    stream >> m_Data.Transaxial_FOV;													// 134: Transaxial_FOV
-    stream >> m_Data.Angular_Compression;											// 138: Angular_Compression
-    stream >> m_Data.Coin_Samp_Mode;													// 140: Coin_Samp_Mode
-    stream >> m_Data.Axial_Samp_Mode;													// 142: Axial_Samp_Mode
-    stream >> m_Data.Calibration_Factor;											// 144: Calibration_Factor
-    stream >> m_Data.Calibration_Units;												// 148: Calibration_Units
-    stream >> m_Data.Calibration_Units_Label;									// 150: Calibration_Units_Label
-    stream >> m_Data.Compression_Code;												// 152: Compression_Code
-    stream.readRawBytes(&m_Data.Study_Type[0], 12);						// 154: Study_Type
-    stream.readRawBytes(&m_Data.Patient_ID[0], 16);						// 166: Patient_ID
-    stream.readRawBytes(&m_Data.Patient_Name[0], 32);					// 182: Patient_Name
-    stream.readRawBytes(&m_Data.Patient_Sex[0], 1);						// 214: Patient_Sex
-    stream.readRawBytes(&m_Data.Patient_Dexterity[0], 1);			// 215: Patient_Dexterity
-    stream >> m_Data.Patient_Age;															// 216: Patient_Age
-    stream >> m_Data.Patient_Height;													// 220: Patient_Height
-    stream >> m_Data.Patient_Weight;													// 224: Patient_Weight
-    stream >> m_Data.Patient_Birth_Date;											// 228: Patient_Birth_Date
-    stream.readRawBytes(&m_Data.Physician_Name[0], 32);				// 232: Physician_Name
-    stream.readRawBytes(&m_Data.Operator_Name[0], 32);				// 264: Operator_Name
-    stream.readRawBytes(&m_Data.Study_Description[0], 32);		// 296: Study_Description
-    stream >> m_Data.Acquisition_Type;												// 328: Acquisition_Type
-    stream >> m_Data.Patient_Orientation;											// 330: Patient_Orientation
-    stream.readRawBytes(&m_Data.Facility_Name[0], 20);				// 332: Facility_Name
-    stream >> m_Data.Num_Planes;															// 352: Num_Planes
-    stream >> m_Data.Num_Frames;															// 354: Num_Frames
-    stream >> m_Data.Num_Gates;																// 356: Num_Gates
-    stream >> m_Data.Num_Bed_Pos;															// 358: Num_Bed_Pos
-    stream >> m_Data.Init_Bed_Position;												// 360: Init_Bed_Position
-		for(int i=0; i < 15; i++)
-			stream >> m_Data.Bed_Offset[i];													// 364: Bed_Offset (15)
-    stream >> m_Data.Plane_Separation;												// 424: Plane_Separation
-    stream >> m_Data.Lwr_Sctr_Thres;													// 428: Lwr_Sctr_Thres
-    stream >> m_Data.Lwr_True_Thres;													// 430: Lwr_True_Thres
-    stream >> m_Data.Upr_True_Thres;													// 432: Upr_True_Thres
-    stream.readRawBytes(&m_Data.User_Process_Code[0], 10);		// 434: User_Process_Code
-    stream >> m_Data.Acquisition_Mode;												// 444: Acquisition_Mode
-    stream >> m_Data.Bin_Size;																// 446: Bin_Size
-    stream >> m_Data.Branching_Fraction;											// 450: Branching_Fraction
-    stream >> m_Data.Dose_Start_Time;													// 454: Dose_Start_Time
-    stream >> m_Data.Dosage;																	// 458: Dosage
-    stream >> m_Data.Well_Counter_Corr_Factor;								// 462: Well_Counter_Corr_Factor
-    stream.readRawBytes(&m_Data.Data_Units[0], 32);						// 466: Data_Units
-    stream >> m_Data.Septa_State;															// 498: Septa_State
-    stream >> m_Data.CTI_Reserved[0];													// 500: CTI_Reserved 1
-    stream >> m_Data.CTI_Reserved[1];													// 502: CTI_Reserved 2
-    stream >> m_Data.CTI_Reserved[2];													// 504: CTI_Reserved 3
-    stream >> m_Data.CTI_Reserved[3];													// 506: CTI_Reserved 4
-    stream >> m_Data.CTI_Reserved[4];													// 508: CTI_Reserved 5
-    stream >> m_Data.CTI_Reserved[5];													// 510: CTI_Reserved 6
+	// the main Header is always at the first block so lets set
+	// our file to this position
+	m_pMedIOData->at(0);
+
+	// we use a ByteArray buffer to speed up the endianess
+	// decoding
+	QByteArray buffer(sizeof(struct ECAT7MainHeader));
+	if(m_pMedIOData->readBlock(buffer.data(), sizeof(struct ECAT7MainHeader)) != sizeof(struct ECAT7MainHeader))
+		return false;
+
+	// now we generate a QDataStream on our buffer so that we can read
+	// out of the buffer instead of the raw file (> speed)
+	QDataStream stream(buffer, IO_ReadOnly);
+
+	// we now read out the header information stepwise
+  // as we have to care about big/little endianess, which
+	// is automatically done by the QT framework
+  stream.readRawBytes(&m_Data.Magic_Number[0], 14);         //   0: Magic_Number
+	stream.readRawBytes(&m_Data.Original_File_Name[0], 32);   //  14: Original_File_Name
+	stream >> m_Data.SW_Version;                              //  46: SW_Version
+	stream >> m_Data.System_Type;                             //  48: System_Type
+	stream >> m_Data.File_Type;                               //  50: File_Type
+	stream.readRawBytes(&m_Data.Serial_Number[0], 10);        //  52: Original_File_Name
+	stream >> m_Data.Scan_Start_Time;                         //  62: Scan_Start_Time
+	stream.readRawBytes(&m_Data.Isotope_Name[0], 8);          //  66: Isotope_Name
+	stream >> m_Data.Isotope_Halflife;                        //  74: Isotope_Halflife
+	stream.readRawBytes(&m_Data.Radiopharmaceutical[0], 32);	//  78: Radiopharmaceutical
+  stream >> m_Data.Gantry_Tilt;															// 110: Gantry_Tilt
+  stream >> m_Data.Gantry_Rotation;													// 114: Gantry_Rotation
+  stream >> m_Data.Bed_Elevation;														// 118: Bed_Elevation
+  stream >> m_Data.Intrinsic_Tilt;													// 122: Intrinsic_Tilt
+  stream >> m_Data.Wobble_Speed;														// 126: Wobble_Speed
+  stream >> m_Data.Transm_Source_Type;											// 128: Transm_Source_Type
+  stream >> m_Data.Distance_Scanned;												// 130: Distance_Scanned
+  stream >> m_Data.Transaxial_FOV;													// 134: Transaxial_FOV
+  stream >> m_Data.Angular_Compression;											// 138: Angular_Compression
+  stream >> m_Data.Coin_Samp_Mode;													// 140: Coin_Samp_Mode
+  stream >> m_Data.Axial_Samp_Mode;													// 142: Axial_Samp_Mode
+  stream >> m_Data.Calibration_Factor;											// 144: Calibration_Factor
+  stream >> m_Data.Calibration_Units;												// 148: Calibration_Units
+  stream >> m_Data.Calibration_Units_Label;									// 150: Calibration_Units_Label
+  stream >> m_Data.Compression_Code;												// 152: Compression_Code
+  stream.readRawBytes(&m_Data.Study_Type[0], 12);						// 154: Study_Type
+  stream.readRawBytes(&m_Data.Patient_ID[0], 16);						// 166: Patient_ID
+  stream.readRawBytes(&m_Data.Patient_Name[0], 32);					// 182: Patient_Name
+  stream.readRawBytes(&m_Data.Patient_Sex[0], 1);						// 214: Patient_Sex
+  stream.readRawBytes(&m_Data.Patient_Dexterity[0], 1);			// 215: Patient_Dexterity
+  stream >> m_Data.Patient_Age;															// 216: Patient_Age
+  stream >> m_Data.Patient_Height;													// 220: Patient_Height
+  stream >> m_Data.Patient_Weight;													// 224: Patient_Weight
+  stream >> m_Data.Patient_Birth_Date;											// 228: Patient_Birth_Date
+  stream.readRawBytes(&m_Data.Physician_Name[0], 32);				// 232: Physician_Name
+  stream.readRawBytes(&m_Data.Operator_Name[0], 32);				// 264: Operator_Name
+  stream.readRawBytes(&m_Data.Study_Description[0], 32);		// 296: Study_Description
+  stream >> m_Data.Acquisition_Type;												// 328: Acquisition_Type
+  stream >> m_Data.Patient_Orientation;											// 330: Patient_Orientation
+  stream.readRawBytes(&m_Data.Facility_Name[0], 20);				// 332: Facility_Name
+  stream >> m_Data.Num_Planes;															// 352: Num_Planes
+  stream >> m_Data.Num_Frames;															// 354: Num_Frames
+  stream >> m_Data.Num_Gates;																// 356: Num_Gates
+  stream >> m_Data.Num_Bed_Pos;															// 358: Num_Bed_Pos
+  stream >> m_Data.Init_Bed_Position;												// 360: Init_Bed_Position
+	for(int i=0; i < 15; i++)
+		stream >> m_Data.Bed_Offset[i];													// 364: Bed_Offset (15)
+  stream >> m_Data.Plane_Separation;												// 424: Plane_Separation
+  stream >> m_Data.Lwr_Sctr_Thres;													// 428: Lwr_Sctr_Thres
+  stream >> m_Data.Lwr_True_Thres;													// 430: Lwr_True_Thres
+  stream >> m_Data.Upr_True_Thres;													// 432: Upr_True_Thres
+  stream.readRawBytes(&m_Data.User_Process_Code[0], 10);		// 434: User_Process_Code
+  stream >> m_Data.Acquisition_Mode;												// 444: Acquisition_Mode
+  stream >> m_Data.Bin_Size;																// 446: Bin_Size
+  stream >> m_Data.Branching_Fraction;											// 450: Branching_Fraction
+  stream >> m_Data.Dose_Start_Time;													// 454: Dose_Start_Time
+  stream >> m_Data.Dosage;																	// 458: Dosage
+  stream >> m_Data.Well_Counter_Corr_Factor;								// 462: Well_Counter_Corr_Factor
+  stream.readRawBytes(&m_Data.Data_Units[0], 32);						// 466: Data_Units
+  stream >> m_Data.Septa_State;															// 498: Septa_State
+  stream >> m_Data.CTI_Reserved[0];													// 500: CTI_Reserved 1
+  stream >> m_Data.CTI_Reserved[1];													// 502: CTI_Reserved 2
+  stream >> m_Data.CTI_Reserved[2];													// 504: CTI_Reserved 3
+  stream >> m_Data.CTI_Reserved[3];													// 506: CTI_Reserved 4
+  stream >> m_Data.CTI_Reserved[4];													// 508: CTI_Reserved 5
+  stream >> m_Data.CTI_Reserved[5];													// 510: CTI_Reserved 6
     
-		// some more debug output
+	// some more debug output
 #if defined(DEBUG)
-		QDateTime time;
-		D("ECAT7 Main Header loaded:");
-		D("------------------------");
-		D("Magic_Number            : %s",					    m_Data.Magic_Number);
-		D("Original_File_Name      : %s",  	 	 	 	    m_Data.Original_File_Name);
-		D("SW_Version              : %d",  	 	 	 	    m_Data.SW_Version);
-		D("System_Type             : %d",  	 	 	 	    m_Data.System_Type);
-		D("File_Type               : %d",  	 	 	 	    m_Data.File_Type);
-		D("Serial_Number           : %s",  	 	 	 	    m_Data.Serial_Number);
-		time.setTime_t(m_Data.Scan_Start_Time);
-		D("Scan_Start_Time         : %s",  	 	 	 	    time.toString().ascii());
-		D("Isotope Name            : %s",  	 	 	 	    m_Data.Isotope_Name);
-		D("Isotope Halflife        : %f sec",				  m_Data.Isotope_Halflife);
-		D("Radiopharmaca           : %s",			 	 		  m_Data.Radiopharmaceutical);
-		D("Gantry Tilt             : %f°",					  m_Data.Gantry_Tilt);
-		D("Gantry Rotation         : %f°",			 	 	  m_Data.Gantry_Rotation);
-		D("Bed elevation           : %f cm",		 	 	  m_Data.Bed_Elevation);
-		D("Intrinsic Tilt          : %f°",						m_Data.Intrinsic_Tilt);
-		D("Wobble Speed            : %d r/min",				m_Data.Wobble_Speed);
-		D("TransmSrcType           : %d",				      m_Data.Transm_Source_Type);
-		D("Distance Scanned        : %d cm",		      m_Data.Distance_Scanned);
-		D("Transaxial FOV          : %d cm",		      m_Data.Transaxial_FOV);
-		D("Angular Compression     : %d",				      m_Data.Angular_Compression);
-		D("Coin Samp Mode          : %d",				      m_Data.Coin_Samp_Mode);
-		D("Axial Samp Mode         : %d",				      m_Data.Axial_Samp_Mode);
-		D("Calibration Factor      : %f",				      m_Data.Calibration_Factor);
-		D("Calibration Units	     : %d",				      m_Data.Calibration_Units);
-		D("Calibration Units Label : %d",							m_Data.Calibration_Units_Label);
-		D("Compression Code        : %d",							m_Data.Compression_Code);
-		D("Studytype               : %s",							m_Data.Study_Type);
-		D("Patient ID              : %s",							m_Data.Patient_ID);
-		D("Patient Name            : %s",							m_Data.Patient_Name);
-		D("Patient Sex             : %c",							m_Data.Patient_Sex[0]);
-		D("Patient Dexterity       : %c",							m_Data.Patient_Dexterity[0]);
-		D("Patient Age             : %f years",				m_Data.Patient_Age);
-		D("Patient Height          : %f cm",					m_Data.Patient_Height);
-		D("Patient Weight          : %f kg",					m_Data.Patient_Weight);
-		time.setTime_t(m_Data.Patient_Birth_Date);
-		D("Patient Birthdate       : %s",							time.toString().ascii());
-		D("Physician Name          : %s",							m_Data.Physician_Name);
-		D("Operator Name           : %s",							m_Data.Operator_Name);
-		D("Study Description       : %s",							m_Data.Study_Description);
-		D("Acquisition Type        : %d",							m_Data.Acquisition_Type);
-		D("Patient Orientation     : %d",							m_Data.Patient_Orientation);
-		D("Facility Name           : %s",							m_Data.Facility_Name);
-		D("Planes                  : %d",							m_Data.Num_Planes);
-		D("Frames                  : %d",							m_Data.Num_Frames);
-		D("Gates                   : %d",							m_Data.Num_Gates);
-		D("Bed positions           : %d",							m_Data.Num_Bed_Pos);
-		D("Initial Bed position    : %f cm",					m_Data.Init_Bed_Position);
-		for(int i=0; i < m_Data.Num_Bed_Pos; i++)
-		{
-			D("Bed offset          [%2d]: %f cm", i+1, m_Data.Bed_Offset[i]);
-		}
-		D("Plane seperation        : %f cm",					m_Data.Plane_Separation);
-		D("Lowest Threshold Scatter: %d KeV",					m_Data.Lwr_Sctr_Thres);
-		D("Lower Threshold Trues   : %d KeV",					m_Data.Lwr_True_Thres);
-		D("Upper Threshold Trues   : %d KeV",					m_Data.Upr_True_Thres);
-		D("User Process Code       : %s",							m_Data.User_Process_Code);
-		D("Acquisition Mode        : %d",							m_Data.Acquisition_Mode);
-		D("Bin Size                : %f cm",					m_Data.Bin_Size);
-		D("Branching Fraction      : %f",							m_Data.Branching_Fraction);
-		time.setTime_t(m_Data.Dose_Start_Time);
-		D("Dose start time         : %s",							time.toString().ascii());
-		D("Dosage                  : %f Bq/cc",				m_Data.Dosage);
-		D("Well counter corr factor: %f",							m_Data.Well_Counter_Corr_Factor);
-		D("Data units              : %s",							m_Data.Data_Units);
-		D("Septa state             : %d",							m_Data.Septa_State);
-		D("CTI reserved            : %lx",						m_Data.CTI_Reserved);
+	QDateTime time;
+	D("ECAT7 Main Header loaded:");
+	D("------------------------");
+	D("Magic_Number            : %s",					    m_Data.Magic_Number);
+	D("Original_File_Name      : %s",  	 	 	 	    m_Data.Original_File_Name);
+	D("SW_Version              : %d",  	 	 	 	    m_Data.SW_Version);
+	D("System_Type             : %d",  	 	 	 	    m_Data.System_Type);
+	D("File_Type               : %d",  	 	 	 	    m_Data.File_Type);
+	D("Serial_Number           : %s",  	 	 	 	    m_Data.Serial_Number);
+	time.setTime_t(m_Data.Scan_Start_Time);
+	D("Scan_Start_Time         : %s",  	 	 	 	    time.toString().ascii());
+	D("Isotope Name            : %s",  	 	 	 	    m_Data.Isotope_Name);
+	D("Isotope Halflife        : %f sec",				  m_Data.Isotope_Halflife);
+	D("Radiopharmaca           : %s",			 	 		  m_Data.Radiopharmaceutical);
+	D("Gantry Tilt             : %f°",					  m_Data.Gantry_Tilt);
+	D("Gantry Rotation         : %f°",			 	 	  m_Data.Gantry_Rotation);
+	D("Bed elevation           : %f cm",		 	 	  m_Data.Bed_Elevation);
+	D("Intrinsic Tilt          : %f°",						m_Data.Intrinsic_Tilt);
+	D("Wobble Speed            : %d r/min",				m_Data.Wobble_Speed);
+	D("TransmSrcType           : %d",				      m_Data.Transm_Source_Type);
+	D("Distance Scanned        : %d cm",		      m_Data.Distance_Scanned);
+	D("Transaxial FOV          : %d cm",		      m_Data.Transaxial_FOV);
+	D("Angular Compression     : %d",				      m_Data.Angular_Compression);
+	D("Coin Samp Mode          : %d",				      m_Data.Coin_Samp_Mode);
+	D("Axial Samp Mode         : %d",				      m_Data.Axial_Samp_Mode);
+	D("Calibration Factor      : %f",				      m_Data.Calibration_Factor);
+	D("Calibration Units	     : %d",				      m_Data.Calibration_Units);
+	D("Calibration Units Label : %d",							m_Data.Calibration_Units_Label);
+	D("Compression Code        : %d",							m_Data.Compression_Code);
+	D("Studytype               : %s",							m_Data.Study_Type);
+	D("Patient ID              : %s",							m_Data.Patient_ID);
+	D("Patient Name            : %s",							m_Data.Patient_Name);
+	D("Patient Sex             : %c",							m_Data.Patient_Sex[0]);
+	D("Patient Dexterity       : %c",							m_Data.Patient_Dexterity[0]);
+	D("Patient Age             : %f years",				m_Data.Patient_Age);
+	D("Patient Height          : %f cm",					m_Data.Patient_Height);
+	D("Patient Weight          : %f kg",					m_Data.Patient_Weight);
+	time.setTime_t(m_Data.Patient_Birth_Date);
+	D("Patient Birthdate       : %s",							time.toString().ascii());
+	D("Physician Name          : %s",							m_Data.Physician_Name);
+	D("Operator Name           : %s",							m_Data.Operator_Name);
+	D("Study Description       : %s",							m_Data.Study_Description);
+	D("Acquisition Type        : %d",							m_Data.Acquisition_Type);
+	D("Patient Orientation     : %d",							m_Data.Patient_Orientation);
+	D("Facility Name           : %s",							m_Data.Facility_Name);
+	D("Planes                  : %d",							m_Data.Num_Planes);
+	D("Frames                  : %d",							m_Data.Num_Frames);
+	D("Gates                   : %d",							m_Data.Num_Gates);
+	D("Bed positions           : %d",							m_Data.Num_Bed_Pos);
+	D("Initial Bed position    : %f cm",					m_Data.Init_Bed_Position);
+	for(int i=0; i < m_Data.Num_Bed_Pos; i++)
+	{
+		D("Bed offset          [%2d]: %f cm", i+1, m_Data.Bed_Offset[i]);
+	}
+	D("Plane seperation        : %f cm",					m_Data.Plane_Separation);
+	D("Lowest Threshold Scatter: %d KeV",					m_Data.Lwr_Sctr_Thres);
+	D("Lower Threshold Trues   : %d KeV",					m_Data.Lwr_True_Thres);
+	D("Upper Threshold Trues   : %d KeV",					m_Data.Upr_True_Thres);
+	D("User Process Code       : %s",							m_Data.User_Process_Code);
+	D("Acquisition Mode        : %d",							m_Data.Acquisition_Mode);
+	D("Bin Size                : %f cm",					m_Data.Bin_Size);
+	D("Branching Fraction      : %f",							m_Data.Branching_Fraction);
+	time.setTime_t(m_Data.Dose_Start_Time);
+	D("Dose start time         : %s",							time.toString().ascii());
+	D("Dosage                  : %f Bq/cc",				m_Data.Dosage);
+	D("Well counter corr factor: %f",							m_Data.Well_Counter_Corr_Factor);
+	D("Data units              : %s",							m_Data.Data_Units);
+	D("Septa state             : %d",							m_Data.Septa_State);
+	D("CTI reserved            : %lx",						m_Data.CTI_Reserved);
 #endif
 
-		pFile->close();
-
-		return true;
-	}
-
-	return false;
+	return true;
 }
 
+/*
 bool CECAT7MainHeader::load(QTextStream& stream)
 {
 	bool success = true;
@@ -529,111 +539,120 @@ bool CECAT7MainHeader::load(QTextStream& stream)
 
 	return success;
 }
+*/
 
-bool CECAT7MainHeader::save(CECATFile* pFile)
+bool CECAT7MainHeader::save(void) const
 {
-	// open the ECAT7 file to write out our main header
-	// to the ecat file.
-	if(pFile->open(IO_WriteOnly))
+	ENTER();
+
+	// only go on if the device is writeable at all
+	if(m_pMedIOData->isWritable() == false)
 	{
-		QDataStream stream(pFile);
-
-		// before we write out the MainHeader we set the OriginalFilename
-		// to the current one
-		strncpy(m_Data.Original_File_Name, QFileInfo(pFile->name()).fileName().ascii(), 32);
-
-    // we now read out the header information stepwise
-    // as we have to care about big/little endianess, which
-		// is automatically done by the QT framework
-    stream.writeRawBytes(&m_Data.Magic_Number[0], 14);        //   0: Magic_Number
-    stream.writeRawBytes(&m_Data.Original_File_Name[0], 32);  //  14: Original_File_Name
-    stream << m_Data.SW_Version;                              //  46: SW_Version
-    stream << m_Data.System_Type;                             //  48: System_Type
-    stream << m_Data.File_Type;                               //  50: File_Type
-    stream.writeRawBytes(&m_Data.Serial_Number[0], 10);       //  52: Original_File_Name
-    stream << m_Data.Scan_Start_Time;                         //  62: Scan_Start_Time
-    stream.writeRawBytes(&m_Data.Isotope_Name[0], 8);         //  66: Isotope_Name
-    stream << m_Data.Isotope_Halflife;                        //  74: Isotope_Halflife
-    stream.writeRawBytes(&m_Data.Radiopharmaceutical[0], 32);	//  78: Radiopharmaceutical
-    stream << m_Data.Gantry_Tilt;															// 110: Gantry_Tilt
-    stream << m_Data.Gantry_Rotation;													// 114: Gantry_Rotation
-    stream << m_Data.Bed_Elevation;														// 118: Bed_Elevation
-    stream << m_Data.Intrinsic_Tilt;													// 122: Intrinsic_Tilt
-    stream << m_Data.Wobble_Speed;														// 126: Wobble_Speed
-    stream << m_Data.Transm_Source_Type;											// 128: Transm_Source_Type
-    stream << m_Data.Distance_Scanned;												// 130: Distance_Scanned
-    stream << m_Data.Transaxial_FOV;													// 134: Transaxial_FOV
-    stream << m_Data.Angular_Compression;											// 138: Angular_Compression
-    stream << m_Data.Coin_Samp_Mode;													// 140: Coin_Samp_Mode
-    stream << m_Data.Axial_Samp_Mode;													// 142: Axial_Samp_Mode
-    stream << m_Data.Calibration_Factor;											// 144: Calibration_Factor
-    stream << m_Data.Calibration_Units;												// 148: Calibration_Units
-    stream << m_Data.Calibration_Units_Label;									// 150: Calibration_Units_Label
-    stream << m_Data.Compression_Code;												// 152: Compression_Code
-    stream.writeRawBytes(&m_Data.Study_Type[0], 12);					// 154: Study_Type
-    stream.writeRawBytes(&m_Data.Patient_ID[0], 16);					// 166: Patient_ID
-    stream.writeRawBytes(&m_Data.Patient_Name[0], 32);				// 182: Patient_Name
-    stream.writeRawBytes(&m_Data.Patient_Sex[0], 1);					// 214: Patient_Sex
-    stream.writeRawBytes(&m_Data.Patient_Dexterity[0], 1);		// 215: Patient_Dexterity
-    stream << m_Data.Patient_Age;															// 216: Patient_Age
-    stream << m_Data.Patient_Height;													// 220: Patient_Height
-    stream << m_Data.Patient_Weight;													// 224: Patient_Weight
-    stream << m_Data.Patient_Birth_Date;											// 228: Patient_Birth_Date
-    stream.writeRawBytes(&m_Data.Physician_Name[0], 32);			// 232: Physician_Name
-    stream.writeRawBytes(&m_Data.Operator_Name[0], 32);				// 264: Operator_Name
-    stream.writeRawBytes(&m_Data.Study_Description[0], 32);		// 296: Study_Description
-    stream << m_Data.Acquisition_Type;												// 328: Acquisition_Type
-    stream << m_Data.Patient_Orientation;											// 330: Patient_Orientation
-    stream.writeRawBytes(&m_Data.Facility_Name[0], 20);				// 332: Facility_Name
-    stream << m_Data.Num_Planes;															// 352: Num_Planes
-    stream << m_Data.Num_Frames;															// 354: Num_Frames
-    stream << m_Data.Num_Gates;																// 356: Num_Gates
-    stream << m_Data.Num_Bed_Pos;															// 358: Num_Bed_Pos
-    stream << m_Data.Init_Bed_Position;												// 360: Init_Bed_Position
-    stream << m_Data.Bed_Offset[0];														// 364: Bed_Offset 1
-    stream << m_Data.Bed_Offset[1];														// 368: Bed_Offset 2
-    stream << m_Data.Bed_Offset[2];														// 372: Bed_Offset 3
-    stream << m_Data.Bed_Offset[3];														// 376: Bed_Offset 4
-    stream << m_Data.Bed_Offset[4];														// 380: Bed_Offset 5
-    stream << m_Data.Bed_Offset[5];														// 384: Bed_Offset 6
-    stream << m_Data.Bed_Offset[6];														// 388: Bed_Offset 7
-    stream << m_Data.Bed_Offset[7];														// 392: Bed_Offset 8
-    stream << m_Data.Bed_Offset[8];														// 396: Bed_Offset 9
-    stream << m_Data.Bed_Offset[9];														// 400: Bed_Offset 10
-    stream << m_Data.Bed_Offset[10];													// 404: Bed_Offset 11
-    stream << m_Data.Bed_Offset[11];													// 408: Bed_Offset 12
-    stream << m_Data.Bed_Offset[12];													// 412: Bed_Offset 13
-    stream << m_Data.Bed_Offset[13];													// 416: Bed_Offset 14
-    stream << m_Data.Bed_Offset[14];													// 420: Bed_Offset 15
-    stream << m_Data.Plane_Separation;												// 424: Plane_Separation
-    stream << m_Data.Lwr_Sctr_Thres;													// 428: Lwr_Sctr_Thres
-    stream << m_Data.Lwr_True_Thres;													// 430: Lwr_True_Thres
-    stream << m_Data.Upr_True_Thres;													// 432: Upr_True_Thres
-    stream.writeRawBytes(&m_Data.User_Process_Code[0], 10);		// 434: User_Process_Code
-    stream << m_Data.Acquisition_Mode;												// 444: Acquisition_Mode
-    stream << m_Data.Bin_Size;																// 446: Bin_Size
-    stream << m_Data.Branching_Fraction;											// 450: Branching_Fraction
-    stream << m_Data.Dose_Start_Time;													// 454: Dose_Start_Time
-    stream << m_Data.Dosage;																	// 458: Dosage
-    stream << m_Data.Well_Counter_Corr_Factor;								// 462: Well_Counter_Corr_Factor
-    stream.writeRawBytes(&m_Data.Data_Units[0], 32);					// 466: Data_Units
-    stream << m_Data.Septa_State;															// 498: Septa_State
-    stream << m_Data.CTI_Reserved[0];													// 500: CTI_Reserved 1
-    stream << m_Data.CTI_Reserved[1];													// 502: CTI_Reserved 2
-    stream << m_Data.CTI_Reserved[2];													// 504: CTI_Reserved 3
-    stream << m_Data.CTI_Reserved[3];													// 506: CTI_Reserved 4
-    stream << m_Data.CTI_Reserved[4];													// 508: CTI_Reserved 5
-    stream << m_Data.CTI_Reserved[5];													// 510: CTI_Reserved 6
-
-		// and then close it again
-		pFile->close();
-
-		return true;
+		RETURN(false);
+		return false;
 	}
 
-	return false;
+	// the main Header is always at the first block so lets set
+	// our file to this position
+	m_pMedIOData->at(0);
+	
+	// we write to a buffer first and write out later directly to the file
+	QByteArray buffer(sizeof(struct ECAT7MainHeader));
+	QDataStream stream(buffer, IO_WriteOnly);
+
+  // we now read out the header information stepwise
+  // as we have to care about big/little endianess, which
+	// is automatically done by the QT framework
+	stream.writeRawBytes(&m_Data.Magic_Number[0], 14);        //   0: Magic_Number
+  stream.writeRawBytes(&m_Data.Original_File_Name[0], 32);  //  14: Original_File_Name
+  stream << m_Data.SW_Version;                              //  46: SW_Version
+  stream << m_Data.System_Type;                             //  48: System_Type
+  stream << m_Data.File_Type;                               //  50: File_Type
+  stream.writeRawBytes(&m_Data.Serial_Number[0], 10);       //  52: Original_File_Name
+  stream << m_Data.Scan_Start_Time;                         //  62: Scan_Start_Time
+  stream.writeRawBytes(&m_Data.Isotope_Name[0], 8);         //  66: Isotope_Name
+  stream << m_Data.Isotope_Halflife;                        //  74: Isotope_Halflife
+  stream.writeRawBytes(&m_Data.Radiopharmaceutical[0], 32);	//  78: Radiopharmaceutical
+  stream << m_Data.Gantry_Tilt;															// 110: Gantry_Tilt
+  stream << m_Data.Gantry_Rotation;													// 114: Gantry_Rotation
+  stream << m_Data.Bed_Elevation;														// 118: Bed_Elevation
+  stream << m_Data.Intrinsic_Tilt;													// 122: Intrinsic_Tilt
+  stream << m_Data.Wobble_Speed;														// 126: Wobble_Speed
+  stream << m_Data.Transm_Source_Type;											// 128: Transm_Source_Type
+  stream << m_Data.Distance_Scanned;												// 130: Distance_Scanned
+  stream << m_Data.Transaxial_FOV;													// 134: Transaxial_FOV
+  stream << m_Data.Angular_Compression;											// 138: Angular_Compression
+  stream << m_Data.Coin_Samp_Mode;													// 140: Coin_Samp_Mode
+  stream << m_Data.Axial_Samp_Mode;													// 142: Axial_Samp_Mode
+  stream << m_Data.Calibration_Factor;											// 144: Calibration_Factor
+  stream << m_Data.Calibration_Units;												// 148: Calibration_Units
+  stream << m_Data.Calibration_Units_Label;									// 150: Calibration_Units_Label
+  stream << m_Data.Compression_Code;												// 152: Compression_Code
+  stream.writeRawBytes(&m_Data.Study_Type[0], 12);					// 154: Study_Type
+  stream.writeRawBytes(&m_Data.Patient_ID[0], 16);					// 166: Patient_ID
+  stream.writeRawBytes(&m_Data.Patient_Name[0], 32);				// 182: Patient_Name
+  stream.writeRawBytes(&m_Data.Patient_Sex[0], 1);					// 214: Patient_Sex
+  stream.writeRawBytes(&m_Data.Patient_Dexterity[0], 1);		// 215: Patient_Dexterity
+  stream << m_Data.Patient_Age;															// 216: Patient_Age
+  stream << m_Data.Patient_Height;													// 220: Patient_Height
+  stream << m_Data.Patient_Weight;													// 224: Patient_Weight
+  stream << m_Data.Patient_Birth_Date;											// 228: Patient_Birth_Date
+  stream.writeRawBytes(&m_Data.Physician_Name[0], 32);			// 232: Physician_Name
+  stream.writeRawBytes(&m_Data.Operator_Name[0], 32);				// 264: Operator_Name
+  stream.writeRawBytes(&m_Data.Study_Description[0], 32);		// 296: Study_Description
+  stream << m_Data.Acquisition_Type;												// 328: Acquisition_Type
+  stream << m_Data.Patient_Orientation;											// 330: Patient_Orientation
+  stream.writeRawBytes(&m_Data.Facility_Name[0], 20);				// 332: Facility_Name
+  stream << m_Data.Num_Planes;															// 352: Num_Planes
+  stream << m_Data.Num_Frames;															// 354: Num_Frames
+  stream << m_Data.Num_Gates;																// 356: Num_Gates
+  stream << m_Data.Num_Bed_Pos;															// 358: Num_Bed_Pos
+  stream << m_Data.Init_Bed_Position;												// 360: Init_Bed_Position
+  stream << m_Data.Bed_Offset[0];														// 364: Bed_Offset 1
+  stream << m_Data.Bed_Offset[1];														// 368: Bed_Offset 2
+  stream << m_Data.Bed_Offset[2];														// 372: Bed_Offset 3
+  stream << m_Data.Bed_Offset[3];														// 376: Bed_Offset 4
+  stream << m_Data.Bed_Offset[4];														// 380: Bed_Offset 5
+  stream << m_Data.Bed_Offset[5];														// 384: Bed_Offset 6
+  stream << m_Data.Bed_Offset[6];														// 388: Bed_Offset 7
+  stream << m_Data.Bed_Offset[7];														// 392: Bed_Offset 8
+  stream << m_Data.Bed_Offset[8];														// 396: Bed_Offset 9
+  stream << m_Data.Bed_Offset[9];														// 400: Bed_Offset 10
+  stream << m_Data.Bed_Offset[10];													// 404: Bed_Offset 11
+  stream << m_Data.Bed_Offset[11];													// 408: Bed_Offset 12
+  stream << m_Data.Bed_Offset[12];													// 412: Bed_Offset 13
+  stream << m_Data.Bed_Offset[13];													// 416: Bed_Offset 14
+  stream << m_Data.Bed_Offset[14];													// 420: Bed_Offset 15
+  stream << m_Data.Plane_Separation;												// 424: Plane_Separation
+  stream << m_Data.Lwr_Sctr_Thres;													// 428: Lwr_Sctr_Thres
+  stream << m_Data.Lwr_True_Thres;													// 430: Lwr_True_Thres
+  stream << m_Data.Upr_True_Thres;													// 432: Upr_True_Thres
+  stream.writeRawBytes(&m_Data.User_Process_Code[0], 10);		// 434: User_Process_Code
+  stream << m_Data.Acquisition_Mode;												// 444: Acquisition_Mode
+  stream << m_Data.Bin_Size;																// 446: Bin_Size
+  stream << m_Data.Branching_Fraction;											// 450: Branching_Fraction
+  stream << m_Data.Dose_Start_Time;													// 454: Dose_Start_Time
+  stream << m_Data.Dosage;																	// 458: Dosage
+  stream << m_Data.Well_Counter_Corr_Factor;								// 462: Well_Counter_Corr_Factor
+  stream.writeRawBytes(&m_Data.Data_Units[0], 32);					// 466: Data_Units
+  stream << m_Data.Septa_State;															// 498: Septa_State
+  stream << m_Data.CTI_Reserved[0];													// 500: CTI_Reserved 1
+  stream << m_Data.CTI_Reserved[1];													// 502: CTI_Reserved 2
+  stream << m_Data.CTI_Reserved[2];													// 504: CTI_Reserved 3
+  stream << m_Data.CTI_Reserved[3];													// 506: CTI_Reserved 4
+  stream << m_Data.CTI_Reserved[4];													// 508: CTI_Reserved 5
+  stream << m_Data.CTI_Reserved[5];													// 510: CTI_Reserved 6
+
+	// now write out to our outStream
+	bool result = false;
+	if(m_pMedIOData->writeBlock(buffer) != -1)
+		result = true;
+
+	RETURN(result);
+	return result;
 }
 
+/*
 bool CECAT7MainHeader::save(QTextStream& stream)
 {
 	bool success = true;
@@ -713,3 +732,4 @@ bool CECAT7MainHeader::save(QTextStream& stream)
 	
 	return success;
 }
+*/

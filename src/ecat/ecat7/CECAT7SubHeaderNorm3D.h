@@ -31,23 +31,28 @@
 #include <cstdlib>
 
 // forward declarations
+class CECATFile;
 
 class Q_EXPORT CECAT7SubHeaderNorm3D : public CECATSubHeader
 {
 	public:
 		// public enumeration types
-		enum Norm_Qual_Factor_Code	{	TBD };
+		enum Norm_Qual_Factor_Code { TBD };
 
 		// constructors
-		CECAT7SubHeaderNorm3D();
+		CECAT7SubHeaderNorm3D(CECATFile* ecatFile,
+													CECATDirectoryItem* pDirItem);
 		CECAT7SubHeaderNorm3D(const CECAT7SubHeaderNorm3D& sh);
 
 		// public methods
-		bool load(QDataStream& stream);
-		bool save(QDataStream& stream);
-		CECATSubHeader::Type rtti(void) const
+		bool load(void);
+		bool save(void) const;
+
+		CECATSubHeader::Type subHeaderType(void) const
 		{ return CECATSubHeader::ECAT7_Norm3D; }
-		int size() const {return ECAT7_NORM3D_HEADER_SIZE;}
+		
+		int size() const
+		{	return ECAT7_HEADERSIZE_NORM3D; }
 
 		// access methods to get directly data out of
 		// the SubHeader
