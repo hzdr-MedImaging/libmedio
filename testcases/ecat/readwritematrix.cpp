@@ -69,6 +69,17 @@ int main(int argc, char* argv[])
 	CECATFile file("readwritematrix.v", CECATMainHeader::ECAT7_Volume16);
 	if(file.open(IO_WriteOnly))
 	{
+		// first we write an own main header into the file
+		CECATMainHeader* mainHeader = file.createEmptyMainHeader();
+		if(mainHeader->rtti() == CECATMainHeader::ECAT7MainHeader)
+		{
+			CECAT7MainHeader* e7mainHeader = static_cast<CECAT7MainHeader*>(mainHeader);
+
+			e7mainHeader->setOriginal_File_Name("1. MainHeader write operation");
+			e7mainHeader->save();
+		}		
+		delete mainHeader; // delete the temporary main Header
+
 		// let us write out the data to the file in frame 1
 		if(file.writeMatrix((char*)matrixData_frame2, 
 												MATRIX_SIZE*sizeof(Q_UINT16), 
@@ -112,7 +123,7 @@ int main(int argc, char* argv[])
 			{
 				CECAT7MainHeader* e7mainHeader = static_cast<CECAT7MainHeader*>(mainHeader);
 
-				e7mainHeader->setOriginal_File_Name("This is a test");
+				e7mainHeader->setStudy_Description("2. mainheader write operation");
 				e7mainHeader->setNum_Planes(63);
 				e7mainHeader->setCalibration_Factor(1);
 				e7mainHeader->save();
