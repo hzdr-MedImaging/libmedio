@@ -47,6 +47,7 @@ class Q_EXPORT CECAT7SubHeaderNorm3D : public CECATSubHeader
 		bool save(QDataStream& stream);
 		CECATSubHeader::Type rtti(void) const
 		{ return CECATSubHeader::ECAT7_Norm3D; }
+		int size() const {return ECAT7_NORM3D_HEADER_SIZE;}
 
 		// access methods to get directly data out of
 		// the SubHeader

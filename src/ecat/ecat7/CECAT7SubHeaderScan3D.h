@@ -53,6 +53,7 @@ class Q_EXPORT CECAT7SubHeaderScan3D : public CECATSubHeader
 		bool save(QDataStream& stream);
 		CECATSubHeader::Type rtti(void)	const
 		{ return CECATSubHeader::ECAT7_Scan3D;			}
+		int size() const {return ECAT7_SCAN3D_HEADER_SIZE;}
 
 		// methods to access elements of the SubHeader
 		CECATSubHeader::Data_Type data_Type(void)	const

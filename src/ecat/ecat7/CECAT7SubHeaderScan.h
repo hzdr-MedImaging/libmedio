@@ -47,6 +47,7 @@ class Q_EXPORT CECAT7SubHeaderScan : public CECATSubHeader
 		bool save(QDataStream& stream);
 		CECATSubHeader::Type rtti(void) const
 		{ return CECATSubHeader::ECAT7_Scan; }
+		int size() const {return ECAT7_SCAN_HEADER_SIZE;}
 
 		// data access methods
 		CECATSubHeader::Data_Type data_Type(void) const

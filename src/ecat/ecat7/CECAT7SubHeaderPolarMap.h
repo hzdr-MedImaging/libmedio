@@ -54,6 +54,7 @@ class Q_EXPORT CECAT7SubHeaderPolarMap : public CECATSubHeader
 		bool save(QDataStream& stream);
 		CECATSubHeader::Type rtti(void) const
 		{ return CECATSubHeader::ECAT7_PolarMap; }
+		int size() const {return ECAT7_POLARMAP_HEADER_SIZE;}
 
 		// data access methods
 		CECATSubHeader::Data_Type data_Type(void) const
