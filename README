@@ -1,0 +1,69 @@
+/* vim:set ts=2 nowrap: ****************************************************
+
+ libmedio - Medical Data C++ I/O Library
+ Copyright (C) 2004 by Jens Langner <Jens.Langner@light-speed.de>
+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 2.1 of the License, or (at your option) any later version.
+
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public
+ License along with this library; if not, write to the Free Software
+ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+ $Id$
+
+***************************************************************************/
+
+	libmedio is a comprehensive C++ oriented fully portable shared library
+which provides direct IO classes to access and generate different types of
+data/image files which are commonly used by medical applications.
+
+  It should server modern C++ oriented applications with an easy API to 
+data formats like ECAT6/7, MicroPET, Interfile and other data container
+formats. It is fully written in C++ using the QT framework of Trolltech
+(www.trolltech.com) to ensure portability across many different operating
+systems.
+
+  As the main routines has been first developed for an application used
+in PET (Positron Emission Tomography), it mainly focuses on support for
+ECAT6 and 7 files, but should also be the favourite library for accessing
+and converting the data of formats like Interfile and MicroPET specific
+data streams. 
+
+Requirements:
+------------
+	As the library's intention is to be used in C++ application, you require
+a modern C++ compiler, preferable GCC in its 3.4+ version. And as the
+library is written using QT you require at least version 3 of the QT
+framework for the platform you want to compile the library for.
+
+Features:
+--------
+
+- full ECAT7 sinogram read/write support.
+- full object oriented design and implementation using C++ and QT.
+- highly portable implementation with direct implementations existing for
+	SunOS, MacOSX and Linux. (more to come)
+- Doxygen based class documentation and a deeper implementation 
+	documentation based on the MSc thesis of my computer science study.
+- Released under LGPL (Lesser General Public License) for a maximum
+	available flexibility and developer support aswell as the possibility to
+	use the library in commercial applications.
+
+Future plans:
+------------
+Have a look at the TODO file.
+
+Please feel free to contact me if you have any questions about the
+implementation of libmedio and it's underlying algorithms. But please make
+sure that you have checked the whole documentation first.
+
+Jens Langner <Jens.Langner@light-speed.de>
+August, 2004

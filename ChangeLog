@@ -1,0 +1,13 @@
+-----------------------------------------------
+MedIOLib - Medical Data C++ I/O Library
+-----------------------------------------------
+// vim:set ts=2 nowrap:
+
+$Id$
+$Source$
+
+2004-08-04  Jens Langner <Jens.Langner@light-speed.de>
+
+	* added first "outsourced" version of the ecta6/7 and micropet
+		aware input/output library which should carry more formats
+		in future like DICOM/Interfile and so on.
