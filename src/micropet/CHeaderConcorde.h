@@ -25,63 +25,158 @@ class CHeaderConcorde : public CMedIOHeader
 		unsigned int getFrameSize();
 		unsigned int getImageFrameSize();
 		//accessor methods
-		std::string getFileName(void) {return m_Data.file_name;}
-		std::string getModel(void) {return m_Data.model;}
-		std::string getFileType(void) {return m_Data.file_type;}
-		std::string getScanTime(void) {return m_Data.scan_time;}
-		std::string getIsotope(void) {return m_Data.isotope;}
-		std::string getIsotopeHalftime(void) {return m_Data.isotope_half_time;}
-		std::string getRadialFOV(void) {return m_Data.radial_fov;}
-		std::string getSubjectWeight(void) {return m_Data.subject_weight;}
-		std::string getAcquisitionMode(void) {return m_Data.acquisition_mode;}
-		std::string getSubjectorientation(void) {return m_Data.subject_orientation;}
-		std::string getInstitution(void) {return m_Data.institution;}
-		std::string getLLD(void) {return m_Data.lld;}
-		std::string getULD(void) {return m_Data.uld;}
-		std::string getTransaxialBinSize(void) {return m_Data.transaxial_bin_size;}
-		std::string getIsotopeBranchingFraction(void) {return m_Data.isotope_branching_fraction;}
-		std::string getNumberOfDimensions(void) {return m_Data.number_of_dimensions;}
-		std::string getXDimension(void) {return m_Data.x_dimension;}
-		std::string getYDimension(void) {return m_Data.y_dimension;}
-		std::string getDeltaElements(int i) {return m_Data.delta_elements[i];}
-		std::string getRingDifference(void) {return m_Data.ring_difference;}
-		std::string getSpan(void) {return m_Data.span;}
-		std::string getAxialPlaneSize(void) {return m_Data.axial_plane_size;}
-		std::string getBedMotion(void) {return m_Data.bed_motion;}
-		std::string getArcCorrection(void) {return m_Data.arc_correction;}
-		std::string getTotalFrames(void) {return m_Data.total_frames;}
-		std::string getDataOrder(void){return m_Data.data_order;}
-		std::string getDataType(void) {return m_Data.data_type;}
-		std::string getScaleFactor(void) {return m_Data.scale_factor;}
+		std::string model(void) {return m_Data.model;}
+		std::string institution(void) {return m_Data.institution;}
+		std::string study(void) {return m_Data.study;}
+		std::string filename(void) {return m_Data.file_name;}
+		std::string filetype(void) {return m_Data.file_type;}
+		std::string acquisitionmode(void) {return m_Data.acquisition_mode;}
+		std::string bedmotion(void) {return m_Data.bed_motion;}
+		std::string totalframes(void) {return m_Data.total_frames;}
+		
+		std::string isotope(void) {return m_Data.isotope;}
+		std::string isotopehalftime(void) {return m_Data.isotope_half_time;}
+		std::string isotopebranchingfraction(void) {return m_Data.isotope_branching_fraction;}
+		
+		std::string transaxialcrystalsperblock(void) {return m_Data.transaxial_crystals_per_block;}
+		std::string axialcrystalsperblock(void) {return m_Data.axial_crystals_per_block;}
+		std::string intrinsiccrystaloffset(void) {return m_Data.intrinsic_crystal_offset;}
+		std::string axialblocks(void) {return m_Data.axial_blocks;}
+		std::string axialcrystalpitch(void) {return m_Data.axial_crystal_pitch;}
+		std::string radius(void) {return m_Data.radius;}
+		std::string radialfov(void) {return m_Data.radial_fov;}
+		std::string srcradius(void) {return m_Data.src_radius;}
+		std::string srccmperrev(void) {return m_Data.src_cm_per_rev;}
+		std::string txsrctype(void) {return m_Data.tx_src_type;}
+		std::string transaxialbinsize(void) {return m_Data.transaxial_bin_size;}
+		std::string axialplanesize(void) {return m_Data.axial_plane_size;}
+		std::string lld(void) {return m_Data.lld;}
+		std::string uld(void) {return m_Data.uld;}
+		
+		std::string datatype(void) {return m_Data.data_type;}
+		std::string dataorder(void){return m_Data.data_order;}
+		std::string span(void) {return m_Data.span;}
+		std::string ringdifference(void) {return m_Data.ring_difference;}		
+		std::string numberofdimensions(void) {return m_Data.number_of_dimensions;}
+		std::string xdimension(void) {return m_Data.x_dimension;}
+		std::string ydimension(void) {return m_Data.y_dimension;}
+		std::string zdimension(void) {return m_Data.z_dimension;}
+		std::string wdimension(void) {return m_Data.w_dimension;}
+		std::string deltaelements(int i) {return m_Data.delta_elements[i];}
+		
+		std::string deadtimecorrectionapplied(void) {return m_Data.deadtime_correction_applied;}
+		std::string decaycorrectionapplied(void) {return m_Data.decay_correction_applied;}
+		std::string normalizationapplied(void) {return m_Data.normalization_applied;}
+		std::string attenuationapplied(void) {return m_Data.attenuation_applied;}
+		std::string scattercorrection(void) {return m_Data.scatter_correction;}
+		std::string arccorrection(void) {return m_Data.arc_correction;}
+		
+		std::string calibrationfactor(void) {return m_Data.calibration_factor;}
+		std::string calibrationbranchingfraction(void) {return m_Data.calibration_branching_fraction;}
+		std::string numberofsinglesrates(void) {return m_Data.number_of_singles_rates;}
+		
+		std::string investigator(void) {return m_Data.investigator;}
+		std::string Operator(void) {return m_Data.Operator;}
+		std::string studyidentifier(void) {return m_Data.study_identifier;}
+		std::string scantime(void) {return m_Data.scan_time;}
+		std::string injectedcompound(void) {return m_Data.injected_compound;}
+		std::string doseunits(void) {return m_Data.dose_units;}
+		std::string dose(void) {return m_Data.dose;}
+		std::string injectiontime(void) {return m_Data.injection_time;}
+		std::string injectiondecaycorrection(void) {return m_Data.injection_decay_correction;}
+		
+		
+		std::string subjectidentifier(void) {return m_Data.subject_identifier;}
+		std::string subjectgenus(void) {return m_Data.subject_genus;}
+		std::string subjectorientation(void) {return m_Data.subject_orientation;}
+		std::string subjectlengthunits(void) {return m_Data.subject_length_units;}
+		std::string subjectlength(void) {return m_Data.subject_length;}
+		std::string subjectweightunits(void) {return m_Data.subject_weight_units;}
+		std::string subjectweight(void) {return m_Data.subject_weight;}
+		std::string subjectphenotype(void) {return m_Data.subject_phenotype;}
+		std::string studymodel(void) {return m_Data.study_model;}
+		
+		std::string anesthesia(void) {return m_Data.anesthesia;}
+		std::string analgesia(void) {return m_Data.analgesia;}
+		std::string otherdrugs(void) {return m_Data.other_drugs;}
+		std::string foodaccess(void) {return m_Data.food_access;}
+		std::string wateraccess(void) {return m_Data.water_access;}
 		
 		//mutator methods
-		void setFileName(std::string FileName) { m_Data.file_name = FileName;}
-		void setModel(std::string Model) { m_Data.model = Model;}
-		void setFileType(std::string FileType) { m_Data.file_type = FileType;}
-		void setScanTime(std::string ScanTime) { m_Data.scan_time = ScanTime;}
-		void setIsotope(std::string Isotope) { m_Data.isotope = Isotope;}
-		void setIsotopeHalftime(std::string IsotopeHalftime) { m_Data.isotope_half_time = IsotopeHalftime;}
-		void setRadialFOV(std::string RadialFOV) { m_Data.radial_fov = RadialFOV;}
-		void setSubjectWeight(std::string SubjectWeight) { m_Data.subject_weight = SubjectWeight;}
-		void setAcquisitionMode(std::string AcquisitionMode) { m_Data.acquisition_mode = AcquisitionMode;}
-		void setSubjectorientation(std::string Subjectorientation) { m_Data.subject_orientation = Subjectorientation;}
-		void setInstitution(std::string Institution) { m_Data.institution = Institution;}
-		void setLLD(std::string LLD) { m_Data.lld = LLD;}
-		void setULD(std::string ULD) { m_Data.uld = ULD;}
-		void setTransaxialBinSize(std::string TransaxialBinSize) { m_Data.transaxial_bin_size = TransaxialBinSize;}
-		void setIsotopeBranchingFraction(std::string IsotopeBranchingFraction) { m_Data.isotope_branching_fraction = IsotopeBranchingFraction;}
-		void setNumberOfDimensions(std::string NumberOfDimensions) { m_Data.number_of_dimensions = NumberOfDimensions;}
-		void setXDimension(std::string XDimension) { m_Data.x_dimension = XDimension;}
-		void setYDimension(std::string YDimension) { m_Data.y_dimension = YDimension;}
-		void setDeltaElements(int i, std::string NumSinograms) { m_Data.delta_elements[i] = NumSinograms;}
-		void setRingDifference(std::string RingDifference) { m_Data.ring_difference = RingDifference;}
-		void setSpan(std::string Span) { m_Data.span = Span;}
-		void setAxialPlaneSize(std::string AxialPlaneSize) { m_Data.axial_plane_size = AxialPlaneSize;}
-		void setBedMotion(std::string BedMotion) { m_Data.bed_motion = BedMotion;}
-		void setArcCorrection(std::string ArcCorrection) { m_Data.arc_correction = ArcCorrection;}
-		void setTotalFrames(std::string TotalFrames) { m_Data.total_frames = TotalFrames;}
-		void setDataOrder(std::string DataOrder){ m_Data.data_order = DataOrder;}
-		void setDataType(std::string DataType) { m_Data.data_type = DataType;}
+		void setModel(std::string value) { m_Data.model = value;}
+		void setInstitution(std::string value) { m_Data.institution = value;}
+		void setFileName(std::string value) { m_Data.file_name = value;}
+		void setFileType(std::string value) { m_Data.file_type = value;}
+		void setAcquisitionMode(std::string value) { m_Data.acquisition_mode = value;}
+		void setBedMotion(std::string value) { m_Data.bed_motion = value;}
+		void setTotalFrames(std::string value) { m_Data.total_frames = value;}
+		
+		void setIsotope(std::string value) { m_Data.isotope = value;}
+		void setIsotopeHalftime(std::string value) { m_Data.isotope_half_time = value;}
+		void setIsotopeBranchingFraction(std::string value) { m_Data.isotope_branching_fraction = value;}
+		
+		void setTransaxialCrystalsPerBlock(std::string value) {m_Data.transaxial_crystals_per_block = value;}
+		void setAxialCrystalsPerBlock(std::string value) {m_Data.axial_crystals_per_block = value;}
+		void setIntrinsicCrystalOffset(std::string value) {m_Data.intrinsic_crystal_offset = value;}
+		void setAxialBlocks(std::string value) {m_Data.axial_blocks = value;}
+		void setAxialCrystalPitch(std::string value) {m_Data.axial_crystal_pitch = value;}
+		void setRadius(std::string value) {m_Data.radius = value;}
+		void setRadialFov(std::string value) {m_Data.radial_fov = value;}
+		void setSrcRadius(std::string value) {m_Data.src_radius = value;}
+		void setSrcCmPerRev(std::string value) {m_Data.src_cm_per_rev = value;}
+		void setTxSrcType(std::string value) {m_Data.tx_src_type = value;}
+		void setTransaxialBinSize(std::string value) {m_Data.transaxial_bin_size = value;}
+		void setAxialPlaneSize(std::string value) {m_Data.axial_plane_size = value;}
+		void setLld(std::string value) {m_Data.lld = value;}
+		void setUld(std::string value) {m_Data.uld = value;}
+		
+		void setDataType(std::string value) { m_Data.data_type = value;}
+		void setDataOrder(std::string value){ m_Data.data_order = value;}
+		void setSpan(std::string value) { m_Data.span = value;}
+		void setRingDifference(std::string value) { m_Data.ring_difference = value;}
+		void setNumberOfDimensions(std::string value) { m_Data.number_of_dimensions = value;}
+		void setXDimension(std::string value) { m_Data.x_dimension = value;}
+		void setYDimension(std::string value) { m_Data.y_dimension = value;}
+		void setZDimension(std::string value) { m_Data.z_dimension = value;}
+		void setWDimension(std::string value) { m_Data.w_dimension = value;}
+		void setDeltaElements(int i, std::string value) { m_Data.delta_elements[i] = value;}
+		
+		void setDeadtimeCorrectionApplied(std::string value) { m_Data.deadtime_correction_applied = value;}
+		void setDecayCorrectionApplied(std::string value) { m_Data.decay_correction_applied = value;}
+		void setNormalizationApplied(std::string value) { m_Data.normalization_applied = value;}
+		void setAttenuationApplied(std::string value) { m_Data.attenuation_applied = value;}
+		void setScatterCorrection(std::string value) { m_Data.scatter_correction = value;}
+		void setArcCorrection(std::string value) { m_Data.arc_correction = value;}
+		
+		void setCalibrationFactor(std::string value) { m_Data.calibration_factor = value;}
+		void setCalibrationBranchingFraction(std::string value) { m_Data.calibration_branching_fraction = value;}
+		void setNumberOfSinglesRates(std::string value) { m_Data.number_of_singles_rates = value;}
+		
+		void setInvestigator(std::string value) { m_Data.investigator = value;}
+		void setOperator(std::string value) { m_Data.Operator = value;}
+		void setStudyIdentifier(std::string value) { m_Data.study_identifier = value;}
+		void setScanTime(std::string value) { m_Data.scan_time = value;}
+		void setInjectedCompound(std::string value) { m_Data.injected_compound = value;}
+		void setDoseUnits(std::string value) { m_Data.dose_units = value;}
+		void setDose(std::string value) { m_Data.dose = value;}
+		void setInjectionTime(std::string value) { m_Data.injection_time = value;}
+		void setInjectionDecayCorrection(std::string value) { m_Data.injection_decay_correction = value;}
+		
+		void setSubjectIdentifier(std::string value) { m_Data.subject_identifier = value;}
+		void setSubjectGenus(std::string value) { m_Data.subject_genus = value;}
+		void setSubjectOrientation(std::string value) { m_Data.subject_orientation = value;}
+		void setSubjectLength_units(std::string value) { m_Data.subject_length_units = value;}
+		void setSubjectLength(std::string value) { m_Data.subject_length = value;}
+		void setSubjectWeight_units(std::string value) { m_Data.subject_weight_units = value;}
+		void setSubjectWeight(std::string value) { m_Data.subject_weight = value;}
+		void setSubjectPhenotype(std::string value) { m_Data.subject_phenotype = value;}
+		void setStudyModel(std::string value) { m_Data.study_model = value;}
+		
+		void setAnesthesia(std::string value) { m_Data.anesthesia = value;}
+		void setAnalgesia(std::string value) { m_Data.analgesia = value;}
+		void setOtherDrugs(std::string value) { m_Data.other_drugs = value;}
+		void setFoodAccess(std::string value) { m_Data.food_access = value;}
+		void setWaterAccess(std::string value) { m_Data.water_access = value;}
 		
 	private :
 	//members
@@ -157,7 +252,6 @@ class CHeaderConcorde : public CMedIOHeader
 			std::string	other_drugs;
 			std::string	food_access;
 			std::string	water_access;
-			std::string	scale_factor;
     		} ConcordeHeader;
 		ConcordeHeader m_Data;
 	//methods

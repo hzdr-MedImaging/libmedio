@@ -46,7 +46,7 @@ CMedIOData::Format CConcordeFile::isoftype(QString file)
         
 	CHeaderConcorde head(file+".hdr");
 
-        if(head.getModel() == "2000")
+        if(head.model() == "2000")
         {
                 cout << "File is from Concorde" << endl;
 		//file type = 2 -> Sinogram
@@ -55,10 +55,10 @@ CMedIOData::Format CConcordeFile::isoftype(QString file)
 		//file type = 5 -> Image
 		//file type = 8 -> Mu map ( also image )
 		// since attenuationfile/Normalisation is a sinogram we could define it as one 
-		if((head.getFileType() == "2" || head.getFileType() == "3")
-			|| head.getFileType() == "4")
+		if((head.filetype() == "2" || head.filetype() == "3")
+			|| head.filetype() == "4")
 			return CMedIOData::ConcordeMicropet_Sinogram;
-		else if(head.getFileType() == "5" || head.getFileType() == "8")
+		else if(head.filetype() == "5" || head.filetype() == "8")
 			return CMedIOData::ConcordeMicropet_Image;
 		else
 			return CMedIOData::Unknown;
