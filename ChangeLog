@@ -6,6 +6,11 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-01-24  Jens Langner <Jens.Langner@light-speed.de>
+
+  * CMedIOData.h: added errorStatus() method to allow to carry special error
+    messages for our methods in future.
+  
 2005-01-21  Jens Langner <Jens.Langner@light-speed.de>
 
   * misc: removed all additional "medio/" pathes from the include statements

@@ -52,6 +52,13 @@ class CMedIOData : public QFile
 			ConcordeMicropet,	//!< data produced by a concorde micropet scanner	
 			ECAT,							//!< ECAT6/7 format
 		};
+
+		//! @enum enumeration carrying special IO error codes which
+		//!       can be queried with the errorStatus() method.
+		enum errStatus { MERR_Ok = 0,					 //!< No Error
+										 MERR_Unspecified = 1, //!< Some unspecified error occurred
+									 };
+
 		
 		//! @brief constructor
 		//! @param file: complete path to file holding medical data
@@ -80,8 +87,13 @@ class CMedIOData : public QFile
 		//! @return filename of medical data file
 		QString fileName(void) const { return name(); }
 
+		//! @brief for querying error status information
+		//! @return integer value for the specific error reason
+		int errorStatus(void) const { return m_iErrStatus; }
+
 	protected :
 		CMedIOHeader* m_pHeader;	//!< associated header of medical data
+		int						m_iErrStatus;  //!< error status variable
 };
 
 #endif

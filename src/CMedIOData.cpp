@@ -42,6 +42,7 @@ CMedIOData::CMedIOData(const QString& fileName)
 	: QFile(fileName)
 {
 	m_pHeader = NULL;
+	m_iErrStatus = MERR_Ok;
 }
 
 //  Class: CMedIOData
