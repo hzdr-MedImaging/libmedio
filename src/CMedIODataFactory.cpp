@@ -2,6 +2,7 @@
 #include "CMedIOData.h"
 #include "CConcordeFile.h"
 #include "CConcordeSinogram.h"
+#include "CConcordeImage.h"
 
 CMedIOData* CMedIODataFactory::makeMedIOData(QString file)
 {
@@ -14,6 +15,8 @@ CMedIOData* CMedIODataFactory::makeMedIOData(QString file)
 	{
 		return new CConcordeSinogram(file);
 	}
+	else if(CConcordeFile::isoftype(file) == CMedIOData::ConcordeMicropet_Image)
+		return new CConcordeImage(file);
 	else
 		return NULL;
 }

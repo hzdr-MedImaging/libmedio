@@ -16,6 +16,7 @@ class CMedIOData
 	//members
 		enum Format {	Unknown = 0,
 				ConcordeMicropet_Sinogram,
+				ConcordeMicropet_Image,
 				ECAT7_Volume16
 				};
 		
