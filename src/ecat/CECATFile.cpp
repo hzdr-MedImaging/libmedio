@@ -1,7 +1,7 @@
 /* vim:set ts=2 nowrap: ****************************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2004-2005 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -846,29 +846,38 @@ void CECATFile::mainHeaderWritten(const CECATMainHeader& mainHeader)
 
 	// now that a new main Header has been written we have to
 	// update our cached copy accordingly.
-	if(m_pCachedMainHeader == NULL)
+	switch(m_iECATformat)
 	{
-		switch(m_iECATformat)
+		case CECATFile::ECAT7:
 		{
-			case CECATFile::ECAT7:
+			if(m_pCachedMainHeader)
+				*static_cast<CECAT7MainHeader*>(m_pCachedMainHeader) = *static_cast<const CECAT7MainHeader*>(&mainHeader);
+			else
 				m_pCachedMainHeader = new CECAT7MainHeader(*static_cast<const CECAT7MainHeader*>(&mainHeader));
-			break;
-
-			case CECATFile::ECAT6:
-				m_pCachedMainHeader = new CECAT6MainHeader(*static_cast<const CECAT6MainHeader*>(&mainHeader));
-			break;
-
-			default:
-				// nothing
-			break;
 		}
+		break;
+
+		case CECATFile::ECAT6:
+		{
+			if(m_pCachedMainHeader)
+				*static_cast<CECAT6MainHeader*>(m_pCachedMainHeader) = *static_cast<const CECAT6MainHeader*>(&mainHeader);
+			else
+				m_pCachedMainHeader = new CECAT6MainHeader(*static_cast<const CECAT6MainHeader*>(&mainHeader));
+		}
+		break;
+
+		default:
+			// nothing
+		break;
 	}
 
 	// in addition to that we have to place the correct frames/planes/gates/bedPos
 	// stuff in the cached header to be totally correct.
 	if(m_pCachedMainHeader)
 	{
-		m_pCachedMainHeader->setNum_Planes(numPlanes());
+		// Please note that we do not specify any PLANES here as in ECAT7 the
+		// planes are normally integrated in one matrix file. So we have to
+		// allow the user to specify the planes himself.
 		m_pCachedMainHeader->setNum_Frames(numFrames());
 		m_pCachedMainHeader->setNum_Gates(numGates());
 		m_pCachedMainHeader->setNum_Bed_Pos(numBedPos());

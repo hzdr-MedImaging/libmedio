@@ -8,9 +8,13 @@ $Source$
 
 2005-02-25  Jens Langner <Jens.Langner@light-speed.de>
 
+  * CECATFile.cpp: fixed bug in the mainHeaderWritten() method where upon an
+    already existing mainHeader the data wasn't correctly copied out of it.
+    This caused that on a writeMatrix() operation an already written
+    mainHeader was abadoned.
   * libmedio.pro.in: added optimization level for the different host types
     found by configure.
-  * ECATFile.cpp: fixed bug where upon usage of the IO_WriteOnly mode an
+  * CECATFile.cpp: fixed bug where upon usage of the IO_WriteOnly mode an
     existing file wasn't overwritten at all and the open() call returned
 	 false.
 
