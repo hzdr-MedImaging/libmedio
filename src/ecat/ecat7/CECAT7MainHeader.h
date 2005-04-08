@@ -27,6 +27,9 @@
 #include <CECATMainHeader.h>
 
 #include <qdatastream.h>
+#include <qdatetime.h>
+
+#include <time.h>
 
 // forward declarations
 class CECATFile;
@@ -99,7 +102,7 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 		const char* serial_Number(void) const
 		{ return m_Data.Serial_Number; }
 
-		unsigned int scan_Start_Time(void) const
+		time_t scan_Start_Time(void) const
 		{ return m_Data.Scan_Start_Time; }
 		
 		const char* isotope_Name(void) const
@@ -180,7 +183,7 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 		float patient_Weight(void) const														
 		{ return m_Data.Patient_Weight;	}
 		
-		int patient_Birth_Date(void) const								
+		time_t patient_Birth_Date(void) const								
 		{ return m_Data.Patient_Birth_Date;	}
 		
 		const char* physician_Name(void) const										
@@ -243,7 +246,7 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 		float branching_Fraction(void) const											
 		{ return m_Data.Branching_Fraction; }
 		
-		unsigned int dose_Start_Time(void) const									
+		time_t dose_Start_Time(void) const									
 		{ return m_Data.Dose_Start_Time; }
 		
 		float dosage(void) const																	
@@ -282,8 +285,8 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 		void setSerial_Number(const char* num)
 		{ strncpy(m_Data.Serial_Number, num, 10); }
 		
-		void setScan_Start_Time(const unsigned int time)
-		{ m_Data.Scan_Start_Time = time; }
+		void setScan_Start_Time(const time_t time)
+		{ m_Data.Scan_Start_Time = static_cast<Q_INT32>(time); }
 		
 		void setIsotope_Name(const char* name)
 		{ strncpy(m_Data.Isotope_Name, name, 8); }
@@ -363,8 +366,8 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 		void setPatient_Weight(const float weight)													
 		{ m_Data.Patient_Weight = weight;	}
 		
-		void setPatient_Birth_Date(const int date)										
-		{ m_Data.Patient_Birth_Date = date;	}
+		void setPatient_Birth_Date(const time_t date)										
+		{ m_Data.Patient_Birth_Date = static_cast<Q_INT32>(date);	}
 		
 		void setPhysician_Name(const char* name)															
 		{ strncpy(m_Data.Physician_Name, name, 32);	}
@@ -426,8 +429,8 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 		void setBranching_Fraction(const float frac)												
 		{ m_Data.Branching_Fraction = frac; }
 		
-		void setDose_Start_Time(const unsigned int time)										
-		{ m_Data.Dose_Start_Time = time; }
+		void setDose_Start_Time(const time_t time)										
+		{ m_Data.Dose_Start_Time = static_cast<Q_INT32>(time); }
 		
 		void setDosage(const float dosage)																	
 		{ m_Data.Dosage = dosage; }
@@ -443,6 +446,15 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 		
 		void setCTI_Reserved(const short i, const short val)								
 		{ m_Data.CTI_Reserved[i] = val; }
+
+		// special Qt-based methods for easy time conversion of the really
+		// mad ECAT time specifications
+		QDate patient_Birth_Date_Qt(void) const;
+		QDateTime scan_Start_Time_Qt(void) const;
+		QDateTime dose_Start_Time_Qt(void) const;
+		void setPatient_Birth_Date_Qt(const QDate& date);
+		void setScan_Start_Time_Qt(const QDateTime& dateTime);
+		void setDose_Start_Time_Qt(const QDateTime& dateTime);
 
 	protected:
 		void updateMagicNumber(void);
@@ -461,7 +473,7 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 			Q_UINT16			System_Type;
 			Q_UINT16			File_Type;
 			char					Serial_Number[10];
-			Q_UINT32			Scan_Start_Time;
+			Q_INT32				Scan_Start_Time;
 			char					Isotope_Name[8];
 			float					Isotope_Halflife;
 			char					Radiopharmaceutical[32];
@@ -509,7 +521,7 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
       Q_UINT16			Acquisition_Mode;
       float					Bin_Size;
       float					Branching_Fraction;
-      Q_UINT32			Dose_Start_Time;
+      Q_INT32				Dose_Start_Time;
 			float					Dosage;
       float					Well_Counter_Corr_Factor;
       char					Data_Units[32];

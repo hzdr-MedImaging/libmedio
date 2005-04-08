@@ -6,6 +6,15 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-04-08  Jens Langner <Jens.Langner@light-speed.de>
+
+  * CECAT7MainHeader.cpp: implemented special QDateTime/QDate aware
+    methods to deal with the time_t related date&time values specified
+    in the ECAT format. These methods should make dealing with all that
+    time_t mess a bit better as QDateTime seems not to be fully time_t
+    aware as it defines time_t to be unsigned :(
+	* m4/acinclude.m4: make configure deal with strangs GCC version strings.
+
 2005-03-17  Jens Langner <Jens.Langner@light-speed.de>
 
   * CECATDirectoryItem.cpp: fixed bug in the subHeader identification
@@ -44,7 +53,7 @@ $Source$
     found by configure.
   * CECATFile.cpp: fixed bug where upon usage of the IO_WriteOnly mode an
     existing file wasn't overwritten at all and the open() call returned
-	 false.
+    false.
 
 2005-02-04  Jens Langner <Jens.Langner@light-speed.de>
 

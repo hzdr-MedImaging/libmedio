@@ -30,6 +30,7 @@
 #include <qdatetime.h>
 #include <qfileinfo.h>
 
+#include <time.h>
 #include <unistd.h>
 
 #include <rtdebug.h>
@@ -282,7 +283,7 @@ bool CECAT7MainHeader::load(void)
 	D("File_Type               : %d",  	 	 	 	    m_Data.File_Type);
 	D("Serial_Number           : %s",  	 	 	 	    m_Data.Serial_Number);
 	time.setTime_t(m_Data.Scan_Start_Time);
-	D("Scan_Start_Time         : %s",  	 	 	 	    time.toString().ascii());
+	D("Scan_Start_Time         : %s (%d)", 	 	    time.toString().ascii(), m_Data.Scan_Start_Time);
 	D("Isotope Name            : %s",  	 	 	 	    m_Data.Isotope_Name);
 	D("Isotope Halflife        : %f sec",				  m_Data.Isotope_Halflife);
 	D("Radiopharmaca           : %s",			 	 		  m_Data.Radiopharmaceutical);
@@ -310,7 +311,7 @@ bool CECAT7MainHeader::load(void)
 	D("Patient Height          : %f cm",					m_Data.Patient_Height);
 	D("Patient Weight          : %f kg",					m_Data.Patient_Weight);
 	time.setTime_t(m_Data.Patient_Birth_Date);
-	D("Patient Birthdate       : %s",							time.toString().ascii());
+	D("Patient Birthdate       : %s (%d)",				time.toString().ascii(), m_Data.Patient_Birth_Date);
 	D("Physician Name          : %s",							m_Data.Physician_Name);
 	D("Operator Name           : %s",							m_Data.Operator_Name);
 	D("Study Description       : %s",							m_Data.Study_Description);
@@ -335,7 +336,7 @@ bool CECAT7MainHeader::load(void)
 	D("Bin Size                : %f cm",					m_Data.Bin_Size);
 	D("Branching Fraction      : %f",							m_Data.Branching_Fraction);
 	time.setTime_t(m_Data.Dose_Start_Time);
-	D("Dose start time         : %s",							time.toString().ascii());
+	D("Dose start time         : %s (%d)",				time.toString().ascii(), m_Data.Dose_Start_Time);
 	D("Dosage                  : %f Bq/cc",				m_Data.Dosage);
 	D("Well counter corr factor: %f",							m_Data.Well_Counter_Corr_Factor);
 	D("Data units              : %s",							m_Data.Data_Units);
@@ -786,4 +787,178 @@ QTextStream& operator<<(QTextStream& stream, const CECAT7MainHeader& mHeader)
 	
 	RETURN(&stream);
 	return stream;
+}
+
+QDate CECAT7MainHeader::patient_Birth_Date_Qt(void) const
+{
+	QDateTime birthDate;
+
+	// unfortunatley the QDateTime class seems not to
+	// properly handle time_t values which are normally
+	// defined as a signed value. In fact Qt seems to
+	// handle that stuff unsigned which makes it impossible
+	// to place a negative value to QDateTime
+	if(m_Data.Patient_Birth_Date > 0)
+		birthDate.setTime_t(m_Data.Patient_Birth_Date);
+	else
+	{
+		// do the calculations on our own with help of POSIX
+		// ctime() :(
+		char buf[40];
+		time_t dateval = static_cast<time_t>(m_Data.Patient_Birth_Date);
+		QString dateString(ctime_r(&dateval, buf));
+		birthDate = QDateTime::fromString(dateString.stripWhiteSpace());
+	}
+
+	return birthDate.date();
+}
+
+QDateTime CECAT7MainHeader::scan_Start_Time_Qt(void) const
+{
+	QDateTime scanStartTime;
+
+	// unfortunatley the QDateTime class seems not to
+	// properly handle time_t values which are normally
+	// defined as a signed value. In fact Qt seems to
+	// handle that stuff unsigned which makes it impossible
+	// to place a negative value to QDateTime
+	if(m_Data.Scan_Start_Time > 0)
+		scanStartTime.setTime_t(m_Data.Scan_Start_Time);
+	else
+	{
+		// do the calculations on our own with help of POSIX
+		// ctime() :(
+		char buf[40];
+		time_t dateval = static_cast<time_t>(m_Data.Scan_Start_Time);
+		QString dateString(ctime_r(&dateval, buf));
+		scanStartTime = QDateTime::fromString(dateString.stripWhiteSpace());
+	}
+
+	return scanStartTime;
+}
+
+QDateTime CECAT7MainHeader::dose_Start_Time_Qt(void) const
+{
+	QDateTime doseStartTime;
+
+	// unfortunatley the QDateTime class seems not to
+	// properly handle time_t values which are normally
+	// defined as a signed value. In fact Qt seems to
+	// handle that stuff unsigned which makes it impossible
+	// to place a negative value to QDateTime
+	if(m_Data.Dose_Start_Time > 0)
+		doseStartTime.setTime_t(m_Data.Dose_Start_Time);
+	else
+	{
+		// do the calculations on our own with help of POSIX
+		// ctime() :(
+		char buf[40];
+		time_t dateval = static_cast<time_t>(m_Data.Dose_Start_Time);
+		QString dateString(ctime_r(&dateval, buf));
+		doseStartTime = QDateTime::fromString(dateString.stripWhiteSpace());
+		
+		SHOWSTRING(doseStartTime.toString().ascii());
+	}
+
+	return doseStartTime;
+}
+
+void CECAT7MainHeader::setPatient_Birth_Date_Qt(const QDate& birthDate)
+{
+	// unfortunatley the QDateTime class seems not to
+	// properly handle time_t values which are normally
+	// defined as a signed value. In fact Qt seems to
+	// handle that stuff unsigned which makes it impossible
+	// to place a negative value to QDateTime
+	QDateTime Jan1970(QDate(1970, 1, 1), QTime());
+	QDateTime birthDateTime(birthDate, QTime());
+
+	SHOWSTRING(birthDateTime.toString().ascii());
+	if(birthDateTime < Jan1970)
+	{
+		// we have to convert the birthDateTime on our own by
+		// using standard POSIX functions.
+		struct tm timeVal;
+		timeVal.tm_sec   = 0;
+		timeVal.tm_min   = 0;
+		timeVal.tm_hour  = 0;
+		timeVal.tm_mday  = birthDate.day();
+		timeVal.tm_mon   = birthDate.month()-1;
+		timeVal.tm_year  = birthDate.year()-1900;
+		timeVal.tm_wday  = birthDate.dayOfWeek()-1;
+		timeVal.tm_yday  = birthDate.dayOfYear()-1;
+		timeVal.tm_isdst = 0;
+
+		m_Data.Patient_Birth_Date = mktime(&timeVal);
+	}
+	else
+		m_Data.Patient_Birth_Date = birthDateTime.toTime_t();
+}
+
+void CECAT7MainHeader::setScan_Start_Time_Qt(const QDateTime& scanStartTime)
+{
+	// unfortunatley the QDateTime class seems not to
+	// properly handle time_t values which are normally
+	// defined as a signed value. In fact Qt seems to
+	// handle that stuff unsigned which makes it impossible
+	// to place a negative value to QDateTime
+	QDateTime Jan1970(QDate(1970, 1, 1), QTime());
+
+	SHOWSTRING(scanStartTime.toString().ascii());
+	if(scanStartTime < Jan1970)
+	{
+		QDate scanDate = scanStartTime.date();
+		QTime scanTime = scanStartTime.time();
+		
+		// we have to convert the birthDateTime on our own by
+		// using standard POSIX functions.
+		struct tm timeVal;
+		timeVal.tm_sec   = scanTime.second();
+		timeVal.tm_min   = scanTime.minute();
+		timeVal.tm_hour  = scanTime.hour();
+		timeVal.tm_mday  = scanDate.day();
+		timeVal.tm_mon   = scanDate.month()-1;
+		timeVal.tm_year  = scanDate.year()-1900;
+		timeVal.tm_wday  = scanDate.dayOfWeek()-1;
+		timeVal.tm_yday  = scanDate.dayOfYear()-1;
+		timeVal.tm_isdst = 0;
+
+		m_Data.Scan_Start_Time = mktime(&timeVal);
+	}
+	else
+		m_Data.Scan_Start_Time = scanStartTime.toTime_t();	
+}
+
+void CECAT7MainHeader::setDose_Start_Time_Qt(const QDateTime& doseStartTime)
+{
+	// unfortunatley the QDateTime class seems not to
+	// properly handle time_t values which are normally
+	// defined as a signed value. In fact Qt seems to
+	// handle that stuff unsigned which makes it impossible
+	// to place a negative value to QDateTime
+	QDateTime Jan1970(QDate(1970, 1, 1), QTime());
+
+	SHOWSTRING(doseStartTime.toString().ascii());
+	if(doseStartTime < Jan1970)
+	{
+		QDate doseDate = doseStartTime.date();
+		QTime doseTime = doseStartTime.time();
+		
+		// we have to convert the birthDateTime on our own by
+		// using standard POSIX functions.
+		struct tm timeVal;
+		timeVal.tm_sec   = doseTime.second();
+		timeVal.tm_min   = doseTime.minute();
+		timeVal.tm_hour  = doseTime.hour();
+		timeVal.tm_mday  = doseDate.day();
+		timeVal.tm_mon   = doseDate.month()-1;
+		timeVal.tm_year  = doseDate.year()-1900;
+		timeVal.tm_wday  = doseDate.dayOfWeek()-1;
+		timeVal.tm_yday  = doseDate.dayOfYear()-1;
+		timeVal.tm_isdst = 0;
+
+		m_Data.Dose_Start_Time = mktime(&timeVal);
+	}
+	else
+		m_Data.Dose_Start_Time = doseStartTime.toTime_t();		
 }
