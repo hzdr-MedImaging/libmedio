@@ -6,6 +6,10 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-07-06  Jens Langner <Jens.Langner@light-speed.de>
+
+  * m4/acinclude.m4: added gcc4 to supported GCC compiler versions.
+
 2005-04-08  Jens Langner <Jens.Langner@light-speed.de>
 
   * CECAT7MainHeader.cpp: implemented special QDateTime/QDate aware
