@@ -1105,9 +1105,35 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 
 	if(result)
 	{
-		// at the end of our operation we calculate the new EndPosition
-		m_iDataBlock_End = m_iDataBlock_Start+subHeader.size()+matrixSize-ECAT_BLOCKSIZE;
-		m_iStatus = CECATDirectoryItem::Finished;
+		// check if the data we have written is divideable through the ECAT_BLOCKSIZE
+		// or we have to add some more NULL bytes until we have 512 byte aligned data
+		// because the ECAT standard defines ECAT files to be always dividable through
+		// 512 byte blocks.
+		if((matrixSize % ECAT_BLOCKSIZE) > 0)
+		{
+			unsigned int fillLen = ECAT_BLOCKSIZE - (matrixSize % ECAT_BLOCKSIZE);
+			char fillData[fillLen];
+
+			memset(fillData, 0, fillLen*sizeof(char));
+
+			if(m_pECATFile->writeBlock(fillData, fillLen) != (Q_LONG)fillLen)
+			{
+				result = false;
+				E("Error occurred while trying to write %ld NULL bytes.", fillLen);
+			}
+			else
+			{
+				matrixSize += fillLen;
+				W("matrixsize %% ECAT_BLOCKSIZE != 0. added %ld NULL bytes", fillLen);
+			}
+		}
+
+		if(result)
+		{
+			// at the end of our operation we calculate the new EndPosition
+			m_iDataBlock_End = m_iDataBlock_Start+subHeader.size()+matrixSize-ECAT_BLOCKSIZE;
+			m_iStatus = CECATDirectoryItem::Finished;
+		}
 	}
 
 	RETURN(result);

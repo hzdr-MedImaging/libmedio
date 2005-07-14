@@ -6,6 +6,15 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-07-14  Jens Langner <Jens.Langner@light-speed.de>
+
+  * CECATDirectoryItem.cpp: added check&code to enforce that a writeMatrix() call
+    always ensures that full ECAT_BLOCKSIZE data is written. Previously, if a
+    user passed a matrix/data size which is not divideable through ECAT_BLOCKSIZE,
+    libmedio did exactly write the passed data size and as such violated the
+    ECAT standard which defines that ECAT files have to be always a mulitple of
+    ECAT_BLOCKSIZE data.
+
 2005-07-06  Jens Langner <Jens.Langner@light-speed.de>
 
   * m4/acinclude.m4: added gcc4 to supported GCC compiler versions.
