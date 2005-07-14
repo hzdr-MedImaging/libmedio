@@ -52,6 +52,7 @@ int main(int argc, char* argv[])
 	cout << "-------------------------------------" << endl;
 
 	// generate some huge matrix data which we can use for verification later
+	//#define MATRIX_SIZE	(2064414/sizeof(Q_UINT16)) // non dividable through ECAT_BLOCKSIZE
 	//#define MATRIX_SIZE	(2063872/sizeof(Q_UINT16))
 	#define MATRIX_SIZE	(2064384/sizeof(Q_UINT16))
 	Q_UINT16* matrixData_frame1 = new Q_UINT16[MATRIX_SIZE];
