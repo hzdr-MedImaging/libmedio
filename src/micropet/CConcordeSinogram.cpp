@@ -61,7 +61,7 @@ QByteArray* CConcordeSinogram::getMatrix(short frame, short plane,
 		char * data = new char[framesize];
 
 		//check on open file success
-		if(pfile.open(IO_ReadOnly))
+		if(pfile.open(QIODevice::ReadOnly))
 		{
 			//check if desired frame exists
 			int totalframes = head->numframes();

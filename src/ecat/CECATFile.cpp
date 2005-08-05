@@ -67,7 +67,7 @@ bool CECATFile::isOfType(const QString& filename)
 
 	// try to open the file and identify it as a ECAT6 or 7 file
 	CECATFile file(filename);
-	if(file.open(IO_ReadOnly))
+	if(file.open(QIODevice::ReadOnly))
 	{
 		if(file.format() != CECATFile::Undefined)
 			result = true;
@@ -92,7 +92,7 @@ CMedIOData* CECATFile::createFromFile(const QString& fileName)
 	return mData;
 }
 
-bool CECATFile::open(int mode)
+bool CECATFile::open(QIODevice::OpenModeFlag mode)
 {
 	ENTER();
 
@@ -115,11 +115,11 @@ bool CECATFile::open(int mode)
 	// depending on the specified open mode we either read some META data from
 	// an existing ECAT file or we create it here
 	if(exists() &&
-		 mode & (IO_ReadOnly|IO_WriteOnly) == (IO_ReadOnly|IO_WriteOnly))
+		 mode & (QIODevice::ReadOnly|QIODevice::WriteOnly) == (QIODevice::ReadOnly|QIODevice::WriteOnly))
 	{
 		// we open the file and read in the
 		// main header and directory list of the ecat file
-		if(QFile::open(IO_ReadOnly))
+		if(QFile::open(QIODevice::ReadOnly))
 		{
 			QDataStream stream(this);
 
@@ -204,7 +204,7 @@ bool CECATFile::open(int mode)
 			QFile::close();
 		}
 	}
-	else if(mode & IO_WriteOnly)
+	else if(mode & QIODevice::WriteOnly)
 	{
 		D("preparing IO_WriteOnly mode: %ld", m_iECATformat);
 
@@ -240,7 +240,8 @@ bool CECATFile::open(int mode)
 
 	// to make the open operation a bit safer we mask out the IO operation
 	// bits we don't need
-	mode &= ~(IO_Raw|IO_Append|IO_Truncate|IO_Translate);
+#warning "later checken!!"
+	//mode &= ~(QIODevice::Append|QIODevice::Truncate|QIODevice::Text);
 
 	// only if we succeeded with our mainheader/dirlisting loading
 	// we can assume everything worked out fine and reopen the file
@@ -249,7 +250,7 @@ bool CECATFile::open(int mode)
 	{
 		// make sure the file is always openend in read mode also
 		// because we need to read in data as we write as well 
-		if((result = QFile::open(mode|IO_ReadOnly)) == false)
+		if((result = QFile::open(mode|QIODevice::ReadOnly)) == false)
 			QFile::close();
 	}
 		

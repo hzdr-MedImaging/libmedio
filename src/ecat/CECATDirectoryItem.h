@@ -24,7 +24,7 @@
 #ifndef CECATDIRECTORYITEM_H
 #define CECATDIRECTORYITEM_H
 
-#include <qcstring.h>
+#include <q3cstring.h>
 #include <qdatastream.h>
 
 // some useful defines on the ECAT file format
@@ -62,7 +62,7 @@
 // forward declarations
 class CECATFile;
 
-class Q_EXPORT CECATDirectoryItem
+class CECATDirectoryItem
 {
 	public:
 		enum AccessStatus { Deleted=-1, 
@@ -77,10 +77,10 @@ class Q_EXPORT CECATDirectoryItem
 		unsigned int matrixID(void) const
 		{ return convertToMatrixID(m_iFrame, m_iPlane, m_iGate, m_iBed, m_iData); }
 
-		QIODevice::Offset dataBlock_Start(void) const
+		qlonglong dataBlock_Start(void) const
 		{ return m_iDataBlock_Start; }
 		
-		QIODevice::Offset dataBlock_End(void) const
+		qlonglong dataBlock_End(void) const
 		{ return m_iDataBlock_End; }
 
 		AccessStatus dataBlock_Status(void) const
@@ -102,10 +102,10 @@ class Q_EXPORT CECATDirectoryItem
 		{	return m_iData; }
 
 		// mutator methods
-		void setDataBlock_Start(const QIODevice::Offset offset)
+		void setDataBlock_Start(const qlonglong offset)
 		{ m_iDataBlock_Start = offset; }
 
-		void setDataBlock_End(const QIODevice::Offset offset)
+		void setDataBlock_End(const qlonglong offset)
 		{ m_iDataBlock_End = offset; }
 
 		void setDataBlock_Status(const AccessStatus status)

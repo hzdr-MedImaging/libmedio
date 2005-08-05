@@ -34,7 +34,7 @@
 
 // forward declarations
 
-class Q_EXPORT CECATFile : public CMedIOData
+class CECATFile : public CMedIOData
 {
 	public:
 		enum ECATFormat	{ Undefined=0, ECAT7, ECAT6 };
@@ -52,7 +52,7 @@ class Q_EXPORT CECATFile : public CMedIOData
 		int rtti() const { return CMedIOData::ECAT; }
 
 		// the file open/close methods
-		bool open(int mode);
+		bool open(QIODevice::OpenModeFlag mode);
 		void close(void);
 
 		ECATFormat format(void) const { return m_iECATformat; }

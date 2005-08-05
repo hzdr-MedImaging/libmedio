@@ -69,7 +69,7 @@ class CMedIOData : public QFile
 			
 		//! @brief opens the file for a certain operation
 		//! @return true if loading is succesful otherwise false
-		virtual bool open(int mode) = 0;
+		virtual bool open(QIODevice::OpenModeFlag mode) = 0;
 		
 		//! @brief saves the data  
 		//! @return true if saving is succesful otherwise false

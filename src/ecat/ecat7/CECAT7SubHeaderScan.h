@@ -31,7 +31,7 @@
 // forward declarations
 class CECATFile;
 
-class Q_EXPORT CECAT7SubHeaderScan : public CECATSubHeader
+class CECAT7SubHeaderScan : public CECATSubHeader
 {
 	public:
 		// public bitmask enumeration types

@@ -33,7 +33,7 @@
 // forward declarations
 class CECATFile;
 
-class Q_EXPORT CECAT6MainHeader : public CECATMainHeader
+class CECAT6MainHeader : public CECATMainHeader
 {
 	public:
 		enum File_Type { Unknown=0, // FIXME: Others are missing for the moment

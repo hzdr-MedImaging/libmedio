@@ -41,7 +41,7 @@
 // forward declarations
 class CECATDirectoryItem;
 
-class Q_EXPORT CECATSubHeader : public CMedIOHeader
+class CECATSubHeader : public CMedIOHeader
 {
 	public:
 		enum Type	{ Unknown=0, 

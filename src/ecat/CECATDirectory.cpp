@@ -26,8 +26,8 @@
 #include "CECATFile.h"
 
 #include <qdatastream.h>
-#include <qintdict.h>
-#include <qvaluevector.h>
+#include <q3intdict.h>
+#include <q3valuevector.h>
 
 #include <rtdebug.h>
 
@@ -69,7 +69,7 @@ CECATDirectory::CECATDirectory(CECATFile* ecatFile)
 
   // create a new value vector for carrying all the different file
   // positions this directory list is splitted to.
-	m_pFilePositions = new QValueVector<QIODevice::Offset>();
+	m_pFilePositions = new Q3ValueVector<qlonglong>();
 	m_pFilePositions->clear();
 	m_pFilePositions->append(ECATBlock2FilePos(ECAT_POS_MAINDIR));
 
@@ -134,7 +134,7 @@ bool CECATDirectory::load(void)
 
 		// now we generate a QDataStream on our buffer so that we can read
 		// out of the buffer instead of the raw file (> speed)
-		QDataStream stream(buffer, IO_ReadOnly);
+		QDataStream stream(&buffer, QIODevice::ReadOnly);
 		
 		// read out the dirHead first
 		stream >> dList.head.FreeItems;
@@ -223,7 +223,7 @@ bool CECATDirectory::save(void) const
 	// one for the 31 dirItems.
 	QByteArray dirItemBuffer(31*sizeof(struct ECAT_DirItem));
 	memset(dirItemBuffer.data(), 0, 31*sizeof(struct ECAT_DirItem)); // clear it first
-	QDataStream dirItemStream(dirItemBuffer, IO_WriteOnly);
+	QDataStream dirItemStream(&dirItemBuffer, QIODevice::WriteOnly);
 
 	// now we have to go through our directory and stream all items
 	// in 31 chunks as the directory list can only have 31 items plus
@@ -276,7 +276,7 @@ bool CECATDirectory::save(void) const
 				// now we can write out the whole directory List to the file
 				// where we first write out the dirHead and then the 31 dirItems
 				QByteArray dirHeadBuffer(sizeof(struct ECAT_DirHead));
-				QDataStream dirHeadStream(dirHeadBuffer, IO_WriteOnly);
+				QDataStream dirHeadStream(&dirHeadBuffer, QIODevice::WriteOnly);
 
 				dirHeadStream << dirHead.FreeItems;
 				dirHeadStream << dirHead.Next;
@@ -349,7 +349,7 @@ bool CECATDirectory::save(void) const
 		// now we can write out the whole directory List to the file
 		// where we first write out the dirHead and then the 31 dirItems
 		QByteArray dirHeadBuffer(sizeof(struct ECAT_DirHead));
-		QDataStream dirHeadStream(dirHeadBuffer, IO_WriteOnly);
+		QDataStream dirHeadStream(&dirHeadBuffer, QIODevice::WriteOnly);
 
 		dirHeadStream << dirHead.FreeItems;
 		dirHeadStream << dirHead.Next;
@@ -403,7 +403,7 @@ CECATDirectoryItem* CECATDirectory::newItem(Q_UINT32 matrixID)
 	// now that we generated a new directory item we want to put
 	// in our directory immediately, we have to first check at which
 	// dataposition it should be placed
-	QIODevice::Offset dataOffset = lastDirItemOffset();
+	qlonglong dataOffset = lastDirItemOffset();
 
 	// modify the Start offset of the item now. So if this is the first
 	// one we place it directly behind the maindirectory, which should
@@ -425,12 +425,12 @@ CECATDirectoryItem* CECATDirectory::newItem(Q_UINT32 matrixID)
 	return pNewDItem;
 }
 
-QIODevice::Offset CECATDirectory::lastDirItemOffset(void)
+qlonglong CECATDirectory::lastDirItemOffset(void)
 {
 	ENTER();
-	QIODevice::Offset offset = 0;
+	qlonglong offset = 0;
 
-	QIntDictIterator<CECATDirectoryItem> it(*this);
+	Q3IntDictIterator<CECATDirectoryItem> it(*this);
 	for(;it.current(); ++it)
 	{
 		if(it.current()->dataBlock_End() > offset)
@@ -447,7 +447,7 @@ short CECATDirectory::numFrames(void) const
 
 	// we iterate through our dictionary looking for the highest available
 	// frame number
-	QIntDictIterator<CECATDirectoryItem> it(*this);
+	Q3IntDictIterator<CECATDirectoryItem> it(*this);
 	for(;it.current(); ++it)
 	{
 		if(it.current()->frame() > framesNum)
@@ -463,7 +463,7 @@ short CECATDirectory::numPlanes(void) const
 
 	// we iterate through our dictionary looking for the highest available
 	// plane number
-	QIntDictIterator<CECATDirectoryItem> it(*this);
+	Q3IntDictIterator<CECATDirectoryItem> it(*this);
 	for(;it.current(); ++it)
 	{
 		if(it.current()->plane() > planesNum)
@@ -479,7 +479,7 @@ short CECATDirectory::numGates(void) const
 
 	// we iterate through our dictionary looking for the highest available
 	// gates number
-	QIntDictIterator<CECATDirectoryItem> it(*this);
+	Q3IntDictIterator<CECATDirectoryItem> it(*this);
 	for(;it.current(); ++it)
 	{
 		if(it.current()->gate() > gatesNum)
@@ -495,7 +495,7 @@ short CECATDirectory::numBedPos(void) const
 
 	// we iterate through our dictionary looking for the highest available
 	// plane number
-	QIntDictIterator<CECATDirectoryItem> it(*this);
+	Q3IntDictIterator<CECATDirectoryItem> it(*this);
 	for(;it.current(); ++it)
 	{
 		if(it.current()->bed() > bedsNum)
@@ -799,7 +799,7 @@ CECATDirectoryItem* CECATDirectory::operator[](long num) const
 
 	// use an IntDictIterator to iterate until we got the num'th
 	// element in our dictonary and return it
-	QIntDictIterator<CECATDirectoryItem> it(*this);
+	Q3IntDictIterator<CECATDirectoryItem> it(*this);
 	for(long i=0; i < num && it.current(); i++, ++it);
 
 	RETURN(it.current());

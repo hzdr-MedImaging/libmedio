@@ -24,8 +24,9 @@
 # main variables
 TEMPLATE  = lib
 CONFIG	 *= qt thread warn_on @ANSI_COLOR@ @QTLINK_LEVEL@
+QT			  = core qt3support
 TARGET    = medio
-VERSION   = 0.2
+VERSION   = 2.0
 DESTDIR   = ../lib/
 
 # directory specification
@@ -127,8 +128,8 @@ else {
 }
 
 # own QMAKE Flags definitions
-QMAKE_CXXFLAGS_RELEASE	= @CXXFLAGS@
-QMAKE_CXXFLAGS_DEBUG		= @CXXFLAGS@
+QMAKE_CXXFLAGS_RELEASE	= @CXXFLAGS@ -DQT3_SUPPORT
+QMAKE_CXXFLAGS_DEBUG		= @CXXFLAGS@ -DQT3_SUPPORT
 
 # for static compilation we define the following so that we
 # can define "staticconfig" in CONFIG if we want static linking.

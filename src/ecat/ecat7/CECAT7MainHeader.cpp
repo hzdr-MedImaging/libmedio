@@ -25,10 +25,12 @@
 #include "CECAT6MainHeader.h"
 #include "CECATFile.h"
 
-#include <qcstring.h>
+#include <q3cstring.h>
 #include <qdatastream.h>
 #include <qdatetime.h>
 #include <qfileinfo.h>
+//Added by qt3to4:
+#include <QTextStream>
 
 #include <time.h>
 #include <unistd.h>
@@ -199,7 +201,7 @@ bool CECAT7MainHeader::load(void)
 
 	// now we generate a QDataStream on our buffer so that we can read
 	// out of the buffer instead of the raw file (> speed)
-	QDataStream stream(buffer, IO_ReadOnly);
+	QDataStream stream(&buffer, QIODevice::ReadOnly);
 
 	// we now read out the header information stepwise
   // as we have to care about big/little endianess, which
@@ -550,7 +552,7 @@ bool CECAT7MainHeader::save(void) const
 	
 	// we write to a buffer first and write out later directly to the file
 	QByteArray buffer(sizeof(struct ECAT7MainHeader));
-	QDataStream stream(buffer, IO_WriteOnly);
+	QDataStream stream(&buffer, QIODevice::WriteOnly);
 
   // we now read out the header information stepwise
   // as we have to care about big/little endianess, which
@@ -713,7 +715,7 @@ QTextStream& operator<<(QTextStream& stream, const CECAT7MainHeader& mHeader)
 	ENTER();
 
 	// save all header data to the textstream
-	stream << qSetPrecision(6);
+	stream << qSetRealNumberPrecision(6);
 	stream << "MAGIC_NUMBER "							<< mHeader.m_Data.Magic_Number							<< endl;
 	stream << "ORIGINAL_FILE_NAME "				<< mHeader.m_Data.Original_File_Name				<< endl;
 	stream << "SW_VERSION "								<< mHeader.m_Data.SW_Version								<< endl;

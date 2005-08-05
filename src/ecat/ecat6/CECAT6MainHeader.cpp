@@ -84,7 +84,7 @@ bool CECAT6MainHeader::load(void)
 
 	// now we generate a QDataStream on our buffer so that we can read
 	// out of the buffer instead of the raw file (> speed)
-	QDataStream stream(buffer, IO_ReadOnly);
+	QDataStream stream(&buffer, QIODevice::ReadOnly);
 	
 	// we read in the MainHeader data with one read
 	// operation
@@ -240,7 +240,7 @@ bool CECAT6MainHeader::save(void) const
 
 	// we write to a buffer first and write out later directly to the file
 	QByteArray buffer(sizeof(struct ECAT6MainHeader));
-	QDataStream stream(buffer, IO_WriteOnly);
+	QDataStream stream(&buffer, QIODevice::WriteOnly);
 
 	// we read in the MainHeader data with one read
 	// operation

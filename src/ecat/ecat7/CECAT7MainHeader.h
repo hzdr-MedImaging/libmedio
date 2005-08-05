@@ -28,13 +28,15 @@
 
 #include <qdatastream.h>
 #include <qdatetime.h>
+//Added by qt3to4:
+#include <QTextStream>
 
 #include <time.h>
 
 // forward declarations
 class CECATFile;
 
-class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
+class CECAT7MainHeader : public CECATMainHeader
 {
 	public:
 		// possible ECAT7 file types

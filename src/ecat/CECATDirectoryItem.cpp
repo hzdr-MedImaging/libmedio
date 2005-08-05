@@ -287,7 +287,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 					// now that we have our chunk we use a bufferStream to stream
 					// out the values from it for making sure our data is correctly
 					// converted regarding to little/big endianess
-					QDataStream bufStream(bufArray, IO_ReadOnly);
+					QDataStream bufStream(&bufArray, QIODevice::ReadOnly);
 					bufStream.setByteOrder(QDataStream::LittleEndian);
 					for(unsigned int i=0; i < curRead; i+=sizeof(Q_UINT16))
 					{
@@ -328,7 +328,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 					// now that we have our chunk we use a bufferStream to stream
 					// out the values from it for making sure our data is correctly
 					// converted regarding to little/big endianess
-					QDataStream bufStream(bufArray, IO_ReadOnly);
+					QDataStream bufStream(&bufArray, QIODevice::ReadOnly);
 					bufStream.setByteOrder(QDataStream::LittleEndian);
 					for(unsigned int i=0; i < curRead; i+=sizeof(Q_UINT32))
 					{
@@ -369,7 +369,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 					// now that we have our chunk we use a bufferStream to stream
 					// out the values from it for making sure our data is correctly
 					// converted regarding to little/big endianess
-					QDataStream bufStream(bufArray, IO_ReadOnly);
+					QDataStream bufStream(&bufArray, QIODevice::ReadOnly);
 					bufStream.setByteOrder(QDataStream::LittleEndian);
 					for(unsigned int i=0; i < curRead; i+=sizeof(float))
 					{
@@ -410,7 +410,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 					// now that we have our chunk we use a bufferStream to stream
 					// out the values from it for making sure our data is correctly
 					// converted regarding to little/big endianess
-					QDataStream bufStream(bufArray, IO_ReadOnly);
+					QDataStream bufStream(&bufArray, QIODevice::ReadOnly);
 					for(unsigned int i=0; i < curRead; i+=sizeof(float))
 					{
 						bufStream >> *ptr;
@@ -449,7 +449,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 					// now that we have our chunk we use a bufferStream to stream
 					// out the values from it for making sure our data is correctly
 					// converted regarding to little/big endianess
-					QDataStream bufStream(bufArray, IO_ReadOnly);
+					QDataStream bufStream(&bufArray, QIODevice::ReadOnly);
 					for(unsigned int i=0; i < curRead; i+=sizeof(Q_UINT16))
 					{
 						bufStream >> *ptr;
@@ -488,7 +488,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 					// now that we have our chunk we use a bufferStream to stream
 					// out the values from it for making sure our data is correctly
 					// converted regarding to little/big endianess
-					QDataStream bufStream(bufArray, IO_ReadOnly);
+					QDataStream bufStream(&bufArray, QIODevice::ReadOnly);
 					for(unsigned int i=0; i < curRead; i+=sizeof(Q_UINT32))
 					{
 						bufStream >> *ptr;
@@ -874,7 +874,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				// now that we have our chunk we use a bufferStream to stream
 				// in the values to it for making sure our data is correctly
 				// converted regarding to little/big endianess
-				QDataStream bufStream(bufArray, IO_WriteOnly);
+				QDataStream bufStream(&bufArray, QIODevice::WriteOnly);
 				bufStream.setByteOrder(QDataStream::LittleEndian);
 				for(unsigned int i=0; i < toWrite; i+=sizeof(Q_UINT16))
 				{
@@ -916,7 +916,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				// now that we have our chunk we use a bufferStream to stream
 				// in the values to it for making sure our data is correctly
 				// converted regarding to little/big endianess
-				QDataStream bufStream(bufArray, IO_WriteOnly);
+				QDataStream bufStream(&bufArray, QIODevice::WriteOnly);
 				bufStream.setByteOrder(QDataStream::LittleEndian);
 				for(unsigned int i=0; i < toWrite; i+=sizeof(Q_UINT32))
 				{
@@ -958,7 +958,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				// now that we have our chunk we use a bufferStream to stream
 				// in the values to it for making sure our data is correctly
 				// converted regarding to little/big endianess
-				QDataStream bufStream(bufArray, IO_WriteOnly);
+				QDataStream bufStream(&bufArray, QIODevice::WriteOnly);
 				bufStream.setByteOrder(QDataStream::LittleEndian);
 				for(unsigned int i=0; i < toWrite; i+=sizeof(float))
 				{
@@ -1000,7 +1000,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				// now that we have our chunk we use a bufferStream to stream
 				// in the values to it for making sure our data is correctly
 				// converted regarding to little/big endianess
-				QDataStream bufStream(bufArray, IO_WriteOnly);
+				QDataStream bufStream(&bufArray, QIODevice::WriteOnly);
 				for(unsigned int i=0; i < toWrite; i+=sizeof(float))
 				{
 					bufStream << *ptr;
@@ -1040,7 +1040,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				// now that we have our chunk we use a bufferStream to stream
 				// in the values to it for making sure our data is correctly
 				// converted regarding to little/big endianess
-				QDataStream bufStream(bufArray, IO_WriteOnly);
+				QDataStream bufStream(&bufArray, QIODevice::WriteOnly);
 				for(unsigned int i=0; i < toWrite; i+=sizeof(Q_UINT16))
 				{
 					bufStream << *ptr;
@@ -1081,7 +1081,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				// now that we have our chunk we use a bufferStream to stream
 				// in the values to it for making sure our data is correctly
 				// converted regarding to little/big endianess
-				QDataStream bufStream(bufArray, IO_WriteOnly);
+				QDataStream bufStream(&bufArray, QIODevice::WriteOnly);
 				for(unsigned int i=0; i < toWrite; i+=sizeof(Q_UINT32))
 				{
 					bufStream << *ptr;

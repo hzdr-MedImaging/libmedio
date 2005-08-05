@@ -31,7 +31,7 @@
 // forward declarations
 class CECATFile;
 
-class Q_EXPORT CECAT7SubHeaderNorm : public CECATSubHeader
+class CECAT7SubHeaderNorm : public CECATSubHeader
 {
 	public:
 		// public enumeration types

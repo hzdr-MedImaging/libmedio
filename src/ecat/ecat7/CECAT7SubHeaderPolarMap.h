@@ -31,7 +31,7 @@
 // forward declarations
 class CECATFile;
 
-class Q_EXPORT CECAT7SubHeaderPolarMap : public CECATSubHeader
+class CECAT7SubHeaderPolarMap : public CECATSubHeader
 {
 	public:
 		// public BitMask field

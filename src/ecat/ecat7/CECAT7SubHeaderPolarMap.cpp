@@ -77,7 +77,7 @@ bool CECAT7SubHeaderPolarMap::load(void)
 
 	// now we generate a QDataStream on our buffer so that we can read
 	// out of the buffer instead of the raw file (> speed)
-	QDataStream stream(buffer, IO_ReadOnly);	
+	QDataStream stream(&buffer, QIODevice::ReadOnly);	
 
 	// lets read in each single data element of our
 	// data structure to maintain the correct endianess of the
@@ -182,7 +182,7 @@ bool CECAT7SubHeaderPolarMap::save(void) const
 	
 	// we write to a buffer first and write out later directly to the file
 	QByteArray buffer(sizeof(struct ECAT7SubHeader_PolarMap));
-	QDataStream stream(buffer, IO_WriteOnly);
+	QDataStream stream(&buffer, QIODevice::WriteOnly);
 	
 	// lets read in each single data element of our
 	// data structure to maintain the correct endianess of the

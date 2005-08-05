@@ -6,6 +6,12 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-08-05  Jens Langner <Jens.Langner@light-speed.de>
+
+  * misc: initial port to Qt4 (still with Qt3Support) and separation of the
+    CVS repository into two different branches for Qt3 and Qt4 development.
+    (MAIN branch is the Qt4 one)
+
 2005-07-14  Jens Langner <Jens.Langner@light-speed.de>
 
   * CECATDirectoryItem.cpp: added check&code to enforce that a writeMatrix() call
