@@ -36,7 +36,7 @@
 
 #include <CMedIOHeader.h>
 
-#include <qdatastream.h>
+#include <QDataStream>
 
 // forward declarations
 class CECATDirectoryItem;

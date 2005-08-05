@@ -24,7 +24,7 @@
 #ifndef CECAT7SUBHEADERPOLARMAP_H
 #define CECAT7SUBHEADERPOLARMAP_H
 
-#include <qdatastream.h>
+#include <QDataStream>
 
 #include <CECATSubHeader.h>
 
@@ -142,7 +142,7 @@ class CECAT7SubHeaderPolarMap : public CECATSubHeader
 	
 		
 		void setData_Type(const CECATSubHeader::Data_Type dType)
-		{ m_Data.Data_Type = static_cast<Q_UINT16>(dType);	}		
+		{ m_Data.Data_Type = static_cast<quint16>(dType);	}		
 
 		void setPolar_Map_Type(const short n)
 		{ m_Data.Polar_Map_Type = n; }
@@ -227,32 +227,32 @@ class CECAT7SubHeaderPolarMap : public CECATSubHeader
 		#pragma pack(2)	// set the structure alignment
 		struct ECAT7SubHeader_PolarMap
 		{
-			Q_UINT16	Data_Type;
-			Q_UINT16	Polar_Map_Type;
-			Q_UINT16	Num_Rings;
-			Q_UINT16	Sectors_Per_Ring[32];
-			float			Ring_Position[32];
-			Q_UINT16	Ring_Angle[32];
-			Q_UINT16	Start_Angle;
-			Q_UINT16	Long_Axis_Left[3];
-			Q_UINT16	Long_Axis_Right[3];
-			Q_UINT16	Position_Data;
-			Q_UINT16	Image_Min;
-			Q_UINT16	Image_Max;
-			float			Scale_Factor;
-			float			Pixel_Size;
-			Q_UINT32	Frame_Duration;
-			Q_UINT32	Frame_Start_Time;
-			Q_UINT16	Processing_Code;
-			Q_UINT16	Quant_Units;
-			char			Annotation[40];
-			Q_UINT32	Gate_Duration;
-			Q_UINT32	R_Wave_Offset;
-			Q_UINT32	Num_Accepted_Beats;
-			char			Polar_Map_Protocol[20];
-			char			Database_Name[30];
-			Q_UINT16	CTI_reserved[27];
-			Q_UINT16	User_Reserved[27];
+			quint16	Data_Type;
+			quint16	Polar_Map_Type;
+			quint16	Num_Rings;
+			quint16	Sectors_Per_Ring[32];
+			float		Ring_Position[32];
+			quint16	Ring_Angle[32];
+			quint16	Start_Angle;
+			quint16	Long_Axis_Left[3];
+			quint16	Long_Axis_Right[3];
+			quint16	Position_Data;
+			quint16	Image_Min;
+			quint16	Image_Max;
+			float		Scale_Factor;
+			float		Pixel_Size;
+			quint32	Frame_Duration;
+			quint32	Frame_Start_Time;
+			quint16	Processing_Code;
+			quint16	Quant_Units;
+			char		Annotation[40];
+			quint32	Gate_Duration;
+			quint32	R_Wave_Offset;
+			quint32	Num_Accepted_Beats;
+			char		Polar_Map_Protocol[20];
+			char		Database_Name[30];
+			quint16	CTI_reserved[27];
+			quint16	User_Reserved[27];
 		} m_Data;
 		#pragma pack()
 };

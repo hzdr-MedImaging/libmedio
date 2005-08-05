@@ -24,7 +24,7 @@
 #ifndef CECATMAINHEADER_H
 #define CECATMAINHEADER_H
 
-#include <qtextstream.h>
+#include <QTextStream>
 
 #include <CMedIOHeader.h>
 

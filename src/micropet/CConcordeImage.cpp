@@ -7,10 +7,11 @@
 #include "CMedIOHeader.h"
 #include "CHeaderConcorde.h"
 #include "CMedIOData.h"
-#include <rtdebug.h>
 
-#include <qdatastream.h>
-#include <qfile.h>
+#include <QDataStream>
+#include <QFile>
+
+#include <rtdebug.h>
 
 //  Class: CConcordeImage
 //  Constructor: CConcordeImage
@@ -96,8 +97,8 @@ QByteArray* CConcordeImage::getMatrix(short frame, short plane,
 			if(head->datatype() == 2)
 			{
 				stream.setByteOrder(QDataStream::LittleEndian);
-				Q_UINT16* ptr = (Q_UINT16*)data;
-				for(unsigned int i=0; i < framesize; i+=sizeof(Q_UINT16))
+				quint16* ptr = (quint16*)data;
+				for(unsigned int i=0; i < framesize; i+=sizeof(quint16))
 				{
 					stream >> *ptr;
 					++ptr;
@@ -113,8 +114,8 @@ QByteArray* CConcordeImage::getMatrix(short frame, short plane,
 				D("DataType is : little endian integer");
 				D("FrameSize : %d", framesize);
 				stream.setByteOrder(QDataStream::LittleEndian);
-				Q_UINT32* ptr = (Q_UINT32*)data;
-				for(unsigned int i=0; i < framesize; i+=sizeof(Q_UINT32))
+				quint32* ptr = (quint32*)data;
+				for(unsigned int i=0; i < framesize; i+=sizeof(quint32))
 				{
 					stream >> *ptr;
 					++ptr;
@@ -157,8 +158,8 @@ QByteArray* CConcordeImage::getMatrix(short frame, short plane,
 			// and just use the QDataStream operators to ensure correct byte swapping
 			if(head->datatype() == 6)
 			{
-				Q_UINT16* ptr = (Q_UINT16*)data;
-				for(unsigned int i=0; i < framesize; i+=sizeof(Q_UINT16))
+				quint16* ptr = (quint16*)data;
+				for(unsigned int i=0; i < framesize; i+=sizeof(quint16))
 				{
 					stream >> *ptr;
 					++ptr;
@@ -170,8 +171,8 @@ QByteArray* CConcordeImage::getMatrix(short frame, short plane,
 			// and just use the QDataStream operators to ensure correct byte swapping
 			if(head->datatype() == 7)
 			{
-				Q_UINT32* ptr = (Q_UINT32*)data;
-				for(unsigned int i=0; i < framesize; i+=sizeof(Q_UINT32))
+				quint32* ptr = (quint32*)data;
+				for(unsigned int i=0; i < framesize; i+=sizeof(quint32))
 				{
 					stream >> *ptr;
 					++ptr;

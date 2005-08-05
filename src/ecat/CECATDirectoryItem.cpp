@@ -32,12 +32,12 @@
 #include "CECAT7SubHeaderScan.h"
 #include "CECAT7SubHeaderScan3D.h"
 
-#include <qdatastream.h>
+#include <QDataStream>
 
 #include <rtdebug.h>
 
 CECATDirectoryItem::CECATDirectoryItem(CECATFile* pFile,
-																			 Q_UINT32 matrixID) 
+																			 quint32 matrixID) 
 	: m_pECATFile(pFile),
 		m_pCachedSubHeader(NULL),
 		m_iFrame(-1),
@@ -270,7 +270,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 				// what we do is to us a temporarly buffer to which we read
 				// some data from our fileStream and read out to our QByteArray
 				QByteArray bufArray(8192); // read 8KB chunks
-				Q_UINT16* ptr = (Q_UINT16*)matrixData;
+				quint16* ptr = (quint16*)matrixData;
 				for(unsigned int read=0; read < matrixSize;)
 				{
 					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
@@ -282,14 +282,14 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 					}
 
 					// check if the curRead value is divide able through our data type 
-					ASSERT(curRead % sizeof(Q_UINT16) == 0);
+					ASSERT(curRead % sizeof(quint16) == 0);
 
 					// now that we have our chunk we use a bufferStream to stream
 					// out the values from it for making sure our data is correctly
 					// converted regarding to little/big endianess
 					QDataStream bufStream(&bufArray, QIODevice::ReadOnly);
 					bufStream.setByteOrder(QDataStream::LittleEndian);
-					for(unsigned int i=0; i < curRead; i+=sizeof(Q_UINT16))
+					for(unsigned int i=0; i < curRead; i+=sizeof(quint16))
 					{
 						bufStream >> *ptr;
 						++ptr;
@@ -311,7 +311,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 				// what we do is to us a temporarly buffer to which we read
 				// some data from our fileStream and read out to our QByteArray
 				QByteArray bufArray(8192); // read 8KB chunks
-				Q_UINT32* ptr = (Q_UINT32*)matrixData;
+				quint32* ptr = (quint32*)matrixData;
 				for(unsigned int read=0; read < matrixSize;)
 				{
 					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
@@ -323,14 +323,14 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 					}
 
 					// check if the curRead value is divide able through our data type 
-					ASSERT(curRead % sizeof(Q_UINT32) == 0);
+					ASSERT(curRead % sizeof(quint32) == 0);
 
 					// now that we have our chunk we use a bufferStream to stream
 					// out the values from it for making sure our data is correctly
 					// converted regarding to little/big endianess
 					QDataStream bufStream(&bufArray, QIODevice::ReadOnly);
 					bufStream.setByteOrder(QDataStream::LittleEndian);
-					for(unsigned int i=0; i < curRead; i+=sizeof(Q_UINT32))
+					for(unsigned int i=0; i < curRead; i+=sizeof(quint32))
 					{
 						bufStream >> *ptr;
 						++ptr;
@@ -432,7 +432,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 				// what we do is to us a temporarly buffer to which we read
 				// some data from our fileStream and read out to our QByteArray
 				QByteArray bufArray(8192); // read 8KB chunks
-				Q_UINT16* ptr = (Q_UINT16*)matrixData;
+				quint16* ptr = (quint16*)matrixData;
 				for(unsigned int read=0; read < matrixSize;)
 				{
 					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
@@ -444,13 +444,13 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 					}
 
 					// check if the curRead value is divide able through our data type 
-					ASSERT(curRead % sizeof(Q_UINT16) == 0);
+					ASSERT(curRead % sizeof(quint16) == 0);
 
 					// now that we have our chunk we use a bufferStream to stream
 					// out the values from it for making sure our data is correctly
 					// converted regarding to little/big endianess
 					QDataStream bufStream(&bufArray, QIODevice::ReadOnly);
-					for(unsigned int i=0; i < curRead; i+=sizeof(Q_UINT16))
+					for(unsigned int i=0; i < curRead; i+=sizeof(quint16))
 					{
 						bufStream >> *ptr;
 						++ptr;
@@ -471,7 +471,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 				// what we do is to us a temporarly buffer to which we read
 				// some data from our fileStream and read out to our QByteArray
 				QByteArray bufArray(8192); // read 8KB chunks
-				Q_UINT32* ptr = (Q_UINT32*)matrixData;
+				quint32* ptr = (quint32*)matrixData;
 				for(unsigned int read=0; read < matrixSize;)
 				{
 					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
@@ -483,13 +483,13 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 					}
 					
 					// check if the curRead value is divide able through our data type 
-					ASSERT(curRead % sizeof(Q_UINT32) == 0);
+					ASSERT(curRead % sizeof(quint32) == 0);
 
 					// now that we have our chunk we use a bufferStream to stream
 					// out the values from it for making sure our data is correctly
 					// converted regarding to little/big endianess
 					QDataStream bufStream(&bufArray, QIODevice::ReadOnly);
-					for(unsigned int i=0; i < curRead; i+=sizeof(Q_UINT32))
+					for(unsigned int i=0; i < curRead; i+=sizeof(quint32))
 					{
 						bufStream >> *ptr;
 						++ptr;
@@ -849,7 +849,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 		// write out Byte data. (1 byte)
 		case CECATSubHeader::ByteData:
 		{
-			if(m_pECATFile->writeBlock(matrixData, matrixSize) == (Q_LONG)matrixSize)
+			if(m_pECATFile->write(matrixData, matrixSize) == (qint64)matrixSize)
 				result = true;
 		}
 		break;
@@ -863,20 +863,20 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 			// what we do is to us a temporarly buffer to which we read
 			// some data from our fileStream and read out to our QByteArray
 			QByteArray bufArray(8192); // write in 8KB chunks
-			Q_UINT16* ptr = (Q_UINT16*)matrixData;
+			quint16* ptr = (quint16*)matrixData;
 			for(unsigned int written=0; written < matrixSize;)
 			{
 				unsigned int toWrite = matrixSize-written >= 8192 ? 8192 : matrixSize-written;
 
 				// check if the curRead value is divide able through our data type 
-				ASSERT(toWrite % sizeof(Q_UINT16) == 0);
+				ASSERT(toWrite % sizeof(quint16) == 0);
 
 				// now that we have our chunk we use a bufferStream to stream
 				// in the values to it for making sure our data is correctly
 				// converted regarding to little/big endianess
 				QDataStream bufStream(&bufArray, QIODevice::WriteOnly);
 				bufStream.setByteOrder(QDataStream::LittleEndian);
-				for(unsigned int i=0; i < toWrite; i+=sizeof(Q_UINT16))
+				for(unsigned int i=0; i < toWrite; i+=sizeof(quint16))
 				{
 					bufStream << *ptr;
 					++ptr;
@@ -884,7 +884,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				bufStream.setByteOrder(QDataStream::BigEndian);
 
 				// write out the data from our buffer to the file
-				if(m_pECATFile->writeBlock(bufArray.data(), toWrite) != (Q_LONG)toWrite)
+				if(m_pECATFile->write(bufArray.data(), toWrite) != (qint64)toWrite)
 				{
 					result = false;
 					break;
@@ -905,20 +905,20 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 			// what we do is to us a temporarly buffer to which we read
 			// some data from our fileStream and read out to our QByteArray
 			QByteArray bufArray(8192); // write in 8KB chunks
-			Q_UINT32* ptr = (Q_UINT32*)matrixData;
+			quint32* ptr = (quint32*)matrixData;
 			for(unsigned int written=0; written < matrixSize;)
 			{
 				unsigned int toWrite = matrixSize-written >= 8192 ? 8192 : matrixSize-written;
 
 				// check if the curRead value is divide able through our data type 
-				ASSERT(toWrite % sizeof(Q_UINT32) == 0);
+				ASSERT(toWrite % sizeof(quint32) == 0);
 
 				// now that we have our chunk we use a bufferStream to stream
 				// in the values to it for making sure our data is correctly
 				// converted regarding to little/big endianess
 				QDataStream bufStream(&bufArray, QIODevice::WriteOnly);
 				bufStream.setByteOrder(QDataStream::LittleEndian);
-				for(unsigned int i=0; i < toWrite; i+=sizeof(Q_UINT32))
+				for(unsigned int i=0; i < toWrite; i+=sizeof(quint32))
 				{
 					bufStream << *ptr;
 					++ptr;
@@ -926,7 +926,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				bufStream.setByteOrder(QDataStream::BigEndian);
 
 				// write out the data from our buffer to the file
-				if(m_pECATFile->writeBlock(bufArray.data(), toWrite) != (Q_LONG)toWrite)
+				if(m_pECATFile->write(bufArray.data(), toWrite) != (qint64)toWrite)
 				{
 					result = false;
 					break;
@@ -968,7 +968,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				bufStream.setByteOrder(QDataStream::BigEndian);
 
 				// write out the data from our buffer to the file
-				if(m_pECATFile->writeBlock(bufArray.data(), toWrite) != (Q_LONG)toWrite)
+				if(m_pECATFile->write(bufArray.data(), toWrite) != (qint64)toWrite)
 				{
 					result = false;
 					break;
@@ -1008,7 +1008,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				}
 
 				// write out the data from our buffer to the file
-				if(m_pECATFile->writeBlock(bufArray.data(), toWrite) != (Q_LONG)toWrite)
+				if(m_pECATFile->write(bufArray.data(), toWrite) != (qint64)toWrite)
 				{
 					result = false;
 					break;
@@ -1029,26 +1029,26 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 			// what we do is to us a temporarly buffer to which we read
 			// some data from our fileStream and read out to our QByteArray
 			QByteArray bufArray(8192); // write in 8KB chunks
-			Q_UINT16* ptr = (Q_UINT16*)matrixData;
+			quint16* ptr = (quint16*)matrixData;
 			for(unsigned int written=0; written < matrixSize;)
 			{
 				unsigned int toWrite = matrixSize-written >= 8192 ? 8192 : matrixSize-written;
 
 				// check if the curRead value is divide able through our data type 
-				ASSERT(toWrite % sizeof(Q_UINT16) == 0);
+				ASSERT(toWrite % sizeof(quint16) == 0);
 
 				// now that we have our chunk we use a bufferStream to stream
 				// in the values to it for making sure our data is correctly
 				// converted regarding to little/big endianess
 				QDataStream bufStream(&bufArray, QIODevice::WriteOnly);
-				for(unsigned int i=0; i < toWrite; i+=sizeof(Q_UINT16))
+				for(unsigned int i=0; i < toWrite; i+=sizeof(quint16))
 				{
 					bufStream << *ptr;
 					++ptr;
 				}
 
 				// write out the data from our buffer to the file
-				if(m_pECATFile->writeBlock(bufArray.data(), toWrite) != (Q_LONG)toWrite)
+				if(m_pECATFile->write(bufArray.data(), toWrite) != (qint64)toWrite)
 				{
 					result = false;
 					break;
@@ -1070,26 +1070,26 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 			// what we do is to us a temporarly buffer to which we read
 			// some data from our fileStream and read out to our QByteArray
 			QByteArray bufArray(8192); // write in 8KB chunks
-			Q_UINT32* ptr = (Q_UINT32*)matrixData;
+			quint32* ptr = (quint32*)matrixData;
 			for(unsigned int written=0; written < matrixSize;)
 			{
 				unsigned int toWrite = matrixSize-written >= 8192 ? 8192 : matrixSize-written;
 
 				// check if the curRead value is divide able through our data type 
-				ASSERT(toWrite % sizeof(Q_UINT32) == 0);
+				ASSERT(toWrite % sizeof(quint32) == 0);
 
 				// now that we have our chunk we use a bufferStream to stream
 				// in the values to it for making sure our data is correctly
 				// converted regarding to little/big endianess
 				QDataStream bufStream(&bufArray, QIODevice::WriteOnly);
-				for(unsigned int i=0; i < toWrite; i+=sizeof(Q_UINT32))
+				for(unsigned int i=0; i < toWrite; i+=sizeof(quint32))
 				{
 					bufStream << *ptr;
 					++ptr;
 				}
 
 				// write out the data from our buffer to the file
-				if(m_pECATFile->writeBlock(bufArray.data(), toWrite) != (Q_LONG)toWrite)
+				if(m_pECATFile->write(bufArray.data(), toWrite) != (qint64)toWrite)
 				{
 					result = false;
 					break;
@@ -1116,7 +1116,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 
 			memset(fillData, 0, fillLen*sizeof(char));
 
-			if(m_pECATFile->writeBlock(fillData, fillLen) != (Q_LONG)fillLen)
+			if(m_pECATFile->write(fillData, fillLen) != (qint64)fillLen)
 			{
 				result = false;
 				E("Error occurred while trying to write %ld NULL bytes.", fillLen);
@@ -1145,7 +1145,7 @@ QDataStream& operator<<(QDataStream& stream, const CECATDirectoryItem& dItem)
 	ENTER();
 
 	// first convert and write out the matrixID
-	Q_UINT32 matrixID = convertToMatrixID(dItem.m_iFrame,
+	quint32 matrixID = convertToMatrixID(dItem.m_iFrame,
 																				dItem.m_iPlane,
 																				dItem.m_iGate,
 																				dItem.m_iBed,
@@ -1153,13 +1153,13 @@ QDataStream& operator<<(QDataStream& stream, const CECATDirectoryItem& dItem)
 	stream << matrixID;
 	
 	// then we read out the rest
-	Q_UINT32 dataBlock_Start = FilePos2ECATBlock(dItem.m_iDataBlock_Start);
+	quint32 dataBlock_Start = FilePos2ECATBlock(dItem.m_iDataBlock_Start);
 	stream << dataBlock_Start;
 
-	Q_UINT32 dataBlock_End = FilePos2ECATBlock(dItem.m_iDataBlock_End);
+	quint32 dataBlock_End = FilePos2ECATBlock(dItem.m_iDataBlock_End);
 	stream << dataBlock_End;
 	
-	Q_INT32 matrixStatus = static_cast<Q_INT32>(dItem.m_iStatus);
+	qint32 matrixStatus = static_cast<qint32>(dItem.m_iStatus);
 	stream << matrixStatus;
 
 	D("DItem.Matrix_ID       : %08lx (%d/%d/%d/%d/%d)", matrixID,
@@ -1182,7 +1182,7 @@ QDataStream& operator>>(QDataStream& stream, CECATDirectoryItem& dItem)
 	ENTER();
 
 	// first read and convert the matrixID
-	Q_UINT32 matrixID;
+	quint32 matrixID;
 	stream >> matrixID;
 	dItem.m_iFrame = matrixID2Frame(matrixID);
 	dItem.m_iPlane = matrixID2Plane(matrixID);
@@ -1191,15 +1191,15 @@ QDataStream& operator>>(QDataStream& stream, CECATDirectoryItem& dItem)
 	dItem.m_iData  = matrixID2Data(matrixID);
 
 	// then we read out the rest
-	Q_UINT32 dataBlock_Start;
+	quint32 dataBlock_Start;
 	stream >> dataBlock_Start;
 	dItem.m_iDataBlock_Start = ECATBlock2FilePos(dataBlock_Start);
 
-	Q_UINT32 dataBlock_End;
+	quint32 dataBlock_End;
 	stream >> dataBlock_End;
 	dItem.m_iDataBlock_End = ECATBlock2FilePos(dataBlock_End);
 
-	Q_INT32 matrixStatus;
+	qint32 matrixStatus;
 	stream >> matrixStatus;
 	dItem.m_iStatus = static_cast<CECATDirectoryItem::AccessStatus>(matrixStatus);
 

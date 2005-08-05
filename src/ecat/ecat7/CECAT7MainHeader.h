@@ -26,9 +26,8 @@
 
 #include <CECATMainHeader.h>
 
-#include <qdatastream.h>
-#include <qdatetime.h>
-//Added by qt3to4:
+#include <QDataStream>
+#include <QDateTime>
 #include <QTextStream>
 
 #include <time.h>
@@ -288,7 +287,7 @@ class CECAT7MainHeader : public CECATMainHeader
 		{ strncpy(m_Data.Serial_Number, num, 10); }
 		
 		void setScan_Start_Time(const time_t time)
-		{ m_Data.Scan_Start_Time = static_cast<Q_INT32>(time); }
+		{ m_Data.Scan_Start_Time = static_cast<qint32>(time); }
 		
 		void setIsotope_Name(const char* name)
 		{ strncpy(m_Data.Isotope_Name, name, 8); }
@@ -369,7 +368,7 @@ class CECAT7MainHeader : public CECATMainHeader
 		{ m_Data.Patient_Weight = weight;	}
 		
 		void setPatient_Birth_Date(const time_t date)										
-		{ m_Data.Patient_Birth_Date = static_cast<Q_INT32>(date);	}
+		{ m_Data.Patient_Birth_Date = static_cast<qint32>(date);	}
 		
 		void setPhysician_Name(const char* name)															
 		{ strncpy(m_Data.Physician_Name, name, 32);	}
@@ -432,7 +431,7 @@ class CECAT7MainHeader : public CECATMainHeader
 		{ m_Data.Branching_Fraction = frac; }
 		
 		void setDose_Start_Time(const time_t time)										
-		{ m_Data.Dose_Start_Time = static_cast<Q_INT32>(time); }
+		{ m_Data.Dose_Start_Time = static_cast<qint32>(time); }
 		
 		void setDosage(const float dosage)																	
 		{ m_Data.Dosage = dosage; }
@@ -469,66 +468,66 @@ class CECAT7MainHeader : public CECATMainHeader
 		// MainHeader structure (should be 512bytes)
 		struct ECAT7MainHeader
 		{
-			char					Magic_Number[14];
-			char					Original_File_Name[32];
-			Q_UINT16			SW_Version;
-			Q_UINT16			System_Type;
-			Q_UINT16			File_Type;
-			char					Serial_Number[10];
-			Q_INT32				Scan_Start_Time;
-			char					Isotope_Name[8];
-			float					Isotope_Halflife;
-			char					Radiopharmaceutical[32];
-      float					Gantry_Tilt;
-      float					Gantry_Rotation;
-      float					Bed_Elevation;
-      float					Intrinsic_Tilt;
-      Q_UINT16			Wobble_Speed;
-      Q_UINT16			Transm_Source_Type;
-			float					Distance_Scanned;
-      float					Transaxial_FOV;
-      Q_UINT16			Angular_Compression;
-      Q_UINT16			Coin_Samp_Mode;
-      Q_UINT16			Axial_Samp_Mode;
-      float					Calibration_Factor;
-      Q_UINT16			Calibration_Units;
-      Q_UINT16			Calibration_Units_Label;
-      Q_UINT16			Compression_Code;
-      char					Study_Type[12];
-			char					Patient_ID[16];
-      char					Patient_Name[32];
-      char					Patient_Sex[1];
-      char					Patient_Dexterity[1];
-      float					Patient_Age;
-      float					Patient_Height;
-      float					Patient_Weight;
-      Q_INT32				Patient_Birth_Date;
-      char					Physician_Name[32];
-      char					Operator_Name[32];
-      char					Study_Description[32];
-      Q_UINT16			Acquisition_Type;
-      Q_UINT16			Patient_Orientation;
-			char					Facility_Name[20];
-      Q_UINT16			Num_Planes;
-      Q_UINT16			Num_Frames;
-      Q_UINT16			Num_Gates;
-      Q_UINT16			Num_Bed_Pos;
-      float					Init_Bed_Position;
-      float					Bed_Offset[15];
-      float					Plane_Separation;
-      Q_UINT16			Lwr_Sctr_Thres;
-      Q_UINT16			Lwr_True_Thres;
-      Q_UINT16			Upr_True_Thres;
-      char					User_Process_Code[10];
-      Q_UINT16			Acquisition_Mode;
-      float					Bin_Size;
-      float					Branching_Fraction;
-      Q_INT32				Dose_Start_Time;
-			float					Dosage;
-      float					Well_Counter_Corr_Factor;
-      char					Data_Units[32];
-      Q_UINT16			Septa_State;
-			Q_UINT16			CTI_Reserved[6];
+			char		Magic_Number[14];
+			char		Original_File_Name[32];
+			quint16	SW_Version;
+			quint16	System_Type;
+			quint16	File_Type;
+			char		Serial_Number[10];
+			qint32	Scan_Start_Time;
+			char		Isotope_Name[8];
+			float		Isotope_Halflife;
+			char		Radiopharmaceutical[32];
+      float		Gantry_Tilt;
+      float		Gantry_Rotation;
+      float		Bed_Elevation;
+      float		Intrinsic_Tilt;
+      quint16	Wobble_Speed;
+      quint16	Transm_Source_Type;
+			float		Distance_Scanned;
+      float		Transaxial_FOV;
+      quint16	Angular_Compression;
+      quint16	Coin_Samp_Mode;
+      quint16	Axial_Samp_Mode;
+      float		Calibration_Factor;
+      quint16	Calibration_Units;
+      quint16	Calibration_Units_Label;
+      quint16	Compression_Code;
+      char		Study_Type[12];
+			char		Patient_ID[16];
+      char		Patient_Name[32];
+      char		Patient_Sex[1];
+      char		Patient_Dexterity[1];
+      float		Patient_Age;
+      float		Patient_Height;
+      float		Patient_Weight;
+      qint32	Patient_Birth_Date;
+      char		Physician_Name[32];
+      char		Operator_Name[32];
+      char		Study_Description[32];
+      quint16	Acquisition_Type;
+      quint16	Patient_Orientation;
+			char		Facility_Name[20];
+      quint16	Num_Planes;
+      quint16	Num_Frames;
+      quint16	Num_Gates;
+      quint16	Num_Bed_Pos;
+      float		Init_Bed_Position;
+      float		Bed_Offset[15];
+      float		Plane_Separation;
+      quint16	Lwr_Sctr_Thres;
+      quint16	Lwr_True_Thres;
+      quint16	Upr_True_Thres;
+      char		User_Process_Code[10];
+      quint16	Acquisition_Mode;
+      float		Bin_Size;
+      float		Branching_Fraction;
+      qint32	Dose_Start_Time;
+			float		Dosage;
+      float		Well_Counter_Corr_Factor;
+      char		Data_Units[32];
+      quint16	Septa_State;
+			quint16	CTI_Reserved[6];
 		} m_Data;
 		#pragma pack()
 };

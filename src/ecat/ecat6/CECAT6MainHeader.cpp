@@ -25,8 +25,8 @@
 #include "CECAT7MainHeader.h"
 #include "CECATFile.h"
 
-#include <qdatastream.h>
-#include <qfileinfo.h>
+#include <QDataStream>
+#include <QFileInfo>
 
 #include <rtdebug.h>
 
@@ -233,10 +233,10 @@ bool CECAT6MainHeader::save(void) const
 	// out data beforehand which we use instead of the data stored in our
 	// data structure (such as frames/planes/gates etc.)
 	CECATFile* ecatFile = static_cast<CECATFile*>(m_pMedIOData);
-	Q_UINT16 numPlanes = ecatFile->numPlanes();
-	Q_UINT16 numFrames = ecatFile->numFrames();
-	Q_UINT16 numGates  = ecatFile->numGates();
-	Q_UINT16 numBedPos = ecatFile->numBedPos();
+	quint16 numPlanes = ecatFile->numPlanes();
+	quint16 numFrames = ecatFile->numFrames();
+	quint16 numGates  = ecatFile->numGates();
+	quint16 numBedPos = ecatFile->numBedPos();
 
 	// we write to a buffer first and write out later directly to the file
 	QByteArray buffer(sizeof(struct ECAT6MainHeader));
@@ -304,7 +304,7 @@ bool CECAT6MainHeader::save(void) const
 
 	// now write out to our outStream
 	bool result = false;
-	if(m_pMedIOData->writeBlock(buffer) != -1)
+	if(m_pMedIOData->write(buffer) != -1)
 	{
 		ecatFile->mainHeaderWritten(*this);
 		result = true;

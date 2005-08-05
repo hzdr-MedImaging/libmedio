@@ -28,8 +28,8 @@
 #ifndef CMEDIODATA_H
 #define CMEDIODATA_H
 
-#include <qfile.h>
-#include <qstring.h>
+#include <QFile>
+#include <QString>
 
 // forward declarations
 class CMedIOHeader;
@@ -85,7 +85,7 @@ class CMedIOData : public QFile
 		
 		//! @brief access to filename
 		//! @return filename of medical data file
-		QString fileName(void) const { return name(); }
+		QString fileName(void) const { return fileName(); }
 
 		//! @brief for querying error status information
 		//! @return integer value for the specific error reason

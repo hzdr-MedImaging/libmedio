@@ -28,7 +28,7 @@
 #include "CMedIOData.h"
 #include "CMedIOHeader.h"
 
-#include <qstring.h>
+#include <QString>
 
 #include <rtdebug.h>
 

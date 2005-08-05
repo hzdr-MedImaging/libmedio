@@ -25,7 +25,7 @@
 #include "CECATDirectoryItem.h"
 #include "CECATFile.h"
 
-#include <qdatastream.h>
+#include <QDataStream>
 
 #include <rtdebug.h>
 
@@ -40,7 +40,7 @@ CECAT7SubHeaderScan3D::CECAT7SubHeaderScan3D(CECATFile* ecatFile,
 	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Scan3D));
 		
 	// put in some default values which are the most common ones
-	m_Data.Data_Type									= static_cast<Q_UINT16>(CECATSubHeader::SunShort);
+	m_Data.Data_Type									= static_cast<quint16>(CECATSubHeader::SunShort);
 	m_Data.Num_Dimensions							= 4;
 	m_Data.Num_R_Elements							= 288;
 	m_Data.Num_Angles									= 144;	// with mash=2
@@ -245,7 +245,7 @@ bool CECAT7SubHeaderScan3D::save(void) const
 	
 	// now write out to our outStream
 	bool result = false;
-	if(m_pMedIOData->writeBlock(buffer) != -1)
+	if(m_pMedIOData->write(buffer) != -1)
 	{
 		m_pDirItem->subHeaderWritten(*this);
 		result = true;

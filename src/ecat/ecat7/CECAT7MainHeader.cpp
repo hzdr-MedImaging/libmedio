@@ -25,11 +25,9 @@
 #include "CECAT6MainHeader.h"
 #include "CECATFile.h"
 
-#include <q3cstring.h>
-#include <qdatastream.h>
-#include <qdatetime.h>
-#include <qfileinfo.h>
-//Added by qt3to4:
+#include <QDataStream>
+#include <QDateTime>
+#include <QFileInfo>
 #include <QTextStream>
 
 #include <time.h>
@@ -546,9 +544,9 @@ bool CECAT7MainHeader::save(void) const
 	// planes are normally integrated in one matrix file. So we have to
 	// allow the user to specify the planes himself.
 	CECATFile* ecatFile = static_cast<CECATFile*>(m_pMedIOData);
-	Q_UINT16 numFrames = ecatFile->numFrames();
-	Q_UINT16 numGates  = ecatFile->numGates();
-	Q_UINT16 numBedPos = ecatFile->numBedPos();
+	quint16 numFrames = ecatFile->numFrames();
+	quint16 numGates  = ecatFile->numGates();
+	quint16 numBedPos = ecatFile->numBedPos();
 	
 	// we write to a buffer first and write out later directly to the file
 	QByteArray buffer(sizeof(struct ECAT7MainHeader));
@@ -639,7 +637,7 @@ bool CECAT7MainHeader::save(void) const
 
 	// now write out to our outStream
 	bool result = false;
-	if(m_pMedIOData->writeBlock(buffer) != -1)
+	if(m_pMedIOData->write(buffer) != -1)
 	{
 		ecatFile->mainHeaderWritten(*this);
 		result = true;

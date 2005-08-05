@@ -24,7 +24,7 @@
 # main variables
 TEMPLATE  = lib
 CONFIG	 *= qt thread warn_on @ANSI_COLOR@ @QTLINK_LEVEL@
-QT			  = core qt3support
+QT			  = core
 TARGET    = medio
 VERSION   = 2.0
 DESTDIR   = ../lib/

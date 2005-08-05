@@ -52,15 +52,15 @@ int main(int argc, char* argv[])
 	cout << "-------------------------------------" << endl;
 
 	// generate some huge matrix data which we can use for verification later
-	//#define MATRIX_SIZE	(2064414/sizeof(Q_UINT16)) // non dividable through ECAT_BLOCKSIZE
-	//#define MATRIX_SIZE	(2063872/sizeof(Q_UINT16))
-	#define MATRIX_SIZE	(2064384/sizeof(Q_UINT16))
-	Q_UINT16* matrixData_frame1 = new Q_UINT16[MATRIX_SIZE];
-	Q_UINT16* matrixData_frame2 = new Q_UINT16[MATRIX_SIZE];
+	//#define MATRIX_SIZE	(2064414/sizeof(quint16)) // non dividable through ECAT_BLOCKSIZE
+	//#define MATRIX_SIZE	(2063872/sizeof(quint16))
+	#define MATRIX_SIZE	(2064384/sizeof(quint16))
+	quint16* matrixData_frame1 = new quint16[MATRIX_SIZE];
+	quint16* matrixData_frame2 = new quint16[MATRIX_SIZE];
 
 	// fill it with random data
 	srand(time(NULL));
-	for(long i=0; i < MATRIX_SIZE; i++)
+	for(unsigned int i=0; i < MATRIX_SIZE; i++)
 	{
 		matrixData_frame1[i] = 1;
 		matrixData_frame2[i] = 2;
@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
 
 	// open the file for writing data
 	CECATFile file("readwritematrix.v", CECATMainHeader::ECAT7_Volume16);
-	if(file.open(IO_WriteOnly))
+	if(file.open(QIODevice::WriteOnly))
 	{
 		// first we write an own main header into the file
 		CECATMainHeader* mainHeader = file.createEmptyMainHeader();
@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
 
 		// let us write out the data to the file in frame 1
 		if(file.writeMatrix((char*)matrixData_frame2, 
-												MATRIX_SIZE*sizeof(Q_UINT16), 
+												MATRIX_SIZE*sizeof(quint16), 
 												CECATSubHeader::SunShort, 2) == false)
 			cout << "Error during writeMatrix() operation for frame 2" << endl;
 		else
@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
 			cout << "successfully written matrix data for frame 2" << endl;
 
 			if(file.writeMatrix((char*)matrixData_frame1,
-													MATRIX_SIZE*sizeof(Q_UINT16),
+													MATRIX_SIZE*sizeof(quint16),
 													CECATSubHeader::SunShort, 1) == false)
 			{
 				cout << "Error during writeMatrix() operation for frame 1" << endl;
@@ -121,7 +121,7 @@ int main(int argc, char* argv[])
 
 			// and to test the write operations to write the matrix together
 			// with the subheader lets do it now and write frame 3
-			if(file.writeMatrix((char*)matrixData_frame2, MATRIX_SIZE*sizeof(Q_UINT16),
+			if(file.writeMatrix((char*)matrixData_frame2, MATRIX_SIZE*sizeof(quint16),
 													*subHeader, 3) == false)
 			{
 				cout << "Error during writeMatrix(data, subheader) operation for frame 3" << endl;
@@ -146,10 +146,10 @@ int main(int argc, char* argv[])
 		file.close();
 
 		// reopen it as readonly
-		if(file.open(IO_ReadOnly))
+		if(file.open(QIODevice::ReadOnly))
 		{
 			// read in the matrix in a separate buffer
-			Q_UINT16* readBuf = NULL;
+			quint16* readBuf = NULL;
 			unsigned int len = 0;
 
 			if(file.readMatrix((char*&)readBuf, len, 1) == false)
@@ -162,7 +162,7 @@ int main(int argc, char* argv[])
 				cout << "read " << len << " bytes of data" << endl;
 				cout << "comparing read data with written data..." << endl;
 				
-				long i=0;
+				unsigned int i=0;
 				for(; i < MATRIX_SIZE; i++)
 				{
 					if(matrixData_frame1[i] != readBuf[i])
@@ -191,7 +191,7 @@ int main(int argc, char* argv[])
 				cout << "read " << len << " bytes of data" << endl;
 				cout << "comparing read data with written data..." << endl;
 				
-				long i=0;
+				unsigned int i=0;
 				for(; i < MATRIX_SIZE; i++)
 				{
 					if(matrixData_frame2[i] != readBuf[i])

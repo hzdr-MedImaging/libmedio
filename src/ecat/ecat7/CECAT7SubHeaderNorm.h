@@ -24,7 +24,7 @@
 #ifndef CECAT7SUBHEADERNORM_H
 #define CECAT7SUBHEADERNORM_H
 
-#include <qdatastream.h>
+#include <QDataStream>
 
 #include <CECATSubHeader.h>
 
@@ -106,7 +106,7 @@ class CECAT7SubHeaderNorm : public CECATSubHeader
 
 		
 		void setData_Type(const CECATSubHeader::Data_Type dType)
-		{ m_Data.Data_Type = static_cast<Q_UINT16>(dType);	}	
+		{ m_Data.Data_Type = static_cast<quint16>(dType);	}	
 
 		void setNum_Dimensions(const short n)
 		{ m_Data.Num_Dimensions = n; }
@@ -139,7 +139,7 @@ class CECAT7SubHeaderNorm : public CECATSubHeader
 		{ m_Data.Norm_Quality_Factor = n; }
 
 		void setNorm_Quality_Factor_Code(const Norm_Qual_Factor_Code n)
-		{ m_Data.Norm_Quality_Factor_Code = static_cast<Q_UINT16>(n); }
+		{ m_Data.Norm_Quality_Factor_Code = static_cast<quint16>(n); }
 
 		void setStorage_Order(const short n)
 		{ m_Data.Storage_Order = n; }
@@ -164,23 +164,23 @@ class CECAT7SubHeaderNorm : public CECATSubHeader
 		#pragma pack(2)	// set the structure alignment
 		struct ECAT7SubHeader_Norm
 		{
-			Q_UINT16	Data_Type;
-			Q_UINT16	Num_Dimensions;
-			Q_UINT16	Num_R_Elements;
-			Q_UINT16	Num_Angles;
-			Q_UINT16	Num_Z_Elements;
-			Q_UINT16	Ring_Difference;
-			float			Scale_Factor;
-			float			Norm_Min;
-			float			Norm_Max;
-			float			FOV_Source_Width;
-			float			Norm_Quality_Factor;
-			Q_UINT16	Norm_Quality_Factor_Code;
-			Q_UINT16	Storage_Order;
-			Q_UINT16	Span;
-			Q_UINT16	Z_Elements[64];
-			Q_UINT16	CTI_reserved[123];
-			Q_UINT16	User_Reserved[50];
+			quint16	Data_Type;
+			quint16	Num_Dimensions;
+			quint16	Num_R_Elements;
+			quint16	Num_Angles;
+			quint16	Num_Z_Elements;
+			quint16	Ring_Difference;
+			float		Scale_Factor;
+			float		Norm_Min;
+			float		Norm_Max;
+			float		FOV_Source_Width;
+			float		Norm_Quality_Factor;
+			quint16	Norm_Quality_Factor_Code;
+			quint16	Storage_Order;
+			quint16	Span;
+			quint16	Z_Elements[64];
+			quint16	CTI_reserved[123];
+			quint16	User_Reserved[50];
 		} m_Data;
 		#pragma pack()
 };

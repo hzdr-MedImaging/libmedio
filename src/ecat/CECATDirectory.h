@@ -24,16 +24,16 @@
 #ifndef CECATDIRECTORY_H
 #define CECATDIRECTORY_H
 
-#include <q3intdict.h>
-#include <qiodevice.h>
-#include <q3valuevector.h>
+#include <QHash>
+#include <QIODevice>
+#include <QVector>
 
 #include <CECATDirectoryItem.h>
 
 // forward declarations
 class CECATFile;
 
-class CECATDirectory : protected Q3IntDict<CECATDirectoryItem>
+class CECATDirectory : protected QHash<int, CECATDirectoryItem*>
 {
 	public:
 		CECATDirectory(CECATFile* ecatFile);
@@ -44,8 +44,8 @@ class CECATDirectory : protected Q3IntDict<CECATDirectoryItem>
 		bool save(void) const;
 
 		// accessor methods
-		bool isEmpty() const { return Q3IntDict<CECATDirectoryItem>::isEmpty(); }
-		unsigned int count() const { return Q3IntDict<CECATDirectoryItem>::count(); }
+		bool isEmpty() const { return QHash<int, CECATDirectoryItem*>::isEmpty(); }
+		int count() const		 { return QHash<int, CECATDirectoryItem*>::count(); }
 		CECATDirectoryItem* operator[](long num) const;
 		CECATDirectoryItem* item(short frame, short plane=1,
 														 short gate=1, short bed=0, short data=0);
@@ -88,14 +88,14 @@ class CECATDirectory : protected Q3IntDict<CECATDirectoryItem>
 	private:
 		CECATFile* m_pECATFile;	// ptr to our associated ECATFile
 																				
-		Q3ValueVector<qlonglong>* m_pFilePositions; // for each DirList we
-																											 // could have different file
-																											 // positions which we have
-																											 // to store
+		QVector<qint64>* m_pFilePositions; // for each DirList we
+																			 // could have different file
+																			 // positions which we have
+																			 // to store
 
 		// some private methods 
-		CECATDirectoryItem* newItem(Q_UINT32 matrixID);
-		QIODevice::Offset lastDirItemOffset(void);
+		CECATDirectoryItem* newItem(quint32 matrixID);
+		qint64 lastDirItemOffset(void);
 };
 
 #endif // CECATDIRECTORY_H

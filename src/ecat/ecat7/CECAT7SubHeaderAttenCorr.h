@@ -24,7 +24,7 @@
 #ifndef CECAT7SUBHEADERATTENCORR_H
 #define CECAT7SUBHEADERATTENCORR_H
 
-#include <qdatastream.h>
+#include <QDataStream>
 
 #include <CECATSubHeader.h>
 
@@ -143,13 +143,13 @@ class CECAT7SubHeaderAttenCorr : public CECATSubHeader
 		{ return m_Data.CTI_Reserved[n]; }		
 		
 		void setData_Type(const CECATSubHeader::Data_Type dType)
-		{ m_Data.Data_Type = static_cast<Q_UINT16>(dType); }
+		{ m_Data.Data_Type = static_cast<quint16>(dType); }
 
 		void setNum_Dimensions(const short n)
 		{ m_Data.Num_Dimensions = n; }
 
 		void setAttenuation_Type(const Attenuation_Type n)
-		{ m_Data.Attenuation_Type = static_cast<Q_UINT16>(n); }
+		{ m_Data.Attenuation_Type = static_cast<quint16>(n); }
 
 		void setNum_R_Elements(const short n)
 		{ m_Data.Num_R_Elements = n; }
@@ -237,35 +237,35 @@ class CECAT7SubHeaderAttenCorr : public CECATSubHeader
 		#pragma pack(2)	// set the structure alignment
 		struct ECAT7SubHeader_AttenCorr
 		{
-			Q_UINT16	Data_Type;
-			Q_UINT16	Num_Dimensions;
-			Q_UINT16	Attenuation_Type;
-			Q_UINT16	Num_R_Elements;
-			Q_UINT16	Num_Angles;
-			Q_UINT16	Num_Z_Elements;
-			Q_UINT16	Ring_Difference;
-			float			X_Resolution;
-			float			Y_Resolution;
-			float			Z_Resolution;
-			float			W_Resolution;
-			float			Scale_Factor;
-			float			X_Offset;
-			float			Y_Offset;
-			float			X_Radius;
-			float			Y_Radius;
-			float			Tilt_Angle;
-			float			Attenuation_Coeff;
-			float			Attenuation_Min;
-			float			Attenuation_Max;
-			float			Skull_Thickness;
-			Q_UINT16	Num_Additional_Atten_Coeff;
-			float			Additional_Atten_Coeff[8];
-			float			Edge_Finding_Threshold;
-			Q_UINT16	Storage_Order;
-			Q_UINT16	Span;
-			Q_UINT16	Z_Elements[64];
-			Q_UINT16	Unused[86];
-			Q_UINT16	CTI_Reserved[50];
+			quint16	Data_Type;
+			quint16	Num_Dimensions;
+			quint16	Attenuation_Type;
+			quint16	Num_R_Elements;
+			quint16	Num_Angles;
+			quint16	Num_Z_Elements;
+			quint16	Ring_Difference;
+			float		X_Resolution;
+			float		Y_Resolution;
+			float		Z_Resolution;
+			float		W_Resolution;
+			float		Scale_Factor;
+			float		X_Offset;
+			float		Y_Offset;
+			float		X_Radius;
+			float		Y_Radius;
+			float		Tilt_Angle;
+			float		Attenuation_Coeff;
+			float		Attenuation_Min;
+			float		Attenuation_Max;
+			float		Skull_Thickness;
+			quint16	Num_Additional_Atten_Coeff;
+			float		Additional_Atten_Coeff[8];
+			float		Edge_Finding_Threshold;
+			quint16	Storage_Order;
+			quint16	Span;
+			quint16	Z_Elements[64];
+			quint16	Unused[86];
+			quint16	CTI_Reserved[50];
 		} m_Data;
 		#pragma pack()
 };

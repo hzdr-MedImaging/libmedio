@@ -35,8 +35,8 @@
 #include "CECAT7SubHeaderScan.h"
 #include "CECAT7SubHeaderScan3D.h"
 
-#include <qdatastream.h>
-#include <qfileinfo.h>
+#include <QDataStream>
+#include <QFileInfo>
 
 #include <rtdebug.h>
 

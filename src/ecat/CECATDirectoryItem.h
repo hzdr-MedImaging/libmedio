@@ -24,8 +24,7 @@
 #ifndef CECATDIRECTORYITEM_H
 #define CECATDIRECTORYITEM_H
 
-#include <q3cstring.h>
-#include <qdatastream.h>
+#include <QDataStream>
 
 // some useful defines on the ECAT file format
 // especially for ECATBlock calculation as ECAT Files
@@ -71,16 +70,16 @@ class CECATDirectoryItem
 											};
 
 		CECATDirectoryItem(CECATFile* file,
-											 Q_UINT32 matrixID = 0);
+											 quint32 matrixID = 0);
 	
 		// accessor methods
 		unsigned int matrixID(void) const
 		{ return convertToMatrixID(m_iFrame, m_iPlane, m_iGate, m_iBed, m_iData); }
 
-		qlonglong dataBlock_Start(void) const
+		qint64 dataBlock_Start(void) const
 		{ return m_iDataBlock_Start; }
 		
-		qlonglong dataBlock_End(void) const
+		qint64 dataBlock_End(void) const
 		{ return m_iDataBlock_End; }
 
 		AccessStatus dataBlock_Status(void) const
@@ -151,18 +150,18 @@ class CECATDirectoryItem
 		void cacheSubHeader(const CECATSubHeader& subHeader);
 
 	private:
-		CECATFile*						m_pECATFile;				// pointer to the ECATFile
-		CECATSubHeader*				m_pCachedSubHeader;	// pointer to a cached SubHeader object
+		CECATFile*				m_pECATFile;				// pointer to the ECATFile
+		CECATSubHeader*		m_pCachedSubHeader;	// pointer to a cached SubHeader object
 
 		// META information about the directory Item
-		short									m_iFrame;						// information normally
-		short									m_iPlane;						// encoded in
-		short									m_iGate;						// the MatrixID
-		short									m_iBed;
-		short									m_iData;
-		QIODevice::Offset			m_iDataBlock_Start; // also start of SubHeader
-		QIODevice::Offset			m_iDataBlock_End;		// end of raw Data area
-		enum AccessStatus			m_iStatus;
+		short							m_iFrame;						// information normally
+		short							m_iPlane;						// encoded in
+		short							m_iGate;						// the MatrixID
+		short							m_iBed;
+		short							m_iData;
+		qint64						m_iDataBlock_Start; // also start of SubHeader
+		qint64						m_iDataBlock_End;		// end of raw Data area
+		enum AccessStatus	m_iStatus;
 };
 
 #endif // CECATDIRECTORYITEM_H

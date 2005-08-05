@@ -9,8 +9,7 @@
 #include "CConcordeFile.h"
 #include "CMedIOData.h"
 
-#include <qstring.h>
-#include <q3cstring.h>
+#include <QString>
 
 //! @class CConcordeSinogram
 //! @brief class which handles Concorde microPET sinograms

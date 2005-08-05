@@ -24,7 +24,7 @@
 #ifndef CECAT7SUBHEADERIMAGE_H
 #define CECAT7SUBHEADERIMAGE_H
 
-#include <qdatastream.h>
+#include <QDataStream>
 
 #include <CECATSubHeader.h>
 
@@ -261,7 +261,7 @@ class CECAT7SubHeaderImage : public CECATSubHeader
 
 		// methods to modify elements of the SubHeader
 		void setData_Type(const CECATSubHeader::Data_Type dType)
-		{ m_Data.Data_Type = static_cast<Q_UINT16>(dType);	}
+		{ m_Data.Data_Type = static_cast<quint16>(dType);	}
 		
 		void setNum_Dimensions(const short dim)						
 		{ m_Data.Num_Dimensions = dim; }
@@ -312,7 +312,7 @@ class CECAT7SubHeaderImage : public CECATSubHeader
 		{	m_Data.Frame_Start_Time = time;	}
 		
 		void setFilter_Code(const Filter_Code code)						
-		{ m_Data.Filter_Code = static_cast<Q_UINT16>(code); }
+		{ m_Data.Filter_Code = static_cast<quint16>(code); }
 		
 		void setX_Resolution(const float res)						
 		{ m_Data.X_Resolution = res; }
@@ -417,10 +417,10 @@ class CECAT7SubHeaderImage : public CECATSubHeader
 		{ m_Data.MT_3_4 = value; }
 		
 		void setScatter_Type(const Scatter_Type type)						
-		{ m_Data.Scatter_Type = static_cast<Q_UINT16>(type); }
+		{ m_Data.Scatter_Type = static_cast<quint16>(type); }
 		
 		void setRecon_Type(const Recon_Type type)						
-		{ m_Data.Recon_Type = static_cast<Q_UINT16>(type); }
+		{ m_Data.Recon_Type = static_cast<quint16>(type); }
 		
 		void setRecon_Views(const short views)						
 		{ m_Data.Recon_Views = views; }
@@ -439,67 +439,67 @@ class CECAT7SubHeaderImage : public CECATSubHeader
 		#pragma pack(2)	// set the structure alignment
 		struct ECAT7SubHeader_Image
 		{
-			Q_UINT16	Data_Type;
-			Q_UINT16	Num_Dimensions;
-			Q_UINT16	X_Dimension;
-			Q_UINT16	Y_Dimension;
-			Q_UINT16	Z_Dimension;
-			float			X_Offset;
-			float			Y_Offset;
-			float			Z_Offset;
-			float			Recon_Zoom;
-			float			Scale_Factor;
-			Q_UINT16	Image_Min;
-			Q_UINT16	Image_Max;
-			float			X_Pixel_Size;
-			float			Y_Pixel_Size;
-			float			Z_Pixel_Size;
-			Q_UINT32	Frame_Duration;
-			Q_UINT32	Frame_Start_Time;
-			Q_UINT16	Filter_Code;
-			float			X_Resolution;
-			float			Y_Resolution;
-			float			Z_Resolution;
-			float			Num_R_Elements;
-			float			Num_Angles;
-			float			Z_Rotation_Angle;
-			float			Decay_Corr_Fctr;
-			Q_UINT32	Processing_Code;
-			Q_UINT32	Gate_Duration;
-			Q_UINT32	R_Wave_Offset;
-			Q_UINT32	Num_Accepted_Beats;
-			float			Filter_Cutoff_Frequency;
-			float			Filter_Resolution;
-			float			Filter_Ramp_Slope;
-			Q_UINT16	Filter_Order;
-			float			Filter_Scatter_Fraction;
-			float			Filter_Scatter_Slope;
-			char			Annotation[40];
-			float			MT_1_1;
-			float			MT_1_2;
-			float			MT_1_3;
-			float			MT_2_1;
-			float			MT_2_2;
-			float			MT_2_3;
-			float			MT_3_1;
-			float			MT_3_2;
-			float			MT_3_3;
-			float			RFilter_Cutoff;
-			float			RFilter_Resolution;
-			Q_UINT16	RFilter_Code;
-			Q_UINT16	RFilter_Order;
-			float			ZFilter_Cutoff;
-			float			ZFilter_Resolution;
-			Q_UINT16	ZFilter_Code;
-			Q_UINT16	ZFilter_Order;
-			float			MT_1_4;
-			float			MT_2_4;
-			float			MT_3_4;
-			Q_UINT16	Scatter_Type;
-			Q_UINT16	Recon_Type;
-			Q_UINT16	Recon_Views;
-			Q_UINT16	CTI_Reserved[87];
-			Q_UINT16	User_Reserved[49];
+			quint16	Data_Type;
+			quint16	Num_Dimensions;
+			quint16	X_Dimension;
+			quint16	Y_Dimension;
+			quint16	Z_Dimension;
+			float		X_Offset;
+			float		Y_Offset;
+			float		Z_Offset;
+			float		Recon_Zoom;
+			float		Scale_Factor;
+			quint16	Image_Min;
+			quint16	Image_Max;
+			float		X_Pixel_Size;
+			float		Y_Pixel_Size;
+			float		Z_Pixel_Size;
+			quint32	Frame_Duration;
+			quint32	Frame_Start_Time;
+			quint16	Filter_Code;
+			float		X_Resolution;
+			float		Y_Resolution;
+			float		Z_Resolution;
+			float		Num_R_Elements;
+			float		Num_Angles;
+			float		Z_Rotation_Angle;
+			float		Decay_Corr_Fctr;
+			quint32	Processing_Code;
+			quint32	Gate_Duration;
+			quint32	R_Wave_Offset;
+			quint32	Num_Accepted_Beats;
+			float		Filter_Cutoff_Frequency;
+			float		Filter_Resolution;
+			float		Filter_Ramp_Slope;
+			quint16	Filter_Order;
+			float		Filter_Scatter_Fraction;
+			float		Filter_Scatter_Slope;
+			char		Annotation[40];
+			float		MT_1_1;
+			float		MT_1_2;
+			float		MT_1_3;
+			float		MT_2_1;
+			float		MT_2_2;
+			float		MT_2_3;
+			float		MT_3_1;
+			float		MT_3_2;
+			float		MT_3_3;
+			float		RFilter_Cutoff;
+			float		RFilter_Resolution;
+			quint16	RFilter_Code;
+			quint16	RFilter_Order;
+			float		ZFilter_Cutoff;
+			float		ZFilter_Resolution;
+			quint16	ZFilter_Code;
+			quint16	ZFilter_Order;
+			float		MT_1_4;
+			float		MT_2_4;
+			float		MT_3_4;
+			quint16	Scatter_Type;
+			quint16	Recon_Type;
+			quint16	Recon_Views;
+			quint16	CTI_Reserved[87];
+			quint16	User_Reserved[49];
 		} m_Data;
 		#pragma pack()
 };

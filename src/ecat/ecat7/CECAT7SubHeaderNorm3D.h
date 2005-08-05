@@ -24,7 +24,7 @@
 #ifndef CECAT7SUBHEADERNORM3D_H
 #define CECAT7SUBHEADERNORM3D_H
 
-#include <qdatastream.h>
+#include <QDataStream>
 
 #include <CECATSubHeader.h>
 
@@ -112,7 +112,7 @@ class CECAT7SubHeaderNorm3D : public CECATSubHeader
 
 
 		void setData_Type(const CECATSubHeader::Data_Type dType)
-		{ m_Data.Data_Type = static_cast<Q_UINT16>(dType);	}			
+		{ m_Data.Data_Type = static_cast<quint16>(dType);	}			
 		
 		void setNum_R_Elements(const short n)
 		{ m_Data.Num_R_Elements = n; }
@@ -142,7 +142,7 @@ class CECAT7SubHeaderNorm3D : public CECATSubHeader
 		{ m_Data.Norm_Quality_Factor = n; }
 
 		void setNorm_Quality_Factor_Code(const Norm_Qual_Factor_Code n)
-		{ m_Data.Norm_Quality_Factor_Code = static_cast<Q_UINT16>(n); }
+		{ m_Data.Norm_Quality_Factor_Code = static_cast<quint16>(n); }
 
 		void setRing_DTCor1(const short i, const float n)
 		{ m_Data.Ring_DTCor1[i] = n; }
@@ -173,24 +173,24 @@ class CECAT7SubHeaderNorm3D : public CECATSubHeader
 		#pragma pack(2)	// set the structure alignment
 		struct ECAT7SubHeader_Norm3D
 		{
-			Q_UINT16	Data_Type;
-			Q_UINT16	Num_R_Elements;
-			Q_UINT16	Num_Transaxial_Crystals;
-			Q_UINT16	Num_Crystal_Rings;
-			Q_UINT16	Crystals_Per_Ring;
-			Q_UINT16	Num_Geo_Corr_Planes;
-			Q_UINT16	ULD;
-			Q_UINT16	LLD;
-			Q_UINT16	Scatter_Energy;
-			float			Norm_Quality_Factor;
-			Q_UINT16	Norm_Quality_Factor_Code;
-			float			Ring_DTCor1[32];
-			float			Ring_DTCor2[32];
-			float			Crystal_DTCor[8];
-			Q_UINT16	Span;
-			Q_UINT16	Max_Ring_Diff;
-			Q_UINT16	CTI_reserved[48];
-			Q_UINT16	User_Reserved[50];
+			quint16	Data_Type;
+			quint16	Num_R_Elements;
+			quint16	Num_Transaxial_Crystals;
+			quint16	Num_Crystal_Rings;
+			quint16	Crystals_Per_Ring;
+			quint16	Num_Geo_Corr_Planes;
+			quint16	ULD;
+			quint16	LLD;
+			quint16	Scatter_Energy;
+			float		Norm_Quality_Factor;
+			quint16	Norm_Quality_Factor_Code;
+			float		Ring_DTCor1[32];
+			float		Ring_DTCor2[32];
+			float		Crystal_DTCor[8];
+			quint16	Span;
+			quint16	Max_Ring_Diff;
+			quint16	CTI_reserved[48];
+			quint16	User_Reserved[50];
 		} m_Data;
 		#pragma pack()
 };

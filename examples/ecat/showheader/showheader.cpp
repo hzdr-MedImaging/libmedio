@@ -62,7 +62,7 @@ int main(int argc, char* argv[])
 
 		// open the file
 		CECATFile file(filename);
-		if(file.open(IO_ReadOnly) && 
+		if(file.open(QIODevice::ReadOnly) && 
 			 file.format() != CECATFile::Undefined)
 		{
 			cout << "Successfully loaded file '" << filename << "'" << endl << endl;

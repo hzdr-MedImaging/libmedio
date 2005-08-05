@@ -1,7 +1,7 @@
 #/* vim:set ts=2 nowrap: ****************************************************
 #
 # libmedio - Medical Data C++ I/O Library
-# Copyright (C) 2004-2005 by Jens Langner <Jens.Langner@light-speed.de>
+# Copyright (C) 2004 by Jens Langner <Jens.Langner@light-speed.de>
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -21,38 +21,11 @@
 #
 #****************************************************************************
 
-TARGET = ecatcmp
+TEMPLATE = app
+QT = core
+DEPENDPATH += .
+INCLUDEPATH += . ../../../src/ ../../../src/ecat ../../../src/ecat/ecat6 ../../../src/ecat/ecat7
+LIBS *= -L../../../lib -lmedio
 
-# programs
-CC		= g++
-RM		= rm -f
-RMDIR = rm -rf
-MKDIR = mkdir
-
-# Directories
-PREFIX = .
-
-# Compiler/Linker Flags
-WARN    = -W -Wall
-CFLAGS  = -I/usr/local/include/medio -I$(QTDIR)/include $(WARN) -c
-LDFLAGS = -L../../../lib -L$(QTDIR)/lib
-LDLIBS  = -lqt-mt -lmedio
-
-OBJS = ecatcmp.o
-
-#
-all: $(TARGET)
-
-#
-%.o: %.cpp
-	@printf '\033[32mCompiling $<\033[0m\n'
-	@$(CC) $(CFLAGS) $< -o $@
-
-#
-$(TARGET): $(OBJS)
-	@printf '\033[32mLinking \033[1m$@\033[0m\n'
-	@$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
-
-#
-clean:
-	-$(RM) $(TARGET) $(OBJS)
+# Input
+SOURCES += ecatcmp.cpp

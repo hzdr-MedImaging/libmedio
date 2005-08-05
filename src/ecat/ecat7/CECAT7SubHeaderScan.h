@@ -24,7 +24,7 @@
 #ifndef CECAT7SUBHEADERSCAN_H
 #define CECAT7SUBHEADERSCAN_H
 
-#include <qdatastream.h>
+#include <QDataStream>
 
 #include <CECATSubHeader.h>
 
@@ -156,7 +156,7 @@ class CECAT7SubHeaderScan : public CECATSubHeader
 		
 
 		void setData_Type(const CECATSubHeader::Data_Type dType)
-		{ m_Data.Data_Type = static_cast<Q_UINT16>(dType);	}	
+		{ m_Data.Data_Type = static_cast<quint16>(dType);	}	
 
 		void setNum_Dimensions(const short n)
 		{ m_Data.Num_Dimensions = n; }
@@ -262,39 +262,39 @@ class CECAT7SubHeaderScan : public CECATSubHeader
 		#pragma pack(2)	// set the structure alignment
 		struct ECAT7SubHeader_Scan
 		{
-			Q_UINT16	Data_Type;
-			Q_UINT16	Num_Dimensions;
-			Q_UINT16	Num_R_Elements;
-			Q_UINT16	Num_Angles;
-			Q_UINT16	Corrections_Applied;
-			Q_UINT16	Num_Z_Elements;
-			Q_UINT16	Ring_Difference;
-			float			X_Resolution;
-			float			Y_Resolution;
-			float			Z_Resolution;
-			float			W_Resolution;
-			Q_UINT16	Gate_Reserved[6];
-			Q_UINT32	Gate_Duration;
-			Q_UINT32	R_Wave_Offset;
-			Q_UINT32	Num_Accepted_Beats;
-			float			Scale_Factor;
-			Q_UINT16	Scan_Min;
-			Q_UINT16	Scan_Max;
-			Q_UINT32	Prompts;
-			Q_UINT32	Delayed;
-			Q_UINT32	Multiples;
-			Q_UINT32	Net_Trues;
-			float			Cor_Singles[16];
-			float			Uncor_Singles[16];
-			float			Tot_Avg_Cor;
-			float			Tot_Avg_Uncor;
-			Q_UINT32	Total_Coin_Rate;
-			Q_UINT32	Frame_Start_Time;
-			Q_UINT32	Frame_Duration;
-			float			Deadtime_Correction_Factor;
-			Q_UINT16	Physical_Planes[8];
-			Q_UINT16	CTI_reserved[83];
-			Q_UINT16	User_Reserved[50];
+			quint16	Data_Type;
+			quint16	Num_Dimensions;
+			quint16	Num_R_Elements;
+			quint16	Num_Angles;
+			quint16	Corrections_Applied;
+			quint16	Num_Z_Elements;
+			quint16	Ring_Difference;
+			float		X_Resolution;
+			float		Y_Resolution;
+			float		Z_Resolution;
+			float		W_Resolution;
+			quint16	Gate_Reserved[6];
+			quint32	Gate_Duration;
+			quint32	R_Wave_Offset;
+			quint32	Num_Accepted_Beats;
+			float		Scale_Factor;
+			quint16	Scan_Min;
+			quint16	Scan_Max;
+			quint32	Prompts;
+			quint32	Delayed;
+			quint32	Multiples;
+			quint32	Net_Trues;
+			float		Cor_Singles[16];
+			float		Uncor_Singles[16];
+			float		Tot_Avg_Cor;
+			float		Tot_Avg_Uncor;
+			quint32	Total_Coin_Rate;
+			quint32	Frame_Start_Time;
+			quint32	Frame_Duration;
+			float		Deadtime_Correction_Factor;
+			quint16	Physical_Planes[8];
+			quint16	CTI_reserved[83];
+			quint16	User_Reserved[50];
 		} m_Data;
 		#pragma pack()
 };

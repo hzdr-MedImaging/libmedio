@@ -30,7 +30,7 @@
 
 #include <CMedIOData.h>
 
-#include <qstring.h>
+#include <QString>
 
 //! @class CMedIODataFactory
 //! @brief factory class allowing construction of CMedIOData objects 

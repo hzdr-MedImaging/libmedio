@@ -58,14 +58,14 @@ int main(int argc, char* argv[])
 
 		// open the first file
 		CECATFile file1(fileName1);
-		if(file1.open(IO_ReadOnly) && 
+		if(file1.open(QIODevice::ReadOnly) && 
 			 file1.format() != CECATFile::Undefined)
 		{
 			cout << "Successfully loaded file1: '" << fileName1 << "'" << endl;
 
 			// lets open the other file now
 			CECATFile file2(fileName2);
-			if(file2.open(IO_ReadOnly))
+			if(file2.open(QIODevice::ReadOnly))
 			{
 				cout << "Successfully loaded file2: '" << fileName2 << "'" << endl;
 				
@@ -329,7 +329,7 @@ int main(int argc, char* argv[])
 															if(c1 != c2)
 															{
 																cout << "     " << setw(8) << setfill('0') << hex << i << ": ";
-																cout << setfill(' ') << setw(3) << dec << (Q_INT8)c1 << " : " << (Q_INT8)c2 << endl;
+																cout << setfill(' ') << setw(3) << dec << (qint8)c1 << " : " << (qint8)c2 << endl;
 																diffs++;
 															}
 														}
@@ -343,8 +343,8 @@ int main(int argc, char* argv[])
 														float val1;
 														float val2;
 
-														QDataStream stream1(*matrixData1, IO_ReadOnly);
-														QDataStream stream2(*matrixData2, IO_ReadOnly);
+														QDataStream stream1(matrixData1, QIODevice::ReadOnly);
+														QDataStream stream2(matrixData2, QIODevice::ReadOnly);
 
 														cout << "     IEEEFloat datatype" << endl;
 														for(int i=0; stream1.atEnd() == false; i++)
@@ -364,12 +364,12 @@ int main(int argc, char* argv[])
 
 													case CECATSubHeader::SunShort:
 													{
-														dataTypeSize = sizeof(Q_INT16);
-														Q_INT16 val1;
-														Q_INT16 val2;
+														dataTypeSize = sizeof(qint16);
+														qint16 val1;
+														qint16 val2;
 
-														QDataStream stream1(*matrixData1, IO_ReadOnly);
-														QDataStream stream2(*matrixData2, IO_ReadOnly);
+														QDataStream stream1(matrixData1, QIODevice::ReadOnly);
+														QDataStream stream2(matrixData2, QIODevice::ReadOnly);
 
 														cout << "     SunShort datatype" << endl;
 														cout << "        Pos    Value1 Value2    HEX    HEX" << endl; 														
@@ -393,12 +393,12 @@ int main(int argc, char* argv[])
 
 													case CECATSubHeader::SunLong:
 													{
-														dataTypeSize = sizeof(Q_INT32);
-														Q_INT32 val1;
-														Q_INT32 val2;
+														dataTypeSize = sizeof(qint32);
+														qint32 val1;
+														qint32 val2;
 
-														QDataStream stream1(*matrixData1, IO_ReadOnly);
-														QDataStream stream2(*matrixData2, IO_ReadOnly);
+														QDataStream stream1(matrixData1, QIODevice::ReadOnly);
+														QDataStream stream2(matrixData2, QIODevice::ReadOnly);
 
 														cout << "     SunLong datatype" << endl;
 														cout << "        Pos     Value1   Value2       HEX       HEX" << endl; 														

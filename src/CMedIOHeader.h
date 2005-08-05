@@ -28,7 +28,7 @@
 #ifndef CMEDIOHEADER_H
 #define CMEDIOHEADER_H
 
-#include <qstring.h>
+#include <QString>
 
 // forward declarations
 class CMedIOData;

@@ -8,6 +8,9 @@ $Source$
 
 2005-08-05  Jens Langner <Jens.Langner@light-speed.de>
 
+  * misc: removed the qt3support and ported all still existent Qt3 functionality
+    to Qt4. Now libmedio should work fully native with Qt4 by just linking against
+    the QtCore library.
   * misc: initial port to Qt4 (still with Qt3Support) and separation of the
     CVS repository into two different branches for Qt3 and Qt4 development.
     (MAIN branch is the Qt4 one)

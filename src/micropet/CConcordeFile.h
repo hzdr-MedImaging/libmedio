@@ -30,7 +30,7 @@
 
 #include "CMedIOData.h"
 
-#include <qstring.h>
+#include <QString>
 
 //! @class CConcordeFile
 //! @brief class to handle all file produced by a concorde microPET scanner

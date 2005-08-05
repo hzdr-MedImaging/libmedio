@@ -22,7 +22,7 @@
 #****************************************************************************
 
 TEMPLATE = app
-QT += qt3support
+QT = core
 DEPENDPATH += .
 INCLUDEPATH += . ../../src/ ../../src/ecat ../../src/ecat/ecat6 ../../src/ecat/ecat7
 LIBS *= -L../../lib -lmedio

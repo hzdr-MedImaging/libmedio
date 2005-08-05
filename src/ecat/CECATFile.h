@@ -24,8 +24,8 @@
 #ifndef CECATFILE_H
 #define CECATFILE_H
 
-#include <qfile.h>
-#include <qstring.h>
+#include <QFile>
+#include <QString>
 
 #include <CMedIOData.h>
 #include <CECATDirectory.h>

@@ -4,16 +4,18 @@
 //! @date 11/13/2004
 
 #include "CHeaderConcorde.h"
-#include <rtdebug.h>
 #include "CHeaderConcordeFrame.h"
 #include "CMedIOHeader.h"
+
+#include <QDateTime>
+#include <QString>
 
 #include <fstream>
 #include <string>
 #include <list>
 #include <iostream>
-#include <qdatetime.h>
-#include <qstring.h>
+
+#include <rtdebug.h>
 
 using namespace std;
 
