@@ -238,11 +238,6 @@ bool CECATFile::open(QIODevice::OpenModeFlag mode)
 			QFile::remove(name());
 	}
 
-	// to make the open operation a bit safer we mask out the IO operation
-	// bits we don't need
-#warning "later checken!!"
-	//mode &= ~(QIODevice::Append|QIODevice::Truncate|QIODevice::Text);
-
 	// only if we succeeded with our mainheader/dirlisting loading
 	// we can assume everything worked out fine and reopen the file
 	// with the user settings.
