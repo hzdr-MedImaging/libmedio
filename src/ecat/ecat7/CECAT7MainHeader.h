@@ -56,7 +56,8 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 		enum Patient_Sex							{ Sex_Male='M', Sex_Female='F', Sex_Unknown='U' };
 		enum Patient_Dexterity				{ Dext_RT='R', Dext_LF='L', Dext_Unknown='U' };
 		enum Patient_Orientation			{ FF_Prone=0, HF_Prone, FF_Supine, HF_Supine,
-																		FF_Right, HF_Right, FF_Left, HF_Left };
+																		FF_Right, HF_Right, FF_Left, HF_Left,
+																		Orient_Unknown };
 		enum Acquisition_Type					{	Undefined=0, Blank, Transmission,
 																		StaticEmission, DynamicEmission,
 																		GatedEmission, TransmissionRectilinear,
