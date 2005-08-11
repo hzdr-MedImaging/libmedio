@@ -223,7 +223,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 		// set the ECATFile handle to the correct position of
 		// the matrix start. This should normally be
 		// Matrix_SubHeader_StartPosition+1
-		if(m_pECATFile->at(m_iDataBlock_Start+subHeader->size()) == false)
+		if(m_pECATFile->at(m_iDataBlock_Start+subHeader->rawDataSize()) == false)
 		{
 			RETURN(false);
 			return false;
@@ -233,7 +233,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 
 		// then we allocate some memory for loading the matrixdata
 		// this should be:
-		matrixSize = m_iDataBlock_End-m_iDataBlock_Start-subHeader->size()+ECAT_BLOCKSIZE;
+		matrixSize = m_iDataBlock_End-m_iDataBlock_Start-subHeader->rawDataSize()+ECAT_BLOCKSIZE;
 		matrixData = new char[matrixSize];
 
 		// then we process the matrix data that is associated with
@@ -822,7 +822,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 	// set the ECATFile handle to the correct position of
 	// the matrix start. This should normally be
 	// Matrix_SubHeader_StartPosition+subHeaderSize
-	if(m_pECATFile->at(m_iDataBlock_Start+subHeader.size()) == false)
+	if(m_pECATFile->at(m_iDataBlock_Start+subHeader.rawDataSize()) == false)
 	{
 		RETURN(false);
 		return false;
@@ -1131,7 +1131,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 		if(result)
 		{
 			// at the end of our operation we calculate the new EndPosition
-			m_iDataBlock_End = m_iDataBlock_Start+subHeader.size()+matrixSize-ECAT_BLOCKSIZE;
+			m_iDataBlock_End = m_iDataBlock_Start+subHeader.rawDataSize()+matrixSize-ECAT_BLOCKSIZE;
 			m_iStatus = CECATDirectoryItem::Finished;
 		}
 	}

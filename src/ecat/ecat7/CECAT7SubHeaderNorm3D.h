@@ -27,8 +27,7 @@
 #include <qdatastream.h>
 
 #include <CECATSubHeader.h>
-
-#include <cstdlib>
+#include <CECATDirectoryItem.h>
 
 // forward declarations
 class CECATFile;
@@ -48,12 +47,12 @@ class Q_EXPORT CECAT7SubHeaderNorm3D : public CECATSubHeader
 		bool load(void);
 		bool save(void) const;
 
+		// the number of bytes the data of that header requires on disk
+		int rawDataSize() const { return 1*ECAT_BLOCKSIZE; }
+		
 		CECATSubHeader::Type subHeaderType(void) const
 		{ return CECATSubHeader::ECAT7_Norm3D; }
 		
-		int size() const
-		{	return ECAT7_HEADERSIZE_NORM3D; }
-	
 		// access methods to get directly data out of
 		// the SubHeader
 		CECATSubHeader::Data_Type data_Type(void) const
@@ -170,7 +169,6 @@ class Q_EXPORT CECAT7SubHeaderNorm3D : public CECATSubHeader
 		CMedIOHeader& copyData(const CMedIOHeader& src);
 		
 	private:
-		#pragma pack(2)	// set the structure alignment
 		struct ECAT7SubHeader_Norm3D
 		{
 			Q_UINT16	Data_Type;
@@ -192,7 +190,6 @@ class Q_EXPORT CECAT7SubHeaderNorm3D : public CECATSubHeader
 			Q_UINT16	CTI_reserved[48];
 			Q_UINT16	User_Reserved[50];
 		} m_Data;
-		#pragma pack()
 };
 
 #endif // CECAT7SUBHEADERNORM3D_H

@@ -25,6 +25,7 @@
 #define CECAT7MAINHEADER_H
 
 #include <CECATMainHeader.h>
+#include <CECATDirectoryItem.h>
 
 #include <qdatastream.h>
 #include <qdatetime.h>
@@ -76,6 +77,9 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 		bool load();
 		bool save() const;
 
+		// the number of bytes the data of that header requires on disk
+		int rawDataSize() const { return 1*ECAT_BLOCKSIZE; }
+	
 		// data streaming methods
 		friend QTextStream& operator<<(QTextStream& stream, const CECAT7MainHeader& mHeader);
 		friend QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader);
@@ -464,7 +468,6 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 		CMedIOHeader& copyData(const CMedIOHeader& src);		
 
 	private:
-		#pragma pack(2)	// set the structure alignment
 		// MainHeader structure (should be 512bytes)
 		struct ECAT7MainHeader
 		{
@@ -529,7 +532,6 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
       Q_UINT16			Septa_State;
 			Q_UINT16			CTI_Reserved[6];
 		} m_Data;
-		#pragma pack()
 };
 
 #endif // CECAT7MAINHEADER_H

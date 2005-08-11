@@ -33,9 +33,6 @@ CECAT7SubHeaderNorm::CECAT7SubHeaderNorm(CECATFile* ecatFile,
 																				 CECATDirectoryItem* pDirItem)
 	: CECATSubHeader(ecatFile, pDirItem)
 {
-	// check that the headsize is 512 bytes long
-	ASSERT(sizeof(struct ECAT7SubHeader_Norm) == ECAT7_HEADERSIZE_NORM);
-
 	// then clear the structure
 	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Norm));
 }
@@ -43,9 +40,6 @@ CECAT7SubHeaderNorm::CECAT7SubHeaderNorm(CECATFile* ecatFile,
 CECAT7SubHeaderNorm::CECAT7SubHeaderNorm(const CECAT7SubHeaderNorm& sh)
 	: CECATSubHeader(sh)
 {
-	// check that the headsize is 512 bytes long
-	ASSERT(sizeof(struct ECAT7SubHeader_Norm) == ECAT7_HEADERSIZE_NORM);
-
 	// then copy the structure
 	memcpy(&m_Data, &sh.m_Data, sizeof(struct ECAT7SubHeader_Norm));
 }
@@ -67,9 +61,8 @@ bool CECAT7SubHeaderNorm::load(void)
 	
 	// we use a ByteArray buffer to speed up the endianess
 	// decoding
-	QByteArray buffer(sizeof(struct ECAT7SubHeader_Norm));
-	if(m_pMedIOData->readBlock(buffer.data(), sizeof(struct ECAT7SubHeader_Norm)) 
-			!= sizeof(struct ECAT7SubHeader_Norm))
+	QByteArray buffer(rawDataSize());
+	if(m_pMedIOData->readBlock(buffer.data(), buffer.size()) != rawDataSize())
 	{
 		RETURN(false);
 		return false;
@@ -147,7 +140,7 @@ bool CECAT7SubHeaderNorm::save(void) const
 	SHOWVALUE(m_pMedIOData->at());
 
 	// we write to a buffer first and write out later directly to the file
-	QByteArray buffer(sizeof(struct ECAT7SubHeader_Norm));
+	QByteArray buffer(rawDataSize());
 	QDataStream stream(buffer, IO_WriteOnly);
 
 	// lets write out each single data element of our

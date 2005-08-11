@@ -25,6 +25,7 @@
 #define CECAT6MAINHEADER_H
 
 #include <CECATMainHeader.h>
+#include <CECATDirectoryItem.h>
 #include <CMedIOHeader.h>
 
 #include <qdatastream.h>
@@ -47,6 +48,9 @@ class Q_EXPORT CECAT6MainHeader : public CECATMainHeader
 		// public methods
 		bool load(void);
 		bool save(void) const;
+
+		// the number of bytes the data of that header requires on disk
+		int rawDataSize() const { return 1*ECAT_BLOCKSIZE; }
 
 		// runtime type information methods
 		int rtti() const
@@ -93,7 +97,6 @@ class Q_EXPORT CECAT6MainHeader : public CECATMainHeader
 		CMedIOHeader& copyData(const CMedIOHeader& src);		
 
 	private:
-		#pragma pack(2)
 		struct ECAT6MainHeader
 		{
 			char			Original_File_Name[20];
@@ -155,7 +158,6 @@ class Q_EXPORT CECAT6MainHeader : public CECATMainHeader
       Q_UINT16	Acquisition_Mode;
 			Q_UINT16	CTI_Reserved[33];
 		} m_Data;
-		#pragma pack()
 };
 
 #endif // CECAT6MAINHEADER_H

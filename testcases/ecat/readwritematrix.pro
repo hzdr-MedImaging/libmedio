@@ -21,38 +21,10 @@
 #
 #****************************************************************************
 
-TARGET = readwritematrix
+TEMPLATE = app
+DEPENDPATH += .
+INCLUDEPATH += . ../../src/ ../../src/ecat ../../src/ecat/ecat6 ../../src/ecat/ecat7
+LIBS *= -L../../lib -lmedio
 
-# programs
-CC		= g++
-RM		= rm -f
-RMDIR = rm -rf
-MKDIR = mkdir
-
-# Directories
-PREFIX = .
-
-# Compiler/Linker Flags
-WARN    = -W -Wall
-CFLAGS  = -I/usr/local/include/medio -I$(QTDIR)/include $(WARN) -c
-LDFLAGS = -L../../lib -L$(QTDIR)/lib
-LDLIBS  = -lqt-mt -lmedio
-
-OBJS = readwritematrix.o
-
-#
-all: $(TARGET)
-
-#
-%.o: %.cpp
-	@printf '\033[32mCompiling $<\033[0m\n'
-	@$(CC) $(CFLAGS) $< -o $@
-
-#
-$(TARGET): $(OBJS)
-	@printf '\033[32mLinking \033[1m$@\033[0m\n'
-	@$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
-
-#
-clean:
-	-$(RM) $(TARGET) $(OBJS)
+# Input
+SOURCES += readwritematrix.cpp

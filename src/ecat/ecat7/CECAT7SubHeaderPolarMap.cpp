@@ -33,9 +33,6 @@ CECAT7SubHeaderPolarMap::CECAT7SubHeaderPolarMap(CECATFile* ecatFile,
 																								 CECATDirectoryItem* pDirItem)
 	: CECATSubHeader(ecatFile, pDirItem)
 {
-	// check that the headsize is 512 bytes long
-	ASSERT(sizeof(struct ECAT7SubHeader_PolarMap) == ECAT7_HEADERSIZE_POLARMAP);
-
 	// then clear the structure
 	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_PolarMap));			
 }
@@ -43,9 +40,6 @@ CECAT7SubHeaderPolarMap::CECAT7SubHeaderPolarMap(CECATFile* ecatFile,
 CECAT7SubHeaderPolarMap::CECAT7SubHeaderPolarMap(const CECAT7SubHeaderPolarMap& sh)
 	: CECATSubHeader(sh)
 {
-	// check that the headsize is 512 bytes long
-	ASSERT(sizeof(struct ECAT7SubHeader_PolarMap) == ECAT7_HEADERSIZE_POLARMAP);
-
 	// then copy the structure
 	memcpy(&m_Data, &sh.m_Data, sizeof(struct ECAT7SubHeader_PolarMap));			
 }
@@ -67,9 +61,8 @@ bool CECAT7SubHeaderPolarMap::load(void)
 	
 	// we use a ByteArray buffer to speed up the endianess
 	// decoding
-	QByteArray buffer(sizeof(struct ECAT7SubHeader_PolarMap));
-	if(m_pMedIOData->readBlock(buffer.data(), sizeof(struct ECAT7SubHeader_PolarMap)) 
-			!= sizeof(struct ECAT7SubHeader_PolarMap))
+	QByteArray buffer(rawDataSize());
+	if(m_pMedIOData->readBlock(buffer.data(), buffer.size()) != rawDataSize())
 	{
 		RETURN(false);
 		return false;
@@ -181,7 +174,7 @@ bool CECAT7SubHeaderPolarMap::save(void) const
 	SHOWVALUE(m_pMedIOData->at());
 	
 	// we write to a buffer first and write out later directly to the file
-	QByteArray buffer(sizeof(struct ECAT7SubHeader_PolarMap));
+	QByteArray buffer(rawDataSize());
 	QDataStream stream(buffer, IO_WriteOnly);
 	
 	// lets read in each single data element of our
