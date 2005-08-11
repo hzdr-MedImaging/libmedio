@@ -22,7 +22,7 @@
 #****************************************************************************
 
 AC_PREREQ(2.57)
-AC_INIT(Medical IO Library, 0.2, Jens.Langner@light-speed.de, libmedio-0.2)
+AC_INIT(Medical IO Library, 1.0, Jens.Langner@light-speed.de, libmedio-1.0)
 AC_COPYRIGHT(Copyright (c) 2004-2005 by Jens Langner <Jens.Langner@light-speed.de>)
 AC_REVISION($Revision$)
 AC_CONFIG_SRCDIR([src])
@@ -43,10 +43,10 @@ AC_PROG_CXX
 AC_GNU_SOURCE
 
 # Check for the QT libraries
-AC_PATH_QTDIR
-AC_PATH_QT_INC
-AC_PATH_QT_LIB
-AC_QTSHAREDBUILD
+AC_PATH_QT3DIR
+AC_PATH_QT3_INC
+AC_PATH_QT3_LIB
+AC_PATH_QT3_QMAKE
 AC_ENABLE_STATIC_LIB
 AC_ENABLE_STATIC_QT
 
@@ -67,10 +67,6 @@ AC_ANSI_COLOR
 AC_PROG_GCC_VERSION
 
 # Checks for some tools which we need
-AC_PATH_PROG(QMAKE_PATH, qmake, no, [$PATH:$QTDIR/bin:/usr/qt/bin:/usr/local/qt/bin:/Developer/qt/bin])
-if test $QMAKE_PATH = "no"; then
-	AC_MSG_ERROR([Cannot find qmake, check your path settings])
-fi
 AC_PATH_PROG(MKDIR_PATH, mkdir)
 AC_PATH_PROG(CP_PATH, cp)
 AC_PATH_PROG(MV_PATH, mv)

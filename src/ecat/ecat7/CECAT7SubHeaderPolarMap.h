@@ -27,6 +27,7 @@
 #include <qdatastream.h>
 
 #include <CECATSubHeader.h>
+#include <CECATDirectoryItem.h>
 
 // forward declarations
 class CECATFile;
@@ -55,11 +56,11 @@ class Q_EXPORT CECAT7SubHeaderPolarMap : public CECATSubHeader
 		bool load(void);
 		bool save(void) const;
 
+		// the number of bytes the data of that header requires on disk
+		int rawDataSize() const { return 1*ECAT_BLOCKSIZE; }
+
 		CECATSubHeader::Type subHeaderType(void) const
 		{ return CECATSubHeader::ECAT7_PolarMap; }
-		
-		int size() const 
-		{	return ECAT7_HEADERSIZE_POLARMAP; }
 	
 		// data access methods
 		CECATSubHeader::Data_Type data_Type(void) const
@@ -224,7 +225,6 @@ class Q_EXPORT CECAT7SubHeaderPolarMap : public CECATSubHeader
 		CMedIOHeader& copyData(const CMedIOHeader& src);
 
 	private:
-		#pragma pack(2)	// set the structure alignment
 		struct ECAT7SubHeader_PolarMap
 		{
 			Q_UINT16	Data_Type;
@@ -254,7 +254,6 @@ class Q_EXPORT CECAT7SubHeaderPolarMap : public CECATSubHeader
 			Q_UINT16	CTI_reserved[27];
 			Q_UINT16	User_Reserved[27];
 		} m_Data;
-		#pragma pack()
 };
 
 #endif // CECAT7SUBHEADERPOLARMAP_H

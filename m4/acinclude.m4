@@ -1,29 +1,30 @@
-#/* vim:set ts=2 nowrap: ****************************************************
-#
-# libmedio - Medical Data C++ I/O Library
-# Copyright (C) 2004-2005 by Jens Langner <Jens.Langner@light-speed.de>
-#
-# This library is free software; you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation; either
-# version 2.1 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-#
-# $Id$
-#
-#****************************************************************************
-## -*- mode: m4 -*-
+dnl/* vim:set ts=2 nowrap: ****************************************************
+dnl
+dnl acinclude.m4 - Common configure macros especially for Qt3/Qt4
+dnl Copyright (C) 2003-2005 by Jens Langner <Jens.Langner@light-speed.de>
+dnl
+dnl This library is free software; you can redistribute it and/or
+dnl modify it under the terms of the GNU Lesser General Public
+dnl License as published by the Free Software Foundation; either
+dnl version 2.1 of the License, or (at your option) any later version.
+dnl
+dnl This library is distributed in the hope that it will be useful,
+dnl but WITHOUT ANY WARRANTY; without even the implied warranty of
+dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+dnl Lesser General Public License for more details.
+dnl
+dnl You should have received a copy of the GNU Lesser General Public
+dnl License along with this library; if not, write to the Free Software
+dnl Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+dnl
+dnl $Id$
+dnl
+dnl****************************************************************************
+dnl# -*- mode: m4 -*-
 
-dnl Autoconf Macros from gnu.org
-
+dnl
+dnl AC_CXX_NAMESPACES: checks for proper C++ namespaces compatibility
+dnl
 AC_DEFUN([AC_CXX_NAMESPACES],
 [AC_CACHE_CHECK(whether the compiler implements namespaces,
 ac_cv_cxx_namespaces,
@@ -39,6 +40,9 @@ if test "$ac_cv_cxx_namespaces" = yes; then
 fi
 ])
 
+dnl
+dnl AC_CXX_STATIC_CAST: checks for static_cast<> C++ functionality.
+dnl
 AC_DEFUN([AC_CXX_STATIC_CAST],
 [AC_CACHE_CHECK(whether the compiler supports static_cast<>,
 ac_cv_cxx_static_cast,
@@ -58,6 +62,10 @@ if test "$ac_cv_cxx_static_cast" = yes; then
 fi
 ])
 
+dnl
+dnl AC_ANSI_COLOR: provides a switch to enable/disable ANSI color
+dnl output for compilation/debugging via rtdebug library
+dnl
 AC_DEFUN(AC_ANSI_COLOR,
 [
 	AC_MSG_CHECKING(whether ANSI color should be used for terminal output)
@@ -82,8 +90,9 @@ AC_DEFUN(AC_ANSI_COLOR,
 	AC_SUBST(ANSI_COLOR) 
 ])
 
-# this macro is used to get the arguments supplied
-# to the configure script (./configure --enable-debug)
+dnl
+dnl AC_ENABLE_DEBUG: provides a switch to enable/disable debugging
+dnl
 AC_DEFUN(AC_ENABLE_DEBUG,
 [
 	AC_MSG_CHECKING(whether to enable debugging)
@@ -107,13 +116,15 @@ AC_DEFUN(AC_ENABLE_DEBUG,
 	AC_SUBST(COMPILE_LEVEL) 
 ])
 
-# this macro is used to get the arguments supplied
-# to the configure script (./configure --enable-static-qt)
+dnl
+dnl AC_ENABLE_STATIC_QT: provides a switch to control the link level (static/shared)
+dnl of a linked Qt library.
+dnl
 AC_DEFUN(AC_ENABLE_STATIC_QT,
 [
-	AC_MSG_CHECKING(whether to link the QT library static)
+	AC_MSG_CHECKING(whether to link the Qt library static)
 	AC_ARG_ENABLE(static-qt,
-								[AC_HELP_STRING([--enable-static-qt], [turn on static linking of QT libs [default=no]])],
+								[AC_HELP_STRING([--enable-static-qt], [turn on static linking of Qt libs [default=no]])],
 								[case "${enableval}" in
 									yes) test_on_enable_static_qt=yes ;;
 									no)  test_on_enable_static_qt=no	 ;;
@@ -132,8 +143,10 @@ AC_DEFUN(AC_ENABLE_STATIC_QT,
 	AC_SUBST(QTLINK_LEVEL) 
 ])
 
-# this macro is used to get the arguments supplied
-# to the configure script (./configure --enable-static-rtdebug)
+dnl
+dnl AC_ENABLE_STATIC_RTDEBUG: provides a switch to control the link level (static/shared)
+dnl of a linked rtdebug library
+dnl
 AC_DEFUN(AC_ENABLE_STATIC_RTDEBUG,
 [
 	AC_MSG_CHECKING(whether to link the rtdebug library static)
@@ -157,13 +170,15 @@ AC_DEFUN(AC_ENABLE_STATIC_RTDEBUG,
 	AC_SUBST(QTLINK_LEVEL) 
 ])
 
-# this macro is used to get the arguments supplied
-# to the configure script (./configure --enable-static-lib)
+dnl
+dnl AC_ENABLE_STATIC_LIB: if the project is a library this macro can be used to control
+dnl if the library should be build as a shared or static library
+dnl
 AC_DEFUN(AC_ENABLE_STATIC_LIB,
 [
-	AC_MSG_CHECKING(whether to link the libmedio as a static library)
+	AC_MSG_CHECKING(whether to link as a static library)
 	AC_ARG_ENABLE(static-lib,
-								[AC_HELP_STRING([--enable-static-lib], [turn on static linking of libmedio [default=no]])],
+								[AC_HELP_STRING([--enable-static-lib], [turn on static linking [default=no]])],
 								[case "${enableval}" in
 									yes) test_on_enable_static_lib=yes	;;
 									no)  test_on_enable_static_lib=no	;;
@@ -182,10 +197,10 @@ AC_DEFUN(AC_ENABLE_STATIC_LIB,
 	AC_SUBST(QTLINK_LEVEL) 
 ])
 
-#
-# find out the used gcc version and validate that this one is
-# a working one for our compilation
-# 
+dnl
+dnl AC_PROG_GCC_VERSION: finds out if the used gcc version is a supported one
+dnl or not
+dnl
 AC_DEFUN(AC_PROG_GCC_VERSION,[
 
  AC_MSG_CHECKING([for gcc version])
@@ -236,13 +251,156 @@ AC_DEFUN(AC_PROG_GCC_VERSION,[
  AC_SUBST(GCC_VERSION)
 ])
 
+dnl
+dnl AC_PATH_RTDEBUG_LIB: checks for the existance of the rtdebug library in the
+dnl default pathes and allows to override them as well
+dnl
+AC_DEFUN(AC_PATH_RTDEBUG_LIB,
+[
+  AC_REQUIRE_CPP()
+  AC_ARG_WITH(rtdebug-lib,
+              [AC_HELP_STRING([--with-rtdebug-lib], [where the librtdebug library is located.])],
+							[ac_rtdebug_libraries="$withval"], ac_rtdebug_libraries="")
+
+  AC_MSG_CHECKING(for runtime debugging library)
+
+  AC_CACHE_VAL(ac_cv_lib_rtdebuglib, [
+
+  rtdebug_libdir=
+
+  dnl No they didnt, so lets look for them...
+  dnl If you need to add extra directories to check, add them here.
+  if test -z "$ac_rtdebug_libraries"; then
+    rtdebug_library_dirs="$rtdebug_library_dirs \
+												/usr/local/petlib/lib \
+												/usr/local/petlib/lib/rtdebug \	
+		                    /usr/local/lib \
+												/usr/local/lib/rtdebug \
+		                    /usr/lib \
+		                    /usr/lib/rtdebug \
+		                    /Developer/rtdebug/lib"
+  else
+    rtdebug_library_dirs="$ac_rtdebug_libraries"
+  fi
+
+  dnl Save some global vars
+  save_LDFLAGS="$LDFLAGS"
+  save_LIBS="$LIBS"
+
+  rtdebug_found="0"
+  ac_rtdebug_libdir=
+  ac_rtdebug_libname="-lrtdebug"
+  
+  LIBS="$ac_rtdebug_libname $save_LIBS"
+  for rtdebug_dir in $rtdebug_library_dirs; do
+    LDFLAGS="-L$rtdebug_dir $save_LDFLAGS"
+    AC_TRY_LINK_FUNC(main, [rtdebug_found="1"], [rtdebug_found="0"])
+    if test $rtdebug_found = 1; then
+      ac_rtdebug_libdir="$rtdebug_dir"
+      break;
+    else
+      echo "tried $rtdebug_dir" >&AC_FD_CC 
+    fi
+  done
+
+  dnl Restore the saved vars
+  LDFLAGS="$save_LDFLAGS"
+  LIBS="$save_LIBS"
+
+  ac_cv_lib_rtdebuglib="ac_rtdebug_libname=$ac_rtdebug_libname ac_rtdebug_libdir=$ac_rtdebug_libdir"
+  ])
+
+  eval "$ac_cv_lib_rtdebuglib"
+
+  dnl Define a shell variable for later checks
+  if test -z "$ac_rtdebug_libdir"; then
+    have_rtdebug_lib="no"
+    AC_MSG_RESULT([no])
+    AC_MSG_ERROR([Cannot find required runtime debugging library in linker path.
+Try --with-rtdebug-lib to specify the path, manually.])
+  else
+    have_rtdebug_lib="yes"
+    AC_MSG_RESULT([yes, $ac_rtdebug_libname in $ac_rtdebug_libdir found.])
+  fi
+
+  RTDEBUG_LDFLAGS="-L$ac_rtdebug_libdir"
+  RTDEBUG_LIBDIR="$ac_rtdebug_libdir"
+  LIB_RTDEBUG="$ac_rtdebug_libname"
+  AC_SUBST(RTDEBUG_LDFLAGS)
+  AC_SUBST(RTDEBUG_LIBDIR)
+  AC_SUBST(LIB_RTDEBUG)
+])
+
+dnl
+dnl AC_PATH_RTDEBUG_INC: checks the existance of the includes files for successfully
+dnl compiling support for the rtdebug library and also allows to override the default
+dnl path to that includes.
+dnl
+AC_DEFUN(AC_PATH_RTDEBUG_INC,
+[
+  AC_REQUIRE_CPP()
+  AC_MSG_CHECKING(for librtdebug includes)
+
+  AC_ARG_WITH(rtdebug-inc,
+              [AC_HELP_STRING([--with-rtdebug-inc], [where the librtdebug headers are located.])],
+              [rtdebug_include_dirs="$withval"], rtdebug_include_dirs="")
+
+  AC_CACHE_VAL(ac_cv_header_rtdebuginc, [
+
+    dnl Did the user give --with-rtdebug-includes?
+    if test -z "$rtdebug_include_dirs"; then
+
+      dnl No they didn't, so lets look for them...
+      dnl If you need to add extra directories to check, add them here.
+      rtdebug_include_dirs="\
+			  /usr/local/petlib/include \
+				/usr/local/petlib/include/rtdebug \		
+        /usr/local/rtdebug/include \
+        /usr/include/rtdebug \
+        /usr/lib/rtdebug/include \
+        /usr/local/include/rtdebug"
+    fi
+
+    for rtdebug_dir in $rtdebug_include_dirs; do
+      if test -r "$rtdebug_dir/CRTDebug.h"; then
+        if test -r "$rtdebug_dir/rtdebug.h"; then
+          ac_rtdebug_includes=$rtdebug_dir
+          break;
+        fi
+      fi
+    done
+
+    ac_cv_header_rtdebuginc=$ac_rtdebug_includes
+
+  ])
+
+  if test -z "$ac_cv_header_rtdebuginc"; then
+    have_rtdebug_inc="no"
+    AC_MSG_RESULT([no])
+    AC_MSG_WARN([librtdebug include directory not found, you may run into problems.
+Try --with-rtdebug-inc to specify the path, manually.])
+  else
+    have_rtdebug_inc="yes"
+    AC_MSG_RESULT([yes, in $ac_cv_header_rtdebuginc])
+  fi
+
+  RTDEBUG_INCLUDES="-I$ac_cv_header_rtdebuginc"
+  RTDEBUG_INCDIR="$ac_cv_header_rtdebuginc"
+  AC_SUBST(RTDEBUG_INCLUDES)
+  AC_SUBST(RTDEBUG_INCDIR)
+])
+
+dnl
+dnl AC_QTSHAREDBUILD: tries to find out if the used Qt3 library was build
+dnl as a shared or static library
+dnl
 AC_DEFUN(AC_QTSHAREDBUILD,
 [
   AC_REQUIRE_CPP()
-  AC_REQUIRE([AC_PATH_QT_INC])
-  AC_REQUIRE([AC_PATH_QT_LIB])
+  AC_REQUIRE([AC_PATH_QT3_INC])
+  AC_REQUIRE([AC_PATH_QT3_LIB])
 
-  AC_MSG_CHECKING(for qSharedBuild in lib qt-mt)
+  AC_MSG_CHECKING(for qSharedBuild in Qt3 lib qt-mt)
   
   AC_LANG_SAVE
   AC_LANG_CPLUSPLUS
@@ -275,11 +433,14 @@ AC_DEFUN(AC_QTSHAREDBUILD,
   AC_LANG_RESTORE
 ])
 
-AC_DEFUN(AC_PATH_QTDIR,
+dnl
+dnl AC_PATH_QT3DIR: allows to override the Qt3 specific QTDIR variable for
+dnl specifying the main directory where Qt3 is installed
+dnl
+AC_DEFUN(AC_PATH_QT3DIR,
 [
-  AC_ARG_WITH(qt,
-                          [AC_HELP_STRING([--with-qt], [where the QT multithreaded library is located.])],
-                          [QTDIR="$withval" ])
+  AC_ARG_WITH(qt3, [AC_HELP_STRING([--with-qt3], [where the Qt3 multithreaded library is located.])],
+                  [QTDIR="$withval" ])
 
   if test -z "$QTDIR"; then
     AC_MSG_WARN([environment variable QTDIR is not set, you may run into problems])
@@ -287,15 +448,18 @@ AC_DEFUN(AC_PATH_QTDIR,
 
 ])
 
-AC_DEFUN(AC_PATH_QT_LIB,
+dnl
+dnl AC_PATH_QT3_LIB: tries to check for the existenance of the Qt3 libraries and
+dnl also provides means of overriding the default directory in which we are going
+dnl to search for the Qt3 libs
+dnl
+AC_DEFUN(AC_PATH_QT3_LIB,
 [
   AC_REQUIRE_CPP()
-  dnl AC_REQUIRE([AC_PATH_X])
-  AC_ARG_WITH(qt-lib,
-                          [AC_HELP_STRING([--with-qt-lib], [where the QT multithreaded library is located.])],
+  AC_ARG_WITH(qt3-lib,[AC_HELP_STRING([--with-qt3-lib], [where the Qt3 multithreaded library is located.])],
                       [ac_qt_libraries="$withval"], ac_qt_libraries="")
 
-  AC_MSG_CHECKING(for QT multithreaded library)
+  AC_MSG_CHECKING(for Qt3 multithreaded library)
 
   AC_CACHE_VAL(ac_cv_lib_qtlib, [
 
@@ -372,7 +536,7 @@ AC_DEFUN(AC_PATH_QT_LIB,
   if test -z "$ac_qt_libdir"; then
     have_qt_lib="no"
     AC_MSG_RESULT([no])
-    AC_MSG_ERROR([Cannot find required QT multithreaded library in linker path.
+    AC_MSG_ERROR([Cannot find required Qt3 multithreaded library in linker path.
 Try --with-qt-lib to specify the path, manualy.])
   else
     have_qt_lib="yes"
@@ -387,140 +551,17 @@ Try --with-qt-lib to specify the path, manualy.])
   AC_SUBST(LIB_QT)
 ])
 
-AC_DEFUN(AC_PATH_RTDEBUG_LIB,
-[
-  AC_REQUIRE_CPP()
-  AC_ARG_WITH(rtdebug-lib,
-              [AC_HELP_STRING([--with-rtdebug-lib], [where the librtdebug library is located.])],
-							[ac_rtdebug_libraries="$withval"], ac_rtdebug_libraries="")
-
-  AC_MSG_CHECKING(for runtime debugging library)
-
-  AC_CACHE_VAL(ac_cv_lib_rtdebuglib, [
-
-  rtdebug_libdir=
-
-  dnl No they didnt, so lets look for them...
-  dnl If you need to add extra directories to check, add them here.
-  if test -z "$ac_rtdebug_libraries"; then
-    rtdebug_library_dirs="$rtdebug_library_dirs \
-		                    /usr/local/lib \
-												/usr/local/lib/rtdebug \
-		                    /usr/lib \
-		                    /usr/lib/rtdebug \
-		                    /Developer/rtdebug/lib"
-  else
-    rtdebug_library_dirs="$ac_rtdebug_libraries"
-  fi
-
-  dnl Save some global vars
-  save_LDFLAGS="$LDFLAGS"
-  save_LIBS="$LIBS"
-
-  rtdebug_found="0"
-  ac_rtdebug_libdir=
-  ac_rtdebug_libname="-lrtdebug"
-  
-  LIBS="$ac_rtdebug_libname $save_LIBS"
-  for rtdebug_dir in $rtdebug_library_dirs; do
-    LDFLAGS="-L$rtdebug_dir $save_LDFLAGS"
-    AC_TRY_LINK_FUNC(main, [rtdebug_found="1"], [rtdebug_found="0"])
-    if test $rtdebug_found = 1; then
-      ac_rtdebug_libdir="$rtdebug_dir"
-      break;
-    else
-      echo "tried $rtdebug_dir" >&AC_FD_CC 
-    fi
-  done
-
-  dnl Restore the saved vars
-  LDFLAGS="$save_LDFLAGS"
-  LIBS="$save_LIBS"
-
-  ac_cv_lib_rtdebuglib="ac_rtdebug_libname=$ac_rtdebug_libname ac_rtdebug_libdir=$ac_rtdebug_libdir"
-  ])
-
-  eval "$ac_cv_lib_rtdebuglib"
-
-  dnl Define a shell variable for later checks
-  if test -z "$ac_rtdebug_libdir"; then
-    have_rtdebug_lib="no"
-    AC_MSG_RESULT([no])
-    AC_MSG_ERROR([Cannot find required runtime debugging (librtdebug) library in linker path.
-Try --with-rtdebug-lib to specify the path, manually.])
-  else
-    have_rtdebug_lib="yes"
-    AC_MSG_RESULT([yes, $ac_rtdebug_libname in $ac_rtdebug_libdir found.])
-  fi
-
-  RTDEBUG_LDFLAGS="-L$ac_rtdebug_libdir"
-  RTDEBUG_LIBDIR="$ac_rtdebug_libdir"
-  LIB_RTDEBUG="$ac_rtdebug_libname"
-  AC_SUBST(RTDEBUG_LDFLAGS)
-  AC_SUBST(RTDEBUG_LIBDIR)
-  AC_SUBST(LIB_RTDEBUG)
-])
-
-AC_DEFUN(AC_PATH_RTDEBUG_INC,
-[
-  AC_REQUIRE_CPP()
-  AC_MSG_CHECKING(for librtdebug includes)
-
-  AC_ARG_WITH(rtdebug-inc,
-              [AC_HELP_STRING([--with-rtdebug-inc], [where the librtdebug headers are located.])],
-              [rtdebug_include_dirs="$withval"], rtdebug_include_dirs="")
-
-  AC_CACHE_VAL(ac_cv_header_rtdebuginc, [
-
-    dnl Did the user give --with-rtdebug-includes?
-    if test -z "$rtdebug_include_dirs"; then
-
-      dnl No they didn't, so lets look for them...
-      dnl If you need to add extra directories to check, add them here.
-      rtdebug_include_dirs="\
-        /usr/local/rtdebug/include \
-        /usr/include/rtdebug \
-        /usr/lib/rtdebug/include \
-        /usr/local/include/rtdebug"
-    fi
-
-    for rtdebug_dir in $rtdebug_include_dirs; do
-      if test -r "$rtdebug_dir/CRTDebug.h"; then
-        if test -r "$rtdebug_dir/rtdebug.h"; then
-          ac_rtdebug_includes=$rtdebug_dir
-          break;
-        fi
-      fi
-    done
-
-    ac_cv_header_rtdebuginc=$ac_rtdebug_includes
-
-  ])
-
-  if test -z "$ac_cv_header_rtdebuginc"; then
-    have_rtdebug_inc="no"
-    AC_MSG_RESULT([no])
-    AC_MSG_WARN([librtdebug include directory not found, you may run into problems.
-Try --with-rtdebug-inc to specify the path, manually.])
-  else
-    have_rtdebug_inc="yes"
-    AC_MSG_RESULT([yes, in $ac_cv_header_rtdebuginc])
-  fi
-
-  RTDEBUG_INCLUDES="-I$ac_cv_header_rtdebuginc"
-  RTDEBUG_INCDIR="$ac_cv_header_rtdebuginc"
-  AC_SUBST(RTDEBUG_INCLUDES)
-  AC_SUBST(RTDEBUG_INCDIR)
-])
-
-AC_DEFUN(AC_PATH_QT_INC,
+dnl
+dnl AC_PATH_QT3_INC: tries to find out if the Qt3 headers are reachable and provides
+dnl means of overriding the default search pathes.
+dnl
+AC_DEFUN(AC_PATH_QT3_INC,
 [
   AC_REQUIRE_CPP()
   AC_REQUIRE([AC_PATH_X])
-  AC_MSG_CHECKING(for QT includes)
+  AC_MSG_CHECKING(for Qt3 includes)
 
-  AC_ARG_WITH(qt-inc,
-                          [AC_HELP_STRING([--with-qt-inc], [where the QT headers are located.])],
+  AC_ARG_WITH(qt3-inc,[AC_HELP_STRING([--with-qt3-inc], [where the Qt3 includes are located.])],
                       [qt_include_dirs="$withval"], qt_include_dirs="")
 
   AC_CACHE_VAL(ac_cv_header_qtinc, [
@@ -532,7 +573,6 @@ AC_DEFUN(AC_PATH_QT_INC,
       dnl If you need to add extra directories to check, add them here.
       qt_include_dirs="\
         /usr/lib/qt3/include \
-        /usr/lib/qt2/include \
         /usr/lib/qt/include \
         /usr/include/qt \
         /usr/local/qt/include \
@@ -580,7 +620,7 @@ AC_DEFUN(AC_PATH_QT_INC,
   if test -z "$ac_cv_header_qtinc"; then
     have_qt_inc="no"
     AC_MSG_RESULT([no])
-    AC_MSG_WARN([Qt include directory not found, you may run into problems.
+    AC_MSG_WARN([Qt3 include directory not found, you may run into problems.
 Try --with-qt-inc to specify the path, manualy.])
   else
     have_qt_inc="yes"
@@ -593,63 +633,242 @@ Try --with-qt-inc to specify the path, manualy.])
   AC_SUBST(QT_INCDIR)
 ])
 
-AC_DEFUN(AC_PATH_QT_MOC,
+dnl
+dnl AC_PATH_QT3_QMAKE: tries to find out if the "qmake" binary of Qt3 is reachable or not and
+dnl allows to override the default path to it
+dnl
+AC_DEFUN(AC_PATH_QT3_QMAKE,
 [
-  AC_ARG_WITH(qt-moc,
-                          [AC_HELP_STRING([--with-qt-moc], [where the QT 3.1.x moc is located.])],
-                      [ac_qt_moc="$withval"], ac_qt_moc="")
+  AC_ARG_WITH(qt3-qmake,[AC_HELP_STRING([--with-qt3-qmake], [where the Qt3 qmake binary is located.])],
+                        [ac_qt_qmake="$withval"], ac_qt_qmake="")
 
-  if test -z "$ac_qt_moc"; then
+  if test -z "$ac_qt_qmake"; then
     dnl search on our own
 
     if test -z "$QTDIR"; then
-      AC_MSG_WARN(environment variable QTDIR is not set, moc might not be found)
+      AC_MSG_WARN(environment variable QTDIR is not set, qmake might not be found)
     fi
 
     AC_PATH_PROG(
-      MOC,
-      moc,
-      $QTDIR/bin/moc,
-      $QTDIR/bin:/usr/lib/qt2/bin:/usr/bin:/usr/X11R6/bin:/usr/lib/qt/bin:/usr/local/qt/bin:$PATH
+      QMAKE_PATH,
+      qmake,
+      $QTDIR/bin/qmake,
+      $QTDIR/bin:/usr/lib/qt2/bin:/usr/bin:/usr/X11R6/bin:/usr/lib/qt/bin:/usr/local/qt/bin:/Developer/qt/bin:$PATH
     )
   else
-    AC_MSG_CHECKING(for moc)
+    AC_MSG_CHECKING(for qmake)
 
-    if test -f $ac_qt_moc && test -x $ac_qt_moc; then
-      MOC=$ac_qt_moc
+    if test -f $ac_qt_qmake && test -x $ac_qt_qmake; then
+      QMAKE_PATH=$ac_qt_qmake
     else
       AC_MSG_ERROR(
-        --with-qt-moc expects path and name of the moc
+        --with-qt3-qmake expects path and name of the qmake tool
       )
     fi
 
-    AC_MSG_RESULT($MOC)
+    AC_MSG_RESULT($QMAKE_PATH)
   fi
 
-  if test -z "$MOC"; then
-    AC_MSG_ERROR(couldn't find Qt moc. Please use --with-qt-moc)
+  if test -z "$QMAKE_PATH"; then
+    AC_MSG_ERROR(couldn't find Qt3 qmake. Please use --with-qt3-qmake)
   fi
 
-  dnl Check if we have the right moc
-  if ! fgrep QCString "$MOC" > /dev/null; then
-    AC_MSG_ERROR([
-
-        The Qt meta object compiler (moc)
-        $MOC
-        found by configure is not the one part of Qt 2.1.x.
-
-        It's likely that the found one is the one shipped with
-        Qt 1.xx. That one will not work.
-
-        Please check your installation.
-        Use the --with-qt-moc option to specify the path and name
-        of the moc compiler shipped with your Qt 2.1 lib.
-        Some distributions rename it to "moc2", maybe you find that
-        on your system.
-
-        see ./configure --help for details.
-    ])
+  dnl Check if we have the right qmake by outputing the version
+	dnl information
+	qmake_vers=`"$QMAKE_PATH" -v 2>&1 | grep "Qt 3"`
+  if test -z "$qmake_vers"; then
+    AC_MSG_ERROR([didn't find the correct Qt3 version of qmake, Please use --with-qt3-qmake])
   fi
 
-  AC_SUBST(MOC)
+  AC_SUBST(QMAKE_PATH)
+])
+
+dnl
+dnl AC_PATH_QT4_LIB: checks if the Qt4 libraries are reachable and provides means
+dnl of overriding the default search path
+dnl
+AC_DEFUN(AC_PATH_QT4_LIB,
+[
+  AC_REQUIRE_CPP()
+  AC_ARG_WITH(qt4-lib,[AC_HELP_STRING([--with-qt4-lib], [where the Qt4 libraries are located.])],
+                      [ac_qt_libraries="$withval"], ac_qt_libraries="")
+
+  AC_MSG_CHECKING(for Qt4 libraries)
+
+  AC_CACHE_VAL(ac_cv_lib_qtlib, [
+
+  qt_libdir=
+
+  dnl No they didnt, so lets look for them...
+  dnl If you need to add extra directories to check, add them here.
+  if test -z "$ac_qt_libraries"; then
+    qt_library_dirs="/usr/lib/qt4 \
+										 /usr/local/qt4/lib \
+										 /usr/local/qt/lib \
+                     /usr/local/lib/qt4 \
+                     /usr/local/lib/qt \
+                     /usr/lib \
+                     /usr/local/lib \
+                     /usr/lib/qt \
+                     /usr/lib/qt/lib \
+                     /usr/local/lib/qt \
+                     /usr/X11/lib \
+                     /usr/X11/lib/qt \
+                     /usr/X11R6/lib \
+                     /usr/X11R6/lib/qt \
+										 /Developer/qt4/lib
+                     /Developer/qt/lib"
+  else
+    qt_library_dirs="$ac_qt_libraries"
+  fi
+
+  dnl Save some global vars
+  save_LDFLAGS="$LDFLAGS"
+  save_LIBS="$LIBS"
+
+  qt_found="0"
+  ac_qt_libdir=
+  ac_qt_libname="-lQtCore"
+  
+  LIBS="$ac_qt_libname $save_LIBS"
+  for qt_dir in $qt_library_dirs; do
+    LDFLAGS="-L$qt_dir $save_LDFLAGS"
+    AC_TRY_LINK_FUNC(main, [qt_found="1"], [qt_found="0"])
+    if test $qt_found = 1; then
+      ac_qt_libdir="$qt_dir"
+      break;
+    else
+      echo "tried $qt_dir" >&AC_FD_CC 
+    fi
+  done
+
+  dnl Restore the saved vars
+  LDFLAGS="$save_LDFLAGS"
+  LIBS="$save_LIBS"
+
+  ac_cv_lib_qtlib="ac_qt_libname=$ac_qt_libname ac_qt_libdir=$ac_qt_libdir"
+  ])
+
+  eval "$ac_cv_lib_qtlib"
+
+  dnl Define a shell variable for later checks
+  if test -z "$ac_qt_libdir"; then
+    have_qt_lib="no"
+    AC_MSG_RESULT([no])
+    AC_MSG_ERROR([Cannot find required Qt4 libraries in linker path. Try --with-qt4-lib to specify the path, manualy.])
+  else
+    have_qt_lib="yes"
+    AC_MSG_RESULT([yes, $ac_qt_libname in $ac_qt_libdir found.])
+  fi
+
+  QT_LDFLAGS="-L$ac_qt_libdir"
+  QT_LIBDIR="$ac_qt_libdir"
+  LIB_QT="$ac_qt_libname"
+  AC_SUBST(QT_LDFLAGS)
+  AC_SUBST(QT_LIBDIR)
+  AC_SUBST(LIB_QT)
+])
+
+dnl
+dnl AC_PATH_QT4_INC: checks for the existance of the Qt4 includes and provides means
+dnl to override the default search pathes to it
+dnl
+AC_DEFUN(AC_PATH_QT4_INC,
+[
+  AC_REQUIRE_CPP()
+  AC_MSG_CHECKING(for Qt4 includes)
+
+  AC_ARG_WITH(qt4-inc, [AC_HELP_STRING([--with-qt4-inc], [where the Qt4 includes are located.])],
+                      [qt_include_dirs="$withval"], qt_include_dirs="")
+
+  AC_CACHE_VAL(ac_cv_header_qtinc, [
+
+    dnl Did the user give --with-qt-includes?
+    if test -z "$qt_include_dirs"; then
+      qt_include_dirs="\
+			  /usr/include/qt4/ \
+				/usr/local/qt4/include \
+        /usr/lib/qt/include \
+        /usr/include/qt \
+        /usr/local/qt/include \
+        /usr/local/include/qt \
+        /usr/X11/include/qt \
+        /usr/X11/include/X11/qt \
+        /usr/X11R6/include \
+        /usr/X11R6/include/qt \
+        /usr/X11R6/include/X11/qt \
+        /usr/X11/lib/qt/include"
+    fi
+
+		dnl now we do check for the QtCore subdir and the Qt include
+    for qt_dir in $qt_include_dirs; do
+      if test -r "$qt_dir/QtCore"; then
+        if test -r "$qt_dir/QtCore/Qt"; then
+          ac_qt_includes=$qt_dir
+          break;
+        fi
+      fi
+    done
+
+    ac_cv_header_qtinc=$ac_qt_includes
+
+  ])
+
+  if test -z "$ac_cv_header_qtinc"; then
+    have_qt_inc="no"
+    AC_MSG_RESULT([no])
+    AC_MSG_WARN([Qt4 include directory not found, you may run into problems. Try --with-qt4-inc to specify the path, manualy.])
+  else
+    have_qt_inc="yes"
+    AC_MSG_RESULT([yes, in $ac_cv_header_qtinc])
+  fi
+
+  QT_INCLUDES="-I$ac_cv_header_qtinc"
+  QT_INCDIR="$ac_cv_header_qtinc"
+  AC_SUBST(QT_INCLUDES)
+  AC_SUBST(QT_INCDIR)
+])
+
+dnl
+dnl AC_PATH_QT4_QMAKE: tries to find out if the "qmake" binary of Qt4 is reachable or not and
+dnl allows to override the default path to it
+dnl
+AC_DEFUN(AC_PATH_QT4_QMAKE,
+[
+  AC_ARG_WITH(qt4-qmake,[AC_HELP_STRING([--with-qt4-qmake], [where the Qt4 qmake binary is located.])],
+                        [ac_qt_qmake="$withval"], ac_qt_qmake="")
+
+  if test -z "$ac_qt_qmake"; then
+    AC_PATH_PROG(
+      QMAKE_PATH,
+      qmake,
+      qmake,
+      /usr/lib/qt4/bin:/usr/bin:/usr/X11R6/bin:/usr/lib/qt/bin:/usr/local/qt/bin:/Developer/qt4/bin:$PATH
+    )
+  else
+    AC_MSG_CHECKING(for qmake)
+
+    if test -f $ac_qt_qmake && test -x $ac_qt_qmake; then
+      QMAKE_PATH=$ac_qt_qmake
+    else
+      AC_MSG_ERROR(
+        --with-qt4-qmake expects path and name of the qmake tool
+      )
+    fi
+
+    AC_MSG_RESULT($QMAKE_PATH)
+  fi
+
+  if test -z "$QMAKE_PATH"; then
+    AC_MSG_ERROR(couldn't find Qt4 qmake. Please use --with-qt4-qmake)
+  fi
+
+  dnl Check if we have the right qmake by outputing the version
+	dnl information
+	qmake_vers=`"$QMAKE_PATH" -v 2>&1 | grep "Qt version 4"`
+  if test -z "$qmake_vers"; then
+    AC_MSG_ERROR([didn't find the correct Qt4 version of qmake, Please use --with-qt4-qmake])
+  fi
+
+  AC_SUBST(QMAKE_PATH)
 ])

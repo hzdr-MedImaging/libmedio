@@ -6,6 +6,12 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-08-11  Jens Langner <Jens.Langner@light-speed.de>
+
+  * misc: backported the structure alignment change from our MAIN branch.
+    This should fix some strange crashes which occurred when running libmedio 
+    application on an old Sol8 machine.
+
 2005-07-14  Jens Langner <Jens.Langner@light-speed.de>
 
   * CECATDirectoryItem.cpp: added check&code to enforce that a writeMatrix() call

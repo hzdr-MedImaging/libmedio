@@ -33,9 +33,6 @@ CECAT7SubHeaderImage::CECAT7SubHeaderImage(CECATFile* ecatFile,
 																					 CECATDirectoryItem* pDirItem)
 	: CECATSubHeader(ecatFile, pDirItem)
 {
-	// check that the headsize is 1024 bytes long
-	ASSERT(sizeof(struct ECAT7SubHeader_Image) == ECAT7_HEADERSIZE_IMAGE);
-
 	// then clear the structure
 	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Image));
 }
@@ -43,9 +40,6 @@ CECAT7SubHeaderImage::CECAT7SubHeaderImage(CECATFile* ecatFile,
 CECAT7SubHeaderImage::CECAT7SubHeaderImage(const CECAT7SubHeaderImage& sh)
 	: CECATSubHeader(sh)
 {
-	// check that the headsize is 1024 bytes long
-	ASSERT(sizeof(struct ECAT7SubHeader_Image) == ECAT7_HEADERSIZE_IMAGE);
-
 	// then clear the structure
 	memcpy(&m_Data, &sh.m_Data, sizeof(struct ECAT7SubHeader_Image));
 }
@@ -67,9 +61,8 @@ bool CECAT7SubHeaderImage::load(void)
 
 	// we use a ByteArray buffer to speed up the endianess
 	// decoding
-	QByteArray buffer(sizeof(struct ECAT7SubHeader_Image));
-	if(m_pMedIOData->readBlock(buffer.data(), sizeof(struct ECAT7SubHeader_Image)) 
-			!= sizeof(struct ECAT7SubHeader_Image))
+	QByteArray buffer(rawDataSize());
+	if(m_pMedIOData->readBlock(buffer.data(), buffer.size()) != rawDataSize())
 	{
 		RETURN(false);
 		return false;
@@ -231,7 +224,7 @@ bool CECAT7SubHeaderImage::save(void) const
 	SHOWVALUE(m_pMedIOData->at());
 
 	// we write to a buffer first and write out later directly to the file
-	QByteArray buffer(sizeof(struct ECAT7SubHeader_Image));
+	QByteArray buffer(rawDataSize());
 	QDataStream stream(buffer, IO_WriteOnly);
  
 	// lets write out each single data element of our
