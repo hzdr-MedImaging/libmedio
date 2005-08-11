@@ -57,6 +57,9 @@ class CECATMainHeader : public CMedIOHeader
 		virtual bool load()	= 0;
 		virtual bool save() const = 0;
 
+		// size information in bytes of specific raw mainheader structure
+		virtual int rawDataSize() const = 0;	
+
 		// interface methods that are part of the ECAT6 and
 		// ECAT7 standard and each ECAT6/7 implementation has
 		// to implement it.

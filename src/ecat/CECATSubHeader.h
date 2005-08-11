@@ -24,16 +24,6 @@
 #ifndef CECATSUBHEADER_H
 #define CECATSUBHEADER_H
 
-// as per ECAT file format definition we list here
-// the differenz sizes of the subHeaders
-#define ECAT7_HEADERSIZE_ATTENCORR	512
-#define ECAT7_HEADERSIZE_IMAGE			512
-#define ECAT7_HEADERSIZE_NORM				512
-#define ECAT7_HEADERSIZE_NORM3D			512
-#define ECAT7_HEADERSIZE_POLARMAP		512
-#define ECAT7_HEADERSIZE_SCAN				512
-#define ECAT7_HEADERSIZE_SCAN3D			1024
-
 #include <CMedIOHeader.h>
 
 #include <QDataStream>
@@ -75,12 +65,12 @@ class CECATSubHeader : public CMedIOHeader
 		virtual bool load(void) = 0;
 		virtual bool save(void) const = 0;
 
+		// size information in bytes of specific raw subheader structure
+		virtual int rawDataSize() const = 0;
+
 		// some must have accessor methods
 		virtual Data_Type data_Type(void) const = 0;
 		virtual void setData_Type(const Data_Type dType) = 0;
-
-		// size information in bytes of specific subheader
-		virtual int size() const = 0;
 
 		// runtime type information methods
 		CMedIOHeader::Format headerFormat() const { return CMedIOHeader::ECATSubHeader; }		

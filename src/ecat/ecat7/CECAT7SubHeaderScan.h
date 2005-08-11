@@ -27,6 +27,7 @@
 #include <QDataStream>
 
 #include <CECATSubHeader.h>
+#include <CECATDirectoryItem.h>
 
 // forward declarations
 class CECATFile;
@@ -48,12 +49,12 @@ class CECAT7SubHeaderScan : public CECATSubHeader
 		bool load(void);
 		bool save(void) const;
 
+		// the number of bytes the data of that header requires on disk
+		int rawDataSize() const { return 1*ECAT_BLOCKSIZE; }
+		
 		CECATSubHeader::Type subHeaderType(void) const
 		{ return CECATSubHeader::ECAT7_Scan; }
 		
-		int size() const 
-		{	return ECAT7_HEADERSIZE_SCAN; }
-	
 		// data access methods
 		CECATSubHeader::Data_Type data_Type(void) const
 		{ return static_cast<CECATSubHeader::Data_Type>(m_Data.Data_Type);	}
@@ -259,7 +260,6 @@ class CECAT7SubHeaderScan : public CECATSubHeader
 		CMedIOHeader& copyData(const CMedIOHeader& src);		
 
 	private:
-		#pragma pack(2)	// set the structure alignment
 		struct ECAT7SubHeader_Scan
 		{
 			quint16	Data_Type;
@@ -296,7 +296,6 @@ class CECAT7SubHeaderScan : public CECATSubHeader
 			quint16	CTI_reserved[83];
 			quint16	User_Reserved[50];
 		} m_Data;
-		#pragma pack()
 };
 
 #endif // CECAT7SUBHEADERSCAN_H

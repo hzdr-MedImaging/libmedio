@@ -33,9 +33,6 @@
 CECAT6MainHeader::CECAT6MainHeader(const CECAT6MainHeader& mh)
 	: CECATMainHeader(mh.m_pMedIOData)
 {
-	// make 100% sure that the ECAT6 MainHeader is just 512bytes long.
-  ASSERT(sizeof(struct ECAT6MainHeader) == 512);
-	
 	// lets copy the mainHeader data but keep an eye on the file type
 	memcpy(&m_Data, &mh.m_Data, sizeof(struct ECAT6MainHeader));
 }
@@ -44,9 +41,6 @@ CECAT6MainHeader::CECAT6MainHeader(CECATFile* ecatFile,
 																	 CECATMainHeader::Type fileType)
 	: CECATMainHeader(ecatFile)
 {
-	// make 100% sure that the ECAT6 MainHeader is just 512bytes long.
-  ASSERT(sizeof(struct ECAT6MainHeader) == 512);
-	
 	// clear our MainHeader structure first
 	memset(&m_Data, 0, sizeof(struct ECAT6MainHeader));
 	
@@ -74,9 +68,8 @@ bool CECAT6MainHeader::load(void)
 
 	// we use a ByteArray buffer to speed up the endianess
 	// decoding
-	QByteArray buffer(sizeof(struct ECAT6MainHeader));
-	if(m_pMedIOData->readBlock(buffer.data(), 
-		 sizeof(struct ECAT6MainHeader)) != sizeof(struct ECAT6MainHeader))
+	QByteArray buffer(rawDataSize());
+	if(m_pMedIOData->read(buffer.data(), buffer.size()) != rawDataSize())
 	{
 		RETURN(false);
 		return false;
@@ -84,7 +77,7 @@ bool CECAT6MainHeader::load(void)
 
 	// now we generate a QDataStream on our buffer so that we can read
 	// out of the buffer instead of the raw file (> speed)
-	QDataStream stream(&buffer, QIODevice::ReadOnly);
+	QDataStream stream(buffer);
 	
 	// we read in the MainHeader data with one read
 	// operation
@@ -239,7 +232,7 @@ bool CECAT6MainHeader::save(void) const
 	quint16 numBedPos = ecatFile->numBedPos();
 
 	// we write to a buffer first and write out later directly to the file
-	QByteArray buffer(sizeof(struct ECAT6MainHeader));
+	QByteArray buffer(rawDataSize());
 	QDataStream stream(&buffer, QIODevice::WriteOnly);
 
 	// we read in the MainHeader data with one read

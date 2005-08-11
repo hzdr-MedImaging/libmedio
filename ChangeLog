@@ -6,6 +6,14 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-08-11  Jens Langner <Jens.Langner@light-speed.de>
+
+  * misc: removed the structure aligning "#pragma pack()" usages as they break
+    compatibility to the picky SPARC processors which always want to have
+    stuff aligned to their natural boundaries. This should fix some strange
+    crashes which occurred when running libmedio application on an old Sol8
+    machine.
+
 2005-08-05  Jens Langner <Jens.Langner@light-speed.de>
 
   * misc: removed the qt3support and ported all still existent Qt3 functionality
