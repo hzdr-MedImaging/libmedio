@@ -31,9 +31,13 @@
 
 #include <rtdebug.h>
 
+#define ECAT_DIRHEAD_SIZE 16
+#define ECAT_DIRITEM_SIZE 16
+#define ECAT_DIRITEM_NUM  31
+#define ECAT_DIRLIST_SIZE 512
+
 // the RAW structures used in the ECAT directory blocks
-#pragma pack(2)
-struct ECAT_DirHead
+struct ECAT_DirHead // should be 16 bytes
 {
 	quint32 FreeItems;
 	quint32 Next;
@@ -41,7 +45,7 @@ struct ECAT_DirHead
 	quint32 ItemsToFollow;
 };
 
-struct ECAT_DirItem
+struct ECAT_DirItem // should be 16 bytes
 {
 	quint32 matrixID;				// frame/plane/gate/bed/data encoded matrixID
 	quint32 dataBlock_Start;	// start position of the subHeader
@@ -52,20 +56,13 @@ struct ECAT_DirItem
 struct ECAT_DirList // should be 512 bytes
 {
 	struct ECAT_DirHead head;
-	struct ECAT_DirItem items[31];
+	struct ECAT_DirItem items[ECAT_DIRITEM_NUM];
 };
-#pragma pack()
 
 CECATDirectory::CECATDirectory(CECATFile* ecatFile)
 	: m_pECATFile(ecatFile)
 {
 	ENTER();
-
-	// do some debugging to make sure that our structure really
-	// have the correct width
-	ASSERT(sizeof(struct ECAT_DirHead) == 16);	// should be 16bytes
-	ASSERT(sizeof(struct ECAT_DirItem) == 16);	// should be 16bytes
-	ASSERT(sizeof(struct ECAT_DirList) == 512);	// a dirlist should always be 512 bytes
 
   // create a new value vector for carrying all the different file
   // positions this directory list is splitted to.
@@ -132,9 +129,8 @@ bool CECATDirectory::load(void)
 		m_pFilePositions->append(m_pECATFile->pos());
 
 		// we use a ByteArray buffer to speed up the endianess decoding
-		QByteArray buffer(sizeof(struct ECAT_DirList));
-		if(m_pECATFile->readBlock(buffer.data(), sizeof(struct ECAT_DirList)) != 
-					sizeof(struct ECAT_DirList))
+		QByteArray buffer(ECAT_DIRLIST_SIZE);
+		if(m_pECATFile->read(buffer.data(), buffer.size()) != ECAT_DIRLIST_SIZE) 
 		{
 			E("An error occurred while reading data");
 
@@ -144,7 +140,7 @@ bool CECATDirectory::load(void)
 
 		// now we generate a QDataStream on our buffer so that we can read
 		// out of the buffer instead of the raw file (> speed)
-		QDataStream stream(&buffer, QIODevice::ReadOnly);
+		QDataStream stream(buffer);
 		
 		// read out the dirHead first
 		stream >> dList.head.FreeItems;
@@ -226,13 +222,13 @@ bool CECATDirectory::save(void) const
 
 	// before we start we have to link the first dirList to itself
 	memset(&dirHead, 0, sizeof(struct ECAT_DirHead)); // clear it first
-	dirHead.FreeItems	= 31;
+	dirHead.FreeItems	= ECAT_DIRITEM_NUM;
 	dirHead.Next			= ECAT_POS_MAINDIR;
 
 	// we use two buffers. one for storing the dirHead of the ECAT and
 	// one for the 31 dirItems.
-	QByteArray dirItemBuffer(31*sizeof(struct ECAT_DirItem));
-	memset(dirItemBuffer.data(), 0, 31*sizeof(struct ECAT_DirItem)); // clear it first
+	QByteArray dirItemBuffer(ECAT_DIRITEM_NUM*ECAT_DIRITEM_SIZE);
+	memset(dirItemBuffer.data(), 0, dirItemBuffer.size()); // clear it first
 	QDataStream dirItemStream(&dirItemBuffer, QIODevice::WriteOnly);
 
 	// now we have to go through our directory and stream all items
@@ -266,7 +262,7 @@ bool CECATDirectory::save(void) const
 			
 			// first we check wheter the dirList is filled up (>=31 items)
 			// and then write it out separate first.
-			if(dirHead.ItemsToFollow == 31)
+			if(dirHead.ItemsToFollow == ECAT_DIRITEM_NUM)
 			{
 				// get the position where the next directorylist will start
 				// so we look into our filePositions ValueVector and if there is
@@ -285,7 +281,7 @@ bool CECATDirectory::save(void) const
 
 				// now we can write out the whole directory List to the file
 				// where we first write out the dirHead and then the 31 dirItems
-				QByteArray dirHeadBuffer(sizeof(struct ECAT_DirHead));
+				QByteArray dirHeadBuffer(ECAT_DIRHEAD_SIZE);
 				QDataStream dirHeadStream(&dirHeadBuffer, QIODevice::WriteOnly);
 
 				dirHeadStream << dirHead.FreeItems;
@@ -305,8 +301,8 @@ bool CECATDirectory::save(void) const
 				SHOWVALUE(m_pECATFile->pos());
 
 				// write out everything
-				if(m_pECATFile->write(dirHeadBuffer) != sizeof(struct ECAT_DirHead) ||
-					 m_pECATFile->write(dirItemBuffer) != 31*sizeof(struct ECAT_DirItem))
+				if(m_pECATFile->write(dirHeadBuffer) != ECAT_DIRHEAD_SIZE ||
+					 m_pECATFile->write(dirItemBuffer) != ECAT_DIRITEM_NUM*ECAT_DIRITEM_SIZE)
 				{
 					E("Error while writing DirList");
 					result = false;
@@ -317,13 +313,13 @@ bool CECATDirectory::save(void) const
 
 				// clear the dirHead so that we can immediately reuse it
 				memset(&dirHead, 0, sizeof(struct ECAT_DirHead));
-				dirHead.FreeItems	= 31;
+				dirHead.FreeItems	= ECAT_DIRITEM_NUM;
 				dirHead.Next			= ECAT_POS_MAINDIR;
 				dirHead.Prev			= currentDirPos;
 				currentDirPos			= nextDirPos;
 
 				// clear also the DirItem buffer
-				memset(dirItemBuffer.data(), 0, 31*sizeof(struct ECAT_DirItem));
+				memset(dirItemBuffer.data(), 0, dirItemBuffer.size());
 				dirItemStream.device()->seek(0);
 
 				// iterate to the next dirList
@@ -358,7 +354,7 @@ bool CECATDirectory::save(void) const
 	{
 		// now we can write out the whole directory List to the file
 		// where we first write out the dirHead and then the 31 dirItems
-		QByteArray dirHeadBuffer(sizeof(struct ECAT_DirHead));
+		QByteArray dirHeadBuffer(ECAT_DIRHEAD_SIZE);
 		QDataStream dirHeadStream(&dirHeadBuffer, QIODevice::WriteOnly);
 
 		dirHeadStream << dirHead.FreeItems;
@@ -377,8 +373,8 @@ bool CECATDirectory::save(void) const
 		else
 		{
 			// write out everything
-			if(m_pECATFile->write(dirHeadBuffer) != sizeof(struct ECAT_DirHead) ||
-				 m_pECATFile->write(dirItemBuffer) != 31*sizeof(struct ECAT_DirItem))
+			if(m_pECATFile->write(dirHeadBuffer) != ECAT_DIRHEAD_SIZE ||
+				 m_pECATFile->write(dirItemBuffer) != ECAT_DIRITEM_NUM*ECAT_DIRITEM_SIZE)
 			{
 				E("Error while writing DirList #%d at %ld", curDirList, m_pECATFile->pos());
 				result = false;
