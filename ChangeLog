@@ -6,6 +6,13 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-08-12  Jens Langner <Jens.Langner@light-speed.de>
+
+  * misc: backported another change from our Qt4 MAIN branch where we did forget
+    to remove another pragma pack(). Also adapted the configure.in to check for
+    mktime and to not try to link against rtdebug lib if no enable-debug was
+    turned on during configure execution.
+
 2005-08-11  Jens Langner <Jens.Langner@light-speed.de>
 
   * misc: backported the structure alignment change from our MAIN branch.

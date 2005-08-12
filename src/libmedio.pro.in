@@ -115,15 +115,33 @@ unix {
   INSTALLS += target include documentation
 }
 
+# set the config to either release or debug
+COMPILE_LEVEL = @COMPILE_LEVEL@
+contains(COMPILE_LEVEL, debug) {
+	CONFIG -= release
+	CONFIG += debug
+	QMAKE_CXXFLAGS_DEBUG *= -g -O0
+	DEFINES *= DEBUG
+}
+else {
+	CONFIG -= debug
+	CONFIG += release
+	QMAKE_CXXFLAGS_RELEASE *= -O3 -fomit-frame-pointer -funroll-loops
+	QMAKE_LINK *= -s 
+	DEFINES -= DEBUG
+}
+
 ### LIBRTDEBUG ############################################################
 # if "staticrtdebug" is specified in the CONFIG variable (by configure)
 # we link wih the static variant of librtdebug instead
 INCLUDEPATH *= @RTDEBUG_INCDIR@
-staticmedio {
-	LIBS *= @RTDEBUG_LIBDIR@/librtdebug.a
-}
-else {
-	LIBS *= -L@RTDEBUG_LIBDIR@ @LIB_RTDEBUG@
+contains(DEFINES, DEBUG) {
+	staticmedio {
+		LIBS *= @RTDEBUG_LIBDIR@/librtdebug.a
+	}
+	else {
+		LIBS *= -L@RTDEBUG_LIBDIR@ @LIB_RTDEBUG@
+	}
 }
 
 # own QMAKE Flags definitions
@@ -161,22 +179,6 @@ else {
 			QMAKE_CXXFLAGS *= -Acpu=amd64 -march=opteron
 		}
 	}
-}
-
-# set the config to either release or debug
-COMPILE_LEVEL = @COMPILE_LEVEL@
-contains(COMPILE_LEVEL, debug) {
-	CONFIG -= release
-	CONFIG += debug
-	QMAKE_CXXFLAGS_DEBUG *= -g -O0
-	DEFINES *= DEBUG
-}
-else {
-	CONFIG -= debug
-	CONFIG += release
-	QMAKE_CXXFLAGS_RELEASE *= -O3 -fomit-frame-pointer -funroll-loops
-	QMAKE_LINK *= -s 
-	DEFINES -= DEBUG
 }
 
 # use ANSI colors if it was specified on configure time
