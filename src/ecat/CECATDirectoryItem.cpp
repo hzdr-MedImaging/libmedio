@@ -183,9 +183,7 @@ bool CECATDirectoryItem::readMatrix(QByteArray*& matrixData)
 	// we use our method operating on a raw char pointer
 	if(readMatrix(data, dataLen) && dataLen > 0)
 	{
-		matrixData = new QByteArray();
-		matrixData->setRawData(data, dataLen);
-
+		matrixData = new QByteArray(data, dataLen);
 		result = true;
 	}
 
@@ -223,13 +221,13 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 		// set the ECATFile handle to the correct position of
 		// the matrix start. This should normally be
 		// Matrix_SubHeader_StartPosition+1
-		if(m_pECATFile->at(m_iDataBlock_Start+subHeader->rawDataSize()) == false)
+		if(m_pECATFile->seek(m_iDataBlock_Start+subHeader->rawDataSize()) == false)
 		{
 			RETURN(false);
 			return false;
 		}
 
-		SHOWVALUE(m_pECATFile->at());
+		SHOWVALUE(m_pECATFile->pos());
 
 		// then we allocate some memory for loading the matrixdata
 		// this should be:
@@ -248,7 +246,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 				W("No or an unknown data type was set for the matrix data of dirItem %08lx",
 						convertToMatrixID(m_iFrame, m_iPlane, m_iGate, m_iBed, m_iData));
 
-				if(m_pECATFile->readBlock(matrixData, matrixSize) > 0)
+				if(m_pECATFile->read(matrixData, matrixSize) > 0)
 					result = true;
 			}
 			break;
@@ -256,7 +254,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 			// write out Byte data. (1 byte)
 			case CECATSubHeader::ByteData:
 			{
-				if(m_pECATFile->readBlock(matrixData, matrixSize) > 0)
+				if(m_pECATFile->read(matrixData, matrixSize) > 0)
 					result = true;
 			}
 			break;
@@ -269,12 +267,12 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 				// the endianess conversion takes quite some time, so
 				// what we do is to us a temporarly buffer to which we read
 				// some data from our fileStream and read out to our QByteArray
-				QByteArray bufArray(8192); // read 8KB chunks
+				QByteArray bufArray(8192, 0); // read 8KB chunks
 				quint16* ptr = (quint16*)matrixData;
 				for(unsigned int read=0; read < matrixSize;)
 				{
 					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
-					unsigned int curRead = m_pECATFile->readBlock(bufArray.data(), toRead);
+					unsigned int curRead = m_pECATFile->read(bufArray.data(), toRead);
 					if(curRead != toRead)
 					{
 						result = false;
@@ -287,7 +285,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 					// now that we have our chunk we use a bufferStream to stream
 					// out the values from it for making sure our data is correctly
 					// converted regarding to little/big endianess
-					QDataStream bufStream(&bufArray, QIODevice::ReadOnly);
+					QDataStream bufStream(bufArray);
 					bufStream.setByteOrder(QDataStream::LittleEndian);
 					for(unsigned int i=0; i < curRead; i+=sizeof(quint16))
 					{
@@ -310,12 +308,12 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 				// the endianess conversion takes quite some time, so
 				// what we do is to us a temporarly buffer to which we read
 				// some data from our fileStream and read out to our QByteArray
-				QByteArray bufArray(8192); // read 8KB chunks
+				QByteArray bufArray(8192, 0); // read 8KB chunks
 				quint32* ptr = (quint32*)matrixData;
 				for(unsigned int read=0; read < matrixSize;)
 				{
 					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
-					unsigned int curRead = m_pECATFile->readBlock(bufArray.data(), toRead);
+					unsigned int curRead = m_pECATFile->read(bufArray.data(), toRead);
 					if(curRead != toRead)
 					{
 						result = false;
@@ -328,7 +326,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 					// now that we have our chunk we use a bufferStream to stream
 					// out the values from it for making sure our data is correctly
 					// converted regarding to little/big endianess
-					QDataStream bufStream(&bufArray, QIODevice::ReadOnly);
+					QDataStream bufStream(bufArray);
 					bufStream.setByteOrder(QDataStream::LittleEndian);
 					for(unsigned int i=0; i < curRead; i+=sizeof(quint32))
 					{
@@ -351,12 +349,12 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 				// the endianess conversion takes quite some time, so
 				// what we do is to us a temporarly buffer to which we read
 				// some data from our fileStream and read out to our QByteArray
-				QByteArray bufArray(8192); // read 8KB chunks
+				QByteArray bufArray(8192, 0); // read 8KB chunks
 				float* ptr = (float*)matrixData;
 				for(unsigned int read=0; read < matrixSize;)
 				{
 					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
-					unsigned int curRead = m_pECATFile->readBlock(bufArray.data(), toRead);
+					unsigned int curRead = m_pECATFile->read(bufArray.data(), toRead);
 					if(curRead != toRead)
 					{
 						result = false;
@@ -369,7 +367,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 					// now that we have our chunk we use a bufferStream to stream
 					// out the values from it for making sure our data is correctly
 					// converted regarding to little/big endianess
-					QDataStream bufStream(&bufArray, QIODevice::ReadOnly);
+					QDataStream bufStream(bufArray);
 					bufStream.setByteOrder(QDataStream::LittleEndian);
 					for(unsigned int i=0; i < curRead; i+=sizeof(float))
 					{
@@ -392,12 +390,12 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 				// the endianess conversion takes quite some time, so
 				// what we do is to us a temporarly buffer to which we read
 				// some data from our fileStream and read out to our QByteArray
-				QByteArray bufArray(8192); // read 8KB chunks
+				QByteArray bufArray(8192, 0); // read 8KB chunks
 				float* ptr = (float*)matrixData;
 				for(unsigned int read=0; read < matrixSize;)
 				{
 					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
-					unsigned int curRead = m_pECATFile->readBlock(bufArray.data(), toRead);
+					unsigned int curRead = m_pECATFile->read(bufArray.data(), toRead);
 					if(curRead != toRead)
 					{
 						result = false;
@@ -410,7 +408,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 					// now that we have our chunk we use a bufferStream to stream
 					// out the values from it for making sure our data is correctly
 					// converted regarding to little/big endianess
-					QDataStream bufStream(&bufArray, QIODevice::ReadOnly);
+					QDataStream bufStream(bufArray);
 					for(unsigned int i=0; i < curRead; i+=sizeof(float))
 					{
 						bufStream >> *ptr;
@@ -431,12 +429,12 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 				// the endianess conversion takes quite some time, so
 				// what we do is to us a temporarly buffer to which we read
 				// some data from our fileStream and read out to our QByteArray
-				QByteArray bufArray(8192); // read 8KB chunks
+				QByteArray bufArray(8192, 0); // read 8KB chunks
 				quint16* ptr = (quint16*)matrixData;
 				for(unsigned int read=0; read < matrixSize;)
 				{
 					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
-					unsigned int curRead = m_pECATFile->readBlock(bufArray.data(), toRead);
+					unsigned int curRead = m_pECATFile->read(bufArray.data(), toRead);
 					if(curRead != toRead)
 					{
 						result = false;
@@ -449,7 +447,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 					// now that we have our chunk we use a bufferStream to stream
 					// out the values from it for making sure our data is correctly
 					// converted regarding to little/big endianess
-					QDataStream bufStream(&bufArray, QIODevice::ReadOnly);
+					QDataStream bufStream(bufArray);
 					for(unsigned int i=0; i < curRead; i+=sizeof(quint16))
 					{
 						bufStream >> *ptr;
@@ -470,12 +468,12 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 				// the endianess conversion takes quite some time, so
 				// what we do is to us a temporarly buffer to which we read
 				// some data from our fileStream and read out to our QByteArray
-				QByteArray bufArray(8192); // read 8KB chunks
+				QByteArray bufArray(8192, 0); // read 8KB chunks
 				quint32* ptr = (quint32*)matrixData;
 				for(unsigned int read=0; read < matrixSize;)
 				{
 					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
-					unsigned int curRead = m_pECATFile->readBlock(bufArray.data(), toRead);
+					unsigned int curRead = m_pECATFile->read(bufArray.data(), toRead);
 					if(curRead != toRead)
 					{
 						result = false;
@@ -488,7 +486,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 					// now that we have our chunk we use a bufferStream to stream
 					// out the values from it for making sure our data is correctly
 					// converted regarding to little/big endianess
-					QDataStream bufStream(&bufArray, QIODevice::ReadOnly);
+					QDataStream bufStream(bufArray);
 					for(unsigned int i=0; i < curRead; i+=sizeof(quint32))
 					{
 						bufStream >> *ptr;
@@ -523,9 +521,7 @@ bool CECATDirectoryItem::readMatrix(QByteArray*& matrixData, CECATSubHeader*& su
 	// we use our method operating on a raw char pointer
 	if(readMatrix(data, dataLen, subHeader) && dataLen > 0)
 	{
-		matrixData = new QByteArray();
-		matrixData->setRawData(data, dataLen);
-
+		matrixData = new QByteArray(data, dataLen);
 		result = true;
 	}
 
@@ -822,13 +818,13 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 	// set the ECATFile handle to the correct position of
 	// the matrix start. This should normally be
 	// Matrix_SubHeader_StartPosition+subHeaderSize
-	if(m_pECATFile->at(m_iDataBlock_Start+subHeader.rawDataSize()) == false)
+	if(m_pECATFile->seek(m_iDataBlock_Start+subHeader.rawDataSize()) == false)
 	{
 		RETURN(false);
 		return false;
 	}
 
-	SHOWVALUE(m_pECATFile->at());
+	SHOWVALUE(m_pECATFile->pos());
 
 	// then we process the matrix data that is associated with
 	// this directoryitem.
@@ -862,7 +858,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 			// the endianess conversion takes quite some time, so
 			// what we do is to us a temporarly buffer to which we read
 			// some data from our fileStream and read out to our QByteArray
-			QByteArray bufArray(8192); // write in 8KB chunks
+			QByteArray bufArray(8192, 0); // write in 8KB chunks
 			quint16* ptr = (quint16*)matrixData;
 			for(unsigned int written=0; written < matrixSize;)
 			{
@@ -904,7 +900,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 			// the endianess conversion takes quite some time, so
 			// what we do is to us a temporarly buffer to which we read
 			// some data from our fileStream and read out to our QByteArray
-			QByteArray bufArray(8192); // write in 8KB chunks
+			QByteArray bufArray(8192, 0); // write in 8KB chunks
 			quint32* ptr = (quint32*)matrixData;
 			for(unsigned int written=0; written < matrixSize;)
 			{
@@ -946,7 +942,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 			// the endianess conversion takes quite some time, so
 			// what we do is to us a temporarly buffer to which we read
 			// some data from our fileStream and read out to our QByteArray
-			QByteArray bufArray(8192); // write in 8KB chunks
+			QByteArray bufArray(8192, 0); // write in 8KB chunks
 			float* ptr = (float*)matrixData;
 			for(unsigned int written=0; written < matrixSize;)
 			{
@@ -988,7 +984,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 			// the endianess conversion takes quite some time, so
 			// what we do is to us a temporarly buffer to which we read
 			// some data from our fileStream and read out to our QByteArray
-			QByteArray bufArray(8192); // write in 8KB chunks
+			QByteArray bufArray(8192, 0); // write in 8KB chunks
 			float* ptr = (float*)matrixData;
 			for(unsigned int written=0; written < matrixSize;)
 			{
@@ -1028,7 +1024,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 			// the endianess conversion takes quite some time, so
 			// what we do is to us a temporarly buffer to which we read
 			// some data from our fileStream and read out to our QByteArray
-			QByteArray bufArray(8192); // write in 8KB chunks
+			QByteArray bufArray(8192, 0); // write in 8KB chunks
 			quint16* ptr = (quint16*)matrixData;
 			for(unsigned int written=0; written < matrixSize;)
 			{
@@ -1069,7 +1065,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 			// the endianess conversion takes quite some time, so
 			// what we do is to us a temporarly buffer to which we read
 			// some data from our fileStream and read out to our QByteArray
-			QByteArray bufArray(8192); // write in 8KB chunks
+			QByteArray bufArray(8192, 0); // write in 8KB chunks
 			quint32* ptr = (quint32*)matrixData;
 			for(unsigned int written=0; written < matrixSize;)
 			{

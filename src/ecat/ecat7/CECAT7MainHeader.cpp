@@ -175,7 +175,7 @@ bool CECAT7MainHeader::load(void)
 	// only go on if the device is readable at all
 	if(m_pMedIOData == NULL ||
 		 m_pMedIOData->isReadable() == false ||
-		 m_pMedIOData->at(0) == false)
+		 m_pMedIOData->seek(0) == false)
 	{
 		RETURN(false);
 		return false;
@@ -183,7 +183,7 @@ bool CECAT7MainHeader::load(void)
 
 	// we use a ByteArray buffer to speed up the endianess
 	// decoding
-	QByteArray buffer(rawDataSize());
+	QByteArray buffer(rawDataSize(), 0);
 	if(m_pMedIOData->read(buffer.data(), buffer.size()) != rawDataSize())
 	{
 		RETURN(false);
@@ -197,16 +197,16 @@ bool CECAT7MainHeader::load(void)
 	// we now read out the header information stepwise
   // as we have to care about big/little endianess, which
 	// is automatically done by the QT framework
-  stream.readRawBytes(&m_Data.Magic_Number[0], 14);         //   0: Magic_Number
-	stream.readRawBytes(&m_Data.Original_File_Name[0], 32);   //  14: Original_File_Name
+  stream.readRawData(&m_Data.Magic_Number[0], 14);         //   0: Magic_Number
+	stream.readRawData(&m_Data.Original_File_Name[0], 32);   //  14: Original_File_Name
 	stream >> m_Data.SW_Version;                              //  46: SW_Version
 	stream >> m_Data.System_Type;                             //  48: System_Type
 	stream >> m_Data.File_Type;                               //  50: File_Type
-	stream.readRawBytes(&m_Data.Serial_Number[0], 10);        //  52: Original_File_Name
+	stream.readRawData(&m_Data.Serial_Number[0], 10);        //  52: Original_File_Name
 	stream >> m_Data.Scan_Start_Time;                         //  62: Scan_Start_Time
-	stream.readRawBytes(&m_Data.Isotope_Name[0], 8);          //  66: Isotope_Name
+	stream.readRawData(&m_Data.Isotope_Name[0], 8);          //  66: Isotope_Name
 	stream >> m_Data.Isotope_Halflife;                        //  74: Isotope_Halflife
-	stream.readRawBytes(&m_Data.Radiopharmaceutical[0], 32);	//  78: Radiopharmaceutical
+	stream.readRawData(&m_Data.Radiopharmaceutical[0], 32);	//  78: Radiopharmaceutical
   stream >> m_Data.Gantry_Tilt;															// 110: Gantry_Tilt
   stream >> m_Data.Gantry_Rotation;													// 114: Gantry_Rotation
   stream >> m_Data.Bed_Elevation;														// 118: Bed_Elevation
@@ -222,21 +222,21 @@ bool CECAT7MainHeader::load(void)
   stream >> m_Data.Calibration_Units;												// 148: Calibration_Units
   stream >> m_Data.Calibration_Units_Label;									// 150: Calibration_Units_Label
   stream >> m_Data.Compression_Code;												// 152: Compression_Code
-  stream.readRawBytes(&m_Data.Study_Type[0], 12);						// 154: Study_Type
-  stream.readRawBytes(&m_Data.Patient_ID[0], 16);						// 166: Patient_ID
-  stream.readRawBytes(&m_Data.Patient_Name[0], 32);					// 182: Patient_Name
-  stream.readRawBytes(&m_Data.Patient_Sex[0], 1);						// 214: Patient_Sex
-  stream.readRawBytes(&m_Data.Patient_Dexterity[0], 1);			// 215: Patient_Dexterity
+  stream.readRawData(&m_Data.Study_Type[0], 12);						// 154: Study_Type
+  stream.readRawData(&m_Data.Patient_ID[0], 16);						// 166: Patient_ID
+  stream.readRawData(&m_Data.Patient_Name[0], 32);					// 182: Patient_Name
+  stream.readRawData(&m_Data.Patient_Sex[0], 1);						// 214: Patient_Sex
+  stream.readRawData(&m_Data.Patient_Dexterity[0], 1);			// 215: Patient_Dexterity
   stream >> m_Data.Patient_Age;															// 216: Patient_Age
   stream >> m_Data.Patient_Height;													// 220: Patient_Height
   stream >> m_Data.Patient_Weight;													// 224: Patient_Weight
   stream >> m_Data.Patient_Birth_Date;											// 228: Patient_Birth_Date
-  stream.readRawBytes(&m_Data.Physician_Name[0], 32);				// 232: Physician_Name
-  stream.readRawBytes(&m_Data.Operator_Name[0], 32);				// 264: Operator_Name
-  stream.readRawBytes(&m_Data.Study_Description[0], 32);		// 296: Study_Description
+  stream.readRawData(&m_Data.Physician_Name[0], 32);				// 232: Physician_Name
+  stream.readRawData(&m_Data.Operator_Name[0], 32);				// 264: Operator_Name
+  stream.readRawData(&m_Data.Study_Description[0], 32);		// 296: Study_Description
   stream >> m_Data.Acquisition_Type;												// 328: Acquisition_Type
   stream >> m_Data.Patient_Orientation;											// 330: Patient_Orientation
-  stream.readRawBytes(&m_Data.Facility_Name[0], 20);				// 332: Facility_Name
+  stream.readRawData(&m_Data.Facility_Name[0], 20);				// 332: Facility_Name
   stream >> m_Data.Num_Planes;															// 352: Num_Planes
   stream >> m_Data.Num_Frames;															// 354: Num_Frames
   stream >> m_Data.Num_Gates;																// 356: Num_Gates
@@ -248,14 +248,14 @@ bool CECAT7MainHeader::load(void)
   stream >> m_Data.Lwr_Sctr_Thres;													// 428: Lwr_Sctr_Thres
   stream >> m_Data.Lwr_True_Thres;													// 430: Lwr_True_Thres
   stream >> m_Data.Upr_True_Thres;													// 432: Upr_True_Thres
-  stream.readRawBytes(&m_Data.User_Process_Code[0], 10);		// 434: User_Process_Code
+  stream.readRawData(&m_Data.User_Process_Code[0], 10);		// 434: User_Process_Code
   stream >> m_Data.Acquisition_Mode;												// 444: Acquisition_Mode
   stream >> m_Data.Bin_Size;																// 446: Bin_Size
   stream >> m_Data.Branching_Fraction;											// 450: Branching_Fraction
   stream >> m_Data.Dose_Start_Time;													// 454: Dose_Start_Time
   stream >> m_Data.Dosage;																	// 458: Dosage
   stream >> m_Data.Well_Counter_Corr_Factor;								// 462: Well_Counter_Corr_Factor
-  stream.readRawBytes(&m_Data.Data_Units[0], 32);						// 466: Data_Units
+  stream.readRawData(&m_Data.Data_Units[0], 32);						// 466: Data_Units
   stream >> m_Data.Septa_State;															// 498: Septa_State
   stream >> m_Data.CTI_Reserved[0];													// 500: CTI_Reserved 1
   stream >> m_Data.CTI_Reserved[1];													// 502: CTI_Reserved 2
@@ -266,7 +266,6 @@ bool CECAT7MainHeader::load(void)
     
 	// some more debug output
 #if defined(DEBUG)
-	QDateTime time;
 	D("ECAT7 Main Header loaded:");
 	D("------------------------");
 	D("Magic_Number            : %s",					    m_Data.Magic_Number);
@@ -275,8 +274,7 @@ bool CECAT7MainHeader::load(void)
 	D("System_Type             : %d",  	 	 	 	    m_Data.System_Type);
 	D("File_Type               : %d",  	 	 	 	    m_Data.File_Type);
 	D("Serial_Number           : %s",  	 	 	 	    m_Data.Serial_Number);
-	time.setTime_t(m_Data.Scan_Start_Time);
-	D("Scan_Start_Time         : %s (%d)", 	 	    time.toString().ascii(), m_Data.Scan_Start_Time);
+	D("Scan_Start_Time         : %s (%d)", 	 	    scan_Start_Time_Qt().toString().toAscii().constData(), m_Data.Scan_Start_Time);
 	D("Isotope Name            : %s",  	 	 	 	    m_Data.Isotope_Name);
 	D("Isotope Halflife        : %f sec",				  m_Data.Isotope_Halflife);
 	D("Radiopharmaca           : %s",			 	 		  m_Data.Radiopharmaceutical);
@@ -303,8 +301,7 @@ bool CECAT7MainHeader::load(void)
 	D("Patient Age             : %f years",				m_Data.Patient_Age);
 	D("Patient Height          : %f cm",					m_Data.Patient_Height);
 	D("Patient Weight          : %f kg",					m_Data.Patient_Weight);
-	time.setTime_t(m_Data.Patient_Birth_Date);
-	D("Patient Birthdate       : %s (%d)",				time.toString().ascii(), m_Data.Patient_Birth_Date);
+	D("Patient Birthdate       : %s (%d)",				patient_Birth_Date_Qt().toString().toAscii().constData(), m_Data.Patient_Birth_Date);
 	D("Physician Name          : %s",							m_Data.Physician_Name);
 	D("Operator Name           : %s",							m_Data.Operator_Name);
 	D("Study Description       : %s",							m_Data.Study_Description);
@@ -328,8 +325,7 @@ bool CECAT7MainHeader::load(void)
 	D("Acquisition Mode        : %d",							m_Data.Acquisition_Mode);
 	D("Bin Size                : %f cm",					m_Data.Bin_Size);
 	D("Branching Fraction      : %f",							m_Data.Branching_Fraction);
-	time.setTime_t(m_Data.Dose_Start_Time);
-	D("Dose start time         : %s (%d)",				time.toString().ascii(), m_Data.Dose_Start_Time);
+	D("Dose start time         : %s (%d)",				dose_Start_Time_Qt().toString().toAscii().constData(), m_Data.Dose_Start_Time);
 	D("Dosage                  : %f Bq/cc",				m_Data.Dosage);
 	D("Well counter corr factor: %f",							m_Data.Well_Counter_Corr_Factor);
 	D("Data units              : %s",							m_Data.Data_Units);
@@ -367,9 +363,9 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
 			// lets check if the typeString matches one of our known
 			// types
 			if(typeString == "MAGIC_NUMBER")
-				strncpy(mHeader.m_Data.Magic_Number, dataString.ascii(), 14);
+				strncpy(mHeader.m_Data.Magic_Number, dataString.toAscii(), 14);
 			else if(typeString == "ORIGINAL_FILE_NAME")
-				strncpy(mHeader.m_Data.Original_File_Name, dataString.ascii(), 32);
+				strncpy(mHeader.m_Data.Original_File_Name, dataString.toAscii(), 32);
 			else if(typeString == "SW_VERSION")
 				mHeader.m_Data.SW_Version = dataString.toShort(&convertSuccess);
 			else if(typeString == "SYSTEM_TYPE")
@@ -377,15 +373,15 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
 			else if(typeString == "FILE_TYPE")
 				mHeader.m_Data.File_Type = dataString.toShort(&convertSuccess);
 			else if(typeString == "SERIAL_NUMBER")
-				strncpy(mHeader.m_Data.Serial_Number, dataString.ascii(), 10);
+				strncpy(mHeader.m_Data.Serial_Number, dataString.toAscii(), 10);
 			else if(typeString == "SCAN_START_TIME")
 				mHeader.m_Data.Scan_Start_Time = dataString.toLong(&convertSuccess);
 			else if(typeString == "ISOTOPE_NAME")
-				strncpy(mHeader.m_Data.Isotope_Name, dataString.ascii(), 8);
+				strncpy(mHeader.m_Data.Isotope_Name, dataString.toAscii(), 8);
 			else if(typeString == "ISOTOPE_HALFLIFE")
 				mHeader.m_Data.Isotope_Halflife = dataString.toFloat(&convertSuccess);
 			else if(typeString == "RADIOPHARMACEUTICAL")
-				strncpy(mHeader.m_Data.Radiopharmaceutical, dataString.ascii(), 32);
+				strncpy(mHeader.m_Data.Radiopharmaceutical, dataString.toAscii(), 32);
 			else if(typeString == "GANTRY_TILT")
 				mHeader.m_Data.Gantry_Tilt = dataString.toFloat(&convertSuccess);
 			else if(typeString == "ROTATION_TILT")
@@ -417,15 +413,15 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
 			else if(typeString == "COMPRESSION_CODE")
 				mHeader.m_Data.Compression_Code = dataString.toShort(&convertSuccess);
 			else if(typeString == "STUDY_TYPE")
-				strncpy(mHeader.m_Data.Study_Type, dataString.ascii(), 12);
+				strncpy(mHeader.m_Data.Study_Type, dataString.toAscii(), 12);
 			else if(typeString == "PATIENT_ID")
-				strncpy(mHeader.m_Data.Patient_ID, dataString.ascii(), 16);
+				strncpy(mHeader.m_Data.Patient_ID, dataString.toAscii(), 16);
 			else if(typeString == "PATIENT_NAME")
-				strncpy(mHeader.m_Data.Patient_Name, dataString.ascii(), 32);
+				strncpy(mHeader.m_Data.Patient_Name, dataString.toAscii(), 32);
 			else if(typeString == "PATIENT_SEX")
-				mHeader.m_Data.Patient_Sex[0] = dataString.ascii()[0];
+				mHeader.m_Data.Patient_Sex[0] = dataString.toAscii()[0];
 			else if(typeString == "PATIENT_DEXTERITY")
-				mHeader.m_Data.Patient_Dexterity[0] = dataString.ascii()[0];
+				mHeader.m_Data.Patient_Dexterity[0] = dataString.toAscii()[0];
 			else if(typeString == "PATIENT_AGE")
 				mHeader.m_Data.Patient_Age = dataString.toFloat(&convertSuccess);
 			else if(typeString == "PATIENT_HEIGHT")
@@ -435,17 +431,17 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
 			else if(typeString == "PATIENT_BIRTH_DATE")
 				mHeader.m_Data.Patient_Birth_Date = dataString.toLong(&convertSuccess);
 			else if(typeString == "PHYSICIAN_NAME")
-				strncpy(mHeader.m_Data.Physician_Name, dataString.ascii(), 32);
+				strncpy(mHeader.m_Data.Physician_Name, dataString.toAscii(), 32);
 			else if(typeString == "OPERATOR_NAME")
-				strncpy(mHeader.m_Data.Operator_Name, dataString.ascii(), 32);
+				strncpy(mHeader.m_Data.Operator_Name, dataString.toAscii(), 32);
 			else if(typeString == "STUDY_DESCRIPTION")
-				strncpy(mHeader.m_Data.Study_Description, dataString.ascii(), 32);
+				strncpy(mHeader.m_Data.Study_Description, dataString.toAscii(), 32);
 			else if(typeString == "ACQUISITION_TYPE")
 				mHeader.m_Data.Acquisition_Type = dataString.toShort(&convertSuccess);
 			else if(typeString == "PATIENT_ORIENTATION")
 				mHeader.m_Data.Patient_Orientation = dataString.toShort(&convertSuccess);
 			else if(typeString == "FACILITY_NAME")
-				strncpy(mHeader.m_Data.Facility_Name, dataString.ascii(), 20);
+				strncpy(mHeader.m_Data.Facility_Name, dataString.toAscii(), 20);
 			else if(typeString == "NUM_PLANES")
 				mHeader.m_Data.Num_Planes = dataString.toShort(&convertSuccess);
 			else if(typeString == "NUM_FRAMES")
@@ -476,7 +472,7 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
 			else if(typeString == "UPR_TRUE_THRES")
 				mHeader.m_Data.Upr_True_Thres = dataString.toShort(&convertSuccess);
 			else if(typeString == "USER_PROCESS_CODE")
-				strncpy(mHeader.m_Data.User_Process_Code, dataString.ascii(), 10);
+				strncpy(mHeader.m_Data.User_Process_Code, dataString.toAscii(), 10);
 			else if(typeString == "ACQUISITION_MODE")
 				mHeader.m_Data.Acquisition_Mode = dataString.toShort(&convertSuccess);
 			else if(typeString == "BIN_SIZE")
@@ -490,7 +486,7 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
 			else if(typeString == "WELL_COUNTER_CORR_FACTOR")
 				mHeader.m_Data.Well_Counter_Corr_Factor = dataString.toFloat(&convertSuccess);
 			else if(typeString == "DATA_UNITS")
-				strncpy(mHeader.m_Data.Data_Units, dataString.ascii(), 32);
+				strncpy(mHeader.m_Data.Data_Units, dataString.toAscii(), 32);
 			else if(typeString == "SEPTA_STATE")
 				mHeader.m_Data.Septa_State = dataString.toShort(&convertSuccess);
 			else if(typeString == "FILL")
@@ -507,7 +503,7 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
 
 			if(convertSuccess == false)
 			{
-				E("'%s' - error while converting string '%s' to a numerical value.", typeString.ascii(), dataString.ascii());
+				E("'%s' - error while converting string '%s' to a numerical value.", typeString.toAscii().constData(), dataString.toAscii().constData());
 				success = false;
 			}
 		}
@@ -524,7 +520,7 @@ bool CECAT7MainHeader::save(void) const
 	// only go on if the device is writeable at all
 	if(m_pMedIOData == NULL ||
 		 m_pMedIOData->isWritable() == false ||
-		 m_pMedIOData->at(0) == false)
+		 m_pMedIOData->seek(0) == false)
 	{
 		RETURN(false);
 		return false;
@@ -542,22 +538,22 @@ bool CECAT7MainHeader::save(void) const
 	quint16 numBedPos = ecatFile->numBedPos();
 	
 	// we write to a buffer first and write out later directly to the file
-	QByteArray buffer(rawDataSize());
+	QByteArray buffer(rawDataSize(), 0);
 	QDataStream stream(&buffer, QIODevice::WriteOnly);
 
   // we now read out the header information stepwise
   // as we have to care about big/little endianess, which
 	// is automatically done by the QT framework
-	stream.writeRawBytes(&m_Data.Magic_Number[0], 14);        //   0: Magic_Number
-  stream.writeRawBytes(&m_Data.Original_File_Name[0], 32);  //  14: Original_File_Name
+	stream.writeRawData(&m_Data.Magic_Number[0], 14);        //   0: Magic_Number
+  stream.writeRawData(&m_Data.Original_File_Name[0], 32);  //  14: Original_File_Name
   stream << m_Data.SW_Version;                              //  46: SW_Version
   stream << m_Data.System_Type;                             //  48: System_Type
   stream << m_Data.File_Type;                               //  50: File_Type
-  stream.writeRawBytes(&m_Data.Serial_Number[0], 10);       //  52: Original_File_Name
+  stream.writeRawData(&m_Data.Serial_Number[0], 10);       //  52: Original_File_Name
   stream << m_Data.Scan_Start_Time;                         //  62: Scan_Start_Time
-  stream.writeRawBytes(&m_Data.Isotope_Name[0], 8);         //  66: Isotope_Name
+  stream.writeRawData(&m_Data.Isotope_Name[0], 8);         //  66: Isotope_Name
   stream << m_Data.Isotope_Halflife;                        //  74: Isotope_Halflife
-  stream.writeRawBytes(&m_Data.Radiopharmaceutical[0], 32);	//  78: Radiopharmaceutical
+  stream.writeRawData(&m_Data.Radiopharmaceutical[0], 32);	//  78: Radiopharmaceutical
   stream << m_Data.Gantry_Tilt;															// 110: Gantry_Tilt
   stream << m_Data.Gantry_Rotation;													// 114: Gantry_Rotation
   stream << m_Data.Bed_Elevation;														// 118: Bed_Elevation
@@ -573,21 +569,21 @@ bool CECAT7MainHeader::save(void) const
   stream << m_Data.Calibration_Units;												// 148: Calibration_Units
   stream << m_Data.Calibration_Units_Label;									// 150: Calibration_Units_Label
   stream << m_Data.Compression_Code;												// 152: Compression_Code
-  stream.writeRawBytes(&m_Data.Study_Type[0], 12);					// 154: Study_Type
-  stream.writeRawBytes(&m_Data.Patient_ID[0], 16);					// 166: Patient_ID
-  stream.writeRawBytes(&m_Data.Patient_Name[0], 32);				// 182: Patient_Name
-  stream.writeRawBytes(&m_Data.Patient_Sex[0], 1);					// 214: Patient_Sex
-  stream.writeRawBytes(&m_Data.Patient_Dexterity[0], 1);		// 215: Patient_Dexterity
+  stream.writeRawData(&m_Data.Study_Type[0], 12);					// 154: Study_Type
+  stream.writeRawData(&m_Data.Patient_ID[0], 16);					// 166: Patient_ID
+  stream.writeRawData(&m_Data.Patient_Name[0], 32);				// 182: Patient_Name
+  stream.writeRawData(&m_Data.Patient_Sex[0], 1);					// 214: Patient_Sex
+  stream.writeRawData(&m_Data.Patient_Dexterity[0], 1);		// 215: Patient_Dexterity
   stream << m_Data.Patient_Age;															// 216: Patient_Age
   stream << m_Data.Patient_Height;													// 220: Patient_Height
   stream << m_Data.Patient_Weight;													// 224: Patient_Weight
   stream << m_Data.Patient_Birth_Date;											// 228: Patient_Birth_Date
-  stream.writeRawBytes(&m_Data.Physician_Name[0], 32);			// 232: Physician_Name
-  stream.writeRawBytes(&m_Data.Operator_Name[0], 32);				// 264: Operator_Name
-  stream.writeRawBytes(&m_Data.Study_Description[0], 32);		// 296: Study_Description
+  stream.writeRawData(&m_Data.Physician_Name[0], 32);			// 232: Physician_Name
+  stream.writeRawData(&m_Data.Operator_Name[0], 32);				// 264: Operator_Name
+  stream.writeRawData(&m_Data.Study_Description[0], 32);		// 296: Study_Description
   stream << m_Data.Acquisition_Type;												// 328: Acquisition_Type
   stream << m_Data.Patient_Orientation;											// 330: Patient_Orientation
-  stream.writeRawBytes(&m_Data.Facility_Name[0], 20);				// 332: Facility_Name
+  stream.writeRawData(&m_Data.Facility_Name[0], 20);				// 332: Facility_Name
   stream << m_Data.Num_Planes;															// 352: Num_Planes
   stream << numFrames;																			// 354: Num_Frames
   stream << numGates;																				// 356: Num_Gates
@@ -612,14 +608,14 @@ bool CECAT7MainHeader::save(void) const
   stream << m_Data.Lwr_Sctr_Thres;													// 428: Lwr_Sctr_Thres
   stream << m_Data.Lwr_True_Thres;													// 430: Lwr_True_Thres
   stream << m_Data.Upr_True_Thres;													// 432: Upr_True_Thres
-  stream.writeRawBytes(&m_Data.User_Process_Code[0], 10);		// 434: User_Process_Code
+  stream.writeRawData(&m_Data.User_Process_Code[0], 10);		// 434: User_Process_Code
   stream << m_Data.Acquisition_Mode;												// 444: Acquisition_Mode
   stream << m_Data.Bin_Size;																// 446: Bin_Size
   stream << m_Data.Branching_Fraction;											// 450: Branching_Fraction
   stream << m_Data.Dose_Start_Time;													// 454: Dose_Start_Time
   stream << m_Data.Dosage;																	// 458: Dosage
   stream << m_Data.Well_Counter_Corr_Factor;								// 462: Well_Counter_Corr_Factor
-  stream.writeRawBytes(&m_Data.Data_Units[0], 32);					// 466: Data_Units
+  stream.writeRawData(&m_Data.Data_Units[0], 32);					// 466: Data_Units
   stream << m_Data.Septa_State;															// 498: Septa_State
   stream << m_Data.CTI_Reserved[0];													// 500: CTI_Reserved 1
   stream << m_Data.CTI_Reserved[1];													// 502: CTI_Reserved 2
@@ -800,7 +796,7 @@ QDate CECAT7MainHeader::patient_Birth_Date_Qt(void) const
 		char buf[40];
 		time_t dateval = static_cast<time_t>(m_Data.Patient_Birth_Date);
 		QString dateString(ctime_r(&dateval, buf));
-		birthDate = QDateTime::fromString(dateString.stripWhiteSpace());
+		birthDate = QDateTime::fromString(dateString.trimmed());
 	}
 
 	return birthDate.date();
@@ -824,7 +820,7 @@ QDateTime CECAT7MainHeader::scan_Start_Time_Qt(void) const
 		char buf[40];
 		time_t dateval = static_cast<time_t>(m_Data.Scan_Start_Time);
 		QString dateString(ctime_r(&dateval, buf));
-		scanStartTime = QDateTime::fromString(dateString.stripWhiteSpace());
+		scanStartTime = QDateTime::fromString(dateString.trimmed());
 	}
 
 	return scanStartTime;
@@ -848,9 +844,9 @@ QDateTime CECAT7MainHeader::dose_Start_Time_Qt(void) const
 		char buf[40];
 		time_t dateval = static_cast<time_t>(m_Data.Dose_Start_Time);
 		QString dateString(ctime_r(&dateval, buf));
-		doseStartTime = QDateTime::fromString(dateString.stripWhiteSpace());
+		doseStartTime = QDateTime::fromString(dateString.trimmed());
 		
-		SHOWSTRING(doseStartTime.toString().ascii());
+		SHOWSTRING(doseStartTime.toString().toAscii());
 	}
 
 	return doseStartTime;
@@ -866,7 +862,7 @@ void CECAT7MainHeader::setPatient_Birth_Date_Qt(const QDate& birthDate)
 	QDateTime Jan1970(QDate(1970, 1, 1), QTime());
 	QDateTime birthDateTime(birthDate, QTime());
 
-	SHOWSTRING(birthDateTime.toString().ascii());
+	SHOWSTRING(birthDateTime.toString().toAscii());
 	if(birthDateTime < Jan1970)
 	{
 		// we have to convert the birthDateTime on our own by
@@ -897,7 +893,7 @@ void CECAT7MainHeader::setScan_Start_Time_Qt(const QDateTime& scanStartTime)
 	// to place a negative value to QDateTime
 	QDateTime Jan1970(QDate(1970, 1, 1), QTime());
 
-	SHOWSTRING(scanStartTime.toString().ascii());
+	SHOWSTRING(scanStartTime.toString().toAscii());
 	if(scanStartTime < Jan1970)
 	{
 		QDate scanDate = scanStartTime.date();
@@ -931,7 +927,7 @@ void CECAT7MainHeader::setDose_Start_Time_Qt(const QDateTime& doseStartTime)
 	// to place a negative value to QDateTime
 	QDateTime Jan1970(QDate(1970, 1, 1), QTime());
 
-	SHOWSTRING(doseStartTime.toString().ascii());
+	SHOWSTRING(doseStartTime.toString().toAscii());
 	if(doseStartTime < Jan1970)
 	{
 		QDate doseDate = doseStartTime.date();

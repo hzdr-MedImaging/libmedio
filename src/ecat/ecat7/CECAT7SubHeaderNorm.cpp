@@ -53,7 +53,7 @@ bool CECAT7SubHeaderNorm::load(void)
 	// read the subheader	
 	if(m_pMedIOData->isReadable() == false ||
 		 m_pDirItem->dataBlock_Start() == 0 ||
-		 m_pMedIOData->at(m_pDirItem->dataBlock_Start()) == false)
+		 m_pMedIOData->seek(m_pDirItem->dataBlock_Start()) == false)
 	{
 		RETURN(false);
 		return false;
@@ -61,7 +61,7 @@ bool CECAT7SubHeaderNorm::load(void)
 	
 	// we use a ByteArray buffer to speed up the endianess
 	// decoding
-	QByteArray buffer(rawDataSize());
+	QByteArray buffer(rawDataSize(), 0);
 	if(m_pMedIOData->read(buffer.data(), buffer.size()) != rawDataSize())
 	{
 		RETURN(false);
@@ -131,16 +131,16 @@ bool CECAT7SubHeaderNorm::save(void) const
 	// check if this stream is writeable or not
 	if(m_pMedIOData->isWritable() == false ||
 		 m_pDirItem->dataBlock_Start() == 0 ||
-		 m_pMedIOData->at(m_pDirItem->dataBlock_Start()) == false)
+		 m_pMedIOData->seek(m_pDirItem->dataBlock_Start()) == false)
 	{
 		RETURN(false);
 		return false;
 	}
 
-	SHOWVALUE(m_pMedIOData->at());
+	SHOWVALUE(m_pMedIOData->pos());
 
 	// we write to a buffer first and write out later directly to the file
-	QByteArray buffer(rawDataSize());
+	QByteArray buffer(rawDataSize(), 0);
 	QDataStream stream(&buffer, QIODevice::WriteOnly);
 
 	// lets write out each single data element of our

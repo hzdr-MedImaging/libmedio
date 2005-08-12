@@ -53,7 +53,7 @@ bool CECAT7SubHeaderPolarMap::load(void)
 	// read the subheader
 	if(m_pMedIOData->isReadable() == false ||
 		 m_pDirItem->dataBlock_Start() == 0 ||
-		 m_pMedIOData->at(m_pDirItem->dataBlock_Start()) == false)
+		 m_pMedIOData->seek(m_pDirItem->dataBlock_Start()) == false)
 	{
 		RETURN(false);
 		return false;
@@ -61,7 +61,7 @@ bool CECAT7SubHeaderPolarMap::load(void)
 	
 	// we use a ByteArray buffer to speed up the endianess
 	// decoding
-	QByteArray buffer(rawDataSize());
+	QByteArray buffer(rawDataSize(), 0);
 	if(m_pMedIOData->read(buffer.data(), buffer.size()) != rawDataSize())
 	{
 		RETURN(false);
@@ -70,7 +70,7 @@ bool CECAT7SubHeaderPolarMap::load(void)
 
 	// now we generate a QDataStream on our buffer so that we can read
 	// out of the buffer instead of the raw file (> speed)
-	QDataStream stream(&buffer, QIODevice::ReadOnly);	
+	QDataStream stream(buffer);
 
 	// lets read in each single data element of our
 	// data structure to maintain the correct endianess of the
@@ -98,12 +98,12 @@ bool CECAT7SubHeaderPolarMap::load(void)
 	stream >> m_Data.Frame_Start_Time;											// 294: Frame_Start_Time
 	stream >> m_Data.Processing_Code;												// 298: Processing_Code
 	stream >> m_Data.Quant_Units;														// 300: Quant_Units
-	stream.readRawBytes(&m_Data.Annotation[0], 40);					// 302: Annotation
+	stream.readRawData(&m_Data.Annotation[0], 40);					// 302: Annotation
 	stream >> m_Data.Gate_Duration;													// 342: Gate_Duration
 	stream >> m_Data.R_Wave_Offset;													// 346: R_Wave_Offset
 	stream >> m_Data.Num_Accepted_Beats;										// 350: Num_Accepted_Beats
-	stream.readRawBytes(&m_Data.Polar_Map_Protocol[0], 20);	// 354: Polar_Map_Protocol
-	stream.readRawBytes(&m_Data.Database_Name[0], 30);			// 374: Database_Name
+	stream.readRawData(&m_Data.Polar_Map_Protocol[0], 20);	// 354: Polar_Map_Protocol
+	stream.readRawData(&m_Data.Database_Name[0], 30);			// 374: Database_Name
 	for(int i=0; i < 27; i++)
 		stream >> m_Data.CTI_reserved[i];											// 404: CTI_reserved
 	for(int i=0; i < 27; i++)
@@ -165,16 +165,16 @@ bool CECAT7SubHeaderPolarMap::save(void) const
 	// check if this stream is writeable or not
 	if(m_pMedIOData->isWritable() == false ||
 		 m_pDirItem->dataBlock_Start() == 0 ||
-		 m_pMedIOData->at(m_pDirItem->dataBlock_Start()) == false)
+		 m_pMedIOData->seek(m_pDirItem->dataBlock_Start()) == false)
 	{
 		RETURN(false);
 		return false;
 	}
 
-	SHOWVALUE(m_pMedIOData->at());
+	SHOWVALUE(m_pMedIOData->pos());
 	
 	// we write to a buffer first and write out later directly to the file
-	QByteArray buffer(rawDataSize());
+	QByteArray buffer(rawDataSize(), 0);
 	QDataStream stream(&buffer, QIODevice::WriteOnly);
 	
 	// lets read in each single data element of our
@@ -203,12 +203,12 @@ bool CECAT7SubHeaderPolarMap::save(void) const
 	stream << m_Data.Frame_Start_Time;											// 294: Frame_Start_Time
 	stream << m_Data.Processing_Code;												// 298: Processing_Code
 	stream << m_Data.Quant_Units;														// 300: Quant_Units
-	stream.writeRawBytes(&m_Data.Annotation[0], 40);				// 302: Annotation
+	stream.writeRawData(&m_Data.Annotation[0], 40);				// 302: Annotation
 	stream << m_Data.Gate_Duration;													// 342: Gate_Duration
 	stream << m_Data.R_Wave_Offset;													// 346: R_Wave_Offset
 	stream << m_Data.Num_Accepted_Beats;										// 350: Num_Accepted_Beats
-	stream.writeRawBytes(&m_Data.Polar_Map_Protocol[0], 20);// 354: Polar_Map_Protocol
-	stream.writeRawBytes(&m_Data.Database_Name[0], 30);			// 374: Database_Name
+	stream.writeRawData(&m_Data.Polar_Map_Protocol[0], 20);// 354: Polar_Map_Protocol
+	stream.writeRawData(&m_Data.Database_Name[0], 30);			// 374: Database_Name
 	for(int i=0; i < 27; i++)
 		stream << m_Data.CTI_reserved[i];											// 404: CTI_reserved
 	for(int i=0; i < 27; i++)

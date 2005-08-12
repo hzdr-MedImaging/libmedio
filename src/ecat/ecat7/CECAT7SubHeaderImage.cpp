@@ -53,7 +53,7 @@ bool CECAT7SubHeaderImage::load(void)
 	// read the subheader	
 	if(m_pMedIOData->isReadable() == false ||
 		 m_pDirItem->dataBlock_Start() == 0 ||
-		 m_pMedIOData->at(m_pDirItem->dataBlock_Start()) == false)
+		 m_pMedIOData->seek(m_pDirItem->dataBlock_Start()) == false)
 	{
 		RETURN(false);
 		return false;
@@ -61,7 +61,7 @@ bool CECAT7SubHeaderImage::load(void)
 
 	// we use a ByteArray buffer to speed up the endianess
 	// decoding
-	QByteArray buffer(rawDataSize());
+	QByteArray buffer(rawDataSize(), 0);
 	if(m_pMedIOData->read(buffer.data(), buffer.size()) != rawDataSize())
 	{
 		RETURN(false);
@@ -70,7 +70,7 @@ bool CECAT7SubHeaderImage::load(void)
 
 	// now we generate a QDataStream on our buffer so that we can read
 	// out of the buffer instead of the raw file (> speed)
-	QDataStream stream(&buffer, QIODevice::ReadOnly);	
+	QDataStream stream(buffer);	
 
 	// lets read in each single data element of our
 	// data structure to maintain the correct endianess of the
@@ -110,7 +110,7 @@ bool CECAT7SubHeaderImage::load(void)
 	stream >> m_Data.Filter_Order;									// 112: Filter_Order
 	stream >> m_Data.Filter_Scatter_Fraction;				// 116: Filter_Scatter_Fraction
 	stream >> m_Data.Filter_Scatter_Slope;					// 120: Filter_Scatter_Slope
-	stream.readRawBytes(&m_Data.Annotation[0], 40);	// 122: Annotation
+	stream.readRawData(&m_Data.Annotation[0], 40);	// 122: Annotation
 	stream >> m_Data.MT_1_1;												// 162: MT_1_1
 	stream >> m_Data.MT_1_2;												// 166: MT_1_2
 	stream >> m_Data.MT_1_3;												// 170: MT_1_3
@@ -215,16 +215,16 @@ bool CECAT7SubHeaderImage::save(void) const
 	// check if this stream is writeable or not
 	if(m_pMedIOData->isWritable() == false ||
 		 m_pDirItem->dataBlock_Start() == 0 ||
-		 m_pMedIOData->at(m_pDirItem->dataBlock_Start()) == false)
+		 m_pMedIOData->seek(m_pDirItem->dataBlock_Start()) == false)
 	{
 		RETURN(false);
 		return false;
 	}
 
-	SHOWVALUE(m_pMedIOData->at());
+	SHOWVALUE(m_pMedIOData->pos());
 
 	// we write to a buffer first and write out later directly to the file
-	QByteArray buffer(rawDataSize());
+	QByteArray buffer(rawDataSize(), 0);
 	QDataStream stream(&buffer, QIODevice::WriteOnly);
  
 	// lets write out each single data element of our
@@ -265,7 +265,7 @@ bool CECAT7SubHeaderImage::save(void) const
 	stream << m_Data.Filter_Order;									// 112: Filter_Order
 	stream << m_Data.Filter_Scatter_Fraction;				// 116: Filter_Scatter_Fraction
 	stream << m_Data.Filter_Scatter_Slope;					// 120: Filter_Scatter_Slope
-	stream.writeRawBytes(&m_Data.Annotation[0], 40);
+	stream.writeRawData(&m_Data.Annotation[0], 40);
 	stream << m_Data.MT_1_1;												// 162: MT_1_1
 	stream << m_Data.MT_1_2;												// 166: MT_1_2
 	stream << m_Data.MT_1_3;												// 170: MT_1_3

@@ -128,7 +128,7 @@ bool CECATFile::open(QIODevice::OpenModeFlag mode)
 			// a ECAT7 file and if not we probably handle a ECAT6
 			// filetype or an invalid format :/
 			char magic_number[14];
-			stream.readRawBytes(magic_number, 14*sizeof(char));
+			stream.readRawData(magic_number, 14*sizeof(char));
 
 			// compare the loaded magic_number and if we found a "MATRIX"
 			// string at the file start this is a ECAT7 fileformat.
@@ -235,7 +235,7 @@ bool CECATFile::open(QIODevice::OpenModeFlag mode)
 
 		// make sure the file is removed upon opening it
 		if(result)
-			QFile::remove(name());
+			QFile::remove(fileName());
 	}
 
 	// only if we succeeded with our mainheader/dirlisting loading

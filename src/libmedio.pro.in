@@ -131,6 +131,7 @@ else {
 	QMAKE_LINK *= -s 
 	DEFINES -= DEBUG
 }
+
 ### LIBRTDEBUG ############################################################
 # if "staticrtdebug" is specified in the CONFIG variable (by configure)
 # we link wih the static variant of librtdebug instead
@@ -168,7 +169,7 @@ contains(GCC_VERSION, 3) {
 HOST_OS=@HOST_OS@
 HOST_CPU=@HOST_CPU@
 contains(HOST_CPU, sparc) {
-	#QMAKE_CXXFLAGS *= -mcpu=v9 -mtune=ultrasparc3
+	QMAKE_CXXFLAGS *= -mcpu=v9 -mtune=ultrasparc3
 }
 else {
 	contains(HOST_CPU, [pP]ower[pP]c) {

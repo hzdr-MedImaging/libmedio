@@ -59,7 +59,7 @@ bool CECAT6MainHeader::load(void)
 
 	// only go on if the device is readable at all
 	if(m_pMedIOData == NULL ||
-		 m_pMedIOData->at(0) == false ||
+		 m_pMedIOData->seek(0) == false ||
 		 m_pMedIOData->isReadable() == false)
 	{
 		RETURN(false);
@@ -68,7 +68,7 @@ bool CECAT6MainHeader::load(void)
 
 	// we use a ByteArray buffer to speed up the endianess
 	// decoding
-	QByteArray buffer(rawDataSize());
+	QByteArray buffer(rawDataSize(), 0);
 	if(m_pMedIOData->read(buffer.data(), buffer.size()) != rawDataSize())
 	{
 		RETURN(false);
@@ -81,21 +81,21 @@ bool CECAT6MainHeader::load(void)
 	
 	// we read in the MainHeader data with one read
 	// operation
-	stream.readRawBytes(&m_Data.Original_File_Name[0], 20);		//   0: Original_File_Name
+	stream.readRawData(&m_Data.Original_File_Name[0], 20);		//   0: Original_File_Name
   stream >> m_Data.SW_Version;                              //  20: SW_Version
   stream >> m_Data.Data_Type;	                              //  22: Data_Type
   stream >> m_Data.System_Type;                             //  24: System_Type
   stream >> m_Data.File_Type;                               //  26: File_Type
-	stream.readRawBytes(&m_Data.Node_ID[0], 10);							//  28: Node_ID
+	stream.readRawData(&m_Data.Node_ID[0], 10);							//  28: Node_ID
   stream >> m_Data.Scan_Start_Day;                          //  38: Scan_Start_Day
   stream >> m_Data.Scan_Start_Month;                        //  40: Scan_Start_Month
   stream >> m_Data.Scan_Start_Year;                         //  42: Scan_Start_Year
   stream >> m_Data.Scan_Start_Hour;                         //  44: Scan_Start_Hour
   stream >> m_Data.Scan_Start_Minute;                       //  46: Scan_Start_Minute
   stream >> m_Data.Scan_Start_Second;                       //  48: Scan_Start_Minute
-	stream.readRawBytes(&m_Data.Isotope_Code[0], 8);					//  50: Isotope_Code
+	stream.readRawData(&m_Data.Isotope_Code[0], 8);					//  50: Isotope_Code
   stream >> m_Data.Isotope_Halflife;	                      //  58: Isotope_Halflife
-	stream.readRawBytes(&m_Data.Radiopharmaceutical[0], 32);	//  62: Radiopharmaceutical
+	stream.readRawData(&m_Data.Radiopharmaceutical[0], 32);	//  62: Radiopharmaceutical
   stream >> m_Data.Gantry_Tilt;				                      //  94: Gantry_Tilt
   stream >> m_Data.Gantry_Rotation;		                      // 102: Gantry_Rotation
   stream >> m_Data.Bed_Elevation;			                      // 106: Bed_Elevation
@@ -109,21 +109,21 @@ bool CECAT6MainHeader::load(void)
   stream >> m_Data.Calibration_Factor;                      // 128: Calibration_Factor
   stream >> m_Data.Calibration_Units;												// 132: Calibration_Units
   stream >> m_Data.Compression_Code;												// 134: Compression_Code
-	stream.readRawBytes(&m_Data.Study_Name[0], 12);						// 136: Study_Name
-	stream.readRawBytes(&m_Data.Patient_ID[0], 16);						// 148: Patient_ID
-	stream.readRawBytes(&m_Data.Patient_Name[0], 32);					// 164: Patient_Name
-	stream.readRawBytes(&m_Data.Patient_Sex[0], 1);						// 196: Patient_Sex
-	stream.readRawBytes(&m_Data.Patient_Age[0], 10);					// 197: Patient_Age
-	stream.readRawBytes(&m_Data.Patient_Height[0], 10);				// 207: Patient_Height
-	stream.readRawBytes(&m_Data.Patient_Weight[0], 10);				// 217: Patient_Weight
-	stream.readRawBytes(&m_Data.Patient_Dexterity[0], 1);			// 227: Patient_Dexterity
-	stream.readRawBytes(&m_Data.Physician_Name[0], 32);				// 228: Physician_Name
-	stream.readRawBytes(&m_Data.Operator_Name[0], 32);				// 260: Operator_Name
-	stream.readRawBytes(&m_Data.Study_Description[0], 32);		// 292: Study_Description
+	stream.readRawData(&m_Data.Study_Name[0], 12);						// 136: Study_Name
+	stream.readRawData(&m_Data.Patient_ID[0], 16);						// 148: Patient_ID
+	stream.readRawData(&m_Data.Patient_Name[0], 32);					// 164: Patient_Name
+	stream.readRawData(&m_Data.Patient_Sex[0], 1);						// 196: Patient_Sex
+	stream.readRawData(&m_Data.Patient_Age[0], 10);					// 197: Patient_Age
+	stream.readRawData(&m_Data.Patient_Height[0], 10);				// 207: Patient_Height
+	stream.readRawData(&m_Data.Patient_Weight[0], 10);				// 217: Patient_Weight
+	stream.readRawData(&m_Data.Patient_Dexterity[0], 1);			// 227: Patient_Dexterity
+	stream.readRawData(&m_Data.Physician_Name[0], 32);				// 228: Physician_Name
+	stream.readRawData(&m_Data.Operator_Name[0], 32);				// 260: Operator_Name
+	stream.readRawData(&m_Data.Study_Description[0], 32);		// 292: Study_Description
   stream >> m_Data.Acquisition_Type;												// 324: Acquisition_Type
   stream >> m_Data.Bed_Type;																// 326: Bed_Type
   stream >> m_Data.Septa_Type;															// 328: Septa_Type
-	stream.readRawBytes(&m_Data.Facility_Name[0], 20);				// 330: Facility_Name
+	stream.readRawData(&m_Data.Facility_Name[0], 20);				// 330: Facility_Name
   stream >> m_Data.Num_Planes;															// 350: Num_Planes
   stream >> m_Data.Num_Frames;															// 352: Num_Frames
   stream >> m_Data.Num_Gates;																// 354: Num_Gates
@@ -136,7 +136,7 @@ bool CECAT6MainHeader::load(void)
   stream >> m_Data.Lwr_True_Thres;													// 430: Lwr_True_Thres
   stream >> m_Data.Upr_True_Thres;													// 432: Upr_True_Thres
   stream >> m_Data.Collimator;															// 434: Collimator
-  stream.readRawBytes(&m_Data.User_Process_Code[0], 10);		// 438: User_Process_Code
+  stream.readRawData(&m_Data.User_Process_Code[0], 10);		// 438: User_Process_Code
   stream >> m_Data.Acquisition_Mode;												// 448: Acquisition_Mode
 	
 	// some more debug output
@@ -216,7 +216,7 @@ bool CECAT6MainHeader::save(void) const
 	// only go on if the device is writeable at all
 	if(m_pMedIOData == NULL ||
 		 m_pMedIOData->isWritable() == false ||
-		 m_pMedIOData->at(0) == false)
+		 m_pMedIOData->seek(0) == false)
 	{
 		RETURN(false);
 		return false;
@@ -232,26 +232,26 @@ bool CECAT6MainHeader::save(void) const
 	quint16 numBedPos = ecatFile->numBedPos();
 
 	// we write to a buffer first and write out later directly to the file
-	QByteArray buffer(rawDataSize());
+	QByteArray buffer(rawDataSize(), 0);
 	QDataStream stream(&buffer, QIODevice::WriteOnly);
 
 	// we read in the MainHeader data with one read
 	// operation
-	stream.writeRawBytes(&m_Data.Original_File_Name[0], 20);	//   0: Original_File_Name
+	stream.writeRawData(&m_Data.Original_File_Name[0], 20);	//   0: Original_File_Name
   stream << m_Data.SW_Version;                              //  20: SW_Version
   stream << m_Data.Data_Type;	                              //  22: Data_Type
   stream << m_Data.System_Type;                             //  24: System_Type
   stream << m_Data.File_Type;                               //  26: File_Type
-	stream.writeRawBytes(&m_Data.Node_ID[0], 10);							//  28: Node_ID
+	stream.writeRawData(&m_Data.Node_ID[0], 10);							//  28: Node_ID
   stream << m_Data.Scan_Start_Day;                          //  38: Scan_Start_Day
   stream << m_Data.Scan_Start_Month;                        //  40: Scan_Start_Month
   stream << m_Data.Scan_Start_Year;                         //  42: Scan_Start_Year
   stream << m_Data.Scan_Start_Hour;                         //  44: Scan_Start_Hour
   stream << m_Data.Scan_Start_Minute;                       //  46: Scan_Start_Minute
   stream << m_Data.Scan_Start_Second;                       //  48: Scan_Start_Minute
-	stream.writeRawBytes(&m_Data.Isotope_Code[0], 8);					//  50: Isotope_Code
+	stream.writeRawData(&m_Data.Isotope_Code[0], 8);					//  50: Isotope_Code
   stream << m_Data.Isotope_Halflife;	                      //  58: Isotope_Halflife
-	stream.writeRawBytes(&m_Data.Radiopharmaceutical[0], 32);	//  62: Radiopharmaceutical
+	stream.writeRawData(&m_Data.Radiopharmaceutical[0], 32);	//  62: Radiopharmaceutical
   stream << m_Data.Gantry_Tilt;				                      //  94: Gantry_Tilt
   stream << m_Data.Gantry_Rotation;		                      // 102: Gantry_Rotation
   stream << m_Data.Bed_Elevation;			                      // 106: Bed_Elevation
@@ -265,21 +265,21 @@ bool CECAT6MainHeader::save(void) const
   stream << m_Data.Calibration_Factor;                      // 128: Calibration_Factor
   stream << m_Data.Calibration_Units;												// 132: Calibration_Units
   stream << m_Data.Compression_Code;												// 134: Compression_Code
-	stream.writeRawBytes(&m_Data.Study_Name[0], 12);					// 136: Study_Name
-	stream.writeRawBytes(&m_Data.Patient_ID[0], 16);					// 148: Patient_ID
-	stream.writeRawBytes(&m_Data.Patient_Name[0], 32);				// 164: Patient_Name
-	stream.writeRawBytes(&m_Data.Patient_Sex[0], 1);					// 196: Patient_Sex
-	stream.writeRawBytes(&m_Data.Patient_Age[0], 10);					// 197: Patient_Age
-	stream.writeRawBytes(&m_Data.Patient_Height[0], 10);			// 207: Patient_Height
-	stream.writeRawBytes(&m_Data.Patient_Weight[0], 10);			// 217: Patient_Weight
-	stream.writeRawBytes(&m_Data.Patient_Dexterity[0], 1);		// 227: Patient_Dexterity
-	stream.writeRawBytes(&m_Data.Physician_Name[0], 32);			// 228: Physician_Name
-	stream.writeRawBytes(&m_Data.Operator_Name[0], 32);				// 260: Operator_Name
-	stream.writeRawBytes(&m_Data.Study_Description[0], 32);		// 292: Study_Description
+	stream.writeRawData(&m_Data.Study_Name[0], 12);					// 136: Study_Name
+	stream.writeRawData(&m_Data.Patient_ID[0], 16);					// 148: Patient_ID
+	stream.writeRawData(&m_Data.Patient_Name[0], 32);				// 164: Patient_Name
+	stream.writeRawData(&m_Data.Patient_Sex[0], 1);					// 196: Patient_Sex
+	stream.writeRawData(&m_Data.Patient_Age[0], 10);					// 197: Patient_Age
+	stream.writeRawData(&m_Data.Patient_Height[0], 10);			// 207: Patient_Height
+	stream.writeRawData(&m_Data.Patient_Weight[0], 10);			// 217: Patient_Weight
+	stream.writeRawData(&m_Data.Patient_Dexterity[0], 1);		// 227: Patient_Dexterity
+	stream.writeRawData(&m_Data.Physician_Name[0], 32);			// 228: Physician_Name
+	stream.writeRawData(&m_Data.Operator_Name[0], 32);				// 260: Operator_Name
+	stream.writeRawData(&m_Data.Study_Description[0], 32);		// 292: Study_Description
   stream << m_Data.Acquisition_Type;												// 324: Acquisition_Type
   stream << m_Data.Bed_Type;																// 326: Bed_Type
 	stream << m_Data.Septa_Type;															// 328: Septa_Type
-	stream.writeRawBytes(&m_Data.Facility_Name[0], 20);				// 330: Facility_Name
+	stream.writeRawData(&m_Data.Facility_Name[0], 20);				// 330: Facility_Name
 	stream << numPlanes;																			// 350: Num_Planes
 	stream << numFrames;																			// 352: Num_Frames
 	stream << numGates;																				// 354: Num_Gates
@@ -292,7 +292,7 @@ bool CECAT6MainHeader::save(void) const
 	stream << m_Data.Lwr_True_Thres;													// 430: Lwr_True_Thres
 	stream << m_Data.Upr_True_Thres;													// 432: Upr_True_Thres
 	stream << m_Data.Collimator;															// 434: Collimator
-	stream.writeRawBytes(&m_Data.User_Process_Code[0], 10);		// 438: User_Process_Code
+	stream.writeRawData(&m_Data.User_Process_Code[0], 10);		// 438: User_Process_Code
 	stream << m_Data.Acquisition_Mode;												// 448: Acquisition_Mode
 
 	// now write out to our outStream

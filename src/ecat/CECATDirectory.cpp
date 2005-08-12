@@ -47,7 +47,7 @@ struct ECAT_DirHead // should be 16 bytes
 
 struct ECAT_DirItem // should be 16 bytes
 {
-	quint32 matrixID;				// frame/plane/gate/bed/data encoded matrixID
+	quint32 matrixID;					// frame/plane/gate/bed/data encoded matrixID
 	quint32 dataBlock_Start;	// start position of the subHeader
 	quint32 dataBlock_End;		// end position of the last dataBlock
 	qint32 matrixStatus;			// status of the item (0=notWrittenYet,1=OK,-1=deleted)
@@ -129,7 +129,7 @@ bool CECATDirectory::load(void)
 		m_pFilePositions->append(m_pECATFile->pos());
 
 		// we use a ByteArray buffer to speed up the endianess decoding
-		QByteArray buffer(ECAT_DIRLIST_SIZE);
+		QByteArray buffer(ECAT_DIRLIST_SIZE, 0);
 		if(m_pECATFile->read(buffer.data(), buffer.size()) != ECAT_DIRLIST_SIZE) 
 		{
 			E("An error occurred while reading data");
@@ -172,7 +172,7 @@ bool CECATDirectory::load(void)
 				// with using the MatrixID as the unique key for it and of
 				// course we make sure no other item with the same ID exists or
 				// we will run into trouble.
-				ASSERT(find(pNewDirItem->matrixID()) == 0);
+				ASSERT(contains(pNewDirItem->matrixID()) == false);
 				insert(pNewDirItem->matrixID(), pNewDirItem);
 
 				iItemsInserted++;
@@ -227,8 +227,7 @@ bool CECATDirectory::save(void) const
 
 	// we use two buffers. one for storing the dirHead of the ECAT and
 	// one for the 31 dirItems.
-	QByteArray dirItemBuffer(ECAT_DIRITEM_NUM*ECAT_DIRITEM_SIZE);
-	memset(dirItemBuffer.data(), 0, dirItemBuffer.size()); // clear it first
+	QByteArray dirItemBuffer(ECAT_DIRITEM_NUM*ECAT_DIRITEM_SIZE, 0);
 	QDataStream dirItemStream(&dirItemBuffer, QIODevice::WriteOnly);
 
 	// now we have to go through our directory and stream all items
@@ -281,7 +280,7 @@ bool CECATDirectory::save(void) const
 
 				// now we can write out the whole directory List to the file
 				// where we first write out the dirHead and then the 31 dirItems
-				QByteArray dirHeadBuffer(ECAT_DIRHEAD_SIZE);
+				QByteArray dirHeadBuffer(ECAT_DIRHEAD_SIZE, 0);
 				QDataStream dirHeadStream(&dirHeadBuffer, QIODevice::WriteOnly);
 
 				dirHeadStream << dirHead.FreeItems;
@@ -354,7 +353,7 @@ bool CECATDirectory::save(void) const
 	{
 		// now we can write out the whole directory List to the file
 		// where we first write out the dirHead and then the 31 dirItems
-		QByteArray dirHeadBuffer(ECAT_DIRHEAD_SIZE);
+		QByteArray dirHeadBuffer(ECAT_DIRHEAD_SIZE, 0);
 		QDataStream dirHeadStream(&dirHeadBuffer, QIODevice::WriteOnly);
 
 		dirHeadStream << dirHead.FreeItems;

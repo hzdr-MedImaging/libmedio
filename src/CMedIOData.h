@@ -83,10 +83,6 @@ class CMedIOData : public QFile
 		//! @return header of medical data
 		CMedIOHeader* header() const { return m_pHeader; }
 		
-		//! @brief access to filename
-		//! @return filename of medical data file
-		QString fileName(void) const { return fileName(); }
-
 		//! @brief for querying error status information
 		//! @return integer value for the specific error reason
 		int errorStatus(void) const { return m_iErrStatus; }

@@ -6,6 +6,12 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-08-12  Jens Langner <Jens.Langner@light-speed.de>
+
+  * misc: did forget some more pack() and also found out that I still compiled
+    with QT3_SUPPORT enabled which in fact caused to still have some unwanted
+    compatibility stuff enabled. Now libmedio should be definitly Qt4 only...
+
 2005-08-11  Jens Langner <Jens.Langner@light-speed.de>
 
   * misc: removed the structure aligning "#pragma pack()" usages as they break
