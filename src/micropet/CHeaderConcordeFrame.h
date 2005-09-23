@@ -28,7 +28,7 @@ class CHeaderConcordeFrame
 
 	//destructor
 		//! @brief destructor
-		~CHeaderConcordeFrame();	
+		~CHeaderConcordeFrame(){};	
 		
 	//members
 		enum EventType{UnknownEventType = 0, Singles, Prompt, Delay, Trues};
