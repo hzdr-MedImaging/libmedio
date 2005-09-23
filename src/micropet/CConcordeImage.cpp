@@ -51,12 +51,12 @@ QByteArray* CConcordeImage::getMatrix(short frame, short plane,
 	
 	ENTER();
 	//check if header is from Concorde
-	if(Header->rtti() == CMedIOHeader::ConcordeMicropet)
+	if(m_pHeader->headerFormat() == CMedIOHeader::ConcordeMicropet)
 	{
-		CHeaderConcorde* head = (CHeaderConcorde*)Header;
+		CHeaderConcorde* head = (CHeaderConcorde*)m_pHeader;
 		
 		//create new filepointer to datafile
-		QFile pfile(file());
+		QFile pfile(fileName());
 		unsigned int framesize = head->getImageFrameSize();
 		char * data = new char[framesize];
 

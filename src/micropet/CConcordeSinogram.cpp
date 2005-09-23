@@ -46,17 +46,16 @@ CConcordeSinogram::~CConcordeSinogram()
 //!
 //! @return data of specific frame in sinogram or NULL on error
 ////////////////////////////////////////////////////////////////////////////////
-QByteArray* CConcordeSinogram::getMatrix(short frame, short plane, 
-			short gate, short bed, short data)
+QByteArray* CConcordeSinogram::getMatrix(short frame)
 {
 	ENTER();
 	//check if header is from Concorde
-	if(Header->rtti() == CMedIOHeader::ConcordeMicropet)
+	if(m_pHeader->headerFormat() == CMedIOHeader::ConcordeMicropet)
 	{
-		CHeaderConcorde* head = (CHeaderConcorde*)Header;
+		CHeaderConcorde* head = (CHeaderConcorde*)m_pHeader;
 		
 		//create new filepointer to datafile
-		QFile pfile(file());
+		QFile pfile(fileName());
 		unsigned int framesize = head->getFrameSize();
 		char * data = new char[framesize];
 

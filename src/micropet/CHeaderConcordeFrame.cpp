@@ -156,7 +156,7 @@ bool CHeaderConcordeFrame::load()
                                                 	m_Data.rawsingles[atoi(element)] = atof(rawsingle);
 						else
 							m_Data.rawsingles[atoi(element)] = 0.0F;
-						D("block %d : singles %f : rawsingles %f", atoi(element), m_Data.singles[atoi(element)], m_Data.rawsingles[atoi(element)]);
+						//D("block %d : singles %f : rawsingles %f", atoi(element), m_Data.singles[atoi(element)], m_Data.rawsingles[atoi(element)]);
                                         }
 				}	
 			}

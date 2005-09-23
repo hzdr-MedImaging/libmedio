@@ -7,6 +7,7 @@
 #include <rtdebug.h>
 #include "CHeaderConcordeFrame.h"
 #include "CMedIOHeader.h"
+#include "CMedIOData.h"
 
 #include <fstream>
 #include <string>
@@ -24,11 +25,11 @@ using namespace std;
 //!
 //! @param file: complete path to file holding header
 ////////////////////////////////////////////////////////////////////////////////
-CHeaderConcorde::CHeaderConcorde(string File) : CMedIOHeader(File)
+CHeaderConcorde::CHeaderConcorde(QString File)
 { 
 	init();
 	setDefaults();
-	if(!this->load())
+	if(!this->load(File))
 	{
 		D("Something is wrong with the headerfile");
 	}
@@ -42,11 +43,23 @@ CHeaderConcorde::CHeaderConcorde(string File) : CMedIOHeader(File)
 //! constructs a CHeaderConcorde object
 //!
 ////////////////////////////////////////////////////////////////////////////////
-CHeaderConcorde::CHeaderConcorde()
+CHeaderConcorde::CHeaderConcorde(CConcordeFile* file)
 {
 	//initialise all keys which should be searched for in
 	//header file
+	D("Setting reference to CMedIOData object");
+	m_pMedIOData = file;
+	D("Initialising all keyvalues");
 	init();
+	D("Setting defaults");
+	setDefaults();
+	D("Trying to load headerfile");
+	if(!this->load())
+	{
+		D("Something is wrong with the headerfile");
+	}
+	else
+		D("Everything ok");
 }
 
 //  Class: CHeaderConcorde
@@ -58,6 +71,13 @@ CHeaderConcorde::CHeaderConcorde()
 CHeaderConcorde::~CHeaderConcorde()
 {
 	ENTER();
+	list<CHeaderConcordeFrame*>::iterator nums_iter;
+
+	for(nums_iter = frames.begin(); nums_iter != frames.end(); nums_iter++)
+	{
+		delete *nums_iter;
+		*nums_iter = NULL;
+	}
 	LEAVE();
 }
 
@@ -123,6 +143,21 @@ void CHeaderConcorde::setDefaults()
 	m_Data.subject_weight_units = 0;
 }
 
+bool CHeaderConcorde::load()
+{
+	//unset function should be used !!!
+	ENTER();
+	if(!m_pMedIOData)
+	{
+		D("Something wrong with m_pMedIOData");
+		LEAVE();
+		return false;	
+	}
+	QString File = m_pMedIOData->fileName() + ".hdr";
+	LEAVE();
+	return load(File);
+}
+
 //  Class: CHeaderConcorde
 //  Method: load
 //!
@@ -130,12 +165,10 @@ void CHeaderConcorde::setDefaults()
 //!
 //! @return true on success otherwise false
 ////////////////////////////////////////////////////////////////////////////////
-bool CHeaderConcorde::load()
+bool CHeaderConcorde::load(QString File)
 {
-	//unset function should be used !!!
-	string File = file();
-	D("Start Parsing File %s", File.c_str());
-	ifstream pFile(File.c_str());
+	D("Start Parsing File %s", File.ascii());
+	ifstream pFile(File.ascii());
 	if(pFile.good())
 	{
 		// read all literals from headerfile skipping comments starting with #
@@ -208,6 +241,7 @@ bool CHeaderConcorde::load()
 					if(strcmp(ptr_tok, "total_frames") == 0) 	m_Data.total_frames = atoi(rest);
 					
 					if(strcmp(ptr_tok, "isotope") == 0) 		m_Data.isotope = rest;
+					if(strcmp(ptr_tok, "pixel_size") == 0)		m_Data.pixel_size = atof(rest);
 					if(strcmp(ptr_tok, "isotope_half_time") == 0) 	m_Data.isotope_half_time = atof(rest);
 					if(strcmp(ptr_tok, "isotope_branching_fraction") == 0)	m_Data.isotope_branching_fraction = atof(rest);
 					
@@ -310,7 +344,7 @@ bool CHeaderConcorde::load()
 	}
 	else
 	{
-		D("Headerfile %s nicht gefunden !", File.c_str());
+		D("Headerfile %s nicht gefunden !", File.ascii());
 		return false;
 	}
 	return true;
@@ -323,9 +357,14 @@ bool CHeaderConcorde::load()
 //!
 //! @return true on success otherwise false
 ////////////////////////////////////////////////////////////////////////////////
-bool CHeaderConcorde::save()
+bool CHeaderConcorde::save() const
 {
 	return true;
+}
+
+CMedIOHeader::Format CHeaderConcorde::headerFormat() const
+{
+	return CMedIOHeader::ConcordeMicropet;
 }
 
 int CHeaderConcorde::rtti()
@@ -446,6 +485,7 @@ bool CHeaderConcorde::init()
 	literals.push_back("tx_src_type");
 	literals.push_back("transaxial_bin_size");
 	literals.push_back("axial_plane_size");
+	literals.push_back("pixel_size");
 	literals.push_back("lld");
 	literals.push_back("uld");
 	
@@ -498,4 +538,9 @@ bool CHeaderConcorde::init()
 	literals.push_back("water_access");
 			
 	return true;
+}
+
+CMedIOHeader& CHeaderConcorde::copyData(const CMedIOHeader& src)
+{
+	return *this;
 }

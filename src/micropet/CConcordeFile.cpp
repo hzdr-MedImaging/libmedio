@@ -26,6 +26,8 @@
 //! @author Hagen Moelle
 
 #include "CConcordeFile.h"
+#include "CConcordeSinogram.h"
+#include "CConcordeImage.h"
 #include "CHeaderConcorde.h"
 #include "CMedIOData.h"
 #include <rtdebug.h>
@@ -62,10 +64,15 @@ CConcordeFile::~CConcordeFile()
 //!
 //! @return true if successful otherwise false
 ////////////////////////////////////////////////////////////////////////////////
-bool CConcordeFile::load()
+bool CConcordeFile::open(int mode)
 {
+	ENTER();
 	//initalise and load header
-	Header = new CHeaderConcorde(File + ".hdr"); 
+	D("Creating headerobject");
+	m_pHeader = new CHeaderConcorde(this);
+	D("loading headerinformation");
+	m_pHeader->load();
+	LEAVE();
 	return true;
 }
 
@@ -76,9 +83,9 @@ bool CConcordeFile::load()
 //!
 //! @return true if successful otherwise false
 ////////////////////////////////////////////////////////////////////////////////
-bool CConcordeFile::save()
+void CConcordeFile::close()
 {
-	return true;
+	return;
 }
 
 //  Class: CConcordeFile
@@ -128,4 +135,30 @@ int CConcordeFile::isoftype(QString file)
 		D("File is not from Concorde");
 		return CMedIOData::Unknown;
 	}
+}
+
+CMedIOData* CConcordeFile::createFromFile(const QString& fileName)
+{
+	ENTER();
+	CMedIOData* data = NULL;	
+	if(CConcordeFile::isoftype(fileName) == CConcordeFile::ConcordeMicropet_Sinogram)
+	{
+		D("now creating real object");
+		data = new CConcordeSinogram(fileName);
+		D("done with creating real object");
+	}
+	else if(CConcordeFile::isoftype(fileName) == CConcordeFile::ConcordeMicropet_Image)
+	{
+		D("now creating real object");
+		data = new CConcordeImage(fileName);
+		D("done with creating real object");
+	}
+	else
+		data = NULL;
+	if(data == NULL) 
+		D("totally strange to me");
+	else
+		D("object seems to be set");
+	return data;
+	LEAVE();
 }

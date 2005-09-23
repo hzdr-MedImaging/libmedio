@@ -7,6 +7,7 @@
 #define CHEADERCONCORDE_H
 
 #include "CMedIOHeader.h"
+#include "CConcordeFile.h"
 #include "CHeaderConcordeFrame.h"
 
 #include <string>
@@ -28,12 +29,12 @@ class CHeaderConcorde : public CMedIOHeader
 {
 	public :
 	//contructors
-		//! @brief constructor
-		//! @param file: complete path to file holding header
-		CHeaderConcorde(std::string File);
+		////! @brief constructor
+		////! @param file: complete path to file holding header
+		CHeaderConcorde(QString File);
 
 		//! @brief default constructor
-		CHeaderConcorde();
+		CHeaderConcorde(CConcordeFile* file = NULL);
 
 	//destructor
 		//! @brief destructor
@@ -75,7 +76,9 @@ class CHeaderConcorde : public CMedIOHeader
 		void setDefaults();
 
 		bool load();
-		bool save();
+		bool load(QString File);
+		bool save() const;
+		CMedIOHeader::Format headerFormat() const;
 		int rtti();
 		
 		//! @return framesize of a sinogram in bytes
@@ -135,6 +138,8 @@ class CHeaderConcorde : public CMedIOHeader
 		int scattercorrection(void) {return m_Data.scatter_correction;}
 		int arccorrection(void) {return m_Data.arc_correction_applied;}
 		
+		float pixelsize(void) {return m_Data.pixel_size;}
+
 		float calibrationfactor(void) {return m_Data.calibration_factor;}
 		float calibrationbranchingfraction(void) {return m_Data.calibration_branching_fraction;}
 		int numberofsinglesrates(void) {return m_Data.number_of_singles_rates;}
@@ -211,6 +216,8 @@ class CHeaderConcorde : public CMedIOHeader
 		void setAttenuationApplied(int value) { m_Data.attenuation_applied = value;}
 		void setScatterCorrection(int value) { m_Data.scatter_correction = value;}
 		void setArcCorrectionApplied(int value) { m_Data.arc_correction_applied = value;}
+
+		void setPixelSize(float value) {m_Data.pixel_size = value;}
 		
 		void setCalibrationFactor(float value) { m_Data.calibration_factor = value;}
 		void setCalibrationBranchingFraction(float value) { m_Data.calibration_branching_fraction = value;}
@@ -241,7 +248,10 @@ class CHeaderConcorde : public CMedIOHeader
 		void setOtherDrugs(std::string value) { m_Data.other_drugs = value;}
 		void setFoodAccess(std::string value) { m_Data.food_access = value;}
 		void setWaterAccess(std::string value) { m_Data.water_access = value;}
-		
+
+	protected:
+		CMedIOHeader& copyData(const CMedIOHeader& src);	
+	
 	private :
 	//members
 		std::list<std::string> literals;

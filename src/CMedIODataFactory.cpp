@@ -70,7 +70,8 @@ CMedIOData* CMedIODataFactory::create(const QString& fileName)
 	//if(!(mData = CConcordeFile::createFromFile(fileName)))
 	if(!(mData = CECATFile::createFromFile(fileName)))
 		mData = NULL;
-	
+	if(!(mData = CConcordeFile::createFromFile(fileName)))
+		mData = NULL;
 	RETURN(mData);
 	return mData;
 }

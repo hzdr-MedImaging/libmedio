@@ -61,15 +61,15 @@ class CConcordeFile : public CMedIOData
 
 		//! @brief loads a given file 
 		//! @return true if loading is succesful otherwise false
-		bool load();
+		bool open(int mode);
 
 		//! @brief saves the data  
 		//! @return true if saving is succesful otherwise false
-		bool save();
+		void close();
 
 		//! @brief run time typeinformation  
 		//! @return specific class type at runtime
-		int rtti() { return CMedIOData::ConcordeMicropet; }
+		int rtti() const { return CMedIOData::ConcordeMicropet; }
 
 		virtual int fileType() = 0;
 
