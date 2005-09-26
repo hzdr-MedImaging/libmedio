@@ -41,6 +41,9 @@ UI_DIR      = .ui
 PUB_HEADER =	CMedIOHeader.h \
 		CMedIOData.h \
 		CMedIODataFactory.h \
+		helpers/CKeyType.h \
+		helpers/CKeyValue.h \
+		helpers/CKeyParser.h \
 		ecat/CECATDirectory.h \
 		ecat/CECATDirectoryItem.h \
 		ecat/CECATFile.h \
@@ -67,6 +70,8 @@ SOURCES  = \
 	   CMedIOHeader.cpp \
 	   CMedIOData.cpp \
 	   CMedIODataFactory.cpp \
+	   helpers/CKeyValue.cpp \
+	   helpers/CKeyParser.cpp \
 	   ecat/CECATDirectory.cpp \
 	   ecat/CECATDirectoryItem.cpp \
 	   ecat/CECATFile.cpp \
@@ -86,7 +91,7 @@ SOURCES  = \
 	   micropet/CConcordeImage.cpp
 
 DEPENDPATH   = . ecat ecat/ecat6 ecat/ecat7 micropet
-INCLUDEPATH  = . include ecat ecat/ecat6 ecat/ecat7 micropet
+INCLUDEPATH  = . include ecat ecat/ecat6 ecat/ecat7 micropet helpers
 
 # UNIX based target platforms installation defines
 unix {

@@ -6,8 +6,9 @@
 #ifndef CHEADERCONCORDEFRAME_H
 #define CHEADERCONCORDEFRAME_H
 
-#include <string>
-#include <list>
+#include <qstring.h>
+
+#include "CKeyParser.h"
 
 //! @class CHeaderConcordeFrame
 //! @brief class which holds specific frame information of concorde microPET headers
@@ -24,7 +25,7 @@ class CHeaderConcordeFrame
 		//! @brief constructor
 		//! @param Filename: complete path to file holding header
 		//! @param frame: specific frame of header which holds information
-		CHeaderConcordeFrame(std::string Filename, int frame);
+		CHeaderConcordeFrame(QString Filename, int frame);
 
 	//destructor
 		//! @brief destructor
@@ -41,7 +42,7 @@ class CHeaderConcordeFrame
 		float bedoffset(void) {return m_Data.bed_offset;}
 		float endingbedoffset(void) {return m_Data.ending_bed_offset;}
 		float verticalbedoffset(void) {return m_Data.vertical_bed_offset;}
-		std::string datafilepointer(void) {return m_Data.data_file_pointer;}
+		QString datafilepointer(void) {return m_Data.data_file_pointer;}
 		float framestart(void) {return m_Data.frame_start;}
 		float frameduration(void) {return m_Data.frame_duration;}
 		float scalefactor(void) {return m_Data.scale_factor;}
@@ -49,9 +50,9 @@ class CHeaderConcordeFrame
 		float maximum(void) {return m_Data.maximum;}
 		float deadtimecorrection(void) {return m_Data.deadtime_correction;}
 		float decaycorrection(void) {return m_Data.decay_correction;}
-		std::string prompts(void) {return m_Data.prompts;}
-		std::string delays(void) {return m_Data.delays;}
-		std::string trues(void) {return m_Data.trues;}
+		QString prompts(void) {return m_Data.prompts;}
+		QString delays(void) {return m_Data.delays;}
+		QString trues(void) {return m_Data.trues;}
 		int promptsrate(void) {return m_Data.prompts_rate;}
 		int delaysrate(void) {return m_Data.delays_rate;}
 		float single(int i) {return m_Data.singles[i];}
@@ -65,7 +66,7 @@ class CHeaderConcordeFrame
 		void setBedOffset(float value) { m_Data.bed_offset = value;}
 		void setEndingBedOffset(float value) { m_Data.ending_bed_offset = value;}
 		void setVerticalBedOffset(float value) { m_Data.vertical_bed_offset = value;}
-		void setDataFilePointer(std::string value) { m_Data.data_file_pointer = value;}
+		void setDataFilePointer(QString value) { m_Data.data_file_pointer = value;}
 		void setFrameStart(float value) { m_Data.frame_start = value;}
 		void setFrameDuration(float value) { m_Data.frame_duration = value;}
 		void setScaleFactor(float value) {m_Data.scale_factor = value;}
@@ -73,14 +74,15 @@ class CHeaderConcordeFrame
 		void setMaximum(float value) {m_Data.maximum = value;}
 		void setDeadtimeCorrection(float value) {m_Data.deadtime_correction = value;}
 		void setDecayCorrection(float value) {m_Data.decay_correction = value;}
-		void setPrompts(std::string value) {m_Data.prompts = value;}
-		void setDelays(std::string value) {m_Data.delays = value;}
-		void setTrues(std::string value) {m_Data.trues = value;}
+		void setPrompts(QString value) {m_Data.prompts = value;}
+		void setDelays(QString value) {m_Data.delays = value;}
+		void setTrues(QString value) {m_Data.trues = value;}
 		void setPromptsRate(int value) {m_Data.prompts_rate = value;}
 		void setDelaysRate(int value) {m_Data.delays_rate = value;}
 		
 	private :
 	//members
+		CKeyParser Parser;
 		typedef struct //Concorde Micropet Header <--> ECAT7 Header
     		{
 			int		frame;
@@ -90,7 +92,7 @@ class CHeaderConcordeFrame
 			float		bed_offset;
 			float		ending_bed_offset;
 			float		vertical_bed_offset;
-			std::string	data_file_pointer;
+			QString		data_file_pointer;
 			float		frame_start;
 			float		frame_duration;
 			float		scale_factor;
@@ -98,9 +100,9 @@ class CHeaderConcordeFrame
 			float		maximum;
 			float		deadtime_correction;
 			float		decay_correction;
-			std::string	prompts;
-			std::string	delays;
-			std::string	trues;
+			QString		prompts;
+			QString		delays;
+			QString		trues;
 			int		prompts_rate;
 			int		delays_rate;
 			float		singles[168];
@@ -108,8 +110,7 @@ class CHeaderConcordeFrame
 		}
 		ConcordeHeaderFrame;
 		ConcordeHeaderFrame m_Data;
-		std::string File;
-		std::list<std::string> literals;
+		QString File;
 	//methods
 		bool load();
 		void init();
