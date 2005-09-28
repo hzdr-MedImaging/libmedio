@@ -13,6 +13,7 @@
 #include "CConcordeFile.h"
 #include "CHeaderConcordeFrame.h"
 #include "CKeyParser.h"
+#include "CIntVector.h"
 
 //! @class CHeaderConcorde
 //! @brief class which handles concorde microPET headers
@@ -296,7 +297,7 @@ class CHeaderConcorde : public CMedIOHeader
 			int		y_dimension;		//Num_Angles;
 			int		z_dimension;
 			int		w_dimension;
-			int		delta_elements[11];	//Num_Z_Elements[64];
+			CIntVector	delta_elements;	//Num_Z_Elements[64];
 			int		deadtime_correction_applied;
 			int		decay_correction_applied;
 			int		normalization_applied;

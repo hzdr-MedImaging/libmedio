@@ -13,6 +13,8 @@
 #include <qdatastream.h>
 #include <qfile.h>
 
+#define READ_SIZE 8192
+
 //  Class: CConcordeSinogram
 //  Constructor: CConcordeSinogram
 //!
@@ -53,7 +55,7 @@ QByteArray* CConcordeSinogram::getMatrix(short frame)
 	if(m_pHeader->headerFormat() == CMedIOHeader::ConcordeMicropet)
 	{
 		CHeaderConcorde* head = (CHeaderConcorde*)m_pHeader;
-		
+		bool result = true;
 		//create new filepointer to datafile
 		QFile pfile(fileName());
 		unsigned int framesize = head->getFrameSize();
@@ -67,7 +69,7 @@ QByteArray* CConcordeSinogram::getMatrix(short frame)
 			if(frame > totalframes)
 			{
 				//throw exception if frame out of range
-				return NULL;
+				result = false;
 			}
 			
 			//set readpointer to appropriate frame
@@ -77,113 +79,242 @@ QByteArray* CConcordeSinogram::getMatrix(short frame)
 			QDataStream stream(&pfile);
 		
 			//get byte order from header and set it in datastream
-			if(head->datatype() == 0)
+			switch(head->datatype())
 			{
-				W("No or an unknown data type");
-				stream.readRawBytes(data, framesize);	
-			}
-
-			if(head->datatype() == 1)
-			{
-				// we use the RawBytes() method here.
-				stream.readRawBytes(data, framesize);
-			}
-
-			// 2 is a little endian short value, so we
-			// need to set the stream to little endian, read the data via the
-			// QDataStream operators to ensure correct byte swapping
-			if(head->datatype() == 2)
-			{
-				stream.setByteOrder(QDataStream::LittleEndian);
-				Q_UINT16* ptr = (Q_UINT16*)data;
-				for(unsigned int i=0; i < framesize; i+=sizeof(Q_UINT16))
+				case CHeaderConcorde::UnknownDataType:
 				{
-					stream >> *ptr;
-					++ptr;
+					W("No or an unknown data type");
+					stream.readRawBytes(data, framesize);	
 				}
-				stream.setByteOrder(QDataStream::BigEndian);
-			}
+				break;
+				case CHeaderConcorde::Byte:
+				{
+					// we use the RawBytes() method here.
+					stream.readRawBytes(data, framesize);
+				}
+				break;
+				// IntelShort is a little endian short value, so we
+				// need to set the stream to little endian, read the data via the
+				// QDataStream operators to ensure correct byte swapping
+				case CHeaderConcorde::IntelShort:
+				{
+					QByteArray bufArray(READ_SIZE);
+					Q_UINT16* ptr = (Q_UINT16*)data;
+					for(unsigned int read=0; read < framesize;)
+					{
+						unsigned int toRead = framesize-read >= READ_SIZE ? READ_SIZE : framesize-read;
+						unsigned int curRead = pfile.readBlock(bufArray.data(), toRead);
+						
+						if(curRead != toRead)
+						{
+							result = false;
+							break;
+						}
+						
+						// check if the curRead value is divide able through our data type 
+						ASSERT(curRead % sizeof(Q_UINT16) == 0);
+						
+						QDataStream bufStream(bufArray, IO_ReadOnly);
+						bufStream.setByteOrder(QDataStream::LittleEndian);
+						for(unsigned int i=0; i < curRead; i+=sizeof(Q_UINT16))
+						{
+							bufStream >> *ptr;
+							++ptr;
+						}
+						bufStream.setByteOrder(QDataStream::BigEndian);
 
-			// 3 is a little endian 4byte integer value, so we
-			// need to set the stream to little endian, read the data via the
-			// QDataStream operators to ensure correct byte swapping
-			if(head->datatype() == 3)
-			{
-				D("DataType is : little endian integer");
-				D("FrameSize : %d", framesize);
-				stream.setByteOrder(QDataStream::LittleEndian);
-				Q_UINT32* ptr = (Q_UINT32*)data;
-				for(unsigned int i=0; i < framesize; i+=sizeof(Q_UINT32))
-				{
-					stream >> *ptr;
-					++ptr;
+						// increase our read counter
+						read += curRead;
+					}	
 				}
-				stream.setByteOrder(QDataStream::BigEndian);
-			}
-			
-			// 4 is a little endian float value, so we
-			// need to set the stream to little endian, read the data via the
-			// QDataStream operators to ensure correct byte swapping			
-			if(head->datatype() == 4)
-			{
-				D("DataType is : little endian float");
-				D("FrameSize : %d", framesize);
-				stream.setByteOrder(QDataStream::LittleEndian);
-				float* ptr = (float*)data;
-				for(unsigned int i=0; i < framesize; i+=sizeof(float))
+				break;
+				// IntelInt is a little endian 4byte integer value, so we
+				// need to set the stream to little endian, read the data via the
+				// QDataStream operators to ensure correct byte swapping
+				case CHeaderConcorde::IntelInt:
 				{
-					stream >> *ptr;
-					++ptr;
-				}
-				stream.setByteOrder(QDataStream::BigEndian);
-			}
+					D("DataType is : little endian integer");
+					D("FrameSize : %d", framesize);
+					QByteArray bufArray(READ_SIZE);
+					Q_UINT32* ptr = (Q_UINT32*)data;
+					for(unsigned int read=0; read < framesize;)
+					{
+						unsigned int toRead = framesize-read >= READ_SIZE ? READ_SIZE : framesize-read;
+						unsigned int curRead = pfile.readBlock(bufArray.data(), toRead);
+						
+						if(curRead != toRead)
+						{
+							result = false;
+							break;
+						}
+						
+						// check if the curRead value is divide able through our data type 
+						ASSERT(curRead % sizeof(Q_UINT32) == 0);
+						
+						QDataStream bufStream(bufArray, IO_ReadOnly);
+						bufStream.setByteOrder(QDataStream::LittleEndian);
+						for(unsigned int i=0; i < curRead; i+=sizeof(Q_UINT32))
+						{
+							bufStream >> *ptr;
+							++ptr;
+						}
+						bufStream.setByteOrder(QDataStream::BigEndian);
 
-			// 5 is defined to be a big endian float value. As the QDataStream
-			// is per default big endian, we don't have to set it to another byte order
-			// and just use the QDataStream operators to ensure correct byte swapping
-			if(head->datatype() == 5)
-			{
-				float* ptr = (float*)data;
-				for(unsigned int i=0; i < framesize; i+=sizeof(float))
-				{
-					stream >> *ptr;
-					++ptr;
+						// increase our read counter
+						read += curRead;
+					}
 				}
-			}
+				break;
+				// IntelFloat is a little endian float value, so we
+				// need to set the stream to little endian, read the data via the
+				// QDataStream operators to ensure correct byte swapping			
+				case CHeaderConcorde::IntelFloat:
+				{
+					D("DataType is : little endian float");
+					D("FrameSize : %d", framesize);
+					QByteArray bufArray(READ_SIZE);
+					float* ptr = (float*)data;
+					for(unsigned int read=0; read < framesize;)
+					{
+						unsigned int toRead = framesize-read >= READ_SIZE ? READ_SIZE : framesize-read;
+						unsigned int curRead = pfile.readBlock(bufArray.data(), toRead);
+						
+						if(curRead != toRead)
+						{
+							result = false;
+							break;
+						}
+						
+						// check if the curRead value is divide able through our data type 
+						ASSERT(curRead % sizeof(float) == 0);
+						
+						QDataStream bufStream(bufArray, IO_ReadOnly);
+						bufStream.setByteOrder(QDataStream::LittleEndian);
+						for(unsigned int i=0; i < curRead; i+=sizeof(float))
+						{
+							bufStream >> *ptr;
+							++ptr;
+						}
+						bufStream.setByteOrder(QDataStream::BigEndian);
 
-			// 6 is defined to be a big endian short value. As the QDataStream
-			// is per default big endian, we don't have to set it to another byte order
-			// and just use the QDataStream operators to ensure correct byte swapping
-			if(head->datatype() == 6)
-			{
-				Q_UINT16* ptr = (Q_UINT16*)data;
-				for(unsigned int i=0; i < framesize; i+=sizeof(Q_UINT16))
-				{
-					stream >> *ptr;
-					++ptr;
+						// increase our read counter
+						read += curRead;
+					}
 				}
-			}
+				break;
+				// IEEEFloat is defined to be a big endian float value. As the QDataStream
+				// is per default big endian, we don't have to set it to another byte order
+				// and just use the QDataStream operators to ensure correct byte swapping
+				case CHeaderConcorde::IEEEFloat:
+				{
+					QByteArray bufArray(READ_SIZE);
+					float* ptr = (float*)data;
+					for(unsigned int read=0; read < framesize;)
+					{
+						unsigned int toRead = framesize-read >= READ_SIZE ? READ_SIZE : framesize-read;
+						unsigned int curRead = pfile.readBlock(bufArray.data(), toRead);
+						
+						if(curRead != toRead)
+						{
+							result = false;
+							break;
+						}
+						
+						// check if the curRead value is divide able through our data type 
+						ASSERT(curRead % sizeof(float) == 0);
+						
+						QDataStream bufStream(bufArray, IO_ReadOnly);
+						for(unsigned int i=0; i < curRead; i+=sizeof(float))
+						{
+							bufStream >> *ptr;
+							++ptr;
+						}
 
-			// 7 is defined to be a big endian 4byte integer value. As the QDataStream
-			// is per default big endian, we don't have to set it to another byte order
-			// and just use the QDataStream operators to ensure correct byte swapping
-			if(head->datatype() == 7)
-			{
-				Q_UINT32* ptr = (Q_UINT32*)data;
-				for(unsigned int i=0; i < framesize; i+=sizeof(Q_UINT32))
-				{
-					stream >> *ptr;
-					++ptr;
+						// increase our read counter
+						read += curRead;
+					}
 				}
+				break;
+				// SunShort is defined to be a big endian short value. As the QDataStream
+				// is per default big endian, we don't have to set it to another byte order
+				// and just use the QDataStream operators to ensure correct byte swapping
+				case CHeaderConcorde::SunShort:
+				{
+					QByteArray bufArray(READ_SIZE);
+					Q_UINT16* ptr = (Q_UINT16*)data;
+					for(unsigned int read=0; read < framesize;)
+					{
+						unsigned int toRead = framesize-read >= READ_SIZE ? READ_SIZE : framesize-read;
+						unsigned int curRead = pfile.readBlock(bufArray.data(), toRead);
+						
+						if(curRead != toRead)
+						{
+							result = false;
+							break;
+						}
+						
+						// check if the curRead value is divide able through our data type 
+						ASSERT(curRead % sizeof(Q_UINT16) == 0);
+						
+						QDataStream bufStream(bufArray, IO_ReadOnly);
+						for(unsigned int i=0; i < curRead; i+=sizeof(Q_UINT16))
+						{
+							bufStream >> *ptr;
+							++ptr;
+						}
+
+						// increase our read counter
+						read += curRead;
+					}
+				}
+				break;
+				// SunInt is defined to be a big endian 4byte integer value. As the QDataStream
+				// is per default big endian, we don't have to set it to another byte order
+				// and just use the QDataStream operators to ensure correct byte swapping
+				case CHeaderConcorde::SunInt:
+				{
+					QByteArray bufArray(READ_SIZE);
+					Q_UINT32* ptr = (Q_UINT32*)data;
+					for(unsigned int read=0; read < framesize;)
+					{
+						unsigned int toRead = framesize-read >= READ_SIZE ? READ_SIZE : framesize-read;
+						unsigned int curRead = pfile.readBlock(bufArray.data(), toRead);
+						
+						if(curRead != toRead)
+						{
+							result = false;
+							break;
+						}
+						
+						// check if the curRead value is divide able through our data type 
+						ASSERT(curRead % sizeof(Q_UINT32) == 0);
+						
+						QDataStream bufStream(bufArray, IO_ReadOnly);
+						for(unsigned int i=0; i < curRead; i+=sizeof(Q_UINT32))
+						{
+							bufStream >> *ptr;
+							++ptr;
+						}
+
+						// increase our read counter
+						read += curRead;
+					}
+				}
+				break;
 			}
-			
 			//close file
 			pfile.close();
-			
-			QByteArray* data_bytes = new QByteArray();
-			data_bytes->setRawData(data, framesize);
-		
-			return data_bytes;
+			if(result)
+			{
+				QByteArray* data_bytes = new QByteArray();
+				data_bytes->setRawData(data, framesize);
+				return data_bytes;
+			}
+			else
+			{
+				delete data;
+				return NULL;
+			}
 		}
 		else
 			return NULL;

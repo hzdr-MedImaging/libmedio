@@ -15,7 +15,8 @@ class CKeyType
 			UINT,
 			LONG,
 			ULONG,
-			FLOAT
+			FLOAT,
+			USEROBJECT
 		};
 	
 	protected:

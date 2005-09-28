@@ -333,7 +333,7 @@ bool CHeaderConcorde::init()
 	Parser.addKey("y_dimension", &m_Data.y_dimension);
 	Parser.addKey("z_dimension", &m_Data.z_dimension);
 	Parser.addKey("w_dimension", &m_Data.w_dimension);
-	//Parser.addKey("delta_elements", &m_Data.delta_elements);	
+	Parser.addKey("delta_elements", &m_Data.delta_elements, CIntVector::wrapper_parseKeyValue);	
 	
 	Parser.addKey("deadtime_correction_applied", &m_Data.deadtime_correction_applied);
 	Parser.addKey("decay_correction_applied", &m_Data.decay_correction_applied);

@@ -82,6 +82,15 @@ void CKeyParser::addKey(const QString& Key, float* Value)
 	}
 }
 
+void CKeyParser::addKey(const QString& Key, void* p2Object, void (*p2Function)(void* p2Object, QString KeyValue))
+{
+	if(p2Object!=NULL)
+	{
+		CKeyValue* KValue = new CKeyValue(CKeyType::USEROBJECT, p2Object, p2Function);
+		KeyDictionary.insert(Key,KValue);
+	}		
+}
+
 bool CKeyParser::parse(const QString Filename)
 {
 	QFile file( Filename );
@@ -225,6 +234,9 @@ bool CKeyParser::processLine(QString& Line)
 
 	else if(KValue->getType() == CKeyType::FLOAT)
 		*((float*)KValue->getPToValue()) = Value.toFloat();
+
+	else if(KValue->getType() == CKeyType::USEROBJECT)
+		KValue->callBack(Value);
 	
 	return true;
 }
