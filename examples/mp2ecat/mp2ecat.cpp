@@ -9,7 +9,7 @@
 #include <CConcordeImage.h>
 #include <CMedIOData.h>
 #include <CMedIODataFactory.h>
-#include <qstring.h>
+#include <QString>
 #include <math.h>
 #include <iostream>
 
@@ -25,67 +25,17 @@ int main( int argc, char ** argv )
 		CMedIOData* ImageVolume = CMedIODataFactory::create(name);
 		if(ImageVolume == NULL)
 			return 0;
-		ImageVolume->open(IO_ReadOnly);
+		ImageVolume->open(QIODevice::ReadOnly);
 		CHeaderConcorde* head = (CHeaderConcorde*)ImageVolume->header();
 		if(head == NULL)
 			return 0;
 
 		CECATFile e7image(StoreFileName,CECATMainHeader::ECAT7_Volume16);
-		e7image.open(IO_WriteOnly);	
+		e7image.open(QIODevice::WriteOnly);	
 		CECAT7MainHeader* e7_header = (CECAT7MainHeader*)e7image.createEmptyMainHeader();
 		
-		e7_header->setOriginal_File_Name(head->filename().ascii());
-		
-		e7_header->setSystem_Type((short)head->model());
-		e7_header->setScan_Start_Time(head->scantime());
-		e7_header->setIsotope_Name(head->isotope().ascii());
-		e7_header->setIsotope_Halflife(head->isotopehalftime());
-		e7_header->setBed_Elevation(head->frame(1)->verticalbedoffset());
-		e7_header->setDistance_Scanned(head->radialfov());
-		e7_header->setTransaxial_FOV(head->radialfov());
-		e7_header->setCoin_Samp_Mode(CECAT7MainHeader::NetTrues);
-		e7_header->setCalibration_Factor(head->calibrationfactor());
-		if(head->calibrationfactor() == 1.0F)
-			e7_header->setCalibration_Units(CECAT7MainHeader::Uncalibrated);
-		else
-			e7_header->setCalibration_Units(CECAT7MainHeader::Calibrated);
-		e7_header->setStudy_Type(head->study().ascii());
-		e7_header->setPatient_ID(head->subjectidentifier().ascii());
-		e7_header->setPatient_Name(head->subjectidentifier().ascii());
-		e7_header->setPatient_Sex(CECAT7MainHeader::Sex_Male);
-		e7_header->setPatient_Height(head->subjectlength());
-		e7_header->setPatient_Weight(head->subjectweight());
-		e7_header->setPhysician_Name(head->investigator().ascii());
-		e7_header->setOperator_Name(head->Operator().ascii());
-		e7_header->setStudy_Description(head->studyidentifier().ascii());
-		if(head->acquisitionmode() == CHeaderConcorde::Emission)
-			e7_header->setAcquisition_Type(CECAT7MainHeader::StaticEmission);
-		else
-			e7_header->setAcquisition_Type(CECAT7MainHeader::DynamicEmission);
-		switch(head->subjectorientation())
-		{
-			case 0: e7_header->setPatient_Orientation(CECAT7MainHeader::FF_Prone); break;
-			case 1: e7_header->setPatient_Orientation(CECAT7MainHeader::FF_Prone); break;
-			case 2: e7_header->setPatient_Orientation(CECAT7MainHeader::HF_Prone); break;
-			case 3: e7_header->setPatient_Orientation(CECAT7MainHeader::FF_Supine); break;
-			case 4: e7_header->setPatient_Orientation(CECAT7MainHeader::HF_Supine); break;
-			case 5: e7_header->setPatient_Orientation(CECAT7MainHeader::FF_Right); break;
-			case 6: e7_header->setPatient_Orientation(CECAT7MainHeader::HF_Right); break;
-			case 7: e7_header->setPatient_Orientation(CECAT7MainHeader::FF_Left); break;
-			case 8: e7_header->setPatient_Orientation(CECAT7MainHeader::HF_Left); break;
-		}
-		e7_header->setFacility_Name(head->institution().ascii());
-		e7_header->setNum_Planes(head->zdimension());
-		e7_header->setNum_Frames(head->numframes());
-		e7_header->setLwr_True_Thres((short)head->lld());
-		e7_header->setUpr_True_Thres((short)head->uld());
-		e7_header->setBranching_Fraction(head->isotopebranchingfraction());
-		e7_header->setNum_Gates(1);
-		e7_header->setNum_Bed_Pos(0);
-		e7_header->setInit_Bed_Position(head->frame(1)->bedoffset());
-		e7_header->setDose_Start_Time(head->injectiontime());
-		e7_header->setDosage(head->dose());
-		
+		*e7_header = *e7_header;
+	
 		for(int i = 0; i < head->numframes(); i++)
 		{
 			data = ((CConcordeImage*)ImageVolume)->getMatrix(i+1,0,0,0,0);
@@ -125,24 +75,16 @@ int main( int argc, char ** argv )
 			}
 		
 			cout << "Scalefactor" << scale_factor << endl;
-			cout << head->frame(i)->scalefactor() << endl;
-			char* tmp = data->data();
-			data->resetRawData(tmp,framesize);
-			delete [] tmp;
-		
-			data->setRawData(byte_image,framesize/2);
+			cout << head->frame(i+1)->scalefactor() << endl;
+			
+			delete data;
+			data = new QByteArray(byte_image,framesize/2);
+			delete byte_image;
 			
 			CECAT7SubHeaderImage* e7_subheader;
 			e7_subheader = (CECAT7SubHeaderImage*)e7image.createEmptySubHeader();
-			e7_subheader->setData_Type(CECATSubHeader::SunShort);
-			e7_subheader->setNum_Dimensions(3);
-			e7_subheader->setX_Dimension(head->xdimension());
-			e7_subheader->setY_Dimension(head->ydimension());
-			e7_subheader->setZ_Dimension(head->zdimension());
-			e7_subheader->setX_Pixel_Size(head->pixelsize());
-			e7_subheader->setY_Pixel_Size(head->pixelsize());
-			e7_subheader->setZ_Pixel_Size(head->axialplanesize());
-			e7_subheader->setRecon_Zoom(1.0);
+			*e7_subheader = *head;
+
 			e7_subheader->setScale_Factor(head->frame(i+1)->scalefactor()*scale_factor);
 			if(fabs(max) > fabs(min))
 			{
@@ -156,8 +98,6 @@ int main( int argc, char ** argv )
 			}
 			e7_subheader->setFrame_Duration((int)(head->frame(i+1)->frameduration()*1000.0));
 			e7_subheader->setFrame_Start_Time((int)(head->frame(i+1)->framestart()*1000.0));
-			e7_subheader->setNum_R_Elements(head->ydimension());
-			e7_subheader->setNum_Angles(head->xdimension());
 			e7_subheader->setDecay_Corr_Fctr(head->frame(i+1)->decaycorrection());
 			e7image.writeSubHeader(*e7_subheader, i+1);
 			e7image.writeMatrix(*data,i+1);
