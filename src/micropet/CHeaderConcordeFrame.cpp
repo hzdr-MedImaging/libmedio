@@ -1,35 +1,9 @@
-/* vim:set ts=2 nowrap: ****************************************************
-
- libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004 by Jens Langner <Jens.Langner@light-speed.de>
-
- This library is free software; you can redistribute it and/or
- modify it under the terms of the GNU Lesser General Public
- License as published by the Free Software Foundation; either
- version 2.1 of the License, or (at your option) any later version.
-
- This library is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- Lesser General Public License for more details.
-
- You should have received a copy of the GNU Lesser General Public
- License along with this library; if not, write to the Free Software
- Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
- $Id$
-
-***************************************************************************/
-
-#include "CMedIOHeader.h"
-#include "CHeaderConcordeFrame.h"
-
 #include <iostream>
 #include <fstream>
 
 #include <rtdebug.h>
-
-using namespace std;
+#include "CMedIOHeader.h"
+#include "CHeaderConcordeFrame.h"
 
 //  Class: CHeaderConcordeFrame
 //  Constructor: CHeaderConcordeFrame
@@ -39,17 +13,19 @@ using namespace std;
 //! @param Filename: complete path to file holding header
 //! @param frame: specific frame of header which holds information
 //!
-CHeaderConcordeFrame::CHeaderConcordeFrame(string Filename, int frame)
+CHeaderConcordeFrame::CHeaderConcordeFrame(QString Filename, int frame)
 {
+	ENTER();
 	File = Filename;
-	init();
 	m_Data.frame = frame;
+	init();
 	if(!this->load())
 	{
 		D("Something is wrong with the headerfile");
 	}
 	else
 		D("Everything ok");
+	LEAVE();
 }
 
 //  Class: CHeaderConcordeFrame
@@ -60,27 +36,38 @@ CHeaderConcordeFrame::CHeaderConcordeFrame(string Filename, int frame)
 ////////////////////////////////////////////////////////////////////////////////
 void CHeaderConcordeFrame::init()
 {
-	literals.push_back("frame");
-	literals.push_back("event_type");
-	literals.push_back("gate");
-	literals.push_back("bed");
-	literals.push_back("bed_offset");
-	literals.push_back("ending_bed_offset");
-	literals.push_back("vertical_bed_offset");
-	literals.push_back("data_file_pointer");
-	literals.push_back("frame_start");
-	literals.push_back("frame_duration");
-	literals.push_back("scale_factor");
-	literals.push_back("minimum");
-	literals.push_back("maximum");
-	literals.push_back("deadtime_correction");
-	literals.push_back("decay_correction");
-	literals.push_back("prompts");
-	literals.push_back("delays");
-	literals.push_back("trues");
-	literals.push_back("prompts_rate");
-	literals.push_back("delays_rate");
-	literals.push_back("singles");
+	ENTER();
+	Parser.addSeparator(" ");
+	Parser.addComment("#");
+	int real_frame_in_file = m_Data.frame;
+	QString tmp("frame ");
+	tmp = tmp + QString::number(real_frame_in_file);
+	D("Frame: %s", tmp.toAscii().data());
+	Parser.addStartSymbol(tmp);
+	Parser.addStopSymbol("end_of_header");
+	
+	Parser.addKey("frame", &m_Data.frame);
+	Parser.addKey("event_type", &m_Data.event_type);
+	Parser.addKey("gate", &m_Data.gate);
+	Parser.addKey("bed", &m_Data.bed);
+	Parser.addKey("bed_offset", &m_Data.bed_offset);
+	Parser.addKey("ending_bed_offset", &m_Data.ending_bed_offset);
+	Parser.addKey("vertical_bed_offset", &m_Data.vertical_bed_offset);
+	Parser.addKey("data_file_pointer", &m_Data.data_file_pointer);
+	Parser.addKey("frame_start", &m_Data.frame_start);
+	Parser.addKey("frame_duration", &m_Data.frame_duration);
+	Parser.addKey("scale_factor", &m_Data.scale_factor);
+	Parser.addKey("minimum", &m_Data.minimum);
+	Parser.addKey("maximum", &m_Data.maximum);
+	Parser.addKey("deadtime_correction", &m_Data.deadtime_correction);
+	Parser.addKey("decay_correction", &m_Data.decay_correction);
+	Parser.addKey("prompts", &m_Data.prompts);
+	Parser.addKey("delays", &m_Data.delays);
+	Parser.addKey("trues", &m_Data.trues);
+	Parser.addKey("prompts_rate", &m_Data.prompts_rate);
+	Parser.addKey("delays_rate", &m_Data.delays_rate);
+	//Parser.addKey("singles", m_Data.singles);
+	LEAVE();
 }
 
 //  Class: CHeaderConcordeFrame
@@ -92,100 +79,9 @@ void CHeaderConcordeFrame::init()
 ////////////////////////////////////////////////////////////////////////////////
 bool CHeaderConcordeFrame::load()
 {
-	D("Start Parsing File %s for Frame: %d", File.c_str(), m_Data.frame);
-	bool foundframe = false;
-	ifstream pFile(File.c_str());
-	if(pFile.good())
-	{
-		for(;pFile.eof()!=true;)
-		{
-			//search for specific frame entry in file
-			//read all literals till end_of_header of frame
-			char line[1024];
-			pFile.getline(line,1024);
-			
-			if(strlen(line) == 0) 
-				continue;
-			if(line[0]!='#')
-			{
-				if((int)line[strlen(line)-1] == 13)
-					line[strlen(line)-1] = 0;
-				char *ptr_tok = NULL;
-				ptr_tok = strtok(line, " ");
-				//cout << ptr_tok << endl;
-				//cout << ptr_tok << " ";
-				//check for end_of_header
-				//if true break for loop
-				
-				if(foundframe && strcmp("end_of_header", ptr_tok) == 0)
-				{
-					D("reached end of header"); 
-					break;
-				}
-				
-				if(strcmp(ptr_tok, "frame") == 0)
-				{
-					char *rest = NULL;
-					rest = strtok(NULL, "\0");
-					if(atoi(rest) == m_Data.frame)
-					{
-						foundframe = true;
-						D("Frame %d found", m_Data.frame);
-						continue;
-					}
-				}
-				
-				if(foundframe)
-				{
-					char *rest = NULL;
-					rest = strtok(NULL, "\0");
-					if((int)rest[strlen(rest)-1] == 13)
-					{
-						D("Warning: Header is Windowsfile");
-						rest[strlen(rest)-1] = 0;
-					}
-					//D("%s found : value %s", ptr_tok, rest);
-					if(strcmp(ptr_tok, "event_type") == 0) 		m_Data.event_type = atoi(rest);
-					if(strcmp(ptr_tok, "gate") == 0)		m_Data.gate = atoi(rest);
-					if(strcmp(ptr_tok, "bed") == 0) 		m_Data.bed = atoi(rest);
-					if(strcmp(ptr_tok, "bed_offset") == 0) 		m_Data.bed_offset = atof(rest);
-					if(strcmp(ptr_tok, "ending_bed_offset") == 0) 	m_Data.ending_bed_offset = atof(rest);
-					if(strcmp(ptr_tok, "vertical_bed_offset") == 0) m_Data.vertical_bed_offset = atof(rest);
-					if(strcmp(ptr_tok, "data_file_pointer") == 0) 	m_Data.data_file_pointer = rest;
-					if(strcmp(ptr_tok, "frame_start") == 0) 	m_Data.frame_start = atof(rest);
-					
-					if(strcmp(ptr_tok, "frame_duration") == 0) 	m_Data.frame_duration = atof(rest);
-					if(strcmp(ptr_tok, "scale_factor") == 0) 	m_Data.scale_factor = atof(rest);
-					if(strcmp(ptr_tok, "minimum") == 0)	m_Data.minimum = atof(rest);
-					
-					if(strcmp(ptr_tok, "maximum") == 0)	m_Data.maximum = atof(rest);
-					if(strcmp(ptr_tok, "deadtime_correction") == 0)	m_Data.deadtime_correction = atof(rest);
-					if(strcmp(ptr_tok, "decay_correction")	== 0)	m_Data.decay_correction = atof(rest);
-					
-					if(strcmp(ptr_tok, "prompts") == 0)	m_Data.prompts = rest;
-					if(strcmp(ptr_tok, "delays") == 0)	m_Data.delays = rest;
-					if(strcmp(ptr_tok, "trues")	== 0)	m_Data.trues = rest;
-					if(strcmp(ptr_tok, "prompts_rate") == 0)	m_Data.prompts_rate = atoi(rest);
-					if(strcmp(ptr_tok, "delays_rate") == 0)	m_Data.delays_rate = atoi(rest);
-					if(strcmp(ptr_tok, "singles") == 0)
-                                        {       
-                                                char *element = NULL;
-                                                element = strtok(rest, " \0");
-                                                char *single = NULL;
-                                                single = strtok(NULL, " \0");
-						m_Data.singles[atoi(element)] = atof(single);
-						char *rawsingle = NULL;
-						rawsingle = strtok(NULL, "\0");
-						if(rawsingle != NULL)
-                                                	m_Data.rawsingles[atoi(element)] = atof(rawsingle);
-						else
-							m_Data.rawsingles[atoi(element)] = 0.0F;
-						D("block %d : singles %f : rawsingles %f", atoi(element), m_Data.singles[atoi(element)], m_Data.rawsingles[atoi(element)]);
-                                        }
-				}	
-			}
-		}
-		pFile.close();		
-	}
-	return true;
+	D("Start Parsing File %s for Frame: %d", File.toAscii().data(), m_Data.frame);
+	if(Parser.parse(File))
+		return true;
+	else
+		return false;
 }

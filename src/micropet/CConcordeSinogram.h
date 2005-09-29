@@ -10,6 +10,7 @@
 #include "CMedIOData.h"
 
 #include <QString>
+//#include <qcstring.h>
 
 //! @class CConcordeSinogram
 //! @brief class which handles Concorde microPET sinograms
@@ -35,8 +36,7 @@ class CConcordeSinogram : public CConcordeFile
 	//methods
 		//! @brief access to data of a sinogram 
 		//! @return array with data of specific frame in sinogram or NULL on error 
-		QByteArray* getMatrix(short frame, short plane, 
-			short gate, short bed, short data);
+		QByteArray* getMatrix(short frame);
 		
 		//! @brief run time typeinformation  
 		//! @return specific class type at runtime

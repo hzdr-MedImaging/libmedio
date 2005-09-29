@@ -6,11 +6,14 @@
 #ifndef CHEADERCONCORDE_H
 #define CHEADERCONCORDE_H
 
-#include "CMedIOHeader.h"
-#include "CHeaderConcordeFrame.h"
+#include <QString>
+#include <QList>
 
-#include <string>
-#include <list>
+#include "CMedIOHeader.h"
+#include "CConcordeFile.h"
+#include "CHeaderConcordeFrame.h"
+#include "CKeyParser.h"
+#include "CIntVector.h"
 
 //! @class CHeaderConcorde
 //! @brief class which handles concorde microPET headers
@@ -28,12 +31,12 @@ class CHeaderConcorde : public CMedIOHeader
 {
 	public :
 	//contructors
-		//! @brief constructor
-		//! @param file: complete path to file holding header
-		CHeaderConcorde(std::string File);
+		////! @brief constructor
+		////! @param file: complete path to file holding header
+		CHeaderConcorde(QString File);
 
 		//! @brief default constructor
-		CHeaderConcorde();
+		CHeaderConcorde(CConcordeFile* file = NULL);
 
 	//destructor
 		//! @brief destructor
@@ -75,7 +78,9 @@ class CHeaderConcorde : public CMedIOHeader
 		void setDefaults();
 
 		bool load();
-		bool save();
+		bool load(QString File);
+		bool save() const;
+		CMedIOHeader::Format headerFormat() const;
 		int rtti();
 		
 		//! @return framesize of a sinogram in bytes
@@ -90,15 +95,15 @@ class CHeaderConcorde : public CMedIOHeader
 		CHeaderConcordeFrame* frame(int i);
 		
 		int model(void) {return m_Data.model;}
-		std::string institution(void) {return m_Data.institution;}
-		std::string study(void) {return m_Data.study;}
-		std::string filename(void) {return m_Data.file_name;}
+		QString institution(void) {return m_Data.institution;}
+		QString study(void) {return m_Data.study;}
+		QString filename(void) {return m_Data.file_name;}
 		int filetype(void) {return m_Data.file_type;}
 		int acquisitionmode(void) {return m_Data.acquisition_mode;}
 		int bedmotion(void) {return m_Data.bed_motion;}
 		int numframes(void) {return m_Data.total_frames;}
 		
-		std::string isotope(void) {return m_Data.isotope;}
+		QString isotope(void) {return m_Data.isotope;}
 		float isotopehalftime(void) {return m_Data.isotope_half_time;}
 		float isotopebranchingfraction(void) {return m_Data.isotope_branching_fraction;}
 		
@@ -135,47 +140,49 @@ class CHeaderConcorde : public CMedIOHeader
 		int scattercorrection(void) {return m_Data.scatter_correction;}
 		int arccorrection(void) {return m_Data.arc_correction_applied;}
 		
+		float pixelsize(void) {return m_Data.pixel_size;}
+
 		float calibrationfactor(void) {return m_Data.calibration_factor;}
 		float calibrationbranchingfraction(void) {return m_Data.calibration_branching_fraction;}
 		int numberofsinglesrates(void) {return m_Data.number_of_singles_rates;}
 		
-		std::string investigator(void) {return m_Data.investigator;}
-		std::string Operator(void) {return m_Data.Operator;}
-		std::string studyidentifier(void) {return m_Data.study_identifier;}
+		QString investigator(void) {return m_Data.investigator;}
+		QString Operator(void) {return m_Data.Operator;}
+		QString studyidentifier(void) {return m_Data.study_identifier;}
 		long scantime(void) {return m_Data.scan_time;}
-		std::string injectedcompound(void) {return m_Data.injected_compound;}
+		QString injectedcompound(void) {return m_Data.injected_compound;}
 		int doseunits(void) {return m_Data.dose_units;}
 		float dose(void) {return m_Data.dose;}
 		long injectiontime(void) {return m_Data.injection_time;}
 		float injectiondecaycorrection(void) {return m_Data.injection_decay_correction;}
 		
 		
-		std::string subjectidentifier(void) {return m_Data.subject_identifier;}
-		std::string subjectgenus(void) {return m_Data.subject_genus;}
+		QString subjectidentifier(void) {return m_Data.subject_identifier;}
+		QString subjectgenus(void) {return m_Data.subject_genus;}
 		int subjectorientation(void) {return m_Data.subject_orientation;}
 		int subjectlengthunits(void) {return m_Data.subject_length_units;}
 		float subjectlength(void) {return m_Data.subject_length;}
 		int subjectweightunits(void) {return m_Data.subject_weight_units;}
 		float subjectweight(void) {return m_Data.subject_weight;}
-		std::string subjectphenotype(void) {return m_Data.subject_phenotype;}
-		std::string studymodel(void) {return m_Data.study_model;}
+		QString subjectphenotype(void) {return m_Data.subject_phenotype;}
+		QString studymodel(void) {return m_Data.study_model;}
 		
-		std::string anesthesia(void) {return m_Data.anesthesia;}
-		std::string analgesia(void) {return m_Data.analgesia;}
-		std::string otherdrugs(void) {return m_Data.other_drugs;}
-		std::string foodaccess(void) {return m_Data.food_access;}
-		std::string wateraccess(void) {return m_Data.water_access;}
+		QString anesthesia(void) {return m_Data.anesthesia;}
+		QString analgesia(void) {return m_Data.analgesia;}
+		QString otherdrugs(void) {return m_Data.other_drugs;}
+		QString foodaccess(void) {return m_Data.food_access;}
+		QString wateraccess(void) {return m_Data.water_access;}
 		
 		//mutator methods
 		void setModel(int value) { m_Data.model = value;}
-		void setInstitution(std::string value) { m_Data.institution = value;}
-		void setFileName(std::string value) { m_Data.file_name = value;}
+		void setInstitution(QString value) { m_Data.institution = value;}
+		void setFileName(QString value) { m_Data.file_name = value;}
 		void setFileType(int value) { m_Data.file_type = value;}
 		void setAcquisitionMode(int value) { m_Data.acquisition_mode = value;}
 		void setBedMotion(int value) { m_Data.bed_motion = value;}
 		void setNumFrames(int value) { m_Data.total_frames = value;}
 		
-		void setIsotope(std::string value) { m_Data.isotope = value;}
+		void setIsotope(QString value) { m_Data.isotope = value;}
 		void setIsotopeHalftime(float value) { m_Data.isotope_half_time = value;}
 		void setIsotopeBranchingFraction(float value) { m_Data.isotope_branching_fraction = value;}
 		
@@ -211,52 +218,57 @@ class CHeaderConcorde : public CMedIOHeader
 		void setAttenuationApplied(int value) { m_Data.attenuation_applied = value;}
 		void setScatterCorrection(int value) { m_Data.scatter_correction = value;}
 		void setArcCorrectionApplied(int value) { m_Data.arc_correction_applied = value;}
+
+		void setPixelSize(float value) {m_Data.pixel_size = value;}
 		
 		void setCalibrationFactor(float value) { m_Data.calibration_factor = value;}
 		void setCalibrationBranchingFraction(float value) { m_Data.calibration_branching_fraction = value;}
 		void setNumberOfSinglesRates(int value) { m_Data.number_of_singles_rates = value;}
 		
-		void setInvestigator(std::string value) { m_Data.investigator = value;}
-		void setOperator(std::string value) { m_Data.Operator = value;}
-		void setStudyIdentifier(std::string value) { m_Data.study_identifier = value;}
+		void setInvestigator(QString value) { m_Data.investigator = value;}
+		void setOperator(QString value) { m_Data.Operator = value;}
+		void setStudyIdentifier(QString value) { m_Data.study_identifier = value;}
 		void setScanTime(long value) { m_Data.scan_time = value;}
-		void setInjectedCompound(std::string value) { m_Data.injected_compound = value;}
+		void setInjectedCompound(QString value) { m_Data.injected_compound = value;}
 		void setDoseUnits(int value) { m_Data.dose_units = value;}
 		void setDose(float value) { m_Data.dose = value;}
 		void setInjectionTime(long value) { m_Data.injection_time = value;}
 		void setInjectionDecayCorrection(float value) { m_Data.injection_decay_correction = value;}
 		
-		void setSubjectIdentifier(std::string value) { m_Data.subject_identifier = value;}
-		void setSubjectGenus(std::string value) { m_Data.subject_genus = value;}
+		void setSubjectIdentifier(QString value) { m_Data.subject_identifier = value;}
+		void setSubjectGenus(QString value) { m_Data.subject_genus = value;}
 		void setSubjectOrientation(int value) { m_Data.subject_orientation = value;}
 		void setSubjectLength_units(int value) { m_Data.subject_length_units = value;}
 		void setSubjectLength(float value) { m_Data.subject_length = value;}
 		void setSubjectWeight_units(int value) { m_Data.subject_weight_units = value;}
 		void setSubjectWeight(float value) { m_Data.subject_weight = value;}
-		void setSubjectPhenotype(std::string value) { m_Data.subject_phenotype = value;}
-		void setStudyModel(std::string value) { m_Data.study_model = value;}
+		void setSubjectPhenotype(QString value) { m_Data.subject_phenotype = value;}
+		void setStudyModel(QString value) { m_Data.study_model = value;}
 		
-		void setAnesthesia(std::string value) { m_Data.anesthesia = value;}
-		void setAnalgesia(std::string value) { m_Data.analgesia = value;}
-		void setOtherDrugs(std::string value) { m_Data.other_drugs = value;}
-		void setFoodAccess(std::string value) { m_Data.food_access = value;}
-		void setWaterAccess(std::string value) { m_Data.water_access = value;}
-		
+		void setAnesthesia(QString value) { m_Data.anesthesia = value;}
+		void setAnalgesia(QString value) { m_Data.analgesia = value;}
+		void setOtherDrugs(QString value) { m_Data.other_drugs = value;}
+		void setFoodAccess(QString value) { m_Data.food_access = value;}
+		void setWaterAccess(QString value) { m_Data.water_access = value;}
+
+	protected:
+		CMedIOHeader& copyData(const CMedIOHeader& src);	
+	
 	private :
 	//members
-		std::list<std::string> literals;
-		std::list<CHeaderConcordeFrame*> frames;
+		QList<CHeaderConcordeFrame*> frames;
+		CKeyParser Parser;
 		typedef struct //Concorde Micropet Header <--> ECAT7 Header
     		{
 			int		model;			//System_Type;
-			std::string	institution;		//Facility_Name;
-			std::string	study;			//Study type/description (string)
-			std::string	file_name;		//Original_File_Name;
+			QString		institution;		//Facility_Name;
+			QString		study;			//Study type/description (string)
+			QString		file_name;		//Original_File_Name;
 			int		file_type;		//File_Type;
 			int		acquisition_mode;	//Acquisition_Type;
 			int		bed_motion;		//0 static/unknown : 1 continuous motion
 			int		total_frames;
-			std::string	isotope;		//Isotope_Name;
+			QString		isotope;		//Isotope_Name;
 			float		isotope_half_time; 	//Isotope_Halflife;
 			float		isotope_branching_fraction;	//Branching_Fraction;
 			int		transaxial_crystals_per_block;
@@ -285,7 +297,7 @@ class CHeaderConcorde : public CMedIOHeader
 			int		y_dimension;		//Num_Angles;
 			int		z_dimension;
 			int		w_dimension;
-			int		delta_elements[11];	//Num_Z_Elements[64];
+			CIntVector	delta_elements;	//Num_Z_Elements[64];
 			int		deadtime_correction_applied;
 			int		decay_correction_applied;
 			int		normalization_applied;
@@ -300,29 +312,29 @@ class CHeaderConcorde : public CMedIOHeader
 			float		calibration_factor;
 			float		calibration_branching_fraction;
 			int		number_of_singles_rates;
-			std::string	investigator;
-			std::string	Operator;
-			std::string	study_identifier;
+			QString		investigator;
+			QString		Operator;
+			QString		study_identifier;
 			long		scan_time;		//Scan_Start_Time;
-			std::string	injected_compound;
+			QString		injected_compound;
 			int		dose_units;
 			float		dose;
 			long		injection_time;
 			float		injection_decay_correction;
-			std::string	subject_identifier;
-			std::string	subject_genus;
+			QString		subject_identifier;
+			QString		subject_genus;
 			int		subject_orientation;	//Patient_Orientation;
 			int		subject_length_units;
 			float		subject_length;
 			int		subject_weight_units;
 			float		subject_weight;
-			std::string	subject_phenotype;
-			std::string	study_model;
-			std::string	anesthesia;
-			std::string	analgesia;
-			std::string	other_drugs;
-			std::string	food_access;
-			std::string	water_access;
+			QString		subject_phenotype;
+			QString		study_model;
+			QString		anesthesia;
+			QString		analgesia;
+			QString		other_drugs;
+			QString		food_access;
+			QString		water_access;
     		} ConcordeHeader;
 		ConcordeHeader m_Data;
 	//methods

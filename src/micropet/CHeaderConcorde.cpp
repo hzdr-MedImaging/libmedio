@@ -6,18 +6,12 @@
 #include "CHeaderConcorde.h"
 #include "CHeaderConcordeFrame.h"
 #include "CMedIOHeader.h"
-
-#include <QDateTime>
-#include <QString>
-
-#include <fstream>
-#include <string>
-#include <list>
-#include <iostream>
+#include "CMedIOData.h"
 
 #include <rtdebug.h>
-
-using namespace std;
+#include <QDateTime>
+#include <QString>
+#include <QList>
 
 //  Class: CHeaderConcorde
 //  Constructor: CHeaderConcorde
@@ -26,11 +20,11 @@ using namespace std;
 //!
 //! @param file: complete path to file holding header
 ////////////////////////////////////////////////////////////////////////////////
-CHeaderConcorde::CHeaderConcorde(string File) : CMedIOHeader(File)
+CHeaderConcorde::CHeaderConcorde(QString File)
 { 
 	init();
 	setDefaults();
-	if(!this->load())
+	if(!this->load(File))
 	{
 		D("Something is wrong with the headerfile");
 	}
@@ -44,11 +38,23 @@ CHeaderConcorde::CHeaderConcorde(string File) : CMedIOHeader(File)
 //! constructs a CHeaderConcorde object
 //!
 ////////////////////////////////////////////////////////////////////////////////
-CHeaderConcorde::CHeaderConcorde()
+CHeaderConcorde::CHeaderConcorde(CConcordeFile* file)
 {
 	//initialise all keys which should be searched for in
 	//header file
+	D("Setting reference to CMedIOData object");
+	m_pMedIOData = file;
+	D("Initialising all keyvalues");
 	init();
+	D("Setting defaults");
+	setDefaults();
+	D("Trying to load headerfile");
+	if(!this->load())
+	{
+		D("Something is wrong with the headerfile");
+	}
+	else
+		D("Everything ok");
 }
 
 //  Class: CHeaderConcorde
@@ -60,6 +66,14 @@ CHeaderConcorde::CHeaderConcorde()
 CHeaderConcorde::~CHeaderConcorde()
 {
 	ENTER();
+	QListIterator<CHeaderConcordeFrame*> nums_iter(frames);
+	
+	while(nums_iter.hasNext())
+	{
+		CHeaderConcordeFrame* tmp = (CHeaderConcordeFrame*)nums_iter.next();
+		delete tmp;
+		tmp = NULL;
+	}
 	LEAVE();
 }
 
@@ -125,6 +139,21 @@ void CHeaderConcorde::setDefaults()
 	m_Data.subject_weight_units = 0;
 }
 
+bool CHeaderConcorde::load()
+{
+	//unset function should be used !!!
+	ENTER();
+	if(!m_pMedIOData)
+	{
+		D("Something wrong with m_pMedIOData");
+		LEAVE();
+		return false;	
+	}
+	QString File = m_pMedIOData->fileName() + ".hdr";
+	LEAVE();
+	return load(File);
+}
+
 //  Class: CHeaderConcorde
 //  Method: load
 //!
@@ -132,187 +161,22 @@ void CHeaderConcorde::setDefaults()
 //!
 //! @return true on success otherwise false
 ////////////////////////////////////////////////////////////////////////////////
-bool CHeaderConcorde::load()
+bool CHeaderConcorde::load(QString File)
 {
-	//unset function should be used !!!
-	string File = file();
-	D("Start Parsing File %s", File.c_str());
-	ifstream pFile(File.c_str());
-	if(pFile.good())
+	D("Start Parsing File %s", File.toAscii().data());
+	if(Parser.parse(File))
 	{
-		// read all literals from headerfile skipping comments starting with #
-		// compare the literals with recommended list of literals
-		// if true delete literal from list and set literal in ECAT7 header
-		for(;pFile.eof()!=true;)
-		{
-			//there is a problem with eof() when file ends with \n (0x10)
-			//so we have to check for the keyword end_of_header
-			//another problem is that there are multiple end_of_header
-			//1+number_of_frames
-			
-			char line[1024];
-			pFile.getline(line,1024);
-			
-			
-			//cout << line << endl;
-			if(strlen(line) == 0) 
-				continue;
-				
-			if(line[0]!='#')
-			{
-				char *ptr_tok = NULL;
-				ptr_tok = strtok(line, " ");
-				//cout << ptr_tok << endl;
-				//cout << ptr_tok << " ";
-				//check for end_of_header
-				//if true break for loop
-				if((int)line[strlen(line)-1] == 13)
-					line[strlen(line)-1] = 0;
-				if(strcmp("end_of_header", ptr_tok) == 0)
-				{
-					D("reached end of header"); 
-					break;
-				}
-				
-				//ptr_tok = strtok(NULL, "\0");
-				// compare literal tokens[0] with list
-				list<string>::iterator nums_iter;
-				bool literal_exists = false;
-				
-				for(nums_iter = literals.begin(); nums_iter != literals.end(); nums_iter++)
-				{	
-					if(strcmp(nums_iter->c_str(), ptr_tok) == 0)
-					{
-						literal_exists = true;
-						//cout << nums_iter->c_str() << endl;
-						break;	
-					}
-					
-				}
-				
-				if(literal_exists) 
-				{
-					//cout << "3.if CConcordeMicropetHeader::load" << endl;
-					char *rest = NULL;
-					rest = strtok(NULL, "\0");
-					if((int)rest[strlen(rest)-1] == 13)
-					{
-						D("Warning: Header is Windowsfile");
-						rest[strlen(rest)-1] = 0;
-					}
-					if(strcmp(ptr_tok, "model") == 0) 		m_Data.model = atoi(rest);
-					if(strcmp(ptr_tok, "institution") == 0)		m_Data.institution = rest;
-					if(strcmp(ptr_tok, "study") == 0) 		m_Data.study = rest;
-					if(strcmp(ptr_tok, "file_name") == 0) 		m_Data.file_name = rest;
-					if(strcmp(ptr_tok, "file_type") == 0) 		m_Data.file_type = atoi(rest);
-					if(strcmp(ptr_tok, "acquisition_mode") == 0) 	m_Data.acquisition_mode = atoi(rest);
-					if(strcmp(ptr_tok, "bed_motion") == 0) 		m_Data.bed_motion = atoi(rest);
-					if(strcmp(ptr_tok, "total_frames") == 0) 	m_Data.total_frames = atoi(rest);
-					
-					if(strcmp(ptr_tok, "isotope") == 0) 		m_Data.isotope = rest;
-					if(strcmp(ptr_tok, "isotope_half_time") == 0) 	m_Data.isotope_half_time = atof(rest);
-					if(strcmp(ptr_tok, "isotope_branching_fraction") == 0)	m_Data.isotope_branching_fraction = atof(rest);
-					
-					if(strcmp(ptr_tok, "transaxial_crystals_per_block") == 0)	m_Data.transaxial_crystals_per_block = atoi(rest);
-					if(strcmp(ptr_tok, "axial_crystals_per_block") == 0)	m_Data.axial_crystals_per_block = atoi(rest);
-					if(strcmp(ptr_tok, "intrinsic_crystal_offset")	== 0)	m_Data.intrinsic_crystal_offset = atoi(rest);
-					if(strcmp(ptr_tok, "transaxial_blocks") == 0) 	m_Data.transaxial_blocks = atoi(rest);
-					if(strcmp(ptr_tok, "axial_blocks") == 0) m_Data.axial_blocks = atoi(rest);
-					if(strcmp(ptr_tok, "axial_crystal_pitch") == 0) m_Data.axial_crystal_pitch = atof(rest);
-					if(strcmp(ptr_tok, "radius") == 0)	m_Data.radius = atof(rest);
-					if(strcmp(ptr_tok, "radial_fov") == 0)	m_Data.radial_fov = atof(rest);
-					if(strcmp(ptr_tok, "src_radius") == 0)	m_Data.src_radius = atof(rest);
-					if(strcmp(ptr_tok, "src_cm_per_rev") == 0) m_Data.src_cm_per_rev = atof(rest);
-					if(strcmp(ptr_tok, "tx_src_type") == 0)	m_Data.tx_src_type = atoi(rest);
-					if(strcmp(ptr_tok, "transaxial_bin_size") == 0)	m_Data.transaxial_bin_size = atof(rest);
-					if(strcmp(ptr_tok, "axial_plane_size") == 0)	m_Data.axial_plane_size = atof(rest);
-					if(strcmp(ptr_tok, "lld") == 0)			m_Data.lld = atof(rest);
-					if(strcmp(ptr_tok, "uld") == 0) 		m_Data.uld = atof(rest);
-					
-					if(strcmp(ptr_tok, "data_order") == 0) 		m_Data.data_order = atoi(rest);
-					if(strcmp(ptr_tok, "data_type") == 0)		m_Data.data_type = atoi(rest);
-					if(strcmp(ptr_tok, "span") == 0) 		m_Data.span = atoi(rest);
-					if(strcmp(ptr_tok, "ring_difference") == 0) 	m_Data.ring_difference = atoi(rest);
-					if(strcmp(ptr_tok, "number_of_dimensions") == 0)	m_Data.number_of_dimensions = atoi(rest);
-					if(strcmp(ptr_tok, "x_dimension") == 0) 		m_Data.x_dimension = atoi(rest);
-					if(strcmp(ptr_tok, "y_dimension") == 0)		m_Data.y_dimension = atoi(rest);
-					if(strcmp(ptr_tok, "z_dimension") == 0)		m_Data.z_dimension = atoi(rest);
-					if(strcmp(ptr_tok, "w_dimension") == 0)		m_Data.w_dimension = atoi(rest);
-					if(strcmp(ptr_tok, "delta_elements") == 0)
-					{ 	
-						char *element = NULL;
-						element = strtok(rest, " ");
-						char *count;
-						count = strtok(NULL, "\0");
-						m_Data.delta_elements[atoi(element)] = atoi(count);
-					}
-					
-					if(strcmp(ptr_tok, "deadtime_correction_applied") == 0)		m_Data.deadtime_correction_applied = atoi(rest);
-					if(strcmp(ptr_tok, "decay_correction_applied") == 0)		m_Data.decay_correction_applied = atoi(rest);
-					if(strcmp(ptr_tok, "normalization_applied") == 0)		m_Data.normalization_applied = atoi(rest);
-					if(strcmp(ptr_tok, "attenuation_applied") == 0)		m_Data.attenuation_applied = atoi(rest);
-					if(strcmp(ptr_tok, "scatter_correction") == 0)		m_Data.scatter_correction = atoi(rest);
-					if(strcmp(ptr_tok, "arc_correction") == 0)		m_Data.arc_correction_applied = atoi(rest);
-					
-					if(strcmp(ptr_tok, "calibration_factor") == 0)		m_Data.calibration_factor = atof(rest);
-					if(strcmp(ptr_tok, "calibration_branching_fraction") == 0)		m_Data.calibration_branching_fraction = atof(rest);
-					if(strcmp(ptr_tok, "number_of_singles_rates") == 0)		m_Data.number_of_singles_rates = atoi(rest);
-					
-					if(strcmp(ptr_tok, "investigator") == 0)		m_Data.investigator = rest;
-					if(strcmp(ptr_tok, "Operator") == 0)		m_Data.Operator = rest;
-					if(strcmp(ptr_tok, "study_identifier") == 0)		m_Data.study_identifier = rest;
-					if(strcmp(ptr_tok, "scan_time") == 0)		
-					{	
-						QString str(rest);
-						QDateTime dt = QDateTime::fromString(str);
-						m_Data.scan_time = (long)dt.toTime_t();
-						D("ScanTime %s in seconds %ld", rest, m_Data.scan_time);
-					}
-					if(strcmp(ptr_tok, "injected_compound") == 0)		m_Data.injected_compound = rest;
-					if(strcmp(ptr_tok, "dose_units") == 0)		m_Data.dose_units = atoi(rest);
-					if(strcmp(ptr_tok, "dose") == 0)		m_Data.dose = atof(rest);
-					if(strcmp(ptr_tok, "injection_time") == 0)
-					{
-						QString str(rest);
-						QDateTime dt = QDateTime::fromString(str);
-						m_Data.injection_time = (long)dt.toTime_t();
-						D("InjectionTime %s in seconds %ld", rest, m_Data.injection_time);
-					}
-					if(strcmp(ptr_tok, "injection_decay_correction") == 0)		m_Data.injection_decay_correction = atof(rest);
-					
-					if(strcmp(ptr_tok, "subject_identifier") == 0)		m_Data.subject_identifier = rest;
-					if(strcmp(ptr_tok, "subject_genus") == 0)		m_Data.subject_genus = rest;
-					if(strcmp(ptr_tok, "subject_orientation") == 0)		m_Data.subject_orientation = atoi(rest);
-					if(strcmp(ptr_tok, "subject_length_units") == 0)		m_Data.subject_length_units = atoi(rest);
-					if(strcmp(ptr_tok, "subject_length") == 0)		m_Data.subject_length = atof(rest);
-					if(strcmp(ptr_tok, "subject_weight_units") == 0)		m_Data.subject_weight = atof(rest);
-					if(strcmp(ptr_tok, "subject_phenotype") == 0)		m_Data.subject_phenotype = rest;
-					if(strcmp(ptr_tok, "study_model") == 0)		m_Data.study_model = rest;
-					
-					if(strcmp(ptr_tok, "anesthesia") == 0)		m_Data.anesthesia = rest;
-					if(strcmp(ptr_tok, "analgesia") == 0)		m_Data.analgesia = rest;
-					if(strcmp(ptr_tok, "other_drugs") == 0)		m_Data.other_drugs = rest;
-					if(strcmp(ptr_tok, "food_access") == 0)		m_Data.food_access = rest;
-					if(strcmp(ptr_tok, "water_access") == 0)		m_Data.water_access = rest;
-				}
-			}
-			
-			
-		}
-		pFile.close();
-		D("Parsing of MainHeader is ok!");
-		//now parse same file for frames
-		
+		D("Parsing of mainheader seems to be ok");
 		for(int i = 0; i < m_Data.total_frames; i++)
 		{
 			CHeaderConcordeFrame* frame = new CHeaderConcordeFrame(File, i);
-			frames.push_back(frame);
+			frames.append(frame);
 		}
 		
 	}
 	else
 	{
-		D("Headerfile %s nicht gefunden !", File.c_str());
+		D("Headerfile %s nicht gefunden !", File.toAscii().data());
 		return false;
 	}
 	return true;
@@ -325,9 +189,14 @@ bool CHeaderConcorde::load()
 //!
 //! @return true on success otherwise false
 ////////////////////////////////////////////////////////////////////////////////
-bool CHeaderConcorde::save()
+bool CHeaderConcorde::save() const
 {
 	return true;
+}
+
+CMedIOHeader::Format CHeaderConcorde::headerFormat() const
+{
+	return CMedIOHeader::ConcordeMicropet;
 }
 
 int CHeaderConcorde::rtti()
@@ -408,10 +277,9 @@ unsigned int CHeaderConcorde::getImageFrameSize()
 ////////////////////////////////////////////////////////////////////////////////
 CHeaderConcordeFrame* CHeaderConcorde::frame(int i)
 {
-	list<CHeaderConcordeFrame*>::iterator nums_iter;
-	int k = 1;
-	for(nums_iter = frames.begin(); k < i; nums_iter++,k++);
-	return *nums_iter;
+	if(frames.size() < i || i < 1)
+		return frames[0];
+	return frames[i-1];
 }
 
 //  Class: CHeaderConcorde
@@ -423,81 +291,91 @@ CHeaderConcordeFrame* CHeaderConcorde::frame(int i)
 ////////////////////////////////////////////////////////////////////////////////
 bool CHeaderConcorde::init()
 {
-	literals.push_back("model");
-	literals.push_back("institution");
-	literals.push_back("study");
-	literals.push_back("file_name");
-	literals.push_back("file_type");
-	literals.push_back("acquisition_mode");
-	literals.push_back("bed_motion");
-	literals.push_back("total_frames");
+	Parser.addSeparator(" ");
+	Parser.addComment("#");
+	Parser.addStopSymbol("end_of_header");
+
+	Parser.addKey("model", &m_Data.model);
+	Parser.addKey("institution", &m_Data.institution);
+	Parser.addKey("study", &m_Data.study);
+	Parser.addKey("file_name", &m_Data.file_name);
+	Parser.addKey("file_type", &m_Data.file_type);
+	Parser.addKey("acquisition_mode", &m_Data.acquisition_mode);
+	Parser.addKey("bed_motion", &m_Data.bed_motion);
+	Parser.addKey("total_frames", &m_Data.total_frames);
 	
-	literals.push_back("isotope");
-	literals.push_back("isotope_half_time");
-	literals.push_back("isotope_branching_fraction");
+	Parser.addKey("isotope", &m_Data.isotope);
+	Parser.addKey("isotope_half_time", &m_Data.isotope_half_time);
+	Parser.addKey("isotope_branching_fraction", &m_Data.isotope_branching_fraction);
 	
-	literals.push_back("transaxial_crystals_per_block");
-	literals.push_back("axial_crystals_per_block");
-	literals.push_back("intrinsic_crystal_offset");
-	literals.push_back("axial_blocks");
-	literals.push_back("axial_crystal_pitch");
-	literals.push_back("radius");
-	literals.push_back("radial_fov");
-	literals.push_back("src_radius");
-	literals.push_back("src_cm_per_rev");
-	literals.push_back("tx_src_type");
-	literals.push_back("transaxial_bin_size");
-	literals.push_back("axial_plane_size");
-	literals.push_back("lld");
-	literals.push_back("uld");
+	Parser.addKey("transaxial_crystals_per_block", &m_Data.transaxial_crystals_per_block);
+	Parser.addKey("axial_crystals_per_block", &m_Data.axial_crystals_per_block);
+	Parser.addKey("intrinsic_crystal_offset", &m_Data.intrinsic_crystal_offset);
+	Parser.addKey("axial_blocks", &m_Data.axial_blocks);
+	Parser.addKey("axial_crystal_pitch", &m_Data.axial_crystal_pitch);
+	Parser.addKey("radius", &m_Data.radius);
+	Parser.addKey("radial_fov", &m_Data.radial_fov);
+	Parser.addKey("src_radius", &m_Data.src_radius);
+	Parser.addKey("src_cm_per_rev", &m_Data.src_cm_per_rev);
+	Parser.addKey("tx_src_type", &m_Data.tx_src_type);
+	Parser.addKey("transaxial_bin_size", &m_Data.transaxial_bin_size);
+	Parser.addKey("axial_plane_size", &m_Data.axial_plane_size);
+	Parser.addKey("pixel_size", &m_Data.pixel_size);
+	Parser.addKey("lld", &m_Data.lld);
+	Parser.addKey("uld", &m_Data.uld);
 	
-	literals.push_back("data_type");
-	literals.push_back("data_order");
-	literals.push_back("span");
-	literals.push_back("ring_difference");
-	literals.push_back("number_of_dimensions");
-	literals.push_back("x_dimension");
-	literals.push_back("y_dimension");
-	literals.push_back("z_dimension");
-	literals.push_back("w_dimension");
-	literals.push_back("delta_elements");	
+	Parser.addKey("data_type", &m_Data.data_type);
+	Parser.addKey("data_order", &m_Data.data_order);
+	Parser.addKey("span", &m_Data.span);
+	Parser.addKey("ring_difference", &m_Data.ring_difference);
+	Parser.addKey("number_of_dimensions", &m_Data.number_of_dimensions);
+	Parser.addKey("x_dimension", &m_Data.x_dimension);
+	Parser.addKey("y_dimension", &m_Data.y_dimension);
+	Parser.addKey("z_dimension", &m_Data.z_dimension);
+	Parser.addKey("w_dimension", &m_Data.w_dimension);
+	Parser.addKey("delta_elements", &m_Data.delta_elements, CIntVector::wrapper_parseKeyValue);	
 	
-	literals.push_back("deadtime_correction_applied");
-	literals.push_back("decay_correction_applied");
-	literals.push_back("normalization_applied");
-	literals.push_back("attenuation_applied");
-	literals.push_back("scatter_correction");
-	literals.push_back("arc_correction");
+	Parser.addKey("deadtime_correction_applied", &m_Data.deadtime_correction_applied);
+	Parser.addKey("decay_correction_applied", &m_Data.decay_correction_applied);
+	Parser.addKey("normalization_applied", &m_Data.normalization_applied);
+	Parser.addKey("attenuation_applied", &m_Data.attenuation_applied);
+	Parser.addKey("scatter_correction", &m_Data.scatter_correction);
+	Parser.addKey("arc_correction", &m_Data.arc_correction_applied);
 	
-	literals.push_back("calibration_factor");
-	literals.push_back("calibration_branching_fraction");
-	literals.push_back("number_of_singles_rates");
+	Parser.addKey("calibration_factor", &m_Data.calibration_factor);
+	Parser.addKey("calibration_branching_fraction", &m_Data.calibration_branching_fraction);
+	Parser.addKey("number_of_singles_rates", &m_Data.number_of_singles_rates);
 	
-	literals.push_back("investigator");
-	literals.push_back("operator");
-	literals.push_back("study_identifier");
-	literals.push_back("scan_time");
-	literals.push_back("injected_compound");
-	literals.push_back("dose_units");
-	literals.push_back("dose");
-	literals.push_back("injection_time");
-	literals.push_back("injection_decay_correction");
+	Parser.addKey("investigator", &m_Data.investigator);
+	Parser.addKey("operator", &m_Data.Operator);
+	Parser.addKey("study_identifier", &m_Data.study_identifier);
+	//Parser.addKey("scan_time", &m_Data.scan_time);
+	Parser.addKey("injected_compound", &m_Data.injected_compound);
+	Parser.addKey("dose_units", &m_Data.dose_units);
+	Parser.addKey("dose", &m_Data.dose);
+	//Parser.addKey("injection_time", &m_Data.injection_time);
+	Parser.addKey("injection_decay_correction", &m_Data.injection_decay_correction);
 	
-	literals.push_back("subject_identifier");
-	literals.push_back("subject_genus");
-	literals.push_back("subject_orientation");
-	literals.push_back("subject_length_units");
-	literals.push_back("subject_length");
-	literals.push_back("subject_weight_units");
-	literals.push_back("subject_weight");
-	literals.push_back("subject_phenotype");
-	literals.push_back("study_model");
+	Parser.addKey("subject_identifier", &m_Data.subject_identifier);
+	Parser.addKey("subject_genus", &m_Data.subject_genus);
+	Parser.addKey("subject_orientation", &m_Data.subject_orientation);
+	Parser.addKey("subject_length_units", &m_Data.subject_length_units);
+	Parser.addKey("subject_length", &m_Data.subject_length);
+	Parser.addKey("subject_weight_units", &m_Data.subject_weight_units);
+	Parser.addKey("subject_weight", &m_Data.subject_weight);
+	Parser.addKey("subject_phenotype", &m_Data.subject_phenotype);
+	Parser.addKey("study_model", &m_Data.study_model);
 	
-	literals.push_back("anesthesia");
-	literals.push_back("analgesia");
-	literals.push_back("other_drugs");
-	literals.push_back("food_access");
-	literals.push_back("water_access");
-			
+	Parser.addKey("anesthesia", &m_Data.anesthesia);
+	Parser.addKey("analgesia", &m_Data.analgesia);
+	Parser.addKey("other_drugs", &m_Data.other_drugs);
+	Parser.addKey("food_access", &m_Data.food_access);
+	Parser.addKey("water_access", &m_Data.water_access);
+		
 	return true;
+}
+
+CMedIOHeader& CHeaderConcorde::copyData(const CMedIOHeader& src)
+{
+	return *this;
 }

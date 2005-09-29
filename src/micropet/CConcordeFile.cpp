@@ -26,9 +26,10 @@
 //! @author Hagen Moelle
 
 #include "CConcordeFile.h"
+#include "CConcordeSinogram.h"
+#include "CConcordeImage.h"
 #include "CHeaderConcorde.h"
 #include "CMedIOData.h"
-
 #include <rtdebug.h>
 
 //  Class: CConcordeFile
@@ -57,29 +58,36 @@ CConcordeFile::~CConcordeFile()
 }
 
 //  Class: CConcordeFile
-//  Method: load
+//  Method: open
 //!
 //! This method initalises and loads the header of the concorde microPET medical data.
 //!
 //! @return true if successful otherwise false
 ////////////////////////////////////////////////////////////////////////////////
-bool CConcordeFile::load()
+bool CConcordeFile::open(QIODevice::OpenModeFlag mode)
 {
+	ENTER();
+	bool result = false;
 	//initalise and load header
-	Header = new CHeaderConcorde(File + ".hdr"); 
-	return true;
+	D("Creating headerobject");
+	m_pHeader = new CHeaderConcorde(this);
+	D("Loading header information");
+	result = m_pHeader->load();
+	RETURN(result);
+	return result;
 }
 
 //  Class: CConcordeFile
-//  Method: save
+//  Method: close
 //!
-//! This method saves the data
+//! This method closes the file
 //!
 //! @return true if successful otherwise false
 ////////////////////////////////////////////////////////////////////////////////
-bool CConcordeFile::save()
+void CConcordeFile::close()
 {
-	return true;
+	m_pHeader->save();
+	return;
 }
 
 //  Class: CConcordeFile
@@ -95,13 +103,16 @@ int CConcordeFile::isoftype(QString file)
 	//check if it is a CConcordeFile
 	//return the specific type
 	//return CData::Unknwon - if it is not a concorde type 
-
+	ENTER();
+	D("check if file is a specific concorde file");
         // try to get Headerinfo on Sinogramfile
         QString hfile(file+".hdr");
         
 	CHeaderConcorde head(file+".hdr");
-
-        if(head.model() == 2000)
+	
+	int result = 0;
+        
+	if(head.model() == 2000)
         {
                 D("file is from concorde");
 		//file type = 2 -> Sinogram
@@ -110,23 +121,58 @@ int CConcordeFile::isoftype(QString file)
 		//file type = 5 -> Image
 		//file type = 8 -> Mu map ( also image )
 		// since attenuationfile/Normalisation is a sinogram we could define it as one 
-		if((head.filetype() == 2 || head.filetype() == 3)
-			|| head.filetype() == 4)
+		switch(head.filetype())
 		{
-			D("file is a sinogram");
-			return CConcordeFile::ConcordeMicropet_Sinogram;
+			case CHeaderConcorde::Sinogram:
+			case CHeaderConcorde::Normalization:
+			case CHeaderConcorde::Attenuation:
+			{
+				D("File is a sinogram");
+				result = CConcordeFile::ConcordeMicropet_Sinogram;
+			}
+			break;
+			case CHeaderConcorde::Image:
+			case CHeaderConcorde::MuMap:
+			{
+				D("File is an image");
+				result = CConcordeFile::ConcordeMicropet_Image;
+			}
+			break;
+			default:
+				result = CConcordeFile::Unknown;
 		}
-		else if(head.filetype() == 5 || head.filetype() == 8)
-		{
-			D("file is a image");
-			return CConcordeFile::ConcordeMicropet_Image;
-		}
-		else
-			return CConcordeFile::Unknown;
         }
         else
         {
 		D("File is not from Concorde");
-		return CMedIOData::Unknown;
+		result = CMedIOData::Unknown;
 	}
+	RETURN(result);
+	return result;
+}
+
+CMedIOData* CConcordeFile::createFromFile(const QString& fileName)
+{
+	ENTER();
+	CMedIOData* data = NULL;	
+	if(CConcordeFile::isoftype(fileName) == CConcordeFile::ConcordeMicropet_Sinogram)
+	{
+		D("now creating real object");
+		data = new CConcordeSinogram(fileName);
+		D("done with creating real object");
+	}
+	else if(CConcordeFile::isoftype(fileName) == CConcordeFile::ConcordeMicropet_Image)
+	{
+		D("now creating real object");
+		data = new CConcordeImage(fileName);
+		D("done with creating real object");
+	}
+	else
+		data = NULL;
+	if(data == NULL) 
+		D("totally strange to me");
+	else
+		D("object seems to be set");
+	RETURN(data);
+	return data;
 }

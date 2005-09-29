@@ -56,11 +56,15 @@ PUB_HEADER =	CMedIOHeader.h \
 		ecat/ecat7/CECAT7SubHeaderPolarMap.h \
 		ecat/ecat7/CECAT7SubHeaderScan.h \
 		ecat/ecat7/CECAT7SubHeaderScan3D.h \
-#		micropet/CHeaderConcorde.h \
-#		micropet/CHeaderConcordeFrame.h \
-#		micropet/CConcordeFile.h \
-#		micropet/CConcordeSinogram.h \
-#   micropet/CConcordeImage.h
+		helpers/CKeyType.h \
+                helpers/CKeyValue.h \
+                helpers/CKeyParser.h \
+		micropet/CHeaderConcorde.h \
+		micropet/CHeaderConcordeFrame.h \
+		micropet/CConcordeFile.h \
+		micropet/CConcordeSinogram.h \
+		micropet/CConcordeImage.h \
+		micropet/CIntVector.h
 
 HEADERS  = $$PUB_HEADER
 
@@ -80,14 +84,17 @@ SOURCES  = \
 	   ecat/ecat7/CECAT7SubHeaderPolarMap.cpp \
 	   ecat/ecat7/CECAT7SubHeaderScan.cpp \
 	   ecat/ecat7/CECAT7SubHeaderScan3D.cpp \
-#	   micropet/CHeaderConcorde.cpp \
-#	   micropet/CHeaderConcordeFrame.cpp \
-#	   micropet/CConcordeFile.cpp \
-#	   micropet/CConcordeSinogram.cpp \
-#		 micropet/CConcordeImage.cpp
+	   helpers/CKeyValue.cpp \
+           helpers/CKeyParser.cpp \
+	   micropet/CHeaderConcorde.cpp \
+	   micropet/CHeaderConcordeFrame.cpp \
+	   micropet/CConcordeFile.cpp \
+	   micropet/CConcordeSinogram.cpp \
+	   micropet/CConcordeImage.cpp \
+	   micropet/CIntVector.cpp
 
 DEPENDPATH   = . ecat ecat/ecat6 ecat/ecat7 micropet
-INCLUDEPATH  = . include ecat ecat/ecat6 ecat/ecat7 micropet
+INCLUDEPATH  = . include ecat ecat/ecat6 ecat/ecat7 micropet helpers
 
 # UNIX based target platforms installation defines
 unix {

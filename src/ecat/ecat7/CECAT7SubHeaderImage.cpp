@@ -24,6 +24,7 @@
 #include "CECAT7SubHeaderImage.h"
 #include "CECATDirectoryItem.h"
 #include "CECATFile.h"
+#include "CHeaderConcorde.h"
 
 #include <QDataStream>
 
@@ -346,7 +347,18 @@ CMedIOHeader& CECAT7SubHeaderImage::copyData(const CMedIOHeader& src)
 
 		case CMedIOHeader::ConcordeMicropet:
 		{
-			#warning "Concorde->ECAT7SubHeader copy missing"
+			CHeaderConcorde* head = (CHeaderConcorde*)&src;
+			setData_Type(CECATSubHeader::SunShort);
+			setNum_Dimensions(3);
+			setX_Dimension(head->xdimension());
+			setY_Dimension(head->ydimension());
+			setZ_Dimension(head->zdimension());
+			setX_Pixel_Size(head->pixelsize());
+			setY_Pixel_Size(head->pixelsize());
+			setZ_Pixel_Size(head->axialplanesize());
+			setRecon_Zoom(1.0);
+			setNum_R_Elements(head->ydimension());
+			setNum_Angles(head->xdimension());
 		}
 		break;
 
