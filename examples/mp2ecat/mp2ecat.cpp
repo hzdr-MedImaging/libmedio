@@ -34,7 +34,7 @@ int main( int argc, char ** argv )
 		e7image.open(QIODevice::WriteOnly);	
 		CECAT7MainHeader* e7_header = (CECAT7MainHeader*)e7image.createEmptyMainHeader();
 		
-		*e7_header = *e7_header;
+		*static_cast<CMedIOHeader*>(e7_header) = *static_cast<CMedIOHeader*>(head);
 	
 		for(int i = 0; i < head->numframes(); i++)
 		{
@@ -83,7 +83,7 @@ int main( int argc, char ** argv )
 			
 			CECAT7SubHeaderImage* e7_subheader;
 			e7_subheader = (CECAT7SubHeaderImage*)e7image.createEmptySubHeader();
-			*e7_subheader = *head;
+			//*e7_subheader = *head;
 
 			e7_subheader->setScale_Factor(head->frame(i+1)->scalefactor()*scale_factor);
 			if(fabs(max) > fabs(min))
