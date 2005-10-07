@@ -141,6 +141,7 @@ void CHeaderConcorde::setDefaults()
 
 bool CHeaderConcorde::load()
 {
+	bool result = false;
 	//unset function should be used !!!
 	ENTER();
 	if(!m_pMedIOData)
@@ -150,8 +151,10 @@ bool CHeaderConcorde::load()
 		return false;	
 	}
 	QString File = m_pMedIOData->fileName() + ".hdr";
-	LEAVE();
-	return load(File);
+	
+	result = load(File);
+	RETURN(result);
+	return result;
 }
 
 //  Class: CHeaderConcorde
@@ -163,6 +166,7 @@ bool CHeaderConcorde::load()
 ////////////////////////////////////////////////////////////////////////////////
 bool CHeaderConcorde::load(QString File)
 {
+	ENTER();
 	D("Start Parsing File %s", File.toAscii().data());
 	if(Parser.parse(File))
 	{
@@ -179,6 +183,7 @@ bool CHeaderConcorde::load(QString File)
 		D("Headerfile %s nicht gefunden !", File.toAscii().data());
 		return false;
 	}
+	RETURN(true);
 	return true;
 }
 
@@ -377,6 +382,7 @@ bool CHeaderConcorde::init()
 
 CMedIOHeader& CHeaderConcorde::copyData(const CMedIOHeader& src)
 {
+	ENTER();
 	if(src.headerFormat() == CMedIOHeader::ConcordeMicropet)
 	{
 		//TODO: add CHeaderConcordeFrame to CMedIOHeader and check for it
@@ -417,8 +423,9 @@ CMedIOHeader& CHeaderConcorde::copyData(const CMedIOHeader& src)
 		m_Data.y_dimension = head->yDimension();
 		m_Data.z_dimension = head->zDimension();
 		m_Data.w_dimension = head->wDimension();
-		for(int i = 0; i < 11; i++)
-			m_Data.delta_elements[i] = head->deltaElements(i);
+		if(m_Data.w_dimension > 1)
+			for(int i = 0; i < m_Data.w_dimension; i++)
+				m_Data.delta_elements[i] = head->deltaElements(i);
 		m_Data.deadtime_correction_applied = head->deadtimeCorrectionApplied();
 		m_Data.decay_correction_applied = head->decayCorrectionApplied();
 		m_Data.normalization_applied = head->normalizationApplied();
@@ -452,5 +459,6 @@ CMedIOHeader& CHeaderConcorde::copyData(const CMedIOHeader& src)
 		m_Data.food_access = head->foodAccess();
 		m_Data.water_access = head->waterAccess();
 	}
+	RETURN(this);
 	return *this;
 }

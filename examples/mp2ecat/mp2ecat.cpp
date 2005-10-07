@@ -43,7 +43,7 @@ int main( int argc, char ** argv )
 					result = 1;
 				else
 				{
-					CECATFile e7image(StoreFileName,CECATMainHeader::ECAT7_Volume16);
+					CECATFile e7image(StoreFileName, CECATMainHeader::ECAT7_Volume16);
 					e7image.open(QIODevice::WriteOnly);	
 					CECAT7MainHeader* e7_header = (CECAT7MainHeader*)e7image.createEmptyMainHeader();
 					

@@ -6,7 +6,7 @@
 #ifndef CHEADERCONCORDEFRAME_H
 #define CHEADERCONCORDEFRAME_H
 
-#include <qstring.h>
+#include <QString>
 
 #include "CKeyParser.h"
 

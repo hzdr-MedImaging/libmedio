@@ -121,6 +121,8 @@ bool CConcordeFile::readMainHeader(CHeaderConcorde*& mainHeader)
 	{
 		//TODO: copy operator in CHeaderConcorde
 		W("TODO: copy operator in CHeaderConcorde"); 
+		delete mainHeader;
+		mainHeader = new CHeaderConcorde(fileName());
 		*mainHeader = *m_pCachedMainHeader;
 		result = true;
 	}
