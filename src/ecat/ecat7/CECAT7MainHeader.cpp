@@ -686,35 +686,35 @@ CMedIOHeader& CECAT7MainHeader::copyData(const CMedIOHeader& src)
 		case CMedIOHeader::ConcordeMicropet:
 		{
 			CHeaderConcorde* head = (CHeaderConcorde*)&src;
-			setOriginal_File_Name(head->filename().toAscii().data());
+			setOriginal_File_Name(head->fileName().toAscii().data());
 			setSystem_Type((short)head->model());
-			setScan_Start_Time(head->scantime());
+			setScan_Start_Time(head->scanTime());
 			setIsotope_Name(head->isotope().toAscii().data());
-			setIsotope_Halflife(head->isotopehalftime());
-			setBed_Elevation(head->frame(1)->verticalbedoffset());
-			setDistance_Scanned(head->radialfov());
-			setTransaxial_FOV(head->radialfov());
+			setIsotope_Halflife(head->isotopeHalfTime());
+			//setBed_Elevation(head->frame(1)->verticalbedoffset());
+			setDistance_Scanned(head->radialFov());
+			setTransaxial_FOV(head->radialFov());
 			setCoin_Samp_Mode(CECAT7MainHeader::NetTrues);
-			setCalibration_Factor(head->calibrationfactor());
+			setCalibration_Factor(head->calibrationFactor());
 
-			if(head->calibrationfactor() == 1.0F)
+			if(head->calibrationFactor() == 1.0F)
 				setCalibration_Units(CECAT7MainHeader::Uncalibrated);
 			else
 				setCalibration_Units(CECAT7MainHeader::Calibrated);
 			setStudy_Type(head->study().toAscii().data());
-			setPatient_ID(head->subjectidentifier().toAscii().data());
-			setPatient_Name(head->subjectidentifier().toAscii().data());
+			setPatient_ID(head->subjectIdentifier().toAscii().data());
+			setPatient_Name(head->subjectIdentifier().toAscii().data());
 			setPatient_Sex(CECAT7MainHeader::Sex_Male);
-			setPatient_Height(head->subjectlength());
-			setPatient_Weight(head->subjectweight());
+			setPatient_Height(head->subjectLength());
+			setPatient_Weight(head->subjectWeight());
 			setPhysician_Name(head->investigator().toAscii().data());
 			setOperator_Name(head->Operator().toAscii().data());
-			setStudy_Description(head->studyidentifier().toAscii().data());
-			if(head->acquisitionmode() == CHeaderConcorde::Emission)
+			setStudy_Description(head->studyIdentifier().toAscii().data());
+			if(head->acquisitionMode() == CHeaderConcorde::Emission)
 				setAcquisition_Type(CECAT7MainHeader::StaticEmission);
 			else
 				setAcquisition_Type(CECAT7MainHeader::DynamicEmission);
-			switch(head->subjectorientation())
+			switch(head->subjectOrientation())
 			{
 				case CHeaderConcorde::UnknownSubjectOrientation: setPatient_Orientation(CECAT7MainHeader::FF_Prone); break;
 				case CHeaderConcorde::FeetFirstProne: setPatient_Orientation(CECAT7MainHeader::FF_Prone); break;
@@ -727,15 +727,15 @@ CMedIOHeader& CECAT7MainHeader::copyData(const CMedIOHeader& src)
 				case CHeaderConcorde::HeadFirstLeft: setPatient_Orientation(CECAT7MainHeader::HF_Left); break;
 			}
 			setFacility_Name(head->institution().toAscii().data());
-			setNum_Planes(head->zdimension());
-			setNum_Frames(head->numframes());
+			setNum_Planes(head->zDimension());
+			setNum_Frames(head->totalFrames());
 			setLwr_True_Thres((short)head->lld());
 			setUpr_True_Thres((short)head->uld());
-			setBranching_Fraction(head->isotopebranchingfraction());
+			setBranching_Fraction(head->isotopeBranchingFraction());
 			setNum_Gates(1);
 			setNum_Bed_Pos(0);
-			setInit_Bed_Position(head->frame(1)->bedoffset());
-			setDose_Start_Time(head->injectiontime());
+			//setInit_Bed_Position(head->frame(1)->bedoffset());
+			setDose_Start_Time(head->injectionTime());
 			setDosage(head->dose());
 		}
 		break;
