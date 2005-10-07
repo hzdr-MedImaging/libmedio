@@ -29,8 +29,12 @@
 #define CCONCORDEFILE_H
 
 #include "CMedIOData.h"
+#include "CHeaderConcorde.h"
+#include "CHeaderConcordeFrame.h"
 
-#include <qstring.h>
+#include <QString>
+
+class CHeaderConcorde;
 
 //! @class CConcordeFile
 //! @brief class to handle all file produced by a concorde microPET scanner
@@ -43,13 +47,15 @@
 class CConcordeFile : public CMedIOData
 {
 	public :
-		enum FileType { Unknown = 0,
-										ConcordeMicropet_Image, 
-										ConcordeMicropet_Sinogram
-									};
+		enum FileType 
+		{ 
+			Unknown = 0,
+			ConcordeMicropet_Image, 
+			ConcordeMicropet_Sinogram
+		};
 
 		//! @brief constructor
-		//! @param file: complete path to file holding concorde microPET medical data
+		//! @param filename: complete path to file holding concorde microPET medical data
 		CConcordeFile(const QString& filename);
 
 		//! @brief destructor
@@ -66,6 +72,17 @@ class CConcordeFile : public CMedIOData
 		//! @brief saves the data  
 		//! @return true if saving is succesful otherwise false
 		void close();
+		
+		//! @brief reads the mainheader of the Concorde microPET file
+		//! @param mainHeader: Pointer to CHeaderConcorde object where mainheader should be stored to
+		//! @return true if reading is successful otherwise false
+		bool readMainHeader(CHeaderConcorde*& mainHeader);
+		
+		//! @brief reads the subheader of the Concorde microPET file
+		//! @param subHeader: Pointer to CHeaderConcordeFrame object where subheader should be stored to
+		//! @param frame: specify the frame - frame starts with 1 to number of frames in study
+		//! @return true if reading is successful otherwise false
+		bool readSubHeader(CHeaderConcordeFrame*& subHeader, int frame);		
 
 		//! @brief run time typeinformation  
 		//! @return specific class type at runtime
@@ -77,9 +94,10 @@ class CConcordeFile : public CMedIOData
 		//! @return specific format or Unknown if unknown or error
 		static int isoftype(QString file);
 		
-	private :
+		virtual bool readMatrix(QByteArray*&, short frame) = 0;		
+	protected :
 	//members
-		
+		CHeaderConcorde* m_pCachedMainHeader;
 	//methods
 };
 

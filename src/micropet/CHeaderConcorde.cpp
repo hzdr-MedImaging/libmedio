@@ -66,14 +66,14 @@ CHeaderConcorde::CHeaderConcorde(CConcordeFile* file)
 CHeaderConcorde::~CHeaderConcorde()
 {
 	ENTER();
-	QListIterator<CHeaderConcordeFrame*> nums_iter(frames);
+	//QListIterator<CHeaderConcordeFrame*> nums_iter(frames);
 	
-	while(nums_iter.hasNext())
-	{
-		CHeaderConcordeFrame* tmp = (CHeaderConcordeFrame*)nums_iter.next();
-		delete tmp;
-		tmp = NULL;
-	}
+	//while(nums_iter.hasNext())
+	//{
+	//	CHeaderConcordeFrame* tmp = (CHeaderConcordeFrame*)nums_iter.next();
+	//	delete tmp;
+	//	tmp = NULL;
+	//}
 	LEAVE();
 }
 
@@ -167,11 +167,11 @@ bool CHeaderConcorde::load(QString File)
 	if(Parser.parse(File))
 	{
 		D("Parsing of mainheader seems to be ok");
-		for(int i = 0; i < m_Data.total_frames; i++)
-		{
-			CHeaderConcordeFrame* frame = new CHeaderConcordeFrame(File, i);
-			frames.append(frame);
-		}
+		//for(int i = 0; i < m_Data.total_frames; i++)
+		//{
+		//	CHeaderConcordeFrame* frame = new CHeaderConcordeFrame(File, i);
+		//	frames.append(frame);
+		//}
 		
 	}
 	else
@@ -275,12 +275,12 @@ unsigned int CHeaderConcorde::getImageFrameSize()
 //!
 //! @return frame specific header
 ////////////////////////////////////////////////////////////////////////////////
-CHeaderConcordeFrame* CHeaderConcorde::frame(int i)
-{
-	if(frames.size() < i || i < 1)
-		return frames[0];
-	return frames[i-1];
-}
+//CHeaderConcordeFrame* CHeaderConcorde::frame(int i)
+//{
+//	if(frames.size() < i || i < 1)
+//		return frames[0];
+//	return frames[i-1];
+//}
 
 //  Class: CHeaderConcorde
 //  Method: init
@@ -377,5 +377,80 @@ bool CHeaderConcorde::init()
 
 CMedIOHeader& CHeaderConcorde::copyData(const CMedIOHeader& src)
 {
+	if(src.headerFormat() == CMedIOHeader::ConcordeMicropet)
+	{
+		//TODO: add CHeaderConcordeFrame to CMedIOHeader and check for it
+		W("TODO: add CHeaderConcordeFrame to CMedIOHeader and check for it");
+		CHeaderConcorde* head = (CHeaderConcorde*)&src;
+		m_Data.model = head->model();
+		m_Data.institution = head->institution();
+		m_Data.study = head->study();
+		m_Data.file_name = head->fileName();
+		m_Data.file_type = head->fileType();
+		m_Data.acquisition_mode = head->acquisitionMode();
+		m_Data.bed_motion = head->bedMotion();
+		m_Data.total_frames = head->totalFrames();
+		m_Data.isotope = head->isotope();
+		m_Data.isotope_half_time = head->isotopeHalfTime();
+		m_Data.isotope_branching_fraction = head->isotopeBranchingFraction();
+		m_Data.transaxial_crystals_per_block = head->transaxialCrystalsPerBlock();
+		m_Data.axial_crystals_per_block = head->axialCrystalsPerBlock();
+		m_Data.intrinsic_crystal_offset = head->intrinsicCrystalOffset();
+		m_Data.axial_blocks = head->axialBlocks();
+		m_Data.axial_crystal_pitch = head->axialCrystalPitch();
+		m_Data.radius = head->radius();
+		m_Data.radial_fov = head->radialFov();
+		m_Data.src_radius = head->srcRadius();
+		m_Data.src_cm_per_rev = head->srcCmPerRev();
+		m_Data.tx_src_type = head->txSrcType();
+		m_Data.transaxial_bin_size = head->transaxialBinSize();
+		m_Data.axial_plane_size = head->axialPlaneSize();
+		m_Data.pixel_size = head->pixelSize();
+		m_Data.lld = head->lld();
+		m_Data.uld = head->uld();
+		m_Data.data_type = head->dataType();
+		m_Data.data_order = head->dataOrder();
+		m_Data.span = head->span();
+		m_Data.ring_difference = head->ringDifference();
+		m_Data.number_of_dimensions = head->numberOfDimensions();
+		m_Data.x_dimension = head->xDimension();
+		m_Data.y_dimension = head->yDimension();
+		m_Data.z_dimension = head->zDimension();
+		m_Data.w_dimension = head->wDimension();
+		for(int i = 0; i < 11; i++)
+			m_Data.delta_elements[i] = head->deltaElements(i);
+		m_Data.deadtime_correction_applied = head->deadtimeCorrectionApplied();
+		m_Data.decay_correction_applied = head->decayCorrectionApplied();
+		m_Data.normalization_applied = head->normalizationApplied();
+		m_Data.attenuation_applied = head->attenuationApplied();
+		m_Data.scatter_correction = head->scatterCorrection();
+		m_Data.arc_correction_applied = head->arcCorrectionApplied();
+		m_Data.calibration_factor = head->calibrationFactor();
+		m_Data.calibration_branching_fraction = head->calibrationBranchingFraction();
+		m_Data.number_of_singles_rates = head->numberOfSinglesRates();
+		m_Data.investigator = head->investigator();
+		m_Data.Operator = head->Operator();
+		m_Data.study_identifier = head->studyIdentifier();
+		m_Data.scan_time = head->scanTime();
+		m_Data.injected_compound = head->injectedCompound();
+		m_Data.dose_units = head->doseUnits();
+		m_Data.dose = head->dose();
+		m_Data.injection_time = head->injectionTime();
+		m_Data.injection_decay_correction = head->injectionDecayCorrection();
+		m_Data.subject_identifier = head->subjectIdentifier();
+		m_Data.subject_genus = head->subjectGenus();
+		m_Data.subject_orientation = head->subjectOrientation();
+		m_Data.subject_length_units = head->subjectLengthUnits();
+		m_Data.subject_length = head->subjectLength();
+		m_Data.subject_weight_units = head->subjectWeightUnits();
+		m_Data.subject_weight = head->subjectWeight();
+		m_Data.subject_phenotype = head->subjectPhenotype();
+		m_Data.study_model = head->studyModel();
+		m_Data.anesthesia = head->anesthesia();
+		m_Data.analgesia = head->analgesia();
+		m_Data.other_drugs = head->otherDrugs();
+		m_Data.food_access = head->foodAccess();
+		m_Data.water_access = head->waterAccess();
+	}
 	return *this;
 }

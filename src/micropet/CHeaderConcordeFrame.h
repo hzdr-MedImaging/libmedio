@@ -36,27 +36,27 @@ class CHeaderConcordeFrame
 	//methods
 		//accessor methods
 		int frame(void) {return m_Data.frame;}
-		int eventtype(void) {return m_Data.event_type;}
+		int eventType(void) {return m_Data.event_type;}
 		int gate(void) {return m_Data.gate;}
 		int bed(void) {return m_Data.bed;}
-		float bedoffset(void) {return m_Data.bed_offset;}
-		float endingbedoffset(void) {return m_Data.ending_bed_offset;}
-		float verticalbedoffset(void) {return m_Data.vertical_bed_offset;}
-		QString datafilepointer(void) {return m_Data.data_file_pointer;}
-		float framestart(void) {return m_Data.frame_start;}
-		float frameduration(void) {return m_Data.frame_duration;}
-		float scalefactor(void) {return m_Data.scale_factor;}
+		float bedOffset(void) {return m_Data.bed_offset;}
+		float endingBedOffset(void) {return m_Data.ending_bed_offset;}
+		float verticalBedOffset(void) {return m_Data.vertical_bed_offset;}
+		QString dataFilePointer(void) {return m_Data.data_file_pointer;}
+		float frameStart(void) {return m_Data.frame_start;}
+		float frameDuration(void) {return m_Data.frame_duration;}
+		float scaleFactor(void) {return m_Data.scale_factor;}
 		float minimum(void) {return m_Data.minimum;}
 		float maximum(void) {return m_Data.maximum;}
-		float deadtimecorrection(void) {return m_Data.deadtime_correction;}
-		float decaycorrection(void) {return m_Data.decay_correction;}
+		float deadTimeCorrection(void) {return m_Data.deadtime_correction;}
+		float decayCorrection(void) {return m_Data.decay_correction;}
 		QString prompts(void) {return m_Data.prompts;}
 		QString delays(void) {return m_Data.delays;}
 		QString trues(void) {return m_Data.trues;}
-		int promptsrate(void) {return m_Data.prompts_rate;}
-		int delaysrate(void) {return m_Data.delays_rate;}
+		int promptsRate(void) {return m_Data.prompts_rate;}
+		int delaysRate(void) {return m_Data.delays_rate;}
 		float single(int i) {return m_Data.singles[i];}
-		float rawsingle(int i) {return m_Data.rawsingles[i];}
+		float rawSingle(int i) {return m_Data.rawsingles[i];}
 		
 		//mutator methods
 		void setFrame(int value) { m_Data.frame = value;}

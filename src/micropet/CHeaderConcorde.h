@@ -15,6 +15,8 @@
 #include "CKeyParser.h"
 #include "CIntVector.h"
 
+class CConcordeFile;
+
 //! @class CHeaderConcorde
 //! @brief class which handles concorde microPET headers
 //! @bug no bugs reported
@@ -92,86 +94,86 @@ class CHeaderConcorde : public CMedIOHeader
 		//accessor methods
 		//! @brief access frames starting with frame 1 as first frame -> i = 1
 		//! @return frame specific header
-		CHeaderConcordeFrame* frame(int i);
+		//CHeaderConcordeFrame* frame(int i);
 		
 		int model(void) {return m_Data.model;}
 		QString institution(void) {return m_Data.institution;}
 		QString study(void) {return m_Data.study;}
-		QString filename(void) {return m_Data.file_name;}
-		int filetype(void) {return m_Data.file_type;}
-		int acquisitionmode(void) {return m_Data.acquisition_mode;}
-		int bedmotion(void) {return m_Data.bed_motion;}
-		int numframes(void) {return m_Data.total_frames;}
+		QString fileName(void) {return m_Data.file_name;}
+		int fileType(void) {return m_Data.file_type;}
+		int acquisitionMode(void) {return m_Data.acquisition_mode;}
+		int bedMotion(void) {return m_Data.bed_motion;}
+		int totalFrames(void) {return m_Data.total_frames;}
 		
 		QString isotope(void) {return m_Data.isotope;}
-		float isotopehalftime(void) {return m_Data.isotope_half_time;}
-		float isotopebranchingfraction(void) {return m_Data.isotope_branching_fraction;}
+		float isotopeHalfTime(void) {return m_Data.isotope_half_time;}
+		float isotopeBranchingFraction(void) {return m_Data.isotope_branching_fraction;}
 		
-		int transaxialcrystalsperblock(void) {return m_Data.transaxial_crystals_per_block;}
-		int axialcrystalsperblock(void) {return m_Data.axial_crystals_per_block;}
-		int intrinsiccrystaloffset(void) {return m_Data.intrinsic_crystal_offset;}
-		int axialblocks(void) {return m_Data.axial_blocks;}
-		float axialcrystalpitch(void) {return m_Data.axial_crystal_pitch;}
+		int transaxialCrystalsPerBlock(void) {return m_Data.transaxial_crystals_per_block;}
+		int axialCrystalsPerBlock(void) {return m_Data.axial_crystals_per_block;}
+		int intrinsicCrystalOffset(void) {return m_Data.intrinsic_crystal_offset;}
+		int axialBlocks(void) {return m_Data.axial_blocks;}
+		float axialCrystalPitch(void) {return m_Data.axial_crystal_pitch;}
 		float radius(void) {return m_Data.radius;}
-		float radialfov(void) {return m_Data.radial_fov;}
-		float srcradius(void) {return m_Data.src_radius;}
-		float srccmperrev(void) {return m_Data.src_cm_per_rev;}
-		int txsrctype(void) {return m_Data.tx_src_type;}
-		float transaxialbinsize(void) {return m_Data.transaxial_bin_size;}
-		float axialplanesize(void) {return m_Data.axial_plane_size;}
+		float radialFov(void) {return m_Data.radial_fov;}
+		float srcRadius(void) {return m_Data.src_radius;}
+		float srcCmPerRev(void) {return m_Data.src_cm_per_rev;}
+		int txSrcType(void) {return m_Data.tx_src_type;}
+		float transaxialBinSize(void) {return m_Data.transaxial_bin_size;}
+		float axialPlaneSize(void) {return m_Data.axial_plane_size;}
 		float lld(void) {return m_Data.lld;}
 		float uld(void) {return m_Data.uld;}
 		
-		int datatype(void) {return m_Data.data_type;}
-		int dataorder(void){return m_Data.data_order;}
+		int dataType(void) {return m_Data.data_type;}
+		int dataOrder(void){return m_Data.data_order;}
 		int span(void) {return m_Data.span;}
-		int ringdifference(void) {return m_Data.ring_difference;}		
-		int numberofdimensions(void) {return m_Data.number_of_dimensions;}
-		int xdimension(void) {return m_Data.x_dimension;}
-		int ydimension(void) {return m_Data.y_dimension;}
-		int zdimension(void) {return m_Data.z_dimension;}
-		int wdimension(void) {return m_Data.w_dimension;}
-		int deltaelements(int i) {return m_Data.delta_elements[i];}
+		int ringDifference(void) {return m_Data.ring_difference;}		
+		int numberOfDimensions(void) {return m_Data.number_of_dimensions;}
+		int xDimension(void) {return m_Data.x_dimension;}
+		int yDimension(void) {return m_Data.y_dimension;}
+		int zDimension(void) {return m_Data.z_dimension;}
+		int wDimension(void) {return m_Data.w_dimension;}
+		int deltaElements(int i) {return m_Data.delta_elements[i];}
 		
-		int deadtimecorrectionapplied(void) {return m_Data.deadtime_correction_applied;}
-		int decaycorrectionapplied(void) {return m_Data.decay_correction_applied;}
-		int normalizationapplied(void) {return m_Data.normalization_applied;}
-		int attenuationapplied(void) {return m_Data.attenuation_applied;}
-		int scattercorrection(void) {return m_Data.scatter_correction;}
-		int arccorrection(void) {return m_Data.arc_correction_applied;}
+		int deadtimeCorrectionApplied(void) {return m_Data.deadtime_correction_applied;}
+		int decayCorrectionApplied(void) {return m_Data.decay_correction_applied;}
+		int normalizationApplied(void) {return m_Data.normalization_applied;}
+		int attenuationApplied(void) {return m_Data.attenuation_applied;}
+		int scatterCorrection(void) {return m_Data.scatter_correction;}
+		int arcCorrectionApplied(void) {return m_Data.arc_correction_applied;}
 		
-		float pixelsize(void) {return m_Data.pixel_size;}
+		float pixelSize(void) {return m_Data.pixel_size;}
 
-		float calibrationfactor(void) {return m_Data.calibration_factor;}
-		float calibrationbranchingfraction(void) {return m_Data.calibration_branching_fraction;}
-		int numberofsinglesrates(void) {return m_Data.number_of_singles_rates;}
+		float calibrationFactor(void) {return m_Data.calibration_factor;}
+		float calibrationBranchingFraction(void) {return m_Data.calibration_branching_fraction;}
+		int numberOfSinglesRates(void) {return m_Data.number_of_singles_rates;}
 		
 		QString investigator(void) {return m_Data.investigator;}
 		QString Operator(void) {return m_Data.Operator;}
-		QString studyidentifier(void) {return m_Data.study_identifier;}
-		long scantime(void) {return m_Data.scan_time;}
-		QString injectedcompound(void) {return m_Data.injected_compound;}
-		int doseunits(void) {return m_Data.dose_units;}
+		QString studyIdentifier(void) {return m_Data.study_identifier;}
+		long scanTime(void) {return m_Data.scan_time;}
+		QString injectedCompound(void) {return m_Data.injected_compound;}
+		int doseUnits(void) {return m_Data.dose_units;}
 		float dose(void) {return m_Data.dose;}
-		long injectiontime(void) {return m_Data.injection_time;}
-		float injectiondecaycorrection(void) {return m_Data.injection_decay_correction;}
+		long injectionTime(void) {return m_Data.injection_time;}
+		float injectionDecayCorrection(void) {return m_Data.injection_decay_correction;}
 		
 		
-		QString subjectidentifier(void) {return m_Data.subject_identifier;}
-		QString subjectgenus(void) {return m_Data.subject_genus;}
-		int subjectorientation(void) {return m_Data.subject_orientation;}
-		int subjectlengthunits(void) {return m_Data.subject_length_units;}
-		float subjectlength(void) {return m_Data.subject_length;}
-		int subjectweightunits(void) {return m_Data.subject_weight_units;}
-		float subjectweight(void) {return m_Data.subject_weight;}
-		QString subjectphenotype(void) {return m_Data.subject_phenotype;}
-		QString studymodel(void) {return m_Data.study_model;}
+		QString subjectIdentifier(void) {return m_Data.subject_identifier;}
+		QString subjectGenus(void) {return m_Data.subject_genus;}
+		int subjectOrientation(void) {return m_Data.subject_orientation;}
+		int subjectLengthUnits(void) {return m_Data.subject_length_units;}
+		float subjectLength(void) {return m_Data.subject_length;}
+		int subjectWeightUnits(void) {return m_Data.subject_weight_units;}
+		float subjectWeight(void) {return m_Data.subject_weight;}
+		QString subjectPhenotype(void) {return m_Data.subject_phenotype;}
+		QString studyModel(void) {return m_Data.study_model;}
 		
 		QString anesthesia(void) {return m_Data.anesthesia;}
 		QString analgesia(void) {return m_Data.analgesia;}
-		QString otherdrugs(void) {return m_Data.other_drugs;}
-		QString foodaccess(void) {return m_Data.food_access;}
-		QString wateraccess(void) {return m_Data.water_access;}
+		QString otherDrugs(void) {return m_Data.other_drugs;}
+		QString foodAccess(void) {return m_Data.food_access;}
+		QString waterAccess(void) {return m_Data.water_access;}
 		
 		//mutator methods
 		void setModel(int value) { m_Data.model = value;}
@@ -256,7 +258,7 @@ class CHeaderConcorde : public CMedIOHeader
 	
 	private :
 	//members
-		QList<CHeaderConcordeFrame*> frames;
+		//QList<CHeaderConcordeFrame*> frames;
 		CKeyParser Parser;
 		typedef struct //Concorde Micropet Header <--> ECAT7 Header
     		{

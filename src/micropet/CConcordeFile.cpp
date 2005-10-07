@@ -68,11 +68,24 @@ bool CConcordeFile::open(QIODevice::OpenModeFlag mode)
 {
 	ENTER();
 	bool result = false;
-	//initalise and load header
-	D("Creating headerobject");
-	m_pHeader = new CHeaderConcorde(this);
-	D("Loading header information");
-	result = m_pHeader->load();
+	
+	if(isOpen())
+	{
+		W("File is already opened");
+		result = false;
+	}
+	else
+	{
+		//initalise and load header
+		D("Creating headerobject");
+		m_pCachedMainHeader = new CHeaderConcorde(this);
+		D("Loading header information");
+		result = m_pCachedMainHeader->load();
+	
+		if(result)
+			if((result = QFile::open(mode)) == false)
+				QFile::close();
+	}
 	RETURN(result);
 	return result;
 }
@@ -86,8 +99,54 @@ bool CConcordeFile::open(QIODevice::OpenModeFlag mode)
 ////////////////////////////////////////////////////////////////////////////////
 void CConcordeFile::close()
 {
-	m_pHeader->save();
+	ENTER();
+	m_pCachedMainHeader->save();
+	delete m_pCachedMainHeader;
+	QFile::close();
+	LEAVE();
 	return;
+}
+
+bool CConcordeFile::readMainHeader(CHeaderConcorde*& mainHeader)
+{
+	ENTER();
+	bool result = false;
+	if(!isOpen())
+	{
+		W("Can not read mainheader if file is closed");
+		result = false;
+		mainHeader = NULL;
+	}
+	else
+	{
+		//TODO: copy operator in CHeaderConcorde
+		W("TODO: copy operator in CHeaderConcorde"); 
+		*mainHeader = *m_pCachedMainHeader;
+		result = true;
+	}
+	RETURN(result);
+	return result;
+}
+
+bool CConcordeFile::readSubHeader(CHeaderConcordeFrame*& subHeader, int frame)
+{
+	ENTER();
+	bool result = false;
+	if(!isOpen())
+	{
+		W("Can not read mainheader if file is closed");
+		result = false;
+		subHeader = NULL;
+	}
+	else
+	{
+		//TODO: check if frame is in between 1 and number of frames in study
+		W("TODO: check if frame is in between 1 and number of frames in study");
+		subHeader = new CHeaderConcordeFrame(fileName(), frame);
+		result = true;
+	}
+	RETURN(result);
+	return result;
 }
 
 //  Class: CConcordeFile
@@ -121,7 +180,7 @@ int CConcordeFile::isoftype(QString file)
 		//file type = 5 -> Image
 		//file type = 8 -> Mu map ( also image )
 		// since attenuationfile/Normalisation is a sinogram we could define it as one 
-		switch(head.filetype())
+		switch(head.fileType())
 		{
 			case CHeaderConcorde::Sinogram:
 			case CHeaderConcorde::Normalization:
