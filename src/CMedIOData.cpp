@@ -41,7 +41,7 @@
 CMedIOData::CMedIOData(const QString& fileName)
 	: QFile(fileName)
 {
-	m_pHeader = NULL;
+	//m_pHeader = NULL;
 	m_iErrStatus = MERR_Ok;
 }
 
@@ -53,7 +53,7 @@ CMedIOData::CMedIOData(const QString& fileName)
 ////////////////////////////////////////////////////////////////////////////////
 CMedIOData::~CMedIOData()
 {
-	if(m_pHeader)
-		delete m_pHeader;
+	//if(m_pHeader)
+	//	delete m_pHeader;
 }
 

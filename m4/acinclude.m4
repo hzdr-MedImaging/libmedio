@@ -1167,7 +1167,7 @@ AC_DEFUN(AC_PATH_QT4_QMAKE,
       QMAKE_PATH,
       qmake,
       qmake,
-      /usr/lib/qt4/bin:/usr/bin:/usr/X11R6/bin:/usr/lib/qt/bin:/usr/local/qt/bin:/Developer/qt4/bin:$PATH
+      /usr/local/qt4/bin:/usr/lib/qt4/bin:/usr/bin:/usr/X11R6/bin:/usr/lib/qt/bin:/usr/local/qt/bin:/Developer/qt4/bin:$PATH
     )
   else
     AC_MSG_CHECKING(for qmake)

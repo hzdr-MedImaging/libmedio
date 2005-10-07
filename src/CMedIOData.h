@@ -81,14 +81,14 @@ class CMedIOData : public QFile
 		
 		//! @brief access to associated header of medical data
 		//! @return header of medical data
-		CMedIOHeader* header() const { return m_pHeader; }
+		//CMedIOHeader* header() const { return m_pHeader; }
 		
 		//! @brief for querying error status information
 		//! @return integer value for the specific error reason
 		int errorStatus(void) const { return m_iErrStatus; }
 
 	protected :
-		CMedIOHeader* m_pHeader;	//!< associated header of medical data
+		//CMedIOHeader* m_pHeader;	//!< associated header of medical data
 		int						m_iErrStatus;  //!< error status variable
 };
 
