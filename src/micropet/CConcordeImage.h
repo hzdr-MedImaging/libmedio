@@ -35,7 +35,7 @@ class CConcordeImage : public CConcordeFile
 	//methods
 		//! @brief access to data of an imagevolume 
 		//! @return array with data of specific frame in imagevolume or NULL on error
-		bool readMatrix(QByteArray*&, short frame);
+		//bool readMatrix(QByteArray*&, short frame);
 		
 		//! @brief run time typeinformation  
 		//! @return specific class type at runtime

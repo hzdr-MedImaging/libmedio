@@ -36,7 +36,7 @@ class CConcordeSinogram : public CConcordeFile
 	//methods
 		//! @brief access to data of a sinogram 
 		//! @return array with data of specific frame in sinogram or NULL on error 
-		bool readMatrix(QByteArray*& matrixData, short frame);
+		//bool readMatrix(QByteArray*& matrixData, short frame);
 		
 		//! @brief run time typeinformation  
 		//! @return specific class type at runtime
