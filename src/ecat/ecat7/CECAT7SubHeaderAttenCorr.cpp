@@ -253,11 +253,12 @@ CMedIOHeader& CECAT7SubHeaderAttenCorr::copyData(const CMedIOHeader& src)
 		}
 
 		case CMedIOHeader::ECATMainHeader:
+		case CMedIOHeader::ConcordeMicroPetMainHeader:
 			// copying a main header into a sub header doesn't make much sense, so we
 			// do nothing here
 		break;
 
-		case CMedIOHeader::ConcordeMicropet:
+		case CMedIOHeader::ConcordeMicroPetFrameHeader:
 		{
 			#warning "Concorde->ECAT7SubHeader copy missing"
 		}

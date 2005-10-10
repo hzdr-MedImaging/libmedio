@@ -5,7 +5,7 @@
 #include <CECATFile.h>
 #include <CECAT7MainHeader.h>
 #include <CECAT7SubHeaderImage.h>
-#include <CHeaderConcorde.h>
+#include <CConcordeMainHeader.h>
 #include <CConcordeImage.h>
 #include <CMedIOData.h>
 #include <CMedIODataFactory.h>
@@ -38,8 +38,8 @@ int main( int argc, char ** argv )
 				result = 1;
 			else
 			{
-				CHeaderConcorde* head = NULL;
-				if(!((CConcordeFile*)ImageVolume)->readMainHeader(head) || !(head->fileType() == CHeaderConcorde::Image))
+				CConcordeMainHeader* head = NULL;
+				if(!((CConcordeFile*)ImageVolume)->readMainHeader(head) || !(head->fileType() == CConcordeMainHeader::Image))
 					result = 1;
 				else
 				{
@@ -52,7 +52,7 @@ int main( int argc, char ** argv )
 					for(int i = 0; i < head->totalFrames(); i++)
 					{
 						QByteArray* data = NULL;
-						CHeaderConcordeFrame* subHeader = NULL;
+						CConcordeFrameHeader* subHeader = NULL;
 						if(!((CConcordeFile*)ImageVolume)->readSubHeader(subHeader, i+1) || !((CConcordeFile*)ImageVolume)->readMatrix(data, i+1))
 						{
 							result = 1;
@@ -62,7 +62,8 @@ int main( int argc, char ** argv )
 						}
 						else
 						{	
-							unsigned int framesize = head->getImageFrameSize();
+							unsigned int framesize = head->frameSize();
+							cout << "Framesize: " << framesize << endl;
 							float* b = (float*)data->data();
 							
 							char* byte_image = new char[framesize/2];
@@ -97,17 +98,17 @@ int main( int argc, char ** argv )
 							}
 						
 							cout << "Scalefactor: " << scale_factor << endl;
-							cout << subHeader->scaleFactor() << endl;
-							
+							cout << "Scale factor in header: " << subHeader->scaleFactor() << endl;
+
 							delete data;
 							data = new QByteArray(byte_image,framesize/2);
 							delete byte_image;
 							
 							CECAT7SubHeaderImage* e7_subheader;
 							e7_subheader = (CECAT7SubHeaderImage*)e7image.createEmptySubHeader();
-							
-							//*static_cast<CMedIOHeader*>(e7_subheader) = *static_cast<CMedIOHeader*>(subHeader);
-				
+							e7_subheader->setData_Type(CECATSubHeader::SunShort);
+							*static_cast<CMedIOHeader*>(e7_subheader) = *static_cast<CMedIOHeader*>(subHeader);
+							 
 							e7_subheader->setScale_Factor(subHeader->scaleFactor()*scale_factor);
 							if(fabs(max) > fabs(min))
 							{
@@ -119,9 +120,6 @@ int main( int argc, char ** argv )
 								e7_subheader->setImage_Max((short)ceil(min*scale_factor));
 								e7_subheader->setImage_Min(-32768);
 							}
-							e7_subheader->setFrame_Duration((int)(subHeader->frameDuration()*1000.0));
-							e7_subheader->setFrame_Start_Time((int)(subHeader->frameStart()*1000.0));
-							e7_subheader->setDecay_Corr_Fctr(subHeader->decayCorrection());
 							e7image.writeSubHeader(*e7_subheader, i+1);
 							e7image.writeMatrix(*data,i+1);
 							delete data;
@@ -137,7 +135,7 @@ int main( int argc, char ** argv )
 	}
 	else
 	{
-		cout << "no input or outputfilename given" << endl;			
+		cout << "No input or outputfilename given" << endl;			
 		result = 1;
 	}
 	return result;

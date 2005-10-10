@@ -23,7 +23,7 @@
 
 #include "CECAT7MainHeader.h"
 #include "CECAT6MainHeader.h"
-#include "CHeaderConcorde.h"
+#include "CConcordeMainHeader.h"
 #include "CECATFile.h"
 
 #include <QDataStream>
@@ -677,21 +677,16 @@ CMedIOHeader& CECAT7MainHeader::copyData(const CMedIOHeader& src)
 			// afterwards we have to make sure sensible data is restored
 			m_Data.SW_Version = 72; // This header does conform to the ECAT 7.2 standard
 		}
-
-		case CMedIOHeader::ECATSubHeader:
-			// copying a sub header into a main header doesn't make much sense, so we
-			// do nothing here
 		break;
-
-		case CMedIOHeader::ConcordeMicropet:
+		case CMedIOHeader::ConcordeMicroPetMainHeader:
 		{
-			CHeaderConcorde* head = (CHeaderConcorde*)&src;
+			CConcordeMainHeader* head = (CConcordeMainHeader*)&src;
 			setOriginal_File_Name(head->fileName().toAscii().data());
 			setSystem_Type((short)head->model());
 			setScan_Start_Time(head->scanTime());
 			setIsotope_Name(head->isotope().toAscii().data());
 			setIsotope_Halflife(head->isotopeHalfTime());
-			//setBed_Elevation(head->frame(1)->verticalbedoffset());
+			
 			setDistance_Scanned(head->radialFov());
 			setTransaxial_FOV(head->radialFov());
 			setCoin_Samp_Mode(CECAT7MainHeader::NetTrues);
@@ -705,26 +700,27 @@ CMedIOHeader& CECAT7MainHeader::copyData(const CMedIOHeader& src)
 			setPatient_ID(head->subjectIdentifier().toAscii().data());
 			setPatient_Name(head->subjectIdentifier().toAscii().data());
 			setPatient_Sex(CECAT7MainHeader::Sex_Male);
+			
 			setPatient_Height(head->subjectLength());
-			setPatient_Weight(head->subjectWeight());
+			setPatient_Weight(head->subjectWeight()/1000.0);
 			setPhysician_Name(head->investigator().toAscii().data());
 			setOperator_Name(head->Operator().toAscii().data());
 			setStudy_Description(head->studyIdentifier().toAscii().data());
-			if(head->acquisitionMode() == CHeaderConcorde::Emission)
+			if(head->acquisitionMode() == CConcordeMainHeader::Emission)
 				setAcquisition_Type(CECAT7MainHeader::StaticEmission);
 			else
 				setAcquisition_Type(CECAT7MainHeader::DynamicEmission);
 			switch(head->subjectOrientation())
 			{
-				case CHeaderConcorde::UnknownSubjectOrientation: setPatient_Orientation(CECAT7MainHeader::FF_Prone); break;
-				case CHeaderConcorde::FeetFirstProne: setPatient_Orientation(CECAT7MainHeader::FF_Prone); break;
-				case CHeaderConcorde::HeadFirstProne: setPatient_Orientation(CECAT7MainHeader::HF_Prone); break;
-				case CHeaderConcorde::FeetFirstSupine: setPatient_Orientation(CECAT7MainHeader::FF_Supine); break;
-				case CHeaderConcorde::HeadFirstSupine: setPatient_Orientation(CECAT7MainHeader::HF_Supine); break;
-				case CHeaderConcorde::FeetFirstRight: setPatient_Orientation(CECAT7MainHeader::FF_Right); break;
-				case CHeaderConcorde::HeadFirstRight: setPatient_Orientation(CECAT7MainHeader::HF_Right); break;
-				case CHeaderConcorde::FeetFirstLeft: setPatient_Orientation(CECAT7MainHeader::FF_Left); break;
-				case CHeaderConcorde::HeadFirstLeft: setPatient_Orientation(CECAT7MainHeader::HF_Left); break;
+				case CConcordeMainHeader::UnknownSubjectOrientation: setPatient_Orientation(CECAT7MainHeader::FF_Prone); break;
+				case CConcordeMainHeader::FeetFirstProne: setPatient_Orientation(CECAT7MainHeader::FF_Prone); break;
+				case CConcordeMainHeader::HeadFirstProne: setPatient_Orientation(CECAT7MainHeader::HF_Prone); break;
+				case CConcordeMainHeader::FeetFirstSupine: setPatient_Orientation(CECAT7MainHeader::FF_Supine); break;
+				case CConcordeMainHeader::HeadFirstSupine: setPatient_Orientation(CECAT7MainHeader::HF_Supine); break;
+				case CConcordeMainHeader::FeetFirstRight: setPatient_Orientation(CECAT7MainHeader::FF_Right); break;
+				case CConcordeMainHeader::HeadFirstRight: setPatient_Orientation(CECAT7MainHeader::HF_Right); break;
+				case CConcordeMainHeader::FeetFirstLeft: setPatient_Orientation(CECAT7MainHeader::FF_Left); break;
+				case CConcordeMainHeader::HeadFirstLeft: setPatient_Orientation(CECAT7MainHeader::HF_Left); break;
 			}
 			setFacility_Name(head->institution().toAscii().data());
 			setNum_Planes(head->zDimension());
@@ -734,10 +730,27 @@ CMedIOHeader& CECAT7MainHeader::copyData(const CMedIOHeader& src)
 			setBranching_Fraction(head->isotopeBranchingFraction());
 			setNum_Gates(1);
 			setNum_Bed_Pos(0);
-			//setInit_Bed_Position(head->frame(1)->bedoffset());
 			setDose_Start_Time(head->injectionTime());
-			setDosage(head->dose());
+
+			setDosage(head->dose()*1000000.0);
+
+			//check if additional information is available
+			if(head->fileObject())
+			{
+				D("Setting additional information to ECAT7 main header");
+				CConcordeFrameHeader* frame;
+				((CConcordeFile*)head->fileObject())->readSubHeader(frame, 1);
+				
+				setInit_Bed_Position(frame->bedOffset());
+				setBed_Elevation(frame->verticalBedOffset());
+			}
 		}
+		break;
+		
+		case CMedIOHeader::ECATSubHeader:
+		case CMedIOHeader::ConcordeMicroPetFrameHeader:
+			// copying a sub header into a main header doesn't make much sense, so we
+			// do nothing here
 		break;
 
 		case CMedIOHeader::Unknown:

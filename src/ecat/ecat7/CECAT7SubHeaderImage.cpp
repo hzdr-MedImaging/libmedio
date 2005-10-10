@@ -24,7 +24,7 @@
 #include "CECAT7SubHeaderImage.h"
 #include "CECATDirectoryItem.h"
 #include "CECATFile.h"
-#include "CHeaderConcorde.h"
+#include "CConcordeMainHeader.h"
 
 #include <QDataStream>
 
@@ -339,28 +339,38 @@ CMedIOHeader& CECAT7SubHeaderImage::copyData(const CMedIOHeader& src)
 				#warning "non Image copy not complete"
 			}
 		}
-
+		break;
 		case CMedIOHeader::ECATMainHeader:
+		case CMedIOHeader::ConcordeMicroPetMainHeader:
 			// copying a main header into a sub header doesn't make much sense, so we
 			// do nothing here
 		break;
 
-		case CMedIOHeader::ConcordeMicropet:
+		case CMedIOHeader::ConcordeMicroPetFrameHeader:
 		{
-			//TODO: check for CHeaderConcordeFrame
-			W("copying of ConcordeMicropet Frame to ECAT not implemented yet");
-			//CHeaderConcorde* head = (CHeaderConcorde*)&src;
-			//setData_Type(CECATSubHeader::SunShort);
-			//setNum_Dimensions(3);
-			//setX_Dimension(head->xdimension());
-			//setY_Dimension(head->ydimension());
-			//setZ_Dimension(head->zdimension());
-			//setX_Pixel_Size(head->pixelsize());
-			//setY_Pixel_Size(head->pixelsize());
-			//setZ_Pixel_Size(head->axialplanesize());
-			//setRecon_Zoom(1.0);
-			//setNum_R_Elements(head->ydimension());
-			//setNum_Angles(head->xdimension());
+			CConcordeFrameHeader* head = (CConcordeFrameHeader*)&src;
+			setData_Type(CECATSubHeader::SunShort);
+			setNum_Dimensions(3);
+			setRecon_Zoom(1.0);
+			setFrame_Duration((int)(head->frameDuration()*1000.0));
+			setFrame_Start_Time((int)(head->frameStart()*1000.0));
+			setDecay_Corr_Fctr(head->decayCorrection());
+			
+			//check for additional information
+			if(head->fileObject())
+			{
+				D("Setting additional information to ECAT7 sub header");
+				CConcordeMainHeader* mainHeader = NULL;
+				((CConcordeFile*)head->fileObject())->readMainHeader(mainHeader);
+				setX_Dimension(mainHeader->xDimension());
+				setY_Dimension(mainHeader->yDimension());
+				setZ_Dimension(mainHeader->zDimension());
+				setX_Pixel_Size(mainHeader->pixelSize());
+				setY_Pixel_Size(mainHeader->pixelSize());
+				setZ_Pixel_Size(mainHeader->axialPlaneSize());
+				setNum_R_Elements(mainHeader->yDimension());
+				setNum_Angles(mainHeader->xDimension());
+			}
 		}
 		break;
 

@@ -41,6 +41,10 @@ class CConcordeSinogram : public CConcordeFile
 		//! @brief run time typeinformation  
 		//! @return specific class type at runtime
 		int fileType() {return CConcordeFile::ConcordeMicropet_Sinogram;}
+
+		//! @brief loads a given file 
+		//! @return true if loading is succesful otherwise false
+		bool open(QIODevice::OpenModeFlag mode);
 		
 	private :
 	//members

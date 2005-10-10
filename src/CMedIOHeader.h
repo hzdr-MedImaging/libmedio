@@ -44,11 +44,13 @@ class CMedIOData;
 class CMedIOHeader
 {
 	public:
-		enum Format {	Unknown = 0,
-									ConcordeMicropet,	//!< header of concorde microPET scanner
-									ECATMainHeader,		//!< main header of ECAT6/7 PET scanners
-									ECATSubHeader			//!< sub header of ECAT6/7 PET scanners
-								};
+		enum Format 
+		{	Unknown = 0,
+			ConcordeMicroPetMainHeader,	//!< main header of concorde microPET scanner
+			ConcordeMicroPetFrameHeader,	//!< frame header of concorde microPET scanner
+			ECATMainHeader,			//!< main header of ECAT6/7 PET scanners
+			ECATSubHeader			//!< sub header of ECAT6/7 PET scanners
+		};
 
 		CMedIOHeader(CMedIOData* data)
 			: m_pMedIOData(data)

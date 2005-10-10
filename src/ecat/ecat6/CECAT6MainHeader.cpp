@@ -348,15 +348,16 @@ CMedIOHeader& CECAT6MainHeader::copyData(const CMedIOHeader& src)
 			m_Data.SW_Version = 60; // This header does conform to the ECAT 6.0 standard
 		}
 
-		case CMedIOHeader::ECATSubHeader:
-			// copying a sub header into a main header doesn't make much sense, so we
-			// do nothing here
-		break;
-
-		case CMedIOHeader::ConcordeMicropet:
+		case CMedIOHeader::ConcordeMicroPetMainHeader:
 		{
 			#warning "Concorde->ECAT6 copy missing"
 		}
+		break;
+
+		case CMedIOHeader::ECATSubHeader:
+		case CMedIOHeader::ConcordeMicroPetFrameHeader:
+			// copying a sub header into a main header doesn't make much sense, so we
+			// do nothing here
 		break;
 
 		case CMedIOHeader::Unknown:

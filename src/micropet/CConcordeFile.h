@@ -29,12 +29,13 @@
 #define CCONCORDEFILE_H
 
 #include "CMedIOData.h"
-#include "CHeaderConcorde.h"
-#include "CHeaderConcordeFrame.h"
+#include "CConcordeMainHeader.h"
+#include "CConcordeFrameHeader.h"
 
 #include <QString>
 
-class CHeaderConcorde;
+class CConcordeMainHeader;
+class CConcordeFrameHeader;
 
 //! @class CConcordeFile
 //! @brief class to handle all file produced by a concorde microPET scanner
@@ -67,7 +68,7 @@ class CConcordeFile : public CMedIOData
 
 		//! @brief loads a given file 
 		//! @return true if loading is succesful otherwise false
-		bool open(QIODevice::OpenModeFlag mode);
+		//bool open(QIODevice::OpenModeFlag mode);
 
 		//! @brief saves the data  
 		//! @return true if saving is succesful otherwise false
@@ -76,13 +77,13 @@ class CConcordeFile : public CMedIOData
 		//! @brief reads the mainheader of the Concorde microPET file
 		//! @param mainHeader: Pointer to CHeaderConcorde object where mainheader should be stored to
 		//! @return true if reading is successful otherwise false
-		bool readMainHeader(CHeaderConcorde*& mainHeader);
+		bool readMainHeader(CConcordeMainHeader*& mainHeader);
 		
 		//! @brief reads the subheader of the Concorde microPET file
 		//! @param subHeader: Pointer to CHeaderConcordeFrame object where subheader should be stored to
 		//! @param frame: specify the frame - frame starts with 1 to number of frames in study
 		//! @return true if reading is successful otherwise false
-		bool readSubHeader(CHeaderConcordeFrame*& subHeader, int frame);		
+		bool readSubHeader(CConcordeFrameHeader*& subHeader, int frame);		
 
 		//! @brief run time typeinformation  
 		//! @return specific class type at runtime
@@ -94,10 +95,10 @@ class CConcordeFile : public CMedIOData
 		//! @return specific format or Unknown if unknown or error
 		static int isoftype(QString file);
 		
-		virtual bool readMatrix(QByteArray*&, short frame) = 0;		
+		bool readMatrix(QByteArray*&, short frame);		
 	protected :
 	//members
-		CHeaderConcorde* m_pCachedMainHeader;
+		CConcordeMainHeader* m_pCachedMainHeader;
 	//methods
 };
 
