@@ -67,7 +67,6 @@ CMedIOData* CMedIODataFactory::create(const QString& fileName)
 	CMedIOData* mData;
 
 	// here we check for our different main data formats 
-	//if(!(mData = CConcordeFile::createFromFile(fileName)))
 	if(!(mData = CECATFile::createFromFile(fileName)))
 		mData = NULL;
 	if(!(mData = CConcordeFile::createFromFile(fileName)))

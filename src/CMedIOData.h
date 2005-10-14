@@ -55,9 +55,11 @@ class CMedIOData : public QFile
 
 		//! @enum enumeration carrying special IO error codes which
 		//!       can be queried with the errorStatus() method.
-		enum errStatus { MERR_Ok = 0,					 //!< No Error
-										 MERR_Unspecified = 1, //!< Some unspecified error occurred
-									 };
+		enum errStatus 
+		{ 
+			MERR_Ok = 0,	//!< No Error
+			MERR_Unspecified = 1, //!< Some unspecified error occurred
+		};
 
 		
 		//! @brief constructor
@@ -81,7 +83,7 @@ class CMedIOData : public QFile
 		
 		//! @brief access to associated header of medical data
 		//! @return header of medical data
-		CMedIOHeader* header() const { return m_pHeader; }
+		//CMedIOHeader* header() const { return m_pHeader; }
 		
 		//! @brief access to filename
 		//! @return filename of medical data file
@@ -92,8 +94,8 @@ class CMedIOData : public QFile
 		int errorStatus(void) const { return m_iErrStatus; }
 
 	protected :
-		CMedIOHeader* m_pHeader;	//!< associated header of medical data
-		int						m_iErrStatus;  //!< error status variable
+		//CMedIOHeader* m_pHeader;	//!< associated header of medical data
+		int	m_iErrStatus;  		//!< error status variable
 };
 
 #endif

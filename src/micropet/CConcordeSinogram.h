@@ -36,11 +36,15 @@ class CConcordeSinogram : public CConcordeFile
 	//methods
 		//! @brief access to data of a sinogram 
 		//! @return array with data of specific frame in sinogram or NULL on error 
-		QByteArray* getMatrix(short frame);
+		//QByteArray* getMatrix(short frame);
 		
 		//! @brief run time typeinformation  
 		//! @return specific class type at runtime
 		int fileType() {return CConcordeFile::ConcordeMicropet_Sinogram;}
+
+		//! @brief loads a given file
+                //! @return true if loading is succesful otherwise false
+                bool open(int mode);
 		
 	private :
 	//members

@@ -36,12 +36,16 @@ class CConcordeImage : public CConcordeFile
 	//methods
 		//! @brief access to data of an imagevolume 
 		//! @return array with data of specific frame in imagevolume or NULL on error
-		QByteArray* getMatrix(short frame, short plane, 
-			short gate, short bed, short data);
+		//QByteArray* getMatrix(short frame, short plane, 
+		//	short gate, short bed, short data);
 		
 		//! @brief run time typeinformation  
 		//! @return specific class type at runtime
 		int fileType() {return CConcordeFile::ConcordeMicropet_Image;}
+
+		//! @brief loads a given file
+                //! @return true if loading is succesful otherwise false
+                bool open(int mode);
 		
 	private :
 	//members
