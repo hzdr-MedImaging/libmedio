@@ -6,6 +6,14 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-10-21  Hagen Mölle <draggore@gmx.de>
+
+  * misc: changed concorde microPET files so they resemble new medio interface
+    buffered reading of data of concorde microPET files
+    copy operator CConcordeMainHeader to CECATMainHeader implemented
+    copy operator CConcordeFrameHeader to CECAT7ImageSubheader implemented
+    generally useable keyparser for text headerfiles
+
 2005-08-12  Jens Langner <Jens.Langner@light-speed.de>
 
   * misc: did forget some more pack() and also found out that I still compiled

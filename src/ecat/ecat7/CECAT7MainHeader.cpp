@@ -314,7 +314,7 @@ bool CECAT7MainHeader::load(void)
 	D("Gates                   : %d",							m_Data.Num_Gates);
 	D("Bed positions           : %d",							m_Data.Num_Bed_Pos);
 	D("Initial Bed position    : %f cm",					m_Data.Init_Bed_Position);
-	for(int i=0; i < m_Data.Num_Bed_Pos; i++)
+	for(int i=0; i < 15; i++)
 	{
 		D("Bed offset          [%2d]: %f cm", i+1, m_Data.Bed_Offset[i]);
 	}
