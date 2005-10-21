@@ -882,20 +882,22 @@ CECATMainHeader* CECATFile::createEmptyMainHeader(void)
 {
 	ENTER();
 	CECATMainHeader* pEmptyMainHeader = NULL;
-
-	switch(m_iECATformat)
+  if(isOpen())
 	{
-		case CECATFile::ECAT7:
-			pEmptyMainHeader = new CECAT7MainHeader(this, m_iMainHeaderType);
-		break;
+			switch(m_iECATformat)
+			{
+				case CECATFile::ECAT7:
+					pEmptyMainHeader = new CECAT7MainHeader(this, m_iMainHeaderType);
+				break;
 
-		case CECATFile::ECAT6:
-			pEmptyMainHeader = new CECAT6MainHeader(this, m_iMainHeaderType);
-		break;
+				case CECATFile::ECAT6:
+					pEmptyMainHeader = new CECAT6MainHeader(this, m_iMainHeaderType);
+				break;
 
-		default:
-			// nothing
-		break;
+				default:
+					// nothing
+				break;
+			}
 	}
 
 	RETURN(pEmptyMainHeader);
