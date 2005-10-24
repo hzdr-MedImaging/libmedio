@@ -95,7 +95,7 @@ class CECATDirectory : protected QHash<int, CECATDirectoryItem*>
 
 		// some private methods 
 		CECATDirectoryItem* newItem(quint32 matrixID);
-		qint64 lastDirItemOffset(void);
+		qint64 lastDirItemOffset(void) const;
 };
 
 #endif // CECATDIRECTORY_H

@@ -26,7 +26,7 @@ TEMPLATE  = lib
 CONFIG	 *= qt thread warn_on @ANSI_COLOR@ @QTLINK_LEVEL@
 QT			  = core
 TARGET    = medio
-VERSION   = 2.0
+VERSION   = 2.0.1
 DESTDIR   = ../lib/
 
 # directory specification
@@ -57,8 +57,8 @@ PUB_HEADER =	CMedIOHeader.h \
 		ecat/ecat7/CECAT7SubHeaderScan.h \
 		ecat/ecat7/CECAT7SubHeaderScan3D.h \
 		helpers/CKeyType.h \
-                helpers/CKeyValue.h \
-                helpers/CKeyParser.h \
+    helpers/CKeyValue.h \
+    helpers/CKeyParser.h \
 		micropet/CConcordeMainHeader.h \
 		micropet/CConcordeMainHeaderSinogram.h \
 		micropet/CConcordeMainHeaderImage.h \
@@ -87,7 +87,7 @@ SOURCES  = \
 	   ecat/ecat7/CECAT7SubHeaderScan.cpp \
 	   ecat/ecat7/CECAT7SubHeaderScan3D.cpp \
 	   helpers/CKeyValue.cpp \
-           helpers/CKeyParser.cpp \
+     helpers/CKeyParser.cpp \
 	   micropet/CConcordeMainHeader.cpp \
 	   micropet/CConcordeMainHeaderSinogram.cpp \
 	   micropet/CConcordeMainHeaderImage.cpp \
