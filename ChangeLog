@@ -8,6 +8,10 @@ $Source$
 
 2005-10-24  Jens Langner <Jens.Langner@light-speed.de>
 
+  * CECATDirectory.cpp: fixed a serious bug in the directory list generation
+    code where libmedio wasn't able to create files with more than 31 items.
+    Here the last dirItem offset wasn't correctly calculated and caused libmedio
+    to create invalid files instead.
   * CECATDirectory.cpp: fixed a bug in the directory list generation code where
     libmedio did create an additional directory list if exactly 31 items were
     added to an ECAT file.
