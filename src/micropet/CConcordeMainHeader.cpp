@@ -21,6 +21,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 CConcordeMainHeader::CConcordeMainHeader(QString File)
 { 
+	D("Constructor with file string");
 	init();
 	setDefaults();
 	if(!this->load(File))
@@ -39,6 +40,7 @@ CConcordeMainHeader::CConcordeMainHeader(QString File)
 ////////////////////////////////////////////////////////////////////////////////
 CConcordeMainHeader::CConcordeMainHeader(CConcordeFile* file)
 {
+	D("Constructor with file object");
 	//initialise all keys which should be searched for in
 	//header file
 	D("Setting reference to CMedIOData object");
@@ -47,13 +49,13 @@ CConcordeMainHeader::CConcordeMainHeader(CConcordeFile* file)
 	init();
 	D("Setting defaults");
 	setDefaults();
-	D("Trying to load headerfile");
-	if(!this->load())
-	{
-		D("Something is wrong with the headerfile");
-	}
-	else
-		D("Everything ok");
+	//D("Trying to load headerfile");
+	//if(!this->load())
+	//{
+	//	D("Something is wrong with the headerfile");
+	//}
+	//else
+	//	D("Everything ok");
 }
 
 //  Class: CConcordeMainHeader
@@ -358,9 +360,10 @@ CMedIOHeader& CConcordeMainHeader::copyData(const CMedIOHeader& src)
 		m_Data.y_dimension = head->yDimension();
 		m_Data.z_dimension = head->zDimension();
 		m_Data.w_dimension = head->wDimension();
+		m_Data.delta_elements.clear();
 		if(m_Data.w_dimension > 1)
 			for(int i = 0; i < m_Data.w_dimension; i++)
-				m_Data.delta_elements[i] = head->deltaElements(i);
+				m_Data.delta_elements.append(head->deltaElements(i));
 		m_Data.deadtime_correction_applied = head->deadtimeCorrectionApplied();
 		m_Data.decay_correction_applied = head->decayCorrectionApplied();
 		m_Data.normalization_applied = head->normalizationApplied();

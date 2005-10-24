@@ -73,6 +73,7 @@ void CConcordeFile::close()
 	ENTER();
 	m_pCachedMainHeader->save();
 	delete m_pCachedMainHeader;
+	m_pCachedMainHeader = NULL;
 	QFile::close();
 	LEAVE();
 	return;
@@ -84,7 +85,7 @@ bool CConcordeFile::readMainHeader(CConcordeMainHeader*& mainHeader)
 	bool result = false;
 	if(!isOpen())
 	{
-		W("Can not read mainheader if file is closed");
+		E("Can not read mainheader if file is closed");
 		result = false;
 		mainHeader = NULL;
 	}
@@ -95,19 +96,23 @@ bool CConcordeFile::readMainHeader(CConcordeMainHeader*& mainHeader)
 		switch(m_pCachedMainHeader->fileType())
 		{
 			case CConcordeMainHeader::Sinogram:
+			case CConcordeMainHeader::Normalisation:
+			case CConcordeMainHeader::Attenuation:
 			{
 				D("Setting new sinogram");
 				#warning "filename is wrong but not used"
-				mainHeader = new CConcordeMainHeaderSinogram(fileName() + ".hdr");
+				mainHeader = new CConcordeMainHeaderSinogram(this);//(fileName() + ".hdr");
 			}
 			break;
 			case CConcordeMainHeader::Image:
 			{
 				#warning "filename is wrong but not used"
 				D("Setting new image");
-				mainHeader = new CConcordeMainHeaderImage(fileName() + ".hdr");
+				mainHeader = new CConcordeMainHeaderImage(this);//(fileName() + ".hdr");
 			}
-			break;	
+			break;
+			default:
+				E("File type of file is not supported yet");
 		}
 		*mainHeader = *m_pCachedMainHeader;
 		result = true;
@@ -172,7 +177,7 @@ int CConcordeFile::isoftype(QString file)
 		switch(head.fileType())
 		{
 			case CConcordeMainHeader::Sinogram:
-			case CConcordeMainHeader::Normalization:
+			case CConcordeMainHeader::Normalisation:
 			case CConcordeMainHeader::Attenuation:
 			{
 				D("File is a sinogram");

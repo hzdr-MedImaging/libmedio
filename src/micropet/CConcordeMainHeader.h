@@ -28,7 +28,7 @@ class CConcordeMainHeader : public CMedIOHeader
 		//! @brief destructor
 		~CConcordeMainHeader();	
 	//members
-		enum FileType{UnknownFile = 0, ListMode, Sinogram, Normalization, Attenuation,
+		enum FileType{UnknownFile = 0, ListMode, Sinogram, Normalisation, Attenuation,
 				Image, Blank, MuMap, Scatter};
 		enum AquisitionMode{UnknownAquisition = 0, BlankAquisition, Emission, Dynamic, Gated,
 					ContinuousBedMotion, SinglesTransmission,

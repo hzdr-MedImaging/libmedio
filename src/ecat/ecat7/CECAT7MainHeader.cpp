@@ -680,6 +680,7 @@ CMedIOHeader& CECAT7MainHeader::copyData(const CMedIOHeader& src)
 		break;
 		case CMedIOHeader::ConcordeMicroPetMainHeader:
 		{
+			D("Setting information to ECAT7 main header");
 			CConcordeMainHeader* head = (CConcordeMainHeader*)&src;
 			setOriginal_File_Name(head->fileName().toAscii().data());
 			setSystem_Type((short)head->model());
