@@ -29,6 +29,8 @@
 
 #include <iostream>
 
+#define ADDITIONAL_ITEMS	35
+
 using namespace std;
 
 //  Function:    main
@@ -146,8 +148,8 @@ int main(int argc, char* argv[])
 			// for testing that the directory list stuff works above > 31 frames we write out
 			// 30 more subheaders to the file
 			CECAT7SubHeaderImage* imageHeader = static_cast<CECAT7SubHeaderImage*>(subHeader);
-			cout << "writting 30 additional frames for directory list testing";
-			for(int i=0; i < 29; i++)
+			cout << "writting " << ADDITIONAL_ITEMS << " additional frames for directory list testing";
+			for(int i=0; i < ADDITIONAL_ITEMS; i++)
 			{
 				cout << ".";
 				imageHeader->setImage_Min(i);
@@ -225,6 +227,47 @@ int main(int argc, char* argv[])
 				// free the read matrix data
 				delete readBuf;				
 			}
+
+			// for testing that the directory list stuff works above > 31 frames we read out
+			// the additional subheaders and matrix data and compare it against the written ones
+			cout << "reading the data of the " << ADDITIONAL_ITEMS << " frames";
+			for(int i=0; i < ADDITIONAL_ITEMS; i++)
+			{
+				cout << ".";
+				CECATSubHeader* subHeader = NULL;
+					
+				if(file.readSubHeader(subHeader, i+3) == false || 
+					 subHeader == NULL || static_cast<CECAT7SubHeaderImage*>(subHeader)->image_Min() != i)
+				{
+					cout << "ERROR: in reading image_Min() of frame #" << i+3;
+					break;
+				}
+
+				if(file.readMatrix((char*&)readBuf, len, i+3) == false)
+				{
+					cout << "ERROR: in reading matrix data of frame #" << i+3;
+					break;
+				}
+
+				long j=0;
+				for(; j < MATRIX_SIZE; j++)
+				{
+					if(matrixData_frame2[j] != readBuf[j])
+						break;
+				}
+
+				if(j < MATRIX_SIZE)
+				{
+					cout << "ERROR: read MatrixData != written MatrixData at position " << j << " (" << FilePos2ECATBlock(j)<< ") in frame #" << i+3 << endl;
+					cout << "ERROR: read: " << hex << uppercase << readBuf[j] << " - written: " << matrixData_frame2[j];
+					delete readBuf;
+					break;
+				}
+
+				// free the read matrix data
+				delete readBuf;				
+			}
+			cout << endl;
 			
 			// close the file
 			file.close();

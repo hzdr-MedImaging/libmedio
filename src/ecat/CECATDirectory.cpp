@@ -230,8 +230,8 @@ bool CECATDirectory::save(void) const
 	int bed=0;
 	int data=0;
 	short depth=4; // we have five depth levels (4==data, 3==bed, 2==gate, 1==plane, 0==frame)
-	short currentDirPos = ECAT_POS_MAINDIR;
-	short nextDirPos;
+	unsigned int currentDirPos = ECAT_POS_MAINDIR;
+	unsigned int nextDirPos;
 	unsigned int foundDirItems = 0;
 	unsigned short curDirList = 0;
 	do
@@ -254,7 +254,8 @@ bool CECATDirectory::save(void) const
 			
 			// first we check wheter the dirList is filled up (>=31 items)
 			// and then write it out separate first.
-			if(dirHead.ItemsToFollow == ECAT_DIRITEM_NUM && foundDirItems < count())
+			if(dirHead.ItemsToFollow == ECAT_DIRITEM_NUM && 
+				 foundDirItems < count())
 			{
 				QIODevice::Offset appendPos;
 
@@ -263,25 +264,20 @@ bool CECATDirectory::save(void) const
 				// another entry we use it or we create a new directoryList
 				if(m_pFilePositions->count()-1 == curDirList)
 				{			
-					// there a no more dirListEntries in our list
-					// so we go and create a new one at the end of the file
-					if(curDirList == 0)
-						appendPos = m_pECATFile->size();
-					else
-						appendPos = m_pECATFile->size()+ECAT_DIRLIST_SIZE;
+					appendPos = lastDirItemOffset()+ECAT_BLOCKSIZE;
 
 					// append the position to our FilePositions for DirLists
 					m_pFilePositions->append(appendPos);
 								
-					E("appended new DirList #%d @ %d (%d)", curDirList+1, appendPos, FilePos2ECATBlock(appendPos)-1);
+					E("appended new DirList #%d @ %d (%d)", curDirList+1, appendPos, FilePos2ECATBlock(appendPos));
 				}
 				else
-					appendPos = m_pECATFile->size();
+					appendPos = (*m_pFilePositions)[curDirList+1];
 
 				// calculate the block position where the next directory list
 				// starts (the current endsize of the ECAT file substracted by one
 				// ECAT blocksize [512 bytes])
-				nextDirPos = FilePos2ECATBlock(appendPos)-1;
+				nextDirPos = FilePos2ECATBlock(appendPos);
 				dirHead.Next = nextDirPos;
 
 				// now we can write out the whole directory List to the file
@@ -303,7 +299,7 @@ bool CECATDirectory::save(void) const
 					break;
 				}
 					
-				D("DirHead%d.Position     : %d", curDirList, FilePos2ECATBlock(m_pECATFile->at()));
+				D("DirHead%d.Position     : %d (%d)", curDirList, FilePos2ECATBlock(m_pECATFile->at()), (*m_pFilePositions)[curDirList]);
 				D("DirHead%d.FreeItems    : %d", curDirList, dirHead.FreeItems);
 				D("DirHead%d.Next         : %d", curDirList, dirHead.Next);
 				D("DirHead%d.Prev         : %d", curDirList, dirHead.Prev);
@@ -382,7 +378,7 @@ bool CECATDirectory::save(void) const
 		}
 		else
 		{
-			D("DirHead%d.Position     : %d", curDirList, FilePos2ECATBlock(m_pECATFile->at()));
+			D("DirHead%d.Position     : %d (%d)", curDirList, FilePos2ECATBlock(m_pECATFile->at()), (*m_pFilePositions)[curDirList]);
 			D("DirHead%d.FreeItems    : %d", curDirList, dirHead.FreeItems);
 			D("DirHead%d.Next         : %d", curDirList, dirHead.Next);
 			D("DirHead%d.Prev         : %d", curDirList, dirHead.Prev);
@@ -447,16 +443,26 @@ CECATDirectoryItem* CECATDirectory::newItem(Q_UINT32 matrixID)
 	return pNewDItem;
 }
 
-QIODevice::Offset CECATDirectory::lastDirItemOffset(void)
+QIODevice::Offset CECATDirectory::lastDirItemOffset(void) const
 {
 	ENTER();
 	QIODevice::Offset offset = 0;
 
+	// we search through our item list and check the for the
+	// very last item position
 	QIntDictIterator<CECATDirectoryItem> it(*this);
 	for(;it.current(); ++it)
 	{
 		if(it.current()->dataBlock_End() > offset)
 			offset = it.current()->dataBlock_End();
+	}
+
+	// in addition to the diritem position check we have to check
+	// the dirlist positions as well.
+	for(unsigned int i=0; i < m_pFilePositions->count(); i++)
+	{
+		if((*m_pFilePositions)[i] > offset)
+			offset = (*m_pFilePositions)[i];
 	}
 
 	RETURN(offset);

@@ -95,7 +95,7 @@ class Q_EXPORT CECATDirectory : protected QIntDict<CECATDirectoryItem>
 
 		// some private methods 
 		CECATDirectoryItem* newItem(Q_UINT32 matrixID);
-		QIODevice::Offset lastDirItemOffset(void);
+		QIODevice::Offset lastDirItemOffset(void) const;
 };
 
 #endif // CECATDIRECTORY_H
