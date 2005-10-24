@@ -6,6 +6,14 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-10-24  Jens Langner <Jens.Langner@light-speed.de>
+
+  * CECATDirectory.cpp: fixed a bug in the directory list generation code where
+    libmedio did create an additional directory list if exactly 31 items were
+    added to an ECAT file.
+  * testcases/readwritematrix.cpp: added additional checks to test the generation
+    of multiple directory lists as well.
+
 2005-10-21  Hagen Mölle <draggore@gmx.de>
 
   * misc: changed concorde microPET files so they resemble new medio interface

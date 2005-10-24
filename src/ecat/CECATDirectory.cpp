@@ -34,7 +34,7 @@
 #define ECAT_DIRHEAD_SIZE 16
 #define ECAT_DIRITEM_SIZE 16
 #define ECAT_DIRITEM_NUM  31
-#define ECAT_DIRLIST_SIZE 512
+#define ECAT_DIRLIST_SIZE ECAT_DIRHEAD_SIZE+ECAT_DIRITEM_NUM*ECAT_DIRITEM_SIZE
 
 // the RAW structures used in the ECAT directory blocks
 struct ECAT_DirHead // should be 16 bytes
@@ -232,6 +232,7 @@ bool CECATDirectory::save(void) const
 	short depth=4; // we have five depth levels (4==data, 3==bed, 2==gate, 1==plane, 0==frame)
 	short currentDirPos = ECAT_POS_MAINDIR;
 	short nextDirPos;
+	unsigned int foundDirItems = 0;
 	unsigned short curDirList = 0;
 	do
 	{
@@ -241,6 +242,7 @@ bool CECATDirectory::save(void) const
 		if(pDirItem)
 		{
 			D("found DirItem: %d/%d/%d/%d/%d", frame, plane, gate, bed, data);
+			foundDirItems++;
 
 			// stream in the directory Item information
 			dirItemStream << *pDirItem;
@@ -252,21 +254,34 @@ bool CECATDirectory::save(void) const
 			
 			// first we check wheter the dirList is filled up (>=31 items)
 			// and then write it out separate first.
-			if(dirHead.ItemsToFollow == ECAT_DIRITEM_NUM)
+			if(dirHead.ItemsToFollow == ECAT_DIRITEM_NUM && foundDirItems < count())
 			{
+				QIODevice::Offset appendPos;
+
 				// get the position where the next directorylist will start
 				// so we look into our filePositions ValueVector and if there is
 				// another entry we use it or we create a new directoryList
 				if(m_pFilePositions->count()-1 == curDirList)
-				{
+				{			
 					// there a no more dirListEntries in our list
 					// so we go and create a new one at the end of the file
-					m_pFilePositions->append(m_pECATFile->size());
+					if(curDirList == 0)
+						appendPos = m_pECATFile->size();
+					else
+						appendPos = m_pECATFile->size()+ECAT_DIRLIST_SIZE;
+
+					// append the position to our FilePositions for DirLists
+					m_pFilePositions->append(appendPos);
+								
+					E("appended new DirList #%d @ %d (%d)", curDirList+1, appendPos, FilePos2ECATBlock(appendPos)-1);
 				}
+				else
+					appendPos = m_pECATFile->size();
 
 				// calculate the block position where the next directory list
-				// starts
-				nextDirPos = FilePos2ECATBlock(m_pECATFile->size());
+				// starts (the current endsize of the ECAT file substracted by one
+				// ECAT blocksize [512 bytes])
+				nextDirPos = FilePos2ECATBlock(appendPos)-1;
 				dirHead.Next = nextDirPos;
 
 				// now we can write out the whole directory List to the file
@@ -288,7 +303,11 @@ bool CECATDirectory::save(void) const
 					break;
 				}
 					
-				SHOWVALUE(m_pECATFile->at());
+				D("DirHead%d.Position     : %d", curDirList, FilePos2ECATBlock(m_pECATFile->at()));
+				D("DirHead%d.FreeItems    : %d", curDirList, dirHead.FreeItems);
+				D("DirHead%d.Next         : %d", curDirList, dirHead.Next);
+				D("DirHead%d.Prev         : %d", curDirList, dirHead.Prev);
+				D("DirHead%d.ItemsToFollow: %d", curDirList, dirHead.ItemsToFollow);
 
 				// write out everything
 				if(m_pECATFile->writeBlock(dirHeadBuffer) != ECAT_DIRHEAD_SIZE ||
@@ -299,14 +318,14 @@ bool CECATDirectory::save(void) const
 					break;
 				}
 				else
-					D("DirList #%d successfully written", curDirList);
+					D("DirList #%d successfully written @ %d", curDirList, m_pECATFile->at()-ECAT_DIRLIST_SIZE);
 
 				// clear the dirHead so that we can immediately reuse it
-				memset(&dirHead, 0, sizeof(struct ECAT_DirHead));
-				dirHead.FreeItems	= ECAT_DIRITEM_NUM;
-				dirHead.Next			= ECAT_POS_MAINDIR;
-				dirHead.Prev			= currentDirPos;
-				currentDirPos			= nextDirPos;
+				dirHead.FreeItems			= ECAT_DIRITEM_NUM;
+				dirHead.Next					= ECAT_POS_MAINDIR;
+				dirHead.Prev					= currentDirPos;
+				dirHead.ItemsToFollow = 0;
+				currentDirPos					= nextDirPos;
 
 				// clear also the DirItem buffer
 				memset(dirItemBuffer.data(), 0, dirItemBuffer.size());
@@ -325,7 +344,8 @@ bool CECATDirectory::save(void) const
 		}
 		else
 		{
-			if(depth == 0)			break;
+			if(depth == 0 || foundDirItems == count())
+				break;
 			else if(depth == 1) { frame++;	plane=1; }
 			else if(depth == 2) { plane++;	gate=1;	 }
 			else if(depth == 3) { gate++;		bed=0;	 }
@@ -362,6 +382,12 @@ bool CECATDirectory::save(void) const
 		}
 		else
 		{
+			D("DirHead%d.Position     : %d", curDirList, FilePos2ECATBlock(m_pECATFile->at()));
+			D("DirHead%d.FreeItems    : %d", curDirList, dirHead.FreeItems);
+			D("DirHead%d.Next         : %d", curDirList, dirHead.Next);
+			D("DirHead%d.Prev         : %d", curDirList, dirHead.Prev);
+			D("DirHead%d.ItemsToFollow: %d", curDirList, dirHead.ItemsToFollow);
+			
 			// write out everything
 			if(m_pECATFile->writeBlock(dirHeadBuffer) != ECAT_DIRHEAD_SIZE ||
 				 m_pECATFile->writeBlock(dirItemBuffer) != ECAT_DIRITEM_NUM*ECAT_DIRITEM_SIZE)
@@ -370,7 +396,7 @@ bool CECATDirectory::save(void) const
 				result = false;
 			}
 			else
-				D("DirList #%d successfully written at %ld", curDirList, m_pECATFile->at());
+				D("DirList #%d successfully written @ %d", curDirList, m_pECATFile->at()-ECAT_DIRLIST_SIZE);
 		}
 	}
 

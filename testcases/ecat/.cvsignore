@@ -1,3 +1,4 @@
 readwritematrix
+Makefile
 *.v
 *.o

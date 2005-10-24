@@ -51,6 +51,8 @@ int main(int argc, char* argv[])
 	cout << "libmedio ECAT6/7 file read/write test" << endl;
 	cout << "-------------------------------------" << endl;
 
+	
+
 	// generate some huge matrix data which we can use for verification later
 	//#define MATRIX_SIZE	(2064414/sizeof(Q_UINT16)) // non dividable through ECAT_BLOCKSIZE
 	//#define MATRIX_SIZE	(2063872/sizeof(Q_UINT16))
@@ -140,6 +142,20 @@ int main(int argc, char* argv[])
 				e7mainHeader->setCalibration_Factor(1);
 				e7mainHeader->save();
 			}
+
+			// for testing that the directory list stuff works above > 31 frames we write out
+			// 30 more subheaders to the file
+			CECAT7SubHeaderImage* imageHeader = static_cast<CECAT7SubHeaderImage*>(subHeader);
+			cout << "writting 30 additional frames for directory list testing";
+			for(int i=0; i < 29; i++)
+			{
+				cout << ".";
+				imageHeader->setImage_Min(i);
+
+				//file.writeSubHeader(*imageHeader, i+3);
+				file.writeMatrix((char*)matrixData_frame2, MATRIX_SIZE*sizeof(Q_UINT16), *imageHeader, i+3);
+			}
+			cout << endl;
 		}
 
 		// close the file again
