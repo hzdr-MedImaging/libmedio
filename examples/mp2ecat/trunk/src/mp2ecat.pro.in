@@ -1,6 +1,6 @@
 TEMPLATE = app
 CONFIG	 *= qt thread warn_on @ANSI_COLOR@ @QTLINK_LEVEL@
-QT	 += core
+QT	 += core qt3support
 TARGET    = mp2ecat
 VERSION   = 0.1
 DESTDIR   = ../
@@ -158,6 +158,9 @@ else {
 #}
 
 # Input
-HEADERS += 
+HEADERS += CCmdLineStart.h \
+		   CGetOpt.h
 
-SOURCES += mp2ecat.cpp 
+SOURCES += mp2ecat.cpp \
+		   CCmdLineStart.cpp \
+		   CGetOpt.cpp
