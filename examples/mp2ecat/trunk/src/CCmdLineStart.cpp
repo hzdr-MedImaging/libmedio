@@ -217,7 +217,8 @@ bool CCmdLineStart::convertFile()
 				CECAT7MainHeader* e7_header = (CECAT7MainHeader*)e7image.createEmptyMainHeader();
 				
 				*static_cast<CMedIOHeader*>(e7_header) = *static_cast<CMedIOHeader*>(head);
-			
+				e7_header->setPatient_Name(m_sPatientName.toAscii().data());
+
 				for(int i = 0; i < head->totalFrames(); i++)
 				{
 					QByteArray* data = NULL;
