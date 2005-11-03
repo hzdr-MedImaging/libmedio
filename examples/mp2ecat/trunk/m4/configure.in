@@ -1,0 +1,106 @@
+AC_PREREQ(2.57)
+AC_INIT(Medical PET Reconstruction, 0.1, h.moelle@fz-rossendorf.de, mp2ecat-0.1)
+AC_COPYRIGHT(Copyright (c) 2004 by Hagen Mölle <h.moelle@fz-rossendorf.de>)
+AC_REVISION($Revision$)
+AC_CONFIG_SRCDIR([src/mp2ecat.cpp])
+AC_CONFIG_HEADER([src/includes/config.h])
+
+# Checks for host
+AC_MSG_CHECKING(for host operating system)
+AC_SUBST(HOST_OS, `uname -s`)
+AC_MSG_RESULT(${HOST_OS})
+
+# Checks for host processor type
+AC_MSG_CHECKING(for host system processor type)
+AC_SUBST(HOST_CPU, `uname -p`)
+AC_MSG_RESULT(${HOST_CPU})
+
+# Checks for programs.
+AC_PROG_CXX
+AC_GNU_SOURCE
+
+# Check for the QT libraries
+# AC_PATH_QTDIR
+AC_PATH_QT4_INC
+AC_PATH_QT4_LIB
+AC_PATH_QT4_QMAKE
+# AC_QTSHAREDBUILD
+AC_ENABLE_STATIC_QT
+
+# Check if user wants to build a static library
+AC_ENABLE_STATIC_LIB
+
+# Check for the runtime debug library
+AC_PATH_RTDEBUG_LIB
+AC_PATH_RTDEBUG_INC
+AC_ENABLE_STATIC_RTDEBUG
+
+# Check for the GNU scientific library
+#AC_PATH_GSL_LIB
+#AC_PATH_GSL_INC
+#AC_ENABLE_STATIC_GSL
+
+# Check for the medical IO library
+AC_PATH_MEDIO_LIB
+AC_PATH_MEDIO_INC
+AC_ENABLE_STATIC_MEDIO
+
+# Check for the medical Reconstruction library
+#AC_PATH_STIR_LIB
+#AC_PATH_STIR_INC
+#AC_PATH_STIRBOOST_INC
+
+# Check for the medical Reconstruction library
+#AC_PATH_MEDRECON_LIB
+#AC_PATH_MEDRECON_INC
+#AC_ENABLE_STATIC_MEDRECON
+
+# Simple check for other libraries (pthread and math)
+AC_CHECK_LIB(pthread, pthread_create, , AC_MSG_ERROR(Cannot find required pthread library in LIBRARY_PATH))
+AC_CHECK_LIB(m, main, , AC_MSG_ERROR(Cannot find required math library in LIBRARY_PATH))
+
+# own macros
+AC_C_BIGENDIAN
+AC_ENABLE_DEBUG
+AC_ANSI_COLOR
+
+# checking gcc version
+AC_PROG_GCC_VERSION
+
+# Checks for some tools we need
+AC_PATH_PROG(MKDIR_PATH, mkdir)
+AC_PATH_PROG(CP_PATH, cp)
+AC_PATH_PROG(MV_PATH, mv)
+AC_PATH_PROG(TAR_PATH, tar)
+AC_PATH_PROG(GZIP_PATH, gzip)
+AC_PATH_PROG(RM_PATH, rm)
+AC_PATH_PROG(CHMOD_PATH, chmod)
+
+# Checks for header files.
+AC_HEADER_STDC
+AC_CHECK_HEADERS([stdlib.h])
+
+# CXX specifics
+AC_CXX_NAMESPACES
+AC_CXX_STATIC_CAST
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_HEADER_TIME
+AC_STRUCT_TM
+
+# Checks for library functions.
+AC_FUNC_MALLOC
+AC_CHECK_FUNCS([floor gettimeofday memset pow sqrt strrchr sysconf sysctl])
+
+AC_PROG_MAKE_SET
+
+AC_CONFIG_FILES([Makefile m4/Makefile src/mp2ecat.pro])
+
+# Next line is copy'n'pasted from the blackbox configure.in script
+test x$prefix = "xNONE" && prefix="$ac_default_prefix"
+AC_DEFINE_UNQUOTED(PREFIX, "$prefix", [Prefix for the installation])
+CONFDIR=`eval echo $sysconfdir | sed -e "s/.*\/usr\/etc/\/etc/"`
+AC_DEFINE_UNQUOTED(SYSCONFDIR, "$CONFDIR", [System configuration directory])
+
+AC_OUTPUT
