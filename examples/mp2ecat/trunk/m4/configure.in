@@ -1,5 +1,5 @@
 AC_PREREQ(2.57)
-AC_INIT(Medical PET Reconstruction, 0.1, h.moelle@fz-rossendorf.de, mp2ecat-0.1)
+AC_INIT(MicroPETtoECAT, 0.1, h.moelle@fz-rossendorf.de, mp2ecat-0.1)
 AC_COPYRIGHT(Copyright (c) 2004 by Hagen Mölle <h.moelle@fz-rossendorf.de>)
 AC_REVISION($Revision$)
 AC_CONFIG_SRCDIR([src/mp2ecat.cpp])
