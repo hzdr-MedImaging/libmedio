@@ -63,14 +63,23 @@ CMedIOData::Format CMedIODataFactory::identify(const QString& fileName)
 ////////////////////////////////////////////////////////////////////////////////
 CMedIOData* CMedIODataFactory::create(const QString& fileName)
 {
-	ENTER();
-	CMedIOData* mData;
+		ENTER();
+		CMedIOData* mData;
 
-	// here we check for our different main data formats 
-	if(!(mData = CECATFile::createFromFile(fileName)))
-		mData = NULL;
-	if(!(mData = CConcordeFile::createFromFile(fileName)))
-		mData = NULL;
-	RETURN(mData);
-	return mData;
+		// here we check for our different main data formats 
+		if(mData = CECATFile::createFromFile(fileName))
+		{
+				D("ECAT format found");
+		}
+		else if(mData = CConcordeFile::createFromFile(fileName))
+		{
+				D("Concorde microPET format found");
+		}
+		else
+		{
+				E("Can not identify file format");
+				mData = NULL;
+		}
+		RETURN(mData);
+		return mData;
 }
