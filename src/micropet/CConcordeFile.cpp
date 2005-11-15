@@ -92,7 +92,7 @@ bool CConcordeFile::readMainHeader(CConcordeMainHeader*& mainHeader)
 	else
 	{
 		D("Trying to read main header"); 
-		delete mainHeader;
+		//delete mainHeader;
 		switch(m_pCachedMainHeader->fileType())
 		{
 			case CConcordeMainHeader::Sinogram:
