@@ -65,7 +65,8 @@ PUB_HEADER =	CMedIOHeader.h \
 		micropet/CConcordeFile.h \
 		micropet/CConcordeSinogram.h \
 		micropet/CConcordeImage.h \
-		micropet/CIntVector.h
+		micropet/CIntVector.h \
+		micropet/CDate.h
 
 HEADERS  = $$PUB_HEADER
 
@@ -94,7 +95,8 @@ SOURCES  = \
 	   micropet/CConcordeFile.cpp \
 	   micropet/CConcordeSinogram.cpp \
 	   micropet/CConcordeImage.cpp \
-	   micropet/CIntVector.cpp
+	   micropet/CIntVector.cpp \
+		 micropet/CDate.cpp
 
 DEPENDPATH   = . ecat ecat/ecat6 ecat/ecat7 micropet
 INCLUDEPATH  = . include ecat ecat/ecat6 ecat/ecat7 micropet helpers

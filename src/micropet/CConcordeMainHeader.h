@@ -10,6 +10,7 @@
 #include "CKeyParser.h"
 #include "CIntVector.h"
 #include "CConcordeFile.h"
+#include "CDate.h"
 
 class CConcordeFile;
 
@@ -136,11 +137,11 @@ class CConcordeMainHeader : public CMedIOHeader
 		QString investigator(void) {return m_Data.investigator;}
 		QString Operator(void) {return m_Data.Operator;}
 		QString studyIdentifier(void) {return m_Data.study_identifier;}
-		long scanTime(void) {return m_Data.scan_time;}
+		long scanTime(void) {return m_Data.scan_time.toTime_t();}
 		QString injectedCompound(void) {return m_Data.injected_compound;}
 		int doseUnits(void) {return m_Data.dose_units;}
 		float dose(void) {return m_Data.dose;}
-		long injectionTime(void) {return m_Data.injection_time;}
+		long injectionTime(void) {return m_Data.injection_time.toTime_t();}
 		float injectionDecayCorrection(void) {return m_Data.injection_decay_correction;}
 		
 		
@@ -215,11 +216,11 @@ class CConcordeMainHeader : public CMedIOHeader
 		void setInvestigator(QString value) { m_Data.investigator = value;}
 		void setOperator(QString value) { m_Data.Operator = value;}
 		void setStudyIdentifier(QString value) { m_Data.study_identifier = value;}
-		void setScanTime(long value) { m_Data.scan_time = value;}
+		void setScanTime(long value) { m_Data.scan_time.setTime_t(value);}
 		void setInjectedCompound(QString value) { m_Data.injected_compound = value;}
 		void setDoseUnits(int value) { m_Data.dose_units = value;}
 		void setDose(float value) { m_Data.dose = value;}
-		void setInjectionTime(long value) { m_Data.injection_time = value;}
+		void setInjectionTime(long value) { m_Data.injection_time.setTime_t(value);}
 		void setInjectionDecayCorrection(float value) { m_Data.injection_decay_correction = value;}
 		
 		void setSubjectIdentifier(QString value) { m_Data.subject_identifier = value;}
@@ -301,11 +302,11 @@ class CConcordeMainHeader : public CMedIOHeader
 			QString		investigator;
 			QString		Operator;
 			QString		study_identifier;
-			long		scan_time;		//Scan_Start_Time;
+			CDate		scan_time;		//Scan_Start_Time;
 			QString		injected_compound;
 			int		dose_units;
 			float		dose;
-			long		injection_time;
+			CDate		injection_time;
 			float		injection_decay_correction;
 			QString		subject_identifier;
 			QString		subject_genus;

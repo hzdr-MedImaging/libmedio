@@ -288,11 +288,11 @@ bool CConcordeMainHeader::init()
 	Parser.addKey("investigator", &m_Data.investigator);
 	Parser.addKey("operator", &m_Data.Operator);
 	Parser.addKey("study_identifier", &m_Data.study_identifier);
-	//Parser.addKey("scan_time", &m_Data.scan_time);
+	Parser.addKey("scan_time", &m_Data.scan_time, CDate::wrapper_parseKeyValue);
 	Parser.addKey("injected_compound", &m_Data.injected_compound);
 	Parser.addKey("dose_units", &m_Data.dose_units);
 	Parser.addKey("dose", &m_Data.dose);
-	//Parser.addKey("injection_time", &m_Data.injection_time);
+	Parser.addKey("injection_time", &m_Data.injection_time, CDate::wrapper_parseKeyValue);
 	Parser.addKey("injection_decay_correction", &m_Data.injection_decay_correction);
 	
 	Parser.addKey("subject_identifier", &m_Data.subject_identifier);
@@ -372,11 +372,11 @@ CMedIOHeader& CConcordeMainHeader::copyData(const CMedIOHeader& src)
 		m_Data.investigator = head->investigator();
 		m_Data.Operator = head->Operator();
 		m_Data.study_identifier = head->studyIdentifier();
-		m_Data.scan_time = head->scanTime();
+		m_Data.scan_time.setTime_t(head->scanTime());
 		m_Data.injected_compound = head->injectedCompound();
 		m_Data.dose_units = head->doseUnits();
 		m_Data.dose = head->dose();
-		m_Data.injection_time = head->injectionTime();
+		m_Data.injection_time.setTime_t(head->injectionTime());
 		m_Data.injection_decay_correction = head->injectionDecayCorrection();
 		m_Data.subject_identifier = head->subjectIdentifier();
 		m_Data.subject_genus = head->subjectGenus();
