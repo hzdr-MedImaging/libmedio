@@ -67,10 +67,20 @@ CMedIOData* CMedIODataFactory::create(const QString& fileName)
 	CMedIOData* mData;
 
 	// here we check for our different main data formats 
-	if(!(mData = CECATFile::createFromFile(fileName)))
+	if(mData = CECATFile::createFromFile(fileName)
+	{
+		D("ECAT format found");
+	}
+	else if(mData = CConcordeFile::createFromFile(fileName)
+	{
+		D("Concorde microPET format found");
+	}
+	else
+	{
+		E("Can not identify file format");
 		mData = NULL;
-	if(!(mData = CConcordeFile::createFromFile(fileName)))
-		mData = NULL;
+        }
+					
 	RETURN(mData);
 	return mData;
 }
