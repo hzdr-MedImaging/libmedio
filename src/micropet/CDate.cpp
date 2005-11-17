@@ -5,6 +5,7 @@
 void CDate::parseKeyValue(QString KeyValue)
 {
 	QDateTime tempDate = QDateTime::fromString(KeyValue);
+	E("DateTime: %s", tempDate.toString().data());
 	this->setTime_t(tempDate.toTime_t());
 }
 

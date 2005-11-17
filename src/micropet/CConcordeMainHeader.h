@@ -160,7 +160,46 @@ class CConcordeMainHeader : public CMedIOHeader
 		QString otherDrugs(void) {return m_Data.other_drugs;}
 		QString foodAccess(void) {return m_Data.food_access;}
 		QString waterAccess(void) {return m_Data.water_access;}
-		
+
+		QString strScanTime(void) {return m_Data.scan_time.toString();}
+		QString strInjectionTime(void) {return m_Data.injection_time.toString();}
+		QString strSubjectWeightUnits(void) 
+		{
+			QString tmp; 
+			switch(m_Data.subject_weight_units)
+			{
+				case Grams: tmp = "g"; break;
+				case Ounces: tmp = "oz"; break;
+				case Kilograms: tmp = "kg"; break;
+				case Pounds: tmp = "pounds"; break;
+				default: tmp = "unknown units"; break;
+			}
+			return tmp;
+		}
+		QString strSubjectLengthUnits(void) 
+		{
+			QString tmp; 
+			switch(m_Data.subject_length_units)
+			{
+				case Millimeters: tmp = "mm"; break;
+				case Centimeters: tmp = "cm"; break;
+				case Inches: tmp = "in"; break;
+				default: tmp = "unknown units"; break;
+			}
+			return tmp;
+		}
+		QString strDoseUnits(void) 
+		{
+			QString tmp; 
+			switch(m_Data.dose_units)
+			{
+				case mCi: tmp = "mCi"; break;
+				case MBq: tmp = "MBq"; break;
+				default: tmp = "unknown units"; break;
+			}
+			return tmp;
+		}
+
 		//mutator methods
 		void setModel(int value) { m_Data.model = value;}
 		void setInstitution(QString value) { m_Data.institution = value;}
