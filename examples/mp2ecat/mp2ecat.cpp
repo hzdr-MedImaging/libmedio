@@ -10,6 +10,7 @@
 #include <CMedIOData.h>
 #include <CMedIODataFactory.h>
 #include <qstring.h>
+#include <qdatetime.h>
 #include <math.h>
 #include <iostream>
 
@@ -48,7 +49,16 @@ int main( int argc, char ** argv )
 					CECAT7MainHeader* e7_header = (CECAT7MainHeader*)e7image.createEmptyMainHeader();
 					
 					*static_cast<CMedIOHeader*>(e7_header) = *static_cast<CMedIOHeader*>(head);
-				
+					cout << "Scantime: " << head->scanTime() << endl;
+					cout << "Injectiontime: " << head->injectionTime() << endl;
+					QDateTime dt;
+					dt.setTime_t(head->scanTime());
+					cout << "Scantime: " << dt.toString().data() << endl;
+					cout << "Scantime: " << head->strScanTime().data() << endl;
+					cout << "Injectiontime: " << head->strInjectionTime().data() << endl;
+					cout << "Weightunits: " << head->strSubjectWeightUnits().data() << endl;
+					cout << "Lengthunits: " << head->strSubjectLengthUnits().data() << endl;
+					cout << "Doseunits: " << head->strDoseUnits().data() << endl;
 					for(int i = 0; i < head->totalFrames(); i++)
 					{
 						QByteArray* data = NULL;
