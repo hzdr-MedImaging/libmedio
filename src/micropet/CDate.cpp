@@ -4,6 +4,7 @@
 
 void CDate::parseKeyValue(QString KeyValue)
 {
+	KeyValue = KeyValue.stripWhiteSpace(); 
 	E("String: %s", KeyValue.data());
 	if(!KeyValue.isEmpty() && !KeyValue.isNull())
 	{
