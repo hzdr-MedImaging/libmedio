@@ -96,22 +96,33 @@ bool CConcordeFile::readMainHeader(CConcordeMainHeader*& mainHeader)
 		switch(m_pCachedMainHeader->fileType())
 		{
 			case CConcordeMainHeader::Sinogram:
+			case CConcordeMainHeader::Normalization:
+			case CConcordeMainHeader::Attenuation:
 			{
 				D("Setting new sinogram");
 				#warning "filename is wrong but not used"
 				mainHeader = new CConcordeMainHeaderSinogram(fileName() + ".hdr");
+				result = true;
 			}
 			break;
 			case CConcordeMainHeader::Image:
+			case CConcordeMainHeader::MuMap:
 			{
 				#warning "filename is wrong but not used"
 				D("Setting new image");
 				mainHeader = new CConcordeMainHeaderImage(fileName() + ".hdr");
+				result = true;
 			}
-			break;	
+			break;
+			default:
+			{
+				E("File type is not yet supported");
+				result = false;
+			}
+			break;
 		}
-		*mainHeader = *m_pCachedMainHeader;
-		result = true;
+		if(result)
+				*mainHeader = *m_pCachedMainHeader;
 	}
 	RETURN(result);
 	return result;

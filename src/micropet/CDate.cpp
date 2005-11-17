@@ -4,9 +4,20 @@
 
 void CDate::parseKeyValue(QString KeyValue)
 {
-	QDateTime tempDate = QDateTime::fromString(KeyValue);
-	E("DateTime: %s", tempDate.toString().data());
-	this->setTime_t(tempDate.toTime_t());
+	E("String: %s", KeyValue.data());
+	if(!KeyValue.isEmpty() && !KeyValue.isNull())
+	{
+		QDateTime tempDate = QDateTime::fromString(KeyValue);
+		if(tempDate.isValid())
+		{
+			E("DateTime: %s", tempDate.toString().data());
+			this->setTime_t(tempDate.toTime_t());
+		}
+		else
+			this->setTime_t(0);
+	}
+	else
+		this->setTime_t(0);
 }
 
 void CDate::wrapper_parseKeyValue(void* p2Object, QString KeyValue)
