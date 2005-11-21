@@ -713,8 +713,8 @@ CMedIOHeader& CECAT7MainHeader::copyData(const CMedIOHeader& src)
 			
 			setPatient_Height(head->subjectLength());
 			setPatient_Weight(head->subjectWeight()/1000.0);
-			setPhysician_Name(head->investigator().ascii());
-			setOperator_Name(head->Operator().ascii());
+			setPhysician_Name(head->investigatorName().ascii());
+			setOperator_Name(head->operatorName().ascii());
 			setStudy_Description(head->studyIdentifier().ascii());
 			if(head->acquisitionMode() == CConcordeMainHeader::Emission)
 				setAcquisition_Type(CECAT7MainHeader::StaticEmission);
