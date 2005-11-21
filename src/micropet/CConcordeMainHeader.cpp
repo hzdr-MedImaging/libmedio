@@ -369,8 +369,8 @@ CMedIOHeader& CConcordeMainHeader::copyData(const CMedIOHeader& src)
 		m_Data.calibration_factor = head->calibrationFactor();
 		m_Data.calibration_branching_fraction = head->calibrationBranchingFraction();
 		m_Data.number_of_singles_rates = head->numberOfSinglesRates();
-		m_Data.investigator = head->investigator();
-		m_Data.Operator = head->Operator();
+		m_Data.investigator = head->investigatorName();
+		m_Data.Operator = head->operatorName();
 		m_Data.study_identifier = head->studyIdentifier();
 		m_Data.scan_time.setTime_t(head->scanTime());
 		m_Data.injected_compound = head->injectedCompound();

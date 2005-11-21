@@ -82,88 +82,88 @@ class CConcordeMainHeader : public CMedIOHeader
 		//! @return frame specific header
 		//CHeaderConcordeFrame* frame(int i);
 		
-		int model(void) {return m_Data.model;}
-		QString institution(void) {return m_Data.institution;}
-		QString study(void) {return m_Data.study;}
-		QString fileName(void) {return m_Data.file_name;}
-		int fileType(void) {return m_Data.file_type;}
-		int acquisitionMode(void) {return m_Data.acquisition_mode;}
-		int bedMotion(void) {return m_Data.bed_motion;}
-		int totalFrames(void) {return m_Data.total_frames;}
+		int model(void) const {return m_Data.model;}
+		QString institution(void) const {return m_Data.institution;}
+		QString study(void) const {return m_Data.study;}
+		QString fileName(void) const {return m_Data.file_name;}
+		int fileType(void) const {return m_Data.file_type;}
+		int acquisitionMode(void) const {return m_Data.acquisition_mode;}
+		int bedMotion(void) const {return m_Data.bed_motion;}
+		int totalFrames(void) const {return m_Data.total_frames;}
 		
-		QString isotope(void) {return m_Data.isotope;}
-		float isotopeHalfTime(void) {return m_Data.isotope_half_time;}
-		float isotopeBranchingFraction(void) {return m_Data.isotope_branching_fraction;}
+		QString isotope(void) const {return m_Data.isotope;}
+		float isotopeHalfTime(void) const {return m_Data.isotope_half_time;}
+		float isotopeBranchingFraction(void) const {return m_Data.isotope_branching_fraction;}
 		
-		int transaxialCrystalsPerBlock(void) {return m_Data.transaxial_crystals_per_block;}
-		int axialCrystalsPerBlock(void) {return m_Data.axial_crystals_per_block;}
-		int intrinsicCrystalOffset(void) {return m_Data.intrinsic_crystal_offset;}
-		int axialBlocks(void) {return m_Data.axial_blocks;}
-		float axialCrystalPitch(void) {return m_Data.axial_crystal_pitch;}
-		float radius(void) {return m_Data.radius;}
-		float radialFov(void) {return m_Data.radial_fov;}
-		float srcRadius(void) {return m_Data.src_radius;}
-		float srcCmPerRev(void) {return m_Data.src_cm_per_rev;}
-		int txSrcType(void) {return m_Data.tx_src_type;}
-		float transaxialBinSize(void) {return m_Data.transaxial_bin_size;}
-		float axialPlaneSize(void) {return m_Data.axial_plane_size;}
-		float lld(void) {return m_Data.lld;}
-		float uld(void) {return m_Data.uld;}
+		int transaxialCrystalsPerBlock(void) const {return m_Data.transaxial_crystals_per_block;}
+		int axialCrystalsPerBlock(void) const {return m_Data.axial_crystals_per_block;}
+		int intrinsicCrystalOffset(void) const {return m_Data.intrinsic_crystal_offset;}
+		int axialBlocks(void) const {return m_Data.axial_blocks;}
+		float axialCrystalPitch(void) const {return m_Data.axial_crystal_pitch;}
+		float radius(void) const {return m_Data.radius;}
+		float radialFov(void) const {return m_Data.radial_fov;}
+		float srcRadius(void) const {return m_Data.src_radius;}
+		float srcCmPerRev(void) const {return m_Data.src_cm_per_rev;}
+		int txSrcType(void) const {return m_Data.tx_src_type;}
+		float transaxialBinSize(void) const {return m_Data.transaxial_bin_size;}
+		float axialPlaneSize(void) const {return m_Data.axial_plane_size;}
+		float lld(void) const {return m_Data.lld;}
+		float uld(void) const {return m_Data.uld;}
 		
-		int dataType(void) {return m_Data.data_type;}
-		int dataOrder(void){return m_Data.data_order;}
-		int span(void) {return m_Data.span;}
-		int ringDifference(void) {return m_Data.ring_difference;}		
-		int numberOfDimensions(void) {return m_Data.number_of_dimensions;}
-		int xDimension(void) {return m_Data.x_dimension;}
-		int yDimension(void) {return m_Data.y_dimension;}
-		int zDimension(void) {return m_Data.z_dimension;}
-		int wDimension(void) {return m_Data.w_dimension;}
-		int deltaElements(int i) {return m_Data.delta_elements[i];}
+		int dataType(void) const {return m_Data.data_type;}
+		int dataOrder(void) const {return m_Data.data_order;}
+		int span(void) const {return m_Data.span;}
+		int ringDifference(void) const {return m_Data.ring_difference;}		
+		int numberOfDimensions(void) const {return m_Data.number_of_dimensions;}
+		int xDimension(void) const {return m_Data.x_dimension;}
+		int yDimension(void) const {return m_Data.y_dimension;}
+		int zDimension(void) const {return m_Data.z_dimension;}
+		int wDimension(void) const {return m_Data.w_dimension;}
+		int deltaElements(int i) const {return m_Data.delta_elements[i];}
 		
-		int deadtimeCorrectionApplied(void) {return m_Data.deadtime_correction_applied;}
-		int decayCorrectionApplied(void) {return m_Data.decay_correction_applied;}
-		int normalizationApplied(void) {return m_Data.normalization_applied;}
-		int attenuationApplied(void) {return m_Data.attenuation_applied;}
-		int scatterCorrection(void) {return m_Data.scatter_correction;}
-		int arcCorrectionApplied(void) {return m_Data.arc_correction_applied;}
+		int deadtimeCorrectionApplied(void) const {return m_Data.deadtime_correction_applied;}
+		int decayCorrectionApplied(void) const {return m_Data.decay_correction_applied;}
+		int normalizationApplied(void) const {return m_Data.normalization_applied;}
+		int attenuationApplied(void) const {return m_Data.attenuation_applied;}
+		int scatterCorrection(void) const {return m_Data.scatter_correction;}
+		int arcCorrectionApplied(void) const {return m_Data.arc_correction_applied;}
 		
-		float pixelSize(void) {return m_Data.pixel_size;}
+		float pixelSize(void) const {return m_Data.pixel_size;}
 
-		float calibrationFactor(void) {return m_Data.calibration_factor;}
-		float calibrationBranchingFraction(void) {return m_Data.calibration_branching_fraction;}
-		int numberOfSinglesRates(void) {return m_Data.number_of_singles_rates;}
+		float calibrationFactor(void) const {return m_Data.calibration_factor;}
+		float calibrationBranchingFraction(void) const {return m_Data.calibration_branching_fraction;}
+		int numberOfSinglesRates(void) const {return m_Data.number_of_singles_rates;}
 		
-		QString investigator(void) {return m_Data.investigator;}
-		QString Operator(void) {return m_Data.Operator;}
-		QString studyIdentifier(void) {return m_Data.study_identifier;}
-		long scanTime(void) {return m_Data.scan_time.toTime_t();}
-		QString injectedCompound(void) {return m_Data.injected_compound;}
-		int doseUnits(void) {return m_Data.dose_units;}
-		float dose(void) {return m_Data.dose;}
-		long injectionTime(void) {return m_Data.injection_time.toTime_t();}
-		float injectionDecayCorrection(void) {return m_Data.injection_decay_correction;}
+		QString investigatorName(void) const {return m_Data.investigator;}
+		QString operatorName(void) const {return m_Data.Operator;}
+		QString studyIdentifier(void) const {return m_Data.study_identifier;}
+		long scanTime(void) const {return m_Data.scan_time.toTime_t();}
+		QString injectedCompound(void) const {return m_Data.injected_compound;}
+		int doseUnits(void) const {return m_Data.dose_units;}
+		float dose(void) const {return m_Data.dose;}
+		long injectionTime(void) const {return m_Data.injection_time.toTime_t();}
+		float injectionDecayCorrection(void) const {return m_Data.injection_decay_correction;}
 		
 		
-		QString subjectIdentifier(void) {return m_Data.subject_identifier;}
-		QString subjectGenus(void) {return m_Data.subject_genus;}
-		int subjectOrientation(void) {return m_Data.subject_orientation;}
-		int subjectLengthUnits(void) {return m_Data.subject_length_units;}
-		float subjectLength(void) {return m_Data.subject_length;}
-		int subjectWeightUnits(void) {return m_Data.subject_weight_units;}
-		float subjectWeight(void) {return m_Data.subject_weight;}
-		QString subjectPhenotype(void) {return m_Data.subject_phenotype;}
-		QString studyModel(void) {return m_Data.study_model;}
+		QString subjectIdentifier(void) const {return m_Data.subject_identifier;}
+		QString subjectGenus(void) const {return m_Data.subject_genus;}
+		int subjectOrientation(void) const {return m_Data.subject_orientation;}
+		int subjectLengthUnits(void) const {return m_Data.subject_length_units;}
+		float subjectLength(void) const {return m_Data.subject_length;}
+		int subjectWeightUnits(void) const {return m_Data.subject_weight_units;}
+		float subjectWeight(void) const {return m_Data.subject_weight;}
+		QString subjectPhenotype(void) const {return m_Data.subject_phenotype;}
+		QString studyModel(void) const {return m_Data.study_model;}
 		
-		QString anesthesia(void) {return m_Data.anesthesia;}
-		QString analgesia(void) {return m_Data.analgesia;}
-		QString otherDrugs(void) {return m_Data.other_drugs;}
-		QString foodAccess(void) {return m_Data.food_access;}
-		QString waterAccess(void) {return m_Data.water_access;}
+		QString anesthesia(void) const {return m_Data.anesthesia;}
+		QString analgesia(void) const {return m_Data.analgesia;}
+		QString otherDrugs(void) const {return m_Data.other_drugs;}
+		QString foodAccess(void) const {return m_Data.food_access;}
+		QString waterAccess(void) const {return m_Data.water_access;}
 
-		QDateTime strScanTime(void) {return static_cast<QDateTime>(m_Data.scan_time);}
-		QDateTime strInjectionTime(void) {return static_cast<QDateTime>(m_Data.injection_time);}
-		QString strSubjectWeightUnits(void) 
+		QDateTime strScanTime(void) const {return static_cast<QDateTime>(m_Data.scan_time);}
+		QDateTime strInjectionTime(void) const {return static_cast<QDateTime>(m_Data.injection_time);}
+		QString strSubjectWeightUnits(void) const
 		{
 			QString tmp; 
 			switch(m_Data.subject_weight_units)
@@ -176,7 +176,7 @@ class CConcordeMainHeader : public CMedIOHeader
 			}
 			return tmp;
 		}
-		QString strSubjectLengthUnits(void) 
+		QString strSubjectLengthUnits(void) const
 		{
 			QString tmp; 
 			switch(m_Data.subject_length_units)
@@ -188,7 +188,7 @@ class CConcordeMainHeader : public CMedIOHeader
 			}
 			return tmp;
 		}
-		QString strDoseUnits(void) 
+		QString strDoseUnits(void) const
 		{
 			QString tmp; 
 			switch(m_Data.dose_units)
@@ -201,82 +201,82 @@ class CConcordeMainHeader : public CMedIOHeader
 		}
 
 		//mutator methods
-		void setModel(int value) { m_Data.model = value;}
-		void setInstitution(QString value) { m_Data.institution = value;}
-		void setFileName(QString value) { m_Data.file_name = value;}
-		void setFileType(int value) { m_Data.file_type = value;}
-		void setAcquisitionMode(int value) { m_Data.acquisition_mode = value;}
-		void setBedMotion(int value) { m_Data.bed_motion = value;}
-		void setNumFrames(int value) { m_Data.total_frames = value;}
+		void setModel(const int value) { m_Data.model = value;}
+		void setInstitution(const QString value) { m_Data.institution = value;}
+		void setFileName(const QString value) { m_Data.file_name = value;}
+		void setFileType(const int value) { m_Data.file_type = value;}
+		void setAcquisitionMode(const int value) { m_Data.acquisition_mode = value;}
+		void setBedMotion(const int value) { m_Data.bed_motion = value;}
+		void setNumFrames(const int value) { m_Data.total_frames = value;}
 		
-		void setIsotope(QString value) { m_Data.isotope = value;}
-		void setIsotopeHalftime(float value) { m_Data.isotope_half_time = value;}
-		void setIsotopeBranchingFraction(float value) { m_Data.isotope_branching_fraction = value;}
+		void setIsotope(const QString value) { m_Data.isotope = value;}
+		void setIsotopeHalftime(const float value) { m_Data.isotope_half_time = value;}
+		void setIsotopeBranchingFraction(const float value) { m_Data.isotope_branching_fraction = value;}
 		
-		void setTransaxialCrystalsPerBlock(int value) {m_Data.transaxial_crystals_per_block = value;}
-		void setAxialCrystalsPerBlock(int value) {m_Data.axial_crystals_per_block = value;}
-		void setIntrinsicCrystalOffset(int value) {m_Data.intrinsic_crystal_offset = value;}
-		void setAxialBlocks(int value) {m_Data.axial_blocks = value;}
-		void setAxialCrystalPitch(float value) {m_Data.axial_crystal_pitch = value;}
-		void setRadius(float value) {m_Data.radius = value;}
-		void setRadialFov(float value) {m_Data.radial_fov = value;}
-		void setSrcRadius(float value) {m_Data.src_radius = value;}
-		void setSrcCmPerRev(float value) {m_Data.src_cm_per_rev = value;}
-		void setTxSrcType(int value) {m_Data.tx_src_type = value;}
-		void setTransaxialBinSize(float value) {m_Data.transaxial_bin_size = value;}
-		void setAxialPlaneSize(float value) {m_Data.axial_plane_size = value;}
-		void setLld(float value) {m_Data.lld = value;}
-		void setUld(float value) {m_Data.uld = value;}
+		void setTransaxialCrystalsPerBlock(const int value) {m_Data.transaxial_crystals_per_block = value;}
+		void setAxialCrystalsPerBlock(const int value) {m_Data.axial_crystals_per_block = value;}
+		void setIntrinsicCrystalOffset(const int value) {m_Data.intrinsic_crystal_offset = value;}
+		void setAxialBlocks(const int value) {m_Data.axial_blocks = value;}
+		void setAxialCrystalPitch(const float value) {m_Data.axial_crystal_pitch = value;}
+		void setRadius(const float value) {m_Data.radius = value;}
+		void setRadialFov(const float value) {m_Data.radial_fov = value;}
+		void setSrcRadius(const float value) {m_Data.src_radius = value;}
+		void setSrcCmPerRev(const float value) {m_Data.src_cm_per_rev = value;}
+		void setTxSrcType(const int value) {m_Data.tx_src_type = value;}
+		void setTransaxialBinSize(const float value) {m_Data.transaxial_bin_size = value;}
+		void setAxialPlaneSize(const float value) {m_Data.axial_plane_size = value;}
+		void setLld(const float value) {m_Data.lld = value;}
+		void setUld(const float value) {m_Data.uld = value;}
 		
-		void setDataType(int value) { m_Data.data_type = value;}
-		void setDataOrder(int value){ m_Data.data_order = value;}
-		void setSpan(int value) { m_Data.span = value;}
-		void setRingDifference(int value) { m_Data.ring_difference = value;}
-		void setNumberOfDimensions(int value) { m_Data.number_of_dimensions = value;}
-		void setXDimension(int value) { m_Data.x_dimension = value;}
-		void setYDimension(int value) { m_Data.y_dimension = value;}
-		void setZDimension(int value) { m_Data.z_dimension = value;}
-		void setWDimension(int value) { m_Data.w_dimension = value;}
-		void setDeltaElements(int i, int value) { m_Data.delta_elements[i] = value;}
+		void setDataType(const int value) { m_Data.data_type = value;}
+		void setDataOrder(const int value){ m_Data.data_order = value;}
+		void setSpan(const int value) { m_Data.span = value;}
+		void setRingDifference(const int value) { m_Data.ring_difference = value;}
+		void setNumberOfDimensions(const int value) { m_Data.number_of_dimensions = value;}
+		void setXDimension(const int value) { m_Data.x_dimension = value;}
+		void setYDimension(const int value) { m_Data.y_dimension = value;}
+		void setZDimension(const int value) { m_Data.z_dimension = value;}
+		void setWDimension(const int value) { m_Data.w_dimension = value;}
+		void setDeltaElements(const int i, const int value) { m_Data.delta_elements[i] = value;}
 		
-		void setDeadtimeCorrectionApplied(int value) { m_Data.deadtime_correction_applied = value;}
-		void setDecayCorrectionApplied(int value) { m_Data.decay_correction_applied = value;}
-		void setNormalizationApplied(int value) { m_Data.normalization_applied = value;}
-		void setAttenuationApplied(int value) { m_Data.attenuation_applied = value;}
-		void setScatterCorrection(int value) { m_Data.scatter_correction = value;}
-		void setArcCorrectionApplied(int value) { m_Data.arc_correction_applied = value;}
+		void setDeadtimeCorrectionApplied(const int value) { m_Data.deadtime_correction_applied = value;}
+		void setDecayCorrectionApplied(const int value) { m_Data.decay_correction_applied = value;}
+		void setNormalizationApplied(const int value) { m_Data.normalization_applied = value;}
+		void setAttenuationApplied(const int value) { m_Data.attenuation_applied = value;}
+		void setScatterCorrection(const int value) { m_Data.scatter_correction = value;}
+		void setArcCorrectionApplied(const int value) { m_Data.arc_correction_applied = value;}
 
-		void setPixelSize(float value) {m_Data.pixel_size = value;}
+		void setPixelSize(const float value) {m_Data.pixel_size = value;}
 		
-		void setCalibrationFactor(float value) { m_Data.calibration_factor = value;}
-		void setCalibrationBranchingFraction(float value) { m_Data.calibration_branching_fraction = value;}
-		void setNumberOfSinglesRates(int value) { m_Data.number_of_singles_rates = value;}
+		void setCalibrationFactor(const float value) { m_Data.calibration_factor = value;}
+		void setCalibrationBranchingFraction(const float value) { m_Data.calibration_branching_fraction = value;}
+		void setNumberOfSinglesRates(const int value) { m_Data.number_of_singles_rates = value;}
 		
-		void setInvestigator(QString value) { m_Data.investigator = value;}
-		void setOperator(QString value) { m_Data.Operator = value;}
-		void setStudyIdentifier(QString value) { m_Data.study_identifier = value;}
-		void setScanTime(long value) { m_Data.scan_time.setTime_t(value);}
-		void setInjectedCompound(QString value) { m_Data.injected_compound = value;}
-		void setDoseUnits(int value) { m_Data.dose_units = value;}
-		void setDose(float value) { m_Data.dose = value;}
-		void setInjectionTime(long value) { m_Data.injection_time.setTime_t(value);}
-		void setInjectionDecayCorrection(float value) { m_Data.injection_decay_correction = value;}
+		void setInvestigatorName(const QString value) { m_Data.investigator = value;}
+		void setOperatorName(const QString value) { m_Data.Operator = value;}
+		void setStudyIdentifier(const QString value) { m_Data.study_identifier = value;}
+		void setScanTime(const long value) { m_Data.scan_time.setTime_t(value);}
+		void setInjectedCompound(const QString value) { m_Data.injected_compound = value;}
+		void setDoseUnits(const int value) { m_Data.dose_units = value;}
+		void setDose(const float value) { m_Data.dose = value;}
+		void setInjectionTime(const long value) { m_Data.injection_time.setTime_t(value);}
+		void setInjectionDecayCorrection(const float value) { m_Data.injection_decay_correction = value;}
 		
-		void setSubjectIdentifier(QString value) { m_Data.subject_identifier = value;}
-		void setSubjectGenus(QString value) { m_Data.subject_genus = value;}
-		void setSubjectOrientation(int value) { m_Data.subject_orientation = value;}
-		void setSubjectLength_units(int value) { m_Data.subject_length_units = value;}
-		void setSubjectLength(float value) { m_Data.subject_length = value;}
-		void setSubjectWeight_units(int value) { m_Data.subject_weight_units = value;}
-		void setSubjectWeight(float value) { m_Data.subject_weight = value;}
-		void setSubjectPhenotype(QString value) { m_Data.subject_phenotype = value;}
-		void setStudyModel(QString value) { m_Data.study_model = value;}
+		void setSubjectIdentifier(const QString value) { m_Data.subject_identifier = value;}
+		void setSubjectGenus(const QString value) { m_Data.subject_genus = value;}
+		void setSubjectOrientation(const int value) { m_Data.subject_orientation = value;}
+		void setSubjectLength_units(const int value) { m_Data.subject_length_units = value;}
+		void setSubjectLength(const float value) { m_Data.subject_length = value;}
+		void setSubjectWeight_units(const int value) { m_Data.subject_weight_units = value;}
+		void setSubjectWeight(const float value) { m_Data.subject_weight = value;}
+		void setSubjectPhenotype(const QString value) { m_Data.subject_phenotype = value;}
+		void setStudyModel(const QString value) { m_Data.study_model = value;}
 		
-		void setAnesthesia(QString value) { m_Data.anesthesia = value;}
-		void setAnalgesia(QString value) { m_Data.analgesia = value;}
-		void setOtherDrugs(QString value) { m_Data.other_drugs = value;}
-		void setFoodAccess(QString value) { m_Data.food_access = value;}
-		void setWaterAccess(QString value) { m_Data.water_access = value;}
+		void setAnesthesia(const QString value) { m_Data.anesthesia = value;}
+		void setAnalgesia(const QString value) { m_Data.analgesia = value;}
+		void setOtherDrugs(const QString value) { m_Data.other_drugs = value;}
+		void setFoodAccess(const QString value) { m_Data.food_access = value;}
+		void setWaterAccess(const QString value) { m_Data.water_access = value;}
 
 	protected:
 		CMedIOHeader& copyData(const CMedIOHeader& src);	
