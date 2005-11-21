@@ -247,7 +247,9 @@ CMedIOData* CConcordeFile::createFromFile(const QString& fileName)
 
 bool CConcordeFile::readMatrix(QByteArray*& matrixData, short frame)
 {
+		ENTER();
 		bool result = false;
+		matrixData = NULL;
 		if(isOpen())
 		{
 				char* pTmp = NULL;
@@ -255,15 +257,19 @@ bool CConcordeFile::readMatrix(QByteArray*& matrixData, short frame)
 				if(readMatrix(pTmp, iFrameSize, frame))
 				{
 						result = true;
+						matrixData = new QByteArray();
 						matrixData->setRawData(pTmp, iFrameSize);
 				}
 		}
+		RETURN(result);
 		return result;
 }
 
 bool CConcordeFile::readMatrix(QByteArray*& matrixData, CConcordeFrameHeader*& subHeader, short frame)
 {
+		ENTER();
 		bool result = false;
+		matrixData = NULL;
 		if(isOpen())
 				if(readSubHeader(subHeader, frame))
 				{
@@ -272,19 +278,23 @@ bool CConcordeFile::readMatrix(QByteArray*& matrixData, CConcordeFrameHeader*& s
 						if(readMatrix(pTmp, iFrameSize, frame))
 						{
 								result = true;
+								matrixData = new QByteArray();
 								matrixData->setRawData(pTmp, iFrameSize);
 						}
 				}
+		RETURN(result);
 		return result;
 }
 
 bool CConcordeFile::readMatrix(char*& matrixData, unsigned int& length, CConcordeFrameHeader*& subHeader, short frame)
 {
+		ENTER();
 		bool result = false;
 		if(isOpen())
 				if(readSubHeader(subHeader, frame))
 						if(readMatrix(matrixData, length, frame))
 								result = true;
+		RETURN(result);
 		return result;
 }
 

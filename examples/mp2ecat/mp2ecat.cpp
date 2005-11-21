@@ -36,12 +36,18 @@ int main( int argc, char ** argv )
 		else
 		{
 			if(!ImageVolume->open(IO_ReadOnly) || !(ImageVolume->rtti() == CMedIOData::ConcordeMicropet))
+			{
+				cout << "Error when opening file or file is not from concorde microPET." << endl;
 				result = 1;
+			}
 			else
 			{
 				CConcordeMainHeader* head = NULL;
 				if(!((CConcordeFile*)ImageVolume)->readMainHeader(head) || !(head->fileType() == CConcordeMainHeader::Image))
+				{
+					cout << "Error when reading the mainheader or file is not an concorde microPET image." << endl;
 					result = 1;
+				}
 				else
 				{
 					CECATFile e7image(StoreFileName, CECATMainHeader::ECAT7_Volume16);
@@ -65,9 +71,12 @@ int main( int argc, char ** argv )
 						CConcordeFrameHeader* subHeader = NULL;
 						if(!((CConcordeFile*)ImageVolume)->readSubHeader(subHeader, i+1) || !((CConcordeFile*)ImageVolume)->readMatrix(data, i+1))
 						{
+							cout << "Error when loading subheader or reading data." << endl;
 							result = 1;
-							delete data;
-							delete subHeader;
+							if(data)
+								delete data;
+							if(subHeader)
+								delete subHeader;
 							break;
 						}
 						else
