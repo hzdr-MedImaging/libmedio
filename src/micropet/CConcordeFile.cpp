@@ -253,7 +253,7 @@ bool CConcordeFile::readMatrix(QByteArray*& matrixData, short frame)
 		if(isOpen())
 		{
 				char* pTmp = NULL;
-				unsigned int iFrameSize = m_pCachedMainHeader->frameSize();
+				unsigned int iFrameSize = 0;
 				if(readMatrix(pTmp, iFrameSize, frame))
 				{
 						result = true;
@@ -274,7 +274,7 @@ bool CConcordeFile::readMatrix(QByteArray*& matrixData, CConcordeFrameHeader*& s
 				if(readSubHeader(subHeader, frame))
 				{
 						char* pTmp = matrixData->data();
-						unsigned int iFrameSize = m_pCachedMainHeader->frameSize();
+						unsigned int iFrameSize = 0;
 						if(readMatrix(pTmp, iFrameSize, frame))
 						{
 								result = true;
@@ -329,9 +329,10 @@ bool CConcordeFile::readMatrix(char*& matrixData, unsigned int& length, short fr
 		{
 			
 			CConcordeMainHeader* head = m_pCachedMainHeader;
-			
-			unsigned int framesize = length;
-			
+			 
+			unsigned int framesize = m_pCachedMainHeader->frameSize();
+			length = framesize;
+
 			//matrixData = new QByteArray(framesize, 0);
 			matrixData = new char[framesize];//matrixData->data();
 	
