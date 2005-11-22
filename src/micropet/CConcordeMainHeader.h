@@ -161,8 +161,8 @@ class CConcordeMainHeader : public CMedIOHeader
 		QString foodAccess(void) const {return m_Data.food_access;}
 		QString waterAccess(void) const {return m_Data.water_access;}
 
-		QDateTime strScanTime(void) const {return static_cast<QDateTime>(m_Data.scan_time);}
-		QDateTime strInjectionTime(void) const {return static_cast<QDateTime>(m_Data.injection_time);}
+		QDateTime scanTimeQt(void) const {return static_cast<QDateTime>(m_Data.scan_time);}
+		QDateTime injectionTimeQt(void) const {return static_cast<QDateTime>(m_Data.injection_time);}
 		QString strSubjectWeightUnits(void) const
 		{
 			QString tmp; 
