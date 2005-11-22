@@ -245,6 +245,8 @@ bool CConcordeMainHeader::init()
 	
 	Parser.addKey("isotope", &m_Data.isotope);
 	Parser.addKey("isotope_half_time", &m_Data.isotope_half_time);
+	Parser.addKey("isotope_half_life", &m_Data.isotope_half_time);
+
 	Parser.addKey("isotope_branching_fraction", &m_Data.isotope_branching_fraction);
 	
 	Parser.addKey("transaxial_crystals_per_block", &m_Data.transaxial_crystals_per_block);
