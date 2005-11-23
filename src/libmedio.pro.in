@@ -26,7 +26,7 @@ TEMPLATE  = lib
 CONFIG	 *= qt thread warn_on @ANSI_COLOR@ @QTLINK_LEVEL@
 QT			  = core
 TARGET    = medio
-VERSION   = 2.0.1
+VERSION   = 2.0.2
 DESTDIR   = ../lib/
 
 # directory specification
