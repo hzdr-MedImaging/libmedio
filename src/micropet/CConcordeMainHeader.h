@@ -53,7 +53,7 @@ class CConcordeMainHeader : public CMedIOHeader
 		enum ScatterCorrection{NoScatterCorrection = 0, FitOfEmissionTail, MonteCarlo, 
 					DirectCalculation, ModelBased, TXOffWindow};
 		enum ArcCorrectionApplied{NoArcCorrection = 0, ArcCorrection = 1};
-		enum CalibrationUnits{UnknownCalibrationUnits = 0, nCi, Bq};
+		enum CalibrationUnits{UnknownCalibrationUnits = 0, nCiPerCC, BqPerCC};
 		enum DoseUnits{UnknownDoseUnits = 0, mCi, MBq};
 		enum SubjectOrientation{UnknownSubjectOrientation = 0, FeetFirstProne, HeadFirstProne,
 					FeetFirstSupine, HeadFirstSupine, FeetFirstRight,
@@ -86,9 +86,9 @@ class CConcordeMainHeader : public CMedIOHeader
 		QString institution(void) const {return m_Data.institution;}
 		QString study(void) const {return m_Data.study;}
 		QString fileName(void) const {return m_Data.file_name;}
-		int fileType(void) const {return m_Data.file_type;}
-		int acquisitionMode(void) const {return m_Data.acquisition_mode;}
-		int bedMotion(void) const {return m_Data.bed_motion;}
+		FileType fileType(void) const {return static_cast<FileType>(m_Data.file_type);}
+		AquisitionMode acquisitionMode(void) const {return static_cast<AquisitionMode>(m_Data.acquisition_mode);}
+		BedMotion bedMotion(void) const {return static_cast<BedMotion>(m_Data.bed_motion);}
 		int totalFrames(void) const {return m_Data.total_frames;}
 		
 		QString isotope(void) const {return m_Data.isotope;}
@@ -104,14 +104,14 @@ class CConcordeMainHeader : public CMedIOHeader
 		float radialFov(void) const {return m_Data.radial_fov;}
 		float srcRadius(void) const {return m_Data.src_radius;}
 		float srcCmPerRev(void) const {return m_Data.src_cm_per_rev;}
-		int txSrcType(void) const {return m_Data.tx_src_type;}
+		SourceType txSrcType(void) const {return static_cast<SourceType>(m_Data.tx_src_type);}
 		float transaxialBinSize(void) const {return m_Data.transaxial_bin_size;}
 		float axialPlaneSize(void) const {return m_Data.axial_plane_size;}
 		float lld(void) const {return m_Data.lld;}
 		float uld(void) const {return m_Data.uld;}
 		
-		int dataType(void) const {return m_Data.data_type;}
-		int dataOrder(void) const {return m_Data.data_order;}
+		DataType dataType(void) const {return static_cast<DataType>(m_Data.data_type);}
+		DataOrder dataOrder(void) const {return static_cast<DataOrder>(m_Data.data_order);}
 		int span(void) const {return m_Data.span;}
 		int ringDifference(void) const {return m_Data.ring_difference;}		
 		int numberOfDimensions(void) const {return m_Data.number_of_dimensions;}
@@ -121,15 +121,16 @@ class CConcordeMainHeader : public CMedIOHeader
 		int wDimension(void) const {return m_Data.w_dimension;}
 		int deltaElements(int i) const {return m_Data.delta_elements[i];}
 		
-		int deadtimeCorrectionApplied(void) const {return m_Data.deadtime_correction_applied;}
-		int decayCorrectionApplied(void) const {return m_Data.decay_correction_applied;}
-		int normalizationApplied(void) const {return m_Data.normalization_applied;}
-		int attenuationApplied(void) const {return m_Data.attenuation_applied;}
-		int scatterCorrection(void) const {return m_Data.scatter_correction;}
-		int arcCorrectionApplied(void) const {return m_Data.arc_correction_applied;}
+		DeadTimeCorrectionApplied deadtimeCorrectionApplied(void) const {return static_cast<DeadTimeCorrectionApplied>(m_Data.deadtime_correction_applied);}
+		DecayCorrectionApplied decayCorrectionApplied(void) const {return static_cast<DecayCorrectionApplied>(m_Data.decay_correction_applied);}
+		NormalizationApplied normalizationApplied(void) const {return static_cast<NormalizationApplied>(m_Data.normalization_applied);}
+		AttenuationApplied attenuationApplied(void) const {return static_cast<AttenuationApplied>(m_Data.attenuation_applied);}
+		ScatterCorrection scatterCorrection(void) const {return static_cast<ScatterCorrection>(m_Data.scatter_correction);}
+		ArcCorrectionApplied arcCorrectionApplied(void) const {return static_cast<ArcCorrectionApplied>(m_Data.arc_correction_applied);}
 		
 		float pixelSize(void) const {return m_Data.pixel_size;}
 
+		CalibrationUnits calibrationUnits(void) {return static_cast<CalibrationUnits>(m_Data.calibration_units);}
 		float calibrationFactor(void) const {return m_Data.calibration_factor;}
 		float calibrationBranchingFraction(void) const {return m_Data.calibration_branching_fraction;}
 		int numberOfSinglesRates(void) const {return m_Data.number_of_singles_rates;}
@@ -139,7 +140,7 @@ class CConcordeMainHeader : public CMedIOHeader
 		QString studyIdentifier(void) const {return m_Data.study_identifier;}
 		long scanTime(void) const {return m_Data.scan_time.toTime_t();}
 		QString injectedCompound(void) const {return m_Data.injected_compound;}
-		int doseUnits(void) const {return m_Data.dose_units;}
+		DoseUnits doseUnits(void) const {return static_cast<DoseUnits>(m_Data.dose_units);}
 		float dose(void) const {return m_Data.dose;}
 		long injectionTime(void) const {return m_Data.injection_time.toTime_t();}
 		float injectionDecayCorrection(void) const {return m_Data.injection_decay_correction;}
@@ -147,10 +148,10 @@ class CConcordeMainHeader : public CMedIOHeader
 		
 		QString subjectIdentifier(void) const {return m_Data.subject_identifier;}
 		QString subjectGenus(void) const {return m_Data.subject_genus;}
-		int subjectOrientation(void) const {return m_Data.subject_orientation;}
-		int subjectLengthUnits(void) const {return m_Data.subject_length_units;}
+		SubjectOrientation subjectOrientation(void) const {return static_cast<SubjectOrientation>(m_Data.subject_orientation);}
+		SubjectLengthUnits subjectLengthUnits(void) const {return static_cast<SubjectLengthUnits>(m_Data.subject_length_units);}
 		float subjectLength(void) const {return m_Data.subject_length;}
-		int subjectWeightUnits(void) const {return m_Data.subject_weight_units;}
+		SubjectWeightUnits subjectWeightUnits(void) const {return static_cast<SubjectWeightUnits>(m_Data.subject_weight_units);}
 		float subjectWeight(void) const {return m_Data.subject_weight;}
 		QString subjectPhenotype(void) const {return m_Data.subject_phenotype;}
 		QString studyModel(void) const {return m_Data.study_model;}
@@ -248,6 +249,7 @@ class CConcordeMainHeader : public CMedIOHeader
 
 		void setPixelSize(const float value) {m_Data.pixel_size = value;}
 		
+		void setCalibrationUnits(const int value) { m_Data.calibration_factor = value;}
 		void setCalibrationFactor(const float value) { m_Data.calibration_factor = value;}
 		void setCalibrationBranchingFraction(const float value) { m_Data.calibration_branching_fraction = value;}
 		void setNumberOfSinglesRates(const int value) { m_Data.number_of_singles_rates = value;}

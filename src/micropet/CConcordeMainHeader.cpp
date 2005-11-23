@@ -283,6 +283,7 @@ bool CConcordeMainHeader::init()
 	Parser.addKey("scatter_correction", &m_Data.scatter_correction);
 	Parser.addKey("arc_correction", &m_Data.arc_correction_applied);
 	
+	Parser.addKey("calibration_units", &m_Data.calibration_units);
 	Parser.addKey("calibration_factor", &m_Data.calibration_factor);
 	Parser.addKey("calibration_branching_fraction", &m_Data.calibration_branching_fraction);
 	Parser.addKey("number_of_singles_rates", &m_Data.number_of_singles_rates);
