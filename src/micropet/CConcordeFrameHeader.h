@@ -37,56 +37,56 @@ class CConcordeFrameHeader : public CMedIOHeader
 	//members
 		enum EventType{UnknownEventType = 0, Singles, Prompt, Delay, Trues};
 	//methods
-		CMedIOData* fileObject() {return m_pMedIOData;}
+		const CMedIOData* fileObject() const {return m_pMedIOData;}
 		bool load();
 		bool save() const;
 		CMedIOHeader::Format headerFormat() const;
 
 		//accessor methods
-		int frame(void) {return m_Data.frame;}
-		int eventType(void) {return m_Data.event_type;}
-		int gate(void) {return m_Data.gate;}
-		int bed(void) {return m_Data.bed;}
-		float bedOffset(void) {return m_Data.bed_offset;}
-		float endingBedOffset(void) {return m_Data.ending_bed_offset;}
-		float verticalBedOffset(void) {return m_Data.vertical_bed_offset;}
-		QString dataFilePointer(void) {return m_Data.data_file_pointer;}
-		float frameStart(void) {return m_Data.frame_start;}
-		float frameDuration(void) {return m_Data.frame_duration;}
-		float scaleFactor(void) {return m_Data.scale_factor;}
-		float minimum(void) {return m_Data.minimum;}
-		float maximum(void) {return m_Data.maximum;}
-		float deadTimeCorrection(void) {return m_Data.deadtime_correction;}
-		float decayCorrection(void) {return m_Data.decay_correction;}
-		QString prompts(void) {return m_Data.prompts;}
-		QString delays(void) {return m_Data.delays;}
-		QString trues(void) {return m_Data.trues;}
-		int promptsRate(void) {return m_Data.prompts_rate;}
-		int delaysRate(void) {return m_Data.delays_rate;}
-		float single(int i) {return m_Data.singles[i];}
-		float rawSingle(int i) {return m_Data.rawsingles[i];}
+		int frame(void) const {return m_Data.frame;}
+		int eventType(void) const {return m_Data.event_type;}
+		int gate(void) const {return m_Data.gate;}
+		int bed(void) const {return m_Data.bed;}
+		float bedOffset(void) const {return m_Data.bed_offset;}
+		float endingBedOffset(void) const {return m_Data.ending_bed_offset;}
+		float verticalBedOffset(void) const {return m_Data.vertical_bed_offset;}
+		QString dataFilePointer(void) const {return m_Data.data_file_pointer;}
+		float frameStart(void) const {return m_Data.frame_start;}
+		float frameDuration(void) const {return m_Data.frame_duration;}
+		float scaleFactor(void) const {return m_Data.scale_factor;}
+		float minimum(void) const {return m_Data.minimum;}
+		float maximum(void) const {return m_Data.maximum;}
+		float deadTimeCorrection(void) const {return m_Data.deadtime_correction;}
+		float decayCorrection(void) const {return m_Data.decay_correction;}
+		QString prompts(void) const {return m_Data.prompts;}
+		QString delays(void) const {return m_Data.delays;}
+		QString trues(void) const {return m_Data.trues;}
+		int promptsRate(void) const {return m_Data.prompts_rate;}
+		int delaysRate(void) const {return m_Data.delays_rate;}
+		float single(int i) const {return m_Data.singles[i];}
+		float rawSingle(int i) const {return m_Data.rawsingles[i];}
 		
 		//mutator methods
-		void setFrame(int value) { m_Data.frame = value;}
-		void setEventType(int value) { m_Data.event_type = value;}
-		void setGate(int value) { m_Data.gate = value;}
-		void setBed(int value) { m_Data.bed = value;}
-		void setBedOffset(float value) { m_Data.bed_offset = value;}
-		void setEndingBedOffset(float value) { m_Data.ending_bed_offset = value;}
-		void setVerticalBedOffset(float value) { m_Data.vertical_bed_offset = value;}
-		void setDataFilePointer(QString value) { m_Data.data_file_pointer = value;}
-		void setFrameStart(float value) { m_Data.frame_start = value;}
-		void setFrameDuration(float value) { m_Data.frame_duration = value;}
-		void setScaleFactor(float value) {m_Data.scale_factor = value;}
-		void setMinimum(float value) {m_Data.minimum = value;}
-		void setMaximum(float value) {m_Data.maximum = value;}
-		void setDeadtimeCorrection(float value) {m_Data.deadtime_correction = value;}
-		void setDecayCorrection(float value) {m_Data.decay_correction = value;}
-		void setPrompts(QString value) {m_Data.prompts = value;}
-		void setDelays(QString value) {m_Data.delays = value;}
-		void setTrues(QString value) {m_Data.trues = value;}
-		void setPromptsRate(int value) {m_Data.prompts_rate = value;}
-		void setDelaysRate(int value) {m_Data.delays_rate = value;}
+		void setFrame(const int value) { m_Data.frame = value;}
+		void setEventType(const int value) { m_Data.event_type = value;}
+		void setGate(const int value) { m_Data.gate = value;}
+		void setBed(const int value) { m_Data.bed = value;}
+		void setBedOffset(const float value) { m_Data.bed_offset = value;}
+		void setEndingBedOffset(const float value) { m_Data.ending_bed_offset = value;}
+		void setVerticalBedOffset(const float value) { m_Data.vertical_bed_offset = value;}
+		void setDataFilePointer(const QString value) { m_Data.data_file_pointer = value;}
+		void setFrameStart(const float value) { m_Data.frame_start = value;}
+		void setFrameDuration(const float value) { m_Data.frame_duration = value;}
+		void setScaleFactor(const float value) {m_Data.scale_factor = value;}
+		void setMinimum(const float value) {m_Data.minimum = value;}
+		void setMaximum(const float value) {m_Data.maximum = value;}
+		void setDeadtimeCorrection(const float value) {m_Data.deadtime_correction = value;}
+		void setDecayCorrection(const float value) {m_Data.decay_correction = value;}
+		void setPrompts(const QString value) {m_Data.prompts = value;}
+		void setDelays(const QString value) {m_Data.delays = value;}
+		void setTrues(const QString value) {m_Data.trues = value;}
+		void setPromptsRate(const int value) {m_Data.prompts_rate = value;}
+		void setDelaysRate(const int value) {m_Data.delays_rate = value;}
 
 	protected:
 		CMedIOHeader& copyData(const CMedIOHeader& src);	

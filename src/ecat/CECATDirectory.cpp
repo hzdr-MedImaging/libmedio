@@ -241,7 +241,7 @@ bool CECATDirectory::save(void) const
 	short depth=4; // we have five depth levels (4==data, 3==bed, 2==gate, 1==plane, 0==frame)
 	unsigned int currentDirPos = ECAT_POS_MAINDIR;
 	unsigned int nextDirPos;
-	unsigned int foundDirItems = 0;
+	int foundDirItems = 0;
 	unsigned short curDirList = 0;
 	do
 	{
@@ -469,7 +469,7 @@ qint64 CECATDirectory::lastDirItemOffset(void) const
 
 	// in addition to the diritem position check we have to check
 	// the dirlist positions as well.
-	for(unsigned int i=0; i < m_pFilePositions->count(); i++)
+	for(unsigned int i=0; i < static_cast<unsigned int>(m_pFilePositions->count()); i++)
 	{
 		if((*m_pFilePositions)[i] > offset)
 			offset = (*m_pFilePositions)[i];

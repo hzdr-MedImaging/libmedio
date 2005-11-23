@@ -248,6 +248,8 @@ bool CConcordeMainHeader::init()
 	
 	Parser.addKey("isotope", &m_Data.isotope);
 	Parser.addKey("isotope_half_time", &m_Data.isotope_half_time);
+	Parser.addKey("isotope_half_life", &m_Data.isotope_half_time);
+
 	Parser.addKey("isotope_branching_fraction", &m_Data.isotope_branching_fraction);
 	
 	Parser.addKey("transaxial_crystals_per_block", &m_Data.transaxial_crystals_per_block);
@@ -284,6 +286,7 @@ bool CConcordeMainHeader::init()
 	Parser.addKey("scatter_correction", &m_Data.scatter_correction);
 	Parser.addKey("arc_correction", &m_Data.arc_correction_applied);
 	
+	Parser.addKey("calibration_units", &m_Data.calibration_units);
 	Parser.addKey("calibration_factor", &m_Data.calibration_factor);
 	Parser.addKey("calibration_branching_fraction", &m_Data.calibration_branching_fraction);
 	Parser.addKey("number_of_singles_rates", &m_Data.number_of_singles_rates);
@@ -291,11 +294,11 @@ bool CConcordeMainHeader::init()
 	Parser.addKey("investigator", &m_Data.investigator);
 	Parser.addKey("operator", &m_Data.Operator);
 	Parser.addKey("study_identifier", &m_Data.study_identifier);
-	//Parser.addKey("scan_time", &m_Data.scan_time);
+	Parser.addKey("scan_time", &m_Data.scan_time, CDate::wrapper_parseKeyValue);
 	Parser.addKey("injected_compound", &m_Data.injected_compound);
 	Parser.addKey("dose_units", &m_Data.dose_units);
 	Parser.addKey("dose", &m_Data.dose);
-	//Parser.addKey("injection_time", &m_Data.injection_time);
+	Parser.addKey("injection_time", &m_Data.injection_time, CDate::wrapper_parseKeyValue);
 	Parser.addKey("injection_decay_correction", &m_Data.injection_decay_correction);
 	
 	Parser.addKey("subject_identifier", &m_Data.subject_identifier);
@@ -373,14 +376,14 @@ CMedIOHeader& CConcordeMainHeader::copyData(const CMedIOHeader& src)
 		m_Data.calibration_factor = head->calibrationFactor();
 		m_Data.calibration_branching_fraction = head->calibrationBranchingFraction();
 		m_Data.number_of_singles_rates = head->numberOfSinglesRates();
-		m_Data.investigator = head->investigator();
-		m_Data.Operator = head->Operator();
+		m_Data.investigator = head->investigatorName();
+		m_Data.Operator = head->operatorName();
 		m_Data.study_identifier = head->studyIdentifier();
-		m_Data.scan_time = head->scanTime();
+		m_Data.scan_time.setTime_t(head->scanTime());
 		m_Data.injected_compound = head->injectedCompound();
 		m_Data.dose_units = head->doseUnits();
 		m_Data.dose = head->dose();
-		m_Data.injection_time = head->injectionTime();
+		m_Data.injection_time.setTime_t(head->injectionTime());
 		m_Data.injection_decay_correction = head->injectionDecayCorrection();
 		m_Data.subject_identifier = head->subjectIdentifier();
 		m_Data.subject_genus = head->subjectGenus();

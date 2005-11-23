@@ -6,6 +6,10 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-11-23  Jens Langner <Jens.Langner@light-speed.de>
+
+  * misc: merged recent QT3_EDITION changes to MAIN Qt4 branch.
+
 2005-10-24  Jens Langner <Jens.Langner@light-speed.de>
 
   * CECATDirectory.cpp: fixed a serious bug in the directory list generation

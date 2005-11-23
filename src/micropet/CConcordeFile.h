@@ -94,8 +94,12 @@ class CConcordeFile : public CMedIOData
 		//! @brief checks format of file  
 		//! @return specific format or Unknown if unknown or error
 		static int isoftype(QString file);
-		
-		bool readMatrix(QByteArray*&, short frame);		
+
+		bool readMatrix(QByteArray*& matrixData, short frame);
+		bool readMatrix(QByteArray*& matrixData, CConcordeFrameHeader*& subHeader, short frame);
+		bool readMatrix(char*& matrixData, unsigned int& length, short frame);
+		bool readMatrix(char*& matrixData, unsigned int& length, CConcordeFrameHeader*& subHeader, short frame);
+
 	protected :
 	//members
 		CConcordeMainHeader* m_pCachedMainHeader;

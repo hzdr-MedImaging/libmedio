@@ -10,6 +10,7 @@
 #include <CMedIOData.h>
 #include <CMedIODataFactory.h>
 #include <QString>
+#include <QDateTime>
 #include <math.h>
 #include <iostream>
 
@@ -35,12 +36,18 @@ int main( int argc, char ** argv )
 		else
 		{
 			if(!ImageVolume->open(QIODevice::ReadOnly) || !(ImageVolume->rtti() == CMedIOData::ConcordeMicropet))
+			{
+				cout << "Error when opening file or file is not from concorde microPET." << endl;
 				result = 1;
+			}
 			else
 			{
 				CConcordeMainHeader* head = NULL;
 				if(!((CConcordeFile*)ImageVolume)->readMainHeader(head) || !(head->fileType() == CConcordeMainHeader::Image))
+				{
+					cout << "Error when reading the mainheader or file is not an concorde microPET image." << endl;
 					result = 1;
+				}
 				else
 				{
 					CECATFile e7image(StoreFileName, CECATMainHeader::ECAT7_Volume16);
@@ -48,16 +55,28 @@ int main( int argc, char ** argv )
 					CECAT7MainHeader* e7_header = (CECAT7MainHeader*)e7image.createEmptyMainHeader();
 					
 					*static_cast<CMedIOHeader*>(e7_header) = *static_cast<CMedIOHeader*>(head);
-				
+					cout << "Scantime: " << head->scanTime() << endl;
+					cout << "Injectiontime: " << head->injectionTime() << endl;
+					QDateTime dt;
+					dt.setTime_t(head->scanTime());
+					cout << "Scantime: " << dt.toString().data() << endl;
+					cout << "Scantime: " << head->scanTimeQt().toString().data() << endl;
+					cout << "Injectiontime: " << head->injectionTimeQt().toString().data() << endl;
+					cout << "Weightunits: " << head->strSubjectWeightUnits().data() << endl;
+					cout << "Lengthunits: " << head->strSubjectLengthUnits().data() << endl;
+					cout << "Doseunits: " << head->strDoseUnits().data() << endl;
 					for(int i = 0; i < head->totalFrames(); i++)
 					{
 						QByteArray* data = NULL;
 						CConcordeFrameHeader* subHeader = NULL;
 						if(!((CConcordeFile*)ImageVolume)->readSubHeader(subHeader, i+1) || !((CConcordeFile*)ImageVolume)->readMatrix(data, i+1))
 						{
+							cout << "Error when loading subheader or reading data." << endl;
 							result = 1;
-							delete data;
-							delete subHeader;
+							if(data)
+								delete data;
+							if(subHeader)
+								delete subHeader;
 							break;
 						}
 						else

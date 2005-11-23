@@ -92,30 +92,37 @@ bool CConcordeFile::readMainHeader(CConcordeMainHeader*& mainHeader)
 	else
 	{
 		D("Trying to read main header"); 
-		delete mainHeader;
+		//delete mainHeader;
 		switch(m_pCachedMainHeader->fileType())
 		{
 			case CConcordeMainHeader::Sinogram:
-			case CConcordeMainHeader::Normalisation:
+			case CConcordeMainHeader::Normalization:
 			case CConcordeMainHeader::Attenuation:
 			{
 				D("Setting new sinogram");
 				#warning "filename is wrong but not used"
 				mainHeader = new CConcordeMainHeaderSinogram(this);//(fileName() + ".hdr");
+				result = true;
 			}
 			break;
 			case CConcordeMainHeader::Image:
+			case CConcordeMainHeader::MuMap:
 			{
 				#warning "filename is wrong but not used"
 				D("Setting new image");
 				mainHeader = new CConcordeMainHeaderImage(this);//(fileName() + ".hdr");
+				result = true;
 			}
 			break;
 			default:
-				E("File type of file is not supported yet");
+			{
+				E("File type is not yet supported");
+				result = false;
+			}
+			break;
 		}
-		*mainHeader = *m_pCachedMainHeader;
-		result = true;
+		if(result)
+				*mainHeader = *m_pCachedMainHeader;
 	}
 	RETURN(result);
 	return result;
@@ -177,7 +184,7 @@ int CConcordeFile::isoftype(QString file)
 		switch(head.fileType())
 		{
 			case CConcordeMainHeader::Sinogram:
-			case CConcordeMainHeader::Normalisation:
+			case CConcordeMainHeader::Normalization:
 			case CConcordeMainHeader::Attenuation:
 			{
 				D("File is a sinogram");
@@ -238,6 +245,57 @@ CMedIOData* CConcordeFile::createFromFile(const QString& fileName)
 	return data;
 }
 
+bool CConcordeFile::readMatrix(QByteArray*& matrixData, short frame)
+{
+		ENTER();
+		bool result = false;
+		matrixData = NULL;
+		if(isOpen())
+		{
+				char* pTmp = NULL;
+				unsigned int iFrameSize = 0;
+				if(readMatrix(pTmp, iFrameSize, frame))
+				{
+						result = true;
+						matrixData = new QByteArray(pTmp, iFrameSize);
+				}
+		}
+		RETURN(result);
+		return result;
+}
+
+bool CConcordeFile::readMatrix(QByteArray*& matrixData, CConcordeFrameHeader*& subHeader, short frame)
+{
+		ENTER();
+		bool result = false;
+		matrixData = NULL;
+		if(isOpen())
+				if(readSubHeader(subHeader, frame))
+				{
+						char* pTmp = matrixData->data();
+						unsigned int iFrameSize = 0;
+						if(readMatrix(pTmp, iFrameSize, frame))
+						{
+								result = true;
+								matrixData = new QByteArray(pTmp, iFrameSize);
+						}
+				}
+		RETURN(result);
+		return result;
+}
+
+bool CConcordeFile::readMatrix(char*& matrixData, unsigned int& length, CConcordeFrameHeader*& subHeader, short frame)
+{
+		ENTER();
+		bool result = false;
+		if(isOpen())
+				if(readSubHeader(subHeader, frame))
+						if(readMatrix(matrixData, length, frame))
+								result = true;
+		RETURN(result);
+		return result;
+}
+
 //  Class: CConcordeFile
 //  Method: readMatrix
 //!
@@ -247,15 +305,15 @@ CMedIOData* CConcordeFile::createFromFile(const QString& fileName)
 //!
 //! @return data of specific frame in sinogram or NULL on error
 ////////////////////////////////////////////////////////////////////////////////
-bool CConcordeFile::readMatrix(QByteArray*& matrixData, short frame)
+bool CConcordeFile::readMatrix(char*& matrixData, unsigned int& length, short frame)
 {
 	ENTER();
 	bool result = true;
 
 	//clean up
-	if(matrixData)
-			delete matrixData;
-	matrixData = NULL;
+	//if(matrixData)
+	//		delete matrixData;
+	//matrixData = NULL;
 	
 	//check if file is open
 	if(!isOpen())
@@ -269,11 +327,12 @@ bool CConcordeFile::readMatrix(QByteArray*& matrixData, short frame)
 		{
 			
 			CConcordeMainHeader* head = m_pCachedMainHeader;
-			
-			unsigned int framesize = head->frameSize();
-			
-			matrixData = new QByteArray(framesize, 0);
-			char * data = matrixData->data();
+			 
+			unsigned int framesize = m_pCachedMainHeader->frameSize();
+			length = framesize;
+
+			//matrixData = new QByteArray(framesize, 0);
+			matrixData = new char[framesize];//matrixData->data();
 	
 			
 			//check if desired frame exists
@@ -295,13 +354,13 @@ bool CConcordeFile::readMatrix(QByteArray*& matrixData, short frame)
 					case CConcordeMainHeader::UnknownDataType:
 					{
 						W("No or an unknown data type");
-						QFile::read(data, framesize);	
+						QFile::read(matrixData, framesize);	
 					}
 					break;
 					case CConcordeMainHeader::Byte:
 					{
 						// we use the RawBytes() method here.
-						QFile::read(data, framesize);
+						QFile::read(matrixData, framesize);
 					}
 					break;
 					// IntelShort is a little endian short value, so we
@@ -310,7 +369,7 @@ bool CConcordeFile::readMatrix(QByteArray*& matrixData, short frame)
 					case CConcordeMainHeader::IntelShort:
 					{
 						QByteArray bufArray(READ_SIZE, 0);
-						quint16* ptr = (quint16*)data;
+						quint16* ptr = (quint16*)matrixData;
 						for(unsigned int read=0; read < framesize;)
 						{
 							unsigned int toRead = framesize-read >= READ_SIZE ? READ_SIZE : framesize-read;
@@ -347,7 +406,7 @@ bool CConcordeFile::readMatrix(QByteArray*& matrixData, short frame)
 						D("DataType is : little endian integer");
 						D("FrameSize : %d", framesize);
 						QByteArray bufArray(READ_SIZE, 0);
-						quint32* ptr = (quint32*)data;
+						quint32* ptr = (quint32*)matrixData;
 						for(unsigned int read=0; read < framesize;)
 						{
 							unsigned int toRead = framesize-read >= READ_SIZE ? READ_SIZE : framesize-read;
@@ -384,7 +443,7 @@ bool CConcordeFile::readMatrix(QByteArray*& matrixData, short frame)
 						D("DataType is : little endian float");
 						D("FrameSize : %d", framesize);
 						QByteArray bufArray(READ_SIZE, 0);
-						float* ptr = (float*)data;
+						float* ptr = (float*)matrixData;
 						for(unsigned int read=0; read < framesize;)
 						{
 							unsigned int toRead = framesize-read >= READ_SIZE ? READ_SIZE : framesize-read;
@@ -419,7 +478,7 @@ bool CConcordeFile::readMatrix(QByteArray*& matrixData, short frame)
 					case CConcordeMainHeader::IEEEFloat:
 					{
 						QByteArray bufArray(READ_SIZE, 0);
-						float* ptr = (float*)data;
+						float* ptr = (float*)matrixData;
 						for(unsigned int read=0; read < framesize;)
 						{
 							unsigned int toRead = framesize-read >= READ_SIZE ? READ_SIZE : framesize-read;
@@ -452,7 +511,7 @@ bool CConcordeFile::readMatrix(QByteArray*& matrixData, short frame)
 					case CConcordeMainHeader::SunShort:
 					{
 						QByteArray bufArray(READ_SIZE, 0);
-						quint16* ptr = (quint16*)data;
+						quint16* ptr = (quint16*)matrixData;
 						for(unsigned int read=0; read < framesize;)
 						{
 							unsigned int toRead = framesize-read >= READ_SIZE ? READ_SIZE : framesize-read;
@@ -485,7 +544,7 @@ bool CConcordeFile::readMatrix(QByteArray*& matrixData, short frame)
 					case CConcordeMainHeader::SunInt:
 					{
 						QByteArray bufArray(READ_SIZE, 0);
-						quint32* ptr = (quint32*)data;
+						quint32* ptr = (quint32*)matrixData;
 						for(unsigned int read=0; read < framesize;)
 						{
 							unsigned int toRead = framesize-read >= READ_SIZE ? READ_SIZE : framesize-read;
@@ -517,7 +576,13 @@ bool CConcordeFile::readMatrix(QByteArray*& matrixData, short frame)
 			if(!result)
 			{
 				delete matrixData;
+				matrixData = NULL;
 			}
+			//else
+			//{
+			//	matrixData = new QByteArray();
+			//	matrixData->setRawData(data, framesize);
+			//}
 		}
 	}
 	RETURN(result);
