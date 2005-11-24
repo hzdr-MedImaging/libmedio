@@ -1050,9 +1050,9 @@ bool CConcordeMainHeader::init()
 	return true;
 }
 
-bool CConcordeMainHeader::convertFrom(const CMedIOHeader& srcMainHeader, const CMedIOHeader& srcSubHeader)
+bool CConcordeMainHeader::convertFrom(const CMedIOHeader* srcMainHeader, const CMedIOHeader* srcSubHeader)
 {
-	copyData(srcMainHeader);
+	copyData(*srcMainHeader);
 	return true;
 }
 
@@ -1062,7 +1062,7 @@ CMedIOHeader& CConcordeMainHeader::copyData(const CMedIOHeader& src)
 	if(src.headerFormat() == CMedIOHeader::ConcordeMicroPetMainHeader)
 	{
 		//TODO: add CHeaderConcordeFrame to CMedIOHeader and check for it
-		W("TODO: add CHeaderConcordeFrame to CMedIOHeader and check for it");
+		//W("TODO: add CHeaderConcordeFrame to CMedIOHeader and check for it");
 		CConcordeMainHeader* head = (CConcordeMainHeader*)&src;
 		m_Data.model = head->model();
 		m_Data.institution = head->institution();

@@ -28,7 +28,7 @@ class CConcordeFrameHeader : public CMedIOHeader
 		//! @param Filename: complete path to file holding header
 		//! @param frame: specific frame of header which holds information
 		CConcordeFrameHeader(QString Filename, int frame);
-		CConcordeFrameHeader(CConcordeFile* file, QString Filename, int frame);
+		CConcordeFrameHeader(CConcordeFile* file, int frame);
 
 	//destructor
 		//! @brief destructor
@@ -41,7 +41,8 @@ class CConcordeFrameHeader : public CMedIOHeader
 		bool load();
 		bool save() const;
 		CMedIOHeader::Format headerFormat() const;
-		bool convertFrom(const CMedIOHeader& srcMainHeader, const CMedIOHeader& srcSubHeader);
+		CMedIOHeader* clone();
+		bool convertFrom(const CMedIOHeader* srcMainHeader, const CMedIOHeader* srcSubHeader = NULL);
 
 		//accessor methods
 		int frame(void) const;

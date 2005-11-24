@@ -14,6 +14,7 @@ class CConcordeMainHeaderImage : public CConcordeMainHeader
 		CConcordeMainHeaderImage(QString File) : CConcordeMainHeader(File){};
 		CConcordeMainHeaderImage(CConcordeFile* file) : CConcordeMainHeader(file){};
 		unsigned int frameSize();
+		CMedIOHeader* clone();
 };
 
 #endif

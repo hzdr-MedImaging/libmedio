@@ -30,3 +30,12 @@ unsigned int CConcordeMainHeaderImage::frameSize()
 	framesize = m_Data.x_dimension*m_Data.y_dimension*m_Data.z_dimension*typesize;
 	return framesize;
 }
+
+CMedIOHeader* CConcordeMainHeaderImage::clone()
+{
+	CConcordeMainHeaderImage* pTmp = new CConcordeMainHeaderImage(NULL);
+	if(pTmp->convertFrom(this))
+		return pTmp;
+	else
+		return NULL;
+}

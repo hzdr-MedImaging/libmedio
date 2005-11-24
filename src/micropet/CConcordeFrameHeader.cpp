@@ -25,11 +25,11 @@ CConcordeFrameHeader::CConcordeFrameHeader(QString Filename, int frame)
 	LEAVE();
 }
 
-CConcordeFrameHeader::CConcordeFrameHeader(CConcordeFile* file, QString Filename, int frame) : CMedIOHeader(NULL)
+CConcordeFrameHeader::CConcordeFrameHeader(CConcordeFile* file, int frame) : CMedIOHeader(NULL)
 {
 	ENTER();	
 	m_pMedIOData = file;
-	File = Filename;
+	File = file->fileName() + ".hdr";
 	m_Data.frame = frame;
 	init();
 	if(!this->load())
@@ -328,10 +328,18 @@ void CConcordeFrameHeader::setDelaysRate(const int value)
 	m_Data.delays_rate = value;
 }
 
-
-bool CConcordeFrameHeader::convertFrom(const CMedIOHeader& srcMainHeader, const CMedIOHeader& srcSubHeader)
+CMedIOHeader* CConcordeFrameHeader::clone()
 {
-	copyData(srcMainHeader);
+	//CConcordeFrameHeader* pTmp = new CConcordeFrameHeader(NULL, frame());
+	//if(pTmp.convertFrom(static_cast<CMedIOHeader*>(this), NULL))
+	//	return pTmp;
+	//else
+		return NULL;
+}
+
+bool CConcordeFrameHeader::convertFrom(const CMedIOHeader* srcMainHeader, const CMedIOHeader* srcSubHeader)
+{
+	copyData(*srcMainHeader);
 	return true;
 }
 

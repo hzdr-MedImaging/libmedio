@@ -74,7 +74,9 @@ class CConcordeMainHeader : public CMedIOHeader
 		//! @return framesize of a sinogram in bytes
 		virtual unsigned int frameSize() = 0;
 
-		bool convertFrom(const CMedIOHeader& srcMainHeader, const CMedIOHeader& srcSubHeader);
+		virtual CMedIOHeader* clone() = 0;
+		bool convertFrom(const CMedIOHeader* srcMainHeader, const CMedIOHeader* srcSubHeader = NULL);
+
 		
 		//! @return framesize of a imagevolume in bytes
 		//unsigned int getImageFrameSize();

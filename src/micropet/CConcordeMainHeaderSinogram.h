@@ -14,6 +14,7 @@ class CConcordeMainHeaderSinogram : public CConcordeMainHeader
 		CConcordeMainHeaderSinogram(QString File) : CConcordeMainHeader(File){}
 		CConcordeMainHeaderSinogram(CConcordeFile* file = NULL) : CConcordeMainHeader(file){}
 		unsigned int frameSize();
+		CMedIOHeader* clone();
 };
 
 #endif

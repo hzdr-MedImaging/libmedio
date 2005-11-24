@@ -27,3 +27,12 @@ unsigned int CConcordeMainHeaderSinogram::frameSize()
 	framesize = framesize*m_Data.x_dimension*m_Data.y_dimension*typesize;
 	return framesize;
 }
+
+CMedIOHeader* CConcordeMainHeaderSinogram::clone()
+{
+	CConcordeMainHeaderSinogram* pTmp = new CConcordeMainHeaderSinogram(NULL);
+	if(pTmp->convertFrom(this))
+		return pTmp;
+	else
+		return NULL;
+}
