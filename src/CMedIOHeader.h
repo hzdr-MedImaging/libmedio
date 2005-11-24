@@ -72,6 +72,15 @@ class CMedIOHeader
 		// a shallow copy
 		CMedIOHeader& operator=(const CMedIOHeader& src) { return copyData(src); }
 
+		//! @brief try to convert the given medio header in this header type
+		//! @return true for success; false for failure
+		virtual bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL) = 0;
+		
+		//! @brief create a new medio header of the same type as pSrc and
+		//!				 copy all meta information
+		//! @return the new created CMedIOHeader object
+		virtual CMedIOHeader* clone() const = 0;
+
 	protected:
 		//! @brief shallow copy method
 		virtual CMedIOHeader& copyData(const CMedIOHeader& src) = 0;

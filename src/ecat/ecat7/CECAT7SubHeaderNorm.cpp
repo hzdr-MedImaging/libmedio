@@ -37,11 +37,11 @@ CECAT7SubHeaderNorm::CECAT7SubHeaderNorm(CECATFile* ecatFile,
 	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Norm));
 }
 
-CECAT7SubHeaderNorm::CECAT7SubHeaderNorm(const CECAT7SubHeaderNorm& sh)
-	: CECATSubHeader(sh)
+CECAT7SubHeaderNorm::CECAT7SubHeaderNorm()
+	: CECATSubHeader(NULL)
 {
-	// then copy the structure
-	memcpy(&m_Data, &sh.m_Data, sizeof(struct ECAT7SubHeader_Norm));
+	// then clear the structure
+	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Norm));
 }
 
 bool CECAT7SubHeaderNorm::load(void)
@@ -187,6 +187,72 @@ int CECAT7SubHeaderNorm::rawDataSize() const
 CECATSubHeader::Type CECAT7SubHeaderNorm::subHeaderType(void) const
 {
 	return CECATSubHeader::ECAT7_Norm;
+}
+
+bool CECAT7SubHeaderNorm::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader*) 
+{
+	ENTER();
+
+	bool bResult = false;
+	// depending on the MedIOHeader format we do have to 
+	// distinguish between our copy operations.
+	switch(pHead1->headerFormat())
+	{
+		case CMedIOHeader::ECATSubHeader:
+		{
+			const CECATSubHeader* eSubHeader = static_cast<const CECATSubHeader*>(pHead1);
+
+			// depending on the source type we have to copy either every data or just 
+			// some data of the src header
+			switch(eSubHeader->subHeaderType())
+			{
+				// if the source header is also an ECAT7 one we can copy it in whole
+				// via a simple memcpy()
+				case CECATSubHeader::ECAT7_Norm:
+				{
+					memcpy(&(this->m_Data), &(static_cast<const CECAT7SubHeaderNorm*>(pHead1)->m_Data), sizeof(struct ECAT7SubHeader_Norm));
+					bResult = true;
+				}
+				break;
+
+				case CECATSubHeader::Unknown:
+					// for an unknown header type we do nothing
+				break;
+				
+				#warning "non Norm copy not complete"
+			}
+		}
+
+		case CMedIOHeader::ECATMainHeader:
+		case CMedIOHeader::ConcordeMicroPetMainHeader:
+			// copying a main header into a sub header doesn't make much sense, so we
+			// do nothing here
+		break;
+
+		case CMedIOHeader::ConcordeMicroPetFrameHeader:
+		{
+			#warning "Concorde->ECAT7SubHeader copy missing"
+		}
+		break;
+
+		case CMedIOHeader::Unknown:
+			// for an unknown header type we do nothing
+		break;
+	}
+
+	RETURN(bResult);
+	return bResult;
+}
+
+CMedIOHeader* CECAT7SubHeaderNorm::clone() const
+{
+	ENTER();
+
+	CECAT7SubHeaderNorm* pNewHead = new CECAT7SubHeaderNorm();
+	pNewHead->convertFrom(this);
+
+	RETURN(pNewHead);
+	return pNewHead;
 }
 
 // data access methods

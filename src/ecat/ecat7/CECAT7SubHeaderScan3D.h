@@ -49,7 +49,6 @@ class Q_EXPORT CECAT7SubHeaderScan3D : public CECATSubHeader
 		// constructors
 		CECAT7SubHeaderScan3D(CECATFile* ecatFile,
 													CECATDirectoryItem* pDirItem = NULL);
-		CECAT7SubHeaderScan3D(const CECAT7SubHeaderScan3D& sh);
 			
 		// public methods
 		bool load(void);
@@ -59,6 +58,10 @@ class Q_EXPORT CECAT7SubHeaderScan3D : public CECATSubHeader
 		int rawDataSize() const;
 		
 		CECATSubHeader::Type subHeaderType(void) const;
+
+		// clone methods
+		bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL);
+		CMedIOHeader* clone() const;
 		
 		// methods to access elements of the SubHeader
 		CECATSubHeader::Data_Type data_Type(void)	const;
@@ -131,6 +134,8 @@ class Q_EXPORT CECAT7SubHeaderScan3D : public CECATSubHeader
 		void setUncor_Singles(const short b, const float value);
 
 	protected:
+		// constructors
+		CECAT7SubHeaderScan3D();
 		// required method to copy relevant data from another MedIOHeader object
 		CMedIOHeader& copyData(const CMedIOHeader& src);
 

@@ -74,7 +74,14 @@ class Q_EXPORT CECATMainHeader : public CMedIOHeader
 		// runtime type information methods
 		virtual int rtti() const = 0;
 		CMedIOHeader::Format headerFormat() const;
-	
+
+		// try to convert the given medio header in this header type
+		virtual bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL) = 0;
+		
+		// create a new medio header of the same type as pSrc and
+		// copy all meta information
+		virtual CMedIOHeader* clone() const = 0;
+
 	protected:
 		// required method to copy relevant data from another MedIOHeader object
 		virtual CMedIOHeader& copyData(const CMedIOHeader& src) = 0;		

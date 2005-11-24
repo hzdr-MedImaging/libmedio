@@ -776,14 +776,18 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
 		break;
 	}
 
-	LEAVE();
+	RETURN(bResult);
 	return bResult;
 }
 
 CMedIOHeader* CECAT7MainHeader::clone() const
 {
+	ENTER();
+
 	CECAT7MainHeader* pNewHead = new CECAT7MainHeader();
 	pNewHead->convertFrom(this);
+
+	RETURN(pNewHead);
 	return pNewHead;
 }
 

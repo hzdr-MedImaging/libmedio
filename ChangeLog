@@ -6,6 +6,11 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-11-24  Christian Poetzsch <cp@burningdragon.de>
+	
+	* CMedIOHeader.h,ecat/*: methods for converting and cloning of the header
+	* CMedIOHeader.h,ecat/*: removed copy constructor, because there is a default one
+
 2005-11-24  Hagen Mölle <draggore@gmx.de>
 
   * concorde/MainHeader,FrameHeader: uses convertFrom method to convert from other 

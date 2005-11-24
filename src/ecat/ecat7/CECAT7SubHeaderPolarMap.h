@@ -50,7 +50,6 @@ class Q_EXPORT CECAT7SubHeaderPolarMap : public CECATSubHeader
 		// constructors
 		CECAT7SubHeaderPolarMap(CECATFile* ecatFile,
 														CECATDirectoryItem* pDirItem = NULL);
-		CECAT7SubHeaderPolarMap(const CECAT7SubHeaderPolarMap& sh);
 			
 		// public methods
 		bool load(void);
@@ -60,6 +59,10 @@ class Q_EXPORT CECAT7SubHeaderPolarMap : public CECATSubHeader
 		int rawDataSize() const;
 
 		CECATSubHeader::Type subHeaderType(void) const;
+
+		// clone methods
+		bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL);
+		CMedIOHeader* clone() const;
 	
 		// data access methods
 		CECATSubHeader::Data_Type data_Type(void) const;
@@ -118,6 +121,8 @@ class Q_EXPORT CECAT7SubHeaderPolarMap : public CECATSubHeader
 		void setUser_Reserved(const short i, const short n);
 
 	protected:
+		// constructors
+		CECAT7SubHeaderPolarMap();
 		// required method to copy relevant data from another MedIOHeader object
 		CMedIOHeader& copyData(const CMedIOHeader& src);
 

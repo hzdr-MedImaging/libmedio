@@ -74,7 +74,6 @@ class Q_EXPORT CECAT7SubHeaderImage : public CECATSubHeader
 		// constructors
 		CECAT7SubHeaderImage(CECATFile* ecatFile,
 												 CECATDirectoryItem* pDirItem = NULL);
-		CECAT7SubHeaderImage(const CECAT7SubHeaderImage& sh);
 
 
 		// public methods
@@ -85,7 +84,11 @@ class Q_EXPORT CECAT7SubHeaderImage : public CECATSubHeader
 		int rawDataSize() const;
 		
 		CECATSubHeader::Type subHeaderType(void) const;
-	
+
+		// clone methods
+		bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL);
+		CMedIOHeader* clone() const;
+
 		// data acess methods
 		CECATSubHeader::Data_Type data_Type(void) const;
 		short num_Dimensions(void) const;
@@ -205,6 +208,8 @@ class Q_EXPORT CECAT7SubHeaderImage : public CECATSubHeader
 		void setUser_Reserved(const short i, const short n);
 		
 	protected:
+		// constructors
+		CECAT7SubHeaderImage();
 		// required method to copy relevant data from another MedIOHeader object
 		CMedIOHeader& copyData(const CMedIOHeader& src);		
 

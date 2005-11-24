@@ -49,11 +49,23 @@ CECAT7SubHeaderScan3D::CECAT7SubHeaderScan3D(CECATFile* ecatFile,
 	m_Data.Deadtime_Correction_Factor = 1.0;
 }
 
-CECAT7SubHeaderScan3D::CECAT7SubHeaderScan3D(const CECAT7SubHeaderScan3D& sh)
-	: CECATSubHeader(sh)
+CECAT7SubHeaderScan3D::CECAT7SubHeaderScan3D()
+	: CECATSubHeader(NULL)
 {
-	// then copy the structure
-	memcpy(&m_Data, &sh.m_Data, sizeof(struct ECAT7SubHeader_Scan3D));
+	// then clear the structure
+	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Scan3D));
+		
+	// put in some default values which are the most common ones
+	m_Data.Data_Type									= static_cast<Q_UINT16>(CECATSubHeader::SunShort);
+	m_Data.Num_Dimensions							= 4;
+	m_Data.Num_R_Elements							= 288;
+	m_Data.Num_Angles									= 144;	// with mash=2
+	m_Data.Ring_Difference						= 22;
+	m_Data.Axial_Compression					= 9;		// SPAN of 9
+	m_Data.Scale_Factor								= 1.0;
+	m_Data.Scan_Min										= -1;
+	m_Data.Scan_Max										= -1;
+	m_Data.Deadtime_Correction_Factor = 1.0;
 }
 
 bool CECAT7SubHeaderScan3D::load(void)
@@ -256,6 +268,72 @@ int CECAT7SubHeaderScan3D::rawDataSize() const
 CECATSubHeader::Type CECAT7SubHeaderScan3D::subHeaderType(void) const
 {
 	return CECATSubHeader::ECAT7_Scan3D;
+}
+
+bool CECAT7SubHeaderScan3D::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader*) 
+{
+	ENTER();
+
+	bool bResult = false;
+	// depending on the MedIOHeader format we do have to 
+	// distinguish between our copy operations.
+	switch(pHead1->headerFormat())
+	{
+		case CMedIOHeader::ECATSubHeader:
+		{
+			const CECATSubHeader* eSubHeader = static_cast<const CECATSubHeader*>(pHead1);
+
+			// depending on the source type we have to copy either every data or just 
+			// some data of the src header
+			switch(eSubHeader->subHeaderType())
+			{
+				// if the source header is also an ECAT7 one we can copy it in whole
+				// via a simple memcpy()
+				case CECATSubHeader::ECAT7_Scan3D:
+				{
+					memcpy(&(this->m_Data), &(static_cast<const CECAT7SubHeaderScan3D*>(pHead1)->m_Data), sizeof(struct ECAT7SubHeader_Scan3D));
+					bResult = true;
+				}
+				break;
+
+				case CECATSubHeader::Unknown:
+					// for an unknown header type we do nothing
+				break;
+				
+				#warning "non Scan3D copy not complete"
+			}
+		}
+
+		case CMedIOHeader::ECATMainHeader:
+		case CMedIOHeader::ConcordeMicroPetMainHeader:
+			// copying a main header into a sub header doesn't make much sense, so we
+			// do nothing here
+		break;
+
+		case CMedIOHeader::ConcordeMicroPetFrameHeader:
+		{
+			#warning "Concorde->ECAT7SubHeader copy missing"
+		}
+		break;
+
+		case CMedIOHeader::Unknown:
+			// for an unknown header type we do nothing
+		break;
+	}
+
+	RETURN(bResult);
+	return bResult;
+}
+
+CMedIOHeader* CECAT7SubHeaderScan3D::clone() const
+{
+	ENTER();
+
+	CECAT7SubHeaderScan3D* pNewHead = new CECAT7SubHeaderScan3D();
+	pNewHead->convertFrom(this);
+
+	RETURN(pNewHead);
+	return pNewHead;
 }
 
 // methods to access elements of the SubHeader
