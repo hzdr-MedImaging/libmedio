@@ -85,7 +85,7 @@ class CMedIOData : public QFile
 		
 		//! @brief for querying error status information
 		//! @return integer value for the specific error reason
-		int errorStatus(void) const { return m_iErrStatus; }
+		int errorStatus(void) const;
 
 	protected :
 		//CMedIOHeader* m_pHeader;	//!< associated header of medical data

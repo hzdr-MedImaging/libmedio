@@ -100,7 +100,6 @@ bool CConcordeFile::readMainHeader(CConcordeMainHeader*& mainHeader)
 			case CConcordeMainHeader::Attenuation:
 			{
 				D("Setting new sinogram");
-				#warning "filename is wrong but not used"
 				mainHeader = new CConcordeMainHeaderSinogram(this);//(fileName() + ".hdr");
 				result = true;
 			}
@@ -108,7 +107,7 @@ bool CConcordeFile::readMainHeader(CConcordeMainHeader*& mainHeader)
 			case CConcordeMainHeader::Image:
 			case CConcordeMainHeader::MuMap:
 			{
-				#warning "filename is wrong but not used"
+				//#warning "filename is wrong but not used"
 				D("Setting new image");
 				mainHeader = new CConcordeMainHeaderImage(this);//(fileName() + ".hdr");
 				result = true;
@@ -142,7 +141,7 @@ bool CConcordeFile::readSubHeader(CConcordeFrameHeader*& subHeader, int frame)
 	{
 		//TODO: check if frame is in between 1 and number of frames in study
 		W("TODO: check if frame is in between 1 and number of frames in study");
-		subHeader = new CConcordeFrameHeader(this, fileName() + ".hdr", frame-1);
+		subHeader = new CConcordeFrameHeader(this, frame-1);
 		if(subHeader)
 			result = true;
 	}

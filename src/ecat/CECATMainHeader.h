@@ -48,9 +48,7 @@ class CECATMainHeader : public CMedIOHeader
 							};
 
 		// constructor
-		CECATMainHeader(CMedIOData* ecatFile)
-			: CMedIOHeader(ecatFile)
-		{}
+		CECATMainHeader(CMedIOData* ecatFile);
 
 		// some pure virtual methods to load/save information
 		// prepresented by this class
@@ -75,7 +73,7 @@ class CECATMainHeader : public CMedIOHeader
 
 		// runtime type information methods
 		virtual int rtti() const = 0;
-		CMedIOHeader::Format headerFormat() const { return CMedIOHeader::ECATMainHeader; }
+		CMedIOHeader::Format headerFormat() const;
 	
 	protected:
 		// required method to copy relevant data from another MedIOHeader object

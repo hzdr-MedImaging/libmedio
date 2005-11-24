@@ -50,47 +50,30 @@ class CECAT6MainHeader : public CECATMainHeader
 		bool save(void) const;
 
 		// the number of bytes the data of that header requires on disk
-		int rawDataSize() const { return 1*ECAT_BLOCKSIZE; }
+		int rawDataSize() const;
 
 		// runtime type information methods
-		int rtti() const
-		{ return CECATMainHeader::ECAT6MainHeader; }
+		int rtti() const;
 		
 		// accessor Methods
-		const char* original_File_Name(void) const
-		{ return m_Data.Original_File_Name;	}
-
-		short sw_Version(void) const
-		{ return m_Data.SW_Version;	}
-
-		short system_Type(void) const
-		{ return m_Data.System_Type; }
-
-		File_Type file_Type(void)	const
-		{ return static_cast<File_Type>(m_Data.File_Type); }
-		
-		short num_Planes(void) const	{ return m_Data.Num_Planes;		}
-		short num_Frames(void) const	{ return m_Data.Num_Frames;		}
-		short num_Gates(void) const		{	return m_Data.Num_Gates;		}
-		short num_Bed_Pos(void) const	{ return m_Data.Num_Bed_Pos;	}
+		const char* original_File_Name(void) const;
+		short sw_Version(void) const;
+		short system_Type(void) const;
+		File_Type file_Type(void)	const;
+		short num_Planes(void) const;
+		short num_Frames(void) const;
+		short num_Gates(void) const;
+		short num_Bed_Pos(void) const;
 
 		// mutator methods
-		void setOriginal_File_Name(const char* name)
-		{ strncpy(m_Data.Original_File_Name, name, 20);	}
-		
-		void setSW_Version(const short ver)
-		{ m_Data.SW_Version = ver; }
-		
-		void setSystem_Type(const short type)
-		{ m_Data.System_Type = type; }
-		
-		void setFileType(const File_Type fType)
-		{ m_Data.File_Type = fType;	} 
-
-		void setNum_Planes(short num)		{ m_Data.Num_Planes = num;		}
-		void setNum_Frames(short num)		{ m_Data.Num_Frames = num;		}
-		void setNum_Gates(short num)		{ m_Data.Num_Gates = num;			}
-		void setNum_Bed_Pos(short num)	{ m_Data.Num_Bed_Pos = num;		}
+		void setOriginal_File_Name(const char* name);
+		void setSW_Version(const short ver);
+		void setSystem_Type(const short type);
+		void setFileType(const File_Type fType);
+		void setNum_Planes(const short num);
+		void setNum_Frames(const short num);
+		void setNum_Gates(const short num);
+		void setNum_Bed_Pos(const short num);
 
 	protected:
 		// required method to copy relevant data from another MedIOHeader object

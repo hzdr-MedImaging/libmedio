@@ -226,6 +226,278 @@ bool CECAT7SubHeaderPolarMap::save(void) const
 	return result;
 }
 
+int CECAT7SubHeaderPolarMap::rawDataSize() const
+{
+	return 1*ECAT_BLOCKSIZE;
+}
+
+CECATSubHeader::Type CECAT7SubHeaderPolarMap::subHeaderType(void) const
+{
+	return CECATSubHeader::ECAT7_PolarMap;
+}
+
+// data access methods
+CECATSubHeader::Data_Type CECAT7SubHeaderPolarMap::data_Type(void) const
+{
+	return static_cast<CECATSubHeader::Data_Type>(m_Data.Data_Type);
+}
+
+short CECAT7SubHeaderPolarMap::polar_Map_Type(void) const
+{
+	return m_Data.Polar_Map_Type;
+}
+
+short CECAT7SubHeaderPolarMap::num_Rings(void) const
+{
+	return m_Data.Num_Rings;
+}
+
+short CECAT7SubHeaderPolarMap::sectors_Per_Ring(const short i) const
+{
+	return m_Data.Sectors_Per_Ring[i];
+}
+
+float CECAT7SubHeaderPolarMap::ring_Position(const short i) const
+{
+	return m_Data.Ring_Position[i];
+}
+
+short CECAT7SubHeaderPolarMap::ring_Angle(const short i) const
+{
+	return m_Data.Ring_Angle[i];
+}
+
+short CECAT7SubHeaderPolarMap::start_Angle(void) const
+{
+	return m_Data.Start_Angle;
+}
+
+short CECAT7SubHeaderPolarMap::long_Axis_Left(const short i) const
+{
+	return m_Data.Long_Axis_Left[i];
+}
+
+short CECAT7SubHeaderPolarMap::long_Axis_Right(const short i) const
+{
+	return m_Data.Long_Axis_Right[i];
+}
+
+short CECAT7SubHeaderPolarMap::position_Data(void) const
+{
+	return m_Data.Position_Data;
+}
+
+short CECAT7SubHeaderPolarMap::image_Min(void) const
+{
+	return m_Data.Image_Min;
+}
+
+short CECAT7SubHeaderPolarMap::image_Max(void) const
+{
+	return m_Data.Image_Max;
+}
+
+float CECAT7SubHeaderPolarMap::scale_Factor(void) const
+{
+	return m_Data.Scale_Factor;
+}
+
+float CECAT7SubHeaderPolarMap::pixel_Size(void) const
+{
+	return m_Data.Pixel_Size;
+}
+
+unsigned int CECAT7SubHeaderPolarMap::frame_Duration(void) const
+{
+	return m_Data.Frame_Duration;
+}
+
+unsigned int CECAT7SubHeaderPolarMap::frame_Start_Time(void) const
+{
+	return m_Data.Frame_Start_Time;
+}
+
+unsigned int CECAT7SubHeaderPolarMap::processing_Code(void) const
+{
+	return m_Data.Processing_Code;
+}
+
+short CECAT7SubHeaderPolarMap::quant_Units(void) const
+{
+	return m_Data.Quant_Units;
+}
+
+const char* CECAT7SubHeaderPolarMap::annotation(void) const
+{
+	return m_Data.Annotation;
+}
+
+unsigned int CECAT7SubHeaderPolarMap::gate_Duration(void) const
+{
+	return m_Data.Gate_Duration;
+}
+
+unsigned int CECAT7SubHeaderPolarMap::r_Wave_Offset(void) const
+{
+	return m_Data.R_Wave_Offset;
+}
+
+unsigned int CECAT7SubHeaderPolarMap::num_Accepted_Beats(void) const
+{
+	return m_Data.Num_Accepted_Beats;
+}
+
+const char* CECAT7SubHeaderPolarMap::polar_Map_Protocol(void) const
+{
+	return m_Data.Polar_Map_Protocol;
+}
+
+const char* CECAT7SubHeaderPolarMap::database_Name(void) const
+{
+	return m_Data.Database_Name;
+}
+
+short CECAT7SubHeaderPolarMap::cti_Reserved(const short i) const
+{
+	return m_Data.CTI_reserved[i];
+}
+
+short CECAT7SubHeaderPolarMap::user_Reserved(const short i) const
+{
+	return m_Data.User_Reserved[i];
+}
+
+
+void CECAT7SubHeaderPolarMap::setData_Type(const CECATSubHeader::Data_Type dType)
+{
+	m_Data.Data_Type = static_cast<quint16>(dType);
+}		
+
+void CECAT7SubHeaderPolarMap::setPolar_Map_Type(const short n)
+{
+	m_Data.Polar_Map_Type = n;
+}
+
+void CECAT7SubHeaderPolarMap::setNum_Rings(const short n)
+{
+	m_Data.Num_Rings = n;
+}
+
+void CECAT7SubHeaderPolarMap::setSectors_Per_Ring(const short i, const short n)
+{
+	m_Data.Sectors_Per_Ring[i] = n;
+}
+
+void CECAT7SubHeaderPolarMap::setRing_Position(const short i, const float n)
+{
+	m_Data.Ring_Position[i] = n;
+}
+
+void CECAT7SubHeaderPolarMap::setRing_Angle(const short i, const short n)
+{
+	m_Data.Ring_Angle[i] = n;
+}
+
+void CECAT7SubHeaderPolarMap::setStart_Angle(const short n)
+{
+	m_Data.Start_Angle = n;
+}
+
+void CECAT7SubHeaderPolarMap::setLong_Axis_Left(const short i, const short n)
+{
+	m_Data.Long_Axis_Left[i] = n;
+}
+
+void CECAT7SubHeaderPolarMap::setLong_Axis_Right(const short i, const short n)
+{
+	m_Data.Long_Axis_Right[i] = n;
+}
+
+void CECAT7SubHeaderPolarMap::setPosition_Data(const short n)
+{
+	m_Data.Position_Data = n;
+}
+
+void CECAT7SubHeaderPolarMap::setImage_Min(const short n)
+{
+	m_Data.Image_Min = n;
+}
+
+void CECAT7SubHeaderPolarMap::setImage_Max(const short n)
+{
+	m_Data.Image_Max = n;
+}
+
+void CECAT7SubHeaderPolarMap::setScale_Factor(const float n)
+{
+	m_Data.Scale_Factor = n;
+}
+
+void CECAT7SubHeaderPolarMap::setPixel_Size(const float n)
+{
+	m_Data.Pixel_Size = n;
+}
+
+void CECAT7SubHeaderPolarMap::setFrame_Duration(const unsigned int n)
+{
+	m_Data.Frame_Duration = n;
+}
+
+void CECAT7SubHeaderPolarMap::setFrame_Start_Time(const unsigned int n)
+{
+	m_Data.Frame_Start_Time = n;
+}
+
+void CECAT7SubHeaderPolarMap::setProcessing_Code(const unsigned int n)
+{
+	m_Data.Processing_Code = n;
+}
+
+void CECAT7SubHeaderPolarMap::setQuant_Units(const short n)
+{
+	m_Data.Quant_Units = n;
+}
+
+void CECAT7SubHeaderPolarMap::setAnnotation(const char* str)
+{
+	strncpy(m_Data.Annotation, str, 40);
+}
+
+void CECAT7SubHeaderPolarMap::setGate_Duration(const unsigned int n)
+{
+	m_Data.Gate_Duration = n;
+}
+
+void CECAT7SubHeaderPolarMap::setR_Wave_Offset(const unsigned int n)
+{
+	m_Data.R_Wave_Offset = n;
+}
+
+void CECAT7SubHeaderPolarMap::setNum_Accepted_Beats(const unsigned int n)
+{
+	m_Data.Num_Accepted_Beats = n;
+}
+
+void CECAT7SubHeaderPolarMap::setPolar_Map_Protocol(const char* str)
+{
+	strncpy(m_Data.Polar_Map_Protocol, str, 20);
+}
+
+void CECAT7SubHeaderPolarMap::setDatabase_Name(const char* str)
+{
+	strncpy(m_Data.Database_Name, str, 30);
+}
+
+void CECAT7SubHeaderPolarMap::setCTI_Reserved(const short i, const short n)
+{
+	m_Data.CTI_reserved[i] = n;
+}
+
+void CECAT7SubHeaderPolarMap::setUser_Reserved(const short i, const short n)
+{
+	m_Data.User_Reserved[i] = n;
+}
+
 CMedIOHeader& CECAT7SubHeaderPolarMap::copyData(const CMedIOHeader& src)
 {
 	ENTER();

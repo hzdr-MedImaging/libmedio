@@ -179,6 +179,187 @@ bool CECAT7SubHeaderNorm::save(void) const
 	return result;
 }
 
+int CECAT7SubHeaderNorm::rawDataSize() const
+{
+	return 1*ECAT_BLOCKSIZE;
+}
+
+CECATSubHeader::Type CECAT7SubHeaderNorm::subHeaderType(void) const
+{
+	return CECATSubHeader::ECAT7_Norm;
+}
+
+// data access methods
+CECATSubHeader::Data_Type CECAT7SubHeaderNorm::data_Type(void) const
+{
+	return static_cast<CECATSubHeader::Data_Type>(m_Data.Data_Type);	}
+
+short CECAT7SubHeaderNorm::num_Dimensions(void) const
+{
+	return m_Data.Num_Dimensions;
+}
+
+short CECAT7SubHeaderNorm::num_R_Elements(void) const
+{
+	return m_Data.Num_R_Elements;
+}
+
+short CECAT7SubHeaderNorm::num_Angles(void) const
+{
+	return m_Data.Num_Angles;
+}
+
+short CECAT7SubHeaderNorm::num_Z_Elements(void) const
+{
+	return m_Data.Num_Z_Elements;
+}
+
+short CECAT7SubHeaderNorm::ring_Difference(void) const
+{
+	return m_Data.Ring_Difference;
+}
+
+float CECAT7SubHeaderNorm::scale_Factor(void) const
+{
+	return m_Data.Scale_Factor;
+}
+
+float CECAT7SubHeaderNorm::norm_Min(void) const
+{
+	return m_Data.Norm_Min;
+}
+
+float CECAT7SubHeaderNorm::norm_Max(void) const
+{
+	return m_Data.Norm_Max;
+}
+
+float CECAT7SubHeaderNorm::fov_Source_Width(void) const
+{
+	return m_Data.FOV_Source_Width;
+}
+
+float CECAT7SubHeaderNorm::norm_Quality_Factor(void) const
+{
+	return m_Data.Norm_Quality_Factor;
+}
+
+CECAT7SubHeaderNorm::Norm_Qual_Factor_Code CECAT7SubHeaderNorm::norm_Quality_Factor_Code(void) const
+{
+	return static_cast<CECAT7SubHeaderNorm::Norm_Qual_Factor_Code>(m_Data.Norm_Quality_Factor_Code);
+}
+
+short CECAT7SubHeaderNorm::storage_Order(void) const
+{
+	return m_Data.Storage_Order;
+}
+
+short CECAT7SubHeaderNorm::span(void) const
+{
+	return m_Data.Span;
+}
+
+short CECAT7SubHeaderNorm::z_Elements(const short i) const
+{
+	return m_Data.Z_Elements[i];
+}
+
+short CECAT7SubHeaderNorm::cti_Reserved(const short i) const
+{
+	return m_Data.CTI_reserved[i];
+}
+
+short CECAT7SubHeaderNorm::user_Reserved(const short i) const
+{
+	return m_Data.User_Reserved[i];
+}
+
+
+void CECAT7SubHeaderNorm::setData_Type(const CECATSubHeader::Data_Type dType)
+{
+	m_Data.Data_Type = static_cast<quint16>(dType);	
+}	
+
+void CECAT7SubHeaderNorm::setNum_Dimensions(const short n)
+{
+	m_Data.Num_Dimensions = n;
+}
+
+void CECAT7SubHeaderNorm::setNum_R_Elements(const short n)
+{
+	m_Data.Num_R_Elements = n;
+}
+
+void CECAT7SubHeaderNorm::setNum_Angles(const short n)
+{
+	m_Data.Num_Angles = n;
+}
+
+void CECAT7SubHeaderNorm::setNum_Z_Elements(const short n)
+{
+	m_Data.Num_Z_Elements = n;
+}
+
+void CECAT7SubHeaderNorm::setRing_Difference(const short n)
+{
+	m_Data.Ring_Difference = n;
+}
+
+void CECAT7SubHeaderNorm::SetScale_Factor(const float n)
+{
+	m_Data.Scale_Factor = n;
+}
+
+void CECAT7SubHeaderNorm::setNorm_Min(const float n)
+{
+	m_Data.Norm_Min = n;
+}
+
+void CECAT7SubHeaderNorm::setNorm_Max(const float n)
+{
+	m_Data.Norm_Max = n;
+}
+
+void CECAT7SubHeaderNorm::setFOV_Source_Width(const float n)
+{
+	m_Data.FOV_Source_Width = n;
+}
+
+void CECAT7SubHeaderNorm::setNorm_Quality_Factor(const float n)
+{
+	m_Data.Norm_Quality_Factor = n;
+}
+
+void CECAT7SubHeaderNorm::setNorm_Quality_Factor_Code(const Norm_Qual_Factor_Code n)
+{
+	m_Data.Norm_Quality_Factor_Code = static_cast<quint16>(n);
+}
+
+void CECAT7SubHeaderNorm::setStorage_Order(const short n)
+{
+	m_Data.Storage_Order = n;
+}
+
+void CECAT7SubHeaderNorm::setSpan(const short n)
+{
+	m_Data.Span = n;
+}
+
+void CECAT7SubHeaderNorm::setZ_Elements(const short i, const short n)
+{
+	m_Data.Z_Elements[i] = n;
+}
+
+void CECAT7SubHeaderNorm::setCTI_Reserved(const short i, const short n)
+{
+	m_Data.CTI_reserved[i] = n;
+}
+
+void CECAT7SubHeaderNorm::setUser_Reserved(const short i, const short n)
+{
+	m_Data.User_Reserved[i] = n;
+}
+
 CMedIOHeader& CECAT7SubHeaderNorm::copyData(const CMedIOHeader& src)
 {
 	ENTER();

@@ -25,11 +25,11 @@ CConcordeFrameHeader::CConcordeFrameHeader(QString Filename, int frame)
 	LEAVE();
 }
 
-CConcordeFrameHeader::CConcordeFrameHeader(CConcordeFile* file, QString Filename, int frame) : CMedIOHeader(NULL)
+CConcordeFrameHeader::CConcordeFrameHeader(CConcordeFile* file, int frame) : CMedIOHeader(NULL)
 {
 	ENTER();	
 	m_pMedIOData = file;
-	File = Filename;
+	File = file->fileName() + ".hdr";
 	m_Data.frame = frame;
 	init();
 	if(!this->load())
@@ -39,6 +39,11 @@ CConcordeFrameHeader::CConcordeFrameHeader(CConcordeFile* file, QString Filename
 	else
 		D("Everything ok");
 	LEAVE();
+}
+
+CMedIOData* CConcordeFrameHeader::fileObject() const
+{
+	return m_pMedIOData;
 }
 
 //  Class: CConcordeFrameHeader
@@ -114,6 +119,233 @@ bool CConcordeFrameHeader::save() const
 CMedIOHeader::Format CConcordeFrameHeader::headerFormat() const
 {
 	return CMedIOHeader::ConcordeMicroPetFrameHeader;
+}
+
+//accessor methods
+int CConcordeFrameHeader::frame(void) const 
+{
+	return m_Data.frame;
+}
+
+int CConcordeFrameHeader::eventType(void) const 
+{
+	return m_Data.event_type;
+}
+
+int CConcordeFrameHeader::gate(void) const 
+{
+	return m_Data.gate;
+}
+
+int CConcordeFrameHeader::bed(void) const 
+{
+	return m_Data.bed;
+}
+
+float CConcordeFrameHeader::bedOffset(void) const 
+{
+	return m_Data.bed_offset;
+}
+
+float CConcordeFrameHeader::endingBedOffset(void) const 
+{
+	return m_Data.ending_bed_offset;
+}
+
+float CConcordeFrameHeader::verticalBedOffset(void) const 
+{
+	return m_Data.vertical_bed_offset;
+}
+
+QString CConcordeFrameHeader::dataFilePointer(void) const 
+{
+	return m_Data.data_file_pointer;
+}
+
+float CConcordeFrameHeader::frameStart(void) const 
+{
+	return m_Data.frame_start;
+}
+
+float CConcordeFrameHeader::frameDuration(void) const 
+{
+	return m_Data.frame_duration;
+}
+
+float CConcordeFrameHeader::scaleFactor(void) const 
+{
+	return m_Data.scale_factor;
+}
+
+float CConcordeFrameHeader::minimum(void) const 
+{
+	return m_Data.minimum;
+}
+
+float CConcordeFrameHeader::maximum(void) const 
+{
+	return m_Data.maximum;
+}
+
+float CConcordeFrameHeader::deadTimeCorrection(void) const 
+{
+	return m_Data.deadtime_correction;
+}
+
+float CConcordeFrameHeader::decayCorrection(void) const 
+{
+	return m_Data.decay_correction;
+}
+
+QString CConcordeFrameHeader::prompts(void) const 
+{
+	return m_Data.prompts;
+}
+
+QString CConcordeFrameHeader::delays(void) const 
+{
+	return m_Data.delays;
+}
+
+QString CConcordeFrameHeader::trues(void) const
+{
+	return m_Data.trues;
+}
+
+int CConcordeFrameHeader::promptsRate(void) const 
+{
+	return m_Data.prompts_rate;
+}
+
+int CConcordeFrameHeader::delaysRate(void) const 
+{
+	return m_Data.delays_rate;
+}
+
+float CConcordeFrameHeader::single(int i) const 
+{
+	return m_Data.singles[i];
+}
+
+float CConcordeFrameHeader::rawSingle(int i) const 
+{
+	return m_Data.rawsingles[i];
+}
+
+//mutator methods
+void CConcordeFrameHeader::setFrame(const int value)
+{ 
+	m_Data.frame = value;
+}
+
+void CConcordeFrameHeader::setEventType(const int value) 
+{ 
+	m_Data.event_type = value;
+}
+
+void CConcordeFrameHeader::setGate(const int value) 
+{ 
+	m_Data.gate = value;
+}
+
+void CConcordeFrameHeader::setBed(const int value) 
+{ 
+	m_Data.bed = value;
+}
+
+void CConcordeFrameHeader::setBedOffset(const float value) 
+{ 
+	m_Data.bed_offset = value;
+}
+
+void CConcordeFrameHeader::setEndingBedOffset(const float value) 
+{ 
+	m_Data.ending_bed_offset = value;
+}
+
+void CConcordeFrameHeader::setVerticalBedOffset(const float value) 
+{ 
+	m_Data.vertical_bed_offset = value;
+}
+
+void CConcordeFrameHeader::setDataFilePointer(const QString value) 
+{ 
+	m_Data.data_file_pointer = value;
+}
+
+void CConcordeFrameHeader::setFrameStart(const float value) 
+{ 
+	m_Data.frame_start = value;
+}
+
+void CConcordeFrameHeader::setFrameDuration(const float value)
+{
+	 m_Data.frame_duration = value;
+}
+
+void CConcordeFrameHeader::setScaleFactor(const float value)
+{
+	m_Data.scale_factor = value;
+}
+
+void CConcordeFrameHeader::setMinimum(const float value)
+{
+	m_Data.minimum = value;
+}
+
+void CConcordeFrameHeader::setMaximum(const float value)
+{
+	m_Data.maximum = value;
+}
+
+void CConcordeFrameHeader::setDeadtimeCorrection(const float value)
+{
+	m_Data.deadtime_correction = value;
+}
+
+void CConcordeFrameHeader::setDecayCorrection(const float value)
+{
+	m_Data.decay_correction = value;
+}
+
+void CConcordeFrameHeader::setPrompts(const QString value)
+{
+	m_Data.prompts = value;
+}
+
+void CConcordeFrameHeader::setDelays(const QString value)
+{
+	m_Data.delays = value;
+}
+
+void CConcordeFrameHeader::setTrues(const QString value)
+{
+	m_Data.trues = value;
+}
+
+void CConcordeFrameHeader::setPromptsRate(const int value)
+{
+	m_Data.prompts_rate = value;
+}
+
+void CConcordeFrameHeader::setDelaysRate(const int value)
+{
+	m_Data.delays_rate = value;
+}
+
+CMedIOHeader* CConcordeFrameHeader::clone()
+{
+	//CConcordeFrameHeader* pTmp = new CConcordeFrameHeader(NULL, frame());
+	//if(pTmp.convertFrom(static_cast<CMedIOHeader*>(this), NULL))
+	//	return pTmp;
+	//else
+		return NULL;
+}
+
+bool CConcordeFrameHeader::convertFrom(const CMedIOHeader* srcMainHeader, const CMedIOHeader* srcSubHeader)
+{
+	copyData(*srcMainHeader);
+	return true;
 }
 
 CMedIOHeader& CConcordeFrameHeader::copyData(const CMedIOHeader& src)

@@ -56,10 +56,7 @@ class CECATSubHeader : public CMedIOHeader
 
 		// constructor
 		CECATSubHeader(CMedIOData* ecatFile,
-									 CECATDirectoryItem* dItem = NULL)
-			: CMedIOHeader(ecatFile),
-				m_pDirItem(dItem)
-		{}
+									 CECATDirectoryItem* dItem = NULL);
 
 		// our virtual load/save I/O routines
 		virtual bool load(void) = 0;
@@ -73,12 +70,11 @@ class CECATSubHeader : public CMedIOHeader
 		virtual void setData_Type(const Data_Type dType) = 0;
 
 		// runtime type information methods
-		CMedIOHeader::Format headerFormat() const { return CMedIOHeader::ECATSubHeader; }		
+		CMedIOHeader::Format headerFormat() const;
 		virtual CECATSubHeader::Type subHeaderType(void) const = 0;
 
 		// internal method to set the directory Item of a subHeader
-		void setDirectoryItem(CECATDirectoryItem* dItem)
-		{ m_pDirItem = dItem; }
+		void setDirectoryItem(CECATDirectoryItem* dItem);
 
 	protected:
 		// required method to copy relevant data from another MedIOHeader object

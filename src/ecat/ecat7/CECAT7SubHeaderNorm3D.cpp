@@ -192,6 +192,198 @@ bool CECAT7SubHeaderNorm3D::save(void) const
 	return result;
 }
 
+int CECAT7SubHeaderNorm3D::rawDataSize() const
+{
+	return 1*ECAT_BLOCKSIZE;
+}
+
+CECATSubHeader::Type CECAT7SubHeaderNorm3D::subHeaderType(void) const
+{
+	return CECATSubHeader::ECAT7_Norm3D;
+}
+
+// access methods to get directly data out of
+// the SubHeader
+CECATSubHeader::Data_Type CECAT7SubHeaderNorm3D::data_Type(void) const
+{
+	return static_cast<CECATSubHeader::Data_Type>(m_Data.Data_Type);	}
+
+short CECAT7SubHeaderNorm3D::num_R_Elements(void) const
+{
+	return m_Data.Num_R_Elements;
+}
+
+short CECAT7SubHeaderNorm3D::num_Transaxial_Crystals(void) const
+{
+	return m_Data.Num_Transaxial_Crystals;
+}
+
+short CECAT7SubHeaderNorm3D::num_Crystal_Rings(void) const
+{
+	return m_Data.Num_Crystal_Rings;
+}
+
+short CECAT7SubHeaderNorm3D::crystals_Per_Ring(void) const
+{
+	return m_Data.Crystals_Per_Ring;
+}
+
+short CECAT7SubHeaderNorm3D::num_Geo_Corr_Planes(void) const
+{
+	return m_Data.Num_Geo_Corr_Planes;
+}
+
+short CECAT7SubHeaderNorm3D::uld(void) const
+{
+	return m_Data.ULD;
+}
+
+short CECAT7SubHeaderNorm3D::lld(void) const
+{
+	return m_Data.LLD;
+}
+
+short CECAT7SubHeaderNorm3D::scatter_Energy(void) const
+{
+	return m_Data.Scatter_Energy;
+}
+
+float CECAT7SubHeaderNorm3D::norm_Quality_Factor(void) const
+{
+	return m_Data.Norm_Quality_Factor;
+}
+
+CECAT7SubHeaderNorm3D::Norm_Qual_Factor_Code CECAT7SubHeaderNorm3D::norm_Quality_Factor_Code(void) const
+{
+	return static_cast<CECAT7SubHeaderNorm3D::Norm_Qual_Factor_Code>(m_Data.Norm_Quality_Factor_Code);
+}
+
+float CECAT7SubHeaderNorm3D::ring_DTCor1(const short i) const
+{
+	return m_Data.Ring_DTCor1[i];
+}
+
+float CECAT7SubHeaderNorm3D::ring_DTCor2(const short i) const
+{
+	return m_Data.Ring_DTCor2[i];
+}
+
+float CECAT7SubHeaderNorm3D::crystal_DTCor(const short i) const
+{
+	return m_Data.Crystal_DTCor[i];
+}
+
+short CECAT7SubHeaderNorm3D::span(void) const
+{
+	return m_Data.Span;
+}
+
+short CECAT7SubHeaderNorm3D::max_Ring_Diff(void) const
+{
+	return m_Data.Max_Ring_Diff;
+}
+
+short CECAT7SubHeaderNorm3D::cti_Reserved(const short i) const
+{
+	return m_Data.CTI_reserved[i];
+}
+
+short CECAT7SubHeaderNorm3D::user_Reserved(const short i) const
+{
+	return m_Data.User_Reserved[i];
+}
+
+
+void CECAT7SubHeaderNorm3D::setData_Type(const CECATSubHeader::Data_Type dType)
+{
+	m_Data.Data_Type = static_cast<quint16>(dType);
+}			
+
+void CECAT7SubHeaderNorm3D::setNum_R_Elements(const short n)
+{
+	m_Data.Num_R_Elements = n;
+}
+
+void CECAT7SubHeaderNorm3D::setNum_Transaxial_Crystals(const short n)
+{
+	m_Data.Num_Transaxial_Crystals = n;
+}
+
+void CECAT7SubHeaderNorm3D::setNum_Crystal_Rings(const short n)
+{
+	m_Data.Num_Crystal_Rings = n;
+}
+
+void CECAT7SubHeaderNorm3D::setCrystals_Per_Ring(const short n)
+{
+	m_Data.Crystals_Per_Ring = n;
+}
+
+void CECAT7SubHeaderNorm3D::setNum_Geo_Corr_Planes(const short n)
+{
+	m_Data.Num_Geo_Corr_Planes = n;
+}
+
+void CECAT7SubHeaderNorm3D::setULD(const short n)
+{
+	m_Data.ULD = n;
+}
+
+void CECAT7SubHeaderNorm3D::setLLD(const short n)
+{
+	m_Data.LLD = n;
+}
+
+void CECAT7SubHeaderNorm3D::setScatter_Energy(const short n)
+{
+	m_Data.Scatter_Energy = n;
+}
+
+void CECAT7SubHeaderNorm3D::setNorm_Quality_Factor(const float n)
+{
+	m_Data.Norm_Quality_Factor = n;
+}
+
+void CECAT7SubHeaderNorm3D::setNorm_Quality_Factor_Code(const Norm_Qual_Factor_Code n)
+{
+	m_Data.Norm_Quality_Factor_Code = static_cast<quint16>(n);
+}
+
+void CECAT7SubHeaderNorm3D::setRing_DTCor1(const short i, const float n)
+{
+	m_Data.Ring_DTCor1[i] = n;
+}
+
+void CECAT7SubHeaderNorm3D::setRing_DTCor2(const short i, const float n)
+{
+	m_Data.Ring_DTCor2[i] = n;
+}
+
+void CECAT7SubHeaderNorm3D::setCrystal_DTCor(const short i, const float n)
+{
+	m_Data.Crystal_DTCor[i] = n;
+}
+
+void CECAT7SubHeaderNorm3D::setSpan(const short n)
+{
+	m_Data.Span = n;
+}
+
+void CECAT7SubHeaderNorm3D::setMax_Ring_Diff(const short n)
+{
+	m_Data.Max_Ring_Diff = n;
+}
+
+void CECAT7SubHeaderNorm3D::setCTI_Reserved(const short i, const short n)
+{
+	m_Data.CTI_reserved[i] = n;
+}
+
+void CECAT7SubHeaderNorm3D::setUser_Reserved(const short i, const short n)
+{
+	m_Data.User_Reserved[i] = n;
+}
+		
 CMedIOHeader& CECAT7SubHeaderNorm3D::copyData(const CMedIOHeader& src)
 {
 	ENTER();

@@ -49,13 +49,13 @@ class CECATFile : public CMedIOData
 		static CMedIOData* createFromFile(const QString& fileName);
 
 		// runtime type information
-		int rtti() const { return CMedIOData::ECAT; }
-
+		int rtti() const;
+	
 		// the file open/close methods
 		bool open(QIODevice::OpenModeFlag mode);
 		void close(void);
 
-		ECATFormat format(void) const { return m_iECATformat; }
+		ECATFormat format(void) const;
 		CECATMainHeader::Type fileType(void);
 		bool setFileType(CECATMainHeader::Type fileType);
 
@@ -65,10 +65,10 @@ class CECATFile : public CMedIOData
 
 		// methods to calculate the real amount
 		// of frame/plane/gate numbers carried in the directory.
-		short numFrames(void) const { return m_pMainDirectory->numFrames();	}
-		short numPlanes(void) const	{ return m_pMainDirectory->numPlanes();	}
-		short numGates(void) const	{ return m_pMainDirectory->numGates();	}
-		short numBedPos(void) const	{ return m_pMainDirectory->numBedPos();	}
+		short numFrames(void) const;
+		short numPlanes(void) const;
+		short numGates(void) const;
+		short numBedPos(void) const;
 
 		// interface methods to read out specific data from the ECAT files
 		bool readMainHeader(CECATMainHeader*& mainHeader);
@@ -105,7 +105,7 @@ class CECATFile : public CMedIOData
 		CECATSubHeader*  createEmptySubHeader(void);
 
 		// more advanced methods to access the directory list of an ECAT file
-		CECATDirectory* directory(void) { return m_pMainDirectory; }
+		CECATDirectory* directory(void) const;
 
 		// internal methods to sync specific data with our headers
 		void mainHeaderWritten(const CECATMainHeader& mainHeader);

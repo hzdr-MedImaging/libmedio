@@ -78,6 +78,744 @@ CConcordeMainHeader::~CConcordeMainHeader()
 	LEAVE();
 }
 
+CMedIOData* CConcordeMainHeader::fileObject() const
+{
+	return m_pMedIOData;
+}
+
+int	CConcordeMainHeader::model(void) const
+{
+	return m_Data.model;
+}
+
+QString	CConcordeMainHeader::institution(void) const
+{
+	return m_Data.institution;
+}
+
+QString	CConcordeMainHeader::study(void) const
+{
+	return m_Data.study;
+}
+
+QString	CConcordeMainHeader::fileName(void) const
+{
+	return m_Data.file_name;
+}
+
+CConcordeMainHeader::FileType CConcordeMainHeader::fileType(void) const
+{
+	return static_cast<FileType>(m_Data.file_type);
+}
+
+CConcordeMainHeader::AquisitionMode CConcordeMainHeader::acquisitionMode(void) const
+{
+	return static_cast<AquisitionMode>(m_Data.acquisition_mode);
+}
+
+CConcordeMainHeader::BedMotion CConcordeMainHeader::bedMotion(void) const
+{
+	return static_cast<BedMotion>(m_Data.bed_motion);
+}
+
+int CConcordeMainHeader::totalFrames(void) const
+{
+	return m_Data.total_frames;
+}
+
+QString CConcordeMainHeader::isotope(void) const
+{
+	return m_Data.isotope;
+}
+
+float CConcordeMainHeader::isotopeHalfTime(void) const
+{
+	return m_Data.isotope_half_time;
+}
+
+float CConcordeMainHeader::isotopeBranchingFraction(void) const
+{
+	return m_Data.isotope_branching_fraction;
+}
+
+int CConcordeMainHeader::transaxialCrystalsPerBlock(void) const
+{
+	return m_Data.transaxial_crystals_per_block;
+}
+
+int CConcordeMainHeader::axialCrystalsPerBlock(void) const
+{
+	return m_Data.axial_crystals_per_block;
+}
+
+int CConcordeMainHeader::intrinsicCrystalOffset(void) const
+{
+	return m_Data.intrinsic_crystal_offset;
+}
+
+int CConcordeMainHeader::axialBlocks(void) const
+{
+	return m_Data.axial_blocks;
+}
+
+float CConcordeMainHeader::axialCrystalPitch(void) const
+{
+	return m_Data.axial_crystal_pitch;
+}
+
+float CConcordeMainHeader::radius(void) const
+{
+	return m_Data.radius;
+}
+
+float CConcordeMainHeader::radialFov(void) const
+{
+	return m_Data.radial_fov;
+}
+
+float CConcordeMainHeader::srcRadius(void) const
+{
+	return m_Data.src_radius;
+}
+
+float CConcordeMainHeader::srcCmPerRev(void) const
+{
+	return m_Data.src_cm_per_rev;
+}
+
+CConcordeMainHeader::SourceType CConcordeMainHeader::txSrcType(void) const
+{
+	return static_cast<SourceType>(m_Data.tx_src_type);
+}
+
+float CConcordeMainHeader::transaxialBinSize(void) const
+{
+	return m_Data.transaxial_bin_size;
+}
+
+float CConcordeMainHeader::axialPlaneSize(void) const
+{
+	return m_Data.axial_plane_size;
+}
+
+float CConcordeMainHeader::lld(void) const
+{
+	return m_Data.lld;
+}
+
+float CConcordeMainHeader::uld(void) const
+{
+	return m_Data.uld;
+}
+
+CConcordeMainHeader::DataType CConcordeMainHeader::dataType(void) const
+{
+	return static_cast<DataType>(m_Data.data_type);
+}
+
+CConcordeMainHeader::DataOrder CConcordeMainHeader::dataOrder(void) const
+{
+	return static_cast<DataOrder>(m_Data.data_order);
+}
+
+int CConcordeMainHeader::span(void) const
+{
+	return m_Data.span;
+}
+
+int CConcordeMainHeader::ringDifference(void) const
+{
+	return m_Data.ring_difference;
+}
+		
+int CConcordeMainHeader::numberOfDimensions(void) const
+{
+	return m_Data.number_of_dimensions;
+}
+
+int CConcordeMainHeader::xDimension(void) const
+{
+	return m_Data.x_dimension;
+}
+
+int CConcordeMainHeader::yDimension(void) const
+{
+	return m_Data.y_dimension;
+}
+
+int CConcordeMainHeader::zDimension(void) const
+{
+	return m_Data.z_dimension;
+}
+
+int CConcordeMainHeader::wDimension(void) const
+{
+	return m_Data.w_dimension;
+}
+
+int CConcordeMainHeader::deltaElements(int i) const
+{
+	return m_Data.delta_elements[i];
+}
+
+CConcordeMainHeader::DeadTimeCorrectionApplied CConcordeMainHeader::deadtimeCorrectionApplied(void) const
+{
+	return static_cast<DeadTimeCorrectionApplied>(m_Data.deadtime_correction_applied);
+}
+
+CConcordeMainHeader::DecayCorrectionApplied CConcordeMainHeader::decayCorrectionApplied(void) const
+{
+	return static_cast<DecayCorrectionApplied>(m_Data.decay_correction_applied);
+}
+
+CConcordeMainHeader::NormalizationApplied CConcordeMainHeader::normalizationApplied(void) const
+{
+	return static_cast<NormalizationApplied>(m_Data.normalization_applied);
+}
+
+CConcordeMainHeader::AttenuationApplied CConcordeMainHeader::attenuationApplied(void) const
+{
+	return static_cast<AttenuationApplied>(m_Data.attenuation_applied);
+}
+
+CConcordeMainHeader::ScatterCorrection CConcordeMainHeader::scatterCorrection(void) const
+{
+	return static_cast<ScatterCorrection>(m_Data.scatter_correction);
+}
+
+CConcordeMainHeader::ArcCorrectionApplied CConcordeMainHeader::arcCorrectionApplied(void) const
+{
+	return static_cast<ArcCorrectionApplied>(m_Data.arc_correction_applied);
+}
+
+float CConcordeMainHeader::pixelSize(void) const
+{
+	return m_Data.pixel_size;
+}
+
+CConcordeMainHeader::CalibrationUnits CConcordeMainHeader::calibrationUnits(void) const
+{
+	return static_cast<CalibrationUnits>(m_Data.calibration_units);
+}
+
+float CConcordeMainHeader::calibrationFactor(void) const
+{
+	return m_Data.calibration_factor;
+}
+
+float CConcordeMainHeader::calibrationBranchingFraction(void) const
+{
+	return m_Data.calibration_branching_fraction;
+}
+
+int CConcordeMainHeader::numberOfSinglesRates(void) const
+{
+	return m_Data.number_of_singles_rates;
+}
+
+QString CConcordeMainHeader::investigatorName(void) const
+{
+	return m_Data.investigator;
+}
+
+QString CConcordeMainHeader::operatorName(void) const
+{
+	return m_Data.Operator;
+}
+
+QString CConcordeMainHeader::studyIdentifier(void) const
+{
+	return m_Data.study_identifier;
+}
+
+long CConcordeMainHeader::scanTime(void) const
+{
+	return m_Data.scan_time.toTime_t();
+}
+
+QString CConcordeMainHeader::injectedCompound(void) const
+{
+	return m_Data.injected_compound;
+}
+
+CConcordeMainHeader::DoseUnits CConcordeMainHeader::doseUnits(void) const
+{
+	return static_cast<DoseUnits>(m_Data.dose_units);
+}
+
+float CConcordeMainHeader::dose(void) const
+{
+	return m_Data.dose;
+}
+
+long CConcordeMainHeader::injectionTime(void) const
+{
+	return m_Data.injection_time.toTime_t();
+}
+
+float CConcordeMainHeader::injectionDecayCorrection(void) const
+{
+	return m_Data.injection_decay_correction;
+}
+
+QString CConcordeMainHeader::subjectIdentifier(void) const
+{
+	return m_Data.subject_identifier;
+}
+
+QString CConcordeMainHeader::subjectGenus(void) const
+{
+	return m_Data.subject_genus;
+}
+
+CConcordeMainHeader::SubjectOrientation CConcordeMainHeader::subjectOrientation(void) const
+{
+	return static_cast<SubjectOrientation>(m_Data.subject_orientation);
+}
+
+CConcordeMainHeader::SubjectLengthUnits CConcordeMainHeader::subjectLengthUnits(void) const
+{
+	return static_cast<SubjectLengthUnits>(m_Data.subject_length_units);
+}
+
+float CConcordeMainHeader::subjectLength(void) const
+{
+	return m_Data.subject_length;
+}
+
+CConcordeMainHeader::SubjectWeightUnits CConcordeMainHeader::subjectWeightUnits(void) const
+{
+	return static_cast<SubjectWeightUnits>(m_Data.subject_weight_units);
+}
+
+float CConcordeMainHeader::subjectWeight(void) const
+{
+	return m_Data.subject_weight;
+}
+
+QString CConcordeMainHeader::subjectPhenotype(void) const
+{
+	return m_Data.subject_phenotype;
+}
+
+QString CConcordeMainHeader::studyModel(void) const
+{
+	return m_Data.study_model;
+}
+
+QString CConcordeMainHeader::anesthesia(void) const
+{
+	return m_Data.anesthesia;
+}
+
+QString CConcordeMainHeader::analgesia(void) const
+{
+	return m_Data.analgesia;
+}
+
+QString CConcordeMainHeader::otherDrugs(void) const
+{
+	return m_Data.other_drugs;
+}
+
+QString CConcordeMainHeader::foodAccess(void) const
+{
+	return m_Data.food_access;
+}
+
+QString CConcordeMainHeader::waterAccess(void) const
+{
+	return m_Data.water_access;
+}
+
+QDateTime CConcordeMainHeader::scanTimeQt(void) const
+{
+	return static_cast<QDateTime>(m_Data.scan_time);
+}
+
+QDateTime CConcordeMainHeader::injectionTimeQt(void) const
+{
+	return static_cast<QDateTime>(m_Data.injection_time);
+}
+
+QString CConcordeMainHeader::strSubjectWeightUnits(void) const
+{
+	QString tmp; 
+	switch(m_Data.subject_weight_units)
+	{
+		case Grams: tmp = "g"; break;
+		case Ounces: tmp = "oz"; break;
+		case Kilograms: tmp = "kg"; break;
+		case Pounds: tmp = "pounds"; break;
+		default: tmp = "unknown units"; break;
+	}
+	return tmp;
+}
+QString CConcordeMainHeader::strSubjectLengthUnits(void) const
+{
+	QString tmp; 
+	switch(m_Data.subject_length_units)
+	{
+		case Millimeters: tmp = "mm"; break;
+		case Centimeters: tmp = "cm"; break;
+		case Inches: tmp = "in"; break;
+		default: tmp = "unknown units"; break;
+	}
+	return tmp;
+}
+QString CConcordeMainHeader::strDoseUnits(void) const
+{
+	QString tmp; 
+	switch(m_Data.dose_units)
+	{
+		case mCi: tmp = "mCi"; break;
+		case MBq: tmp = "MBq"; break;
+		default: tmp = "unknown units"; break;
+	}
+	return tmp;
+}
+
+//mutator methods
+void CConcordeMainHeader::setModel(const int value)
+{
+	 m_Data.model = value;
+}
+
+void CConcordeMainHeader::setInstitution(const QString value)
+{
+	 m_Data.institution = value;
+}
+
+void CConcordeMainHeader::setFileName(const QString value)
+{
+	 m_Data.file_name = value;
+}
+
+void CConcordeMainHeader::setFileType(const int value)
+{
+	 m_Data.file_type = value;
+}
+
+void CConcordeMainHeader::setAcquisitionMode(const int value)
+{
+	 m_Data.acquisition_mode = value;
+}
+
+void CConcordeMainHeader::setBedMotion(const int value)
+{
+	 m_Data.bed_motion = value;
+}
+
+void CConcordeMainHeader::setNumFrames(const int value)
+{
+	 m_Data.total_frames = value;
+}
+
+void CConcordeMainHeader::setIsotope(const QString value)
+{
+	 m_Data.isotope = value;
+}
+
+void CConcordeMainHeader::setIsotopeHalftime(const float value)
+{
+	 m_Data.isotope_half_time = value;
+}
+
+void CConcordeMainHeader::setIsotopeBranchingFraction(const float value)
+{
+	 m_Data.isotope_branching_fraction = value;
+}
+
+void CConcordeMainHeader::setTransaxialCrystalsPerBlock(const int value)
+{
+	m_Data.transaxial_crystals_per_block = value;
+}
+
+void CConcordeMainHeader::setAxialCrystalsPerBlock(const int value)
+{
+	m_Data.axial_crystals_per_block = value;
+}
+
+void CConcordeMainHeader::setIntrinsicCrystalOffset(const int value)
+{
+	m_Data.intrinsic_crystal_offset = value;
+}
+
+void CConcordeMainHeader::setAxialBlocks(const int value)
+{
+	m_Data.axial_blocks = value;
+}
+
+void CConcordeMainHeader::setAxialCrystalPitch(const float value)
+{
+	m_Data.axial_crystal_pitch = value;
+}
+
+void CConcordeMainHeader::setRadius(const float value)
+{
+	m_Data.radius = value;
+}
+
+void CConcordeMainHeader::setRadialFov(const float value)
+{
+	m_Data.radial_fov = value;
+}
+
+void CConcordeMainHeader::setSrcRadius(const float value)
+{
+	m_Data.src_radius = value;
+}
+
+void CConcordeMainHeader::setSrcCmPerRev(const float value)
+{
+	m_Data.src_cm_per_rev = value;
+}
+
+void CConcordeMainHeader::setTxSrcType(const int value)
+{
+	m_Data.tx_src_type = value;
+}
+
+void CConcordeMainHeader::setTransaxialBinSize(const float value)
+{
+	m_Data.transaxial_bin_size = value;
+}
+
+void CConcordeMainHeader::setAxialPlaneSize(const float value)
+{
+	m_Data.axial_plane_size = value;
+}
+
+void CConcordeMainHeader::setLld(const float value)
+{
+	m_Data.lld = value;
+}
+
+void CConcordeMainHeader::setUld(const float value)
+{
+	m_Data.uld = value;
+}
+
+void CConcordeMainHeader::setDataType(const int value)
+{
+	 m_Data.data_type = value;
+}
+
+void CConcordeMainHeader::setDataOrder(const int value){ m_Data.data_order = value;
+}
+
+void CConcordeMainHeader::setSpan(const int value)
+{
+	 m_Data.span = value;
+}
+
+void CConcordeMainHeader::setRingDifference(const int value)
+{
+	 m_Data.ring_difference = value;
+}
+
+void CConcordeMainHeader::setNumberOfDimensions(const int value)
+{
+	 m_Data.number_of_dimensions = value;
+}
+
+void CConcordeMainHeader::setXDimension(const int value)
+{
+	 m_Data.x_dimension = value;
+}
+
+void CConcordeMainHeader::setYDimension(const int value)
+{
+	 m_Data.y_dimension = value;
+}
+
+void CConcordeMainHeader::setZDimension(const int value)
+{
+	 m_Data.z_dimension = value;
+}
+
+void CConcordeMainHeader::setWDimension(const int value)
+{
+	 m_Data.w_dimension = value;
+}
+
+void CConcordeMainHeader::setDeltaElements(const int i, const int value)
+{
+	 m_Data.delta_elements[i] = value;
+}
+
+void CConcordeMainHeader::setDeadtimeCorrectionApplied(const int value)
+{
+	 m_Data.deadtime_correction_applied = value;
+}
+
+void CConcordeMainHeader::setDecayCorrectionApplied(const int value)
+{
+	 m_Data.decay_correction_applied = value;
+}
+
+void CConcordeMainHeader::setNormalizationApplied(const int value)
+{
+	 m_Data.normalization_applied = value;
+}
+
+void CConcordeMainHeader::setAttenuationApplied(const int value)
+{
+	 m_Data.attenuation_applied = value;
+}
+
+void CConcordeMainHeader::setScatterCorrection(const int value)
+{
+	 m_Data.scatter_correction = value;
+}
+
+void CConcordeMainHeader::setArcCorrectionApplied(const int value)
+{
+	 m_Data.arc_correction_applied = value;
+}
+
+void CConcordeMainHeader::setPixelSize(const float value)
+{
+	m_Data.pixel_size = value;
+}
+
+
+void CConcordeMainHeader::setCalibrationUnits(const int value)
+{
+	 m_Data.calibration_factor = value;
+}
+
+void CConcordeMainHeader::setCalibrationFactor(const float value)
+{
+	 m_Data.calibration_factor = value;
+}
+
+void CConcordeMainHeader::setCalibrationBranchingFraction(const float value)
+{
+	 m_Data.calibration_branching_fraction = value;
+}
+
+void CConcordeMainHeader::setNumberOfSinglesRates(const int value)
+{
+	 m_Data.number_of_singles_rates = value;
+}
+
+void CConcordeMainHeader::setInvestigatorName(const QString value)
+{
+	 m_Data.investigator = value;
+}
+
+void CConcordeMainHeader::setOperatorName(const QString value)
+{
+	 m_Data.Operator = value;
+}
+
+void CConcordeMainHeader::setStudyIdentifier(const QString value)
+{
+	 m_Data.study_identifier = value;
+}
+
+void CConcordeMainHeader::setScanTime(const long value)
+{
+	 m_Data.scan_time.setTime_t(value);
+}
+
+void CConcordeMainHeader::setInjectedCompound(const QString value)
+{
+	 m_Data.injected_compound = value;
+}
+
+void CConcordeMainHeader::setDoseUnits(const int value)
+{
+	 m_Data.dose_units = value;
+}
+
+void CConcordeMainHeader::setDose(const float value)
+{
+	 m_Data.dose = value;
+}
+
+void CConcordeMainHeader::setInjectionTime(const long value)
+{
+	 m_Data.injection_time.setTime_t(value);
+}
+
+void CConcordeMainHeader::setInjectionDecayCorrection(const float value)
+{
+	 m_Data.injection_decay_correction = value;
+}
+
+void CConcordeMainHeader::setSubjectIdentifier(const QString value)
+{
+	 m_Data.subject_identifier = value;
+}
+
+void CConcordeMainHeader::setSubjectGenus(const QString value)
+{
+	 m_Data.subject_genus = value;
+}
+
+void CConcordeMainHeader::setSubjectOrientation(const int value)
+{
+	 m_Data.subject_orientation = value;
+}
+
+void CConcordeMainHeader::setSubjectLength_units(const int value)
+{
+	 m_Data.subject_length_units = value;
+}
+
+void CConcordeMainHeader::setSubjectLength(const float value)
+{
+	 m_Data.subject_length = value;
+}
+
+void CConcordeMainHeader::setSubjectWeight_units(const int value)
+{
+	 m_Data.subject_weight_units = value;
+}
+
+void CConcordeMainHeader::setSubjectWeight(const float value)
+{
+	 m_Data.subject_weight = value;
+}
+
+void CConcordeMainHeader::setSubjectPhenotype(const QString value)
+{
+	 m_Data.subject_phenotype = value;
+}
+
+void CConcordeMainHeader::setStudyModel(const QString value)
+{
+	 m_Data.study_model = value;
+}
+
+void CConcordeMainHeader::setAnesthesia(const QString value)
+{
+	 m_Data.anesthesia = value;
+}
+
+void CConcordeMainHeader::setAnalgesia(const QString value)
+{
+	 m_Data.analgesia = value;
+}
+
+void CConcordeMainHeader::setOtherDrugs(const QString value)
+{
+	 m_Data.other_drugs = value;
+}
+
+void CConcordeMainHeader::setFoodAccess(const QString value)
+{
+	 m_Data.food_access = value;
+}
+
+void CConcordeMainHeader::setWaterAccess(const QString value)
+{
+	 m_Data.water_access = value;
+}
+
+
 //  Class: CConcordeMainHeader
 //  Method: setDefaults
 //!
@@ -320,13 +1058,19 @@ bool CConcordeMainHeader::init()
 	return true;
 }
 
+bool CConcordeMainHeader::convertFrom(const CMedIOHeader* srcMainHeader, const CMedIOHeader* srcSubHeader)
+{
+	copyData(*srcMainHeader);
+	return true;
+}
+
 CMedIOHeader& CConcordeMainHeader::copyData(const CMedIOHeader& src)
 {
 	ENTER();
 	if(src.headerFormat() == CMedIOHeader::ConcordeMicroPetMainHeader)
 	{
 		//TODO: add CHeaderConcordeFrame to CMedIOHeader and check for it
-		W("TODO: add CHeaderConcordeFrame to CMedIOHeader and check for it");
+		//W("TODO: add CHeaderConcordeFrame to CMedIOHeader and check for it");
 		CConcordeMainHeader* head = (CConcordeMainHeader*)&src;
 		m_Data.model = head->model();
 		m_Data.institution = head->institution();

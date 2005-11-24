@@ -1,7 +1,7 @@
 /* vim:set ts=2 nowrap: ****************************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2004-2005 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -21,28 +21,27 @@
 
 ***************************************************************************/
 
-//! @file CMedIOHeader.cpp
-//! @brief contains the implementation of the class CMedIOHeader
-//! @author Hagen Moelle
+#include "CECATSubHeader.h"
+#include "CECATDirectoryItem.h"
 
-#include "CMedIOHeader.h"
 #include <rtdebug.h>
 
-CMedIOHeader::CMedIOHeader(CMedIOData* data)
-	: m_pMedIOData(data)
-{ 
+CECATSubHeader::CECATSubHeader(CMedIOData* ecatFile,
+															 CECATDirectoryItem* dItem)
+	: CMedIOHeader(ecatFile),
+		m_pDirItem(dItem)
+{
 	ENTER();
+
 	LEAVE();
 }
 
-//  Class: CMedIOHeader
-//  Destructor:  CMedIOHeader
-//!
-//! destructucts a CMedIOHeader object.
-//! 
-////////////////////////////////////////////////////////////////////////////////
-CMedIOHeader::~CMedIOHeader()
-{
-	ENTER();
-	LEAVE();
+CMedIOHeader::Format CECATSubHeader::headerFormat() const
+{ 
+	return CMedIOHeader::ECATSubHeader;
+}
+
+void CECATSubHeader::setDirectoryItem(CECATDirectoryItem* dItem)
+{ 
+	m_pDirItem = dItem;
 }

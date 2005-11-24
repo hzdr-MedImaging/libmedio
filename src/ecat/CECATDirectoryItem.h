@@ -73,57 +73,25 @@ class CECATDirectoryItem
 											 quint32 matrixID = 0);
 	
 		// accessor methods
-		unsigned int matrixID(void) const
-		{ return convertToMatrixID(m_iFrame, m_iPlane, m_iGate, m_iBed, m_iData); }
-
-		qint64 dataBlock_Start(void) const
-		{ return m_iDataBlock_Start; }
-		
-		qint64 dataBlock_End(void) const
-		{ return m_iDataBlock_End; }
-
-		AccessStatus dataBlock_Status(void) const
-		{ return m_iStatus; }
-
-		short frame(void) const
-		{ return m_iFrame; }
-
-		short plane(void) const
-		{ return m_iPlane; }
-		
-		short gate(void) const
-		{ return m_iGate; }
-		
-		short bed(void) const
-		{ return m_iBed; }
-		
-		short data(void) const
-		{	return m_iData; }
+		unsigned int matrixID(void) const;
+		qint64 dataBlock_Start(void) const;
+		qint64 dataBlock_End(void) const;
+		AccessStatus dataBlock_Status(void) const;
+		short frame(void) const;
+		short plane(void) const;
+		short gate(void) const;
+		short bed(void) const;
+		short data(void) const;
 
 		// mutator methods
-		void setDataBlock_Start(const qlonglong offset)
-		{ m_iDataBlock_Start = offset; }
-
-		void setDataBlock_End(const qlonglong offset)
-		{ m_iDataBlock_End = offset; }
-
-		void setDataBlock_Status(const AccessStatus status)
-		{ m_iStatus = status; }
-		
-		void setFrame(const short f)
-		{ m_iFrame = f; }
-
-		void setPlane(const short p)
-		{ m_iPlane = p; }
-		
-		void setGate(const short g)
-		{ m_iGate = g; }
-		
-		void setBed(const short b)
-		{ m_iBed = b; }
-		
-		void setData(const short d)
-		{	m_iData = d; }		
+		void setDataBlock_Start(const qint64 offset);
+		void setDataBlock_End(const qint64 offset);
+		void setDataBlock_Status(const AccessStatus status);
+		void setFrame(const short f);
+		void setPlane(const short p);
+		void setGate(const short g);
+		void setBed(const short b);
+		void setData(const short d);
 			
 		// read i/o methods
 		bool readSubHeader(CECATSubHeader*& subHeader);

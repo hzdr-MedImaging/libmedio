@@ -44,8 +44,8 @@ class CECATDirectory : protected QHash<int, CECATDirectoryItem*>
 		bool save(void) const;
 
 		// accessor methods
-		bool isEmpty() const { return QHash<int, CECATDirectoryItem*>::isEmpty(); }
-		int count() const		 { return QHash<int, CECATDirectoryItem*>::count(); }
+		bool isEmpty() const;
+		unsigned int count() const;
 		CECATDirectoryItem* operator[](long num) const;
 		CECATDirectoryItem* item(short frame, short plane=1,
 														 short gate=1, short bed=0, short data=0);

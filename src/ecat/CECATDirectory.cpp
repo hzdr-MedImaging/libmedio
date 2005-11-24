@@ -241,7 +241,7 @@ bool CECATDirectory::save(void) const
 	short depth=4; // we have five depth levels (4==data, 3==bed, 2==gate, 1==plane, 0==frame)
 	unsigned int currentDirPos = ECAT_POS_MAINDIR;
 	unsigned int nextDirPos;
-	int foundDirItems = 0;
+	unsigned int foundDirItems = 0;
 	unsigned short curDirList = 0;
 	do
 	{
@@ -409,6 +409,17 @@ bool CECATDirectory::save(void) const
 	return result;
 }
 
+bool CECATDirectory::isEmpty() const
+{ 
+	return QHash<int, CECATDirectoryItem*>::isEmpty();
+}
+
+unsigned int CECATDirectory::count() const
+{ 
+	return QHash<int, CECATDirectoryItem*>::count();
+}
+
+
 CECATDirectoryItem* CECATDirectory::item(short frame, short plane,
 																			 	 short gate, short bed, short data)
 {
@@ -430,7 +441,7 @@ CECATDirectoryItem* CECATDirectory::newItem(quint32 matrixID)
 	// now that we generated a new directory item we want to put
 	// in our directory immediately, we have to first check at which
 	// dataposition it should be placed
-	qlonglong dataOffset = lastDirItemOffset();
+	qint64 dataOffset = lastDirItemOffset();
 
 	// modify the Start offset of the item now. So if this is the first
 	// one we place it directly behind the maindirectory, which should

@@ -60,6 +60,41 @@ CECATFile::~CECATFile()
 		delete m_pCachedMainHeader;
 }
 
+int CECATFile::rtti() const
+{ 
+	return CMedIOData::ECAT;
+}
+
+CECATFile::ECATFormat CECATFile::format(void) const
+{ 
+	return m_iECATformat;
+}
+
+short CECATFile::numFrames(void) const
+{ 
+	return m_pMainDirectory->numFrames();
+}
+
+short CECATFile::numPlanes(void) const
+{ 
+	return m_pMainDirectory->numPlanes();
+}
+
+short CECATFile::numGates(void) const
+{ 
+	return m_pMainDirectory->numGates();
+}
+
+short CECATFile::numBedPos(void) const
+{ 
+	return m_pMainDirectory->numBedPos();
+}
+
+CECATDirectory* CECATFile::directory(void) const
+{ 
+	return m_pMainDirectory;
+}
+
 bool CECATFile::isOfType(const QString& filename)
 {
 	ENTER();

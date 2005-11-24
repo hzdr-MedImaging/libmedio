@@ -241,6 +241,347 @@ bool CECAT7SubHeaderScan::save(void) const
 	return result;
 }
 
+int CECAT7SubHeaderScan::rawDataSize() const
+{
+	return 1*ECAT_BLOCKSIZE;
+}
+
+CECATSubHeader::Type CECAT7SubHeaderScan::subHeaderType(void) const
+{
+	return CECATSubHeader::ECAT7_Scan;
+}
+
+// data access methods
+CECATSubHeader::Data_Type CECAT7SubHeaderScan::data_Type(void) const
+{
+	return static_cast<CECATSubHeader::Data_Type>(m_Data.Data_Type);	}
+
+short CECAT7SubHeaderScan::num_Dimensions(void) const
+{
+	return m_Data.Num_Dimensions;
+}
+
+short CECAT7SubHeaderScan::num_R_Elements(void) const
+{
+	return m_Data.Num_R_Elements;
+}
+
+short CECAT7SubHeaderScan::num_Angles(void) const
+{
+	return m_Data.Num_Angles;
+}
+
+short CECAT7SubHeaderScan::corrections_Applied(void) const
+{
+	return m_Data.Corrections_Applied;
+}
+
+short CECAT7SubHeaderScan::num_Z_Elements(void) const
+{
+	return m_Data.Num_Z_Elements;
+}
+
+short CECAT7SubHeaderScan::ring_Difference(void) const
+{
+	return m_Data.Ring_Difference;
+}
+
+float CECAT7SubHeaderScan::x_Resolution(void) const
+{
+	return m_Data.X_Resolution;
+}
+
+float CECAT7SubHeaderScan::y_Resolution(void) const
+{
+	return m_Data.Y_Resolution;
+}
+
+float CECAT7SubHeaderScan::z_Resolution(void) const
+{
+	return m_Data.Z_Resolution;
+}
+
+float CECAT7SubHeaderScan::w_Resolution(void) const
+{
+	return m_Data.W_Resolution;
+}
+
+short CECAT7SubHeaderScan::gate_Reserved(const short i) const
+{
+	return m_Data.Gate_Reserved[i];
+}
+
+unsigned int CECAT7SubHeaderScan::gate_Duration(void) const
+{
+	return m_Data.Gate_Duration;
+}
+
+unsigned int CECAT7SubHeaderScan::r_Wave_Offset(void) const
+{
+	return m_Data.R_Wave_Offset;
+}
+
+unsigned int CECAT7SubHeaderScan::num_Accepted_Beats(void) const
+{
+	return m_Data.Num_Accepted_Beats;
+}
+
+float CECAT7SubHeaderScan::scale_Factor(void) const
+{
+	return m_Data.Scale_Factor;
+}
+
+short CECAT7SubHeaderScan::scan_Min(void) const
+{
+	return m_Data.Scan_Min;
+}
+
+short CECAT7SubHeaderScan::scan_Max(void) const
+{
+	return m_Data.Scan_Max;
+}
+
+unsigned int CECAT7SubHeaderScan::prompts(void) const
+{
+	return m_Data.Prompts;
+}
+
+unsigned int CECAT7SubHeaderScan::delayed(void) const
+{
+	return m_Data.Delayed;
+}
+
+unsigned int CECAT7SubHeaderScan::multiples(void) const
+{
+	return m_Data.Multiples;
+}
+
+unsigned int CECAT7SubHeaderScan::net_Trues(void) const
+{
+	return m_Data.Net_Trues;
+}
+
+float CECAT7SubHeaderScan::cor_Singles(const short i) const
+{
+	return m_Data.Cor_Singles[i];
+}
+
+float CECAT7SubHeaderScan::uncor_Singles(const short i) const
+{
+	return m_Data.Uncor_Singles[i];
+}
+
+float CECAT7SubHeaderScan::tot_Avg_Cor(void) const
+{
+	return m_Data.Tot_Avg_Cor;
+}
+
+float CECAT7SubHeaderScan::tot_Avg_Uncor(void) const
+{
+	return m_Data.Tot_Avg_Uncor;
+}
+
+unsigned int CECAT7SubHeaderScan::total_Coin_Rate(void) const
+{
+	return m_Data.Total_Coin_Rate;
+}
+
+unsigned int CECAT7SubHeaderScan::frame_Start_Time(void) const
+{
+	return m_Data.Frame_Start_Time;
+}
+
+unsigned int CECAT7SubHeaderScan::frame_Duration(void) const
+{
+	return m_Data.Frame_Duration;
+}
+
+float CECAT7SubHeaderScan::deadtime_Correction_Factor(void) const
+{
+	return m_Data.Deadtime_Correction_Factor;
+}
+
+short CECAT7SubHeaderScan::physical_Planes(const short i) const
+{
+	return m_Data.Physical_Planes[i];
+}
+
+short CECAT7SubHeaderScan::cti_Reserved(const short i) const
+{
+	return m_Data.CTI_reserved[i];
+}
+
+short CECAT7SubHeaderScan::user_Reserved(const short i) const
+{
+	return m_Data.User_Reserved[i];
+}
+
+
+void CECAT7SubHeaderScan::setData_Type(const CECATSubHeader::Data_Type dType)
+{
+	m_Data.Data_Type = static_cast<quint16>(dType);
+}	
+
+void CECAT7SubHeaderScan::setNum_Dimensions(const short n)
+{
+	m_Data.Num_Dimensions = n;
+}
+
+void CECAT7SubHeaderScan::setNum_R_Elements(const short n)
+{
+	m_Data.Num_R_Elements = n;
+}
+
+void CECAT7SubHeaderScan::setNum_Angles(const short n)
+{
+	m_Data.Num_Angles = n;
+}
+
+void CECAT7SubHeaderScan::setCorrections_Applied(const short n)
+{
+	m_Data.Corrections_Applied = n;
+}
+
+void CECAT7SubHeaderScan::setNum_Z_Elements(const short n)
+{
+	m_Data.Num_Z_Elements = n;
+}
+
+void CECAT7SubHeaderScan::setRing_Difference(const short n)
+{
+	m_Data.Ring_Difference = n;
+}
+
+void CECAT7SubHeaderScan::setX_Resolution(const float n)
+{
+	m_Data.X_Resolution = n;
+}
+
+void CECAT7SubHeaderScan::setY_Resolution(const float n)
+{
+	m_Data.Y_Resolution = n;
+}
+
+void CECAT7SubHeaderScan::setZ_Resolution(const float n)
+{
+	m_Data.Z_Resolution = n;
+}
+
+void CECAT7SubHeaderScan::setW_Resolution(const float n)
+{
+	m_Data.W_Resolution = n;
+}
+
+void CECAT7SubHeaderScan::setGate_Reserved(const short i, const short n)
+{
+	m_Data.Gate_Reserved[i] = n;
+}
+
+void CECAT7SubHeaderScan::setGate_Duration(const unsigned int n)
+{
+	m_Data.Gate_Duration = n;
+}
+
+void CECAT7SubHeaderScan::setR_Wave_Offset(const unsigned int n)
+{
+	m_Data.R_Wave_Offset = n;
+}
+
+void CECAT7SubHeaderScan::setNum_Accepted_Beats(const unsigned int n)
+{
+	m_Data.Num_Accepted_Beats = n;
+}
+
+void CECAT7SubHeaderScan::setScale_Factor(const float n)
+{
+	m_Data.Scale_Factor = n;
+}
+
+void CECAT7SubHeaderScan::setScan_Min(const short n)
+{
+	m_Data.Scan_Min = n;
+}
+
+void CECAT7SubHeaderScan::setScan_Max(const short n)
+{
+	m_Data.Scan_Max = n;
+}
+
+void CECAT7SubHeaderScan::setPrompts(const unsigned int n)
+{
+	m_Data.Prompts = n;
+}
+
+void CECAT7SubHeaderScan::setDelayed(const unsigned int n)
+{
+	m_Data.Delayed = n;
+}
+
+void CECAT7SubHeaderScan::setMultiples(const unsigned int n)
+{
+	m_Data.Multiples = n;
+}
+
+void CECAT7SubHeaderScan::setNet_Trues(const unsigned int n)
+{
+	m_Data.Net_Trues = n;
+}
+
+void CECAT7SubHeaderScan::setCor_Singles(const short i, const float n)
+{
+	m_Data.Cor_Singles[i] = n;
+}
+
+void CECAT7SubHeaderScan::setUncor_Singles(const short i, const float n)
+{
+	m_Data.Uncor_Singles[i] = n;
+}
+
+void CECAT7SubHeaderScan::setTot_Avg_Cor(const float n)
+{
+	m_Data.Tot_Avg_Cor = n;
+}
+
+void CECAT7SubHeaderScan::setTot_Avg_Uncor(const float n)
+{
+	m_Data.Tot_Avg_Uncor = n;
+}
+
+void CECAT7SubHeaderScan::setTotal_Coin_Rate(const unsigned int n)
+{
+	m_Data.Total_Coin_Rate = n;
+}
+
+void CECAT7SubHeaderScan::setFrame_Start_Time(const unsigned int n)
+{
+	m_Data.Frame_Start_Time = n;
+}
+
+void CECAT7SubHeaderScan::setFrame_Duration(const unsigned int n)
+{
+	m_Data.Frame_Duration = n;
+}
+
+void CECAT7SubHeaderScan::setDeadtime_Correction_Factor(const float n)
+{
+	m_Data.Deadtime_Correction_Factor = n;
+}
+
+void CECAT7SubHeaderScan::setPhysical_Planes(const short i, const short n)
+{
+	m_Data.Physical_Planes[i] = n;
+}
+
+void CECAT7SubHeaderScan::setCTI_Reserved(const short i, const short n)
+{
+	m_Data.CTI_reserved[i] = n;
+}
+
+void CECAT7SubHeaderScan::setUser_Reserved(const short i, const short n)
+{
+	m_Data.User_Reserved[i] = n;
+}
+
 CMedIOHeader& CECAT7SubHeaderScan::copyData(const CMedIOHeader& src)
 {
 	ENTER();

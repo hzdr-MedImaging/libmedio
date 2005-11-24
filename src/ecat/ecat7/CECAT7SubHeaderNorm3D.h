@@ -48,121 +48,50 @@ class CECAT7SubHeaderNorm3D : public CECATSubHeader
 		bool save(void) const;
 
 		// the number of bytes the data of that header requires on disk
-		int rawDataSize() const { return 1*ECAT_BLOCKSIZE; }
+		int rawDataSize() const;
 		
-		CECATSubHeader::Type subHeaderType(void) const
-		{ return CECATSubHeader::ECAT7_Norm3D; }
+		CECATSubHeader::Type subHeaderType(void) const;
 		
 		// access methods to get directly data out of
 		// the SubHeader
-		CECATSubHeader::Data_Type data_Type(void) const
-		{ return static_cast<CECATSubHeader::Data_Type>(m_Data.Data_Type);	}
+		CECATSubHeader::Data_Type data_Type(void) const;
+		short num_R_Elements(void) const;
+		short num_Transaxial_Crystals(void) const;
+		short num_Crystal_Rings(void) const;
+		short crystals_Per_Ring(void) const;
+		short num_Geo_Corr_Planes(void) const;
+		short uld(void) const;
+		short lld(void) const;
+		short scatter_Energy(void) const;
+		float norm_Quality_Factor(void) const;
+		Norm_Qual_Factor_Code norm_Quality_Factor_Code(void) const;
+		float ring_DTCor1(const short i) const;
+		float ring_DTCor2(const short i) const;
+		float crystal_DTCor(const short i) const;
+		short span(void) const;
+		short max_Ring_Diff(void) const;
+		short cti_Reserved(const short i) const;
+		short user_Reserved(const short i) const;
 
-		short num_R_Elements(void) const
-		{ return m_Data.Num_R_Elements; }
-
-		short num_Transaxial_Crystals(void) const
-		{ return m_Data.Num_Transaxial_Crystals; }
-
-		short num_Crystal_Rings(void) const
-		{ return m_Data.Num_Crystal_Rings; }
-
-		short crystals_Per_Ring(void) const
-		{ return m_Data.Crystals_Per_Ring; }
-
-		short num_Geo_Corr_Planes(void) const
-		{ return m_Data.Num_Geo_Corr_Planes; }
-
-		short uld(void) const
-		{ return m_Data.ULD; }
-
-		short lld(void) const
-		{ return m_Data.LLD; }
-
-		short scatter_Energy(void) const
-		{ return m_Data.Scatter_Energy; }
-
-		float norm_Quality_Factor(void) const
-		{ return m_Data.Norm_Quality_Factor; }
-
-		Norm_Qual_Factor_Code norm_Quality_Factor_Code(void) const
-		{ return static_cast<Norm_Qual_Factor_Code>(m_Data.Norm_Quality_Factor_Code); }
-
-		float ring_DTCor1(const short i) const
-		{ return m_Data.Ring_DTCor1[i]; }
-
-		float ring_DTCor2(const short i) const
-		{ return m_Data.Ring_DTCor2[i]; }
-
-		float crystal_DTCor(const short i) const
-		{ return m_Data.Crystal_DTCor[i]; }
-
-		short span(void) const
-		{ return m_Data.Span; }
-
-		short max_Ring_Diff(void) const
-		{ return m_Data.Max_Ring_Diff; }
-
-		short cti_Reserved(const short i)
-		{ return m_Data.CTI_reserved[i]; }
-
-		short user_Reserved(const short i)
-		{ return m_Data.User_Reserved[i]; }
-
-
-		void setData_Type(const CECATSubHeader::Data_Type dType)
-		{ m_Data.Data_Type = static_cast<quint16>(dType);	}			
-		
-		void setNum_R_Elements(const short n)
-		{ m_Data.Num_R_Elements = n; }
-
-		void setNum_Transaxial_Crystals(const short n)
-		{ m_Data.Num_Transaxial_Crystals = n; }
-
-		void setNum_Crystal_Rings(const short n)
-		{ m_Data.Num_Crystal_Rings = n; }
-
-		void setCrystals_Per_Ring(const short n)
-		{ m_Data.Crystals_Per_Ring = n; }
-
-		void setNum_Geo_Corr_Planes(const short n)
-		{ m_Data.Num_Geo_Corr_Planes = n; }
-
-		void setULD(const short n)
-		{ m_Data.ULD = n; }
-
-		void setLLD(const short n)
-		{ m_Data.LLD = n; }
-
-		void setScatter_Energy(const short n)
-		{ m_Data.Scatter_Energy = n; }
-
-		void setNorm_Quality_Factor(const float n)
-		{ m_Data.Norm_Quality_Factor = n; }
-
-		void setNorm_Quality_Factor_Code(const Norm_Qual_Factor_Code n)
-		{ m_Data.Norm_Quality_Factor_Code = static_cast<quint16>(n); }
-
-		void setRing_DTCor1(const short i, const float n)
-		{ m_Data.Ring_DTCor1[i] = n; }
-
-		void setRing_DTCor2(const short i, const float n)
-		{ m_Data.Ring_DTCor2[i] = n; }
-
-		void setCrystal_DTCor(const short i, const float n)
-		{ m_Data.Crystal_DTCor[i] = n; }
-
-		void setSpan(const short n)
-		{ m_Data.Span = n; }
-
-		void setMax_Ring_Diff(const short n)
-		{ m_Data.Max_Ring_Diff = n; }
-
-		void setCTI_Reserved(const short i, const short n)
-		{ m_Data.CTI_reserved[i] = n; }
-
-		void setUser_Reserved(const short i, const short n)
-		{ m_Data.User_Reserved[i] = n; }
+		// data mutator methods
+		void setData_Type(const CECATSubHeader::Data_Type dType);
+		void setNum_R_Elements(const short n);
+		void setNum_Transaxial_Crystals(const short n);
+		void setNum_Crystal_Rings(const short n);
+		void setCrystals_Per_Ring(const short n);
+		void setNum_Geo_Corr_Planes(const short n);
+		void setULD(const short n);
+		void setLLD(const short n);
+		void setScatter_Energy(const short n);
+		void setNorm_Quality_Factor(const float n);
+		void setNorm_Quality_Factor_Code(const Norm_Qual_Factor_Code n);
+		void setRing_DTCor1(const short i, const float n);
+		void setRing_DTCor2(const short i, const float n);
+		void setCrystal_DTCor(const short i, const float n);
+		void setSpan(const short n);
+		void setMax_Ring_Diff(const short n);
+		void setCTI_Reserved(const short i, const short n);
+		void setUser_Reserved(const short i, const short n);
 
 	protected:
 		// required method to copy relevant data from another MedIOHeader object
