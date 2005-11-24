@@ -96,8 +96,6 @@ class Q_EXPORT CECAT7SubHeaderNorm : public CECATSubHeader
 	protected:
 		// constructors
 		CECAT7SubHeaderNorm();
-		// required method to copy relevant data from another MedIOHeader object
-		CMedIOHeader& copyData(const CMedIOHeader& src);
 
 	private:
 		struct ECAT7SubHeader_Norm

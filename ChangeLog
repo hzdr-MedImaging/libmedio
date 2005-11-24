@@ -8,10 +8,12 @@ $Source$
 
 2005-11-24  Christian Poetzsch <cp@burningdragon.de>
 	
-	* CMedIOHeader.h,ecat/*: methods for converting and cloning of the header
-	* CMedIOHeader.h,ecat/*: removed copy constructor, because there is a default one
+	* CMedIOHeader.h,ecat/*Header: methods for converting and cloning of the header
+	* CMedIOHeader.h,ecat/*Header: removed copy constructor/=operator, because 
+    there is a default one
+	* CMedIOHeader.h,ecat/*Header: removed copyData since is not needed anymore
 
-2005-11-24  Hagen Mölle <draggore@gmx.de>
+2005-11-24  Hagen Moelle <draggore@gmx.de>
 
   * concorde/MainHeader,FrameHeader: uses convertFrom method to convert from other 
     medio formats.
@@ -38,7 +40,7 @@ $Source$
   * testcases/readwritematrix.cpp: added additional checks to test the generation
     of multiple directory lists as well.
 
-2005-10-21  Hagen Mölle <draggore@gmx.de>
+2005-10-21  Hagen Moelle <draggore@gmx.de>
 
   * misc: changed concorde microPET files so they resemble new medio interface
     buffered reading of data of concorde microPET files
@@ -196,7 +198,7 @@ $Source$
     considered experimentel and not finished. They need some more work until they
     can be used in normal applications like the previous routines.
     
-2004-10-04  Hagen Mölle <draggore@gmx.de>
+2004-10-04  Hagen Moelle <draggore@gmx.de>
 
   * added concorde micropet image support - possibility to load image files
 
@@ -226,7 +228,7 @@ $Source$
   * CECAT7MainHeader.h: added missing enumeration values for the Patient
     Orientation header field.
 
-2004-08-31  Hagen Mölle <draggore@gmx.de>
+2004-08-31  Hagen Moelle <draggore@gmx.de>
 
   * implemeted a Factory to support easier creation of supported fileformats
   * new fileformat: Concorde Micropet

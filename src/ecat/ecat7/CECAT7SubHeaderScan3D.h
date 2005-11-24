@@ -136,8 +136,6 @@ class Q_EXPORT CECAT7SubHeaderScan3D : public CECATSubHeader
 	protected:
 		// constructors
 		CECAT7SubHeaderScan3D();
-		// required method to copy relevant data from another MedIOHeader object
-		CMedIOHeader& copyData(const CMedIOHeader& src);
 
 	private:
 		struct ECAT7SubHeader_Scan3D

@@ -84,10 +84,6 @@ class Q_EXPORT CECATSubHeader : public CMedIOHeader
 		virtual CMedIOHeader* clone() const = 0;
 
 	protected:
-		// required method to copy relevant data from another MedIOHeader object
-		virtual CMedIOHeader& copyData(const CMedIOHeader& src) = 0;
-
-	protected:
 		CECATDirectoryItem* m_pDirItem; // the directory item to which this
 																		// subHeader belongs
 };

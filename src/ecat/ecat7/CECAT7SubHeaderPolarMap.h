@@ -123,8 +123,6 @@ class Q_EXPORT CECAT7SubHeaderPolarMap : public CECATSubHeader
 	protected:
 		// constructors
 		CECAT7SubHeaderPolarMap();
-		// required method to copy relevant data from another MedIOHeader object
-		CMedIOHeader& copyData(const CMedIOHeader& src);
 
 	private:
 		struct ECAT7SubHeader_PolarMap

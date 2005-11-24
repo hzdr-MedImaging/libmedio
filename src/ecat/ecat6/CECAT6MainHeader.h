@@ -78,10 +78,6 @@ class Q_EXPORT CECAT6MainHeader : public CECATMainHeader
 		void setNum_Gates(const short num);
 		void setNum_Bed_Pos(const short num);
 
-	protected:
-		// required method to copy relevant data from another MedIOHeader object
-		CMedIOHeader& copyData(const CMedIOHeader& src);		
-
 	private:
 		struct ECAT6MainHeader
 		{

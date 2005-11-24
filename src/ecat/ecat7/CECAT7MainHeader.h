@@ -227,9 +227,6 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 	protected:
 		void updateMagicNumber(void);
 
-		// required method to copy relevant data from another MedIOHeader object
-		CMedIOHeader& copyData(const CMedIOHeader& src);		
-
 	private:
 		// MainHeader structure (should be 512bytes)
 		struct ECAT7MainHeader

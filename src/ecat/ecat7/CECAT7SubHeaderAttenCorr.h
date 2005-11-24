@@ -122,9 +122,7 @@ class Q_EXPORT CECAT7SubHeaderAttenCorr : public CECATSubHeader
 	protected:
 		// constructors
 		CECAT7SubHeaderAttenCorr();
-		// required method to copy relevant data from another MedIOHeader object
-		CMedIOHeader& copyData(const CMedIOHeader& src);		
-
+	
 	private:
 		struct ECAT7SubHeader_AttenCorr
 		{

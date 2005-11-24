@@ -81,10 +81,6 @@ class Q_EXPORT CECATMainHeader : public CMedIOHeader
 		// create a new medio header of the same type as pSrc and
 		// copy all meta information
 		virtual CMedIOHeader* clone() const = 0;
-
-	protected:
-		// required method to copy relevant data from another MedIOHeader object
-		virtual CMedIOHeader& copyData(const CMedIOHeader& src) = 0;		
 };
 
 #endif // CECATMAINHEADER_H
