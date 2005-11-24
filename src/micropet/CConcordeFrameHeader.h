@@ -41,6 +41,7 @@ class CConcordeFrameHeader : public CMedIOHeader
 		bool load();
 		bool save() const;
 		CMedIOHeader::Format headerFormat() const;
+		bool convertFrom(const CMedIOHeader& srcMainHeader, const CMedIOHeader& srcSubHeader);
 
 		//accessor methods
 		int frame(void) const {return m_Data.frame;}

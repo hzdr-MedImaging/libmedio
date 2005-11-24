@@ -515,6 +515,12 @@ bool CConcordeMainHeader::init()
 	return true;
 }
 
+bool CConcordeMainHeader::convertFrom(const CMedIOHeader& srcMainHeader, const CMedIOHeader& srcSubHeader)
+{
+	copyData(srcMainHeader);
+	return true;
+}
+
 CMedIOHeader& CConcordeMainHeader::copyData(const CMedIOHeader& src)
 {
 	ENTER();

@@ -116,6 +116,12 @@ CMedIOHeader::Format CConcordeFrameHeader::headerFormat() const
 	return CMedIOHeader::ConcordeMicroPetFrameHeader;
 }
 
+bool CConcordeFrameHeader::convertFrom(const CMedIOHeader& srcMainHeader, const CMedIOHeader& srcSubHeader)
+{
+	copyData(srcMainHeader);
+	return true;
+}
+
 CMedIOHeader& CConcordeFrameHeader::copyData(const CMedIOHeader& src)
 {
 	ENTER();
