@@ -8,6 +8,9 @@ $Source$
 
 2005-11-24  Jens Langner <Jens.Langner@light-speed.de>
 
+  * CECAT7MainHeader.cpp: as ctime_r() is not known to all systems out
+    there, configure will now check for the alternative but not reentrant
+    ctime() function and use that one instead.
   * ecat/medio: removed all inline methods from all classes to make sure
     future library versions do not interfere each other.
 

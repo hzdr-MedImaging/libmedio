@@ -25,6 +25,7 @@
 #include "CECAT6MainHeader.h"
 #include "CConcordeMainHeader.h"
 #include "CECATFile.h"
+#include "config.h"
 
 #include <qcstring.h>
 #include <qdatastream.h>
@@ -1473,9 +1474,18 @@ QDate CECAT7MainHeader::patient_Birth_Date_Qt(void) const
 	{
 		// do the calculations on our own with help of POSIX
 		// ctime() :(
-		char buf[40];
 		time_t dateval = static_cast<time_t>(m_Data.Patient_Birth_Date);
+
+		#if defined(HAVE_CTIME_R)
+		char buf[40];
 		QString dateString(ctime_r(&dateval, buf));
+		#elif defined(HAVE_CTIME)
+		#warning "no ctime_r() function used -> libmedio not threadsafe!"
+		QString dateString(ctime(&dateval));
+		#else
+		#error "no ctime_r() or ctime() function found!"
+		#endif
+
 		birthDate = QDateTime::fromString(dateString.stripWhiteSpace());
 	}
 
@@ -1497,9 +1507,18 @@ QDateTime CECAT7MainHeader::scan_Start_Time_Qt(void) const
 	{
 		// do the calculations on our own with help of POSIX
 		// ctime() :(
-		char buf[40];
 		time_t dateval = static_cast<time_t>(m_Data.Scan_Start_Time);
+
+		#if defined(HAVE_CTIME_R)
+		char buf[40];
 		QString dateString(ctime_r(&dateval, buf));
+		#elif defined(HAVE_CTIME)
+		#warning "no ctime_r() function used -> libmedio not threadsafe!"
+		QString dateString(ctime(&dateval));
+		#else
+		#error "no ctime_r() or ctime() function found!"
+		#endif
+
 		scanStartTime = QDateTime::fromString(dateString.stripWhiteSpace());
 	}
 
@@ -1521,9 +1540,18 @@ QDateTime CECAT7MainHeader::dose_Start_Time_Qt(void) const
 	{
 		// do the calculations on our own with help of POSIX
 		// ctime() :(
-		char buf[40];
 		time_t dateval = static_cast<time_t>(m_Data.Dose_Start_Time);
+
+		#if defined(HAVE_CTIME_R)
+		char buf[40];
 		QString dateString(ctime_r(&dateval, buf));
+		#elif defined(HAVE_CTIME)
+		#warning "no ctime_r() function used -> libmedio not threadsafe!"
+		QString dateString(ctime(&dateval));
+		#else
+		#error "no ctime_r() or ctime() function found!"
+		#endif
+
 		doseStartTime = QDateTime::fromString(dateString.stripWhiteSpace());
 		
 		SHOWSTRING(doseStartTime.toString().ascii());
