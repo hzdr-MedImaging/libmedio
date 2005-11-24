@@ -41,6 +41,11 @@ CConcordeFrameHeader::CConcordeFrameHeader(CConcordeFile* file, int frame) : CMe
 	LEAVE();
 }
 
+CMedIOData* CConcordeFrameHeader::fileObject() const
+{
+	return m_pMedIOData;
+}
+
 //  Class: CConcordeFrameHeader
 //  Method: init
 //!

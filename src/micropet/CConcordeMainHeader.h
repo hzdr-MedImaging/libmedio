@@ -64,7 +64,7 @@ class CConcordeMainHeader : public CMedIOHeader
 		//! @brief set default values in header
 		void setDefaults();
 		
-		CMedIOData* fileObject();
+		CMedIOData* fileObject() const;
 		bool load();
 		bool load(QString File);
 		bool save() const;

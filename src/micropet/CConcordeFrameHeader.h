@@ -37,7 +37,7 @@ class CConcordeFrameHeader : public CMedIOHeader
 	//members
 		enum EventType{UnknownEventType = 0, Singles, Prompt, Delay, Trues};
 	//methods
-		const CMedIOData* fileObject() const;
+		CMedIOData* fileObject() const;
 		bool load();
 		bool save() const;
 		CMedIOHeader::Format headerFormat() const;

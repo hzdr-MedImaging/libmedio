@@ -75,6 +75,11 @@ CConcordeMainHeader::~CConcordeMainHeader()
 	LEAVE();
 }
 
+CMedIOData* CConcordeMainHeader::fileObject() const
+{
+	return m_pMedIOData;
+}
+
 int	CConcordeMainHeader::model(void) const
 {
 	return m_Data.model;
