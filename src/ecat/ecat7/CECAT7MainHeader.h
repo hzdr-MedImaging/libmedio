@@ -68,7 +68,6 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 		enum Septa_State							{ Extended=0, Retracted };
 				
 		// constructors
-		CECAT7MainHeader(const CECAT7MainHeader& mh);
 		CECAT7MainHeader(CECATFile* ecatFile = NULL, 
 										 CECATMainHeader::Type fileType =
 												CECATMainHeader::Unknown);
@@ -86,6 +85,10 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 		
 		// runtime type information methods
 		int rtti() const;
+
+		// clone methods
+		bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL);
+		CMedIOHeader* clone() const;
 
 		// accessor Methods
 		const char* magic_Number(void) const;

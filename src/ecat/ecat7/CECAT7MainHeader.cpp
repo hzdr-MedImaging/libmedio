@@ -37,13 +37,6 @@
 
 #include <rtdebug.h>
 
-CECAT7MainHeader::CECAT7MainHeader(const CECAT7MainHeader& mh)
-	: CECATMainHeader(mh.m_pMedIOData)
-{
-	// lets copy the mainHeader data but keep an eye on the file type
-	memcpy(&m_Data, &mh.m_Data, sizeof(struct ECAT7MainHeader));
-}
-
 CECAT7MainHeader::CECAT7MainHeader(CECATFile* ecatFile, 
 																	 CECATMainHeader::Type fileType)
 	: CECATMainHeader(ecatFile)
@@ -650,6 +643,148 @@ int CECAT7MainHeader::rawDataSize() const
 int CECAT7MainHeader::rtti() const
 { 
 	return CECATMainHeader::ECAT7MainHeader;
+}
+
+bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2) 
+{
+	ENTER();
+
+	bool bResult = false;
+	// depending on the MedIOHeader format we do have to 
+	// distinguish between our copy operations.
+	switch(pHead1->headerFormat())
+	{
+		case CMedIOHeader::ECATMainHeader:
+		{
+			const CECATMainHeader* eMainHeader = static_cast<const CECATMainHeader*>(pHead1);
+
+			// depending on the source type we have to copy either every data or just 
+			// some data of the src header
+			switch(eMainHeader->rtti())
+			{
+				// if the source header is also an ECAT7 one we can copy it in whole
+				// via a simple memcpy()
+				case CECATMainHeader::ECAT7MainHeader:
+				{
+					memcpy(&(this->m_Data), &(static_cast<const CECAT7MainHeader*>(pHead1)->m_Data), sizeof(struct ECAT7MainHeader));
+					bResult = true;
+				}
+				break;
+
+				// if this is an ECAT6 Mainheader we have to take care of the fact that
+				// some information is missing in one of the headers.
+				case CECATMainHeader::ECAT6MainHeader:
+				{
+					const CECAT6MainHeader* e6src = static_cast<const CECAT6MainHeader*>(pHead1);
+					setOriginal_File_Name(e6src->original_File_Name());
+					setSystem_Type(e6src->system_Type());
+
+					#warning "ECAT6->ECAT7 copy not fully implemented yet!"
+					bResult = true;
+				}
+				break;
+			}
+			
+			// afterwards we have to make sure sensible data is restored
+			m_Data.SW_Version = 72; // This header does conform to the ECAT 7.2 standard
+		}
+
+		case CMedIOHeader::ECATSubHeader:
+		case CMedIOHeader::ConcordeMicroPetFrameHeader:
+			// copying a sub header into a main header doesn't make much sense, so we
+			// do nothing here
+		break;
+
+		case CMedIOHeader::ConcordeMicroPetMainHeader:
+		{
+			CConcordeMainHeader* head = (CConcordeMainHeader*)pHead1;
+			setOriginal_File_Name(head->fileName().ascii());
+			setSystem_Type((short)head->model());
+			setScan_Start_Time(head->scanTime());
+			setIsotope_Name(head->isotope().ascii());
+			setIsotope_Halflife(head->isotopeHalfTime());
+			
+			setDistance_Scanned(head->radialFov());
+			setTransaxial_FOV(head->radialFov());
+			setCoin_Samp_Mode(CECAT7MainHeader::NetTrues);
+			setCalibration_Factor(head->calibrationFactor());
+
+			if(head->calibrationFactor() == 1.0F)
+				setCalibration_Units(CECAT7MainHeader::Uncalibrated);
+			else
+				setCalibration_Units(CECAT7MainHeader::Calibrated);
+			setStudy_Type(head->study().ascii());
+			setPatient_ID(head->subjectIdentifier().ascii());
+			setPatient_Name(head->subjectIdentifier().ascii());
+			setPatient_Sex(CECAT7MainHeader::Sex_Male);
+			
+			setPatient_Height(head->subjectLength());
+			setPatient_Weight(head->subjectWeight()/1000.0);
+			setPhysician_Name(head->investigatorName().ascii());
+			setOperator_Name(head->operatorName().ascii());
+			setStudy_Description(head->studyIdentifier().ascii());
+			if(head->acquisitionMode() == CConcordeMainHeader::Emission)
+				setAcquisition_Type(CECAT7MainHeader::StaticEmission);
+			else
+				setAcquisition_Type(CECAT7MainHeader::DynamicEmission);
+			switch(head->subjectOrientation())
+			{
+				case CConcordeMainHeader::UnknownSubjectOrientation: setPatient_Orientation(CECAT7MainHeader::FF_Prone); break;
+				case CConcordeMainHeader::FeetFirstProne: setPatient_Orientation(CECAT7MainHeader::FF_Prone); break;
+				case CConcordeMainHeader::HeadFirstProne: setPatient_Orientation(CECAT7MainHeader::HF_Prone); break;
+				case CConcordeMainHeader::FeetFirstSupine: setPatient_Orientation(CECAT7MainHeader::FF_Supine); break;
+				case CConcordeMainHeader::HeadFirstSupine: setPatient_Orientation(CECAT7MainHeader::HF_Supine); break;
+				case CConcordeMainHeader::FeetFirstRight: setPatient_Orientation(CECAT7MainHeader::FF_Right); break;
+				case CConcordeMainHeader::HeadFirstRight: setPatient_Orientation(CECAT7MainHeader::HF_Right); break;
+				case CConcordeMainHeader::FeetFirstLeft: setPatient_Orientation(CECAT7MainHeader::FF_Left); break;
+				case CConcordeMainHeader::HeadFirstLeft: setPatient_Orientation(CECAT7MainHeader::HF_Left); break;
+			}
+			setFacility_Name(head->institution().ascii());
+			setNum_Planes(head->zDimension());
+			setNum_Frames(head->totalFrames());
+			setLwr_True_Thres((short)head->lld());
+			setUpr_True_Thres((short)head->uld());
+			setBranching_Fraction(head->isotopeBranchingFraction());
+			setNum_Gates(1);
+			setNum_Bed_Pos(0);
+			setDose_Start_Time(head->injectionTime());
+
+			setDosage(head->dose()*1000000.0);
+
+			//check if additional information is available
+			if(pHead2)
+			{
+				switch(pHead2->headerFormat())
+				{
+					case CMedIOHeader::ConcordeMicroPetFrameHeader:
+					{
+						D("Setting additional information to ECAT7 main header");
+						const CConcordeFrameHeader* frame = static_cast<const CConcordeFrameHeader*>(pHead2);
+						
+						setInit_Bed_Position(frame->bedOffset());
+						setBed_Elevation(frame->verticalBedOffset());
+					};break;
+					default:break;
+				}
+			}
+			bResult = true;
+		}
+		break;
+
+		case CMedIOHeader::Unknown:
+			// for an unknown header type we do nothing
+		break;
+	}
+
+	LEAVE();
+	return bResult;
+}
+
+CMedIOHeader* CECAT7MainHeader::clone() const
+{
+	CECAT7MainHeader* pNewHead = new CECAT7MainHeader();
+	pNewHead->convertFrom(this);
+	return pNewHead;
 }
 
 const char* CECAT7MainHeader::magic_Number(void) const
