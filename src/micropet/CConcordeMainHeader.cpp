@@ -46,13 +46,13 @@ CConcordeMainHeader::CConcordeMainHeader(CConcordeFile* file)
 	init();
 	D("Setting defaults");
 	setDefaults();
-	D("Trying to load headerfile");
-	if(!this->load())
-	{
-		D("Something is wrong with the headerfile");
-	}
-	else
-		D("Everything ok");
+	//D("Trying to load headerfile");
+	//if(!this->load())
+	//{
+	//	D("Something is wrong with the headerfile");
+	//}
+	//else
+	//	D("Everything ok");
 }
 
 //  Class: CConcordeMainHeader
