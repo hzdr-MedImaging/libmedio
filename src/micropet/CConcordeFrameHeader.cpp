@@ -342,13 +342,13 @@ CMedIOHeader* CConcordeFrameHeader::clone() const
 		return NULL;
 }
 
-bool CConcordeFrameHeader::convertFrom(const CMedIOHeader* srcMainHeader, const CMedIOHeader* srcSubHeader)
+bool CConcordeFrameHeader::convertFrom(const CMedIOHeader* srcMainHeader, const CMedIOHeader*)
 {
 	copyData(*srcMainHeader);
 	return true;
 }
 
-CMedIOHeader& CConcordeFrameHeader::copyData(const CMedIOHeader& src)
+CMedIOHeader& CConcordeFrameHeader::copyData(const CMedIOHeader&)
 {
 	ENTER();
 	RETURN(this);

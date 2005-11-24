@@ -1055,7 +1055,7 @@ bool CConcordeMainHeader::init()
 	return true;
 }
 
-bool CConcordeMainHeader::convertFrom(const CMedIOHeader* srcMainHeader, const CMedIOHeader* srcSubHeader)
+bool CConcordeMainHeader::convertFrom(const CMedIOHeader* srcMainHeader, const CMedIOHeader*)
 {
 	copyData(*srcMainHeader);
 	return true;
