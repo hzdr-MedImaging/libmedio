@@ -697,9 +697,9 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
 
 		case CMedIOHeader::ConcordeMicroPetMainHeader:
 		{
-			CConcordeMainHeader* head = (CConcordeMainHeader*)pHead1;
+			const CConcordeMainHeader* head = static_cast<const CConcordeMainHeader*>(pHead1);
 			setOriginal_File_Name(head->fileName().ascii());
-			setSystem_Type((short)head->model());
+			setSystem_Type(static_cast<short>(head->model()));
 			setScan_Start_Time(head->scanTime());
 			setIsotope_Name(head->isotope().ascii());
 			setIsotope_Halflife(head->isotopeHalfTime());
@@ -742,8 +742,8 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
 			setFacility_Name(head->institution().ascii());
 			setNum_Planes(head->zDimension());
 			setNum_Frames(head->totalFrames());
-			setLwr_True_Thres((short)head->lld());
-			setUpr_True_Thres((short)head->uld());
+			setLwr_True_Thres(static_cast<short>(head->lld()));
+			setUpr_True_Thres(static_cast<short>(head->uld()));
 			setBranching_Fraction(head->isotopeBranchingFraction());
 			setNum_Gates(1);
 			setNum_Bed_Pos(0);

@@ -365,8 +365,8 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead1, const CMedIOH
 			setData_Type(CECATSubHeader::SunShort);
 			setNum_Dimensions(3);
 			setRecon_Zoom(1.0);
-			setFrame_Duration((int)(head->frameDuration()*1000.0));
-			setFrame_Start_Time((int)(head->frameStart()*1000.0));
+			setFrame_Duration(static_cast<int>(head->frameDuration()*1000.0));
+			setFrame_Start_Time(static_cast<int>(head->frameStart()*1000.0));
 			setDecay_Corr_Fctr(head->decayCorrection());
 			
 			// check for additional information

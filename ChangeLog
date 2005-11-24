@@ -12,6 +12,7 @@ $Source$
 	* CMedIOHeader.h,ecat/*Header: removed copy constructor/=operator, because 
     there is a default one
 	* CMedIOHeader.h,ecat/*Header: removed copyData since is not needed anymore
+	* ecat/ecat7/CECAT7MainHeader.cpp,CECAT7SubHeaderImage.cpp: some cosmetic changes
 
 2005-11-24  Hagen Moelle <draggore@gmx.de>
 
