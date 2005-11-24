@@ -72,10 +72,11 @@ CConcordeFile::~CConcordeFile()
 void CConcordeFile::close()
 {
 	ENTER();
-        m_pCachedMainHeader->save();
-        delete m_pCachedMainHeader;
-        QFile::close();
-        LEAVE();
+	m_pCachedMainHeader->save();
+	delete m_pCachedMainHeader;
+	m_pCachedMainHeader = NULL;
+	QFile::close();
+	LEAVE();
 	return;
 }
 
@@ -101,7 +102,7 @@ bool CConcordeFile::readMainHeader(CConcordeMainHeader*& mainHeader)
 			{
 				D("Setting new sinogram");
 				#warning "filename is wrong but not used"
-				mainHeader = new CConcordeMainHeaderSinogram(fileName() + ".hdr");
+				mainHeader = new CConcordeMainHeaderSinogram(this);//(fileName() + ".hdr");
 				result = true;
 			}
 			break;
@@ -110,7 +111,7 @@ bool CConcordeFile::readMainHeader(CConcordeMainHeader*& mainHeader)
 			{
 				#warning "filename is wrong but not used"
 				D("Setting new image");
-				mainHeader = new CConcordeMainHeaderImage(fileName() + ".hdr");
+				mainHeader = new CConcordeMainHeaderImage(this);//(fileName() + ".hdr");
 				result = true;
 			}
 			break;
