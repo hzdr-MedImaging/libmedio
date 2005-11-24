@@ -31,7 +31,7 @@ unsigned int CConcordeMainHeaderImage::frameSize()
 	return framesize;
 }
 
-CMedIOHeader* CConcordeMainHeaderImage::clone()
+CMedIOHeader* CConcordeMainHeaderImage::clone() const
 {
 	CConcordeMainHeaderImage* pTmp = new CConcordeMainHeaderImage(NULL);
 	if(pTmp->convertFrom(this))

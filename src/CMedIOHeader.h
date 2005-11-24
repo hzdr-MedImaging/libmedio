@@ -67,13 +67,14 @@ class CMedIOHeader
 		//! @return specific header format at runtime
 		virtual CMedIOHeader::Format headerFormat() const = 0;
 
-		// overload the default assignment operator to always perform
-		// a shallow copy
-		CMedIOHeader& operator=(const CMedIOHeader& src) { return copyData(src); }
-
-	protected:
-		//! @brief shallow copy method
-		virtual CMedIOHeader& copyData(const CMedIOHeader& src) = 0;
+		//! @brief try to convert the given medio header in this header type
+		//! @return true for success; false for failure
+		virtual bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL) = 0;
+		
+		//! @brief create a new medio header of the same type as pSrc and
+		//!				 copy all meta information
+		//! @return the new created CMedIOHeader object
+		virtual CMedIOHeader* clone() const = 0;
 
 	protected:
 		CMedIOData* m_pMedIOData; //!< the associated MedIOData this header belongs to

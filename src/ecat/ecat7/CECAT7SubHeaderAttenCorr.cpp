@@ -37,11 +37,11 @@ CECAT7SubHeaderAttenCorr::CECAT7SubHeaderAttenCorr(CECATFile* ecatFile,
 	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_AttenCorr));
 }
 
-CECAT7SubHeaderAttenCorr::CECAT7SubHeaderAttenCorr(const CECAT7SubHeaderAttenCorr& sh)
-	: CECATSubHeader(sh)
+CECAT7SubHeaderAttenCorr::CECAT7SubHeaderAttenCorr()
+	: CECATSubHeader(NULL)
 {
 	// then clear the structure
-	memcpy(&m_Data, &sh.m_Data, sizeof(struct ECAT7SubHeader_AttenCorr));
+	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_AttenCorr));
 }
 
 bool CECAT7SubHeaderAttenCorr::load(void)
@@ -228,6 +228,72 @@ int CECAT7SubHeaderAttenCorr::rawDataSize() const
 CECATSubHeader::Type CECAT7SubHeaderAttenCorr::subHeaderType(void) const
 {
 	return CECATSubHeader::ECAT7_AttenCorr;
+}
+
+bool CECAT7SubHeaderAttenCorr::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader*) 
+{
+	ENTER();
+
+	bool bResult = false;
+	// depending on the MedIOHeader format we do have to 
+	// distinguish between our copy operations.
+	switch(pHead1->headerFormat())
+	{
+		case CMedIOHeader::ECATSubHeader:
+		{
+			const CECATSubHeader* eSubHeader = static_cast<const CECATSubHeader*>(pHead1);
+
+			// depending on the source type we have to copy either every data or just 
+			// some data of the src header
+			switch(eSubHeader->subHeaderType())
+			{
+				// if the source header is also an ECAT7 one we can copy it in whole
+				// via a simple memcpy()
+				case CECATSubHeader::ECAT7_AttenCorr:
+				{
+					memcpy(&(this->m_Data), &(static_cast<const CECAT7SubHeaderAttenCorr*>(pHead1)->m_Data), sizeof(struct ECAT7SubHeader_AttenCorr));
+					bResult = true;
+				}
+				break;
+
+				case CECATSubHeader::Unknown:
+					// for an unknown header type we do nothing
+				break;
+				
+				#warning "non AttenCorr copy not complete"
+			}
+		}
+
+		case CMedIOHeader::ECATMainHeader:
+		case CMedIOHeader::ConcordeMicroPetMainHeader:
+			// copying a main header into a sub header doesn't make much sense, so we
+			// do nothing here
+		break;
+
+		case CMedIOHeader::ConcordeMicroPetFrameHeader:
+		{
+			#warning "Concorde->ECAT7SubHeader copy missing"
+		}
+		break;
+
+		case CMedIOHeader::Unknown:
+			// for an unknown header type we do nothing
+		break;
+	}
+
+	RETURN(bResult);
+	return bResult;
+}
+
+CMedIOHeader* CECAT7SubHeaderAttenCorr::clone() const
+{
+	ENTER();
+
+	CECAT7SubHeaderAttenCorr* pNewHead = new CECAT7SubHeaderAttenCorr();
+	pNewHead->convertFrom(this);
+
+	RETURN(pNewHead);
+	return pNewHead;
 }
 
 // data access methods
@@ -521,55 +587,3 @@ void CECAT7SubHeaderAttenCorr::setCTI_Reserverd(const short i, const short n)
 	m_Data.CTI_Reserved[i] = n;
 }
 
-CMedIOHeader& CECAT7SubHeaderAttenCorr::copyData(const CMedIOHeader& src)
-{
-	ENTER();
-
-	// depending on the MedIOHeader format we do have to 
-	// distinguish between our copy operations.
-	switch(src.headerFormat())
-	{
-		case CMedIOHeader::ECATSubHeader:
-		{
-			const CECATSubHeader* eSubHeader = static_cast<const CECATSubHeader*>(&src);
-
-			// depending on the source type we have to copy either every data or just 
-			// some data of the src header
-			switch(eSubHeader->subHeaderType())
-			{
-				// if the source header is also an ECAT7 one we can copy it in whole
-				// via a simple memcpy()
-				case CECATSubHeader::ECAT7_AttenCorr:
-				{
-					memcpy(&(this->m_Data), &(static_cast<const CECAT7SubHeaderAttenCorr*>(&src)->m_Data), sizeof(struct ECAT7SubHeader_AttenCorr));
-				}
-				break;
-
-				case CECATSubHeader::Unknown:
-					// for an unknown header type we do nothing
-				break;
-				
-				#warning "non AttenCorr copy not complete"
-			}
-		}
-
-		case CMedIOHeader::ECATMainHeader:
-		case CMedIOHeader::ConcordeMicroPetMainHeader:
-			// copying a main header into a sub header doesn't make much sense, so we
-			// do nothing here
-		break;
-
-		case CMedIOHeader::ConcordeMicroPetFrameHeader:
-		{
-			#warning "Concorde->ECAT7SubHeader copy missing"
-		}
-		break;
-
-		case CMedIOHeader::Unknown:
-			// for an unknown header type we do nothing
-		break;
-	}
-
-	LEAVE();
-	return *this;
-}

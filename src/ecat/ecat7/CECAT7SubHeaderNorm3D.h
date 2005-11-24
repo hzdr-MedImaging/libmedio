@@ -41,7 +41,6 @@ class CECAT7SubHeaderNorm3D : public CECATSubHeader
 		// constructors
 		CECAT7SubHeaderNorm3D(CECATFile* ecatFile,
 													CECATDirectoryItem* pDirItem = NULL);
-		CECAT7SubHeaderNorm3D(const CECAT7SubHeaderNorm3D& sh);
 
 		// public methods
 		bool load(void);
@@ -51,6 +50,10 @@ class CECAT7SubHeaderNorm3D : public CECATSubHeader
 		int rawDataSize() const;
 		
 		CECATSubHeader::Type subHeaderType(void) const;
+
+		// clone methods
+		bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL);
+		CMedIOHeader* clone() const;
 		
 		// access methods to get directly data out of
 		// the SubHeader
@@ -94,8 +97,8 @@ class CECAT7SubHeaderNorm3D : public CECATSubHeader
 		void setUser_Reserved(const short i, const short n);
 
 	protected:
-		// required method to copy relevant data from another MedIOHeader object
-		CMedIOHeader& copyData(const CMedIOHeader& src);
+		// constructors
+		CECAT7SubHeaderNorm3D();
 		
 	private:
 		struct ECAT7SubHeader_Norm3D

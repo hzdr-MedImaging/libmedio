@@ -43,7 +43,6 @@ class CECAT7SubHeaderAttenCorr : public CECATSubHeader
 		// constructors
 		CECAT7SubHeaderAttenCorr(CECATFile* ecatFile,
 														 CECATDirectoryItem* pDirItem = NULL);
-		CECAT7SubHeaderAttenCorr(const CECAT7SubHeaderAttenCorr& sh);
 
 		// public methods
 		bool load(void);
@@ -53,7 +52,11 @@ class CECAT7SubHeaderAttenCorr : public CECATSubHeader
 		int rawDataSize() const;
 		
 		CECATSubHeader::Type subHeaderType(void) const;
-		
+
+		// clone methods
+		bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL);
+		CMedIOHeader* clone() const;
+
 		// data access methods
 		CECATSubHeader::Data_Type data_Type(void) const;
 		short	num_Dimensions(void) const;
@@ -117,9 +120,9 @@ class CECAT7SubHeaderAttenCorr : public CECATSubHeader
 		void setCTI_Reserverd(const short i, const short n);
 		
 	protected:
-		// required method to copy relevant data from another MedIOHeader object
-		CMedIOHeader& copyData(const CMedIOHeader& src);		
-
+		// constructors
+		CECAT7SubHeaderAttenCorr();
+	
 	private:
 		struct ECAT7SubHeader_AttenCorr
 		{

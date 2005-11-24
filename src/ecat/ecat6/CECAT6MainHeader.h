@@ -40,7 +40,6 @@ class CECAT6MainHeader : public CECATMainHeader
 		enum File_Type { Unknown=0, // FIXME: Others are missing for the moment
 									 };
 		
-		CECAT6MainHeader(const CECAT6MainHeader& mh);
 		CECAT6MainHeader(CECATFile* ecatFile = NULL,
 										 CECATMainHeader::Type fileType = 
 												CECATMainHeader::Unknown);
@@ -54,7 +53,11 @@ class CECAT6MainHeader : public CECATMainHeader
 
 		// runtime type information methods
 		int rtti() const;
-		
+
+		// clone methods
+		bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL);
+		CMedIOHeader* clone() const;
+
 		// accessor Methods
 		const char* original_File_Name(void) const;
 		short sw_Version(void) const;
@@ -74,10 +77,6 @@ class CECAT6MainHeader : public CECATMainHeader
 		void setNum_Frames(const short num);
 		void setNum_Gates(const short num);
 		void setNum_Bed_Pos(const short num);
-
-	protected:
-		// required method to copy relevant data from another MedIOHeader object
-		CMedIOHeader& copyData(const CMedIOHeader& src);		
 
 	private:
 		struct ECAT6MainHeader

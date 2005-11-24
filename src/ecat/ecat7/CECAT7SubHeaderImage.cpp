@@ -38,11 +38,11 @@ CECAT7SubHeaderImage::CECAT7SubHeaderImage(CECATFile* ecatFile,
 	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Image));
 }
 
-CECAT7SubHeaderImage::CECAT7SubHeaderImage(const CECAT7SubHeaderImage& sh)
-	: CECATSubHeader(sh)
+CECAT7SubHeaderImage::CECAT7SubHeaderImage()
+	: CECATSubHeader(NULL)
 {
 	// then clear the structure
-	memcpy(&m_Data, &sh.m_Data, sizeof(struct ECAT7SubHeader_Image));
+	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Image));
 }
 
 bool CECAT7SubHeaderImage::load(void)
@@ -316,6 +316,102 @@ int CECAT7SubHeaderImage::rawDataSize() const
 CECATSubHeader::Type CECAT7SubHeaderImage::subHeaderType(void) const
 {
 	return CECATSubHeader::ECAT7_Image;
+}
+
+bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2) 
+{
+	ENTER();
+
+	bool bResult = false;
+
+	// depending on the MedIOHeader format we do have to 
+	// distinguish between our copy operations.
+	switch(pHead1->headerFormat())
+	{
+		case CMedIOHeader::ECATSubHeader:
+		{
+			const CECATSubHeader* eSubHeader = static_cast<const CECATSubHeader*>(pHead1);
+
+			// depending on the source type we have to copy either every data or just 
+			// some data of the src header
+			switch(eSubHeader->subHeaderType())
+			{
+				// if the source header is also an ECAT7 one we can copy it in whole
+				// via a simple memcpy()
+				case CECATSubHeader::ECAT7_Image:
+				{
+					memcpy(&(this->m_Data), &(static_cast<const CECAT7SubHeaderImage*>(pHead1)->m_Data), sizeof(struct ECAT7SubHeader_Image));
+					bResult = true;
+				}
+				break;
+
+				case CECATSubHeader::Unknown:
+					// for an unknown header type we do nothing
+				break;
+				
+				#warning "non Image copy not complete"
+			}
+		}
+
+		case CMedIOHeader::ECATMainHeader:
+		case CMedIOHeader::ConcordeMicroPetMainHeader:
+			// copying a main header into a sub header doesn't make much sense, so we
+			// do nothing here
+		break;
+
+		case CMedIOHeader::ConcordeMicroPetFrameHeader:
+		{
+			const CConcordeFrameHeader* head = static_cast<const CConcordeFrameHeader*>(pHead1);
+			setData_Type(CECATSubHeader::SunShort);
+			setNum_Dimensions(3);
+			setRecon_Zoom(1.0);
+			setFrame_Duration(static_cast<int>(head->frameDuration()*1000.0));
+			setFrame_Start_Time(static_cast<int>(head->frameStart()*1000.0));
+			setDecay_Corr_Fctr(head->decayCorrection());
+			
+			// check for additional information
+			if(pHead2)
+			{
+				switch(pHead2->headerFormat())
+				{
+					case CMedIOHeader::ConcordeMicroPetMainHeader:
+					{
+						D("Setting additional information to ECAT7 sub header");
+						const CConcordeMainHeader* mainHeader = static_cast<const CConcordeMainHeader*>(pHead2);
+						setX_Dimension(mainHeader->xDimension());
+						setY_Dimension(mainHeader->yDimension());
+						setZ_Dimension(mainHeader->zDimension());
+						setX_Pixel_Size(mainHeader->pixelSize());
+						setY_Pixel_Size(mainHeader->pixelSize());
+						setZ_Pixel_Size(mainHeader->axialPlaneSize());
+						setNum_R_Elements(mainHeader->yDimension());
+						setNum_Angles(mainHeader->xDimension());
+					};break;
+					default:break;
+				}
+			}
+			bResult = true;
+		}
+		break;
+
+		case CMedIOHeader::Unknown:
+			// for an unknown header type we do nothing
+		break;
+	}
+
+	RETURN(bResult);
+	return bResult;
+}
+
+CMedIOHeader* CECAT7SubHeaderImage::clone() const
+{
+	ENTER();
+
+	CECAT7SubHeaderImage* pNewHead = new CECAT7SubHeaderImage();
+	pNewHead->convertFrom(this);
+	
+	RETURN(pNewHead);
+	return pNewHead;
 }
 
 // data acess methods
@@ -889,79 +985,4 @@ void CECAT7SubHeaderImage::setCTI_Reserved(const short i, const short n)
 void CECAT7SubHeaderImage::setUser_Reserved(const short i, const short n)						
 {
 	m_Data.User_Reserved[i] = n;
-}
-
-CMedIOHeader& CECAT7SubHeaderImage::copyData(const CMedIOHeader& src)
-{
-	ENTER();
-
-	// depending on the MedIOHeader format we do have to 
-	// distinguish between our copy operations.
-	switch(src.headerFormat())
-	{
-		case CMedIOHeader::ECATSubHeader:
-		{
-			const CECATSubHeader* eSubHeader = static_cast<const CECATSubHeader*>(&src);
-
-			// depending on the source type we have to copy either every data or just 
-			// some data of the src header
-			switch(eSubHeader->subHeaderType())
-			{
-				// if the source header is also an ECAT7 one we can copy it in whole
-				// via a simple memcpy()
-				case CECATSubHeader::ECAT7_Image:
-				{
-					memcpy(&(this->m_Data), &(static_cast<const CECAT7SubHeaderImage*>(&src)->m_Data), sizeof(struct ECAT7SubHeader_Image));
-				}
-				break;
-
-				case CECATSubHeader::Unknown:
-					// for an unknown header type we do nothing
-				break;
-				
-				#warning "non Image copy not complete"
-			}
-		}
-		break;
-		case CMedIOHeader::ECATMainHeader:
-		case CMedIOHeader::ConcordeMicroPetMainHeader:
-			// copying a main header into a sub header doesn't make much sense, so we
-			// do nothing here
-		break;
-
-		case CMedIOHeader::ConcordeMicroPetFrameHeader:
-		{
-			CConcordeFrameHeader* head = (CConcordeFrameHeader*)&src;
-			setData_Type(CECATSubHeader::SunShort);
-			setNum_Dimensions(3);
-			setRecon_Zoom(1.0);
-			setFrame_Duration((int)(head->frameDuration()*1000.0));
-			setFrame_Start_Time((int)(head->frameStart()*1000.0));
-			setDecay_Corr_Fctr(head->decayCorrection());
-			
-			//check for additional information
-			if(head->fileObject())
-			{
-				D("Setting additional information to ECAT7 sub header");
-				CConcordeMainHeader* mainHeader = NULL;
-				((CConcordeFile*)head->fileObject())->readMainHeader(mainHeader);
-				setX_Dimension(mainHeader->xDimension());
-				setY_Dimension(mainHeader->yDimension());
-				setZ_Dimension(mainHeader->zDimension());
-				setX_Pixel_Size(mainHeader->pixelSize());
-				setY_Pixel_Size(mainHeader->pixelSize());
-				setZ_Pixel_Size(mainHeader->axialPlaneSize());
-				setNum_R_Elements(mainHeader->yDimension());
-				setNum_Angles(mainHeader->xDimension());
-			}
-		}
-		break;
-
-		case CMedIOHeader::Unknown:
-			// for an unknown header type we do nothing
-		break;
-	}
-
-	LEAVE();
-	return *this;
 }

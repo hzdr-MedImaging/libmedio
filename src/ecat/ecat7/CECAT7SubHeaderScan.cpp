@@ -37,11 +37,11 @@ CECAT7SubHeaderScan::CECAT7SubHeaderScan(CECATFile* ecatFile,
 	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Scan));			
 }
 
-CECAT7SubHeaderScan::CECAT7SubHeaderScan(const CECAT7SubHeaderScan& sh)
-	: CECATSubHeader(sh)
+CECAT7SubHeaderScan::CECAT7SubHeaderScan()
+	: CECATSubHeader(NULL)
 {
-	// then copy the structure
-	memcpy(&m_Data, &sh.m_Data, sizeof(struct ECAT7SubHeader_Scan));			
+	// then clear the structure
+	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Scan));			
 }
 
 bool CECAT7SubHeaderScan::load(void)
@@ -249,6 +249,72 @@ int CECAT7SubHeaderScan::rawDataSize() const
 CECATSubHeader::Type CECAT7SubHeaderScan::subHeaderType(void) const
 {
 	return CECATSubHeader::ECAT7_Scan;
+}
+
+bool CECAT7SubHeaderScan::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader*) 
+{
+	ENTER();
+
+	bool bResult = false;
+	// depending on the MedIOHeader format we do have to 
+	// distinguish between our copy operations.
+	switch(pHead1->headerFormat())
+	{
+		case CMedIOHeader::ECATSubHeader:
+		{
+			const CECATSubHeader* eSubHeader = static_cast<const CECATSubHeader*>(pHead1);
+
+			// depending on the source type we have to copy either every data or just 
+			// some data of the src header
+			switch(eSubHeader->subHeaderType())
+			{
+				// if the source header is also an ECAT7 one we can copy it in whole
+				// via a simple memcpy()
+				case CECATSubHeader::ECAT7_Scan:
+				{
+					memcpy(&(this->m_Data), &(static_cast<const CECAT7SubHeaderScan*>(pHead1)->m_Data), sizeof(struct ECAT7SubHeader_Scan));
+					bResult = true;
+				}
+				break;
+
+				case CECATSubHeader::Unknown:
+					// for an unknown header type we do nothing
+				break;
+				
+				#warning "non Scan copy not complete"
+			}
+		}
+
+		case CMedIOHeader::ECATMainHeader:
+		case CMedIOHeader::ConcordeMicroPetMainHeader:
+			// copying a main header into a sub header doesn't make much sense, so we
+			// do nothing here
+		break;
+
+		case CMedIOHeader::ConcordeMicroPetFrameHeader:
+		{
+			#warning "Concorde->ECAT7SubHeader copy missing"
+		}
+		break;
+
+		case CMedIOHeader::Unknown:
+			// for an unknown header type we do nothing
+		break;
+	}
+
+	RETURN(bResult);
+	return bResult;
+}
+
+CMedIOHeader* CECAT7SubHeaderScan::clone() const
+{
+	ENTER();
+
+	CECAT7SubHeaderScan* pNewHead = new CECAT7SubHeaderScan();
+	pNewHead->convertFrom(this);
+
+	RETURN(pNewHead);
+	return pNewHead;
 }
 
 // data access methods
@@ -582,55 +648,3 @@ void CECAT7SubHeaderScan::setUser_Reserved(const short i, const short n)
 	m_Data.User_Reserved[i] = n;
 }
 
-CMedIOHeader& CECAT7SubHeaderScan::copyData(const CMedIOHeader& src)
-{
-	ENTER();
-
-	// depending on the MedIOHeader format we do have to 
-	// distinguish between our copy operations.
-	switch(src.headerFormat())
-	{
-		case CMedIOHeader::ECATSubHeader:
-		{
-			const CECATSubHeader* eSubHeader = static_cast<const CECATSubHeader*>(&src);
-
-			// depending on the source type we have to copy either every data or just 
-			// some data of the src header
-			switch(eSubHeader->subHeaderType())
-			{
-				// if the source header is also an ECAT7 one we can copy it in whole
-				// via a simple memcpy()
-				case CECATSubHeader::ECAT7_Scan:
-				{
-					memcpy(&(this->m_Data), &(static_cast<const CECAT7SubHeaderScan*>(&src)->m_Data), sizeof(struct ECAT7SubHeader_Scan));
-				}
-				break;
-
-				case CECATSubHeader::Unknown:
-					// for an unknown header type we do nothing
-				break;
-				
-				#warning "non Scan copy not complete"
-			}
-		}
-
-		case CMedIOHeader::ECATMainHeader:
-		case CMedIOHeader::ConcordeMicroPetMainHeader:
-			// copying a main header into a sub header doesn't make much sense, so we
-			// do nothing here
-		break;
-
-		case CMedIOHeader::ConcordeMicroPetFrameHeader:
-		{
-			#warning "Concorde->ECAT7SubHeader copy missing"
-		}
-		break;
-
-		case CMedIOHeader::Unknown:
-			// for an unknown header type we do nothing
-		break;
-	}
-
-	LEAVE();
-	return *this;
-}

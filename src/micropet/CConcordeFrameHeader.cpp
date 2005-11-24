@@ -333,12 +333,12 @@ void CConcordeFrameHeader::setDelaysRate(const int value)
 	m_Data.delays_rate = value;
 }
 
-CMedIOHeader* CConcordeFrameHeader::clone()
+CMedIOHeader* CConcordeFrameHeader::clone() const
 {
-	//CConcordeFrameHeader* pTmp = new CConcordeFrameHeader(NULL, frame());
-	//if(pTmp.convertFrom(static_cast<CMedIOHeader*>(this), NULL))
-	//	return pTmp;
-	//else
+	CConcordeFrameHeader* pTmp = new CConcordeFrameHeader(NULL, frame());
+	if(pTmp->convertFrom(this))
+		return pTmp;
+	else
 		return NULL;
 }
 

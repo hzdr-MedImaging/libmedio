@@ -37,11 +37,11 @@ CECAT7SubHeaderPolarMap::CECAT7SubHeaderPolarMap(CECATFile* ecatFile,
 	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_PolarMap));			
 }
 
-CECAT7SubHeaderPolarMap::CECAT7SubHeaderPolarMap(const CECAT7SubHeaderPolarMap& sh)
-	: CECATSubHeader(sh)
+CECAT7SubHeaderPolarMap::CECAT7SubHeaderPolarMap()
+	: CECATSubHeader(NULL)
 {
-	// then copy the structure
-	memcpy(&m_Data, &sh.m_Data, sizeof(struct ECAT7SubHeader_PolarMap));			
+	// then clear the structure
+	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_PolarMap));			
 }
 
 bool CECAT7SubHeaderPolarMap::load(void)
@@ -234,6 +234,72 @@ int CECAT7SubHeaderPolarMap::rawDataSize() const
 CECATSubHeader::Type CECAT7SubHeaderPolarMap::subHeaderType(void) const
 {
 	return CECATSubHeader::ECAT7_PolarMap;
+}
+
+bool CECAT7SubHeaderPolarMap::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader*) 
+{
+	ENTER();
+
+	bool bResult = false;
+	// depending on the MedIOHeader format we do have to 
+	// distinguish between our copy operations.
+	switch(pHead1->headerFormat())
+	{
+		case CMedIOHeader::ECATSubHeader:
+		{
+			const CECATSubHeader* eSubHeader = static_cast<const CECATSubHeader*>(pHead1);
+
+			// depending on the source type we have to copy either every data or just 
+			// some data of the src header
+			switch(eSubHeader->subHeaderType())
+			{
+				// if the source header is also an ECAT7 one we can copy it in whole
+				// via a simple memcpy()
+				case CECATSubHeader::ECAT7_PolarMap:
+				{
+					memcpy(&(this->m_Data), &(static_cast<const CECAT7SubHeaderPolarMap*>(pHead1)->m_Data), sizeof(struct ECAT7SubHeader_PolarMap));
+					bResult = true;
+				}
+				break;
+
+				case CECATSubHeader::Unknown:
+					// for an unknown header type we do nothing
+				break;
+				
+				#warning "non PolarMap copy not complete"
+			}
+		}
+
+		case CMedIOHeader::ECATMainHeader:
+		case CMedIOHeader::ConcordeMicroPetMainHeader:
+			// copying a main header into a sub header doesn't make much sense, so we
+			// do nothing here
+		break;
+
+		case CMedIOHeader::ConcordeMicroPetFrameHeader:
+		{
+			#warning "Concorde->ECAT7SubHeader copy missing"
+		}
+		break;
+
+		case CMedIOHeader::Unknown:
+			// for an unknown header type we do nothing
+		break;
+	}
+
+	RETURN(bResult);
+	return bResult;
+}
+
+CMedIOHeader* CECAT7SubHeaderPolarMap::clone() const
+{
+	ENTER();
+
+	CECAT7SubHeaderPolarMap* pNewHead = new CECAT7SubHeaderPolarMap();
+	pNewHead->convertFrom(this);
+
+	RETURN(pNewHead);
+	return pNewHead;
 }
 
 // data access methods
@@ -498,55 +564,3 @@ void CECAT7SubHeaderPolarMap::setUser_Reserved(const short i, const short n)
 	m_Data.User_Reserved[i] = n;
 }
 
-CMedIOHeader& CECAT7SubHeaderPolarMap::copyData(const CMedIOHeader& src)
-{
-	ENTER();
-
-	// depending on the MedIOHeader format we do have to 
-	// distinguish between our copy operations.
-	switch(src.headerFormat())
-	{
-		case CMedIOHeader::ECATSubHeader:
-		{
-			const CECATSubHeader* eSubHeader = static_cast<const CECATSubHeader*>(&src);
-
-			// depending on the source type we have to copy either every data or just 
-			// some data of the src header
-			switch(eSubHeader->subHeaderType())
-			{
-				// if the source header is also an ECAT7 one we can copy it in whole
-				// via a simple memcpy()
-				case CECATSubHeader::ECAT7_PolarMap:
-				{
-					memcpy(&(this->m_Data), &(static_cast<const CECAT7SubHeaderPolarMap*>(&src)->m_Data), sizeof(struct ECAT7SubHeader_PolarMap));
-				}
-				break;
-
-				case CECATSubHeader::Unknown:
-					// for an unknown header type we do nothing
-				break;
-				
-				#warning "non PolarMap copy not complete"
-			}
-		}
-
-		case CMedIOHeader::ECATMainHeader:
-		case CMedIOHeader::ConcordeMicroPetMainHeader:
-			// copying a main header into a sub header doesn't make much sense, so we
-			// do nothing here
-		break;
-
-		case CMedIOHeader::ConcordeMicroPetFrameHeader:
-		{
-			#warning "Concorde->ECAT7SubHeader copy missing"
-		}
-		break;
-
-		case CMedIOHeader::Unknown:
-			// for an unknown header type we do nothing
-		break;
-	}
-
-	LEAVE();
-	return *this;
-}
