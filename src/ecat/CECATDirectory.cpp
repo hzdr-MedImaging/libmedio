@@ -400,6 +400,17 @@ bool CECATDirectory::save(void) const
 	return result;
 }
 
+bool CECATDirectory::isEmpty() const
+{ 
+	return QIntDict<CECATDirectoryItem>::isEmpty();
+}
+
+unsigned int CECATDirectory::count() const
+{ 
+	return QIntDict<CECATDirectoryItem>::count();
+}
+
+
 CECATDirectoryItem* CECATDirectory::item(short frame, short plane,
 																			 	 short gate, short bed, short data)
 {

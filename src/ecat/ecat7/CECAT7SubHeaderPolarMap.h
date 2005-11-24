@@ -57,168 +57,65 @@ class Q_EXPORT CECAT7SubHeaderPolarMap : public CECATSubHeader
 		bool save(void) const;
 
 		// the number of bytes the data of that header requires on disk
-		int rawDataSize() const { return 1*ECAT_BLOCKSIZE; }
+		int rawDataSize() const;
 
-		CECATSubHeader::Type subHeaderType(void) const
-		{ return CECATSubHeader::ECAT7_PolarMap; }
+		CECATSubHeader::Type subHeaderType(void) const;
 	
 		// data access methods
-		CECATSubHeader::Data_Type data_Type(void) const
-		{ return static_cast<CECATSubHeader::Data_Type>(m_Data.Data_Type); }
-
-		short polar_Map_Type(void) const
-		{ return m_Data.Polar_Map_Type; }
-
-		short num_Rings(void) const
-		{ return m_Data.Num_Rings; }
-
-		short sectors_Per_Ring(const short i) const
-		{ return m_Data.Sectors_Per_Ring[i]; }
-
-		float ring_Position(const short i) const
-		{ return m_Data.Ring_Position[i]; }
-
-		short ring_Angle(const short i) const
-		{ return m_Data.Ring_Angle[i]; }
-
-		short start_Angle(void) const
-		{ return m_Data.Start_Angle; }
-
-		short long_Axis_Left(const short i) const
-		{ return m_Data.Long_Axis_Left[i]; }
-
-		short long_Axis_Right(const short i) const
-		{ return m_Data.Long_Axis_Right[i]; }
-
-		short position_Data(void) const
-		{ return m_Data.Position_Data; }
-
-		short image_Min(void) const
-		{ return m_Data.Image_Min; }
-
-		short image_Max(void) const
-		{ return m_Data.Image_Max; }
-
-		float scale_Factor(void) const
-		{ return m_Data.Scale_Factor; }
-
-		float pixel_Size(void) const
-		{ return m_Data.Pixel_Size; }
-
-		unsigned int frame_Duration(void) const
-		{ return m_Data.Frame_Duration; }
-
-		unsigned int frame_Start_Time(void) const
-		{ return m_Data.Frame_Start_Time; }
-
-		unsigned int processing_Code(void) const
-		{ return m_Data.Processing_Code; }
-
-		short quant_Units(void) const
-		{ return m_Data.Quant_Units; }
-
-		const char* annotation(void) const
-		{ return m_Data.Annotation; }
-
-		unsigned int gate_Duration(void) const
-		{ return m_Data.Gate_Duration; }
-
-		unsigned int r_Wave_Offset(void) const
-		{ return m_Data.R_Wave_Offset; }
-
-		unsigned int num_Accepted_Beats(void) const
-		{ return m_Data.Num_Accepted_Beats; }
-
-		const char* polar_Map_Protocol(void) const
-		{ return m_Data.Polar_Map_Protocol; }
-
-		const char* database_Name(void) const
-		{ return m_Data.Database_Name; }
-
-		short cti_Reserved(const short i)
-		{ return m_Data.CTI_reserved[i]; }
-
-		short user_Reserved(const short i)
-		{ return m_Data.User_Reserved[i]; }
-	
+		CECATSubHeader::Data_Type data_Type(void) const;
+		short polar_Map_Type(void) const;
+		short num_Rings(void) const;
+		short sectors_Per_Ring(const short i) const;
+		float ring_Position(const short i) const;
+		short ring_Angle(const short i) const;
+		short start_Angle(void) const;
+		short long_Axis_Left(const short i) const;
+		short long_Axis_Right(const short i) const;
+		short position_Data(void) const;
+		short image_Min(void) const;
+		short image_Max(void) const;
+		float scale_Factor(void) const;
+		float pixel_Size(void) const;
+		unsigned int frame_Duration(void) const;
+		unsigned int frame_Start_Time(void) const;
+		unsigned int processing_Code(void) const;
+		short quant_Units(void) const;
+		const char* annotation(void) const;
+		unsigned int gate_Duration(void) const;
+		unsigned int r_Wave_Offset(void) const;
+		unsigned int num_Accepted_Beats(void) const;
+		const char* polar_Map_Protocol(void) const;
+		const char* database_Name(void) const;
+		short cti_Reserved(const short i) const;
+		short user_Reserved(const short i) const;
 		
-		void setData_Type(const CECATSubHeader::Data_Type dType)
-		{ m_Data.Data_Type = static_cast<Q_UINT16>(dType);	}		
-
-		void setPolar_Map_Type(const short n)
-		{ m_Data.Polar_Map_Type = n; }
-
-		void setNum_Rings(const short n)
-		{ m_Data.Num_Rings = n; }
-
-		void setSectors_Per_Ring(const short i, const short n)
-		{ m_Data.Sectors_Per_Ring[i] = n; }
-
-		void setRing_Position(const short i, const float n)
-		{ m_Data.Ring_Position[i] = n; }
-
-		void setRing_Angle(const short i, const short n)
-		{ m_Data.Ring_Angle[i] = n; }
-
-		void setStart_Angle(const short n)
-		{ m_Data.Start_Angle = n; }
-
-		void setLong_Axis_Left(const short i, const short n)
-		{ m_Data.Long_Axis_Left[i] = n; }
-
-		void setLong_Axis_Right(const short i, const short n)
-		{ m_Data.Long_Axis_Right[i] = n; }
-
-		void setPosition_Data(const short n)
-		{ m_Data.Position_Data = n; }
-
-		void setImage_Min(const short n)
-		{ m_Data.Image_Min = n; }
-
-		void setImage_Max(const short n)
-		{ m_Data.Image_Max = n; }
-
-		void setScale_Factor(const float n)
-		{ m_Data.Scale_Factor = n; }
-
-		void setPixel_Size(const float n)
-		{ m_Data.Pixel_Size = n; }
-
-		void setFrame_Duration(const unsigned int n)
-		{ m_Data.Frame_Duration = n; }
-
-		void setFrame_Start_Time(const unsigned int n)
-		{ m_Data.Frame_Start_Time = n; }
-
-		void setProcessing_Code(const unsigned int n)
-		{ m_Data.Processing_Code = n; }
-
-		void setQuant_Units(const short n)
-		{ m_Data.Quant_Units = n; }
-
-		void setAnnotation(const char* str)
-		{ strncpy(m_Data.Annotation, str, 40); }
-
-		void setGate_Duration(const unsigned int n)
-		{ m_Data.Gate_Duration = n; }
-
-		void setR_Wave_Offset(const unsigned int n)
-		{ m_Data.R_Wave_Offset = n; }
-
-		void setNum_Accepted_Beats(const unsigned int n)
-		{ m_Data.Num_Accepted_Beats = n; }
-
-		void setPolar_Map_Protocol(const char* str)
-		{ strncpy(m_Data.Polar_Map_Protocol, str, 20); }
-
-		void setDatabase_Name(const char* str)
-		{ strncpy(m_Data.Database_Name, str, 30); }
-
-		void setCTI_Reserved(const short i, const short n)
-		{ m_Data.CTI_reserved[i] = n; }
-
-		void setUser_Reserved(const short i, const short n)
-		{ m_Data.User_Reserved[i] = n; }
+		// data mutator methods
+		void setData_Type(const CECATSubHeader::Data_Type dType);
+		void setPolar_Map_Type(const short n);
+		void setNum_Rings(const short n);
+		void setSectors_Per_Ring(const short i, const short n);
+		void setRing_Position(const short i, const float n);
+		void setRing_Angle(const short i, const short n);
+		void setStart_Angle(const short n);
+		void setLong_Axis_Left(const short i, const short n);
+		void setLong_Axis_Right(const short i, const short n);
+		void setPosition_Data(const short n);
+		void setImage_Min(const short n);
+		void setImage_Max(const short n);
+		void setScale_Factor(const float n);
+		void setPixel_Size(const float n);
+		void setFrame_Duration(const unsigned int n);
+		void setFrame_Start_Time(const unsigned int n);
+		void setProcessing_Code(const unsigned int n);
+		void setQuant_Units(const short n);
+		void setAnnotation(const char* str);
+		void setGate_Duration(const unsigned int n);
+		void setR_Wave_Offset(const unsigned int n);
+		void setNum_Accepted_Beats(const unsigned int n);
+		void setPolar_Map_Protocol(const char* str);
+		void setDatabase_Name(const char* str);
+		void setCTI_Reserved(const short i, const short n);
+		void setUser_Reserved(const short i, const short n);
 
 	protected:
 		// required method to copy relevant data from another MedIOHeader object

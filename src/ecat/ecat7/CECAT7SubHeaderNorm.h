@@ -48,114 +48,47 @@ class Q_EXPORT CECAT7SubHeaderNorm : public CECATSubHeader
 		bool save(void) const;
 		
 		// the number of bytes the data of that header requires on disk
-		int rawDataSize() const { return 1*ECAT_BLOCKSIZE; }
+		int rawDataSize() const;
 		
-		CECATSubHeader::Type subHeaderType(void) const
-		{ return CECATSubHeader::ECAT7_Norm; }
-		
+		CECATSubHeader::Type subHeaderType(void) const;
+
 		// data access methods
-		CECATSubHeader::Data_Type data_Type(void) const
-		{ return static_cast<CECATSubHeader::Data_Type>(m_Data.Data_Type);	}
-
-		short num_Dimensions(void) const
-		{ return m_Data.Num_Dimensions; }
-
-		short num_R_Elements(void) const
-		{ return m_Data.Num_R_Elements; }
-
-		short num_Angles(void) const
-		{ return m_Data.Num_Angles; }
-
-		short num_Z_Elements(void) const
-		{ return m_Data.Num_Z_Elements; }
-
-		short ring_Difference(void) const
-		{ return m_Data.Ring_Difference; }
-
-		float scale_Factor(void) const
-		{ return m_Data.Scale_Factor; }
-
-		float norm_Min(void) const
-		{ return m_Data.Norm_Min; }
-
-		float norm_Max(void) const
-		{ return m_Data.Norm_Max; }
-
-		float fov_Source_Width(void) const
-		{ return m_Data.FOV_Source_Width; }
-
-		float norm_Quality_Factor(void) const
-		{ return m_Data.Norm_Quality_Factor; }
-
-		Norm_Qual_Factor_Code norm_Quality_Factor_Code(void) const
-		{ return static_cast<Norm_Qual_Factor_Code>(m_Data.Norm_Quality_Factor_Code); }
-
-		short storage_Order(void) const
-		{ return m_Data.Storage_Order; }
-
-		short span(void) const
-		{ return m_Data.Span; }
-
-		short z_Elements(const short i)
-		{ return m_Data.Z_Elements[i]; }
-
-		short cti_Reserved(const short i)
-		{ return m_Data.CTI_reserved[i]; }
-
-		short user_Reserved(const short i)
-		{ return m_Data.User_Reserved[i]; }
-
+		CECATSubHeader::Data_Type data_Type(void) const;
+		short num_Dimensions(void) const;
+		short num_R_Elements(void) const;
+		short num_Angles(void) const;
+		short num_Z_Elements(void) const;
+		short ring_Difference(void) const;
+		float scale_Factor(void) const;
+		float norm_Min(void) const;
+		float norm_Max(void) const;
+		float fov_Source_Width(void) const;
+		float norm_Quality_Factor(void) const;
+		Norm_Qual_Factor_Code norm_Quality_Factor_Code(void) const;
+		short storage_Order(void) const;
+		short span(void) const;
+		short z_Elements(const short i) const;
+		short cti_Reserved(const short i) const;
+		short user_Reserved(const short i) const;
 		
-		void setData_Type(const CECATSubHeader::Data_Type dType)
-		{ m_Data.Data_Type = static_cast<Q_UINT16>(dType);	}	
-
-		void setNum_Dimensions(const short n)
-		{ m_Data.Num_Dimensions = n; }
-
-		void setNum_R_Elements(const short n)
-		{ m_Data.Num_R_Elements = n; }
-
-		void setNum_Angles(const short n)
-		{ m_Data.Num_Angles = n; }
-
-		void setNum_Z_Elements(const short n)
-		{ m_Data.Num_Z_Elements = n; }
-
-		void setRing_Difference(const short n)
-		{ m_Data.Ring_Difference = n; }
-
-		void SetScale_Factor(const float n)
-		{ m_Data.Scale_Factor = n; }
-
-		void setNorm_Min(const float n)
-		{ m_Data.Norm_Min = n; }
-
-		void setNorm_Max(const float n)
-		{ m_Data.Norm_Max = n; }
-
-		void setFOV_Source_Width(const float n)
-		{ m_Data.FOV_Source_Width = n; }
-
-		void setNorm_Quality_Factor(const float n)
-		{ m_Data.Norm_Quality_Factor = n; }
-
-		void setNorm_Quality_Factor_Code(const Norm_Qual_Factor_Code n)
-		{ m_Data.Norm_Quality_Factor_Code = static_cast<Q_UINT16>(n); }
-
-		void setStorage_Order(const short n)
-		{ m_Data.Storage_Order = n; }
-
-		void setSpan(const short n)
-		{ m_Data.Span = n; }
-
-		void setZ_Elements(const short i, const short n)
-		{ m_Data.Z_Elements[i] = n; }
-
-		void setCTI_Reserved(const short i, const short n)
-		{ m_Data.CTI_reserved[i] = n; }
-
-		void setUser_Reserved(const short i, const short n)
-		{ m_Data.User_Reserved[i] = n; }
+		// data mutator methods
+		void setData_Type(const CECATSubHeader::Data_Type dType);
+		void setNum_Dimensions(const short n);
+		void setNum_R_Elements(const short n);
+		void setNum_Angles(const short n);
+		void setNum_Z_Elements(const short n);
+		void setRing_Difference(const short n);
+		void SetScale_Factor(const float n);
+		void setNorm_Min(const float n);
+		void setNorm_Max(const float n);
+		void setFOV_Source_Width(const float n);
+		void setNorm_Quality_Factor(const float n);
+		void setNorm_Quality_Factor_Code(const Norm_Qual_Factor_Code n);
+		void setStorage_Order(const short n);
+		void setSpan(const short n);
+		void setZ_Elements(const short i, const short n);
+		void setCTI_Reserved(const short i, const short n);
+		void setUser_Reserved(const short i, const short n);
 
 	protected:
 		// required method to copy relevant data from another MedIOHeader object

@@ -65,6 +65,92 @@ CECATDirectoryItem::CECATDirectoryItem(CECATFile* pFile,
 	LEAVE();
 }
 
+unsigned int CECATDirectoryItem::matrixID(void) const
+{ 
+	return convertToMatrixID(m_iFrame, m_iPlane, m_iGate, m_iBed, m_iData);
+}
+
+QIODevice::Offset CECATDirectoryItem::dataBlock_Start(void) const
+{ 
+	return m_iDataBlock_Start;
+}
+
+QIODevice::Offset CECATDirectoryItem::dataBlock_End(void) const
+{ 
+	return m_iDataBlock_End;
+}
+
+CECATDirectoryItem::AccessStatus CECATDirectoryItem::dataBlock_Status(void) const
+{ 
+	return m_iStatus; 
+}
+
+short CECATDirectoryItem::frame(void) const
+{ 
+	return m_iFrame;
+}
+
+short CECATDirectoryItem::plane(void) const
+{ 
+	return m_iPlane;
+}
+
+short CECATDirectoryItem::gate(void) const
+{ 
+	return m_iGate;
+}
+
+short CECATDirectoryItem::bed(void) const
+{ 
+	return m_iBed;
+}
+
+short CECATDirectoryItem::data(void) const
+{	
+	return m_iData;
+}
+
+// mutator methods
+void CECATDirectoryItem::setDataBlock_Start(const QIODevice::Offset offset)
+{ 
+	m_iDataBlock_Start = offset;
+}
+
+void CECATDirectoryItem::setDataBlock_End(const QIODevice::Offset offset)
+{ 
+	m_iDataBlock_End = offset;
+}
+
+void CECATDirectoryItem::setDataBlock_Status(const AccessStatus status)
+{ 
+	m_iStatus = status;
+}
+
+void CECATDirectoryItem::setFrame(const short f)
+{ 
+	m_iFrame = f;
+}
+
+void CECATDirectoryItem::setPlane(const short p)
+{ 
+	m_iPlane = p;
+}
+
+void CECATDirectoryItem::setGate(const short g)
+{ 
+	m_iGate = g;
+}
+
+void CECATDirectoryItem::setBed(const short b)
+{ 
+	m_iBed = b;
+}
+
+void CECATDirectoryItem::setData(const short d)
+{	
+	m_iData = d;
+}		
+
 bool CECATDirectoryItem::readSubHeader(CECATSubHeader*& subHeader)
 {
 	ENTER();

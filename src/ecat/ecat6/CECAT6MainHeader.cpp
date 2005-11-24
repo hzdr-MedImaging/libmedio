@@ -307,6 +307,97 @@ bool CECAT6MainHeader::save(void) const
 	return result;
 }
 
+int CECAT6MainHeader::rawDataSize() const
+{ 
+	return 1*ECAT_BLOCKSIZE;
+}
+
+int CECAT6MainHeader::rtti() const
+{ 
+	return CECATMainHeader::ECAT6MainHeader;
+}
+
+const char* CECAT6MainHeader::original_File_Name(void) const
+{ 
+	return m_Data.Original_File_Name;
+}
+
+short CECAT6MainHeader::sw_Version(void) const
+{ 
+	return m_Data.SW_Version;
+}
+
+short CECAT6MainHeader::system_Type(void) const
+{ 
+	return m_Data.System_Type;
+}
+
+CECAT6MainHeader::File_Type CECAT6MainHeader::file_Type(void)	const
+{ 
+	return static_cast<CECAT6MainHeader::File_Type>(m_Data.File_Type);
+}
+
+short CECAT6MainHeader::num_Planes(void) const
+{ 
+	return m_Data.Num_Planes;		
+}
+
+short CECAT6MainHeader::num_Frames(void) const	
+{ 
+	return m_Data.Num_Frames;
+}
+
+short CECAT6MainHeader::num_Gates(void) const
+{	
+	return m_Data.Num_Gates;		
+}
+
+short CECAT6MainHeader::num_Bed_Pos(void) const	
+{ 
+	return m_Data.Num_Bed_Pos;
+}
+
+// mutator methods
+void CECAT6MainHeader::setOriginal_File_Name(const char* name)
+{ 
+	strncpy(m_Data.Original_File_Name, name, 20);
+}
+
+void CECAT6MainHeader::setSW_Version(const short ver)
+{ 
+	m_Data.SW_Version = ver;
+}
+
+void CECAT6MainHeader::setSystem_Type(const short type)
+{ 
+	m_Data.System_Type = type;
+}
+
+void CECAT6MainHeader::setFileType(const File_Type fType)
+{ 
+	m_Data.File_Type = fType;
+} 
+
+void CECAT6MainHeader::setNum_Planes(const short num)
+{ 
+	m_Data.Num_Planes = num;
+}
+
+void CECAT6MainHeader::setNum_Frames(const short num)
+{ 
+	m_Data.Num_Frames = num;
+}
+
+void CECAT6MainHeader::setNum_Gates(const short num)
+{ 
+	m_Data.Num_Gates = num;			
+}
+
+void CECAT6MainHeader::setNum_Bed_Pos(const short num)
+{ 
+	m_Data.Num_Bed_Pos = num;		
+}
+
 CMedIOHeader& CECAT6MainHeader::copyData(const CMedIOHeader& src)
 {
 	ENTER();

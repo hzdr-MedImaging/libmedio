@@ -57,3 +57,14 @@ CMedIOData::~CMedIOData()
 	//	delete m_pHeader;
 }
 
+QString CMedIOData::fileName(void) const
+{ 
+	return QFile::name();
+}
+
+//! @brief for querying error status information
+//! @return integer value for the specific error reason
+int CMedIOData::errorStatus(void) const
+{ 
+	return m_iErrStatus;
+}

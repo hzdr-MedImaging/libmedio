@@ -220,6 +220,307 @@ bool CECAT7SubHeaderAttenCorr::save(void) const
 	return result;
 }
 
+int CECAT7SubHeaderAttenCorr::rawDataSize() const 
+{ 
+	return 1*ECAT_BLOCKSIZE;
+}
+
+CECATSubHeader::Type CECAT7SubHeaderAttenCorr::subHeaderType(void) const
+{
+	return CECATSubHeader::ECAT7_AttenCorr;
+}
+
+// data access methods
+CECATSubHeader::Data_Type CECAT7SubHeaderAttenCorr::data_Type(void) const
+{
+	return static_cast<CECATSubHeader::Data_Type>(m_Data.Data_Type);
+}
+
+short	CECAT7SubHeaderAttenCorr::num_Dimensions(void) const
+{
+	return m_Data.Num_Dimensions;
+}
+
+CECAT7SubHeaderAttenCorr::Attenuation_Type CECAT7SubHeaderAttenCorr::attenuation_Type(void) const
+{
+	return static_cast<CECAT7SubHeaderAttenCorr::Attenuation_Type>(m_Data.Attenuation_Type);
+}
+
+short CECAT7SubHeaderAttenCorr::num_R_Elements(void) const
+{
+	return m_Data.Num_R_Elements;
+}
+
+short CECAT7SubHeaderAttenCorr::num_Angles(void) const
+{
+	return m_Data.Num_Angles;
+}
+
+short CECAT7SubHeaderAttenCorr::num_Z_Elements(void) const
+{
+	return m_Data.Num_Z_Elements;
+}
+
+short CECAT7SubHeaderAttenCorr::ring_Difference(void) const
+{
+	return m_Data.Ring_Difference;
+}
+
+float CECAT7SubHeaderAttenCorr::x_Resolution(void) const
+{
+	return m_Data.X_Resolution;
+}
+
+float CECAT7SubHeaderAttenCorr::y_Resolution(void) const
+{
+	return m_Data.Y_Resolution;
+}
+
+float	CECAT7SubHeaderAttenCorr::z_Resolution(void) const
+{
+	return m_Data.Z_Resolution;
+}
+
+float CECAT7SubHeaderAttenCorr::w_Resolution(void) const
+{
+	return m_Data.W_Resolution;
+}
+
+float	CECAT7SubHeaderAttenCorr::scale_Factor(void) const
+{
+	return m_Data.Scale_Factor;
+}
+
+float	CECAT7SubHeaderAttenCorr::x_Offset(void) const
+{
+	return m_Data.X_Offset;
+}
+
+float	CECAT7SubHeaderAttenCorr::y_Offset(void) const
+{
+	return m_Data.Y_Offset;
+}
+
+float	CECAT7SubHeaderAttenCorr::x_Radius(void) const
+{
+	return m_Data.X_Radius;
+}
+
+float	CECAT7SubHeaderAttenCorr::y_Radius(void) const
+{
+	return m_Data.Y_Radius;
+}
+
+float	CECAT7SubHeaderAttenCorr::tilt_Angle(void) const
+{
+	return m_Data.Tilt_Angle;
+}
+
+float CECAT7SubHeaderAttenCorr::attenuation_Coeff(void) const
+{
+	return m_Data.Attenuation_Coeff;
+}
+
+float	CECAT7SubHeaderAttenCorr::attenuation_Min(void) const
+{
+	return m_Data.Attenuation_Min;
+}
+
+float	CECAT7SubHeaderAttenCorr::attenuation_Max(void) const
+{
+	return m_Data.Attenuation_Max;
+}
+
+float	CECAT7SubHeaderAttenCorr::skull_Thickness(void) const
+{
+	return m_Data.Skull_Thickness;
+}
+
+short	CECAT7SubHeaderAttenCorr::num_Additional_Atten_Coeff(void) const
+{
+	return m_Data.Num_Additional_Atten_Coeff;
+}
+
+float	CECAT7SubHeaderAttenCorr::additional_Atten_Coeff(int n) const
+{
+	return m_Data.Additional_Atten_Coeff[n];
+}
+
+float	CECAT7SubHeaderAttenCorr::edge_Finding_Threshold(void) const
+{
+	return m_Data.Edge_Finding_Threshold;
+}
+
+short CECAT7SubHeaderAttenCorr::storage_Order(void) const
+{
+	return m_Data.Storage_Order;
+}
+
+short CECAT7SubHeaderAttenCorr::span(void) const
+{
+	return m_Data.Span;
+}
+
+short CECAT7SubHeaderAttenCorr::z_Elements(int n) const
+{
+	return m_Data.Z_Elements[n];
+}
+
+short	CECAT7SubHeaderAttenCorr::unused(int n) const
+{
+	return m_Data.Unused[n];
+}
+
+short CECAT7SubHeaderAttenCorr::cti_Reserved(int n) const
+{
+	return m_Data.CTI_Reserved[n];
+}
+
+void CECAT7SubHeaderAttenCorr::setData_Type(const CECATSubHeader::Data_Type dType)
+{
+	m_Data.Data_Type = static_cast<Q_UINT16>(dType);
+}
+
+void CECAT7SubHeaderAttenCorr::setNum_Dimensions(const short n)
+{
+	m_Data.Num_Dimensions = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setAttenuation_Type(const Attenuation_Type n)
+{
+	m_Data.Attenuation_Type = static_cast<Q_UINT16>(n);
+}
+
+void CECAT7SubHeaderAttenCorr::setNum_R_Elements(const short n)
+{
+	m_Data.Num_R_Elements = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setNum_Angles(const short n)
+{
+	m_Data.Num_Angles = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setNum_Z_Elements(const short n)
+{
+	m_Data.Num_Z_Elements = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setRing_Difference(const short n)
+{
+	m_Data.Ring_Difference = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setX_Resolution(const float n)
+{
+	m_Data.X_Resolution = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setY_Resolution(const float n)
+{
+	m_Data.Y_Resolution = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setZ_Resolution(const float n)
+{
+	m_Data.Z_Resolution = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setW_Resolution(const float n)
+{
+	m_Data.W_Resolution = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setScale_Factor(const float n)
+{
+	m_Data.Scale_Factor = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setX_Offset(const float n)
+{
+	m_Data.X_Offset = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setY_Offset(const float n)
+{
+	m_Data.Y_Offset = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setX_Radius(const float n)
+{
+	m_Data.X_Radius = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setY_Radius(const float n)
+{
+	m_Data.Y_Radius = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setTilt_Angle(const float n)
+{
+	m_Data.Tilt_Angle = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setAttenuation_Coeff(const float n)
+{
+	m_Data.Attenuation_Coeff = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setAttenuation_Min(const float n)
+{
+	m_Data.Attenuation_Min = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setAttenuation_Max(const float n)
+{
+	m_Data.Attenuation_Max = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setSkull_Thickness(const float n)
+{
+	m_Data.Skull_Thickness = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setNum_Additional_Atten_Coeff(const short n)
+{
+	m_Data.Num_Additional_Atten_Coeff = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setAdditional_Atten_Coeff(const short i, const float n)
+{
+	m_Data.Additional_Atten_Coeff[i] = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setEdge_Finding_Threshold(const float n)
+{
+	m_Data.Edge_Finding_Threshold = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setStorage_Order(const short n)
+{
+	m_Data.Storage_Order = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setSpan(const short n)
+{
+	m_Data.Span = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setZ_Elements(const short i, const short n)
+{
+	m_Data.Z_Elements[i] = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setUnused(const short i, const short n)
+{
+	m_Data.Unused[i] = n;
+}
+
+void CECAT7SubHeaderAttenCorr::setCTI_Reserverd(const short i, const short n)
+{
+	m_Data.CTI_Reserved[i] = n;
+}
+
 CMedIOHeader& CECAT7SubHeaderAttenCorr::copyData(const CMedIOHeader& src)
 {
 	ENTER();

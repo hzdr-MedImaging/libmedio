@@ -53,14 +53,7 @@ class CMedIOHeader
 			ECATSubHeader			//!< sub header of ECAT6/7 PET scanners
 		};
 
-		CMedIOHeader(CMedIOData* data)
-			: m_pMedIOData(data)
-		{ }
-		
-		CMedIOHeader()
-			: m_pMedIOData(NULL)
-		{ }
-
+		CMedIOHeader(CMedIOData* data=NULL);
 		virtual ~CMedIOHeader();
 		
 		//! @brief loads a given file 

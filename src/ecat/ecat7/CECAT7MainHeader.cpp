@@ -641,7 +641,618 @@ bool CECAT7MainHeader::save(void) const
 	return result;
 }
 
-CMedIOHeader& CECAT7MainHeader::copyData(const CMedIOHeader& src)
+int CECAT7MainHeader::rawDataSize() const
+{ 
+	return 1*ECAT_BLOCKSIZE;
+}
+
+int CECAT7MainHeader::rtti() const
+{ 
+	return CECATMainHeader::ECAT7MainHeader;
+}
+
+const char* CECAT7MainHeader::magic_Number(void) const
+{
+	return m_Data.Magic_Number;
+}
+
+const char* CECAT7MainHeader::original_File_Name(void) const
+{
+	return m_Data.Original_File_Name;
+}
+
+short CECAT7MainHeader::sw_Version(void) const
+{
+	return m_Data.SW_Version;
+}
+
+short CECAT7MainHeader::system_Type(void) const
+{
+	return m_Data.System_Type;
+}
+
+CECAT7MainHeader::File_Type CECAT7MainHeader::file_Type(void)	const
+{
+	return static_cast<CECAT7MainHeader::File_Type>(m_Data.File_Type);
+}
+
+const char* CECAT7MainHeader::serial_Number(void) const
+{
+	return m_Data.Serial_Number;
+}
+
+time_t CECAT7MainHeader::scan_Start_Time(void) const
+{
+	return m_Data.Scan_Start_Time;
+}
+
+const char* CECAT7MainHeader::isotope_Name(void) const
+{
+	return m_Data.Isotope_Name;
+}
+
+float CECAT7MainHeader::isotope_Halflife(void) const
+{
+	return m_Data.Isotope_Halflife;
+}
+
+const char* CECAT7MainHeader::radiopharmaceutical(void) const
+{
+	return m_Data.Radiopharmaceutical;
+}
+
+float CECAT7MainHeader::gantry_Tilt(void) const
+{
+	return m_Data.Gantry_Tilt;
+}
+
+float CECAT7MainHeader::gantry_Rotation(void) const
+{
+	return m_Data.Gantry_Rotation;
+}
+
+float CECAT7MainHeader::bed_Elevation(void) const
+{
+	return m_Data.Bed_Elevation;
+}
+
+float CECAT7MainHeader::intrinsic_Tilt(void) const
+{
+	return m_Data.Intrinsic_Tilt;
+}
+
+short CECAT7MainHeader::wobble_Speed(void) const
+{
+	return m_Data.Wobble_Speed;
+}
+
+CECAT7MainHeader::Transm_Source_Type CECAT7MainHeader::transm_Source_Type(void) const
+{
+	return static_cast<CECAT7MainHeader::Transm_Source_Type>(m_Data.Transm_Source_Type);
+}
+
+float CECAT7MainHeader::distance_Scanned(void) const													
+{
+	return m_Data.Distance_Scanned;
+}
+
+float CECAT7MainHeader::transaxial_FOV(void) const														
+{
+	return m_Data.Transaxial_FOV;
+}
+
+CECAT7MainHeader::Angular_Compression CECAT7MainHeader::angular_Compression(void) const					
+{
+	return static_cast<CECAT7MainHeader::Angular_Compression>(m_Data.Angular_Compression);
+}
+
+CECAT7MainHeader::Coin_Samp_Mode CECAT7MainHeader::coin_Samp_Mode(void) const										
+{
+	return static_cast<CECAT7MainHeader::Coin_Samp_Mode>(m_Data.Coin_Samp_Mode);
+}
+
+CECAT7MainHeader::Axial_Samp_Mode CECAT7MainHeader::axial_Samp_Mode(void) const									
+{
+	return static_cast<CECAT7MainHeader::Axial_Samp_Mode>(m_Data.Axial_Samp_Mode);
+}
+
+float CECAT7MainHeader::calibration_Factor(void) const												
+{
+	return m_Data.Calibration_Factor;
+}
+
+CECAT7MainHeader::Calibration_Units CECAT7MainHeader::calibration_Units(void) const							
+{
+	return static_cast<CECAT7MainHeader::Calibration_Units>(m_Data.Calibration_Units);
+}
+
+CECAT7MainHeader::Calibration_Units_Label CECAT7MainHeader::calibration_Units_Label(void) const	
+{
+	return static_cast<CECAT7MainHeader::Calibration_Units_Label>(m_Data.Calibration_Units_Label);
+}
+
+CECAT7MainHeader::Compression_Code CECAT7MainHeader::compression_Code(void) const							
+{
+	return static_cast<CECAT7MainHeader::Compression_Code>(m_Data.Compression_Code);
+}
+
+const char* CECAT7MainHeader::study_Type(void) const												
+{
+	return m_Data.Study_Type;
+}
+
+const char* CECAT7MainHeader::patient_ID(void) const													
+{
+	return m_Data.Patient_ID;
+}
+
+const char* CECAT7MainHeader::patient_Name(void) const												
+{
+	return m_Data.Patient_Name;
+}
+
+CECAT7MainHeader::Patient_Sex CECAT7MainHeader::patient_Sex(void) const													
+{
+	return static_cast<CECAT7MainHeader::Patient_Sex>(m_Data.Patient_Sex[0]);
+}
+
+CECAT7MainHeader::Patient_Dexterity CECAT7MainHeader::patient_Dexterity(void) const							
+{
+	return static_cast<CECAT7MainHeader::Patient_Dexterity>(m_Data.Patient_Dexterity[0]);
+}
+
+float CECAT7MainHeader::patient_Age(void) const																
+{
+	return m_Data.Patient_Age;
+}
+
+float CECAT7MainHeader::patient_Height(void) const														
+{
+	return m_Data.Patient_Height;
+}
+
+float CECAT7MainHeader::patient_Weight(void) const														
+{
+	return m_Data.Patient_Weight;
+}
+
+time_t CECAT7MainHeader::patient_Birth_Date(void) const								
+{
+	return m_Data.Patient_Birth_Date;
+}
+
+const char* CECAT7MainHeader::physician_Name(void) const										
+{
+	return m_Data.Physician_Name;
+}
+
+const char* CECAT7MainHeader::operator_Name(void) const												
+{
+	return m_Data.Operator_Name;
+}
+
+const char* CECAT7MainHeader::study_Description(void) const										
+{
+	return m_Data.Study_Description;
+}
+
+CECAT7MainHeader::Acquisition_Type CECAT7MainHeader::acquisition_Type(void) const							
+{
+	return static_cast<CECAT7MainHeader::Acquisition_Type>(m_Data.Acquisition_Type);
+}
+
+CECAT7MainHeader::Patient_Orientation CECAT7MainHeader::patient_Orientation(void) const											
+{
+	return static_cast<CECAT7MainHeader::Patient_Orientation>(m_Data.Patient_Orientation);
+}
+
+const char* CECAT7MainHeader::facility_Name(void) const											
+{
+	return m_Data.Facility_Name;
+}
+
+short CECAT7MainHeader::num_Planes(void) const															
+{
+	return m_Data.Num_Planes;
+}
+
+short CECAT7MainHeader::num_Frames(void) const															
+{
+	return m_Data.Num_Frames;
+}
+
+short CECAT7MainHeader::num_Gates(void) const																
+{
+	return m_Data.Num_Gates;
+}
+
+short CECAT7MainHeader::num_Bed_Pos(void) const															
+{
+	return m_Data.Num_Bed_Pos;
+}
+
+float CECAT7MainHeader::init_Bed_Position(void) const												
+{
+	return m_Data.Init_Bed_Position;
+}
+
+float CECAT7MainHeader::bed_Offset(const short i) const											
+{
+	return m_Data.Bed_Offset[i];
+}
+
+float CECAT7MainHeader::plane_Separation(void) const												
+{
+	return m_Data.Plane_Separation;
+}
+
+short CECAT7MainHeader::lwr_Sctr_Thres(void) const													
+{
+	return m_Data.Lwr_Sctr_Thres;
+}
+
+short CECAT7MainHeader::lwr_True_Thres(void) const													
+{
+	return m_Data.Lwr_True_Thres;
+}
+
+short CECAT7MainHeader::upr_True_Thres(void) const													
+{
+	return m_Data.Upr_True_Thres;
+}
+
+const char* CECAT7MainHeader::user_Process_Code(void) const									
+{
+	return m_Data.User_Process_Code;
+}
+
+CECAT7MainHeader::Acquisition_Mode CECAT7MainHeader::acquisition_Mode(void) const							
+{
+	return static_cast<CECAT7MainHeader::Acquisition_Mode>(m_Data.Acquisition_Mode);
+}
+
+float CECAT7MainHeader::bin_Size(void) const																
+{
+	return m_Data.Bin_Size;	 }
+
+float CECAT7MainHeader::branching_Fraction(void) const											
+{
+	return m_Data.Branching_Fraction;
+}
+
+time_t CECAT7MainHeader::dose_Start_Time(void) const									
+{
+	return m_Data.Dose_Start_Time;
+}
+
+float CECAT7MainHeader::dosage(void) const																	
+{
+	return m_Data.Dosage;
+}
+
+float CECAT7MainHeader::well_Counter_Corr_Factor(void) const								
+{
+	return m_Data.Well_Counter_Corr_Factor;
+}
+
+const char* CECAT7MainHeader::data_Units(void) const												
+{
+	return m_Data.Data_Units;
+}
+
+CECAT7MainHeader::Septa_State CECAT7MainHeader::septa_State(void) const												
+{
+	return static_cast<CECAT7MainHeader::Septa_State>(m_Data.Septa_State);
+}
+
+short CECAT7MainHeader::cti_Reserved(const short i) const										
+{
+	return m_Data.CTI_Reserved[i];
+}
+
+
+// mutator methods
+void CECAT7MainHeader::setMagic_Number(const char* mn)
+{
+	strncpy(m_Data.Magic_Number, mn, 14);
+}
+
+void CECAT7MainHeader::setOriginal_File_Name(const char* name)
+{
+	strncpy(m_Data.Original_File_Name, name, 32);
+}
+
+void CECAT7MainHeader::setSW_Version(const short ver)
+{
+	m_Data.SW_Version = ver;
+}
+
+void CECAT7MainHeader::setSystem_Type(const short type)
+{
+	m_Data.System_Type = type;
+}
+
+void CECAT7MainHeader::setFileType(const File_Type fType)
+{
+	m_Data.File_Type = fType;	updateMagicNumber();
+}
+
+void CECAT7MainHeader::setSerial_Number(const char* num)
+{
+	strncpy(m_Data.Serial_Number, num, 10);
+}
+
+void CECAT7MainHeader::setScan_Start_Time(const time_t time)
+{
+	m_Data.Scan_Start_Time = static_cast<Q_INT32>(time);
+}
+
+void CECAT7MainHeader::setIsotope_Name(const char* name)
+{
+	strncpy(m_Data.Isotope_Name, name, 8);
+}
+
+void CECAT7MainHeader::setIsotope_Halflife(const float hlf)															
+{
+	m_Data.Isotope_Halflife = hlf;
+}
+
+void CECAT7MainHeader::setRadiopharmaceutical(const char* str)													
+{
+	strncpy(m_Data.Radiopharmaceutical, str, 32);
+}
+
+void CECAT7MainHeader::setGantry_Tilt(const float tilt)																	
+{
+	m_Data.Gantry_Tilt = tilt;
+}
+
+void CECAT7MainHeader::setGantry_Rotation(const float rot)															
+{
+	m_Data.Gantry_Rotation = rot;
+}
+
+void CECAT7MainHeader::setBed_Elevation(const float elev)																
+{
+	m_Data.Bed_Elevation = elev;
+}
+
+void CECAT7MainHeader::setIntrinsic_Tilt(const float tilt)															
+{
+	m_Data.Intrinsic_Tilt = tilt;
+}
+
+void CECAT7MainHeader::setWobble_Speed(const short speed)															
+{
+	m_Data.Wobble_Speed = speed;
+}
+
+void CECAT7MainHeader::setTransm_Source_Type(const Transm_Source_Type type)						
+{
+	m_Data.Transm_Source_Type = type;
+}
+
+void CECAT7MainHeader::setDistance_Scanned(const float dist)													
+{
+	m_Data.Distance_Scanned = dist;
+}
+
+void CECAT7MainHeader::setTransaxial_FOV(const float fov)																
+{
+	m_Data.Transaxial_FOV = fov;
+}
+
+void CECAT7MainHeader::setAngular_Compression(const Angular_Compression comp)						
+{
+	m_Data.Angular_Compression = comp;
+}
+
+void CECAT7MainHeader::setCoin_Samp_Mode(const Coin_Samp_Mode mode)
+{
+	m_Data.Coin_Samp_Mode = mode;
+}
+
+void CECAT7MainHeader::setAxial_Samp_Mode(const Axial_Samp_Mode mode)										
+{
+	m_Data.Axial_Samp_Mode = mode;
+}
+
+void CECAT7MainHeader::setCalibration_Factor(const float factor)												
+{
+	m_Data.Calibration_Factor = factor;
+}
+
+void CECAT7MainHeader::setCalibration_Units(const Calibration_Units unit)								
+{
+	m_Data.Calibration_Units = unit;
+}
+
+void CECAT7MainHeader::setCalibration_Units_Label(const Calibration_Units_Label label)
+{
+	m_Data.Calibration_Units_Label = label;
+}
+
+void CECAT7MainHeader::setCompression_Code(const Compression_Code code)	
+{
+	m_Data.Compression_Code = code;
+}
+
+void CECAT7MainHeader::setStudy_Type(const char* type)																	
+{
+	strncpy(m_Data.Study_Type, type, 12);
+}
+
+void CECAT7MainHeader::setPatient_ID(const char* id)																	
+{
+	strncpy(m_Data.Patient_ID, id, 16);
+}
+
+void CECAT7MainHeader::setPatient_Name(const char* name)
+{
+	strncpy(m_Data.Patient_Name, name, 32);
+}
+
+void CECAT7MainHeader::setPatient_Sex(const Patient_Sex sex)														
+{
+	m_Data.Patient_Sex[0] = sex;
+}
+
+void CECAT7MainHeader::setPatient_Dexterity(const Patient_Dexterity dex)
+{
+	m_Data.Patient_Dexterity[0] = dex;
+}
+
+void CECAT7MainHeader::setPatient_Age(const float age)																
+{
+	m_Data.Patient_Age = age;
+}
+
+void CECAT7MainHeader::setPatient_Height(const float height)														
+{
+	m_Data.Patient_Height = height;
+}
+
+void CECAT7MainHeader::setPatient_Weight(const float weight)													
+{
+	m_Data.Patient_Weight = weight;
+}
+
+void CECAT7MainHeader::setPatient_Birth_Date(const time_t date)										
+{
+	m_Data.Patient_Birth_Date = static_cast<Q_INT32>(date);
+}
+
+void CECAT7MainHeader::setPhysician_Name(const char* name)															
+{
+	strncpy(m_Data.Physician_Name, name, 32);
+}
+
+void CECAT7MainHeader::setOperator_Name(const char* name)															
+{
+	strncpy(m_Data.Operator_Name, name, 32);
+}
+
+void CECAT7MainHeader::setStudy_Description(const char* descr)												
+{
+	strncpy(m_Data.Study_Description, descr, 32);
+}
+
+void CECAT7MainHeader::setAcquisition_Type(const Acquisition_Type type)								
+{
+	m_Data.Acquisition_Type = type;
+}
+
+void CECAT7MainHeader::setPatient_Orientation(const Patient_Orientation orient)											
+{
+	m_Data.Patient_Orientation = orient;
+}
+
+void CECAT7MainHeader::setFacility_Name(const char* name)															
+{
+	strncpy(m_Data.Facility_Name, name, 20);
+}
+
+void CECAT7MainHeader::setNum_Planes(const short num)																	
+{
+	m_Data.Num_Planes = num;
+}
+
+void CECAT7MainHeader::setNum_Frames(const short num)																	
+{
+	m_Data.Num_Frames = num;
+}
+
+void CECAT7MainHeader::setNum_Gates(const short num)																	
+{
+	m_Data.Num_Gates = num;
+}
+
+void CECAT7MainHeader::setNum_Bed_Pos(const short num)																
+{
+	m_Data.Num_Bed_Pos = num;
+}
+
+void CECAT7MainHeader::setInit_Bed_Position(const float pos)													
+{
+	m_Data.Init_Bed_Position = pos;
+}
+
+void CECAT7MainHeader::setBed_Offset(const short i, const float offset)								
+{
+	m_Data.Bed_Offset[i] = offset;
+}
+
+void CECAT7MainHeader::setPlane_Separation(const float sep)														
+{
+	m_Data.Plane_Separation = sep;
+}
+
+void CECAT7MainHeader::setLwr_Sctr_Thres(const short thres)														
+{
+	m_Data.Lwr_Sctr_Thres = thres;
+}
+
+void CECAT7MainHeader::setLwr_True_Thres(const short thres)														
+{
+	m_Data.Lwr_True_Thres = thres;
+}
+
+void CECAT7MainHeader::setUpr_True_Thres(const short thres)														
+{
+	m_Data.Upr_True_Thres = thres;
+}
+
+void CECAT7MainHeader::setUser_Process_Code(const char* code)													
+{
+	strncpy(m_Data.User_Process_Code, code, 10);
+}
+
+void CECAT7MainHeader::setAcquisition_Mode(const Acquisition_Mode mode)								
+{
+	m_Data.Acquisition_Mode = mode;
+}
+
+void CECAT7MainHeader::setBin_Size(const float size)																	
+{
+	m_Data.Bin_Size = size;
+}
+
+void CECAT7MainHeader::setBranching_Fraction(const float frac)												
+{
+	m_Data.Branching_Fraction = frac;
+}
+
+void CECAT7MainHeader::setDose_Start_Time(const time_t time)										
+{
+	m_Data.Dose_Start_Time = static_cast<Q_INT32>(time);
+}
+
+void CECAT7MainHeader::setDosage(const float dosage)																	
+{ 
+	m_Data.Dosage = dosage;
+}
+
+void CECAT7MainHeader::setWell_Counter_Corr_Factor(const float fac)										
+{ 
+	m_Data.Well_Counter_Corr_Factor = fac;
+}
+
+void CECAT7MainHeader::setData_Units(const char* units)																
+{ 
+	strncpy(m_Data.Data_Units, units, 32);
+}
+
+void CECAT7MainHeader::setSepta_State(const Septa_State state)												
+{ 
+	m_Data.Septa_State = state;
+}
+
+void CECAT7MainHeader::setCTI_Reserved(const short i, const short val)								
+{ 
+	m_Data.CTI_Reserved[i] = val;
+}
+
+ CMedIOHeader& CECAT7MainHeader::copyData(const CMedIOHeader& src)
 {
 	ENTER();
 

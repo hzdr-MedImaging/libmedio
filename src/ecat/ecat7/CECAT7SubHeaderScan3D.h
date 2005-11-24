@@ -56,211 +56,79 @@ class Q_EXPORT CECAT7SubHeaderScan3D : public CECATSubHeader
 		bool save(void) const;
 		
 		// the number of bytes the data of that header requires on disk
-		int rawDataSize() const { return 2*ECAT_BLOCKSIZE; }
+		int rawDataSize() const;
 		
-		CECATSubHeader::Type subHeaderType(void) const
-		{ return CECATSubHeader::ECAT7_Scan3D; }
+		CECATSubHeader::Type subHeaderType(void) const;
 		
 		// methods to access elements of the SubHeader
-		CECATSubHeader::Data_Type data_Type(void)	const
-		{ return static_cast<CECATSubHeader::Data_Type>(m_Data.Data_Type);	}
-		
-		short num_Dimensions(void) const						
-		{ return m_Data.Num_Dimensions;	}
-		
-		short num_R_Elements(void) const						
-		{ return m_Data.Num_R_Elements; }
-		
-		short num_Angles(void) const								
-		{	return m_Data.Num_Angles; }
-		
-		short corrections_Applied(void) const				
-		{ return m_Data.Corrections_Applied; }
-		
-		short num_Z_Elements(const short i) const		
-		{ return m_Data.Num_Z_Elements[i]; }
-		
-		short ring_Difference(void) const					
-		{	return m_Data.Ring_Difference; }
-		
-		Storage_Order storage_Order(void) const			
-		{ return static_cast<Storage_Order>(m_Data.Storage_Order); }
-		
-		short axial_Compression(void) const				
-		{	return m_Data.Axial_Compression; }
-		
-		float X_Resolution(void) const						
-		{	return m_Data.X_Resolution;	}
-		
-		float V_Resolution(void) const						
-		{	return m_Data.V_Resolution;	}
-		
-		float Z_Resolution(void) const						
-		{	return m_Data.Z_Resolution;	}
-		
-		float W_Resolution(void) const							
-		{	return m_Data.W_Resolution;	}
-		
-		short gate_Reserved(const short i) const		
-		{ return m_Data.Gate_Reserved[i]; }
-		
-		unsigned int gate_Duration(void) const		
-		{ return m_Data.Gate_Duration; }
-		
-		unsigned int r_Wave_Offset(void) const		
-		{ return m_Data.R_Wave_Offset; }
-		
-		unsigned int num_Accepted_Beats(void) const	
-		{	return m_Data.Num_Accepted_Beats; }
-		
-		float scale_Factor(void) const						
-		{ return m_Data.Scale_Factor; }
-		
-		short scan_Min(void) const								
-		{ return m_Data.Scan_Min; }
-		
-		short scan_Max(void) const									
-		{ return m_Data.Scan_Max; }
-		
-		unsigned int prompts(void) const						
-		{ return m_Data.Prompts; }
-		
-		unsigned int delayed(void) const					
-		{ return m_Data.Delayed; }
-		
-		unsigned int multiples(void) const				
-		{ return m_Data.Multiples; }
-		
-		unsigned int net_Trues(void) const				
-		{ return m_Data.Net_Trues; }
-		
-		float tot_Avg_Cor(void) const 							
-		{ return m_Data.Tot_Avg_Cor; }
-		
-		float tot_Avg_Uncor(void) const						
-		{ return m_Data.Tot_Avg_Uncor; }
-		
-		unsigned int total_Coin_Rate(void) const	
-		{ return m_Data.Total_Coin_Rate; }
-		
-		unsigned int frame_Start_Time(void) const	
-		{ return m_Data.Frame_Start_Time; }
-		
-		unsigned int frame_Duration(void) const		
-		{ return m_Data.Frame_Duration; }
-		
-		float deadtime_Correction_Factor(void) const
-		{ return m_Data.Deadtime_Correction_Factor;	}
-		
-		short cti_Reserved(const short i) const				
-		{ return m_Data.CTI_reserved[i]; }
-		
-		short user_Reserved(const short i) const		
-		{ return m_Data.User_Reserved[i]; }
-		
-		float uncor_Singles(const short bucket) const
-		{	return m_Data.Uncor_Singles[bucket]; }
-
+		CECATSubHeader::Data_Type data_Type(void)	const;
+		short num_Dimensions(void) const;
+		short num_R_Elements(void) const;
+		short num_Angles(void) const;
+		short corrections_Applied(void) const;
+		short num_Z_Elements(const short i) const;
+		short ring_Difference(void) const;
+		Storage_Order storage_Order(void) const;
+		short axial_Compression(void) const;
+		float X_Resolution(void) const;
+		float V_Resolution(void) const;
+		float Z_Resolution(void) const;
+		float W_Resolution(void) const;
+		short gate_Reserved(const short i) const;
+		unsigned int gate_Duration(void) const;
+		unsigned int r_Wave_Offset(void) const;
+		unsigned int num_Accepted_Beats(void) const;
+		float scale_Factor(void) const;
+		short scan_Min(void) const;
+		short scan_Max(void) const;
+		unsigned int prompts(void) const;
+		unsigned int delayed(void) const;
+		unsigned int multiples(void) const;
+		unsigned int net_Trues(void) const;
+		float tot_Avg_Cor(void) const;
+		float tot_Avg_Uncor(void) const;
+		unsigned int total_Coin_Rate(void) const;
+		unsigned int frame_Start_Time(void) const;
+		unsigned int frame_Duration(void) const;
+		float deadtime_Correction_Factor(void) const;
+		short cti_Reserved(const short i) const;
+		short user_Reserved(const short i) const;
+		float uncor_Singles(const short bucket) const;
 
 		// methods to modify elements of the SubHeader
-		void setData_Type(const CECATSubHeader::Data_Type dType)	
-		{ m_Data.Data_Type = static_cast<Q_UINT16>(dType); }	
-		
-		void setNum_Dimensions(const short dim)						
-		{ m_Data.Num_Dimensions = dim; }
-		
-		void setNum_R_Elements(const short elem)						
-		{ m_Data.Num_R_Elements = elem; }
-		
-		void setNum_Angles(const short angles)							
-		{ m_Data.Num_Angles = angles; }
-		
-		void setCorrections_Applied(const short cor)			
-		{ m_Data.Corrections_Applied = cor; }
-		
-		void setNum_Z_Elements(const short i, const short num)	
-		{	m_Data.Num_Z_Elements[i] = num; }
-		
-		void setRing_Difference(const short diff)					
-		{	m_Data.Ring_Difference = diff; }
-		
-		void setStorage_Order(const Storage_Order order)	
-		{ m_Data.Storage_Order = static_cast<Q_UINT16>(order); }
-		
-		void setAxial_Compression(const short comp)			
-		{	m_Data.Axial_Compression = comp; }
-		
-		void setX_Resolution(const float res)						
-		{ m_Data.X_Resolution = res; }
-		
-		void setV_Resolution(const float res)						
-		{ m_Data.V_Resolution = res; }
-		
-		void setZ_Resolution(const float res)						
-		{ m_Data.Z_Resolution = res; }
-		
-		void setW_Resolution(const float res)						
-		{ m_Data.W_Resolution = res; }
-		
-		void setGate_Reserved(const short i, const short val)	
-		{ m_Data.Gate_Reserved[i] = val; }
-		
-		void setGate_Duration(const unsigned int dur)		
-		{	m_Data.Gate_Duration = dur;	}
-		
-		void setR_Wave_Offset(const unsigned int off)		
-		{ m_Data.R_Wave_Offset = off;	}
-		
-		void setNum_Accepted_Beats(const unsigned int b)		
-		{ m_Data.Num_Accepted_Beats = b; }
-		
-		void setScale_Factor(const float factor)					
-		{ m_Data.Scale_Factor = factor; }
-		
-		void setScan_Min(const short min)								
-		{ m_Data.Scan_Min = min; }
-		
-		void setScan_Max(const short max)								
-		{ m_Data.Scan_Max = max; }
-		
-		void setPrompts(const unsigned int n)						
-		{ m_Data.Prompts = n; }
-		
-		void setDelayed(const unsigned int n)						
-		{ m_Data.Delayed = n;	}
-		
-		void setMultiples(const unsigned int n)					
-		{ m_Data.Multiples = n;	}
-		
-		void setNet_Trues(const unsigned int n)					
-		{ m_Data.Net_Trues = n; }
-		
-		void setTot_Avg_Cor(const float value)						
-		{ m_Data.Tot_Avg_Cor = value; }
-		
-		void setTot_Avg_Uncor(const float value)					
-		{ m_Data.Tot_Avg_Uncor = value; }
-		
-		void setTotal_Coin_Rate(const unsigned int n)		
-		{ m_Data.Total_Coin_Rate = n; }
-		
-		void setFrame_Start_Time(const unsigned int t)		
-		{ m_Data.Frame_Start_Time = t; }
-		
-		void setFrame_Duration(const unsigned int t)			
-		{ m_Data.Frame_Duration = t; }
-		
-		void setDeadtime_Correction_Factor(const float f)
-		{ m_Data.Deadtime_Correction_Factor = f; }
-		
-		void setCTI_Reserved(const short i, const short value)		
-		{ m_Data.CTI_reserved[i] = value; }
-		
-		void setUser_Reserved(const short i, const short value)
-		{ m_Data.User_Reserved[i] = value; }
-		
-		void setUncor_Singles(const short b, const float value)
-		{ m_Data.Uncor_Singles[b] = value; }
+		void setData_Type(const CECATSubHeader::Data_Type dType);
+		void setNum_Dimensions(const short dim);
+		void setNum_R_Elements(const short elem);
+		void setNum_Angles(const short angles);
+		void setCorrections_Applied(const short cor);
+		void setNum_Z_Elements(const short i, const short num);
+		void setRing_Difference(const short diff);
+		void setStorage_Order(const Storage_Order order);
+		void setAxial_Compression(const short comp);
+		void setX_Resolution(const float res);
+		void setV_Resolution(const float res);
+		void setZ_Resolution(const float res);
+		void setW_Resolution(const float res);
+		void setGate_Reserved(const short i, const short val);
+		void setGate_Duration(const unsigned int dur);
+		void setR_Wave_Offset(const unsigned int off);
+		void setNum_Accepted_Beats(const unsigned int b);
+		void setScale_Factor(const float factor);
+		void setScan_Min(const short min);
+		void setScan_Max(const short max);
+		void setPrompts(const unsigned int n);
+		void setDelayed(const unsigned int n);
+		void setMultiples(const unsigned int n);
+		void setNet_Trues(const unsigned int n);
+		void setTot_Avg_Cor(const float value);
+		void setTot_Avg_Uncor(const float value);
+		void setTotal_Coin_Rate(const unsigned int n);
+		void setFrame_Start_Time(const unsigned int t);
+		void setFrame_Duration(const unsigned int t);
+		void setDeadtime_Correction_Factor(const float f);
+		void setCTI_Reserved(const short i, const short value);
+		void setUser_Reserved(const short i, const short value);
+		void setUncor_Singles(const short b, const float value);
 
 	protected:
 		// required method to copy relevant data from another MedIOHeader object
