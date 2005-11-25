@@ -114,7 +114,7 @@ staticmedio {
         LIBS *= @MEDIO_LIBDIR@/libmedio.a
 }
 else {
-        LIBS *= -L@MEDIO_LIBDIR@ @LIB_MEDIO@
+        LIBS *= @MEDIO_LIBDIR@/@LIB_MEDIO@
 }
 
 ### LIBCOREG ##############################################################

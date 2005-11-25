@@ -523,11 +523,12 @@ AC_DEFUN(AC_PATH_MEDIO_LIB,
 
   medio_found="0"
   ac_medio_libdir=
-  ac_medio_libname="-lmedio"
-  
-  LIBS="$ac_medio_libname $save_LIBS"
+  dnl ac_medio_libname="-lmedio"
+	ac_medio_libname="libmedio.so.2"
+   
   for medio_dir in $medio_library_dirs; do
-    LDFLAGS="-L$medio_dir $save_LDFLAGS"
+		LIBS="$medio_dir/$ac_medio_libname $save_LIBS"
+    LDFLAGS="$save_LDFLAGS"
     AC_TRY_LINK_FUNC(main, [medio_found="1"], [medio_found="0"])
     if test $medio_found = 1; then
       ac_medio_libdir="$medio_dir"
@@ -560,7 +561,7 @@ Try --with-medio-lib to specify the path, manually.])
   MEDIO_LDFLAGS="-L$ac_medio_libdir"
   MEDIO_LIBDIR="$ac_medio_libdir"
   LIB_MEDIO="$ac_medio_libname"
-  AC_SUBST(MEDIO_LDFLAGS)
+  dnl AC_SUBST(MEDIO_LDFLAGS)
   AC_SUBST(MEDIO_LIBDIR)
   AC_SUBST(LIB_MEDIO)
 ])
