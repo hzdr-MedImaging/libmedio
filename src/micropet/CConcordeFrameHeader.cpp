@@ -48,7 +48,7 @@ CMedIOData* CConcordeFrameHeader::fileObject() const
 
 void CConcordeFrameHeader::clear()
 {
-	memset(m_Data, 0, sizeof(ConcordeHeaderFrame));
+	memset(&m_Data, 0, sizeof(ConcordeHeaderFrame));
 }
 
 //  Class: CConcordeFrameHeader
@@ -57,7 +57,7 @@ void CConcordeFrameHeader::clear()
 //! //initialise all keys which should be searched for in header file
 //!
 ////////////////////////////////////////////////////////////////////////////////
-void CConcordeFrameHeader::init() const
+void CConcordeFrameHeader::init()
 {
 	ENTER();
 	Parser.addSeparator(" ");
