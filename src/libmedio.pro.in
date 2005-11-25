@@ -34,72 +34,75 @@ OBJECTS_DIR = .obj
 MOC_DIR     = .moc
 UI_DIR      = .ui
 
+QMAKE_QMAKE = @QMAKE_PATH@
+
 # define headers and source files for compilation
 # PUB_HEADER: public headers going into /usr/local/include/medio
 # HEADERS...: all headers including private ones
 # SOURCES...: all source files required for the compilation
 
-PUB_HEADER =	CMedIOHeader.h \
-		CMedIOData.h \
-		CMedIODataFactory.h \
-		ecat/CECATDirectory.h \
-		ecat/CECATDirectoryItem.h \
-		ecat/CECATFile.h \
-		ecat/CECATMainHeader.h \
-		ecat/CECATSubHeader.h \
-		ecat/ecat6/CECAT6MainHeader.h \
-		ecat/ecat7/CECAT7MainHeader.h \
-		ecat/ecat7/CECAT7SubHeaderAttenCorr.h \
-		ecat/ecat7/CECAT7SubHeaderImage.h \
-		ecat/ecat7/CECAT7SubHeaderNorm.h \
-		ecat/ecat7/CECAT7SubHeaderNorm3D.h \
-		ecat/ecat7/CECAT7SubHeaderPolarMap.h \
-		ecat/ecat7/CECAT7SubHeaderScan.h \
-		ecat/ecat7/CECAT7SubHeaderScan3D.h \
-		helpers/CKeyType.h \
-    helpers/CKeyValue.h \
-    helpers/CKeyParser.h \
-		micropet/CConcordeMainHeader.h \
-		micropet/CConcordeMainHeaderSinogram.h \
-		micropet/CConcordeMainHeaderImage.h \
-		micropet/CConcordeFrameHeader.h \
-		micropet/CConcordeFile.h \
-		micropet/CConcordeSinogram.h \
-		micropet/CConcordeImage.h \
-		micropet/CIntVector.h \
-		micropet/CDate.h
+PUB_HEADER =	CMedIO.h \
+							CMedIOHeader.h \
+							CMedIOData.h \
+							CMedIODataFactory.h \
+							helpers/CKeyType.h \
+							helpers/CKeyValue.h \
+							helpers/CKeyParser.h \
+							ecat/CECATDirectory.h \
+							ecat/CECATDirectoryItem.h \
+							ecat/CECATFile.h \
+							ecat/CECATMainHeader.h \
+							ecat/CECATSubHeader.h \
+							ecat/ecat6/CECAT6MainHeader.h \
+							ecat/ecat7/CECAT7MainHeader.h \
+							ecat/ecat7/CECAT7SubHeaderAttenCorr.h \
+							ecat/ecat7/CECAT7SubHeaderImage.h \
+							ecat/ecat7/CECAT7SubHeaderNorm.h \
+							ecat/ecat7/CECAT7SubHeaderNorm3D.h \
+							ecat/ecat7/CECAT7SubHeaderPolarMap.h \
+							ecat/ecat7/CECAT7SubHeaderScan.h \
+							ecat/ecat7/CECAT7SubHeaderScan3D.h \
+							micropet/CConcordeMainHeader.h \
+							micropet/CConcordeMainHeaderSinogram.h \
+							micropet/CConcordeMainHeaderImage.h \
+							micropet/CConcordeFrameHeader.h \
+							micropet/CConcordeFile.h \
+							micropet/CConcordeSinogram.h \
+							micropet/CConcordeImage.h \
+							micropet/CIntVector.h \
+							micropet/CDate.h
 
 HEADERS  = $$PUB_HEADER
 
-SOURCES  = \
-	   CMedIOHeader.cpp \
-	   CMedIOData.cpp \
-	   CMedIODataFactory.cpp \
-	   ecat/CECATDirectory.cpp \
-	   ecat/CECATDirectoryItem.cpp \
-	   ecat/CECATFile.cpp \
-		 ecat/CECATMainHeader.cpp \
-		 ecat/CECATSubHeader.cpp \		 
-	   ecat/ecat6/CECAT6MainHeader.cpp \
-	   ecat/ecat7/CECAT7MainHeader.cpp \
- 	   ecat/ecat7/CECAT7SubHeaderAttenCorr.cpp \
-	   ecat/ecat7/CECAT7SubHeaderImage.cpp \
-	   ecat/ecat7/CECAT7SubHeaderNorm.cpp \
-	   ecat/ecat7/CECAT7SubHeaderNorm3D.cpp \
-	   ecat/ecat7/CECAT7SubHeaderPolarMap.cpp \
-	   ecat/ecat7/CECAT7SubHeaderScan.cpp \
-	   ecat/ecat7/CECAT7SubHeaderScan3D.cpp \
-	   helpers/CKeyValue.cpp \
-     helpers/CKeyParser.cpp \
-	   micropet/CConcordeMainHeader.cpp \
-	   micropet/CConcordeMainHeaderSinogram.cpp \
-	   micropet/CConcordeMainHeaderImage.cpp \
-	   micropet/CConcordeFrameHeader.cpp \
-	   micropet/CConcordeFile.cpp \
-	   micropet/CConcordeSinogram.cpp \
-	   micropet/CConcordeImage.cpp \
-	   micropet/CIntVector.cpp \
-		 micropet/CDate.cpp
+SOURCES  = CMedIO.cpp \
+					 CMedIOHeader.cpp \
+					 CMedIOData.cpp \
+					 CMedIODataFactory.cpp \
+					 helpers/CKeyValue.cpp \
+					 helpers/CKeyParser.cpp \
+					 ecat/CECATDirectory.cpp \
+					 ecat/CECATDirectoryItem.cpp \
+					 ecat/CECATFile.cpp \
+					 ecat/CECATMainHeader.cpp \
+					 ecat/CECATSubHeader.cpp \		 
+					 ecat/ecat6/CECAT6MainHeader.cpp \
+					 ecat/ecat7/CECAT7MainHeader.cpp \
+					 ecat/ecat7/CECAT7SubHeaderAttenCorr.cpp \
+					 ecat/ecat7/CECAT7SubHeaderImage.cpp \
+					 ecat/ecat7/CECAT7SubHeaderNorm.cpp \
+					 ecat/ecat7/CECAT7SubHeaderNorm3D.cpp \
+					 ecat/ecat7/CECAT7SubHeaderPolarMap.cpp \
+					 ecat/ecat7/CECAT7SubHeaderScan.cpp \
+					 ecat/ecat7/CECAT7SubHeaderScan3D.cpp \
+					 micropet/CConcordeMainHeader.cpp \
+					 micropet/CConcordeMainHeaderSinogram.cpp \
+					 micropet/CConcordeMainHeaderImage.cpp \
+					 micropet/CConcordeFrameHeader.cpp \
+					 micropet/CConcordeFile.cpp \
+					 micropet/CConcordeSinogram.cpp \
+					 micropet/CConcordeImage.cpp \
+					 micropet/CIntVector.cpp \
+					 micropet/CDate.cpp
 
 DEPENDPATH   = . ecat ecat/ecat6 ecat/ecat7 micropet
 INCLUDEPATH  = . include ecat ecat/ecat6 ecat/ecat7 micropet helpers

@@ -23,10 +23,10 @@ CConcordeMainHeader::CConcordeMainHeader(QString File)
 { 
 	D("Constructor with file string");
 	init();
-	setDefaults();
+	clear();
 	if(!this->load(File))
 	{
-		D("Something is wrong with the headerfile");
+		E("Something is wrong with the headerfile");
 	}
 	else
 		D("Everything ok");
@@ -47,8 +47,8 @@ CConcordeMainHeader::CConcordeMainHeader(CConcordeFile* file)
 	m_pMedIOData = file;
 	D("Initialising all keyvalues");
 	init();
-	D("Setting defaults");
-	setDefaults();
+	D("Clearing header");
+	clear();
 	//D("Trying to load headerfile");
 	//if(!this->load())
 	//{
@@ -78,10 +78,10 @@ CConcordeMainHeader::~CConcordeMainHeader()
 	LEAVE();
 }
 
-CMedIOData* CConcordeMainHeader::fileObject() const
-{
-	return m_pMedIOData;
-}
+//CMedIOData* CConcordeMainHeader::fileObject() const
+//{
+//	return m_pMedIOData;
+//}
 
 int	CConcordeMainHeader::model(void) const
 {
@@ -823,40 +823,45 @@ void CConcordeMainHeader::setWaterAccess(const QString value)
 //! the occurance of errors due to undefined values.
 //!
 ////////////////////////////////////////////////////////////////////////////////
-void CConcordeMainHeader::setDefaults()
+void CConcordeMainHeader::clear()
 {
 	m_Data.model = 0;
-	m_Data.institution = "FZ Rossendorf"; 
+	m_Data.institution = QString();
+	m_Data.study = QString();
+	m_Data.file_name = QString();
 	m_Data.file_type = 0;
 	m_Data.acquisition_mode = 0;
 	m_Data.bed_motion = 0;
 	m_Data.total_frames = 0;
-	m_Data.transaxial_crystals_per_block = 8;
-	m_Data.axial_crystals_per_block = 8;
-	m_Data.intrinsic_crystal_offset = 4;
-	m_Data.transaxial_blocks = 42;
-	m_Data.axial_blocks = 4;
-	m_Data.transaxial_crystal_pitch = 0.2444F;
-	m_Data.axial_crystal_pitch = 0.2423F;
-	m_Data.radius = 13.0673F;
-	m_Data.radial_fov = 12.067F;
-	m_Data.src_radius = 11.2F;
-	m_Data.src_cm_per_rev = 0.05F;
+	m_Data.isotope = QString();
+	m_Data.isotope_half_time = 0.0F;
+	m_Data.isotope_branching_fraction = 0.0F;
+	m_Data.transaxial_crystals_per_block = 0;
+	m_Data.axial_crystals_per_block = 0;
+	m_Data.intrinsic_crystal_offset = 0;
+	m_Data.transaxial_blocks = 0;
+	m_Data.axial_blocks = 0;
+	m_Data.transaxial_crystal_pitch = 0.0F;
+	m_Data.axial_crystal_pitch = 0.0F;
+	m_Data.radius = 0.0F;
+	m_Data.radial_fov = 0.0F;
+	m_Data.src_radius = 0.0F;
+	m_Data.src_cm_per_rev = 0.0F;
 	m_Data.tx_src_type = 0;
-	m_Data.transaxial_bin_size = 0.1222F;
-	m_Data.axial_plane_size = 0.12115F;
-	m_Data.lld = 350.0F;
-	m_Data.uld = 750.0F;
+	m_Data.transaxial_bin_size = 0.0F;
+	m_Data.axial_plane_size = 0.0F;
+	m_Data.lld = 0.0F;
+	m_Data.uld = 0.0F;
 	m_Data.data_type = 0;
-	m_Data.data_order = 1;
+	m_Data.data_order = 0;
 
-	m_Data.span = 3;
-	m_Data.ring_difference = 31;
-	m_Data.number_of_dimensions = 4;
-	m_Data.x_dimension = 192;
-	m_Data.y_dimension = 168;
-	m_Data.z_dimension = 63;
-	m_Data.w_dimension = 11;
+	m_Data.span = 0;
+	m_Data.ring_difference = 0;
+	m_Data.number_of_dimensions = 0;
+	m_Data.x_dimension = 0;
+	m_Data.y_dimension = 0;
+	m_Data.z_dimension = 0;
+	m_Data.w_dimension = 0;
 
 	m_Data.deadtime_correction_applied = 0;
 	m_Data.decay_correction_applied = 0;
@@ -870,12 +875,34 @@ void CConcordeMainHeader::setDefaults()
 	m_Data.pixel_size = 0.0F;
 	m_Data.calibration_units = 0;
 	m_Data.calibration_factor = 0.0F;
-	m_Data.calibration_branching_fraction = 1.0F;
-	m_Data.number_of_singles_rates = 168;
+	m_Data.calibration_branching_fraction = 0.0F;
+	m_Data.number_of_singles_rates = 0;
+
+	m_Data.investigator = QString();
+	m_Data.Operator = QString();
+	m_Data.study_identifier = QString();
+	m_Data.injected_compound = QString();
+
 	m_Data.dose_units = 0;
+	m_Data.dose = 0.0F;
+	m_Data.injection_decay_correction = 0.0;
+
+	m_Data.subject_identifier = QString();
+	m_Data.subject_genus = QString();
+
 	m_Data.subject_orientation = 0;
 	m_Data.subject_length_units = 0;
+	m_Data.subject_length = 0.0F;
 	m_Data.subject_weight_units = 0;
+	m_Data.subject_weight = 0.0F;
+
+	m_Data.subject_phenotype = QString();
+	m_Data.study_model = QString();
+	m_Data.anesthesia = QString();
+	m_Data.analgesia = QString();
+	m_Data.other_drugs = QString();
+	m_Data.food_access = QString();
+	m_Data.water_access = QString();
 }
 
 bool CConcordeMainHeader::load()
@@ -1058,92 +1085,107 @@ bool CConcordeMainHeader::init()
 	return true;
 }
 
-bool CConcordeMainHeader::convertFrom(const CMedIOHeader* srcMainHeader, const CMedIOHeader* srcSubHeader)
+bool CConcordeMainHeader::convertFrom(const CMedIOHeader* srcMainHeader, const CMedIOHeader*)
 {
-	copyData(*srcMainHeader);
-	return true;
+	bool bResult = false;
+	if(srcMainHeader)
+		bResult = copyData(srcMainHeader);
+	return bResult;
 }
 
-CMedIOHeader& CConcordeMainHeader::copyData(const CMedIOHeader& src)
+bool CConcordeMainHeader::copyData(const CMedIOHeader* src)
 {
 	ENTER();
-	if(src.headerFormat() == CMedIOHeader::ConcordeMicroPetMainHeader)
+	bool bResult = false;
+	if(src)
 	{
-		//TODO: add CHeaderConcordeFrame to CMedIOHeader and check for it
-		//W("TODO: add CHeaderConcordeFrame to CMedIOHeader and check for it");
-		CConcordeMainHeader* head = (CConcordeMainHeader*)&src;
-		m_Data.model = head->model();
-		m_Data.institution = head->institution();
-		m_Data.study = head->study();
-		m_Data.file_name = head->fileName();
-		m_Data.file_type = head->fileType();
-		m_Data.acquisition_mode = head->acquisitionMode();
-		m_Data.bed_motion = head->bedMotion();
-		m_Data.total_frames = head->totalFrames();
-		m_Data.isotope = head->isotope();
-		m_Data.isotope_half_time = head->isotopeHalfTime();
-		m_Data.isotope_branching_fraction = head->isotopeBranchingFraction();
-		m_Data.transaxial_crystals_per_block = head->transaxialCrystalsPerBlock();
-		m_Data.axial_crystals_per_block = head->axialCrystalsPerBlock();
-		m_Data.intrinsic_crystal_offset = head->intrinsicCrystalOffset();
-		m_Data.axial_blocks = head->axialBlocks();
-		m_Data.axial_crystal_pitch = head->axialCrystalPitch();
-		m_Data.radius = head->radius();
-		m_Data.radial_fov = head->radialFov();
-		m_Data.src_radius = head->srcRadius();
-		m_Data.src_cm_per_rev = head->srcCmPerRev();
-		m_Data.tx_src_type = head->txSrcType();
-		m_Data.transaxial_bin_size = head->transaxialBinSize();
-		m_Data.axial_plane_size = head->axialPlaneSize();
-		m_Data.pixel_size = head->pixelSize();
-		m_Data.lld = head->lld();
-		m_Data.uld = head->uld();
-		m_Data.data_type = head->dataType();
-		m_Data.data_order = head->dataOrder();
-		m_Data.span = head->span();
-		m_Data.ring_difference = head->ringDifference();
-		m_Data.number_of_dimensions = head->numberOfDimensions();
-		m_Data.x_dimension = head->xDimension();
-		m_Data.y_dimension = head->yDimension();
-		m_Data.z_dimension = head->zDimension();
-		m_Data.w_dimension = head->wDimension();
-		m_Data.delta_elements.clear();
-		if(m_Data.w_dimension > 1)
-			for(int i = 0; i < m_Data.w_dimension; i++)
-				m_Data.delta_elements.append(head->deltaElements(i));
-		m_Data.deadtime_correction_applied = head->deadtimeCorrectionApplied();
-		m_Data.decay_correction_applied = head->decayCorrectionApplied();
-		m_Data.normalization_applied = head->normalizationApplied();
-		m_Data.attenuation_applied = head->attenuationApplied();
-		m_Data.scatter_correction = head->scatterCorrection();
-		m_Data.arc_correction_applied = head->arcCorrectionApplied();
-		m_Data.calibration_factor = head->calibrationFactor();
-		m_Data.calibration_branching_fraction = head->calibrationBranchingFraction();
-		m_Data.number_of_singles_rates = head->numberOfSinglesRates();
-		m_Data.investigator = head->investigatorName();
-		m_Data.Operator = head->operatorName();
-		m_Data.study_identifier = head->studyIdentifier();
-		m_Data.scan_time.setTime_t(head->scanTime());
-		m_Data.injected_compound = head->injectedCompound();
-		m_Data.dose_units = head->doseUnits();
-		m_Data.dose = head->dose();
-		m_Data.injection_time.setTime_t(head->injectionTime());
-		m_Data.injection_decay_correction = head->injectionDecayCorrection();
-		m_Data.subject_identifier = head->subjectIdentifier();
-		m_Data.subject_genus = head->subjectGenus();
-		m_Data.subject_orientation = head->subjectOrientation();
-		m_Data.subject_length_units = head->subjectLengthUnits();
-		m_Data.subject_length = head->subjectLength();
-		m_Data.subject_weight_units = head->subjectWeightUnits();
-		m_Data.subject_weight = head->subjectWeight();
-		m_Data.subject_phenotype = head->subjectPhenotype();
-		m_Data.study_model = head->studyModel();
-		m_Data.anesthesia = head->anesthesia();
-		m_Data.analgesia = head->analgesia();
-		m_Data.other_drugs = head->otherDrugs();
-		m_Data.food_access = head->foodAccess();
-		m_Data.water_access = head->waterAccess();
+		switch(src->headerFormat())
+		{
+			case CMedIOHeader::ConcordeMicroPetMainHeader:
+			{
+				clear();
+				const CConcordeMainHeader* head = static_cast<const CConcordeMainHeader*>(src);
+				m_Data.model = head->model();
+				m_Data.institution = head->institution();
+				m_Data.study = head->study();
+				m_Data.file_name = head->fileName();
+				m_Data.file_type = head->fileType();
+				m_Data.acquisition_mode = head->acquisitionMode();
+				m_Data.bed_motion = head->bedMotion();
+				m_Data.total_frames = head->totalFrames();
+				m_Data.isotope = head->isotope();
+				m_Data.isotope_half_time = head->isotopeHalfTime();
+				m_Data.isotope_branching_fraction = head->isotopeBranchingFraction();
+				m_Data.transaxial_crystals_per_block = head->transaxialCrystalsPerBlock();
+				m_Data.axial_crystals_per_block = head->axialCrystalsPerBlock();
+				m_Data.intrinsic_crystal_offset = head->intrinsicCrystalOffset();
+				m_Data.axial_blocks = head->axialBlocks();
+				m_Data.axial_crystal_pitch = head->axialCrystalPitch();
+				m_Data.radius = head->radius();
+				m_Data.radial_fov = head->radialFov();
+				m_Data.src_radius = head->srcRadius();
+				m_Data.src_cm_per_rev = head->srcCmPerRev();
+				m_Data.tx_src_type = head->txSrcType();
+				m_Data.transaxial_bin_size = head->transaxialBinSize();
+				m_Data.axial_plane_size = head->axialPlaneSize();
+				m_Data.pixel_size = head->pixelSize();
+				m_Data.lld = head->lld();
+				m_Data.uld = head->uld();
+				m_Data.data_type = head->dataType();
+				m_Data.data_order = head->dataOrder();
+				m_Data.span = head->span();
+				m_Data.ring_difference = head->ringDifference();
+				m_Data.number_of_dimensions = head->numberOfDimensions();
+				m_Data.x_dimension = head->xDimension();
+				m_Data.y_dimension = head->yDimension();
+				m_Data.z_dimension = head->zDimension();
+				m_Data.w_dimension = head->wDimension();
+				if(m_Data.w_dimension > 1)
+					for(int i = 0; i < m_Data.w_dimension; i++)
+						m_Data.delta_elements[i] = head->deltaElements(i);
+				m_Data.deadtime_correction_applied = head->deadtimeCorrectionApplied();
+				m_Data.decay_correction_applied = head->decayCorrectionApplied();
+				m_Data.normalization_applied = head->normalizationApplied();
+				m_Data.attenuation_applied = head->attenuationApplied();
+				m_Data.scatter_correction = head->scatterCorrection();
+				m_Data.arc_correction_applied = head->arcCorrectionApplied();
+				m_Data.calibration_factor = head->calibrationFactor();
+				m_Data.calibration_branching_fraction = head->calibrationBranchingFraction();
+				m_Data.number_of_singles_rates = head->numberOfSinglesRates();
+				m_Data.investigator = head->investigatorName();
+				m_Data.Operator = head->operatorName();
+				m_Data.study_identifier = head->studyIdentifier();
+				m_Data.scan_time.setTime_t(head->scanTime());
+				m_Data.injected_compound = head->injectedCompound();
+				m_Data.dose_units = head->doseUnits();
+				m_Data.dose = head->dose();
+				m_Data.injection_time.setTime_t(head->injectionTime());
+				m_Data.injection_decay_correction = head->injectionDecayCorrection();
+				m_Data.subject_identifier = head->subjectIdentifier();
+				m_Data.subject_genus = head->subjectGenus();
+				m_Data.subject_orientation = head->subjectOrientation();
+				m_Data.subject_length_units = head->subjectLengthUnits();
+				m_Data.subject_length = head->subjectLength();
+				m_Data.subject_weight_units = head->subjectWeightUnits();
+				m_Data.subject_weight = head->subjectWeight();
+				m_Data.subject_phenotype = head->subjectPhenotype();
+				m_Data.study_model = head->studyModel();
+				m_Data.anesthesia = head->anesthesia();
+				m_Data.analgesia = head->analgesia();
+				m_Data.other_drugs = head->otherDrugs();
+				m_Data.food_access = head->foodAccess();
+				m_Data.water_access = head->waterAccess();
+				bResult = true;
+			}
+			break;
+			default:
+			{
+				E("File format not supported yet");
+				bResult = false;
+			}
+			break;
+		}
 	}
-	RETURN(this);
-	return *this;
+	RETURN(bResult);
+	return bResult;
 }

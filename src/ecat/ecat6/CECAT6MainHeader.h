@@ -44,6 +44,8 @@ class CECAT6MainHeader : public CECATMainHeader
 										 CECATMainHeader::Type fileType = 
 												CECATMainHeader::Unknown);
 
+		void clear();
+
 		// public methods
 		bool load(void);
 		bool save(void) const;

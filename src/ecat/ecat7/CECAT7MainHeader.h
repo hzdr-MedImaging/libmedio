@@ -26,6 +26,7 @@
 
 #include <CECATMainHeader.h>
 #include <CECATDirectoryItem.h>
+#include <CConcordeMainHeader.h>
 
 #include <QDataStream>
 #include <QDateTime>
@@ -72,6 +73,8 @@ class CECAT7MainHeader : public CECATMainHeader
 		CECAT7MainHeader(CECATFile* ecatFile = NULL, 
 										 CECATMainHeader::Type fileType =
 												CECATMainHeader::Unknown);
+
+		void clear();
 
 		// file i/o Methods
 		bool load();
@@ -159,7 +162,7 @@ class CECAT7MainHeader : public CECATMainHeader
 		void setSW_Version(const short ver);
 		void setSystem_Type(const short type);
 		void setFileType(CECATMainHeader::Type fType);
-		void setFileType(const File_Type fType);
+		void setFile_Type(const File_Type fType);
 		void setSerial_Number(const char* num);
 		void setScan_Start_Time(const time_t time);
 		void setIsotope_Name(const char* name);
@@ -227,6 +230,14 @@ class CECAT7MainHeader : public CECATMainHeader
 
 	protected:
 		void updateMagicNumber(void);
+
+		// helper methods for converting the header from concorde to ecat7
+		QString concorde2ECAT7dataUnits(CConcordeMainHeader::CalibrationUnits u) const;
+		float concorde2ECAT7dosage(float d, CConcordeMainHeader::DoseUnits u) const;
+		float concorde2ECAT7Height(float l, CConcordeMainHeader::SubjectLengthUnits u) const;
+		float concorde2ECAT7Weight(float w, CConcordeMainHeader::SubjectWeightUnits u) const;
+		CECAT7MainHeader::Patient_Sex concorde2ECAT7Sex(const QString& genus) const;
+		CECAT7MainHeader::Patient_Orientation concorde2ECAT7Orientation(const CConcordeMainHeader::SubjectOrientation o) const;
 
 	private:
 		// MainHeader structure (should be 512bytes)

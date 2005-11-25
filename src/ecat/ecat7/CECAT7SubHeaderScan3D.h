@@ -46,6 +46,8 @@ class CECAT7SubHeaderScan3D : public CECATSubHeader
 																Smooth	=	(1<<1)
 															};
 
+		void clear();
+
 		// constructors
 		CECAT7SubHeaderScan3D(CECATFile* ecatFile,
 													CECATDirectoryItem* pDirItem = NULL);

@@ -33,15 +33,25 @@ CECAT7SubHeaderPolarMap::CECAT7SubHeaderPolarMap(CECATFile* ecatFile,
 																								 CECATDirectoryItem* pDirItem)
 	: CECATSubHeader(ecatFile, pDirItem)
 {
-	// then clear the structure
-	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_PolarMap));			
+	clear();
 }
 
 CECAT7SubHeaderPolarMap::CECAT7SubHeaderPolarMap()
 	: CECATSubHeader(NULL)
 {
+	clear();
+}
+
+void CECAT7SubHeaderPolarMap::clear()
+{
+	ENTER();
+
 	// then clear the structure
 	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_PolarMap));			
+
+	setData_Type(CECATSubHeader::UnknownDataType);
+
+	LEAVE();
 }
 
 bool CECAT7SubHeaderPolarMap::load(void)

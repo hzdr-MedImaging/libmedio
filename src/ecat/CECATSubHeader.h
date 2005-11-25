@@ -57,6 +57,8 @@ class CECATSubHeader : public CMedIOHeader
 		// constructor
 		CECATSubHeader(CMedIOData* ecatFile,
 									 CECATDirectoryItem* dItem = NULL);
+		
+		virtual void clear() = 0;
 
 		// our virtual load/save I/O routines
 		virtual bool load(void) = 0;

@@ -34,16 +34,23 @@ CECAT6MainHeader::CECAT6MainHeader(CECATFile* ecatFile,
 																	 CECATMainHeader::Type fileType)
 	: CECATMainHeader(ecatFile)
 {
-	// clear our MainHeader structure first
-	memset(&m_Data, 0, sizeof(struct ECAT6MainHeader));
-	
 	// this constructor signals us to create a empty ECAT6MainHeader
 	// with prefilled data that is always the same for a ECAT6 main header
 	// depending on the supplied fileType we have to have a different Magic
 	// Number field
+	clear();
+}
 
+void CECAT6MainHeader::clear()
+{
+	ENTER();
+
+	// clear our MainHeader structure first
+	memset(&m_Data, 0, sizeof(struct ECAT6MainHeader));
 	// default values for our Main Header
 	m_Data.SW_Version	= 64;		// use v6.4 as the default ECAT6 version
+
+	LEAVE();
 }
 
 bool CECAT6MainHeader::load(void)
@@ -341,6 +348,7 @@ bool CECAT6MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
 				case CECATMainHeader::ECAT7MainHeader:
 				{
 					const CECAT7MainHeader* e7src = static_cast<const CECAT7MainHeader*>(pHead1);
+					clear();
 					setOriginal_File_Name(e7src->original_File_Name());
 					setSystem_Type(e7src->system_Type());
 

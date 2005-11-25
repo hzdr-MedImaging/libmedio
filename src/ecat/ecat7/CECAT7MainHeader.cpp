@@ -23,7 +23,6 @@
 
 #include "CECAT7MainHeader.h"
 #include "CECAT6MainHeader.h"
-#include "CConcordeMainHeader.h"
 #include "CECATFile.h"
 #include "config.h"
 
@@ -41,20 +40,26 @@ CECAT7MainHeader::CECAT7MainHeader(CECATFile* ecatFile,
 																	 CECATMainHeader::Type fileType)
 	: CECATMainHeader(ecatFile)
 {
-	// clear our MainHeader structure first
-	memset(&m_Data, 0, sizeof(struct ECAT7MainHeader));
-	
 	// this constructor signals us to create a empty ECAT7MainHeader
 	// with prefilled data that is always the same for a ECAT7 main header
 	// depending on the supplied fileType we have to have a different Magic
 	// Number field
+	clear();
 
+	setFileType(fileType);
+}
+
+void CECAT7MainHeader::clear()
+{
+	ENTER();
+	
+	// clear our MainHeader structure first
+	memset(&m_Data, 0, sizeof(struct ECAT7MainHeader));
+	
 	// set some default values for the new Main Header
 	// (we mainly set these values like it is set on a EXACT HR+ scanner
 	m_Data.SW_Version						= 72;					// use v7.2 as the default ECAT version
 	m_Data.System_Type					= 962;				// set ECAT Model 962 (EXACT HR+) by default
-	m_Data.Scan_Start_Time			= time(NULL);	// set the start time to the current time
-	m_Data.Isotope_Halflife			= 6586.2;			// halflife time of FDOPA
 	m_Data.Distance_Scanned			= 15.52;		  // scanner depth		
 	m_Data.Transaxial_FOV				= 58.3;				// transaxial FOV of an ECAT HR+
 	m_Data.Angular_Compression	= static_cast<short>(Mash2);
@@ -63,19 +68,15 @@ CECAT7MainHeader::CECAT7MainHeader(CECATFile* ecatFile,
 	m_Data.Transm_Source_Type		= static_cast<short>(SRC_RING);
 	m_Data.Lwr_True_Thres				= 350;				// energy levels of an ECAT HR+
 	m_Data.Upr_True_Thres				= 650;
-	m_Data.Num_Planes						= 1;					// per default a minimum of 1 planes
-	m_Data.Patient_Orientation	= 3;					// Head first + supine
-	m_Data.Plane_Separation			= 0.2425;			// cm
+	m_Data.Patient_Orientation	= CECAT7MainHeader::Orient_Unknown;
 	m_Data.Bin_Size							= 0.224983;		// cm
 	m_Data.Branching_Fraction		= 1.0;
 	m_Data.Septa_State					= static_cast<short>(Retracted);
-	m_Data.Dose_Start_Time			= time(NULL);	// set the dose start time to the current time	
 
-	setFileType(fileType);
 	strcpy(m_Data.Serial_Number, "1");
-	strcpy(m_Data.Isotope_Name, "F-18");
-	strcpy(m_Data.Radiopharmaceutical, "F-18 Dopa");
-	strcpy(m_Data.Study_Description, "created with libmedio v0.2");
+	strcpy(m_Data.Study_Description, (QString("Created with libmedio v") + PACKAGE_VERSION).toAscii());
+
+	LEAVE();
 }
 
 void CECAT7MainHeader::setFileType(CECATMainHeader::Type fType)
@@ -672,6 +673,7 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
 				case CECATMainHeader::ECAT6MainHeader:
 				{
 					const CECAT6MainHeader* e6src = static_cast<const CECAT6MainHeader*>(pHead1);
+					clear();
 					setOriginal_File_Name(e6src->original_File_Name());
 					setSystem_Type(e6src->system_Type());
 
@@ -693,12 +695,18 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
 
 		case CMedIOHeader::ConcordeMicroPetMainHeader:
 		{
+			// we have to save the filetype
+			CECAT7MainHeader::File_Type ft = file_Type();
 			const CConcordeMainHeader* head = static_cast<const CConcordeMainHeader*>(pHead1);
+			clear();
+			// now set the old filetype again
+			setFile_Type(ft);
 			setOriginal_File_Name(head->fileName().toAscii());
 			setSystem_Type(static_cast<short>(head->model()));
 			setScan_Start_Time(head->scanTime());
 			setIsotope_Name(head->isotope().toAscii());
 			setIsotope_Halflife(head->isotopeHalfTime());
+			setRadiopharmaceutical(head->isotope().toAscii());
 			
 			setDistance_Scanned(head->radialFov());
 			setTransaxial_FOV(head->radialFov());
@@ -712,40 +720,32 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
 			setStudy_Type(head->study().toAscii());
 			setPatient_ID(head->subjectIdentifier().toAscii());
 			setPatient_Name(head->subjectIdentifier().toAscii());
-			setPatient_Sex(CECAT7MainHeader::Sex_Male);
+			setPatient_Sex(concorde2ECAT7Sex(head->subjectGenus()));
 			
-			setPatient_Height(head->subjectLength());
-			setPatient_Weight(head->subjectWeight()/1000.0);
+			setPatient_Height(concorde2ECAT7Height(head->subjectLength(), head->subjectLengthUnits()));
+			setPatient_Weight(concorde2ECAT7Weight(head->subjectWeight(), head->subjectWeightUnits()));
+			
 			setPhysician_Name(head->investigatorName().toAscii());
 			setOperator_Name(head->operatorName().toAscii());
-			setStudy_Description(head->studyIdentifier().toAscii());
+			setStudy_Description(head->study().toAscii());
 			if(head->acquisitionMode() == CConcordeMainHeader::Emission)
 				setAcquisition_Type(CECAT7MainHeader::StaticEmission);
 			else
 				setAcquisition_Type(CECAT7MainHeader::DynamicEmission);
-			switch(head->subjectOrientation())
-			{
-				case CConcordeMainHeader::UnknownSubjectOrientation: setPatient_Orientation(CECAT7MainHeader::FF_Prone); break;
-				case CConcordeMainHeader::FeetFirstProne: setPatient_Orientation(CECAT7MainHeader::FF_Prone); break;
-				case CConcordeMainHeader::HeadFirstProne: setPatient_Orientation(CECAT7MainHeader::HF_Prone); break;
-				case CConcordeMainHeader::FeetFirstSupine: setPatient_Orientation(CECAT7MainHeader::FF_Supine); break;
-				case CConcordeMainHeader::HeadFirstSupine: setPatient_Orientation(CECAT7MainHeader::HF_Supine); break;
-				case CConcordeMainHeader::FeetFirstRight: setPatient_Orientation(CECAT7MainHeader::FF_Right); break;
-				case CConcordeMainHeader::HeadFirstRight: setPatient_Orientation(CECAT7MainHeader::HF_Right); break;
-				case CConcordeMainHeader::FeetFirstLeft: setPatient_Orientation(CECAT7MainHeader::FF_Left); break;
-				case CConcordeMainHeader::HeadFirstLeft: setPatient_Orientation(CECAT7MainHeader::HF_Left); break;
-			}
+			setPatient_Orientation((concorde2ECAT7Orientation(head->subjectOrientation())));
 			setFacility_Name(head->institution().toAscii());
 			setNum_Planes(head->zDimension());
 			setNum_Frames(head->totalFrames());
+			setNum_Gates(1);
+			setNum_Bed_Pos(0);
+			setPlane_Separation(head->axialPlaneSize());
 			setLwr_True_Thres(static_cast<short>(head->lld()));
 			setUpr_True_Thres(static_cast<short>(head->uld()));
 			setBranching_Fraction(head->isotopeBranchingFraction());
-			setNum_Gates(1);
-			setNum_Bed_Pos(0);
-			setDose_Start_Time(head->injectionTime());
 
-			setDosage(head->dose()*1000000.0);
+			setDose_Start_Time(head->injectionTime());
+			setDosage(concorde2ECAT7dosage(head->dose(), head->doseUnits()));
+			setData_Units(concorde2ECAT7dataUnits(head->calibrationUnits()).toAscii());
 
 			//check if additional information is available
 			if(pHead2)
@@ -1108,7 +1108,7 @@ void CECAT7MainHeader::setSystem_Type(const short type)
 	m_Data.System_Type = type;
 }
 
-void CECAT7MainHeader::setFileType(const File_Type fType)
+void CECAT7MainHeader::setFile_Type(const File_Type fType)
 {
 	m_Data.File_Type = fType;	
 	updateMagicNumber();
@@ -1670,3 +1670,111 @@ void CECAT7MainHeader::setDose_Start_Time_Qt(const QDateTime& doseStartTime)
 	else
 		m_Data.Dose_Start_Time = doseStartTime.toTime_t();		
 }
+
+QString CECAT7MainHeader::concorde2ECAT7dataUnits(CConcordeMainHeader::CalibrationUnits u) const
+{
+	ENTER();
+
+	QString E7u;
+	switch(u)
+	{
+		case CConcordeMainHeader::nCiPerCC: E7u = "nCi/cc"; break;
+		case CConcordeMainHeader::BqPerCC: E7u = "Bq/cc"; break;
+		default: E7u = "Unknown units"; break;
+	}
+
+	RETURN(E7u.toAscii());
+	return E7u;
+}
+
+float CECAT7MainHeader::concorde2ECAT7dosage(float d, CConcordeMainHeader::DoseUnits u) const
+{
+	ENTER();
+
+	// dosage in ECAT7 is Bq always
+	float E7d;
+	switch(u)
+	{
+		case CConcordeMainHeader::mCi: E7d = d * 1e-3 / 3.7e10; break;
+		case CConcordeMainHeader::MBq: E7d = d * 1e6; break;
+		default: E7d = 0.0; break;
+	}
+
+	RETURN(E7d);
+	return E7d;
+}
+
+float CECAT7MainHeader::concorde2ECAT7Height(float l, CConcordeMainHeader::SubjectLengthUnits u) const
+{
+	ENTER();
+
+	// height in ECAT7 is cm always
+	float E7l;
+	switch(u)
+	{
+		case CConcordeMainHeader::Millimeters: E7l = l / 10.0; break;
+		case CConcordeMainHeader::Centimeters: E7l = l; break;
+		case CConcordeMainHeader::Inches: E7l = l * 2.54; break;
+		default: E7l = 0.0; break;
+	}
+
+	RETURN(E7l);
+	return E7l;
+}
+
+float CECAT7MainHeader::concorde2ECAT7Weight(float w, CConcordeMainHeader::SubjectWeightUnits u) const
+{
+	ENTER();
+
+	// weight in ECAT7 is kilograms always
+	float E7w;
+	switch(u)
+	{
+		case CConcordeMainHeader::Grams: E7w = w / 1000.0; break;
+		case CConcordeMainHeader::Ounces: E7w = w * 0.028349; break;
+		case CConcordeMainHeader::Kilograms: E7w = w; break;
+		case CConcordeMainHeader::Pounds:  E7w = w * 0.45359237; break;
+		default: E7w = 0.0; break;
+	}
+
+	RETURN(E7w);
+	return E7w;
+}
+
+CECAT7MainHeader::Patient_Sex CECAT7MainHeader::concorde2ECAT7Sex(const QString& genus) const
+{
+	ENTER();
+
+	CECAT7MainHeader::Patient_Sex E7s = Sex_Unknown;
+	if(genus.startsWith('m', Qt::CaseInsensitive))
+		E7s = Sex_Male;
+	else if (genus.startsWith('f', Qt::CaseInsensitive))
+		E7s = Sex_Female;
+
+	RETURN(E7s);
+	return E7s;
+}
+
+CECAT7MainHeader::Patient_Orientation CECAT7MainHeader::concorde2ECAT7Orientation(const CConcordeMainHeader::SubjectOrientation o) const
+{
+	ENTER();
+
+	CECAT7MainHeader::Patient_Orientation E7o;
+	switch(o)
+	{
+		case CConcordeMainHeader::UnknownSubjectOrientation: E7o = CECAT7MainHeader::FF_Prone; break;
+		case CConcordeMainHeader::FeetFirstProne: E7o = CECAT7MainHeader::FF_Prone; break;
+		case CConcordeMainHeader::HeadFirstProne: E7o = CECAT7MainHeader::HF_Prone; break;
+		case CConcordeMainHeader::FeetFirstSupine: E7o = CECAT7MainHeader::FF_Supine; break;
+		case CConcordeMainHeader::HeadFirstSupine: E7o = CECAT7MainHeader::HF_Supine; break;
+		case CConcordeMainHeader::FeetFirstRight: E7o = CECAT7MainHeader::FF_Right; break;
+		case CConcordeMainHeader::HeadFirstRight: E7o = CECAT7MainHeader::HF_Right; break;
+		case CConcordeMainHeader::FeetFirstLeft: E7o = CECAT7MainHeader::FF_Left; break;
+		case CConcordeMainHeader::HeadFirstLeft: E7o = CECAT7MainHeader::HF_Left; break;
+		default: E7o = CECAT7MainHeader::Orient_Unknown; break;
+	}
+
+	RETURN(E7o);
+	return E7o;
+}
+

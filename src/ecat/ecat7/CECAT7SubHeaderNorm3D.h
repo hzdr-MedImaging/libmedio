@@ -42,6 +42,8 @@ class CECAT7SubHeaderNorm3D : public CECATSubHeader
 		CECAT7SubHeaderNorm3D(CECATFile* ecatFile,
 													CECATDirectoryItem* pDirItem = NULL);
 
+		void clear();
+
 		// public methods
 		bool load(void);
 		bool save(void) const;

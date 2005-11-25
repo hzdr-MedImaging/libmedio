@@ -37,12 +37,13 @@ class CConcordeFrameHeader : public CMedIOHeader
 	//members
 		enum EventType{UnknownEventType = 0, Singles, Prompt, Delay, Trues};
 	//methods
-		CMedIOData* fileObject() const;
+		//CMedIOData* fileObject() const;
 		bool load();
 		bool save() const;
 		CMedIOHeader::Format headerFormat() const;
 		CMedIOHeader* clone() const;
 		bool convertFrom(const CMedIOHeader* srcMainHeader, const CMedIOHeader* srcSubHeader = NULL);
+		void clear();
 
 		//accessor methods
 		int frame(void) const;
@@ -91,7 +92,7 @@ class CConcordeFrameHeader : public CMedIOHeader
 		void setDelaysRate(const int value);
 
 	protected:
-		CMedIOHeader& copyData(const CMedIOHeader& src);	
+		bool copyData(const CMedIOHeader* src);	
 	
 	private :
 	//members
@@ -124,7 +125,7 @@ class CConcordeFrameHeader : public CMedIOHeader
 		ConcordeHeaderFrame;
 		ConcordeHeaderFrame m_Data;
 		QString File;
-	//methods
+		//methods
 		void init();
 };
 

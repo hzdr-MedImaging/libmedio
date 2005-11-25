@@ -44,6 +44,8 @@ class CECAT7SubHeaderAttenCorr : public CECATSubHeader
 		CECAT7SubHeaderAttenCorr(CECATFile* ecatFile,
 														 CECATDirectoryItem* pDirItem = NULL);
 
+		void clear();
+
 		// public methods
 		bool load(void);
 		bool save(void) const;

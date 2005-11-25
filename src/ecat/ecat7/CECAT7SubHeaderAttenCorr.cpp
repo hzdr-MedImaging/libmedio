@@ -33,15 +33,26 @@ CECAT7SubHeaderAttenCorr::CECAT7SubHeaderAttenCorr(CECATFile* ecatFile,
 																									 CECATDirectoryItem* pDirItem)
 	: CECATSubHeader(ecatFile, pDirItem)
 {
-	// then clear the structure
-	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_AttenCorr));
+	clear();
 }
 
 CECAT7SubHeaderAttenCorr::CECAT7SubHeaderAttenCorr()
 	: CECATSubHeader(NULL)
 {
-	// then clear the structure
+	clear();
+}
+
+void CECAT7SubHeaderAttenCorr::clear()
+{
+	ENTER();
+	
+	// clear our header structure first
 	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_AttenCorr));
+		
+	setData_Type(CECATSubHeader::UnknownDataType);
+	setAttenuation_Type(Atten_None);
+
+	LEAVE();
 }
 
 bool CECAT7SubHeaderAttenCorr::load(void)
