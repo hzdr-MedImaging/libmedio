@@ -6,6 +6,13 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-11-25  Jens Langner <Jens.Langner@light-speed.de>
+
+  * m4/configure.in: modified the version information in configure.in 
+	  and put the @PACKAGE_VERSION@ substitution macro in the .pro.in file
+		so that we only have to modify the configure.in file in future for
+		properly bumping the version in the whole libmedio.
+
 2005-11-25  Christian Poetzsch <cp@burningdragon.de>
 	
 	* CMedIOHeader.h,ecat/*Header: added clean() method for all headers
