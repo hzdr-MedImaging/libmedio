@@ -14,6 +14,7 @@ $Source$
 	  missing convertation routines for concorde to ecat7 converting
 	* ecat/ecat7/CECAT7MainHeader.*: bug in convertFrom with file type
 	* CMedIO.*: added lib medio version information methods
+	* libmedio.pro.in: qmake path is now correct in qmake generated Makefile
 		
 2005-11-24  Christian Poetzsch <cp@burningdragon.de>
 	

@@ -33,6 +33,8 @@ OBJECTS_DIR = .obj
 MOC_DIR     = .moc
 UI_DIR      = .ui
 
+QMAKE_QMAKE = @QMAKE_PATH@
+
 # define headers and source files for compilation
 # PUB_HEADER: public headers going into /usr/local/include/medio
 # HEADERS...: all headers including private ones
