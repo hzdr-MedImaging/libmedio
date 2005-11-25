@@ -60,8 +60,8 @@ int main( int argc, char ** argv )
 					QDateTime dt;
 					dt.setTime_t(head->scanTime());
 					cout << "Scantime: " << dt.toString().data() << endl;
-					cout << "Scantime: " << head->strScanTime().toString().data() << endl;
-					cout << "Injectiontime: " << head->strInjectionTime().toString().data() << endl;
+					cout << "Scantime: " << head->scanTimeQt().toString().data() << endl;
+					cout << "Injectiontime: " << head->injectionTimeQt().toString().data() << endl;
 					cout << "Weightunits: " << head->strSubjectWeightUnits().data() << endl;
 					cout << "Lengthunits: " << head->strSubjectLengthUnits().data() << endl;
 					cout << "Doseunits: " << head->strDoseUnits().data() << endl;
