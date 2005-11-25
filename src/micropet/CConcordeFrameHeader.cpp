@@ -16,6 +16,7 @@ CConcordeFrameHeader::CConcordeFrameHeader(QString Filename, int frame)
 	File = Filename;
 	m_Data.frame = frame;
 	init();
+	clear();
 	if(!this->load())
 	{
 		D("Something is wrong with the headerfile");
@@ -32,6 +33,7 @@ CConcordeFrameHeader::CConcordeFrameHeader(CConcordeFile* file, int frame) : CMe
 	File = file->fileName() + ".hdr";
 	m_Data.frame = frame;
 	init();
+	clear();
 	if(!this->load())
 	{
 		D("Something is wrong with the headerfile");
@@ -41,14 +43,15 @@ CConcordeFrameHeader::CConcordeFrameHeader(CConcordeFile* file, int frame) : CMe
 	LEAVE();
 }
 
-CMedIOData* CConcordeFrameHeader::fileObject() const
-{
-	return m_pMedIOData;
-}
+//CMedIOData* CConcordeFrameHeader::fileObject() const
+//{
+//	return m_pMedIOData;
+//}
 
 void CConcordeFrameHeader::clear()
 {
 	memset(&m_Data, 0, sizeof(ConcordeHeaderFrame));
+	W("Bedoffset: %f", m_Data.bed_offset);
 }
 
 //  Class: CConcordeFrameHeader

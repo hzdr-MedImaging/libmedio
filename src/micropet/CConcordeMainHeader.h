@@ -62,9 +62,9 @@ class CConcordeMainHeader : public CMedIOHeader
 		enum SubjectWeightUnits{UnknownSubjectWeightUnits = 0, Grams, Ounces, Kilograms, Pounds};
 	//methods
 		//! @brief set default values in header
-		void setDefaults();
+		void clear();
 		
-		CMedIOData* fileObject() const;
+		//CMedIOData* fileObject() const;
 		bool load();
 		bool load(QString File);
 		bool save() const;
@@ -252,7 +252,7 @@ class CConcordeMainHeader : public CMedIOHeader
 		void setWaterAccess(const QString value);
 
 	protected:
-		CMedIOHeader& copyData(const CMedIOHeader& src);	
+		bool copyData(const CMedIOHeader* src);	
 	
 	//members
 		//QList<CHeaderConcordeFrame*> frames;
