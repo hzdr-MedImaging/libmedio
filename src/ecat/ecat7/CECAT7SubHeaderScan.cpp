@@ -33,15 +33,25 @@ CECAT7SubHeaderScan::CECAT7SubHeaderScan(CECATFile* ecatFile,
 																				 CECATDirectoryItem* pDirItem)
 	: CECATSubHeader(ecatFile, pDirItem)
 {
-	// then clear the structure
-	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Scan));			
+	clear();
 }
 
 CECAT7SubHeaderScan::CECAT7SubHeaderScan()
 	: CECATSubHeader(NULL)
 {
+	clear();
+}
+
+void CECAT7SubHeaderScan::clear()
+{
+	ENTER();
+
 	// then clear the structure
 	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Scan));			
+
+	setData_Type(CECATSubHeader::UnknownDataType);
+
+	LEAVE();
 }
 
 bool CECAT7SubHeaderScan::load(void)

@@ -44,6 +44,8 @@ class Q_EXPORT CECAT7SubHeaderScan : public CECATSubHeader
 		CECAT7SubHeaderScan(CECATFile* ecatFile,
 												CECATDirectoryItem* pDirItem = NULL);
 		
+		void clear();
+
 		// public methods
 		bool load(void);
 		bool save(void) const;

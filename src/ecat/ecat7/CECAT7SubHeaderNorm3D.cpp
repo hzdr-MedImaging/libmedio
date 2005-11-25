@@ -33,15 +33,26 @@ CECAT7SubHeaderNorm3D::CECAT7SubHeaderNorm3D(CECATFile* ecatFile,
 																						 CECATDirectoryItem* pDirItem)
 	: CECATSubHeader(ecatFile, pDirItem)
 {
-	// then clear the structure
-	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Norm3D));
+	clear();
 }
 
 CECAT7SubHeaderNorm3D::CECAT7SubHeaderNorm3D()
 	: CECATSubHeader(NULL)
 {
+	clear();
+}
+
+void CECAT7SubHeaderNorm3D::clear()
+{
+	ENTER();
+
 	// then clear the structure
 	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Norm3D));
+
+	setData_Type(CECATSubHeader::UnknownDataType);
+	setNorm_Quality_Factor_Code(TBD);
+
+	LEAVE();
 }
 
 bool CECAT7SubHeaderNorm3D::load(void)

@@ -75,6 +75,7 @@ class Q_EXPORT CECAT7SubHeaderImage : public CECATSubHeader
 		CECAT7SubHeaderImage(CECATFile* ecatFile,
 												 CECATDirectoryItem* pDirItem = NULL);
 
+		void clear();
 
 		// public methods
 		bool load(void);

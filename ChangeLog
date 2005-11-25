@@ -6,6 +6,13 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-11-25  Christian Poetzsch <cp@burningdragon.de>
+	
+	* CMedIOHeader.h,ecat/*Header: added clean() method for all headers
+	  to set them in an defined state
+	* ecat/ecat7/CECAT7MainHeader.h,CECAT7SubHeaderImage.h: corrected 
+	  missing convertation routines for concorde to ecat7 converting
+		
 2005-11-24  Christian Poetzsch <cp@burningdragon.de>
 	
 	* CMedIOHeader.h,ecat/*Header: methods for converting and cloning of the header

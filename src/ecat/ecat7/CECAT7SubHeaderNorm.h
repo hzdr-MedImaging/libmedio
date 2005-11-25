@@ -42,6 +42,8 @@ class Q_EXPORT CECAT7SubHeaderNorm : public CECATSubHeader
 		CECAT7SubHeaderNorm(CECATFile* ecatFile,
 												CECATDirectoryItem* pDirItem = NULL);
 		
+		void clear();
+
 		// public methods													
 		bool load(void);
 		bool save(void) const;

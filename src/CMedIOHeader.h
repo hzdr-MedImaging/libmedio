@@ -56,6 +56,9 @@ class CMedIOHeader
 		CMedIOHeader(CMedIOData* data=NULL);
 		virtual ~CMedIOHeader();
 		
+		//! @brief set the header to a defined state
+		virtual void clear() = 0;
+
 		//! @brief loads a given file 
 		//! @return true if loading is succesful otherwise false
 		virtual bool load() = 0;

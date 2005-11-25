@@ -33,39 +33,26 @@ CECAT7SubHeaderScan3D::CECAT7SubHeaderScan3D(CECATFile* ecatFile,
 																						 CECATDirectoryItem* pDirItem)
 	: CECATSubHeader(ecatFile, pDirItem)
 {
-	// then clear the structure
-	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Scan3D));
-		
-	// put in some default values which are the most common ones
-	m_Data.Data_Type									= static_cast<Q_UINT16>(CECATSubHeader::SunShort);
-	m_Data.Num_Dimensions							= 4;
-	m_Data.Num_R_Elements							= 288;
-	m_Data.Num_Angles									= 144;	// with mash=2
-	m_Data.Ring_Difference						= 22;
-	m_Data.Axial_Compression					= 9;		// SPAN of 9
-	m_Data.Scale_Factor								= 1.0;
-	m_Data.Scan_Min										= -1;
-	m_Data.Scan_Max										= -1;
-	m_Data.Deadtime_Correction_Factor = 1.0;
+	clear();
 }
 
 CECAT7SubHeaderScan3D::CECAT7SubHeaderScan3D()
 	: CECATSubHeader(NULL)
 {
+	clear();
+}
+
+void CECAT7SubHeaderScan3D::clear()
+{
+	ENTER();
+
 	// then clear the structure
 	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Scan3D));
-		
-	// put in some default values which are the most common ones
-	m_Data.Data_Type									= static_cast<Q_UINT16>(CECATSubHeader::SunShort);
-	m_Data.Num_Dimensions							= 4;
-	m_Data.Num_R_Elements							= 288;
-	m_Data.Num_Angles									= 144;	// with mash=2
-	m_Data.Ring_Difference						= 22;
-	m_Data.Axial_Compression					= 9;		// SPAN of 9
-	m_Data.Scale_Factor								= 1.0;
-	m_Data.Scan_Min										= -1;
-	m_Data.Scan_Max										= -1;
-	m_Data.Deadtime_Correction_Factor = 1.0;
+
+	setData_Type(CECATSubHeader::UnknownDataType);
+	setStorage_Order(ViewMode);
+
+	LEAVE();
 }
 
 bool CECAT7SubHeaderScan3D::load(void)

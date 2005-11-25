@@ -34,15 +34,28 @@ CECAT7SubHeaderImage::CECAT7SubHeaderImage(CECATFile* ecatFile,
 																					 CECATDirectoryItem* pDirItem)
 	: CECATSubHeader(ecatFile, pDirItem)
 {
-	// then clear the structure
-	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Image));
+	clear();
 }
 
 CECAT7SubHeaderImage::CECAT7SubHeaderImage()
 	: CECATSubHeader(NULL)
 {
-	// then clear the structure
-	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Image));
+	clear();
+}
+
+void CECAT7SubHeaderImage::clear()
+{
+	ENTER();
+
+	// clear our header structure first
+	memset(&m_Data, 0, sizeof(struct CECAT7SubHeaderImage));
+	
+	setData_Type(CECATSubHeader::UnknownDataType);
+	setFilter_Code(NoFilter);
+	setScatter_Type(None);
+	setRecon_Type(FilteredBackProjection);
+
+	LEAVE();
 }
 
 bool CECAT7SubHeaderImage::load(void)
@@ -362,13 +375,19 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead1, const CMedIOH
 		case CMedIOHeader::ConcordeMicroPetFrameHeader:
 		{
 			const CConcordeFrameHeader* head = static_cast<const CConcordeFrameHeader*>(pHead1);
+			// first clean up
+			clear();
+			// now convert 
 			setData_Type(CECATSubHeader::SunShort);
 			setNum_Dimensions(3);
 			setRecon_Zoom(1.0);
+			setScale_Factor(head->scaleFactor());
+			setImage_Min(static_cast<short>(head->minimum()));
+			setImage_Max(static_cast<short>(head->maximum()));
 			setFrame_Duration(static_cast<int>(head->frameDuration()*1000.0));
 			setFrame_Start_Time(static_cast<int>(head->frameStart()*1000.0));
 			setDecay_Corr_Fctr(head->decayCorrection());
-			
+			setGate_Duration(0);
 			// check for additional information
 			if(pHead2)
 			{
