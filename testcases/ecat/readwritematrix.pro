@@ -23,7 +23,7 @@
 
 TEMPLATE = app
 DEPENDPATH += .
-INCLUDEPATH += . ../../src/ ../../src/ecat ../../src/ecat/ecat6 ../../src/ecat/ecat7
+INCLUDEPATH += . ../../src/ ../../src/ecat ../../src/ecat/ecat6 ../../src/ecat/ecat7 ../../src/micropet ../../src/helpers
 LIBS *= -L../../lib -lmedio
 
 # Input
