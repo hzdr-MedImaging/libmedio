@@ -92,7 +92,7 @@ class CConcordeFrameHeader : public CMedIOHeader
 		void setDelaysRate(const int value);
 
 	protected:
-		CMedIOHeader& copyData(const CMedIOHeader& src);	
+		bool copyData(const CMedIOHeader* src);	
 	
 	private :
 	//members

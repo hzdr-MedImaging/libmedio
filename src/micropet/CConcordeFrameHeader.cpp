@@ -352,13 +352,34 @@ CMedIOHeader* CConcordeFrameHeader::clone() const
 
 bool CConcordeFrameHeader::convertFrom(const CMedIOHeader* srcMainHeader, const CMedIOHeader*)
 {
-	copyData(*srcMainHeader);
-	return true;
+	bool bResult = false;
+	if(srcMainHeader)
+		bResult = copyData(srcMainHeader);
+	return bResult;
 }
 
-CMedIOHeader& CConcordeFrameHeader::copyData(const CMedIOHeader&)
+bool CConcordeFrameHeader::copyData(const CMedIOHeader* src)
 {
+	bool bResult = false;
 	ENTER();
-	RETURN(this);
-	return *this;
+	if(src)
+	{
+		switch(src->headerFormat())
+		{
+			case CMedIOHeader::ConcordeMicroPetFrameHeader:
+			{
+				memcpy(&m_Data, &(static_cast<const CConcordeFrameHeader*>(src)->m_Data), sizeof(ConcordeHeaderFrame));
+				bResult = true;
+			}
+			break;
+			default:
+			{
+				E("File format not supported yet");
+				bResult = false;
+			}
+			break;
+		}
+	}
+	RETURN(bResult);
+	return bResult;
 }
