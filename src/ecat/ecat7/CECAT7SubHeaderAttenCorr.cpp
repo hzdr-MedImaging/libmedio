@@ -47,7 +47,7 @@ void CECAT7SubHeaderAttenCorr::clear()
 	ENTER();
 	
 	// clear our header structure first
-	memset(&m_Data, 0, sizeof(struct CECAT7SubHeaderAttenCorr));
+	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_AttenCorr));
 		
 	setData_Type(CECATSubHeader::UnknownDataType);
 	setAttenuation_Type(Atten_None);

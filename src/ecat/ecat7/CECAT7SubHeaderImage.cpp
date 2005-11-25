@@ -48,7 +48,7 @@ void CECAT7SubHeaderImage::clear()
 	ENTER();
 
 	// clear our header structure first
-	memset(&m_Data, 0, sizeof(struct CECAT7SubHeaderImage));
+	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Image));
 	
 	setData_Type(CECATSubHeader::UnknownDataType);
 	setFilter_Code(NoFilter);
