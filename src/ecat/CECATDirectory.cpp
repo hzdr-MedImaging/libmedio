@@ -269,7 +269,7 @@ bool CECATDirectory::save(void) const
 					// append the position to our FilePositions for DirLists
 					m_pFilePositions->append(appendPos);
 								
-					E("appended new DirList #%d @ %d (%d)", curDirList+1, appendPos, FilePos2ECATBlock(appendPos));
+					D("appended new DirList #%d @ %d (%d)", curDirList+1, appendPos, FilePos2ECATBlock(appendPos));
 				}
 				else
 					appendPos = (*m_pFilePositions)[curDirList+1];
