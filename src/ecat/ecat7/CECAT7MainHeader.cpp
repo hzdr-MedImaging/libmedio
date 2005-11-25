@@ -1683,7 +1683,7 @@ QString CECAT7MainHeader::concorde2ECAT7dataUnits(CConcordeMainHeader::Calibrati
 		default: E7u = "Unknown units"; break;
 	}
 
-	RETURN(E7u);
+	RETURN(E7u.ascii());
 	return E7u;
 }
 
