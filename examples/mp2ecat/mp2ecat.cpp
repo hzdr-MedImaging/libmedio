@@ -52,9 +52,9 @@ int main( int argc, char ** argv )
 				{
 					CECATFile e7image(StoreFileName, CECATMainHeader::ECAT7_Volume16);
 					e7image.open(IO_WriteOnly);	
-					CECAT7MainHeader* e7_header = (CECAT7MainHeader*)e7image.createEmptyMainHeader();
+					CECAT7MainHeader* e7_header = static_cast<CECAT7MainHeader*>(e7image.createEmptyMainHeader());
 					
-					*static_cast<CMedIOHeader*>(e7_header) = *static_cast<CMedIOHeader*>(head);
+					e7_header->convertFrom(head);
 					cout << "Scantime: " << head->scanTime() << endl;
 					cout << "Injectiontime: " << head->injectionTime() << endl;
 					QDateTime dt;
@@ -126,9 +126,9 @@ int main( int argc, char ** argv )
 							//delete byte_image;
 							
 							CECAT7SubHeaderImage* e7_subheader;
-							e7_subheader = (CECAT7SubHeaderImage*)e7image.createEmptySubHeader();
+							e7_subheader = static_cast<CECAT7SubHeaderImage*>(e7image.createEmptySubHeader());
 							e7_subheader->setData_Type(CECATSubHeader::SunShort);
-							*static_cast<CMedIOHeader*>(e7_subheader) = *static_cast<CMedIOHeader*>(subHeader);
+							e7_subheader->convertFrom(subHeader, head);
 							 
 							e7_subheader->setScale_Factor(subHeader->scaleFactor()*scale_factor);
 							if(fabs(max) > fabs(min))
