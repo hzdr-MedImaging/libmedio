@@ -12,6 +12,7 @@ $Source$
 	  to set them in an defined state
 	* ecat/ecat7/CECAT7MainHeader.h,CECAT7SubHeaderImage.h: corrected 
 	  missing convertation routines for concorde to ecat7 converting
+	* ecat/ecat7/CECAT7MainHeader.*: bug in convertFrom with file type
 		
 2005-11-24  Christian Poetzsch <cp@burningdragon.de>
 	

@@ -699,9 +699,12 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
 
 		case CMedIOHeader::ConcordeMicroPetMainHeader:
 		{
+			// we have to save the filetype
+			CECAT7MainHeader::File_Type ft = file_Type();
 			const CConcordeMainHeader* head = static_cast<const CConcordeMainHeader*>(pHead1);
 			clear();
-
+			// now set the old filetype again
+			setFile_Type(ft);
 			setOriginal_File_Name(head->fileName().ascii());
 			setSystem_Type(static_cast<short>(head->model()));
 			setScan_Start_Time(head->scanTime());
@@ -1109,7 +1112,7 @@ void CECAT7MainHeader::setSystem_Type(const short type)
 	m_Data.System_Type = type;
 }
 
-void CECAT7MainHeader::setFileType(const File_Type fType)
+void CECAT7MainHeader::setFile_Type(const File_Type fType)
 {
 	m_Data.File_Type = fType;	updateMagicNumber();
 }

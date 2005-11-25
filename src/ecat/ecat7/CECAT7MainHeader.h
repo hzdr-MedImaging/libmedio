@@ -161,7 +161,7 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 		void setSW_Version(const short ver);
 		void setSystem_Type(const short type);
 		void setFileType(CECATMainHeader::Type fType);
-		void setFileType(const File_Type fType);
+		void setFile_Type(const File_Type fType);
 		void setSerial_Number(const char* num);
 		void setScan_Start_Time(const time_t time);
 		void setIsotope_Name(const char* name);
