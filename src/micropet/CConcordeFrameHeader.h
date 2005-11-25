@@ -43,6 +43,7 @@ class CConcordeFrameHeader : public CMedIOHeader
 		CMedIOHeader::Format headerFormat() const;
 		CMedIOHeader* clone() const;
 		bool convertFrom(const CMedIOHeader* srcMainHeader, const CMedIOHeader* srcSubHeader = NULL);
+		void clear();
 
 		//accessor methods
 		int frame(void) const;
@@ -124,7 +125,7 @@ class CConcordeFrameHeader : public CMedIOHeader
 		ConcordeHeaderFrame;
 		ConcordeHeaderFrame m_Data;
 		QString File;
-	//methods
+		//methods
 		void init();
 };
 

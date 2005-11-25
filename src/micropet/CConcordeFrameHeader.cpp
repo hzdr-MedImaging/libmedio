@@ -46,13 +46,18 @@ CMedIOData* CConcordeFrameHeader::fileObject() const
 	return m_pMedIOData;
 }
 
+void CConcordeFrameHeader::clear()
+{
+	memset(m_Data, 0, sizeof(ConcordeHeaderFrame));
+}
+
 //  Class: CConcordeFrameHeader
 //  Method: init
 //!
 //! //initialise all keys which should be searched for in header file
 //!
 ////////////////////////////////////////////////////////////////////////////////
-void CConcordeFrameHeader::init()
+void CConcordeFrameHeader::init() const
 {
 	ENTER();
 	Parser.addSeparator(" ");
