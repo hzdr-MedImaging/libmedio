@@ -203,20 +203,26 @@ bool CCmdLineStart::convertFile()
 	else
 	{
 		if(!ImageVolume->open(QIODevice::ReadOnly) || !(ImageVolume->rtti() == CMedIOData::ConcordeMicropet))
+		{
+			cout << "Error when opening file or file is not from concorde microPET." << endl;
 			result = 1;
+		}
 		else
 		{
 			CConcordeMainHeader* head = NULL;
 			if(!((CConcordeFile*)ImageVolume)->readMainHeader(head) || !(head->fileType() == CConcordeMainHeader::Image))
+			{
+				cout << "Error when reading the mainheader or file is not an concorde microPET image." << endl;
 				result = 1;
+			}
 			else
 			{
-				W("Creating empty ecat image: %s", StoreFileName.toAscii().data());
+				D("Creating empty ecat image: %s", StoreFileName.toAscii().data());
 				CECATFile e7image(StoreFileName, CECATMainHeader::ECAT7_Volume16);
 				e7image.open(QIODevice::WriteOnly);	
-				CECAT7MainHeader* e7_header = (CECAT7MainHeader*)e7image.createEmptyMainHeader();
+				CECAT7MainHeader* e7_header = static_cast<CECAT7MainHeader*>(e7image.createEmptyMainHeader());
 				
-				*static_cast<CMedIOHeader*>(e7_header) = *static_cast<CMedIOHeader*>(head);
+				e7_header->convertFrom(head);
 				e7_header->setPatient_Name(m_sPatientName.toAscii().data());
 
 				for(int i = 0; i < head->totalFrames(); i++)
@@ -225,9 +231,12 @@ bool CCmdLineStart::convertFile()
 					CConcordeFrameHeader* subHeader = NULL;
 					if(!((CConcordeFile*)ImageVolume)->readSubHeader(subHeader, i+1) || !((CConcordeFile*)ImageVolume)->readMatrix(data, i+1))
 					{
+						cout << "Error when loading subheader or reading data." << endl;
 						result = 1;
-						delete data;
-						delete subHeader;
+						if(data)
+							delete data;
+						if(subHeader)
+							delete subHeader;
 						break;
 					}
 					else
@@ -267,17 +276,17 @@ bool CCmdLineStart::convertFile()
 							
 						}
 					
-						cout << "Scalefactor: " << scale_factor << endl;
-						cout << "Scale factor in header: " << subHeader->scaleFactor() << endl;
+						D("Scalefactor: %f", scale_factor);
+						D("Scale factor in header: %f", subHeader->scaleFactor());
 
 						delete data;
 						data = new QByteArray(byte_image,framesize/2);
 						delete byte_image;
 						
 						CECAT7SubHeaderImage* e7_subheader;
-						e7_subheader = (CECAT7SubHeaderImage*)e7image.createEmptySubHeader();
+						e7_subheader = static_cast<CECAT7SubHeaderImage*>(e7image.createEmptySubHeader());
 						e7_subheader->setData_Type(CECATSubHeader::SunShort);
-						*static_cast<CMedIOHeader*>(e7_subheader) = *static_cast<CMedIOHeader*>(subHeader);
+						e7_subheader->convertFrom(subHeader, head);
 						 
 						e7_subheader->setScale_Factor(subHeader->scaleFactor()*scale_factor);
 						if(fabs(max) > fabs(min))
@@ -298,7 +307,8 @@ bool CCmdLineStart::convertFile()
 				}
 				ImageVolume->close();
 				e7image.writeMainHeader(*e7_header);
-				e7image.close();	
+				e7image.close();
+				delete head;
 			}
 		}
 	}
