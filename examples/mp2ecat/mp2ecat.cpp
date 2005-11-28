@@ -147,7 +147,7 @@ int main( int argc, char ** argv )
 							data->resetRawData(tmp, framesize/2);
 							delete [] tmp;
 							delete data;
-							//delete subHeader;
+							delete subHeader;
 						}
 					}
 					ImageVolume->close();
