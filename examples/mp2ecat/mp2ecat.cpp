@@ -142,12 +142,13 @@ int main( int argc, char ** argv )
 							e7image.writeSubHeader(*e7_subheader, i+1);
 							e7image.writeMatrix(*data,i+1);
 							delete data;
-							//delete subHeader;
+							delete subHeader;
 						}
 					}
 					ImageVolume->close();
 					e7image.writeMainHeader(*e7_header);
 					e7image.close();	
+					delete head;
 				}
 			}
 		}

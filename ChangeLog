@@ -6,6 +6,12 @@ MedIOLib - Medical Data C++ I/O Library
 $Id$
 $Source$
 
+2005-11-28  Hagen Moelle <draggore@gmx.de>
+
+  * concorde/FrameHeader: memset within clean method results in destroying 
+    QString objects in data structure - fixed this bug
+  * examples/mp2ecat: cleaned up source code - now all objects are deleted
+
 2005-11-25  Jens Langner <Jens.Langner@light-speed.de>
 
   * m4/configure.in: modified the version information in configure.in 
