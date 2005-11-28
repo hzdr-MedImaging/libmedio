@@ -50,8 +50,28 @@ CConcordeFrameHeader::CConcordeFrameHeader(CConcordeFile* file, int frame) : CMe
 
 void CConcordeFrameHeader::clear()
 {
-	memset(&m_Data, 0, sizeof(ConcordeHeaderFrame));
-	W("Bedoffset: %f", m_Data.bed_offset);
+	m_Data.frame = 0;
+	m_Data.event_type = 0;
+	m_Data.gate = 0;
+	m_Data.bed = 0;
+	m_Data.bed_offset = 0.0F;
+	m_Data.ending_bed_offset = 0.0F;
+	m_Data.vertical_bed_offset = 0.0F;
+	m_Data.data_file_pointer = QString();
+	m_Data.frame_start = 0.0F;
+	m_Data.frame_duration = 0.0F;
+	m_Data.scale_factor = 0.0F;
+	m_Data.minimum = 0.0F;
+	m_Data.maximum = 0.0F;
+	m_Data.deadtime_correction = 0.0F;
+	m_Data.decay_correction = 0.0F;
+	m_Data.prompts = QString();
+	m_Data.delays = QString();
+	m_Data.trues = QString();
+	m_Data.prompts_rate = 0;
+	m_Data.delays_rate = 0;
+	memset(m_Data.singles, 0, 168*sizeof(float));
+	memset(m_Data.rawsingles, 0, 168*sizeof(float));
 }
 
 //  Class: CConcordeFrameHeader
@@ -368,7 +388,28 @@ bool CConcordeFrameHeader::copyData(const CMedIOHeader* src)
 		{
 			case CMedIOHeader::ConcordeMicroPetFrameHeader:
 			{
-				memcpy(&m_Data, &(static_cast<const CConcordeFrameHeader*>(src)->m_Data), sizeof(ConcordeHeaderFrame));
+				m_Data.frame = static_cast<const CConcordeFrameHeader*>(src)->m_Data.frame;
+				m_Data.event_type = static_cast<const CConcordeFrameHeader*>(src)->m_Data.event_type;
+				m_Data.gate = static_cast<const CConcordeFrameHeader*>(src)->m_Data.gate;
+				m_Data.bed = static_cast<const CConcordeFrameHeader*>(src)->m_Data.bed;
+				m_Data.bed_offset = static_cast<const CConcordeFrameHeader*>(src)->m_Data.bed_offset;
+				m_Data.ending_bed_offset = static_cast<const CConcordeFrameHeader*>(src)->m_Data.ending_bed_offset;
+				m_Data.vertical_bed_offset = static_cast<const CConcordeFrameHeader*>(src)->m_Data.vertical_bed_offset;
+				m_Data.data_file_pointer = static_cast<const CConcordeFrameHeader*>(src)->m_Data.data_file_pointer;
+				m_Data.frame_start = static_cast<const CConcordeFrameHeader*>(src)->m_Data.frame_start;
+				m_Data.frame_duration = static_cast<const CConcordeFrameHeader*>(src)->m_Data.frame_duration;
+				m_Data.scale_factor = static_cast<const CConcordeFrameHeader*>(src)->m_Data.scale_factor;
+				m_Data.minimum = static_cast<const CConcordeFrameHeader*>(src)->m_Data.minimum;
+				m_Data.maximum = static_cast<const CConcordeFrameHeader*>(src)->m_Data.maximum;
+				m_Data.deadtime_correction = static_cast<const CConcordeFrameHeader*>(src)->m_Data.deadtime_correction;
+				m_Data.decay_correction = static_cast<const CConcordeFrameHeader*>(src)->m_Data.decay_correction;
+				m_Data.prompts = static_cast<const CConcordeFrameHeader*>(src)->m_Data.prompts;
+				m_Data.delays = static_cast<const CConcordeFrameHeader*>(src)->m_Data.delays;
+				m_Data.trues = static_cast<const CConcordeFrameHeader*>(src)->m_Data.trues;
+				m_Data.prompts_rate = static_cast<const CConcordeFrameHeader*>(src)->m_Data.prompts_rate;
+				m_Data.delays_rate = static_cast<const CConcordeFrameHeader*>(src)->m_Data.delays_rate;
+				memcpy(m_Data.singles, static_cast<const CConcordeFrameHeader*>(src)->m_Data.singles, 168*sizeof(float));
+				memcpy(m_Data.rawsingles, static_cast<const CConcordeFrameHeader*>(src)->m_Data.rawsingles, 168*sizeof(float));
 				bResult = true;
 			}
 			break;
