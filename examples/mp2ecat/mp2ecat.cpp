@@ -153,6 +153,7 @@ int main( int argc, char ** argv )
 					ImageVolume->close();
 					e7image.writeMainHeader(*e7_header);
 					e7image.close();	
+					delete head;
 				}
 			}
 		}
