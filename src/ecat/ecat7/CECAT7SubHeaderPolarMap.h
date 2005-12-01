@@ -26,11 +26,15 @@
 
 #include <qdatastream.h>
 
+#ifndef __MEDIO_PRIVATE__
+#include <CECATSubHeader>
+#else
 #include <CECATSubHeader.h>
-#include <CECATDirectoryItem.h>
+#endif
 
 // forward declarations
 class CECATFile;
+class CECATDirectoryItem;
 
 class Q_EXPORT CECAT7SubHeaderPolarMap : public CECATSubHeader
 {
@@ -126,6 +130,7 @@ class Q_EXPORT CECAT7SubHeaderPolarMap : public CECATSubHeader
 		// constructors
 		CECAT7SubHeaderPolarMap();
 
+#ifdef __MEDIO_PRIVATE__
 	private:
 		struct ECAT7SubHeader_PolarMap
 		{
@@ -156,6 +161,7 @@ class Q_EXPORT CECAT7SubHeaderPolarMap : public CECATSubHeader
 			Q_UINT16	CTI_reserved[27];
 			Q_UINT16	User_Reserved[27];
 		} m_Data;
+#endif
 };
 
 #endif // CECAT7SUBHEADERPOLARMAP_H

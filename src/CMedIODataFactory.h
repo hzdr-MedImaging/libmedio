@@ -28,7 +28,11 @@
 #ifndef CMEDIODATAFACTORY_H
 #define CMEDIODATAFACTORY_H
 
+#ifndef __MEDIO_PRIVATE__
+#include <CMedIOData>
+#else
 #include <CMedIOData.h>
+#endif
 
 #include <qstring.h>
 

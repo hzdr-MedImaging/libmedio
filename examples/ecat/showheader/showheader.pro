@@ -17,42 +17,15 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# $Id$
+# $Id: showheader.pro 227 2005-12-01 16:26:45Z langner $
 #
 #****************************************************************************
 
-TARGET = showheader
+TEMPLATE = app
+QT = core
+DEPENDPATH += .
+INCLUDEPATH += . /usr/local/petlib/include/medio
+LIBS *= -L/usr/local/petlib/lib -lmedio
 
-# programs
-CC		= g++
-RM		= rm -f
-RMDIR = rm -rf
-MKDIR = mkdir
-
-# Directories
-PREFIX = .
-
-# Compiler/Linker Flags
-WARN    = -W -Wall
-CFLAGS  = -I/usr/local/include/medio -I$(QTDIR)/include $(WARN) -c
-LDFLAGS = -L../../../lib -L$(QTDIR)/lib
-LDLIBS  = -lqt-mt -lmedio
-
-OBJS = showheader.o
-
-#
-all: $(TARGET)
-
-#
-%.o: %.cpp
-	@printf '\033[32mCompiling $<\033[0m\n'
-	@$(CC) $(CFLAGS) $< -o $@
-
-#
-$(TARGET): $(OBJS)
-	@printf '\033[32mLinking \033[1m$@\033[0m\n'
-	@$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
-
-#
-clean:
-	-$(RM) $(TARGET) $(OBJS)
+# Input
+SOURCES += showheader.cpp

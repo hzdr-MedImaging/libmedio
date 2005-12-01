@@ -25,6 +25,7 @@
 #include "CECATDirectoryItem.h"
 #include "CECATFile.h"
 #include "CConcordeMainHeader.h"
+#include "CConcordeFrameHeader.h"
 
 #include <qdatastream.h>
 

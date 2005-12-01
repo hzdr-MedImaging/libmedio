@@ -27,12 +27,18 @@
 #include <qfile.h>
 #include <qstring.h>
 
+#ifndef __MEDIO_PRIVATE__
+#include <CMedIOData>
+#include <CECATMainHeader>
+#include <CECATSubHeader>
+#else
 #include <CMedIOData.h>
-#include <CECATDirectory.h>
 #include <CECATMainHeader.h>
 #include <CECATSubHeader.h>
+#endif
 
 // forward declarations
+class CECATDirectory;
 
 class Q_EXPORT CECATFile : public CMedIOData
 {
@@ -111,11 +117,13 @@ class Q_EXPORT CECATFile : public CMedIOData
 		void mainHeaderWritten(const CECATMainHeader& mainHeader);
 		bool reWriteMainHeader(void);
 
+#ifdef __MEDIO_PRIVATE__		
 	private:
 		ECATFormat						m_iECATformat;
 		CECATMainHeader::Type	m_iMainHeaderType;
 		CECATDirectory*				m_pMainDirectory;
 		CECATMainHeader*			m_pCachedMainHeader; // for speed reasons we cache the loaded main header
+#endif
 };
 
 #endif // CECATFILE_H

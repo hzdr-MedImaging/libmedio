@@ -26,11 +26,15 @@
 
 #include <qdatastream.h>
 
+#ifndef __MEDIO_PRIVATE__
+#include <CECATSubHeader>
+#else
 #include <CECATSubHeader.h>
-#include <CECATDirectoryItem.h>
+#endif
 
 // forward declarations
 class CECATFile;
+class CECATDirectoryItem;
 
 class Q_EXPORT CECAT7SubHeaderImage : public CECATSubHeader
 {
@@ -212,6 +216,7 @@ class Q_EXPORT CECAT7SubHeaderImage : public CECATSubHeader
 		// constructors
 		CECAT7SubHeaderImage();
 
+#ifdef __MEDIO_PRIVATE__
 	private:
 		struct ECAT7SubHeader_Image
 		{
@@ -277,6 +282,7 @@ class Q_EXPORT CECAT7SubHeaderImage : public CECATSubHeader
 			Q_UINT16	CTI_Reserved[87];
 			Q_UINT16	User_Reserved[49];
 		} m_Data;
+#endif
 };
 
 #endif // CECAT7SUBHEADERIMAGE_H

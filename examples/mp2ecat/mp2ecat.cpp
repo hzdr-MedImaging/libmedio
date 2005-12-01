@@ -2,15 +2,18 @@
 //! @author Hagen Moelle
 //! @date 11/13/2004
 
-#include <CECATFile.h>
-#include <CECAT7MainHeader.h>
-#include <CECAT7SubHeaderImage.h>
-#include <CConcordeMainHeader.h>
-#include <CConcordeImage.h>
-#include <CMedIOData.h>
-#include <CMedIODataFactory.h>
+#include <CECATFile>
+#include <CECAT7MainHeader>
+#include <CECAT7SubHeaderImage>
+#include <CConcordeMainHeader>
+#include <CConcordeFrameHeader>
+#include <CConcordeImage>
+#include <CMedIOData>
+#include <CMedIODataFactory>
+
 #include <qstring.h>
 #include <qdatetime.h>
+
 #include <math.h>
 #include <iostream>
 

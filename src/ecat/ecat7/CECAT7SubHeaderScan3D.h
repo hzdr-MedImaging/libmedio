@@ -26,11 +26,15 @@
 
 #include <qdatastream.h>
 
+#ifndef __MEDIO_PRIVATE__
+#include <CECATSubHeader>
+#else
 #include <CECATSubHeader.h>
-#include <CECATDirectoryItem.h>
+#endif
 
 // forward declarations
 class CECATFile;
+class CECATDirectoryItem;
 
 class Q_EXPORT CECAT7SubHeaderScan3D : public CECATSubHeader
 {

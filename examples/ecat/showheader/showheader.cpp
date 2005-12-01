@@ -21,9 +21,9 @@
 
 ***************************************************************************/
 
-#include <CECATFile.h>
-#include <CECAT6MainHeader.h>
-#include <CECAT7MainHeader.h>
+#include <CECATFile>
+#include <CECAT6MainHeader>
+#include <CECAT7MainHeader>
 
 #include <iostream>
 

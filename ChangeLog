@@ -1,9 +1,19 @@
 -----------------------------------------------
 MedIOLib - Medical Data C++ I/O Library
 -----------------------------------------------
-// vim:set ts=0 nowrap:
+// vim:ts=2:nowrap:
 
 $Id$
+
+2005-12-01  Jens Langner <Jens.Langner@light-speed.de>
+
+  * src/include/stubs: implemented include stubs for our public
+    header files to hide the version specific differences of the qt3
+    and qt4 libmedio versions and allow to have both versions
+    installed in parallel. Also adapted the make install target
+    to automatically install the stubs in the main include directory.
+    Now in public projects, "#include <CMedIO>" instead of
+    "#include <CMedIO.h>" must be used.
 
 2005-11-30  Jens Langner <Jens.Langner@light-speed.de>
 

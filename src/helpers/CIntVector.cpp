@@ -6,7 +6,7 @@ void CIntVector::parseKeyValue(QString KeyValue)
 {
 	int start_index = KeyValue.find(" ");
 	QString Value = KeyValue.right(KeyValue.length()-(start_index + 1));
-	D("String was : %s", Value.ascii());
+	//D("String was : %s", Value.toAscii().data());
 	append(Value.toInt());
 }
 

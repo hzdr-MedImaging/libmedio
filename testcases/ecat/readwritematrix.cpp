@@ -25,6 +25,7 @@
 #include <CECAT6MainHeader.h>
 #include <CECAT7MainHeader.h>
 #include <CECATSubHeader.h>
+#include <CECATDirectory.h>
 #include <CECAT7SubHeaderImage.h>
 
 #include <iostream>

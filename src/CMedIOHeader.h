@@ -84,8 +84,10 @@ class CMedIOHeader
 		//!        is NOT copied as well.
 		CMedIOHeader& operator=(const CMedIOHeader& src);
 
+#ifdef __MEDIO_PRIVATE__
 	protected:
 		CMedIOData* m_pMedIOData; //!< the associated MedIOData this header belongs to
+#endif
 };
 
 #endif

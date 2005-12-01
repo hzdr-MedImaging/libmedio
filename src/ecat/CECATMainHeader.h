@@ -26,7 +26,11 @@
 
 #include <qtextstream.h>
 
+#ifndef __MEDIO_PRIVATE__
+#include <CMedIOHeader>
+#else
 #include <CMedIOHeader.h>
+#endif
 
 // forward declarations
 class CECATFile;

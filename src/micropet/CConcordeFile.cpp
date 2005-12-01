@@ -30,6 +30,7 @@
 #include "CConcordeImage.h"
 #include "CConcordeMainHeaderSinogram.h"
 #include "CConcordeMainHeaderImage.h"
+#include "CConcordeFrameHeader.h"
 #include "CMedIOData.h"
 
 #include <rtdebug.h>

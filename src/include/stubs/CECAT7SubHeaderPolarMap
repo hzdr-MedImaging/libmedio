@@ -1,0 +1,6 @@
+#include <qglobal.h>
+#if QT_VERSION >= 0x040000
+#include "./2/CECAT7SubHeaderPolarMap.h"
+#else
+#include "./1/CECAT7SubHeaderPolarMap.h"
+#endif

@@ -28,7 +28,11 @@
 #include <qiodevice.h>
 #include <qvaluevector.h>
 
+#ifndef __MEDIO_PRIVATE__
+#include <CECATDirectoryItem>
+#else
 #include <CECATDirectoryItem.h>
+#endif
 
 // forward declarations
 class CECATFile;
@@ -85,6 +89,7 @@ class Q_EXPORT CECATDirectory : protected QIntDict<CECATDirectoryItem>
 		bool writeMatrix(const char* matrix, unsigned int size, const CECATSubHeader& subHeader,
 										 short frame, short plane=1, short gate=1, short bed=0, short data=0);
 
+#ifdef __MEDIO_PRIVATE__
 	private:
 		CECATFile* m_pECATFile;	// ptr to our associated ECATFile
 																				
@@ -96,6 +101,7 @@ class Q_EXPORT CECATDirectory : protected QIntDict<CECATDirectoryItem>
 		// some private methods 
 		CECATDirectoryItem* newItem(Q_UINT32 matrixID);
 		QIODevice::Offset lastDirItemOffset(void) const;
+#endif
 };
 
 #endif // CECATDIRECTORY_H
