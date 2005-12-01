@@ -26,11 +26,15 @@
 
 #include <QDataStream>
 
+#ifndef __MEDIO_PRIVATE__
+#include <CECATSubHeader>
+#else
 #include <CECATSubHeader.h>
-#include <CECATDirectoryItem.h>
+#endif
 
 // forward declarations
 class CECATFile;
+class CECATDirectoryItem;
 
 class CECAT7SubHeaderNorm : public CECATSubHeader
 {
@@ -99,6 +103,7 @@ class CECAT7SubHeaderNorm : public CECATSubHeader
 		// constructors
 		CECAT7SubHeaderNorm();
 
+#ifdef __MEDIO_PRIVATE__
 	private:
 		struct ECAT7SubHeader_Norm
 		{
@@ -120,6 +125,7 @@ class CECAT7SubHeaderNorm : public CECATSubHeader
 			quint16	CTI_reserved[123];
 			quint16	User_Reserved[50];
 		} m_Data;
+#endif
 };
 
 #endif // CECAT7SUBHEADERNORM_H

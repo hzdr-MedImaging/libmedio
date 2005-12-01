@@ -24,6 +24,7 @@
 #include "CECAT6MainHeader.h"
 #include "CECAT7MainHeader.h"
 #include "CECATFile.h"
+#include "CECATDirectoryItem.h"
 
 #include <QDataStream>
 #include <QFileInfo>

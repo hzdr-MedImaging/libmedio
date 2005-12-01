@@ -24,6 +24,9 @@
 #include "CECAT7MainHeader.h"
 #include "CECAT6MainHeader.h"
 #include "CECATFile.h"
+#include "CECATDirectoryItem.h"
+#include "CConcordeFrameHeader.h"
+
 #include "config.h"
 
 #include <QDataStream>

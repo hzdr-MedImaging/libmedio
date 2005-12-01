@@ -28,12 +28,15 @@
 #ifndef CCONCORDEFILE_H
 #define CCONCORDEFILE_H
 
-#include "CMedIOData.h"
-#include "CConcordeMainHeader.h"
-#include "CConcordeFrameHeader.h"
-
 #include <QString>
 
+#ifndef __MEDIO_PRIVATE__
+#include <CMedIOData>
+#else
+#include <CMedIOData.h>
+#endif
+
+// forward declarations
 class CConcordeMainHeader;
 class CConcordeFrameHeader;
 
@@ -100,10 +103,12 @@ class CConcordeFile : public CMedIOData
 		bool readMatrix(char*& matrixData, unsigned int& length, short frame);
 		bool readMatrix(char*& matrixData, unsigned int& length, CConcordeFrameHeader*& subHeader, short frame);
 
+#ifdef __MEDIO_PRIVATE__
 	protected :
 	//members
 		CConcordeMainHeader* m_pCachedMainHeader;
 	//methods
+#endif
 };
 
 #endif

@@ -24,9 +24,13 @@
 #ifndef CECATSUBHEADER_H
 #define CECATSUBHEADER_H
 
-#include <CMedIOHeader.h>
-
 #include <QDataStream>
+
+#ifndef __MEDIO_PRIVATE__
+#include <CMedIOHeader>
+#else
+#include <CMedIOHeader.h>
+#endif
 
 // forward declarations
 class CECATDirectoryItem;
@@ -85,9 +89,11 @@ class CECATSubHeader : public CMedIOHeader
 		// copy all meta information
 		virtual CMedIOHeader* clone() const = 0;
 
+#ifdef __MEDIO_PRIVATE__
 	protected:
 		CECATDirectoryItem* m_pDirItem; // the directory item to which this
 																		// subHeader belongs
+#endif
 };
 
 #endif // CECATSUBHEADER_H

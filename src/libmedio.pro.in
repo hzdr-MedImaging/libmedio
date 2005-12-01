@@ -22,19 +22,19 @@
 #***************************************************************************/
 
 # main variables
-TEMPLATE  = lib
-CONFIG	 *= qt thread warn_on @ANSI_COLOR@ @QTLINK_LEVEL@
-QT			  = core
-TARGET    = medio
-VERSION   = @PACKAGE_VERSION@
-DESTDIR   = ../lib/
+TEMPLATE		= lib
+CONFIG		 *= qt thread warn_on @ANSI_COLOR@ @QTLINK_LEVEL@
+QT					= core
+QMAKE_QMAKE = @QMAKE_PATH@
+TARGET			= medio
+VERSION			= @PACKAGE_VERSION@
+DESTDIR			= ../lib/
+DEFINES		 *= __MEDIO_PRIVATE__
 
 # directory specification
 OBJECTS_DIR = .obj
 MOC_DIR     = .moc
 UI_DIR      = .ui
-
-QMAKE_QMAKE = @QMAKE_PATH@
 
 # define headers and source files for compilation
 # PUB_HEADER: public headers going into /usr/local/include/medio
@@ -45,9 +45,6 @@ PUB_HEADER =	CMedIO.h \
 							CMedIOHeader.h \
 							CMedIOData.h \
 							CMedIODataFactory.h \
-							helpers/CKeyType.h \
-							helpers/CKeyValue.h \
-							helpers/CKeyParser.h \
 							ecat/CECATDirectory.h \
 							ecat/CECATDirectoryItem.h \
 							ecat/CECATFile.h \
@@ -69,10 +66,14 @@ PUB_HEADER =	CMedIO.h \
 							micropet/CConcordeFile.h \
 							micropet/CConcordeSinogram.h \
 							micropet/CConcordeImage.h \
-							micropet/CIntVector.h \
-							micropet/CDate.h
 
-HEADERS  = $$PUB_HEADER
+
+HEADERS  = $$PUB_HEADER \
+					 helpers/CKeyType.h \
+					 helpers/CKeyValue.h \
+					 helpers/CKeyParser.h \					 
+					 helpers/CIntVector.h \
+					 helpers/CDate.h
 
 SOURCES  = CMedIO.cpp \
 					 CMedIOHeader.cpp \
@@ -80,6 +81,8 @@ SOURCES  = CMedIO.cpp \
 					 CMedIODataFactory.cpp \
 					 helpers/CKeyValue.cpp \
 					 helpers/CKeyParser.cpp \
+					 helpers/CIntVector.cpp \
+					 helpers/CDate.cpp \
 					 ecat/CECATDirectory.cpp \
 					 ecat/CECATDirectoryItem.cpp \
 					 ecat/CECATFile.cpp \
@@ -100,9 +103,7 @@ SOURCES  = CMedIO.cpp \
 					 micropet/CConcordeFrameHeader.cpp \
 					 micropet/CConcordeFile.cpp \
 					 micropet/CConcordeSinogram.cpp \
-					 micropet/CConcordeImage.cpp \
-					 micropet/CIntVector.cpp \
-					 micropet/CDate.cpp
+					 micropet/CConcordeImage.cpp
 
 DEPENDPATH   = . ecat ecat/ecat6 ecat/ecat7 micropet
 INCLUDEPATH  = . include ecat ecat/ecat6 ecat/ecat7 micropet helpers
@@ -119,8 +120,12 @@ unix {
   # and links are preserved.
   QMAKE_COPY_FILE = $(COPY) -P
 	
+	# C++ include stubs
+	stubs.path = $$INCLUDE_DIR/medio
+	stubs.files = ./include/stubs/*
+
   # install header 
-  include.path  = $$INCLUDE_DIR/medio
+  include.path  = $$INCLUDE_DIR/medio/2
   include.files = $$PUB_HEADER
 
   # install documentation html
@@ -131,7 +136,7 @@ unix {
   target.path = $$LIB_DIR
 
   # "make install" configuration options
-  INSTALLS += target include documentation
+  INSTALLS += target stubs include documentation
 }
 
 # set the config to either release or debug
@@ -199,8 +204,6 @@ else {
 		}
 	}
 }
-
-
 
 # use ANSI colors if it was specified on configure time
 ansi_color {
