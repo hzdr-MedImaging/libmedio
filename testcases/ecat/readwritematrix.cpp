@@ -25,6 +25,7 @@
 #include <CECAT6MainHeader.h>
 #include <CECAT7MainHeader.h>
 #include <CECATSubHeader.h>
+#include <CECATDirectory.h>
 #include <CECAT7SubHeaderImage.h>
 
 #include <iostream>
@@ -126,7 +127,7 @@ int main(int argc, char* argv[])
 			// now we create an empty subheader from another temporary file so that we can
 			// test of the subheader copy routines work as expected
 			CECATFile file2("readwritematrix2.v", CECATMainHeader::ECAT7_Volume16);
-			if(file2.open(IO_WriteOnly))
+			if(file2.open(QIODevice::WriteOnly))
 			{
 				CECATSubHeader* newSubHeader = file2.createEmptySubHeader();
 				if(newSubHeader->subHeaderType() == CECATSubHeader::ECAT7_Image)
