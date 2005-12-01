@@ -80,6 +80,10 @@ class CMedIOHeader
 		//! @return the new created CMedIOHeader object
 		virtual CMedIOHeader* clone() const = 0;
 
+		//! @brief default assignment operator which enforces that m_pMedIOData
+		//!        is NOT copied as well.
+		CMedIOHeader& operator=(const CMedIOHeader& src);
+
 	protected:
 		CMedIOData* m_pMedIOData; //!< the associated MedIOData this header belongs to
 };

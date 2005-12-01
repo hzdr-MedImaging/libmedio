@@ -1,10 +1,23 @@
 -----------------------------------------------
 MedIOLib - Medical Data C++ I/O Library
 -----------------------------------------------
-// vim:set ts=2 nowrap:
+// vim:set ts=0 nowrap:
 
 $Id$
-$Source$
+
+2005-11-30  Jens Langner <Jens.Langner@light-speed.de>
+
+  * ecat/ecat7/CECAT7SubHeader*.cpp: fixed a serious bug in the header
+    saving routines where a crash occurred if a user tried to directly
+    use the save() method without having the header being associated with
+    the corresponding CMedIOData object. Now 'false' will be returned
+    instead.
+  * CMedIOHeader.h: fixed a bug where the missing default assignment
+    operator of the base class of all headers caused that also the
+    m_pMedIOData pointer was copied, which in fact wasn't the preferred
+    behaviour
+  * testcases/ecat: modified the ecat testcase to also do some tests
+    with the createEmptySubHeader() method.
 
 2005-11-28  Hagen Moelle <draggore@gmx.de>
 
@@ -15,27 +28,27 @@ $Source$
 2005-11-25  Jens Langner <Jens.Langner@light-speed.de>
 
   * m4/configure.in: modified the version information in configure.in 
-	  and put the @PACKAGE_VERSION@ substitution macro in the .pro.in file
-		so that we only have to modify the configure.in file in future for
-		properly bumping the version in the whole libmedio.
+    and put the @PACKAGE_VERSION@ substitution macro in the .pro.in file
+    so that we only have to modify the configure.in file in future for
+    properly bumping the version in the whole libmedio.
 
 2005-11-25  Christian Poetzsch <cp@burningdragon.de>
-	
-	* CMedIOHeader.h,ecat/*Header: added clean() method for all headers
-	  to set them in an defined state
-	* ecat/ecat7/CECAT7MainHeader.h,CECAT7SubHeaderImage.h: corrected 
-	  missing convertation routines for concorde to ecat7 converting
-	* ecat/ecat7/CECAT7MainHeader.*: bug in convertFrom with file type
-	* CMedIO.*: added lib medio version information methods
-	* libmedio.pro.in: qmake path is now correct in qmake generated Makefile
-		
+  
+  * CMedIOHeader.h,ecat/*Header: added clean() method for all headers
+    to set them in an defined state
+  * ecat/ecat7/CECAT7MainHeader.h,CECAT7SubHeaderImage.h: corrected 
+    missing convertation routines for concorde to ecat7 converting
+  * ecat/ecat7/CECAT7MainHeader.*: bug in convertFrom with file type
+  * CMedIO.*: added lib medio version information methods
+  * libmedio.pro.in: qmake path is now correct in qmake generated Makefile
+    
 2005-11-24  Christian Poetzsch <cp@burningdragon.de>
-	
-	* CMedIOHeader.h,ecat/*Header: methods for converting and cloning of the header
-	* CMedIOHeader.h,ecat/*Header: removed copy constructor/=operator, because 
+  
+  * CMedIOHeader.h,ecat/*Header: methods for converting and cloning of the header
+  * CMedIOHeader.h,ecat/*Header: removed copy constructor/=operator, because 
     there is a default one
-	* CMedIOHeader.h,ecat/*Header: removed copyData since is not needed anymore
-	* ecat/ecat7/CECAT7MainHeader.cpp,CECAT7SubHeaderImage.cpp: some cosmetic changes
+  * CMedIOHeader.h,ecat/*Header: removed copyData since is not needed anymore
+  * ecat/ecat7/CECAT7MainHeader.cpp,CECAT7SubHeaderImage.cpp: some cosmetic changes
 
 2005-11-24  Hagen Moelle <draggore@gmx.de>
 
@@ -105,7 +118,7 @@ $Source$
     in the ECAT format. These methods should make dealing with all that
     time_t mess a bit better as QDateTime seems not to be fully time_t
     aware as it defines time_t to be unsigned :(
-	* m4/acinclude.m4: make configure deal with strangs GCC version strings.
+  * m4/acinclude.m4: make configure deal with strangs GCC version strings.
 
 2005-03-17  Jens Langner <Jens.Langner@light-speed.de>
 
@@ -121,7 +134,7 @@ $Source$
     the ECAT file.
   * CECAT7MainHeader.cpp: added Dose_Start_Time and plane number settings to
     default settings of the main Header.
-	 
+   
 2005-03-02  Jens Langner <Jens.Langner@light-speed.de>
 
   * misc: added a global operator= method to the MedIOHeader interface and
@@ -151,17 +164,17 @@ $Source$
 
   * examples/ecat/ecatcmp: added another small usefull example on how to use
     libmedio to read out an ECAT file. This utility can be quite handy if one
-	 wants to compare two different ECAT files if they are the same.
-	 It analyses some main Header, SubHeader and also directory list
-	 information outputs there differences and also compares the raw matrix
-	 data of each data item in the ECAT file.
+    wants to compare two different ECAT files if they are the same.
+    It analyses some main Header, SubHeader and also directory list
+    information outputs there differences and also compares the raw matrix
+    data of each data item in the ECAT file.
   
 2005-02-03  Jens Langner <Jens.Langner@light-speed.de>
 
   * CECATDirectoryItem.cpp: fixed the hopefully last bug in the dataBlock_Ënd
     calculation which caused that libmedio wrote either too much or too less
-	 data to the final ECAT file. Also added some more debug output to the
-	 ECAT routines to be on the safe side in future.
+    data to the final ECAT file. Also added some more debug output to the
+    ECAT routines to be on the safe side in future.
   
 2005-01-28  Jens Langner <Jens.Langner@light-speed.de>
 
