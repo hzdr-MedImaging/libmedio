@@ -35,6 +35,13 @@ CMedIOHeader::CMedIOHeader(CMedIOData* data)
 	LEAVE();
 }
 
+CMedIOHeader& CMedIOHeader::operator=(const CMedIOHeader& src)
+{
+	ENTER();
+	LEAVE();
+	return *this;
+}
+	
 //  Class: CMedIOHeader
 //  Destructor:  CMedIOHeader
 //!

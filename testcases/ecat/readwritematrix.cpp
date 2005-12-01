@@ -25,6 +25,7 @@
 #include <CECAT6MainHeader.h>
 #include <CECAT7MainHeader.h>
 #include <CECATSubHeader.h>
+#include <CECATDirectory.h>
 #include <CECAT7SubHeaderImage.h>
 
 #include <iostream>
@@ -52,8 +53,6 @@ int main(int argc, char* argv[])
 
 	cout << "libmedio ECAT6/7 file read/write test" << endl;
 	cout << "-------------------------------------" << endl;
-
-	
 
 	// generate some huge matrix data which we can use for verification later
 	//#define MATRIX_SIZE	(2064414/sizeof(quint16)) // non dividable through ECAT_BLOCKSIZE
@@ -119,9 +118,48 @@ int main(int argc, char* argv[])
 				imageHeader->setY_Pixel_Size(0.205941);
 				imageHeader->setZ_Pixel_Size(0.2425);
 				imageHeader->save();
-
+				
 				file.writeSubHeader(*imageHeader, 2);
 			}
+			else
+				cout << "ERROR: couldn't read subHeader from file." << endl;
+
+			// now we create an empty subheader from another temporary file so that we can
+			// test of the subheader copy routines work as expected
+			CECATFile file2("readwritematrix2.v", CECATMainHeader::ECAT7_Volume16);
+			if(file2.open(QIODevice::WriteOnly))
+			{
+				CECATSubHeader* newSubHeader = file2.createEmptySubHeader();
+				if(newSubHeader->subHeaderType() == CECATSubHeader::ECAT7_Image)
+				{
+					CECAT7SubHeaderImage* imageHeader = static_cast<CECAT7SubHeaderImage*>(newSubHeader);
+
+					imageHeader->setNum_Dimensions(3);
+					imageHeader->setX_Dimension(256);
+					imageHeader->setY_Dimension(256);
+					imageHeader->setZ_Dimension(63);
+					imageHeader->setScale_Factor(1);
+					imageHeader->setX_Pixel_Size(0.205941);
+					imageHeader->setY_Pixel_Size(0.205941);
+					imageHeader->setZ_Pixel_Size(0.2425);
+					imageHeader->save();
+
+					// use the assignment operator for copying all data from one header to another
+					*static_cast<CECAT7SubHeaderImage*>(subHeader) = *imageHeader;
+
+					// we make sure we set the data type correctly before we write out the matrix later
+					// one
+					subHeader->setData_Type(CECATSubHeader::SunShort);
+				}
+				else
+					cout << "ERROR: created subHeader of file2 isn't a Image header!" << endl;
+
+				file2.close();
+			}
+			else
+				cout << "ERROR: newSubHeader has wrong type!" << endl;;
+
+			cout << "writing out matrixData to frame 3..." << endl;
 
 			// and to test the write operations to write the matrix together
 			// with the subheader lets do it now and write frame 3

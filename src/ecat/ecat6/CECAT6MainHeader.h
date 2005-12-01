@@ -24,15 +24,18 @@
 #ifndef CECAT6MAINHEADER_H
 #define CECAT6MAINHEADER_H
 
-#include <CECATMainHeader.h>
-#include <CECATDirectoryItem.h>
-#include <CMedIOHeader.h>
-
 #include <QDataStream>
 #include <QTextStream>
 
+#ifndef __MEDIO_PRIVATE__
+#include <CECATMainHeader>
+#else
+#include <CECATMainHeader.h>
+#endif
+
 // forward declarations
 class CECATFile;
+class CMedIOHeader;
 
 class CECAT6MainHeader : public CECATMainHeader
 {
@@ -80,6 +83,7 @@ class CECAT6MainHeader : public CECATMainHeader
 		void setNum_Gates(const short num);
 		void setNum_Bed_Pos(const short num);
 
+#ifdef __MEDIO_PRIVATE__
 	private:
 		struct ECAT6MainHeader
 		{
@@ -142,6 +146,7 @@ class CECAT6MainHeader : public CECATMainHeader
       quint16	Acquisition_Mode;
 			quint16	CTI_Reserved[33];
 		} m_Data;
+#endif
 };
 
 #endif // CECAT6MAINHEADER_H

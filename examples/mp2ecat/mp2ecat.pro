@@ -27,8 +27,8 @@ COMPILE_LEVEL = debug
 DEFINES *= DEBUG
 QT = core
 DEPENDPATH += .
-INCLUDEPATH += . ../../src/ ../../src/ecat ../../src/ecat/ecat6 ../../src/ecat/ecat7 ../../src/micropet ../../src/helpers
-LIBS *= -L../../lib -lmedio
+INCLUDEPATH += . /usr/local/petlib/include/medio
+LIBS *= -L/usr/local/petlib/lib -lmedio
 
 # Input
 SOURCES += mp2ecat.cpp

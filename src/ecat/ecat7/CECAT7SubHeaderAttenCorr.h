@@ -26,11 +26,15 @@
 
 #include <QDataStream>
 
+#ifndef __MEDIO_PRIVATE__
+#include <CECATSubHeader>
+#else
 #include <CECATSubHeader.h>
-#include <CECATDirectoryItem.h>
+#endif
 
 // forward declarations
 class CECATFile;
+class CECATDirectoryItem;
 
 class CECAT7SubHeaderAttenCorr : public CECATSubHeader
 {
@@ -124,7 +128,8 @@ class CECAT7SubHeaderAttenCorr : public CECATSubHeader
 	protected:
 		// constructors
 		CECAT7SubHeaderAttenCorr();
-	
+
+#ifdef __MEDIO_PRIVATE__
 	private:
 		struct ECAT7SubHeader_AttenCorr
 		{
@@ -158,6 +163,7 @@ class CECAT7SubHeaderAttenCorr : public CECATSubHeader
 			quint16	Unused[86];
 			quint16	CTI_Reserved[50];
 		} m_Data;
+#endif
 };
 
 #endif // CECAT7SUBHEADERATTENCORR_H

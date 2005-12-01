@@ -26,6 +26,10 @@
 
 #include <QDataStream>
 
+#ifndef __MEDIO_PRIVATE__
+#include <CECATSubHeader>
+#else
+#include <CECATSubHeader.h>
 // some useful defines on the ECAT file format
 // especially for ECATBlock calculation as ECAT Files
 // are seperated in 512 byte blocks and positions within
@@ -55,8 +59,7 @@
 																					 gate2MatrixID(g)  | \
 																					 bed2MatrixID(b)	 | \
 																					 data2MatrixID(d) )
-
-#include <CECATSubHeader.h>
+#endif
 
 // forward declarations
 class CECATFile;
@@ -117,6 +120,7 @@ class CECATDirectoryItem
 		void subHeaderWritten(const CECATSubHeader& subHeader);
 		void cacheSubHeader(const CECATSubHeader& subHeader);
 
+#ifdef __MEDIO_PRIVATE__
 	private:
 		CECATFile*				m_pECATFile;				// pointer to the ECATFile
 		CECATSubHeader*		m_pCachedSubHeader;	// pointer to a cached SubHeader object
@@ -130,6 +134,7 @@ class CECATDirectoryItem
 		qint64						m_iDataBlock_Start; // also start of SubHeader
 		qint64						m_iDataBlock_End;		// end of raw Data area
 		enum AccessStatus	m_iStatus;
+#endif
 };
 
 #endif // CECATDIRECTORYITEM_H

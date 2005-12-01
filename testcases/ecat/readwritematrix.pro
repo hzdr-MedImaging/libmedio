@@ -26,6 +26,7 @@ QT = core
 DEPENDPATH += .
 INCLUDEPATH += . ../../src/ ../../src/ecat ../../src/ecat/ecat6 ../../src/ecat/ecat7 ../../src/micropet ../../src/helpers
 LIBS *= -L../../lib -lmedio
+DEFINES *= __MEDIO_PRIVATE__
 
 # Input
 SOURCES += readwritematrix.cpp

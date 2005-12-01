@@ -24,13 +24,16 @@
 #ifndef CECAT7MAINHEADER_H
 #define CECAT7MAINHEADER_H
 
-#include <CECATMainHeader.h>
-#include <CECATDirectoryItem.h>
-#include <CConcordeMainHeader.h>
-
 #include <QDataStream>
 #include <QDateTime>
 #include <QTextStream>
+
+#ifndef __MEDIO_PRIVATE__
+#include <CECATMainHeader>
+#else
+#include <CECATMainHeader.h>
+#include <CConcordeMainHeader.h>
+#endif
 
 #include <time.h>
 
@@ -228,6 +231,7 @@ class CECAT7MainHeader : public CECATMainHeader
 		void setScan_Start_Time_Qt(const QDateTime& dateTime);
 		void setDose_Start_Time_Qt(const QDateTime& dateTime);
 
+#ifdef __MEDIO_PRIVATE__
 	protected:
 		void updateMagicNumber(void);
 
@@ -304,6 +308,7 @@ class CECAT7MainHeader : public CECATMainHeader
       quint16	Septa_State;
 			quint16	CTI_Reserved[6];
 		} m_Data;
+#endif
 };
 
 #endif // CECAT7MAINHEADER_H
