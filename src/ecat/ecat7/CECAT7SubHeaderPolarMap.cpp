@@ -173,8 +173,8 @@ bool CECAT7SubHeaderPolarMap::save(void) const
 	ENTER();
 
 	// check if this stream is writeable or not
-	if(m_pMedIOData->isWritable() == false ||
-		 m_pDirItem->dataBlock_Start() == 0 ||
+	if(m_pMedIOData == NULL || m_pMedIOData->isWritable() == false ||
+		 m_pDirItem == NULL || m_pDirItem->dataBlock_Start() == 0 ||
 		 m_pMedIOData->seek(m_pDirItem->dataBlock_Start()) == false)
 	{
 		RETURN(false);
