@@ -75,6 +75,7 @@ class Q_EXPORT CECATDirectoryItem
 
 		CECATDirectoryItem(CECATFile* file,
 											 Q_UINT32 matrixID = 0);
+		~CECATDirectoryItem();
 	
 		// accessor methods
 		unsigned int matrixID(void) const;
