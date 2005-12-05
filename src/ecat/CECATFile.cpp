@@ -707,10 +707,11 @@ bool CECATFile::writeSubHeader(const CECATSubHeader& subHeader, short frame,
 				 mainHeader->num_Bed_Pos()< bed)
 			{
 				result = writeMainHeader(*mainHeader);
-				delete mainHeader;
 			}
 			else
 				result = true;
+			
+			delete mainHeader;
 		}
 	}
 
@@ -742,10 +743,11 @@ bool CECATFile::writeMatrix(const QByteArray& matrixData,
 				 mainHeader->num_Bed_Pos()< bed)
 			{
 				result = writeMainHeader(*mainHeader);
-				delete mainHeader;
 			}
 			else
 				result = true;
+
+			delete mainHeader;
 		}
 	}
 
@@ -777,10 +779,11 @@ bool CECATFile::writeMatrix(const char* matrixData, unsigned int size,
 				 mainHeader->num_Bed_Pos()< bed)
 			{
 				result = writeMainHeader(*mainHeader);
-				delete mainHeader;
 			}
 			else
 				result = true;
+
+			delete mainHeader;
 		}
 	}
 
@@ -812,10 +815,11 @@ bool CECATFile::writeMatrix(const QByteArray& matrixData, const CECATSubHeader& 
 				 mainHeader->num_Bed_Pos()< bed)
 			{
 				result = writeMainHeader(*mainHeader);
-				delete mainHeader;
 			}
 			else
 				result = true;
+
+			delete mainHeader;
 		}
 	}
 
@@ -847,10 +851,11 @@ bool CECATFile::writeMatrix(const char* matrixData, unsigned int size, const CEC
 				 mainHeader->num_Bed_Pos()< bed)
 			{
 				result = writeMainHeader(*mainHeader);
-				delete mainHeader;
 			}
 			else
 				result = true;
+
+			delete mainHeader;
 		}
 	}
 
@@ -882,10 +887,11 @@ bool CECATFile::writeMatrix(const QByteArray& matrixData, CECATSubHeader::Data_T
 				 mainHeader->num_Bed_Pos()< bed)
 			{
 				result = writeMainHeader(*mainHeader);
-				delete mainHeader;
 			}
 			else
 				result = true;
+
+			delete mainHeader;
 		}
 	}
 
@@ -917,10 +923,11 @@ bool CECATFile::writeMatrix(const char* matrixData, unsigned int size, CECATSubH
 				 mainHeader->num_Bed_Pos()< bed)
 			{
 				result = writeMainHeader(*mainHeader);
-				delete mainHeader;
 			}
 			else
 				result = true;
+
+			delete mainHeader;
 		}
 	}
 
