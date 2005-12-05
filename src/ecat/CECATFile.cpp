@@ -47,17 +47,22 @@ CECATFile::CECATFile(const QString& filename, CECATMainHeader::Type fileType)
 		m_pMainDirectory(NULL),
 		m_pCachedMainHeader(NULL)
 {
+	ENTER();
+
 	if(fileType != CECATMainHeader::Unknown)
 		setFileType(fileType);
+
+	LEAVE();
 }
 
 CECATFile::~CECATFile()
 {
-	if(m_pMainDirectory)
-		delete m_pMainDirectory;
+	ENTER();
 
-	if(m_pCachedMainHeader)
-		delete m_pCachedMainHeader;
+	delete m_pMainDirectory;
+	delete m_pCachedMainHeader;
+
+	LEAVE();
 }
 
 int CECATFile::rtti() const
@@ -340,7 +345,10 @@ CECATMainHeader::Type CECATFile::fileType(void)
 		cachedMainHeaderUsed = false;
 
 		if(readMainHeader(mainHeader) == false)
+		{
+			delete mainHeader;
 			return CECATMainHeader::Unknown;
+		}
 	}
 
 	// depending on the format and DataSetType the MainHeader
@@ -698,6 +706,8 @@ bool CECATFile::writeSubHeader(const CECATSubHeader& subHeader, short frame,
 			}
 			else
 				result = true;
+			
+			delete mainHeader;
 		}
 	}
 
@@ -732,6 +742,8 @@ bool CECATFile::writeMatrix(const QByteArray& matrixData,
 			}
 			else
 				result = true;
+
+			delete mainHeader;
 		}
 	}
 
@@ -766,6 +778,8 @@ bool CECATFile::writeMatrix(const char* matrixData, unsigned int size,
 			}
 			else
 				result = true;
+
+			delete mainHeader;
 		}
 	}
 
@@ -800,6 +814,8 @@ bool CECATFile::writeMatrix(const QByteArray& matrixData, const CECATSubHeader& 
 			}
 			else
 				result = true;
+
+			delete mainHeader;
 		}
 	}
 
@@ -834,6 +850,8 @@ bool CECATFile::writeMatrix(const char* matrixData, unsigned int size, const CEC
 			}
 			else
 				result = true;
+
+			delete mainHeader;
 		}
 	}
 
@@ -868,6 +886,8 @@ bool CECATFile::writeMatrix(const QByteArray& matrixData, CECATSubHeader::Data_T
 			}
 			else
 				result = true;
+
+			delete mainHeader;
 		}
 	}
 
@@ -902,6 +922,8 @@ bool CECATFile::writeMatrix(const char* matrixData, unsigned int size, CECATSubH
 			}
 			else
 				result = true;
+
+			delete mainHeader;
 		}
 	}
 
@@ -989,7 +1011,10 @@ void CECATFile::mainHeaderWritten(const CECATMainHeader& mainHeader)
 		case CECATFile::ECAT7:
 		{
 			if(m_pCachedMainHeader)
-				*static_cast<CECAT7MainHeader*>(m_pCachedMainHeader) = *static_cast<const CECAT7MainHeader*>(&mainHeader);
+			{
+				if(m_pCachedMainHeader != &mainHeader)
+					*static_cast<CECAT7MainHeader*>(m_pCachedMainHeader) = *static_cast<const CECAT7MainHeader*>(&mainHeader);
+			}
 			else
 				m_pCachedMainHeader = new CECAT7MainHeader(*static_cast<const CECAT7MainHeader*>(&mainHeader));
 		}
@@ -998,7 +1023,10 @@ void CECATFile::mainHeaderWritten(const CECATMainHeader& mainHeader)
 		case CECATFile::ECAT6:
 		{
 			if(m_pCachedMainHeader)
-				*static_cast<CECAT6MainHeader*>(m_pCachedMainHeader) = *static_cast<const CECAT6MainHeader*>(&mainHeader);
+			{
+				if(m_pCachedMainHeader != &mainHeader)
+					*static_cast<CECAT6MainHeader*>(m_pCachedMainHeader) = *static_cast<const CECAT6MainHeader*>(&mainHeader);
+			}
 			else
 				m_pCachedMainHeader = new CECAT6MainHeader(*static_cast<const CECAT6MainHeader*>(&mainHeader));
 		}

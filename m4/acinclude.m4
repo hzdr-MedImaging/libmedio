@@ -70,22 +70,24 @@ AC_DEFUN(AC_ANSI_COLOR,
 [
 	AC_MSG_CHECKING(whether ANSI color should be used for terminal output)
 	AC_ARG_ENABLE(ansi-color,
-								[AC_HELP_STRING([--disable-ansi-color], [ansi-color terminal output should be disabled [default=no]])],
+								[AC_HELP_STRING([--enable-ansi-color], [ansi-color terminal debug output [default=yes]])],
 								[case "${enableval}" in
 									yes) test_on_ansi_color=yes ;;
 									no)  test_on_ansi_color=no ;;
 									*)   AC_MSG_ERROR(bad value ${enableval} for --disable-ansi-color) ;;
 								esac], 
-								[test_on_ansi_color=no])
+								[test_on_ansi_color=yes])
 
-	if test "$test_on_ansi_color" = "yes"; then
-		AC_MSG_RESULT(no)
-	else
+  if test "$COMPILE_LEVEL" = "release"; then
+		AC_MSG_RESULT([skipping, debug disabled])	
+	elif test "$test_on_ansi_color" = "yes"; then
 		ANSI_COLOR="ansi_color" 
 		AC_DEFINE(WITH_ANSI_COLOR) 		
 		AC_MSG_RESULT(yes)
+	else	
+		AC_MSG_RESULT(no)
 	fi
-	AC_DEFINE([WITH_ANSI_COLOR], [], [Use ANSI color scheme in terminal output])
+	AC_DEFINE([WITH_ANSI_COLOR], [], [Use ANSI color scheme in terminal debug output])
 	
 	AC_SUBST(ANSI_COLOR) 
 ])
@@ -149,7 +151,7 @@ dnl of a linked rtdebug library
 dnl
 AC_DEFUN(AC_ENABLE_STATIC_RTDEBUG,
 [
-	AC_MSG_CHECKING(whether to link the rtdebug library static)
+	AC_MSG_CHECKING(whether to link rtdebug library static)
 	AC_ARG_ENABLE(static-rtdebug,
 								[AC_HELP_STRING([--enable-static-rtdebug], [turn on static linking of rtdebug lib [default=no]])],
 								[case "${enableval}" in
@@ -159,7 +161,11 @@ AC_DEFUN(AC_ENABLE_STATIC_RTDEBUG,
 								esac],
 								[test_on_enable_static_rtdebug=no])
 
-	if test "$test_on_enable_static_rtdebug" = "yes"; then
+  if test "$COMPILE_LEVEL" = "release"; then
+		AC_MSG_RESULT([skipping, debug disabled])	
+	elif test "have_rtdebug_lib" = "no"; then
+		AC_MSG_RESULT([skipping, no rtdebug library found])
+	elif test "$test_on_enable_static_rtdebug" = "yes"; then
 		QTLINK_LEVEL="${QTLINK_LEVEL} staticrtdebug"
 		AC_MSG_RESULT(yes)
 	else
@@ -306,6 +312,16 @@ AC_DEFUN(AC_PROG_GCC_VERSION,[
 ])
 
 dnl
+dnl AC_PATH_QRTDEBUG: allows to override the default library search path for
+dnl searching for the rtdebug library.
+dnl
+AC_DEFUN(AC_PATH_RTDEBUG,
+[
+  AC_ARG_WITH(rtdebug, [AC_HELP_STRING([--with-rtdebug], [where the rtdebug environment is located.])],
+											 [RTDEBUGDIR="$withval" ])
+])
+
+dnl
 dnl AC_PATH_RTDEBUG_LIB: checks for the existance of the rtdebug library in the
 dnl default pathes and allows to override them as well
 dnl
@@ -313,7 +329,7 @@ AC_DEFUN(AC_PATH_RTDEBUG_LIB,
 [
   AC_REQUIRE_CPP()
   AC_ARG_WITH(rtdebug-lib,
-              [AC_HELP_STRING([--with-rtdebug-lib], [where the librtdebug library is located.])],
+              [AC_HELP_STRING([--with-rtdebug-lib], [where the rtdebug library is located.])],
 							[ac_rtdebug_libraries="$withval"], ac_rtdebug_libraries="")
 
   AC_MSG_CHECKING(for runtime debugging library)
@@ -325,14 +341,17 @@ AC_DEFUN(AC_PATH_RTDEBUG_LIB,
   dnl No they didnt, so lets look for them...
   dnl If you need to add extra directories to check, add them here.
   if test -z "$ac_rtdebug_libraries"; then
-    rtdebug_library_dirs="$rtdebug_library_dirs \
-												/usr/local/petlib/lib \
-												/usr/local/petlib/lib/rtdebug \	
-		                    /usr/local/lib \
-												/usr/local/lib/rtdebug \
-		                    /usr/lib \
-		                    /usr/lib/rtdebug \
-		                    /Developer/rtdebug/lib"
+    rtdebug_library_dirs="$RTDEBUGDIR/lib \
+													$RTDEBUGDIR/rtdebug \
+													$RTDEBUGDIR \
+													/usr/local/petlib/lib \
+													/usr/local/petlib/lib/rtdebug \	
+													/usr/local/lib \
+													/usr/local/lib/rtdebug \
+													/usr/lib \
+													/usr/lib/rtdebug \
+													/Developer/rtdebug/lib \
+													C:/petlib/lib"
   else
     rtdebug_library_dirs="$ac_rtdebug_libraries"
   fi
@@ -362,16 +381,19 @@ AC_DEFUN(AC_PATH_RTDEBUG_LIB,
   LIBS="$save_LIBS"
 
   ac_cv_lib_rtdebuglib="ac_rtdebug_libname=$ac_rtdebug_libname ac_rtdebug_libdir=$ac_rtdebug_libdir"
+	
   ])
 
   eval "$ac_cv_lib_rtdebuglib"
 
   dnl Define a shell variable for later checks
-  if test -z "$ac_rtdebug_libdir"; then
+	if test "$COMPILE_LEVEL" = "release"; then
+		have_rtdebug_lib="no"
+ 		AC_MSG_RESULT([skipping, debug disabled])	
+	elif test -z "$ac_rtdebug_libdir"; then
     have_rtdebug_lib="no"
     AC_MSG_RESULT([no])
-    AC_MSG_ERROR([Cannot find required runtime debugging library in linker path.
-Try --with-rtdebug-lib to specify the path, manually.])
+    AC_MSG_ERROR([Cannot find required runtime debugging library in linker path. Try --with-rtdebug-lib to specify the path, manually.])
   else
     have_rtdebug_lib="yes"
     AC_MSG_RESULT([yes, $ac_rtdebug_libname in $ac_rtdebug_libdir found.])
@@ -393,10 +415,10 @@ dnl
 AC_DEFUN(AC_PATH_RTDEBUG_INC,
 [
   AC_REQUIRE_CPP()
-  AC_MSG_CHECKING(for librtdebug includes)
+  AC_MSG_CHECKING(for rtdebug.h include)
 
   AC_ARG_WITH(rtdebug-inc,
-              [AC_HELP_STRING([--with-rtdebug-inc], [where the librtdebug headers are located.])],
+              [AC_HELP_STRING([--with-rtdebug-inc], [where the rtdebug headers are located.])],
               [rtdebug_include_dirs="$withval"], rtdebug_include_dirs="")
 
   AC_CACHE_VAL(ac_cv_header_rtdebuginc, [
@@ -407,20 +429,22 @@ AC_DEFUN(AC_PATH_RTDEBUG_INC,
       dnl No they didn't, so lets look for them...
       dnl If you need to add extra directories to check, add them here.
       rtdebug_include_dirs="\
+				$RTDEBUGDIR/include \
+				$RTDEBUGDIR/include/rtdebug \
+				$RTDEBUGDIR \
 			  /usr/local/petlib/include \
 				/usr/local/petlib/include/rtdebug \		
         /usr/local/rtdebug/include \
         /usr/include/rtdebug \
         /usr/lib/rtdebug/include \
-        /usr/local/include/rtdebug"
+        /usr/local/include/rtdebug \
+				C:/petlib/include"
     fi
 
     for rtdebug_dir in $rtdebug_include_dirs; do
-      if test -r "$rtdebug_dir/CRTDebug.h"; then
-        if test -r "$rtdebug_dir/rtdebug.h"; then
-          ac_rtdebug_includes=$rtdebug_dir
-          break;
-        fi
+      if test -r "$rtdebug_dir/rtdebug.h"; then
+        ac_rtdebug_includes=$rtdebug_dir
+        break;
       fi
     done
 
@@ -430,9 +454,8 @@ AC_DEFUN(AC_PATH_RTDEBUG_INC,
 
   if test -z "$ac_cv_header_rtdebuginc"; then
     have_rtdebug_inc="no"
-    AC_MSG_RESULT([no])
-    AC_MSG_WARN([librtdebug include directory not found, you may run into problems.
-Try --with-rtdebug-inc to specify the path, manually.])
+		AC_MSG_RESULT([no])
+    AC_MSG_WARN([rtdebug.h include not found, you may run into problems. Try --with-rtdebug-inc to specify the path, manually.])
   else
     have_rtdebug_inc="yes"
     AC_MSG_RESULT([yes, in $ac_cv_header_rtdebuginc])

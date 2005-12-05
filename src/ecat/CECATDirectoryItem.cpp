@@ -65,6 +65,15 @@ CECATDirectoryItem::CECATDirectoryItem(CECATFile* pFile,
 	LEAVE();
 }
 
+CECATDirectoryItem::~CECATDirectoryItem()
+{
+	ENTER();
+
+	delete m_pCachedSubHeader;
+
+	LEAVE();
+}
+
 unsigned int CECATDirectoryItem::matrixID(void) const
 { 
 	return convertToMatrixID(m_iFrame, m_iPlane, m_iGate, m_iBed, m_iData);
@@ -658,7 +667,10 @@ void CECATDirectoryItem::cacheSubHeader(const CECATSubHeader& subHeader)
 		case CECATSubHeader::ECAT7_AttenCorr: 
 		{
 			if(m_pCachedSubHeader)
-				*static_cast<CECAT7SubHeaderAttenCorr*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderAttenCorr*>(&subHeader);
+			{
+				if(m_pCachedSubHeader != &subHeader)
+					*static_cast<CECAT7SubHeaderAttenCorr*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderAttenCorr*>(&subHeader);
+			}
 			else
 				m_pCachedSubHeader = new CECAT7SubHeaderAttenCorr(*static_cast<const CECAT7SubHeaderAttenCorr*>(&subHeader));
 		}
@@ -667,7 +679,10 @@ void CECATDirectoryItem::cacheSubHeader(const CECATSubHeader& subHeader)
 		case CECATSubHeader::ECAT7_Image:	
 		{
 			if(m_pCachedSubHeader)
-				*static_cast<CECAT7SubHeaderImage*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderImage*>(&subHeader);
+			{
+				if(m_pCachedSubHeader != &subHeader)
+					*static_cast<CECAT7SubHeaderImage*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderImage*>(&subHeader);
+			}
 			else
 				m_pCachedSubHeader = new CECAT7SubHeaderImage(*static_cast<const CECAT7SubHeaderImage*>(&subHeader));
 		}
@@ -685,7 +700,10 @@ void CECATDirectoryItem::cacheSubHeader(const CECATSubHeader& subHeader)
 		case CECATSubHeader::ECAT7_Norm3D:
 		{
 			if(m_pCachedSubHeader)
-				*static_cast<CECAT7SubHeaderNorm3D*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderNorm3D*>(&subHeader);
+			{
+				if(m_pCachedSubHeader != &subHeader)
+					*static_cast<CECAT7SubHeaderNorm3D*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderNorm3D*>(&subHeader);
+			}
 			else
 				m_pCachedSubHeader = new CECAT7SubHeaderNorm3D(*static_cast<const CECAT7SubHeaderNorm3D*>(&subHeader));
 		}
@@ -694,7 +712,10 @@ void CECATDirectoryItem::cacheSubHeader(const CECATSubHeader& subHeader)
 		case CECATSubHeader::ECAT7_PolarMap:
 		{
 			if(m_pCachedSubHeader)
-				*static_cast<CECAT7SubHeaderPolarMap*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderPolarMap*>(&subHeader);
+			{
+				if(m_pCachedSubHeader != &subHeader)
+					*static_cast<CECAT7SubHeaderPolarMap*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderPolarMap*>(&subHeader);
+			}
 			else		
 				m_pCachedSubHeader = new CECAT7SubHeaderPolarMap(*static_cast<const CECAT7SubHeaderPolarMap*>(&subHeader));
 		}
@@ -703,7 +724,10 @@ void CECATDirectoryItem::cacheSubHeader(const CECATSubHeader& subHeader)
 		case CECATSubHeader::ECAT7_Scan:
 		{
 			if(m_pCachedSubHeader)
-				*static_cast<CECAT7SubHeaderScan*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderScan*>(&subHeader);
+			{
+				if(m_pCachedSubHeader != &subHeader)
+					*static_cast<CECAT7SubHeaderScan*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderScan*>(&subHeader);
+			}
 			else		
 				m_pCachedSubHeader = new CECAT7SubHeaderScan(*static_cast<const CECAT7SubHeaderScan*>(&subHeader));
 		}
@@ -712,7 +736,10 @@ void CECATDirectoryItem::cacheSubHeader(const CECATSubHeader& subHeader)
 		case CECATSubHeader::ECAT7_Scan3D:
 		{
 			if(m_pCachedSubHeader)
-				*static_cast<CECAT7SubHeaderScan3D*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderScan3D*>(&subHeader);
+			{
+				if(m_pCachedSubHeader != &subHeader)
+					*static_cast<CECAT7SubHeaderScan3D*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderScan3D*>(&subHeader);
+			}
 			else		
 				m_pCachedSubHeader = new CECAT7SubHeaderScan3D(*static_cast<const CECAT7SubHeaderScan3D*>(&subHeader));
 		}

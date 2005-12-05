@@ -154,6 +154,7 @@ int main(int argc, char* argv[])
 				else
 					cout << "ERROR: created subHeader of file2 isn't a Image header!" << endl;
 
+				delete newSubHeader;
 				file2.close();
 			}
 			else
@@ -171,7 +172,7 @@ int main(int argc, char* argv[])
 			else
 				cout << "successfully written matrix&subheader to frame 3" << endl;
 
-			CECATMainHeader* mainHeader;
+			CECATMainHeader* mainHeader = NULL;
 			if(file.readMainHeader(mainHeader) &&
 				 mainHeader->rtti() == CECATMainHeader::ECAT7MainHeader)
 			{
@@ -182,6 +183,7 @@ int main(int argc, char* argv[])
 				e7mainHeader->setCalibration_Factor(1);
 				e7mainHeader->save();
 			}
+			delete mainHeader;
 
 			// for testing that the directory list stuff works above > 31 frames we write out
 			// 30 more subheaders to the file
@@ -196,6 +198,8 @@ int main(int argc, char* argv[])
 				file.writeMatrix((char*)matrixData_frame2, MATRIX_SIZE*sizeof(quint16), *imageHeader, i+3);
 			}
 			cout << endl;
+
+			delete subHeader;
 		}
 
 		// close the file again
@@ -234,7 +238,7 @@ int main(int argc, char* argv[])
 					cout << "successfully compared read with written matrixData!" << endl;
 
 				// free the read matrix data
-				delete readBuf;
+				delete[] readBuf;
 			}
 
 			if(file.readMatrix((char*&)readBuf, len, 2) == false)
@@ -263,7 +267,7 @@ int main(int argc, char* argv[])
 					cout << "successfully compared read with written matrixData!" << endl;
 
 				// free the read matrix data
-				delete readBuf;				
+				delete[] readBuf;				
 			}
 
 			// for testing that the directory list stuff works above > 31 frames we read out
@@ -278,12 +282,14 @@ int main(int argc, char* argv[])
 					 subHeader == NULL || static_cast<CECAT7SubHeaderImage*>(subHeader)->image_Min() != i)
 				{
 					cout << "ERROR: in reading image_Min() of frame #" << i+3;
+					delete subHeader;
 					break;
 				}
 
 				if(file.readMatrix((char*&)readBuf, len, i+3) == false)
 				{
 					cout << "ERROR: in reading matrix data of frame #" << i+3;
+					delete subHeader;
 					break;
 				}
 
@@ -298,15 +304,17 @@ int main(int argc, char* argv[])
 				{
 					cout << "ERROR: read MatrixData != written MatrixData at position " << j << " (" << FilePos2ECATBlock(j)<< ") in frame #" << i+3 << endl;
 					cout << "ERROR: read: " << hex << uppercase << readBuf[j] << " - written: " << matrixData_frame2[j];
-					delete readBuf;
+					delete[] readBuf;
+					delete subHeader;
 					break;
 				}
 
 				// free the read matrix data
-				delete readBuf;				
+				delete[] readBuf;	
+				delete subHeader;
 			}
 			cout << endl;
-			
+		
 			// close the file
 			file.close();
 		}

@@ -74,6 +74,7 @@ class CECATDirectoryItem
 
 		CECATDirectoryItem(CECATFile* file,
 											 quint32 matrixID = 0);
+		~CECATDirectoryItem();
 	
 		// accessor methods
 		unsigned int matrixID(void) const;
