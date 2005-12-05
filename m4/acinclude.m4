@@ -70,7 +70,7 @@ AC_DEFUN(AC_ANSI_COLOR,
 [
 	AC_MSG_CHECKING(whether ANSI color should be used for terminal output)
 	AC_ARG_ENABLE(ansi-color,
-								[AC_HELP_STRING([--disable-ansi-color], [ansi-color terminal output should be disabled [default=no]])],
+								[AC_HELP_STRING([--enable-ansi-color], [ansi-color terminal debug output [default=yes]])],
 								[case "${enableval}" in
 									yes) test_on_ansi_color=yes ;;
 									no)  test_on_ansi_color=no ;;
@@ -79,13 +79,13 @@ AC_DEFUN(AC_ANSI_COLOR,
 								[test_on_ansi_color=no])
 
 	if test "$test_on_ansi_color" = "yes"; then
-		AC_MSG_RESULT(no)
-	else
 		ANSI_COLOR="ansi_color" 
 		AC_DEFINE(WITH_ANSI_COLOR) 		
 		AC_MSG_RESULT(yes)
+	else	
+		AC_MSG_RESULT(no)
 	fi
-	AC_DEFINE([WITH_ANSI_COLOR], [], [Use ANSI color scheme in terminal output])
+	AC_DEFINE([WITH_ANSI_COLOR], [], [Use ANSI color scheme in terminal debug output])
 	
 	AC_SUBST(ANSI_COLOR) 
 ])

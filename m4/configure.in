@@ -55,9 +55,6 @@ AC_PATH_RTDEBUG_LIB
 AC_PATH_RTDEBUG_INC
 AC_ENABLE_STATIC_RTDEBUG
 
-# Check for other libraries.
-AC_CHECK_LIB(pthread, pthread_create, , AC_MSG_ERROR(Cannot find required pthread library in LIBRARY_PATH))
-
 # own macros
 AC_C_BIGENDIAN
 AC_ENABLE_DEBUG
