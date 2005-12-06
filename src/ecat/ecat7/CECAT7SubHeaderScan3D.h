@@ -33,6 +33,7 @@
 #endif
 
 // forward declarations
+class CECAT7SubHeaderScan3DPrivate;
 class CECATFile;
 class CECATDirectoryItem;
 
@@ -50,12 +51,18 @@ class CECAT7SubHeaderScan3D : public CECATSubHeader
 																Smooth	=	(1<<1)
 															};
 
-		void clear();
-
 		// constructors
-		CECAT7SubHeaderScan3D(CECATFile* ecatFile,
+		CECAT7SubHeaderScan3D(CECATFile* ecatFile = NULL,
 													CECATDirectoryItem* pDirItem = NULL);
-			
+		~CECAT7SubHeaderScan3D();
+
+		// copy constructur and default assignment operator
+		CECAT7SubHeaderScan3D(const CECAT7SubHeaderScan3D& src);		
+		CECAT7SubHeaderScan3D& operator=(const CECAT7SubHeaderScan3D& src);
+
+		// header clear method
+		void clear();
+		
 		// public methods
 		bool load(void);
 		bool save(void) const;
@@ -139,47 +146,8 @@ class CECAT7SubHeaderScan3D : public CECATSubHeader
 		void setUser_Reserved(const short i, const short value);
 		void setUncor_Singles(const short b, const float value);
 
-	protected:
-		// constructors
-		CECAT7SubHeaderScan3D();
-
 	private:
-		struct ECAT7SubHeader_Scan3D
-		{
-			quint16	Data_Type;
-			quint16	Num_Dimensions;
-			quint16	Num_R_Elements;
-			quint16	Num_Angles;
-			quint16	Corrections_Applied;
-			quint16	Num_Z_Elements[64];
-			quint16	Ring_Difference;
-			quint16	Storage_Order;
-			quint16	Axial_Compression;
-			float		X_Resolution;
-			float		V_Resolution;
-			float		Z_Resolution;
-			float		W_Resolution;
-			quint16	Gate_Reserved[6];
-			quint32	Gate_Duration;
-			quint32	R_Wave_Offset;
-			quint32	Num_Accepted_Beats;
-			float		Scale_Factor;
-			qint16	Scan_Min;
-			qint16	Scan_Max;
-			quint32	Prompts;
-			quint32	Delayed;
-			quint32	Multiples;
-			quint32	Net_Trues;
-			float		Tot_Avg_Cor;
-			float		Tot_Avg_Uncor;
-			quint32	Total_Coin_Rate;
-			quint32	Frame_Start_Time;
-			quint32	Frame_Duration;
-			float		Deadtime_Correction_Factor;
-			quint16	CTI_reserved[90];
-			quint16	User_Reserved[50];
-			float		Uncor_Singles[128];
-		} m_Data;
+		CECAT7SubHeaderScan3DPrivate* m_pData;
 };
 
 #endif // CECAT7SUBHEADERNORM3D_H

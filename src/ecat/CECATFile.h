@@ -38,6 +38,7 @@
 #endif
 
 // forward declarations
+class CECATFilePrivate;
 class CECATDirectory;
 
 class CECATFile : public CMedIOData
@@ -45,7 +46,7 @@ class CECATFile : public CMedIOData
 	public:
 		enum ECATFormat	{ Undefined=0, ECAT7, ECAT6 };
 
-		CECATFile();
+		// constructors
 		CECATFile(const QString& filename,
 							CECATMainHeader::Type fileType = CECATMainHeader::Unknown);
 		~CECATFile();
@@ -117,13 +118,8 @@ class CECATFile : public CMedIOData
 		void mainHeaderWritten(const CECATMainHeader& mainHeader);
 		bool reWriteMainHeader(void);
 
-#ifdef __MEDIO_PRIVATE__		
 	private:
-		ECATFormat						m_iECATformat;
-		CECATMainHeader::Type	m_iMainHeaderType;
-		CECATDirectory*				m_pMainDirectory;
-		CECATMainHeader*			m_pCachedMainHeader; // for speed reasons we cache the loaded main header
-#endif
+		CECATFilePrivate*	m_pData;
 };
 
 #endif // CECATFILE_H

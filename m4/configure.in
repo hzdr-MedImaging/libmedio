@@ -38,6 +38,9 @@ AC_MSG_CHECKING(for host system processor type)
 AC_SUBST(HOST_CPU, `uname -p`)
 AC_MSG_RESULT(${HOST_CPU})
 
+# check if the user wants to have ansi color output
+AC_ANSI_COLOR
+
 # Checks for programs.
 AC_PROG_CXX
 AC_GNU_SOURCE
@@ -53,7 +56,6 @@ AC_ENABLE_STATIC_LIB
 
 # Check for the runtime debug library
 AC_ENABLE_DEBUG
-AC_ANSI_COLOR
 AC_PATH_RTDEBUG
 AC_PATH_RTDEBUG_LIB
 AC_ENABLE_STATIC_RTDEBUG

@@ -47,36 +47,22 @@
 class CConcordeSinogram : public CConcordeFile
 {
 	public :
-	//contructors
 		//! @brief constructor
 		//! @param file: complete path to file holding concorde sinogram
-		CConcordeSinogram(QString file);
+		CConcordeSinogram(const QString& file);
 		
-	//destructor
 		//! @brief destructor
 		~CConcordeSinogram();
 		
-	//members
-			
-	//methods
-		//! @brief access to data of a sinogram 
-		//! @return array with data of specific frame in sinogram or NULL on error 
-		//bool readMatrix(QByteArray*& matrixData, short frame);
-		
 		//! @brief run time typeinformation  
 		//! @return specific class type at runtime
-		int fileType() {return CConcordeFile::ConcordeMicropet_Sinogram;}
+		int fileType() const;
 
-		//! @brief loads a given file 
+		//! @brief loads a given file
 		//! @return true if loading is succesful otherwise false
 		bool open(QIODevice::OpenModeFlag mode);
 		
-#ifdef __MEDIO_PRIVATE__
 	private :
-	//members
-		
-	//methods
-#endif
 };
 
 #endif

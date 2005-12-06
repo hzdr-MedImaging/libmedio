@@ -33,6 +33,7 @@
 #endif
 
 // forward declarations
+class CECAT7SubHeaderNormPrivate;
 class CECATFile;
 class CECATDirectoryItem;
 
@@ -43,9 +44,15 @@ class CECAT7SubHeaderNorm : public CECATSubHeader
 		enum Norm_Qual_Factor_Code	{	TBD };
 
 		// constructors
-		CECAT7SubHeaderNorm(CECATFile* ecatFile,
+		CECAT7SubHeaderNorm(CECATFile* ecatFile = NULL,
 												CECATDirectoryItem* pDirItem = NULL);
-		
+		~CECAT7SubHeaderNorm();
+
+		// copy constructur and default assignment operator
+		CECAT7SubHeaderNorm(const CECAT7SubHeaderNorm& src);		
+		CECAT7SubHeaderNorm& operator=(const CECAT7SubHeaderNorm& src);
+
+		// header clear method
 		void clear();
 
 		// public methods													
@@ -99,33 +106,8 @@ class CECAT7SubHeaderNorm : public CECATSubHeader
 		void setCTI_Reserved(const short i, const short n);
 		void setUser_Reserved(const short i, const short n);
 
-	protected:
-		// constructors
-		CECAT7SubHeaderNorm();
-
-#ifdef __MEDIO_PRIVATE__
 	private:
-		struct ECAT7SubHeader_Norm
-		{
-			quint16	Data_Type;
-			quint16	Num_Dimensions;
-			quint16	Num_R_Elements;
-			quint16	Num_Angles;
-			quint16	Num_Z_Elements;
-			quint16	Ring_Difference;
-			float		Scale_Factor;
-			float		Norm_Min;
-			float		Norm_Max;
-			float		FOV_Source_Width;
-			float		Norm_Quality_Factor;
-			quint16	Norm_Quality_Factor_Code;
-			quint16	Storage_Order;
-			quint16	Span;
-			quint16	Z_Elements[64];
-			quint16	CTI_reserved[123];
-			quint16	User_Reserved[50];
-		} m_Data;
-#endif
+		CECAT7SubHeaderNormPrivate* m_pData;
 };
 
 #endif // CECAT7SUBHEADERNORM_H

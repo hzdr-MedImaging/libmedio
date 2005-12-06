@@ -33,6 +33,7 @@
 #endif
 
 // forward declarations
+class CECAT7SubHeaderScanPrivate;
 class CECATFile;
 class CECATDirectoryItem;
 
@@ -45,9 +46,15 @@ class CECAT7SubHeaderScan : public CECATSubHeader
 																Smooth	=	(1<<1) };
 
 		// constructors
-		CECAT7SubHeaderScan(CECATFile* ecatFile,
+		CECAT7SubHeaderScan(CECATFile* ecatFile = NULL,
 												CECATDirectoryItem* pDirItem = NULL);
-		
+		~CECAT7SubHeaderScan();
+
+		// copy constructur and default assignment operator
+		CECAT7SubHeaderScan(const CECAT7SubHeaderScan& src);		
+		CECAT7SubHeaderScan& operator=(const CECAT7SubHeaderScan& src);
+
+		// header clear method
 		void clear();
 
 		// public methods
@@ -133,49 +140,8 @@ class CECAT7SubHeaderScan : public CECATSubHeader
 		void setCTI_Reserved(const short i, const short n);
 		void setUser_Reserved(const short i, const short n);
 
-	protected:
-		// constructors
-		CECAT7SubHeaderScan();
-
-#ifdef __MEDIO_PRIVATE__
 	private:
-		struct ECAT7SubHeader_Scan
-		{
-			quint16	Data_Type;
-			quint16	Num_Dimensions;
-			quint16	Num_R_Elements;
-			quint16	Num_Angles;
-			quint16	Corrections_Applied;
-			quint16	Num_Z_Elements;
-			quint16	Ring_Difference;
-			float		X_Resolution;
-			float		Y_Resolution;
-			float		Z_Resolution;
-			float		W_Resolution;
-			quint16	Gate_Reserved[6];
-			quint32	Gate_Duration;
-			quint32	R_Wave_Offset;
-			quint32	Num_Accepted_Beats;
-			float		Scale_Factor;
-			quint16	Scan_Min;
-			quint16	Scan_Max;
-			quint32	Prompts;
-			quint32	Delayed;
-			quint32	Multiples;
-			quint32	Net_Trues;
-			float		Cor_Singles[16];
-			float		Uncor_Singles[16];
-			float		Tot_Avg_Cor;
-			float		Tot_Avg_Uncor;
-			quint32	Total_Coin_Rate;
-			quint32	Frame_Start_Time;
-			quint32	Frame_Duration;
-			float		Deadtime_Correction_Factor;
-			quint16	Physical_Planes[8];
-			quint16	CTI_reserved[83];
-			quint16	User_Reserved[50];
-		} m_Data;
-#endif
+		CECAT7SubHeaderScanPrivate* m_pData;
 };
 
 #endif // CECAT7SUBHEADERSCAN_H

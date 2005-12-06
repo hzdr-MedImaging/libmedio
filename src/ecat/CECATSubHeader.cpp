@@ -36,6 +36,26 @@ CECATSubHeader::CECATSubHeader(CMedIOData* ecatFile,
 	LEAVE();
 }
 
+CECATSubHeader::CECATSubHeader(const CECATSubHeader& src)
+	: CMedIOHeader(src)
+{
+	ENTER();
+
+	// do nothing
+
+	LEAVE();
+}
+
+CECATSubHeader& CECATSubHeader::operator=(const CECATSubHeader& src)
+{
+	ENTER();
+
+	convertFrom(&src);
+	
+	LEAVE();
+	return *this;
+}
+
 CMedIOHeader::Format CECATSubHeader::headerFormat() const
 { 
 	return CMedIOHeader::ECATSubHeader;

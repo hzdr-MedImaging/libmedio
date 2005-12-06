@@ -46,37 +46,23 @@
 //! 
 class CConcordeImage : public CConcordeFile
 {
-	public :
-	//contructors
+	public:
 		//! @brief constructor
 		//! @param file: complete path to file holding concorde imagevolume
-		CConcordeImage(QString file);
+		CConcordeImage(const QString& file);
 		
-	//destructor
 		//! @brief destructor
 		~CConcordeImage();
 		
-	//members
-		
-	//methods
-		//! @brief access to data of an imagevolume 
-		//! @return array with data of specific frame in imagevolume or NULL on error
-		//bool readMatrix(QByteArray*&, short frame);
-		
 		//! @brief run time typeinformation  
 		//! @return specific class type at runtime
-		int fileType() {return CConcordeFile::ConcordeMicropet_Image;}
+		int fileType() const;
 
-		//! @brief loads a given file 
+		//! @brief loads a given file
 		//! @return true if loading is succesful otherwise false
 		bool open(QIODevice::OpenModeFlag mode);
 
-#ifdef __MEDIO_PRIVATE__
-	private :
-	//members
-		
-	//methods
-#endif
+	private:
 };
 
 #endif

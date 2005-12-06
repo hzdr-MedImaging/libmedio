@@ -44,8 +44,9 @@ class CMedIOHeader;
 class CConcordeMainHeaderImage : public CConcordeMainHeader
 {
 	public:
-		CConcordeMainHeaderImage(QString File) : CConcordeMainHeader(File){};
-		CConcordeMainHeaderImage(CConcordeFile* file) : CConcordeMainHeader(file){};
+		CConcordeMainHeaderImage(const QString& fileName);
+		CConcordeMainHeaderImage(CConcordeFile* file);
+
 		unsigned int frameSize();
 		CMedIOHeader* clone() const;
 };

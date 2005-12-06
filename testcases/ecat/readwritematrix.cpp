@@ -293,7 +293,7 @@ int main(int argc, char* argv[])
 					break;
 				}
 
-				long j=0;
+				unsigned int j=0;
 				for(; j < MATRIX_SIZE; j++)
 				{
 					if(matrixData_frame2[j] != readBuf[j])

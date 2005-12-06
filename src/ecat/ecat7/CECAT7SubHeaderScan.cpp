@@ -29,17 +29,97 @@
 
 #include <rtdebug.h>
 
+// we define the private inline class of that one so that we
+// are able to hide the private methods & data of that class in the
+// public headers
+class CECAT7SubHeaderScanPrivate
+{
+	public:
+		struct HeaderData
+		{
+			quint16	Data_Type;
+			quint16	Num_Dimensions;
+			quint16	Num_R_Elements;
+			quint16	Num_Angles;
+			quint16	Corrections_Applied;
+			quint16	Num_Z_Elements;
+			quint16	Ring_Difference;
+			float		X_Resolution;
+			float		Y_Resolution;
+			float		Z_Resolution;
+			float		W_Resolution;
+			quint16	Gate_Reserved[6];
+			quint32	Gate_Duration;
+			quint32	R_Wave_Offset;
+			quint32	Num_Accepted_Beats;
+			float		Scale_Factor;
+			quint16	Scan_Min;
+			quint16	Scan_Max;
+			quint32	Prompts;
+			quint32	Delayed;
+			quint32	Multiples;
+			quint32	Net_Trues;
+			float		Cor_Singles[16];
+			float		Uncor_Singles[16];
+			float		Tot_Avg_Cor;
+			float		Tot_Avg_Uncor;
+			quint32	Total_Coin_Rate;
+			quint32	Frame_Start_Time;
+			quint32	Frame_Duration;
+			float		Deadtime_Correction_Factor;
+			quint16	Physical_Planes[8];
+			quint16	CTI_reserved[83];
+			quint16	User_Reserved[50];
+		} header;
+};
+
 CECAT7SubHeaderScan::CECAT7SubHeaderScan(CECATFile* ecatFile,
 																				 CECATDirectoryItem* pDirItem)
 	: CECATSubHeader(ecatFile, pDirItem)
 {
+	ENTER();
+
+	// allocate data from our private instance class
+	m_pData = new CECAT7SubHeaderScanPrivate();
+	
 	clear();
+
+	LEAVE();
 }
 
-CECAT7SubHeaderScan::CECAT7SubHeaderScan()
-	: CECATSubHeader(NULL)
+CECAT7SubHeaderScan::~CECAT7SubHeaderScan()
 {
-	clear();
+	ENTER();
+
+	delete m_pData;
+
+	LEAVE();
+}
+
+CECAT7SubHeaderScan::CECAT7SubHeaderScan(const CECAT7SubHeaderScan& src)
+	: CECATSubHeader(src)
+{
+	ENTER();
+
+	// allocate data from our private instance class
+	m_pData = new CECAT7SubHeaderScanPrivate(*(src.m_pData));
+
+	LEAVE();
+}
+
+CECAT7SubHeaderScan& CECAT7SubHeaderScan::operator=(const CECAT7SubHeaderScan& src)
+{
+	ENTER();
+
+	if(m_pData != src.m_pData)
+	{
+		memcpy(&m_pData->header, 
+					 &src.m_pData->header, 
+					 sizeof(struct CECAT7SubHeaderScanPrivate::HeaderData));
+	}
+
+	LEAVE();
+	return *this;
 }
 
 void CECAT7SubHeaderScan::clear()
@@ -47,7 +127,7 @@ void CECAT7SubHeaderScan::clear()
 	ENTER();
 
 	// then clear the structure
-	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Scan));			
+	memset(&m_pData->header, 0, sizeof(struct CECAT7SubHeaderScanPrivate::HeaderData));			
 
 	setData_Type(CECATSubHeader::UnknownDataType);
 
@@ -84,92 +164,92 @@ bool CECAT7SubHeaderScan::load(void)
 	// lets read in each single data element of our
 	// data structure to maintain the correct endianess of the
 	// data
-	stream >> m_Data.Data_Type;											//   0: Data_Type
-	stream >> m_Data.Num_Dimensions;								//   2: Num_Dimensions
-	stream >> m_Data.Num_R_Elements;								//   4: Num_R_Elements
-	stream >> m_Data.Num_Angles;										//   6: Num_Angles
-	stream >> m_Data.Corrections_Applied;						//   8: Corrections_Applied
-	stream >> m_Data.Num_Z_Elements;								//  10: Num_Z_Elements
-	stream >> m_Data.Ring_Difference;								//  12: Ring_Difference
-	stream >> m_Data.X_Resolution;									//  14: X_Resolution
-	stream >> m_Data.Y_Resolution;									//  18: Y_Resolution
-	stream >> m_Data.Z_Resolution;									//  22: Z_Resolution
-	stream >> m_Data.W_Resolution;									//  26: W_Resolution
+	stream >> m_pData->header.Data_Type;											//   0: Data_Type
+	stream >> m_pData->header.Num_Dimensions;								//   2: Num_Dimensions
+	stream >> m_pData->header.Num_R_Elements;								//   4: Num_R_Elements
+	stream >> m_pData->header.Num_Angles;										//   6: Num_Angles
+	stream >> m_pData->header.Corrections_Applied;						//   8: Corrections_Applied
+	stream >> m_pData->header.Num_Z_Elements;								//  10: Num_Z_Elements
+	stream >> m_pData->header.Ring_Difference;								//  12: Ring_Difference
+	stream >> m_pData->header.X_Resolution;									//  14: X_Resolution
+	stream >> m_pData->header.Y_Resolution;									//  18: Y_Resolution
+	stream >> m_pData->header.Z_Resolution;									//  22: Z_Resolution
+	stream >> m_pData->header.W_Resolution;									//  26: W_Resolution
 	for(int i=0; i < 6; i++)
-		stream >> m_Data.Gate_Reserved[i];						//  30: Gate_Reserved
-	stream >> m_Data.Gate_Duration;									//  42: Gate_Duration
-	stream >> m_Data.R_Wave_Offset;									//  46: R_Wave_Offset
-	stream >> m_Data.Num_Accepted_Beats;						//  50: Num_Accepted_Beats
-	stream >> m_Data.Scale_Factor;									//  54: Scale_Factor
-	stream >> m_Data.Scan_Min;											//  54: Scan_Min
-	stream >> m_Data.Scan_Max;											//  60: Scan_Max
-	stream >> m_Data.Prompts;												//  62: Prompts
-	stream >> m_Data.Delayed;												//  66: Delayed
-	stream >> m_Data.Multiples;											//  70: Multiples
-	stream >> m_Data.Net_Trues;											//  74: Net_Trues
+		stream >> m_pData->header.Gate_Reserved[i];						//  30: Gate_Reserved
+	stream >> m_pData->header.Gate_Duration;									//  42: Gate_Duration
+	stream >> m_pData->header.R_Wave_Offset;									//  46: R_Wave_Offset
+	stream >> m_pData->header.Num_Accepted_Beats;						//  50: Num_Accepted_Beats
+	stream >> m_pData->header.Scale_Factor;									//  54: Scale_Factor
+	stream >> m_pData->header.Scan_Min;											//  54: Scan_Min
+	stream >> m_pData->header.Scan_Max;											//  60: Scan_Max
+	stream >> m_pData->header.Prompts;												//  62: Prompts
+	stream >> m_pData->header.Delayed;												//  66: Delayed
+	stream >> m_pData->header.Multiples;											//  70: Multiples
+	stream >> m_pData->header.Net_Trues;											//  74: Net_Trues
 	for(int i=0; i < 16; i++)
-		stream >> m_Data.Cor_Singles[i];							//  78: Cor_Singles
+		stream >> m_pData->header.Cor_Singles[i];							//  78: Cor_Singles
 	for(int i=0; i < 16; i++)
-		stream >> m_Data.Uncor_Singles[i];						// 142: Uncor_Singles
-	stream >> m_Data.Tot_Avg_Cor;										// 206: Tot_Avg_Cor
-	stream >> m_Data.Tot_Avg_Uncor;									// 210: Tot_Avg_Uncor
-	stream >> m_Data.Total_Coin_Rate;								// 214: Total_Coin_Rate
-	stream >> m_Data.Frame_Start_Time;							// 218: Frame_Start_Time
-	stream >> m_Data.Frame_Duration;								// 222: Frame_Duration
-	stream >> m_Data.Deadtime_Correction_Factor;		// 226: Deadtime_Correction_Factor
+		stream >> m_pData->header.Uncor_Singles[i];						// 142: Uncor_Singles
+	stream >> m_pData->header.Tot_Avg_Cor;										// 206: Tot_Avg_Cor
+	stream >> m_pData->header.Tot_Avg_Uncor;									// 210: Tot_Avg_Uncor
+	stream >> m_pData->header.Total_Coin_Rate;								// 214: Total_Coin_Rate
+	stream >> m_pData->header.Frame_Start_Time;							// 218: Frame_Start_Time
+	stream >> m_pData->header.Frame_Duration;								// 222: Frame_Duration
+	stream >> m_pData->header.Deadtime_Correction_Factor;		// 226: Deadtime_Correction_Factor
 	for(int i=0; i < 8; i++)
-		stream >> m_Data.Physical_Planes[i];					// 230: Physical_Planes
+		stream >> m_pData->header.Physical_Planes[i];					// 230: Physical_Planes
 	for(int i=0; i < 83; i++)
-		stream >> m_Data.CTI_reserved[i];							// 246: CTI_reserved
+		stream >> m_pData->header.CTI_reserved[i];							// 246: CTI_reserved
 	for(int i=0; i < 50; i++)
-		stream >> m_Data.User_Reserved[i];						// 412: User_Reserved	
+		stream >> m_pData->header.User_Reserved[i];						// 412: User_Reserved	
 
 	// some more debug output
 #if defined(DEBUG)
 	D("ECAT7 Scan SubHeader loaded:");
 	D("---------------------------");
-	D("Data_Type	               : %d",				m_Data.Data_Type);
-	D("Num_Dimensions					   : %d",				m_Data.Num_Dimensions);
-	D("Num_R_Elements		         : %d",				m_Data.Num_R_Elements);
-	D("Num_Angles                : %d",				m_Data.Num_Angles);
-	D("Corrections_Applied       : %d",				m_Data.Corrections_Applied);
-	D("Num_Z_Elements            : %d",				m_Data.Num_Z_Elements);
-	D("Ring_Difference           : %d",				m_Data.Ring_Difference);
-	D("X_Resolution              : %f cm",		m_Data.X_Resolution);
-	D("Y_Resolution              : %f cm",		m_Data.Y_Resolution);
-	D("Z_Resolution              : %f cm",		m_Data.Z_Resolution);
-	D("W_Resolution              : %f",				m_Data.W_Resolution);
+	D("Data_Type	               : %d",				m_pData->header.Data_Type);
+	D("Num_Dimensions					   : %d",				m_pData->header.Num_Dimensions);
+	D("Num_R_Elements		         : %d",				m_pData->header.Num_R_Elements);
+	D("Num_Angles                : %d",				m_pData->header.Num_Angles);
+	D("Corrections_Applied       : %d",				m_pData->header.Corrections_Applied);
+	D("Num_Z_Elements            : %d",				m_pData->header.Num_Z_Elements);
+	D("Ring_Difference           : %d",				m_pData->header.Ring_Difference);
+	D("X_Resolution              : %f cm",		m_pData->header.X_Resolution);
+	D("Y_Resolution              : %f cm",		m_pData->header.Y_Resolution);
+	D("Z_Resolution              : %f cm",		m_pData->header.Z_Resolution);
+	D("W_Resolution              : %f",				m_pData->header.W_Resolution);
 	for(int i=0; i < 6; i++)
 	{
-		D("Gate_Reserved          [%d]: %d", i+1, m_Data.Gate_Reserved[i]);
+		D("Gate_Reserved          [%d]: %d", i+1, m_pData->header.Gate_Reserved[i]);
 	}
-	D("Gate_Duration             : %d msec",	m_Data.Gate_Duration);
-	D("R_Wave_Offset             : %d",				m_Data.R_Wave_Offset);
-	D("Num_Accepted_Beats        : %d",				m_Data.Num_Accepted_Beats);
-	D("Scale_Factor              : %f",				m_Data.Scale_Factor);
-	D("Scan_Min                  : %d",				m_Data.Scan_Min);
-	D("Scan_Max                  : %d",				m_Data.Scan_Max);
-	D("Prompts                   : %d",				m_Data.Prompts);
-	D("Delayed                   : %d",				m_Data.Delayed);
-	D("Multiples                 : %d",				m_Data.Multiples);
-	D("Net_Trues                 : %d",				m_Data.Net_Trues);
+	D("Gate_Duration             : %d msec",	m_pData->header.Gate_Duration);
+	D("R_Wave_Offset             : %d",				m_pData->header.R_Wave_Offset);
+	D("Num_Accepted_Beats        : %d",				m_pData->header.Num_Accepted_Beats);
+	D("Scale_Factor              : %f",				m_pData->header.Scale_Factor);
+	D("Scan_Min                  : %d",				m_pData->header.Scan_Min);
+	D("Scan_Max                  : %d",				m_pData->header.Scan_Max);
+	D("Prompts                   : %d",				m_pData->header.Prompts);
+	D("Delayed                   : %d",				m_pData->header.Delayed);
+	D("Multiples                 : %d",				m_pData->header.Multiples);
+	D("Net_Trues                 : %d",				m_pData->header.Net_Trues);
 	for(int i=0; i < 16; i++)
 	{
-		D("Cor_Singles           [%02d]: %f", i+1, m_Data.Cor_Singles[i]);
+		D("Cor_Singles           [%02d]: %f", i+1, m_pData->header.Cor_Singles[i]);
 	}
 	for(int i=0; i < 16; i++)
 	{
-		D("Uncor_Singles         [%02d]: %f", i+1, m_Data.Uncor_Singles[i]);
+		D("Uncor_Singles         [%02d]: %f", i+1, m_pData->header.Uncor_Singles[i]);
 	}
-	D("Tot_Avg_Cor               : %f",				m_Data.Tot_Avg_Cor);
-	D("Tot_Avg_Uncor             : %f",				m_Data.Tot_Avg_Uncor);
-	D("Total_Coin_Rate           : %d",				m_Data.Total_Coin_Rate);
-	D("Frame_Start_Time          : %d msec",	m_Data.Frame_Start_Time);
-	D("Frame_Duration            : %d msec",	m_Data.Frame_Duration);
-	D("Deadtime_Correction_Factor: %f",				m_Data.Deadtime_Correction_Factor);
+	D("Tot_Avg_Cor               : %f",				m_pData->header.Tot_Avg_Cor);
+	D("Tot_Avg_Uncor             : %f",				m_pData->header.Tot_Avg_Uncor);
+	D("Total_Coin_Rate           : %d",				m_pData->header.Total_Coin_Rate);
+	D("Frame_Start_Time          : %d msec",	m_pData->header.Frame_Start_Time);
+	D("Frame_Duration            : %d msec",	m_pData->header.Frame_Duration);
+	D("Deadtime_Correction_Factor: %f",				m_pData->header.Deadtime_Correction_Factor);
 	for(int i=0; i < 8; i++)
 	{
-	D("Physical_Planes        [%d]: %d", i+1, m_Data.Physical_Planes[i]);
+	D("Physical_Planes        [%d]: %d", i+1, m_pData->header.Physical_Planes[i]);
 	}
 #endif
 
@@ -199,45 +279,45 @@ bool CECAT7SubHeaderScan::save(void) const
 	// lets read in each single data element of our
 	// data structure to maintain the correct endianess of the
 	// data
-	stream << m_Data.Data_Type;											//   0: Data_Type
-	stream << m_Data.Num_Dimensions;								//   2: Num_Dimensions
-	stream << m_Data.Num_R_Elements;								//   4: Num_R_Elements
-	stream << m_Data.Num_Angles;										//   6: Num_Angles
-	stream << m_Data.Corrections_Applied;						//   8: Corrections_Applied
-	stream << m_Data.Num_Z_Elements;								//  10: Num_Z_Elements
-	stream << m_Data.Ring_Difference;								//  12: Ring_Difference
-	stream << m_Data.X_Resolution;									//  14: X_Resolution
-	stream << m_Data.Y_Resolution;									//  18: Y_Resolution
-	stream << m_Data.Z_Resolution;									//  22: Z_Resolution
-	stream << m_Data.W_Resolution;									//  26: W_Resolution
+	stream << m_pData->header.Data_Type;											//   0: Data_Type
+	stream << m_pData->header.Num_Dimensions;								//   2: Num_Dimensions
+	stream << m_pData->header.Num_R_Elements;								//   4: Num_R_Elements
+	stream << m_pData->header.Num_Angles;										//   6: Num_Angles
+	stream << m_pData->header.Corrections_Applied;						//   8: Corrections_Applied
+	stream << m_pData->header.Num_Z_Elements;								//  10: Num_Z_Elements
+	stream << m_pData->header.Ring_Difference;								//  12: Ring_Difference
+	stream << m_pData->header.X_Resolution;									//  14: X_Resolution
+	stream << m_pData->header.Y_Resolution;									//  18: Y_Resolution
+	stream << m_pData->header.Z_Resolution;									//  22: Z_Resolution
+	stream << m_pData->header.W_Resolution;									//  26: W_Resolution
 	for(int i=0; i < 6; i++)
-		stream << m_Data.Gate_Reserved[i];						//  30: Gate_Reserved
-	stream << m_Data.Gate_Duration;									//  42: Gate_Duration
-	stream << m_Data.R_Wave_Offset;									//  46: R_Wave_Offset
-	stream << m_Data.Num_Accepted_Beats;						//  50: Num_Accepted_Beats
-	stream << m_Data.Scale_Factor;									//  54: Scale_Factor
-	stream << m_Data.Scan_Min;											//  54: Scan_Min
-	stream << m_Data.Scan_Max;											//  60: Scan_Max
-	stream << m_Data.Prompts;												//  62: Prompts
-	stream << m_Data.Delayed;												//  66: Delayed
-	stream << m_Data.Multiples;											//  70: Multiples
-	stream << m_Data.Net_Trues;											//  74: Net_Trues
+		stream << m_pData->header.Gate_Reserved[i];						//  30: Gate_Reserved
+	stream << m_pData->header.Gate_Duration;									//  42: Gate_Duration
+	stream << m_pData->header.R_Wave_Offset;									//  46: R_Wave_Offset
+	stream << m_pData->header.Num_Accepted_Beats;						//  50: Num_Accepted_Beats
+	stream << m_pData->header.Scale_Factor;									//  54: Scale_Factor
+	stream << m_pData->header.Scan_Min;											//  54: Scan_Min
+	stream << m_pData->header.Scan_Max;											//  60: Scan_Max
+	stream << m_pData->header.Prompts;												//  62: Prompts
+	stream << m_pData->header.Delayed;												//  66: Delayed
+	stream << m_pData->header.Multiples;											//  70: Multiples
+	stream << m_pData->header.Net_Trues;											//  74: Net_Trues
 	for(int i=0; i < 16; i++)
-		stream << m_Data.Cor_Singles[i];							//  78: Cor_Singles
+		stream << m_pData->header.Cor_Singles[i];							//  78: Cor_Singles
 	for(int i=0; i < 16; i++)
-		stream << m_Data.Uncor_Singles[i];						// 142: Uncor_Singles
-	stream << m_Data.Tot_Avg_Cor;										// 206: Tot_Avg_Cor
-	stream << m_Data.Tot_Avg_Uncor;									// 210: Tot_Avg_Uncor
-	stream << m_Data.Total_Coin_Rate;								// 214: Total_Coin_Rate
-	stream << m_Data.Frame_Start_Time;							// 218: Frame_Start_Time
-	stream << m_Data.Frame_Duration;								// 222: Frame_Duration
-	stream << m_Data.Deadtime_Correction_Factor;		// 226: Deadtime_Correction_Factor
+		stream << m_pData->header.Uncor_Singles[i];						// 142: Uncor_Singles
+	stream << m_pData->header.Tot_Avg_Cor;										// 206: Tot_Avg_Cor
+	stream << m_pData->header.Tot_Avg_Uncor;									// 210: Tot_Avg_Uncor
+	stream << m_pData->header.Total_Coin_Rate;								// 214: Total_Coin_Rate
+	stream << m_pData->header.Frame_Start_Time;							// 218: Frame_Start_Time
+	stream << m_pData->header.Frame_Duration;								// 222: Frame_Duration
+	stream << m_pData->header.Deadtime_Correction_Factor;		// 226: Deadtime_Correction_Factor
 	for(int i=0; i < 8; i++)
-		stream << m_Data.Physical_Planes[i];					// 230: Physical_Planes
+		stream << m_pData->header.Physical_Planes[i];					// 230: Physical_Planes
 	for(int i=0; i < 83; i++)
-		stream << m_Data.CTI_reserved[i];							// 246: CTI_reserved
+		stream << m_pData->header.CTI_reserved[i];							// 246: CTI_reserved
 	for(int i=0; i < 50; i++)
-		stream << m_Data.User_Reserved[i];						// 412: User_Reserved	
+		stream << m_pData->header.User_Reserved[i];						// 412: User_Reserved	
 	
 	// now write out to our outStream
 	bool result = false;
@@ -282,7 +362,10 @@ bool CECAT7SubHeaderScan::convertFrom(const CMedIOHeader* pHead1, const CMedIOHe
 				// via a simple memcpy()
 				case CECATSubHeader::ECAT7_Scan:
 				{
-					memcpy(&(this->m_Data), &(static_cast<const CECAT7SubHeaderScan*>(pHead1)->m_Data), sizeof(struct ECAT7SubHeader_Scan));
+					// we use the assignment operator which will do the convertation
+					// for us.
+					*this = *static_cast<const CECAT7SubHeaderScan*>(pHead1);
+					
 					bResult = true;
 				}
 				break;
@@ -330,331 +413,331 @@ CMedIOHeader* CECAT7SubHeaderScan::clone() const
 // data access methods
 CECATSubHeader::Data_Type CECAT7SubHeaderScan::data_Type(void) const
 {
-	return static_cast<CECATSubHeader::Data_Type>(m_Data.Data_Type);	}
+	return static_cast<CECATSubHeader::Data_Type>(m_pData->header.Data_Type);	}
 
 short CECAT7SubHeaderScan::num_Dimensions(void) const
 {
-	return m_Data.Num_Dimensions;
+	return m_pData->header.Num_Dimensions;
 }
 
 short CECAT7SubHeaderScan::num_R_Elements(void) const
 {
-	return m_Data.Num_R_Elements;
+	return m_pData->header.Num_R_Elements;
 }
 
 short CECAT7SubHeaderScan::num_Angles(void) const
 {
-	return m_Data.Num_Angles;
+	return m_pData->header.Num_Angles;
 }
 
 short CECAT7SubHeaderScan::corrections_Applied(void) const
 {
-	return m_Data.Corrections_Applied;
+	return m_pData->header.Corrections_Applied;
 }
 
 short CECAT7SubHeaderScan::num_Z_Elements(void) const
 {
-	return m_Data.Num_Z_Elements;
+	return m_pData->header.Num_Z_Elements;
 }
 
 short CECAT7SubHeaderScan::ring_Difference(void) const
 {
-	return m_Data.Ring_Difference;
+	return m_pData->header.Ring_Difference;
 }
 
 float CECAT7SubHeaderScan::x_Resolution(void) const
 {
-	return m_Data.X_Resolution;
+	return m_pData->header.X_Resolution;
 }
 
 float CECAT7SubHeaderScan::y_Resolution(void) const
 {
-	return m_Data.Y_Resolution;
+	return m_pData->header.Y_Resolution;
 }
 
 float CECAT7SubHeaderScan::z_Resolution(void) const
 {
-	return m_Data.Z_Resolution;
+	return m_pData->header.Z_Resolution;
 }
 
 float CECAT7SubHeaderScan::w_Resolution(void) const
 {
-	return m_Data.W_Resolution;
+	return m_pData->header.W_Resolution;
 }
 
 short CECAT7SubHeaderScan::gate_Reserved(const short i) const
 {
-	return m_Data.Gate_Reserved[i];
+	return m_pData->header.Gate_Reserved[i];
 }
 
 unsigned int CECAT7SubHeaderScan::gate_Duration(void) const
 {
-	return m_Data.Gate_Duration;
+	return m_pData->header.Gate_Duration;
 }
 
 unsigned int CECAT7SubHeaderScan::r_Wave_Offset(void) const
 {
-	return m_Data.R_Wave_Offset;
+	return m_pData->header.R_Wave_Offset;
 }
 
 unsigned int CECAT7SubHeaderScan::num_Accepted_Beats(void) const
 {
-	return m_Data.Num_Accepted_Beats;
+	return m_pData->header.Num_Accepted_Beats;
 }
 
 float CECAT7SubHeaderScan::scale_Factor(void) const
 {
-	return m_Data.Scale_Factor;
+	return m_pData->header.Scale_Factor;
 }
 
 short CECAT7SubHeaderScan::scan_Min(void) const
 {
-	return m_Data.Scan_Min;
+	return m_pData->header.Scan_Min;
 }
 
 short CECAT7SubHeaderScan::scan_Max(void) const
 {
-	return m_Data.Scan_Max;
+	return m_pData->header.Scan_Max;
 }
 
 unsigned int CECAT7SubHeaderScan::prompts(void) const
 {
-	return m_Data.Prompts;
+	return m_pData->header.Prompts;
 }
 
 unsigned int CECAT7SubHeaderScan::delayed(void) const
 {
-	return m_Data.Delayed;
+	return m_pData->header.Delayed;
 }
 
 unsigned int CECAT7SubHeaderScan::multiples(void) const
 {
-	return m_Data.Multiples;
+	return m_pData->header.Multiples;
 }
 
 unsigned int CECAT7SubHeaderScan::net_Trues(void) const
 {
-	return m_Data.Net_Trues;
+	return m_pData->header.Net_Trues;
 }
 
 float CECAT7SubHeaderScan::cor_Singles(const short i) const
 {
-	return m_Data.Cor_Singles[i];
+	return m_pData->header.Cor_Singles[i];
 }
 
 float CECAT7SubHeaderScan::uncor_Singles(const short i) const
 {
-	return m_Data.Uncor_Singles[i];
+	return m_pData->header.Uncor_Singles[i];
 }
 
 float CECAT7SubHeaderScan::tot_Avg_Cor(void) const
 {
-	return m_Data.Tot_Avg_Cor;
+	return m_pData->header.Tot_Avg_Cor;
 }
 
 float CECAT7SubHeaderScan::tot_Avg_Uncor(void) const
 {
-	return m_Data.Tot_Avg_Uncor;
+	return m_pData->header.Tot_Avg_Uncor;
 }
 
 unsigned int CECAT7SubHeaderScan::total_Coin_Rate(void) const
 {
-	return m_Data.Total_Coin_Rate;
+	return m_pData->header.Total_Coin_Rate;
 }
 
 unsigned int CECAT7SubHeaderScan::frame_Start_Time(void) const
 {
-	return m_Data.Frame_Start_Time;
+	return m_pData->header.Frame_Start_Time;
 }
 
 unsigned int CECAT7SubHeaderScan::frame_Duration(void) const
 {
-	return m_Data.Frame_Duration;
+	return m_pData->header.Frame_Duration;
 }
 
 float CECAT7SubHeaderScan::deadtime_Correction_Factor(void) const
 {
-	return m_Data.Deadtime_Correction_Factor;
+	return m_pData->header.Deadtime_Correction_Factor;
 }
 
 short CECAT7SubHeaderScan::physical_Planes(const short i) const
 {
-	return m_Data.Physical_Planes[i];
+	return m_pData->header.Physical_Planes[i];
 }
 
 short CECAT7SubHeaderScan::cti_Reserved(const short i) const
 {
-	return m_Data.CTI_reserved[i];
+	return m_pData->header.CTI_reserved[i];
 }
 
 short CECAT7SubHeaderScan::user_Reserved(const short i) const
 {
-	return m_Data.User_Reserved[i];
+	return m_pData->header.User_Reserved[i];
 }
 
 
 void CECAT7SubHeaderScan::setData_Type(const CECATSubHeader::Data_Type dType)
 {
-	m_Data.Data_Type = static_cast<quint16>(dType);
+	m_pData->header.Data_Type = static_cast<quint16>(dType);
 }	
 
 void CECAT7SubHeaderScan::setNum_Dimensions(const short n)
 {
-	m_Data.Num_Dimensions = n;
+	m_pData->header.Num_Dimensions = n;
 }
 
 void CECAT7SubHeaderScan::setNum_R_Elements(const short n)
 {
-	m_Data.Num_R_Elements = n;
+	m_pData->header.Num_R_Elements = n;
 }
 
 void CECAT7SubHeaderScan::setNum_Angles(const short n)
 {
-	m_Data.Num_Angles = n;
+	m_pData->header.Num_Angles = n;
 }
 
 void CECAT7SubHeaderScan::setCorrections_Applied(const short n)
 {
-	m_Data.Corrections_Applied = n;
+	m_pData->header.Corrections_Applied = n;
 }
 
 void CECAT7SubHeaderScan::setNum_Z_Elements(const short n)
 {
-	m_Data.Num_Z_Elements = n;
+	m_pData->header.Num_Z_Elements = n;
 }
 
 void CECAT7SubHeaderScan::setRing_Difference(const short n)
 {
-	m_Data.Ring_Difference = n;
+	m_pData->header.Ring_Difference = n;
 }
 
 void CECAT7SubHeaderScan::setX_Resolution(const float n)
 {
-	m_Data.X_Resolution = n;
+	m_pData->header.X_Resolution = n;
 }
 
 void CECAT7SubHeaderScan::setY_Resolution(const float n)
 {
-	m_Data.Y_Resolution = n;
+	m_pData->header.Y_Resolution = n;
 }
 
 void CECAT7SubHeaderScan::setZ_Resolution(const float n)
 {
-	m_Data.Z_Resolution = n;
+	m_pData->header.Z_Resolution = n;
 }
 
 void CECAT7SubHeaderScan::setW_Resolution(const float n)
 {
-	m_Data.W_Resolution = n;
+	m_pData->header.W_Resolution = n;
 }
 
 void CECAT7SubHeaderScan::setGate_Reserved(const short i, const short n)
 {
-	m_Data.Gate_Reserved[i] = n;
+	m_pData->header.Gate_Reserved[i] = n;
 }
 
 void CECAT7SubHeaderScan::setGate_Duration(const unsigned int n)
 {
-	m_Data.Gate_Duration = n;
+	m_pData->header.Gate_Duration = n;
 }
 
 void CECAT7SubHeaderScan::setR_Wave_Offset(const unsigned int n)
 {
-	m_Data.R_Wave_Offset = n;
+	m_pData->header.R_Wave_Offset = n;
 }
 
 void CECAT7SubHeaderScan::setNum_Accepted_Beats(const unsigned int n)
 {
-	m_Data.Num_Accepted_Beats = n;
+	m_pData->header.Num_Accepted_Beats = n;
 }
 
 void CECAT7SubHeaderScan::setScale_Factor(const float n)
 {
-	m_Data.Scale_Factor = n;
+	m_pData->header.Scale_Factor = n;
 }
 
 void CECAT7SubHeaderScan::setScan_Min(const short n)
 {
-	m_Data.Scan_Min = n;
+	m_pData->header.Scan_Min = n;
 }
 
 void CECAT7SubHeaderScan::setScan_Max(const short n)
 {
-	m_Data.Scan_Max = n;
+	m_pData->header.Scan_Max = n;
 }
 
 void CECAT7SubHeaderScan::setPrompts(const unsigned int n)
 {
-	m_Data.Prompts = n;
+	m_pData->header.Prompts = n;
 }
 
 void CECAT7SubHeaderScan::setDelayed(const unsigned int n)
 {
-	m_Data.Delayed = n;
+	m_pData->header.Delayed = n;
 }
 
 void CECAT7SubHeaderScan::setMultiples(const unsigned int n)
 {
-	m_Data.Multiples = n;
+	m_pData->header.Multiples = n;
 }
 
 void CECAT7SubHeaderScan::setNet_Trues(const unsigned int n)
 {
-	m_Data.Net_Trues = n;
+	m_pData->header.Net_Trues = n;
 }
 
 void CECAT7SubHeaderScan::setCor_Singles(const short i, const float n)
 {
-	m_Data.Cor_Singles[i] = n;
+	m_pData->header.Cor_Singles[i] = n;
 }
 
 void CECAT7SubHeaderScan::setUncor_Singles(const short i, const float n)
 {
-	m_Data.Uncor_Singles[i] = n;
+	m_pData->header.Uncor_Singles[i] = n;
 }
 
 void CECAT7SubHeaderScan::setTot_Avg_Cor(const float n)
 {
-	m_Data.Tot_Avg_Cor = n;
+	m_pData->header.Tot_Avg_Cor = n;
 }
 
 void CECAT7SubHeaderScan::setTot_Avg_Uncor(const float n)
 {
-	m_Data.Tot_Avg_Uncor = n;
+	m_pData->header.Tot_Avg_Uncor = n;
 }
 
 void CECAT7SubHeaderScan::setTotal_Coin_Rate(const unsigned int n)
 {
-	m_Data.Total_Coin_Rate = n;
+	m_pData->header.Total_Coin_Rate = n;
 }
 
 void CECAT7SubHeaderScan::setFrame_Start_Time(const unsigned int n)
 {
-	m_Data.Frame_Start_Time = n;
+	m_pData->header.Frame_Start_Time = n;
 }
 
 void CECAT7SubHeaderScan::setFrame_Duration(const unsigned int n)
 {
-	m_Data.Frame_Duration = n;
+	m_pData->header.Frame_Duration = n;
 }
 
 void CECAT7SubHeaderScan::setDeadtime_Correction_Factor(const float n)
 {
-	m_Data.Deadtime_Correction_Factor = n;
+	m_pData->header.Deadtime_Correction_Factor = n;
 }
 
 void CECAT7SubHeaderScan::setPhysical_Planes(const short i, const short n)
 {
-	m_Data.Physical_Planes[i] = n;
+	m_pData->header.Physical_Planes[i] = n;
 }
 
 void CECAT7SubHeaderScan::setCTI_Reserved(const short i, const short n)
 {
-	m_Data.CTI_reserved[i] = n;
+	m_pData->header.CTI_reserved[i] = n;
 }
 
 void CECAT7SubHeaderScan::setUser_Reserved(const short i, const short n)
 {
-	m_Data.User_Reserved[i] = n;
+	m_pData->header.User_Reserved[i] = n;
 }
 

@@ -33,6 +33,7 @@
 #endif
 
 // forward declarations
+class CECAT7SubHeaderAttenCorrPrivate;
 class CECATFile;
 class CECATDirectoryItem;
 
@@ -45,9 +46,15 @@ class CECAT7SubHeaderAttenCorr : public CECATSubHeader
 														Atten_Calc };
 
 		// constructors
-		CECAT7SubHeaderAttenCorr(CECATFile* ecatFile,
+		CECAT7SubHeaderAttenCorr(CECATFile* ecatFile = NULL,
 														 CECATDirectoryItem* pDirItem = NULL);
+		~CECAT7SubHeaderAttenCorr();
 
+		// copy constructur and default assignment operator
+		CECAT7SubHeaderAttenCorr(const CECAT7SubHeaderAttenCorr& src);		
+		CECAT7SubHeaderAttenCorr& operator=(const CECAT7SubHeaderAttenCorr& src);
+		
+		// header clear method
 		void clear();
 
 		// public methods
@@ -124,46 +131,9 @@ class CECAT7SubHeaderAttenCorr : public CECATSubHeader
 		void setZ_Elements(const short i, const short n);
 		void setUnused(const short i, const short n);
 		void setCTI_Reserverd(const short i, const short n);
-		
-	protected:
-		// constructors
-		CECAT7SubHeaderAttenCorr();
 
-#ifdef __MEDIO_PRIVATE__
 	private:
-		struct ECAT7SubHeader_AttenCorr
-		{
-			quint16	Data_Type;
-			quint16	Num_Dimensions;
-			quint16	Attenuation_Type;
-			quint16	Num_R_Elements;
-			quint16	Num_Angles;
-			quint16	Num_Z_Elements;
-			quint16	Ring_Difference;
-			float		X_Resolution;
-			float		Y_Resolution;
-			float		Z_Resolution;
-			float		W_Resolution;
-			float		Scale_Factor;
-			float		X_Offset;
-			float		Y_Offset;
-			float		X_Radius;
-			float		Y_Radius;
-			float		Tilt_Angle;
-			float		Attenuation_Coeff;
-			float		Attenuation_Min;
-			float		Attenuation_Max;
-			float		Skull_Thickness;
-			quint16	Num_Additional_Atten_Coeff;
-			float		Additional_Atten_Coeff[8];
-			float		Edge_Finding_Threshold;
-			quint16	Storage_Order;
-			quint16	Span;
-			quint16	Z_Elements[64];
-			quint16	Unused[86];
-			quint16	CTI_Reserved[50];
-		} m_Data;
-#endif
+		CECAT7SubHeaderAttenCorrPrivate* m_pData;
 };
 
 #endif // CECAT7SUBHEADERATTENCORR_H

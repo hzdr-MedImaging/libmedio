@@ -209,5 +209,10 @@ else {
 ansi_color {
 	QMAKE_CXX		= @printf '\033[32mCompiling $<\033[0m\n';$$QMAKE_CXX
 	QMAKE_LINK	= @printf '\033[32mLinking \033[1m$@\033[0m\n';$$QMAKE_LINK
-	DEFINES += ANSI_COLOR
+	DEFINES *= ANSI_COLOR
+}
+else {
+	QMAKE_CXX		= @printf 'Compiling $<\n';$$QMAKE_CXX
+	QMAKE_LINK	= @printf 'Linking $@\n';$$QMAKE_LINK
+	DEFINES -= ANSI_COLOR
 }

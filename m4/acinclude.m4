@@ -70,7 +70,7 @@ AC_DEFUN(AC_ANSI_COLOR,
 [
 	AC_MSG_CHECKING(whether ANSI color should be used for terminal output)
 	AC_ARG_ENABLE(ansi-color,
-								[AC_HELP_STRING([--enable-ansi-color], [ansi-color terminal debug output [default=yes]])],
+								[AC_HELP_STRING([--enable-ansi-color], [ansi-color terminal output [default=yes]])],
 								[case "${enableval}" in
 									yes) test_on_ansi_color=yes ;;
 									no)  test_on_ansi_color=no ;;
@@ -78,9 +78,7 @@ AC_DEFUN(AC_ANSI_COLOR,
 								esac], 
 								[test_on_ansi_color=yes])
 
-  if test "$COMPILE_LEVEL" = "release"; then
-		AC_MSG_RESULT([skipping, debug disabled])	
-	elif test "$test_on_ansi_color" = "yes"; then
+	if test "$test_on_ansi_color" = "yes"; then
 		ANSI_COLOR="ansi_color" 
 		AC_DEFINE(WITH_ANSI_COLOR) 		
 		AC_MSG_RESULT(yes)

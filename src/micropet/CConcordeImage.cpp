@@ -15,7 +15,8 @@
 //! constructs a CConcordeImage object
 //!
 ////////////////////////////////////////////////////////////////////////////////
-CConcordeImage::CConcordeImage(QString file):CConcordeFile(file)
+CConcordeImage::CConcordeImage(const QString& fileName)
+	: CConcordeFile(fileName)
 {
 	ENTER();
 	LEAVE();
@@ -44,7 +45,7 @@ bool CConcordeImage::open(QIODevice::OpenModeFlag mode)
 {
 	ENTER();
 	bool result = false;
-	
+
 	if(isOpen())
 	{
 		W("File is already opened");
@@ -57,11 +58,16 @@ bool CConcordeImage::open(QIODevice::OpenModeFlag mode)
 		m_pCachedMainHeader = new CConcordeMainHeaderImage(this);
 		D("Loading header information");
 		result = m_pCachedMainHeader->load();
-	
+
 		if(result)
 			if((result = QFile::open(mode)) == false)
-				QFile::close();
+							QFile::close();
 	}
 	RETURN(result);
 	return result;
+}
+
+int CConcordeImage::fileType() const
+{
+	return CConcordeFile::ConcordeMicropet_Image;
 }

@@ -36,31 +36,62 @@
 
 #include <rtdebug.h>
 
+// we define the private inline class of that one so that we
+// are able to hide the private methods & data of that class in the
+// public headers
+class CECATDirectoryItemPrivate
+{
+	public:
+		void cacheSubHeader(const CECATSubHeader& subHeader);
+		
+		CECATDirectoryItem*		dirItem;					// pointer to the directory Item
+		CECATFile*						file;							// pointer to the ECATFile
+		CECATSubHeader*				cachedSubHeader;	// pointer to a cached SubHeader object
+
+		// META information about the directory Item
+		short									frame;						// information normally
+		short									plane;						// encoded in
+		short									gate;							// the MatrixID
+		short									bed;
+		short									data;
+		qint64								dataBlock_Start;	// also start of SubHeader
+		qint64								dataBlock_End;		// end of raw Data area
+
+		enum CECATDirectoryItem::AccessStatus			status;
+};
+
 CECATDirectoryItem::CECATDirectoryItem(CECATFile* pFile,
 																			 quint32 matrixID) 
-	: m_pECATFile(pFile),
-		m_pCachedSubHeader(NULL),
-		m_iFrame(-1),
-		m_iPlane(-1),
-		m_iGate(-1),
-		m_iBed(-1),
-		m_iData(-1),
-		m_iDataBlock_Start(0),
-		m_iDataBlock_End(0),
-		m_iStatus(NotYetWritten)
 {
 	ENTER();
 
+	// allocate data from our private instance class
+	m_pData = new CECATDirectoryItemPrivate();
+	m_pData->dirItem = this;
+	m_pData->file = pFile;
+	m_pData->cachedSubHeader = NULL;
+	m_pData->dataBlock_Start = 0;
+	m_pData->dataBlock_End = 0;
+	m_pData->status = NotYetWritten;
+
 	if(matrixID != 0)
 	{
-		m_iFrame = matrixID2Frame(matrixID);
-		m_iPlane = matrixID2Plane(matrixID);
-		m_iGate  = matrixID2Gate(matrixID);
-		m_iBed   = matrixID2Bed(matrixID);
-		m_iData  = matrixID2Data(matrixID);
+		m_pData->frame = matrixID2Frame(matrixID);
+		m_pData->plane = matrixID2Plane(matrixID);
+		m_pData->gate  = matrixID2Gate(matrixID);
+		m_pData->bed   = matrixID2Bed(matrixID);
+		m_pData->data  = matrixID2Data(matrixID);
 
-		D("created new DirItem (%d/%d/%d/%d/%d)", m_iFrame, m_iPlane, m_iGate, m_iBed, m_iData);
+		D("created new DirItem (%d/%d/%d/%d/%d)", m_pData->frame, m_pData->plane, m_pData->gate, m_pData->bed, m_pData->data);
 	}
+	else
+	{
+		m_pData->frame = -1;
+		m_pData->plane = -1;
+		m_pData->gate = -1;
+		m_pData->bed = -1;
+		m_pData->data = -1;
+	}		
 	
 	LEAVE();
 }
@@ -69,95 +100,137 @@ CECATDirectoryItem::~CECATDirectoryItem()
 {
 	ENTER();
 
-	delete m_pCachedSubHeader;
+	delete m_pData->cachedSubHeader;
+	delete m_pData;
 
 	LEAVE();
 }
 
-unsigned int CECATDirectoryItem::matrixID(void) const
+CECATDirectoryItem::CECATDirectoryItem(const CECATDirectoryItem& src)
+{
+	ENTER();
+
+	m_pData = new CECATDirectoryItemPrivate();
+
+	// copy the instance data
+	*this = src;
+
+	// set the file ptr to NULL	
+	m_pData->dirItem = this;
+	m_pData->file = NULL;
+	m_pData->cachedSubHeader = NULL;
+	
+	LEAVE();
+}
+
+CECATDirectoryItem& CECATDirectoryItem::operator=(const CECATDirectoryItem& src)
+{
+	ENTER();
+
+	if(m_pData != src.m_pData)
+	{
+		m_pData->frame						= src.m_pData->frame;
+		m_pData->plane						= src.m_pData->plane;
+		m_pData->gate							= src.m_pData->gate;
+		m_pData->bed							= src.m_pData->bed;
+		m_pData->data							= src.m_pData->data;
+		m_pData->dataBlock_Start	= src.m_pData->dataBlock_Start;
+		m_pData->dataBlock_End		= src.m_pData->dataBlock_End;
+		m_pData->status						= src.m_pData->status;
+	}
+
+	LEAVE();
+	return *this;
+}
+
+quint32 CECATDirectoryItem::matrixID(void) const
 { 
-	return convertToMatrixID(m_iFrame, m_iPlane, m_iGate, m_iBed, m_iData);
+	return convertToMatrixID(m_pData->frame, 
+													 m_pData->plane, 
+													 m_pData->gate, 
+													 m_pData->bed, 
+													 m_pData->data);
 }
 
 qint64 CECATDirectoryItem::dataBlock_Start(void) const
 { 
-	return m_iDataBlock_Start;
+	return m_pData->dataBlock_Start;
 }
 
 qint64 CECATDirectoryItem::dataBlock_End(void) const
 { 
-	return m_iDataBlock_End;
+	return m_pData->dataBlock_End;
 }
 
 CECATDirectoryItem::AccessStatus CECATDirectoryItem::dataBlock_Status(void) const
 { 
-	return m_iStatus; 
+	return m_pData->status; 
 }
 
 short CECATDirectoryItem::frame(void) const
 { 
-	return m_iFrame;
+	return m_pData->frame;
 }
 
 short CECATDirectoryItem::plane(void) const
 { 
-	return m_iPlane;
+	return m_pData->plane;
 }
 
 short CECATDirectoryItem::gate(void) const
 { 
-	return m_iGate;
+	return m_pData->gate;
 }
 
 short CECATDirectoryItem::bed(void) const
 { 
-	return m_iBed;
+	return m_pData->bed;
 }
 
 short CECATDirectoryItem::data(void) const
 {	
-	return m_iData;
+	return m_pData->data;
 }
 
 // mutator methods
 void CECATDirectoryItem::setDataBlock_Start(const qint64 offset)
 { 
-	m_iDataBlock_Start = offset;
+	m_pData->dataBlock_Start = offset;
 }
 
 void CECATDirectoryItem::setDataBlock_End(const qint64 offset)
 { 
-	m_iDataBlock_End = offset;
+	m_pData->dataBlock_End = offset;
 }
 
 void CECATDirectoryItem::setDataBlock_Status(const AccessStatus status)
 { 
-	m_iStatus = status;
+	m_pData->status = status;
 }
 
 void CECATDirectoryItem::setFrame(const short f)
 { 
-	m_iFrame = f;
+	m_pData->frame = f;
 }
 
 void CECATDirectoryItem::setPlane(const short p)
 { 
-	m_iPlane = p;
+	m_pData->plane = p;
 }
 
 void CECATDirectoryItem::setGate(const short g)
 { 
-	m_iGate = g;
+	m_pData->gate = g;
 }
 
 void CECATDirectoryItem::setBed(const short b)
 { 
-	m_iBed = b;
+	m_pData->bed = b;
 }
 
 void CECATDirectoryItem::setData(const short d)
 {	
-	m_iData = d;
+	m_pData->data = d;
 }		
 
 bool CECATDirectoryItem::readSubHeader(CECATSubHeader*& subHeader)
@@ -165,86 +238,90 @@ bool CECATDirectoryItem::readSubHeader(CECATSubHeader*& subHeader)
 	ENTER();
 	bool result = false;	
 
-	if(m_pECATFile->isReadable())
+	if(m_pData->file && m_pData->file->isReadable())
 	{
 		// check if we have a cached sub header ready already so that
 		// we can take that one instead of loading the sub header once
 		// more from scratch
-		if(m_pCachedSubHeader)
+		if(m_pData->cachedSubHeader)
 		{
-			switch(m_pECATFile->subHeaderType())
+			switch(m_pData->file->subHeaderType())
 			{
 				case CECATSubHeader::ECAT7_AttenCorr: 
-					subHeader = new CECAT7SubHeaderAttenCorr(*static_cast<CECAT7SubHeaderAttenCorr*>(m_pCachedSubHeader));
+					subHeader = new CECAT7SubHeaderAttenCorr(*static_cast<CECAT7SubHeaderAttenCorr*>(m_pData->cachedSubHeader));
 					result = true;
 				break;
 
 				case CECATSubHeader::ECAT7_Image:	
-					subHeader = new CECAT7SubHeaderImage(*static_cast<CECAT7SubHeaderImage*>(m_pCachedSubHeader));
+					subHeader = new CECAT7SubHeaderImage(*static_cast<CECAT7SubHeaderImage*>(m_pData->cachedSubHeader));
 					result = true;
 				break;
 		
 				case CECATSubHeader::ECAT7_Norm:
-					subHeader = new CECAT7SubHeaderNorm(*static_cast<CECAT7SubHeaderNorm*>(m_pCachedSubHeader));
+					subHeader = new CECAT7SubHeaderNorm(*static_cast<CECAT7SubHeaderNorm*>(m_pData->cachedSubHeader));
 					result = true;
 				break;
 				
 				case CECATSubHeader::ECAT7_Norm3D:
-					subHeader = new CECAT7SubHeaderNorm3D(*static_cast<CECAT7SubHeaderNorm3D*>(m_pCachedSubHeader));
+					subHeader = new CECAT7SubHeaderNorm3D(*static_cast<CECAT7SubHeaderNorm3D*>(m_pData->cachedSubHeader));
 					result = true;
 				break;
 				
 				case CECATSubHeader::ECAT7_PolarMap:
-					subHeader = new CECAT7SubHeaderPolarMap(*static_cast<CECAT7SubHeaderPolarMap*>(m_pCachedSubHeader));
+					subHeader = new CECAT7SubHeaderPolarMap(*static_cast<CECAT7SubHeaderPolarMap*>(m_pData->cachedSubHeader));
 					result = true;
 				break;
 				
 				case CECATSubHeader::ECAT7_Scan:
-					subHeader = new CECAT7SubHeaderScan(*static_cast<CECAT7SubHeaderScan*>(m_pCachedSubHeader));
+					subHeader = new CECAT7SubHeaderScan(*static_cast<CECAT7SubHeaderScan*>(m_pData->cachedSubHeader));
 					result = true;
 				break;
 				
 				case CECATSubHeader::ECAT7_Scan3D:
-					subHeader = new CECAT7SubHeaderScan3D(*static_cast<CECAT7SubHeaderScan3D*>(m_pCachedSubHeader));
+					subHeader = new CECAT7SubHeaderScan3D(*static_cast<CECAT7SubHeaderScan3D*>(m_pData->cachedSubHeader));
 					result = true;
 				break;
 
 				default:
 					E("ECAT type isn't specified or not supported yet.");
 			}
+
+			// set the mediodata object for the newly created subheader
+			subHeader->setMedIOData(m_pData->file);
+			subHeader->setDirectoryItem(this);
 		}
 		else
 		{
 			// lets prepare the SubHeader depending on the type of the
 			// ECATFile
-			switch(m_pECATFile->subHeaderType())
+			switch(m_pData->file->subHeaderType())
 			{
 				case CECATSubHeader::ECAT7_AttenCorr: 
-					subHeader = new CECAT7SubHeaderAttenCorr(m_pECATFile, this);
+					subHeader = new CECAT7SubHeaderAttenCorr(m_pData->file, this);
 				break;
 
 				case CECATSubHeader::ECAT7_Image:	
-					subHeader = new CECAT7SubHeaderImage(m_pECATFile, this);
+					subHeader = new CECAT7SubHeaderImage(m_pData->file, this);
 				break;
 		
 				case CECATSubHeader::ECAT7_Norm:
-					subHeader = new CECAT7SubHeaderNorm(m_pECATFile, this);
+					subHeader = new CECAT7SubHeaderNorm(m_pData->file, this);
 				break;
 				
 				case CECATSubHeader::ECAT7_Norm3D:
-					subHeader = new CECAT7SubHeaderNorm3D(m_pECATFile, this);
+					subHeader = new CECAT7SubHeaderNorm3D(m_pData->file, this);
 				break;
 				
 				case CECATSubHeader::ECAT7_PolarMap:
-					subHeader = new CECAT7SubHeaderPolarMap(m_pECATFile, this);
+					subHeader = new CECAT7SubHeaderPolarMap(m_pData->file, this);
 				break;
 				
 				case CECATSubHeader::ECAT7_Scan:
-					subHeader = new CECAT7SubHeaderScan(m_pECATFile, this);
+					subHeader = new CECAT7SubHeaderScan(m_pData->file, this);
 				break;
 				
 				case CECATSubHeader::ECAT7_Scan3D:
-					subHeader = new CECAT7SubHeaderScan3D(m_pECATFile, this);
+					subHeader = new CECAT7SubHeaderScan3D(m_pData->file, this);
 				break;
 
 				default:
@@ -293,7 +370,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 		
 	// check if the file associated with this item is readable or
 	// not
-	if(m_pECATFile && m_pECATFile->isReadable() == false)
+	if(m_pData->file && m_pData->file->isReadable() == false)
 	{
 		RETURN(false);
 		return false;
@@ -301,7 +378,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 	
 	// we load the MatrixData out of the ECATFile manually but only
 	// if the access status of this item is set to "Finished"
-	if(m_iStatus == Finished)
+	if(m_pData->status == Finished)
 	{
 		// before we can read in the raw data we need to read in
 		// the Subheader so that we know the data type of our raw
@@ -316,17 +393,17 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 		// set the ECATFile handle to the correct position of
 		// the matrix start. This should normally be
 		// Matrix_SubHeader_StartPosition+1
-		if(m_pECATFile->seek(m_iDataBlock_Start+subHeader->rawDataSize()) == false)
+		if(m_pData->file->seek(m_pData->dataBlock_Start+subHeader->rawDataSize()) == false)
 		{
 			RETURN(false);
 			return false;
 		}
 
-		SHOWVALUE(m_pECATFile->pos());
+		SHOWVALUE(m_pData->file->at());
 
 		// then we allocate some memory for loading the matrixdata
 		// this should be:
-		matrixSize = m_iDataBlock_End-m_iDataBlock_Start-subHeader->rawDataSize()+ECAT_BLOCKSIZE;
+		matrixSize = m_pData->dataBlock_End-m_pData->dataBlock_Start-subHeader->rawDataSize()+ECAT_BLOCKSIZE;
 		matrixData = new char[matrixSize];
 
 		// then we process the matrix data that is associated with
@@ -339,9 +416,9 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 			case CECATSubHeader::UnknownDataType:
 			{
 				W("No or an unknown data type was set for the matrix data of dirItem %08lx",
-						convertToMatrixID(m_iFrame, m_iPlane, m_iGate, m_iBed, m_iData));
+						convertToMatrixID(m_pData->frame, m_pData->plane, m_pData->gate, m_pData->bed, m_pData->data));
 
-				if(m_pECATFile->read(matrixData, matrixSize) > 0)
+				if(m_pData->file->read(matrixData, matrixSize) > 0)
 					result = true;
 			}
 			break;
@@ -349,7 +426,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 			// write out Byte data. (1 byte)
 			case CECATSubHeader::ByteData:
 			{
-				if(m_pECATFile->read(matrixData, matrixSize) > 0)
+				if(m_pData->file->read(matrixData, matrixSize) > 0)
 					result = true;
 			}
 			break;
@@ -367,7 +444,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 				for(unsigned int read=0; read < matrixSize;)
 				{
 					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
-					unsigned int curRead = m_pECATFile->read(bufArray.data(), toRead);
+					unsigned int curRead = m_pData->file->read(bufArray.data(), toRead);
 					if(curRead != toRead)
 					{
 						result = false;
@@ -408,7 +485,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 				for(unsigned int read=0; read < matrixSize;)
 				{
 					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
-					unsigned int curRead = m_pECATFile->read(bufArray.data(), toRead);
+					unsigned int curRead = m_pData->file->read(bufArray.data(), toRead);
 					if(curRead != toRead)
 					{
 						result = false;
@@ -449,7 +526,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 				for(unsigned int read=0; read < matrixSize;)
 				{
 					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
-					unsigned int curRead = m_pECATFile->read(bufArray.data(), toRead);
+					unsigned int curRead = m_pData->file->read(bufArray.data(), toRead);
 					if(curRead != toRead)
 					{
 						result = false;
@@ -490,7 +567,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 				for(unsigned int read=0; read < matrixSize;)
 				{
 					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
-					unsigned int curRead = m_pECATFile->read(bufArray.data(), toRead);
+					unsigned int curRead = m_pData->file->read(bufArray.data(), toRead);
 					if(curRead != toRead)
 					{
 						result = false;
@@ -529,7 +606,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 				for(unsigned int read=0; read < matrixSize;)
 				{
 					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
-					unsigned int curRead = m_pECATFile->read(bufArray.data(), toRead);
+					unsigned int curRead = m_pData->file->read(bufArray.data(), toRead);
 					if(curRead != toRead)
 					{
 						result = false;
@@ -568,7 +645,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 				for(unsigned int read=0; read < matrixSize;)
 				{
 					unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
-					unsigned int curRead = m_pECATFile->read(bufArray.data(), toRead);
+					unsigned int curRead = m_pData->file->read(bufArray.data(), toRead);
 					if(curRead != toRead)
 					{
 						result = false;
@@ -647,101 +724,83 @@ bool CECATDirectoryItem::writeSubHeader(const CECATSubHeader& subHeader)
 	bool result = false;
 
 	// make sure the subHeader is going to be cached
-	cacheSubHeader(subHeader);
+	m_pData->cacheSubHeader(subHeader);
 
 	// now issue a write operation upon the cached subheader
-	result = m_pCachedSubHeader->save();
+	result = m_pData->cachedSubHeader->save();
 
 	RETURN(result);
 	return result;
 }
 
-void CECATDirectoryItem::cacheSubHeader(const CECATSubHeader& subHeader)
+void CECATDirectoryItemPrivate::cacheSubHeader(const CECATSubHeader& subHeader)
 {
 	ENTER();
 
 	// before we can save the subHeader we have to generate the cached copy
 	// and make sure it belongs to this particular directory Item.
-	switch(m_pECATFile->subHeaderType())
+	switch(file->subHeaderType())
 	{
 		case CECATSubHeader::ECAT7_AttenCorr: 
 		{
-			if(m_pCachedSubHeader)
-			{
-				if(m_pCachedSubHeader != &subHeader)
-					*static_cast<CECAT7SubHeaderAttenCorr*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderAttenCorr*>(&subHeader);
-			}
+			if(cachedSubHeader)
+				*static_cast<CECAT7SubHeaderAttenCorr*>(cachedSubHeader) = *static_cast<const CECAT7SubHeaderAttenCorr*>(&subHeader);
 			else
-				m_pCachedSubHeader = new CECAT7SubHeaderAttenCorr(*static_cast<const CECAT7SubHeaderAttenCorr*>(&subHeader));
+				cachedSubHeader = new CECAT7SubHeaderAttenCorr(*static_cast<const CECAT7SubHeaderAttenCorr*>(&subHeader));
 		}
 		break;
 
 		case CECATSubHeader::ECAT7_Image:	
 		{
-			if(m_pCachedSubHeader)
-			{
-				if(m_pCachedSubHeader != &subHeader)
-					*static_cast<CECAT7SubHeaderImage*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderImage*>(&subHeader);
-			}
+			if(cachedSubHeader)
+				*static_cast<CECAT7SubHeaderImage*>(cachedSubHeader) = *static_cast<const CECAT7SubHeaderImage*>(&subHeader);
 			else
-				m_pCachedSubHeader = new CECAT7SubHeaderImage(*static_cast<const CECAT7SubHeaderImage*>(&subHeader));
+				cachedSubHeader = new CECAT7SubHeaderImage(*static_cast<const CECAT7SubHeaderImage*>(&subHeader));
 		}
 		break;
 	
 		case CECATSubHeader::ECAT7_Norm:
 		{
-			if(m_pCachedSubHeader)
-				*static_cast<CECAT7SubHeaderNorm*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderNorm*>(&subHeader);
+			if(cachedSubHeader)
+				*static_cast<CECAT7SubHeaderNorm*>(cachedSubHeader) = *static_cast<const CECAT7SubHeaderNorm*>(&subHeader);
 			else
-				m_pCachedSubHeader = new CECAT7SubHeaderNorm(*static_cast<const CECAT7SubHeaderNorm*>(&subHeader));
+				cachedSubHeader = new CECAT7SubHeaderNorm(*static_cast<const CECAT7SubHeaderNorm*>(&subHeader));
 		}
 		break;
 			
 		case CECATSubHeader::ECAT7_Norm3D:
 		{
-			if(m_pCachedSubHeader)
-			{
-				if(m_pCachedSubHeader != &subHeader)
-					*static_cast<CECAT7SubHeaderNorm3D*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderNorm3D*>(&subHeader);
-			}
+			if(cachedSubHeader)
+				*static_cast<CECAT7SubHeaderNorm3D*>(cachedSubHeader) = *static_cast<const CECAT7SubHeaderNorm3D*>(&subHeader);
 			else
-				m_pCachedSubHeader = new CECAT7SubHeaderNorm3D(*static_cast<const CECAT7SubHeaderNorm3D*>(&subHeader));
+				cachedSubHeader = new CECAT7SubHeaderNorm3D(*static_cast<const CECAT7SubHeaderNorm3D*>(&subHeader));
 		}
 		break;
 			
 		case CECATSubHeader::ECAT7_PolarMap:
 		{
-			if(m_pCachedSubHeader)
-			{
-				if(m_pCachedSubHeader != &subHeader)
-					*static_cast<CECAT7SubHeaderPolarMap*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderPolarMap*>(&subHeader);
-			}
+			if(cachedSubHeader)
+				*static_cast<CECAT7SubHeaderPolarMap*>(cachedSubHeader) = *static_cast<const CECAT7SubHeaderPolarMap*>(&subHeader);
 			else		
-				m_pCachedSubHeader = new CECAT7SubHeaderPolarMap(*static_cast<const CECAT7SubHeaderPolarMap*>(&subHeader));
+				cachedSubHeader = new CECAT7SubHeaderPolarMap(*static_cast<const CECAT7SubHeaderPolarMap*>(&subHeader));
 		}
 		break;
 			
 		case CECATSubHeader::ECAT7_Scan:
 		{
-			if(m_pCachedSubHeader)
-			{
-				if(m_pCachedSubHeader != &subHeader)
-					*static_cast<CECAT7SubHeaderScan*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderScan*>(&subHeader);
-			}
+			if(cachedSubHeader)
+				*static_cast<CECAT7SubHeaderScan*>(cachedSubHeader) = *static_cast<const CECAT7SubHeaderScan*>(&subHeader);
 			else		
-				m_pCachedSubHeader = new CECAT7SubHeaderScan(*static_cast<const CECAT7SubHeaderScan*>(&subHeader));
+				cachedSubHeader = new CECAT7SubHeaderScan(*static_cast<const CECAT7SubHeaderScan*>(&subHeader));
 		}
 		break;
 			
 		case CECATSubHeader::ECAT7_Scan3D:
 		{
-			if(m_pCachedSubHeader)
-			{
-				if(m_pCachedSubHeader != &subHeader)
-					*static_cast<CECAT7SubHeaderScan3D*>(m_pCachedSubHeader) = *static_cast<const CECAT7SubHeaderScan3D*>(&subHeader);
-			}
+			if(cachedSubHeader)
+				*static_cast<CECAT7SubHeaderScan3D*>(cachedSubHeader) = *static_cast<const CECAT7SubHeaderScan3D*>(&subHeader);
 			else		
-				m_pCachedSubHeader = new CECAT7SubHeaderScan3D(*static_cast<const CECAT7SubHeaderScan3D*>(&subHeader));
+				cachedSubHeader = new CECAT7SubHeaderScan3D(*static_cast<const CECAT7SubHeaderScan3D*>(&subHeader));
 		}
 		break;
 
@@ -749,8 +808,11 @@ void CECATDirectoryItem::cacheSubHeader(const CECATSubHeader& subHeader)
 			E("ECAT type isn't specified or not supported yet.");
 	}
 	
-	if(m_pCachedSubHeader)
-		m_pCachedSubHeader->setDirectoryItem(this);
+	if(cachedSubHeader)
+	{
+		cachedSubHeader->setMedIOData(file);
+		cachedSubHeader->setDirectoryItem(dirItem);
+	}
 	
 	LEAVE();
 }
@@ -761,10 +823,10 @@ void CECATDirectoryItem::subHeaderWritten(const CECATSubHeader& subHeader)
 
 	// if the subHeaderWritten is the same as our cached subheader we don't
 	// have to copy it again and can break out immediately
-	if(&subHeader != m_pCachedSubHeader);
+	if(&subHeader != m_pData->cachedSubHeader);
 	{
 		// otherwise we make sure the written subHeader is cached
-		cacheSubHeader(subHeader);
+		m_pData->cacheSubHeader(subHeader);
 	}
 
 	LEAVE();
@@ -822,7 +884,8 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 	bool result = true;
 
 	// check if the file associated with this item is writeable at all
-	if(m_pECATFile && m_pECATFile->isWritable() == false)
+	if(m_pData->file == NULL ||
+		 m_pData->file->isWritable() == false)
 	{
 		RETURN(false);
 		return false;
@@ -835,51 +898,55 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 	// there isn't already one.
 	CECATSubHeader* subHeader = NULL;
 
-	SHOWVALUE(m_iStatus);
-	SHOWVALUE(m_iDataBlock_Start);
-	SHOWVALUE(m_iDataBlock_End);
-	SHOWPOINTER(m_pCachedSubHeader);
+	SHOWVALUE(m_pData->status);
+	SHOWVALUE(m_pData->dataBlock_Start);
+	SHOWVALUE(m_pData->dataBlock_End);
+	SHOWPOINTER(m_pData->cachedSubHeader);
 
 	// try to read the subheader first
 	if(dataType == CECATSubHeader::UnknownDataType ||
-		 m_iStatus != NotYetWritten ||
-		 m_iDataBlock_End != 0)
+		 m_pData->status != NotYetWritten ||
+		 m_pData->dataBlock_End != 0)
 	{
 		readSubHeader(subHeader);
 	}
+
+	SHOWPOINTER(subHeader);
 	
 	if(subHeader == NULL &&
-		 m_iStatus == NotYetWritten &&
-		 m_iDataBlock_End == 0)
+		 m_pData->status == NotYetWritten &&
+		 m_pData->dataBlock_End == 0)
 	{
-		switch(m_pECATFile->subHeaderType())
+		SHOWVALUE(m_pData->file->subHeaderType());
+
+		switch(m_pData->file->subHeaderType())
 		{
 			case CECATSubHeader::ECAT7_AttenCorr: 
-				subHeader = new CECAT7SubHeaderAttenCorr(m_pECATFile, this);
+				subHeader = new CECAT7SubHeaderAttenCorr(m_pData->file, this);
 			break;
 
 			case CECATSubHeader::ECAT7_Image:	
-				subHeader = new CECAT7SubHeaderImage(m_pECATFile, this);
+				subHeader = new CECAT7SubHeaderImage(m_pData->file, this);
 			break;
 		
 			case CECATSubHeader::ECAT7_Norm:
-				subHeader = new CECAT7SubHeaderNorm(m_pECATFile, this);
+				subHeader = new CECAT7SubHeaderNorm(m_pData->file, this);
 			break;
 				
 			case CECATSubHeader::ECAT7_Norm3D:
-				subHeader = new CECAT7SubHeaderNorm3D(m_pECATFile, this);
+				subHeader = new CECAT7SubHeaderNorm3D(m_pData->file, this);
 			break;
 				
 			case CECATSubHeader::ECAT7_PolarMap:
-				subHeader = new CECAT7SubHeaderPolarMap(m_pECATFile, this);
+				subHeader = new CECAT7SubHeaderPolarMap(m_pData->file, this);
 			break;
 				
 			case CECATSubHeader::ECAT7_Scan:
-				subHeader = new CECAT7SubHeaderScan(m_pECATFile, this);
+				subHeader = new CECAT7SubHeaderScan(m_pData->file, this);
 			break;
 				
 			case CECATSubHeader::ECAT7_Scan3D:
-				subHeader = new CECAT7SubHeaderScan3D(m_pECATFile, this);
+				subHeader = new CECAT7SubHeaderScan3D(m_pData->file, this);
 			break;
 
 			default:
@@ -914,7 +981,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 	bool result = true;
 	
 	// check if the file associated with this item is writeable at all
-	if(m_pECATFile && m_pECATFile->isWritable() == false)
+	if(m_pData->file == NULL || m_pData->file->isWritable() == false)
 	{
 		RETURN(false);
 		return false;
@@ -931,13 +998,13 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 	// set the ECATFile handle to the correct position of
 	// the matrix start. This should normally be
 	// Matrix_SubHeader_StartPosition+subHeaderSize
-	if(m_pECATFile->seek(m_iDataBlock_Start+subHeader.rawDataSize()) == false)
+	if(m_pData->file->seek(m_pData->dataBlock_Start+subHeader.rawDataSize()) == false)
 	{
 		RETURN(false);
 		return false;
 	}
 
-	SHOWVALUE(m_pECATFile->pos());
+	SHOWVALUE(m_pData->file->at());
 
 	// then we process the matrix data that is associated with
 	// this directoryitem.
@@ -949,7 +1016,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 		case CECATSubHeader::UnknownDataType:
 		{
 			E("No or an unknown data type was set for the matrix data of dirItem %08lx",
-					convertToMatrixID(m_iFrame, m_iPlane, m_iGate, m_iBed, m_iData));
+					convertToMatrixID(m_pData->frame, m_pData->plane, m_pData->gate, m_pData->bed, m_pData->data));
 			
 			result = false;
 		}
@@ -958,7 +1025,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 		// write out Byte data. (1 byte)
 		case CECATSubHeader::ByteData:
 		{
-			if(m_pECATFile->write(matrixData, matrixSize) == (qint64)matrixSize)
+			if(m_pData->file->write(matrixData, matrixSize) == (qint64)matrixSize)
 				result = true;
 		}
 		break;
@@ -993,7 +1060,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				bufStream.setByteOrder(QDataStream::BigEndian);
 
 				// write out the data from our buffer to the file
-				if(m_pECATFile->write(bufArray.data(), toWrite) != (qint64)toWrite)
+				if(m_pData->file->write(bufArray.data(), toWrite) != (qint64)toWrite)
 				{
 					result = false;
 					break;
@@ -1035,7 +1102,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				bufStream.setByteOrder(QDataStream::BigEndian);
 
 				// write out the data from our buffer to the file
-				if(m_pECATFile->write(bufArray.data(), toWrite) != (qint64)toWrite)
+				if(m_pData->file->write(bufArray.data(), toWrite) != (qint64)toWrite)
 				{
 					result = false;
 					break;
@@ -1077,7 +1144,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				bufStream.setByteOrder(QDataStream::BigEndian);
 
 				// write out the data from our buffer to the file
-				if(m_pECATFile->write(bufArray.data(), toWrite) != (qint64)toWrite)
+				if(m_pData->file->write(bufArray.data(), toWrite) != (qint64)toWrite)
 				{
 					result = false;
 					break;
@@ -1117,7 +1184,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				}
 
 				// write out the data from our buffer to the file
-				if(m_pECATFile->write(bufArray.data(), toWrite) != (qint64)toWrite)
+				if(m_pData->file->write(bufArray.data(), toWrite) != (qint64)toWrite)
 				{
 					result = false;
 					break;
@@ -1157,7 +1224,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				}
 
 				// write out the data from our buffer to the file
-				if(m_pECATFile->write(bufArray.data(), toWrite) != (qint64)toWrite)
+				if(m_pData->file->write(bufArray.data(), toWrite) != (qint64)toWrite)
 				{
 					result = false;
 					break;
@@ -1198,7 +1265,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 				}
 
 				// write out the data from our buffer to the file
-				if(m_pECATFile->write(bufArray.data(), toWrite) != (qint64)toWrite)
+				if(m_pData->file->write(bufArray.data(), toWrite) != (qint64)toWrite)
 				{
 					result = false;
 					break;
@@ -1225,7 +1292,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 
 			memset(fillData, 0, fillLen*sizeof(char));
 
-			if(m_pECATFile->write(fillData, fillLen) != (qint64)fillLen)
+			if(m_pData->file->write(fillData, fillLen) != (qint64)fillLen)
 			{
 				result = false;
 				E("Error occurred while trying to write %ld NULL bytes.", fillLen);
@@ -1240,8 +1307,8 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 		if(result)
 		{
 			// at the end of our operation we calculate the new EndPosition
-			m_iDataBlock_End = m_iDataBlock_Start+subHeader.rawDataSize()+matrixSize-ECAT_BLOCKSIZE;
-			m_iStatus = CECATDirectoryItem::Finished;
+			m_pData->dataBlock_End = m_pData->dataBlock_Start+subHeader.rawDataSize()+matrixSize-ECAT_BLOCKSIZE;
+			m_pData->status = CECATDirectoryItem::Finished;
 		}
 	}
 
@@ -1254,33 +1321,33 @@ QDataStream& operator<<(QDataStream& stream, const CECATDirectoryItem& dItem)
 	ENTER();
 
 	// first convert and write out the matrixID
-	quint32 matrixID = convertToMatrixID(dItem.m_iFrame,
-																				dItem.m_iPlane,
-																				dItem.m_iGate,
-																				dItem.m_iBed,
-																				dItem.m_iData);
+	quint32 matrixID = convertToMatrixID(dItem.m_pData->frame,
+																			 dItem.m_pData->plane,
+																			 dItem.m_pData->gate,
+																			 dItem.m_pData->bed,
+																			 dItem.m_pData->data);
 	stream << matrixID;
 	
 	// then we read out the rest
-	quint32 dataBlock_Start = FilePos2ECATBlock(dItem.m_iDataBlock_Start);
+	quint32 dataBlock_Start = FilePos2ECATBlock(dItem.m_pData->dataBlock_Start);
 	stream << dataBlock_Start;
 
-	quint32 dataBlock_End = FilePos2ECATBlock(dItem.m_iDataBlock_End);
+	quint32 dataBlock_End = FilePos2ECATBlock(dItem.m_pData->dataBlock_End);
 	stream << dataBlock_End;
 	
-	qint32 matrixStatus = static_cast<qint32>(dItem.m_iStatus);
+	qint32 matrixStatus = static_cast<qint32>(dItem.m_pData->status);
 	stream << matrixStatus;
 
 	D("DItem.Matrix_ID       : %08lx (%d/%d/%d/%d/%d)", matrixID,
-																											dItem.m_iFrame,
-																											dItem.m_iPlane,
-																											dItem.m_iGate,
-																											dItem.m_iBed,
-																											dItem.m_iData);
+																											dItem.m_pData->frame,
+																											dItem.m_pData->plane,
+																											dItem.m_pData->gate,
+																											dItem.m_pData->bed,
+																											dItem.m_pData->data);
 
-	D("DItem.DataBlock_Start : %d (%d)", dItem.m_iDataBlock_Start, FilePos2ECATBlock(dItem.m_iDataBlock_Start));
-	D("DItem.DataBlock_End   : %d (%d)", dItem.m_iDataBlock_End, FilePos2ECATBlock(dItem.m_iDataBlock_End));
-	D("DItem.DataBlock_Status: %d", dItem.m_iStatus);
+	D("DItem.DataBlock_Start : %d (%d)", dItem.m_pData->dataBlock_Start, FilePos2ECATBlock(dItem.m_pData->dataBlock_Start));
+	D("DItem.DataBlock_End   : %d (%d)", dItem.m_pData->dataBlock_End, FilePos2ECATBlock(dItem.m_pData->dataBlock_End));
+	D("DItem.DataBlock_Status: %d", dItem.m_pData->status);
 	
 	LEAVE();
 	return stream;
@@ -1293,36 +1360,36 @@ QDataStream& operator>>(QDataStream& stream, CECATDirectoryItem& dItem)
 	// first read and convert the matrixID
 	quint32 matrixID;
 	stream >> matrixID;
-	dItem.m_iFrame = matrixID2Frame(matrixID);
-	dItem.m_iPlane = matrixID2Plane(matrixID);
-	dItem.m_iGate  = matrixID2Gate(matrixID);
-	dItem.m_iBed   = matrixID2Bed(matrixID);
-	dItem.m_iData  = matrixID2Data(matrixID);
+	dItem.m_pData->frame = matrixID2Frame(matrixID);
+	dItem.m_pData->plane = matrixID2Plane(matrixID);
+	dItem.m_pData->gate  = matrixID2Gate(matrixID);
+	dItem.m_pData->bed   = matrixID2Bed(matrixID);
+	dItem.m_pData->data  = matrixID2Data(matrixID);
 
 	// then we read out the rest
 	quint32 dataBlock_Start;
 	stream >> dataBlock_Start;
-	dItem.m_iDataBlock_Start = ECATBlock2FilePos(dataBlock_Start);
+	dItem.m_pData->dataBlock_Start = ECATBlock2FilePos(dataBlock_Start);
 
 	quint32 dataBlock_End;
 	stream >> dataBlock_End;
-	dItem.m_iDataBlock_End = ECATBlock2FilePos(dataBlock_End);
+	dItem.m_pData->dataBlock_End = ECATBlock2FilePos(dataBlock_End);
 
 	qint32 matrixStatus;
 	stream >> matrixStatus;
-	dItem.m_iStatus = static_cast<CECATDirectoryItem::AccessStatus>(matrixStatus);
+	dItem.m_pData->status = static_cast<CECATDirectoryItem::AccessStatus>(matrixStatus);
 
 	// output some debug information.
 	D("DItem.Matrix_ID       : %08lx (%d/%d/%d/%d/%d)", matrixID,
-																											dItem.m_iFrame,
-																											dItem.m_iPlane,
-																											dItem.m_iGate,
-																											dItem.m_iBed,
-																											dItem.m_iData);
+																											dItem.m_pData->frame,
+																											dItem.m_pData->plane,
+																											dItem.m_pData->gate,
+																											dItem.m_pData->bed,
+																											dItem.m_pData->data);
 
-	D("DItem.DataBlock_Start : %d (%d)", dItem.m_iDataBlock_Start, FilePos2ECATBlock(dItem.m_iDataBlock_Start));
-	D("DItem.DataBlock_End   : %d (%d)", dItem.m_iDataBlock_End, FilePos2ECATBlock(dItem.m_iDataBlock_End));
-	D("DItem.DataBlock_Status: %d", dItem.m_iStatus);
+	D("DItem.DataBlock_Start : %d (%d)", dItem.m_pData->dataBlock_Start, FilePos2ECATBlock(dItem.m_pData->dataBlock_Start));
+	D("DItem.DataBlock_End   : %d (%d)", dItem.m_pData->dataBlock_End, FilePos2ECATBlock(dItem.m_pData->dataBlock_End));
+	D("DItem.DataBlock_Status: %d", dItem.m_pData->status);
 	
 	LEAVE();
 	return stream;

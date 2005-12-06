@@ -29,17 +29,82 @@
 
 #include <rtdebug.h>
 
+// we define the private inline class of that one so that we
+// are able to hide the private methods & data of that class in the
+// public headers
+class CECAT7SubHeaderNorm3DPrivate
+{
+	public:
+		struct HeaderData
+		{
+			quint16	Data_Type;
+			quint16	Num_R_Elements;
+			quint16	Num_Transaxial_Crystals;
+			quint16	Num_Crystal_Rings;
+			quint16	Crystals_Per_Ring;
+			quint16	Num_Geo_Corr_Planes;
+			quint16	ULD;
+			quint16	LLD;
+			quint16	Scatter_Energy;
+			float		Norm_Quality_Factor;
+			quint16	Norm_Quality_Factor_Code;
+			float		Ring_DTCor1[32];
+			float		Ring_DTCor2[32];
+			float		Crystal_DTCor[8];
+			quint16	Span;
+			quint16	Max_Ring_Diff;
+			quint16	CTI_reserved[48];
+			quint16	User_Reserved[50];
+		} header;
+};
+
 CECAT7SubHeaderNorm3D::CECAT7SubHeaderNorm3D(CECATFile* ecatFile,
 																						 CECATDirectoryItem* pDirItem)
 	: CECATSubHeader(ecatFile, pDirItem)
 {
+	ENTER();
+
+	// allocate data from our private instance class
+	m_pData = new CECAT7SubHeaderNorm3DPrivate();
+	
 	clear();
+
+	LEAVE();
 }
 
-CECAT7SubHeaderNorm3D::CECAT7SubHeaderNorm3D()
-	: CECATSubHeader(NULL)
+CECAT7SubHeaderNorm3D::~CECAT7SubHeaderNorm3D()
 {
-	clear();
+	ENTER();
+
+	delete m_pData;
+
+	LEAVE();
+}
+
+CECAT7SubHeaderNorm3D::CECAT7SubHeaderNorm3D(const CECAT7SubHeaderNorm3D& src)
+	: CECATSubHeader(src)
+{
+	ENTER();
+
+	// allocate data from our private instance class
+	m_pData = new CECAT7SubHeaderNorm3DPrivate(*(src.m_pData));
+
+	LEAVE();
+}
+
+CECAT7SubHeaderNorm3D& CECAT7SubHeaderNorm3D::operator=(const CECAT7SubHeaderNorm3D& src)
+{
+	ENTER();
+
+	if(m_pData != src.m_pData)
+	{
+		memcpy(&m_pData->header, 
+					 &src.m_pData->header, 
+					 sizeof(struct CECAT7SubHeaderNorm3DPrivate::HeaderData));
+	}
+
+	LEAVE();
+	return *this;
 }
 
 void CECAT7SubHeaderNorm3D::clear()
@@ -47,7 +112,7 @@ void CECAT7SubHeaderNorm3D::clear()
 	ENTER();
 
 	// then clear the structure
-	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_Norm3D));
+	memset(&m_pData->header, 0, sizeof(struct CECAT7SubHeaderNorm3DPrivate::HeaderData));
 
 	setData_Type(CECATSubHeader::UnknownDataType);
 	setNorm_Quality_Factor_Code(TBD);
@@ -86,59 +151,59 @@ bool CECAT7SubHeaderNorm3D::load(void)
 	// lets read in each single data element of our
 	// data structure to maintain the correct endianess of the
 	// data
-	stream >> m_Data.Data_Type;											//   0: Data_Type
-	stream >> m_Data.Num_R_Elements;								//   2: Num_R_Elements
-	stream >> m_Data.Num_Transaxial_Crystals;				//   4: Num_Transaxial_Crystals
-	stream >> m_Data.Num_Crystal_Rings;							//   6: Num_Crystal_Rings
-	stream >> m_Data.Crystals_Per_Ring;							//   8: Crystals_Per_Ring
-	stream >> m_Data.Num_Geo_Corr_Planes;						//  10: Num_Geo_Corr_Planes
-	stream >> m_Data.ULD;														//  12: ULD
-	stream >> m_Data.LLD;														//  14: LLD
-	stream >> m_Data.Scatter_Energy;								//  16: Scatter_Energy
-	stream >> m_Data.Norm_Quality_Factor;						//  18: Norm_Quality_Factor
-	stream >> m_Data.Norm_Quality_Factor_Code;			//  22: Norm_Quality_Factor
+	stream >> m_pData->header.Data_Type;											//   0: Data_Type
+	stream >> m_pData->header.Num_R_Elements;								//   2: Num_R_Elements
+	stream >> m_pData->header.Num_Transaxial_Crystals;				//   4: Num_Transaxial_Crystals
+	stream >> m_pData->header.Num_Crystal_Rings;							//   6: Num_Crystal_Rings
+	stream >> m_pData->header.Crystals_Per_Ring;							//   8: Crystals_Per_Ring
+	stream >> m_pData->header.Num_Geo_Corr_Planes;						//  10: Num_Geo_Corr_Planes
+	stream >> m_pData->header.ULD;														//  12: ULD
+	stream >> m_pData->header.LLD;														//  14: LLD
+	stream >> m_pData->header.Scatter_Energy;								//  16: Scatter_Energy
+	stream >> m_pData->header.Norm_Quality_Factor;						//  18: Norm_Quality_Factor
+	stream >> m_pData->header.Norm_Quality_Factor_Code;			//  22: Norm_Quality_Factor
 	for(int i=0; i < 32; i++)
-		stream >> m_Data.Ring_DTCor1[i];							//  24: Ring_DTCor1 (32)
+		stream >> m_pData->header.Ring_DTCor1[i];							//  24: Ring_DTCor1 (32)
 	for(int i=0; i < 32; i++)
-		stream >> m_Data.Ring_DTCor2[i];							// 152: Ring_DTCor2 (32)
+		stream >> m_pData->header.Ring_DTCor2[i];							// 152: Ring_DTCor2 (32)
 	for(int i=0; i < 8; i++)
-		stream >> m_Data.Crystal_DTCor[i];						// 280: Crystal_DTCor (8)
-	stream >> m_Data.Span;													// 312: Span
-	stream >> m_Data.Max_Ring_Diff;									// 314: Max_Ring_Diff
+		stream >> m_pData->header.Crystal_DTCor[i];						// 280: Crystal_DTCor (8)
+	stream >> m_pData->header.Span;													// 312: Span
+	stream >> m_pData->header.Max_Ring_Diff;									// 314: Max_Ring_Diff
 	for(int i=0; i < 48; i++)
-		stream >> m_Data.CTI_reserved[i];							// 316: CTI_reserved
+		stream >> m_pData->header.CTI_reserved[i];							// 316: CTI_reserved
 	for(int i=0; i < 50; i++)
-		stream >> m_Data.User_Reserved[i];						// 412: User_Reserved
+		stream >> m_pData->header.User_Reserved[i];						// 412: User_Reserved
 
 	// some more debug output
 #if defined(DEBUG)
 	D("ECAT7 Normalization3D SubHeader loaded:");
 	D("------------------------------------");
-	D("Data_Type                 : %d",				m_Data.Data_Type);
-	D("Num_R_Elements            : %d",				m_Data.Num_R_Elements);
-	D("Num_Transaxial_Crystals   : %d",				m_Data.Num_Transaxial_Crystals);
-	D("Num_Crystal_Rings         : %d",				m_Data.Num_Crystal_Rings);
-	D("Crystals_Per_Ring         : %d",				m_Data.Crystals_Per_Ring);
-	D("Num_Geo_Corr_Planes       : %d",				m_Data.Num_Geo_Corr_Planes);
-	D("ULD                       : %d",				m_Data.ULD);
-	D("LLD                       : %d",				m_Data.LLD);
-	D("Scatter_Energy            : %d",				m_Data.Scatter_Energy);
-	D("Norm_Quality_Factor       : %g",				m_Data.Norm_Quality_Factor);
-	D("Norm_Quality_Factor_Code  : %d",				m_Data.Norm_Quality_Factor_Code);
+	D("Data_Type                 : %d",				m_pData->header.Data_Type);
+	D("Num_R_Elements            : %d",				m_pData->header.Num_R_Elements);
+	D("Num_Transaxial_Crystals   : %d",				m_pData->header.Num_Transaxial_Crystals);
+	D("Num_Crystal_Rings         : %d",				m_pData->header.Num_Crystal_Rings);
+	D("Crystals_Per_Ring         : %d",				m_pData->header.Crystals_Per_Ring);
+	D("Num_Geo_Corr_Planes       : %d",				m_pData->header.Num_Geo_Corr_Planes);
+	D("ULD                       : %d",				m_pData->header.ULD);
+	D("LLD                       : %d",				m_pData->header.LLD);
+	D("Scatter_Energy            : %d",				m_pData->header.Scatter_Energy);
+	D("Norm_Quality_Factor       : %g",				m_pData->header.Norm_Quality_Factor);
+	D("Norm_Quality_Factor_Code  : %d",				m_pData->header.Norm_Quality_Factor_Code);
 	for(int i=0; i < 32; i++)
 	{
-		D("Ring_DTCOR1           [%02d]: %g", i+1, m_Data.Ring_DTCor1[i]);
+		D("Ring_DTCOR1           [%02d]: %g", i+1, m_pData->header.Ring_DTCor1[i]);
 	}
 	for(int i=0; i < 32; i++)
 	{
-		D("Ring_DTCOR2           [%02d]: %g", i+1, m_Data.Ring_DTCor2[i]);
+		D("Ring_DTCOR2           [%02d]: %g", i+1, m_pData->header.Ring_DTCor2[i]);
 	}
 	for(int i=0; i < 8; i++)
 	{
-		D("Crystal_DTCor         [%02d]: %g", i+1, m_Data.Crystal_DTCor[i]);
+		D("Crystal_DTCor         [%02d]: %g", i+1, m_pData->header.Crystal_DTCor[i]);
 	}
-	D("Span                      : %d",				m_Data.Span);
-	D("Max_Ring_Diff             : %d",				m_Data.Max_Ring_Diff);
+	D("Span                      : %d",				m_pData->header.Span);
+	D("Max_Ring_Diff             : %d",				m_pData->header.Max_Ring_Diff);
 #endif
 
 	RETURN(true);
@@ -167,29 +232,29 @@ bool CECAT7SubHeaderNorm3D::save(void) const
 	// lets read in each single data element of our
 	// data structure to maintain the correct endianess of the
 	// data
-	stream << m_Data.Data_Type;											//   0: Data_Type
-	stream << m_Data.Num_R_Elements;								//   2: Num_R_Elements
-	stream << m_Data.Num_Transaxial_Crystals;				//   4: Num_Transaxial_Crystals
-	stream << m_Data.Num_Crystal_Rings;							//   6: Num_Crystal_Rings
-	stream << m_Data.Crystals_Per_Ring;							//   8: Crystals_Per_Ring
-	stream << m_Data.Num_Geo_Corr_Planes;						//  10: Num_Geo_Corr_Planes
-	stream << m_Data.ULD;														//  12: ULD
-	stream << m_Data.LLD;														//  14: LLD
-	stream << m_Data.Scatter_Energy;								//  16: Scatter_Energy
-	stream << m_Data.Norm_Quality_Factor;						//  18: Norm_Quality_Factor
-	stream << m_Data.Norm_Quality_Factor_Code;			//  22: Norm_Quality_Factor
+	stream << m_pData->header.Data_Type;											//   0: Data_Type
+	stream << m_pData->header.Num_R_Elements;								//   2: Num_R_Elements
+	stream << m_pData->header.Num_Transaxial_Crystals;				//   4: Num_Transaxial_Crystals
+	stream << m_pData->header.Num_Crystal_Rings;							//   6: Num_Crystal_Rings
+	stream << m_pData->header.Crystals_Per_Ring;							//   8: Crystals_Per_Ring
+	stream << m_pData->header.Num_Geo_Corr_Planes;						//  10: Num_Geo_Corr_Planes
+	stream << m_pData->header.ULD;														//  12: ULD
+	stream << m_pData->header.LLD;														//  14: LLD
+	stream << m_pData->header.Scatter_Energy;								//  16: Scatter_Energy
+	stream << m_pData->header.Norm_Quality_Factor;						//  18: Norm_Quality_Factor
+	stream << m_pData->header.Norm_Quality_Factor_Code;			//  22: Norm_Quality_Factor
 	for(int i=0; i < 32; i++)
-		stream << m_Data.Ring_DTCor1[i];							//  24: Ring_DTCor1 (32)
+		stream << m_pData->header.Ring_DTCor1[i];							//  24: Ring_DTCor1 (32)
 	for(int i=0; i < 32; i++)
-		stream << m_Data.Ring_DTCor2[i];							// 152: Ring_DTCor2 (32)
+		stream << m_pData->header.Ring_DTCor2[i];							// 152: Ring_DTCor2 (32)
 	for(int i=0; i < 8; i++)
-		stream << m_Data.Crystal_DTCor[i];						// 280: Crystal_DTCor (8)
-	stream << m_Data.Span;													// 312: Span
-	stream << m_Data.Max_Ring_Diff;									// 314: Max_Ring_Diff
+		stream << m_pData->header.Crystal_DTCor[i];						// 280: Crystal_DTCor (8)
+	stream << m_pData->header.Span;													// 312: Span
+	stream << m_pData->header.Max_Ring_Diff;									// 314: Max_Ring_Diff
 	for(int i=0; i < 48; i++)
-		stream << m_Data.CTI_reserved[i];							// 316: CTI_reserved
+		stream << m_pData->header.CTI_reserved[i];							// 316: CTI_reserved
 	for(int i=0; i < 50; i++)
-		stream << m_Data.User_Reserved[i];						// 412: User_Reserved
+		stream << m_pData->header.User_Reserved[i];						// 412: User_Reserved
 	
 	// now write out to our outStream
 	bool result = false;
@@ -234,7 +299,10 @@ bool CECAT7SubHeaderNorm3D::convertFrom(const CMedIOHeader* pHead1, const CMedIO
 				// via a simple memcpy()
 				case CECATSubHeader::ECAT7_Norm3D:
 				{
-					memcpy(&(this->m_Data), &(static_cast<const CECAT7SubHeaderNorm3D*>(pHead1)->m_Data), sizeof(struct ECAT7SubHeader_Norm3D));
+					// we use the assignment operator which will do the convertation
+					// for us.
+					*this = *static_cast<const CECAT7SubHeaderNorm3D*>(pHead1);
+
 					bResult = true;
 				}
 				break;
@@ -283,181 +351,181 @@ CMedIOHeader* CECAT7SubHeaderNorm3D::clone() const
 // the SubHeader
 CECATSubHeader::Data_Type CECAT7SubHeaderNorm3D::data_Type(void) const
 {
-	return static_cast<CECATSubHeader::Data_Type>(m_Data.Data_Type);	}
+	return static_cast<CECATSubHeader::Data_Type>(m_pData->header.Data_Type);	}
 
 short CECAT7SubHeaderNorm3D::num_R_Elements(void) const
 {
-	return m_Data.Num_R_Elements;
+	return m_pData->header.Num_R_Elements;
 }
 
 short CECAT7SubHeaderNorm3D::num_Transaxial_Crystals(void) const
 {
-	return m_Data.Num_Transaxial_Crystals;
+	return m_pData->header.Num_Transaxial_Crystals;
 }
 
 short CECAT7SubHeaderNorm3D::num_Crystal_Rings(void) const
 {
-	return m_Data.Num_Crystal_Rings;
+	return m_pData->header.Num_Crystal_Rings;
 }
 
 short CECAT7SubHeaderNorm3D::crystals_Per_Ring(void) const
 {
-	return m_Data.Crystals_Per_Ring;
+	return m_pData->header.Crystals_Per_Ring;
 }
 
 short CECAT7SubHeaderNorm3D::num_Geo_Corr_Planes(void) const
 {
-	return m_Data.Num_Geo_Corr_Planes;
+	return m_pData->header.Num_Geo_Corr_Planes;
 }
 
 short CECAT7SubHeaderNorm3D::uld(void) const
 {
-	return m_Data.ULD;
+	return m_pData->header.ULD;
 }
 
 short CECAT7SubHeaderNorm3D::lld(void) const
 {
-	return m_Data.LLD;
+	return m_pData->header.LLD;
 }
 
 short CECAT7SubHeaderNorm3D::scatter_Energy(void) const
 {
-	return m_Data.Scatter_Energy;
+	return m_pData->header.Scatter_Energy;
 }
 
 float CECAT7SubHeaderNorm3D::norm_Quality_Factor(void) const
 {
-	return m_Data.Norm_Quality_Factor;
+	return m_pData->header.Norm_Quality_Factor;
 }
 
 CECAT7SubHeaderNorm3D::Norm_Qual_Factor_Code CECAT7SubHeaderNorm3D::norm_Quality_Factor_Code(void) const
 {
-	return static_cast<CECAT7SubHeaderNorm3D::Norm_Qual_Factor_Code>(m_Data.Norm_Quality_Factor_Code);
+	return static_cast<CECAT7SubHeaderNorm3D::Norm_Qual_Factor_Code>(m_pData->header.Norm_Quality_Factor_Code);
 }
 
 float CECAT7SubHeaderNorm3D::ring_DTCor1(const short i) const
 {
-	return m_Data.Ring_DTCor1[i];
+	return m_pData->header.Ring_DTCor1[i];
 }
 
 float CECAT7SubHeaderNorm3D::ring_DTCor2(const short i) const
 {
-	return m_Data.Ring_DTCor2[i];
+	return m_pData->header.Ring_DTCor2[i];
 }
 
 float CECAT7SubHeaderNorm3D::crystal_DTCor(const short i) const
 {
-	return m_Data.Crystal_DTCor[i];
+	return m_pData->header.Crystal_DTCor[i];
 }
 
 short CECAT7SubHeaderNorm3D::span(void) const
 {
-	return m_Data.Span;
+	return m_pData->header.Span;
 }
 
 short CECAT7SubHeaderNorm3D::max_Ring_Diff(void) const
 {
-	return m_Data.Max_Ring_Diff;
+	return m_pData->header.Max_Ring_Diff;
 }
 
 short CECAT7SubHeaderNorm3D::cti_Reserved(const short i) const
 {
-	return m_Data.CTI_reserved[i];
+	return m_pData->header.CTI_reserved[i];
 }
 
 short CECAT7SubHeaderNorm3D::user_Reserved(const short i) const
 {
-	return m_Data.User_Reserved[i];
+	return m_pData->header.User_Reserved[i];
 }
 
 
 void CECAT7SubHeaderNorm3D::setData_Type(const CECATSubHeader::Data_Type dType)
 {
-	m_Data.Data_Type = static_cast<quint16>(dType);
+	m_pData->header.Data_Type = static_cast<quint16>(dType);
 }			
 
 void CECAT7SubHeaderNorm3D::setNum_R_Elements(const short n)
 {
-	m_Data.Num_R_Elements = n;
+	m_pData->header.Num_R_Elements = n;
 }
 
 void CECAT7SubHeaderNorm3D::setNum_Transaxial_Crystals(const short n)
 {
-	m_Data.Num_Transaxial_Crystals = n;
+	m_pData->header.Num_Transaxial_Crystals = n;
 }
 
 void CECAT7SubHeaderNorm3D::setNum_Crystal_Rings(const short n)
 {
-	m_Data.Num_Crystal_Rings = n;
+	m_pData->header.Num_Crystal_Rings = n;
 }
 
 void CECAT7SubHeaderNorm3D::setCrystals_Per_Ring(const short n)
 {
-	m_Data.Crystals_Per_Ring = n;
+	m_pData->header.Crystals_Per_Ring = n;
 }
 
 void CECAT7SubHeaderNorm3D::setNum_Geo_Corr_Planes(const short n)
 {
-	m_Data.Num_Geo_Corr_Planes = n;
+	m_pData->header.Num_Geo_Corr_Planes = n;
 }
 
 void CECAT7SubHeaderNorm3D::setULD(const short n)
 {
-	m_Data.ULD = n;
+	m_pData->header.ULD = n;
 }
 
 void CECAT7SubHeaderNorm3D::setLLD(const short n)
 {
-	m_Data.LLD = n;
+	m_pData->header.LLD = n;
 }
 
 void CECAT7SubHeaderNorm3D::setScatter_Energy(const short n)
 {
-	m_Data.Scatter_Energy = n;
+	m_pData->header.Scatter_Energy = n;
 }
 
 void CECAT7SubHeaderNorm3D::setNorm_Quality_Factor(const float n)
 {
-	m_Data.Norm_Quality_Factor = n;
+	m_pData->header.Norm_Quality_Factor = n;
 }
 
 void CECAT7SubHeaderNorm3D::setNorm_Quality_Factor_Code(const Norm_Qual_Factor_Code n)
 {
-	m_Data.Norm_Quality_Factor_Code = static_cast<quint16>(n);
+	m_pData->header.Norm_Quality_Factor_Code = static_cast<quint16>(n);
 }
 
 void CECAT7SubHeaderNorm3D::setRing_DTCor1(const short i, const float n)
 {
-	m_Data.Ring_DTCor1[i] = n;
+	m_pData->header.Ring_DTCor1[i] = n;
 }
 
 void CECAT7SubHeaderNorm3D::setRing_DTCor2(const short i, const float n)
 {
-	m_Data.Ring_DTCor2[i] = n;
+	m_pData->header.Ring_DTCor2[i] = n;
 }
 
 void CECAT7SubHeaderNorm3D::setCrystal_DTCor(const short i, const float n)
 {
-	m_Data.Crystal_DTCor[i] = n;
+	m_pData->header.Crystal_DTCor[i] = n;
 }
 
 void CECAT7SubHeaderNorm3D::setSpan(const short n)
 {
-	m_Data.Span = n;
+	m_pData->header.Span = n;
 }
 
 void CECAT7SubHeaderNorm3D::setMax_Ring_Diff(const short n)
 {
-	m_Data.Max_Ring_Diff = n;
+	m_pData->header.Max_Ring_Diff = n;
 }
 
 void CECAT7SubHeaderNorm3D::setCTI_Reserved(const short i, const short n)
 {
-	m_Data.CTI_reserved[i] = n;
+	m_pData->header.CTI_reserved[i] = n;
 }
 
 void CECAT7SubHeaderNorm3D::setUser_Reserved(const short i, const short n)
 {
-	m_Data.User_Reserved[i] = n;
+	m_pData->header.User_Reserved[i] = n;
 }
 

@@ -40,14 +40,29 @@
 
 #include <rtdebug.h>
 
+// we define the private inline class of that one so that we
+// are able to hide the private methods & data of that class in the
+// public headers
+class CECATFilePrivate
+{
+	public:
+		CECATFile::ECATFormat	iECATformat;
+		CECATDirectory*				directory;
+		CECATMainHeader::Type	iMainHeaderType;
+		CECATMainHeader*			cachedMainHeader; // for speed reasons we cache the loaded main header
+};		
+
 CECATFile::CECATFile(const QString& filename, CECATMainHeader::Type fileType)
-	: CMedIOData(filename),
-		m_iECATformat(Undefined),
-		m_iMainHeaderType(fileType),
-		m_pMainDirectory(NULL),
-		m_pCachedMainHeader(NULL)
+	: CMedIOData(filename)
 {
 	ENTER();
+
+	// allocate data from our private instance class
+	m_pData = new CECATFilePrivate();
+	m_pData->iECATformat = CECATFile::Undefined;
+	m_pData->directory = NULL;
+	m_pData->iMainHeaderType = fileType;
+	m_pData->cachedMainHeader = NULL;
 
 	if(fileType != CECATMainHeader::Unknown)
 		setFileType(fileType);
@@ -59,8 +74,9 @@ CECATFile::~CECATFile()
 {
 	ENTER();
 
-	delete m_pMainDirectory;
-	delete m_pCachedMainHeader;
+	delete m_pData->directory;
+	delete m_pData->cachedMainHeader;
+	delete m_pData;
 
 	LEAVE();
 }
@@ -72,32 +88,32 @@ int CECATFile::rtti() const
 
 CECATFile::ECATFormat CECATFile::format(void) const
 { 
-	return m_iECATformat;
+	return m_pData->iECATformat;
 }
 
 short CECATFile::numFrames(void) const
 { 
-	return m_pMainDirectory->numFrames();
+	return m_pData->directory->numFrames();
 }
 
 short CECATFile::numPlanes(void) const
 { 
-	return m_pMainDirectory->numPlanes();
+	return m_pData->directory->numPlanes();
 }
 
 short CECATFile::numGates(void) const
 { 
-	return m_pMainDirectory->numGates();
+	return m_pData->directory->numGates();
 }
 
 short CECATFile::numBedPos(void) const
 { 
-	return m_pMainDirectory->numBedPos();
+	return m_pData->directory->numBedPos();
 }
 
 CECATDirectory* CECATFile::directory(void) const
 { 
-	return m_pMainDirectory;
+	return m_pData->directory;
 }
 
 bool CECATFile::isOfType(const QString& filename)
@@ -140,17 +156,10 @@ bool CECATFile::open(QIODevice::OpenModeFlag mode)
 	
 	// first we check if we already have some valid MainHeader/MainDirectory
 	// combination and if so we need to delete it first.
-	if(m_pMainDirectory)
-	{
-		delete m_pMainDirectory;
-		m_pMainDirectory = NULL;
-	}
-
-	if(m_pCachedMainHeader)
-	{
-		delete m_pCachedMainHeader;
-		m_pCachedMainHeader = NULL;
-	}
+	delete m_pData->directory;
+	m_pData->directory = NULL;
+	delete m_pData->cachedMainHeader;
+	m_pData->cachedMainHeader = NULL;
 
 	// depending on the specified open mode we either read some META data from
 	// an existing ECAT file or we create it here
@@ -179,16 +188,16 @@ bool CECATFile::open(QIODevice::OpenModeFlag mode)
 				// it is/should be a ECAT7 file, so we can instantiate a
 				// ECAT7 MainHeader and let it read the MainHeader information
 				// accordingly
-				m_iECATformat = ECAT7;
-				m_pCachedMainHeader = new CECAT7MainHeader(this);
+				m_pData->iECATformat = ECAT7;
+				m_pData->cachedMainHeader = new CECAT7MainHeader(this);
 
 				// now that we have created our proper MainHeader we try
 				// to load the header information and then load the
 				// ECAT DirectoryList out of the ECATFile.
-				if(m_pCachedMainHeader->load())
+				if(m_pData->cachedMainHeader->load())
 				{
-					m_pMainDirectory = new CECATDirectory(this);
-					if(m_pMainDirectory->load())
+					m_pData->directory = new CECATDirectory(this);
+					if(m_pData->directory->load())
 					{
 						// only if the directory loading also suceeded we
 						// finally loaded the ECAT file
@@ -204,15 +213,15 @@ bool CECATFile::open(QIODevice::OpenModeFlag mode)
 				// be an ECAT6 file or an unknown file format, but as we don't
 				// know exactly we simply assume it is a ECAT6 format and
 				// use a ECAT6 MainHeader for error checking later on
-				m_iECATformat	= ECAT6;
-				m_pCachedMainHeader = new CECAT6MainHeader(this);
+				m_pData->iECATformat	= ECAT6;
+				m_pData->cachedMainHeader = new CECAT6MainHeader(this);
 				
 				// now that we have created our proper MainHeader we try
 				// to load the header information and then load the
 				// ECAT DirectoryList out of the ECATFile.
-				if(m_pCachedMainHeader->load())
+				if(m_pData->cachedMainHeader->load())
 				{
-					CECAT6MainHeader* mainHeader = static_cast<CECAT6MainHeader*>(m_pCachedMainHeader);
+					CECAT6MainHeader* mainHeader = static_cast<CECAT6MainHeader*>(m_pData->cachedMainHeader);
 
 					// in case of an ECAT6 file we try to do the error checking here
 					// now. As ECAT6 doesn't have a 'magic number' this check is somewhat
@@ -225,8 +234,8 @@ bool CECATFile::open(QIODevice::OpenModeFlag mode)
 						 mainHeader->file_Type() != CECAT6MainHeader::Unknown &&
 						 mainHeader->num_Frames() > 0)
 					{
-						m_pMainDirectory = new CECATDirectory(this);
-						if(m_pMainDirectory->load())
+						m_pData->directory = new CECATDirectory(this);
+						if(m_pData->directory->load())
 						{
 							// only if the directory loading also suceeded we
 							// finally loaded the ECAT file
@@ -246,22 +255,22 @@ bool CECATFile::open(QIODevice::OpenModeFlag mode)
 	}
 	else if(mode & QIODevice::WriteOnly)
 	{
-		D("preparing IO_WriteOnly mode: %ld", m_iECATformat);
+		D("preparing IO_WriteOnly mode: %d", m_pData->iECATformat);
 
 		// the file doesn't exist and therefore we do not have any
 		// main header or directory list. so lets create some empty ones
-		if(m_iECATformat != CECATFile::Undefined)
+		if(m_pData->iECATformat != CECATFile::Undefined)
 		{
-			m_pMainDirectory = new CECATDirectory(this);
+			m_pData->directory = new CECATDirectory(this);
 
-			switch(m_iECATformat)
+			switch(m_pData->iECATformat)
 			{
 				case CECATFile::ECAT7:
-					m_pCachedMainHeader = new CECAT7MainHeader(this, m_iMainHeaderType);
+					m_pData->cachedMainHeader = new CECAT7MainHeader(this, m_pData->iMainHeaderType);
 				break;
 
 				case CECATFile::ECAT6:
-					m_pCachedMainHeader = new CECAT6MainHeader(this, m_iMainHeaderType);
+					m_pData->cachedMainHeader = new CECAT6MainHeader(this, m_pData->iMainHeaderType);
 				break;
 
 				default:
@@ -292,21 +301,21 @@ bool CECATFile::open(QIODevice::OpenModeFlag mode)
 	if(result == false)
 	{
 		// otherwise we go and delete our main directory again
-		if(m_pMainDirectory)
+		if(m_pData->directory)
 		{
-			delete m_pMainDirectory;
-			m_pMainDirectory = NULL;
+			delete m_pData->directory;
+			m_pData->directory = NULL;
 		}
 
-		if(m_pCachedMainHeader)
+		if(m_pData->cachedMainHeader)
 		{
-			delete m_pCachedMainHeader;
-			m_pCachedMainHeader = NULL;
+			delete m_pData->cachedMainHeader;
+			m_pData->cachedMainHeader = NULL;
 		}		
 	}
 
-	SHOWPOINTER(m_pMainDirectory);
-	SHOWPOINTER(m_pCachedMainHeader);
+	SHOWPOINTER(m_pData->directory);
+	SHOWPOINTER(m_pData->cachedMainHeader);
 
 	RETURN(result);
 	return result;
@@ -317,29 +326,35 @@ void CECATFile::close(void)
 	// close the opened file and clean everything up
 	QFile::close();
 
-	if(m_pMainDirectory)
+	if(m_pData->directory)
 	{
-		delete m_pMainDirectory;
-		m_pMainDirectory = NULL;
+		delete m_pData->directory;
+		m_pData->directory = NULL;
 	}
 
-	if(m_pCachedMainHeader)
+	if(m_pData->cachedMainHeader)
 	{
-		delete m_pCachedMainHeader;
-		m_pCachedMainHeader = NULL;
+		delete m_pData->cachedMainHeader;
+		m_pData->cachedMainHeader = NULL;
 	}			
 }
 
 CECATMainHeader::Type CECATFile::fileType(void)
 {
+	ENTER();
+
 	// if the Main header isn't loaded yet we return Unknown
-	if(m_iECATformat == CECATFile::Undefined)
+	if(m_pData->iECATformat == CECATFile::Undefined)
+	{
+		RETURN(CECATMainHeader::Unknown);
 		return CECATMainHeader::Unknown;
+	}
 
 	// before we can tell the correct fileType of this file
 	// we have to get the mainHeader
 	bool cachedMainHeaderUsed = true;
-	CECATMainHeader* mainHeader = m_pCachedMainHeader;
+	CECATMainHeader* mainHeader = m_pData->cachedMainHeader;
+	SHOWPOINTER(mainHeader);
 	if(mainHeader == NULL)
 	{
 		cachedMainHeaderUsed = false;
@@ -347,37 +362,81 @@ CECATMainHeader::Type CECATFile::fileType(void)
 		if(readMainHeader(mainHeader) == false)
 		{
 			delete mainHeader;
+
+			RETURN(CECATMainHeader::Unknown);
 			return CECATMainHeader::Unknown;
 		}
 	}
 
 	// depending on the format and DataSetType the MainHeader
 	// contains, we can specify the ECAT file type and return it here
-	switch(m_iECATformat)
+	CECATMainHeader::Type type = CECATMainHeader::Unknown;
+	switch(m_pData->iECATformat)
 	{
 		case CECATFile::ECAT7:
 		{
 			switch(static_cast<CECAT7MainHeader*>(mainHeader)->file_Type())
 			{
 				// do a 1:1 mapping for all types
-				case CECAT7MainHeader::Sinogram:					return CECATMainHeader::ECAT7_Sinogram;
-				case CECAT7MainHeader::Image16:						return CECATMainHeader::ECAT7_Image16;
-				case CECAT7MainHeader::AttenuationCorr:		return CECATMainHeader::ECAT7_AttenCorr;
-				case CECAT7MainHeader::Normalization:			return CECATMainHeader::ECAT7_Normalization;
-				case CECAT7MainHeader::PolarMap:					return CECATMainHeader::ECAT7_PolarMap;
-				case CECAT7MainHeader::Volume8:						return CECATMainHeader::ECAT7_Volume8;
-				case CECAT7MainHeader::Volume16:					return CECATMainHeader::ECAT7_Volume16;
-				case CECAT7MainHeader::Projection8:				return CECATMainHeader::ECAT7_Projection8;
-				case CECAT7MainHeader::Projection16:			return CECATMainHeader::ECAT7_Projection16;
-				case CECAT7MainHeader::Image8:						return CECATMainHeader::ECAT7_Image8;			
-				case CECAT7MainHeader::Sinogram3D_16:			return CECATMainHeader::ECAT7_Sinogram3D_16;
-				case CECAT7MainHeader::Sinogram3D_8:			return CECATMainHeader::ECAT7_Sinogram3D_8;
-				case CECAT7MainHeader::Normalization_3D:	return CECATMainHeader::ECAT7_Normalization_3D;
-				case CECAT7MainHeader::Sinogram3D_Float:	return CECATMainHeader::ECAT7_Sinogram3D_Float;
+				case CECAT7MainHeader::Sinogram:
+					type = CECATMainHeader::ECAT7_Sinogram;
+				break;
+				
+				case CECAT7MainHeader::Image16:						
+					type = CECATMainHeader::ECAT7_Image16;
+				break;
+				
+				case CECAT7MainHeader::AttenuationCorr:		
+					type = CECATMainHeader::ECAT7_AttenCorr;
+				break;
+				
+				case CECAT7MainHeader::Normalization:	
+					type = CECATMainHeader::ECAT7_Normalization;
+				break;
+				
+				case CECAT7MainHeader::PolarMap:
+					type = CECATMainHeader::ECAT7_PolarMap;
+				break;
+				
+				case CECAT7MainHeader::Volume8:
+					type = CECATMainHeader::ECAT7_Volume8;
+				break;
+
+				case CECAT7MainHeader::Volume16:
+					type = CECATMainHeader::ECAT7_Volume16;
+				break;
+				
+				case CECAT7MainHeader::Projection8:
+					type = CECATMainHeader::ECAT7_Projection8;
+				break;
+				
+				case CECAT7MainHeader::Projection16:
+					type = CECATMainHeader::ECAT7_Projection16;
+				break;
+				
+				case CECAT7MainHeader::Image8:
+					type = CECATMainHeader::ECAT7_Image8;			
+				break;
+				
+				case CECAT7MainHeader::Sinogram3D_16:
+					type = CECATMainHeader::ECAT7_Sinogram3D_16;
+				break;
+				
+				case CECAT7MainHeader::Sinogram3D_8:
+					type = CECATMainHeader::ECAT7_Sinogram3D_8;
+				break;
+				
+				case CECAT7MainHeader::Normalization_3D:
+					type = CECATMainHeader::ECAT7_Normalization_3D;
+				break;
+				
+				case CECAT7MainHeader::Sinogram3D_Float:
+					type = CECATMainHeader::ECAT7_Sinogram3D_Float;
+				break;
 
 				default:
 				{
-					W("ECAT type couldn't be identified.");
+					W("ECAT type couldn't be identified: %d", static_cast<CECAT7MainHeader*>(mainHeader)->file_Type());
 				}
 			}
 		}
@@ -397,32 +456,62 @@ CECATMainHeader::Type CECATFile::fileType(void)
 	if(cachedMainHeaderUsed == false)
 		delete mainHeader;
 
-	return CECATMainHeader::Unknown;
+	RETURN(type);
+	return type;
 }
 
 CECATSubHeader::Type CECATFile::subHeaderType(void)
 {
-	return subHeaderType(fileType());
+	ENTER();
+
+	CECATSubHeader::Type type =  subHeaderType(fileType());
+	
+	RETURN(type);
+	return type;
 }
 
 CECATSubHeader::Type CECATFile::subHeaderType(CECATMainHeader::Type fileType)
 {
+	ENTER();
+
+	CECATSubHeader::Type type =  CECATSubHeader::Unknown;
+	
 	// depending on the fileType (which is specified by the MainHeader)
 	// we return the subheader that is used
 	switch(fileType)
 	{
 		// do a 1:1 mapping for all types
-		case CECATMainHeader::ECAT7_Sinogram:					return CECATSubHeader::ECAT7_Scan;
+		case CECATMainHeader::ECAT7_Sinogram:
+			type = CECATSubHeader::ECAT7_Scan;
+		break;
+		
 		case CECATMainHeader::ECAT7_Sinogram3D_8:
 		case CECATMainHeader::ECAT7_Sinogram3D_16:
-		case CECATMainHeader::ECAT7_Sinogram3D_Float:	return CECATSubHeader::ECAT7_Scan3D;
+		case CECATMainHeader::ECAT7_Sinogram3D_Float:
+			type = CECATSubHeader::ECAT7_Scan3D;
+		break;
+		
 		case CECATMainHeader::ECAT7_Volume8:
 		case CECATMainHeader::ECAT7_Volume16:
-		case CECATMainHeader::ECAT7_Image16:					return CECATSubHeader::ECAT7_Image;
-		case CECATMainHeader::ECAT7_AttenCorr:				return CECATSubHeader::ECAT7_AttenCorr;
-		case CECATMainHeader::ECAT7_Normalization:		return CECATSubHeader::ECAT7_Norm;
-		case CECATMainHeader::ECAT7_Normalization_3D:	return CECATSubHeader::ECAT7_Norm3D;
-		case CECATMainHeader::ECAT7_PolarMap:					return CECATSubHeader::ECAT7_PolarMap;
+		case CECATMainHeader::ECAT7_Image16:
+			type = CECATSubHeader::ECAT7_Image;
+		break;
+		
+		case CECATMainHeader::ECAT7_AttenCorr:				
+			type = CECATSubHeader::ECAT7_AttenCorr;
+		break;
+		
+		case CECATMainHeader::ECAT7_Normalization:		
+			type = CECATSubHeader::ECAT7_Norm;
+		break;
+		
+		case CECATMainHeader::ECAT7_Normalization_3D:
+			type = CECATSubHeader::ECAT7_Norm3D;
+		break;
+		
+		case CECATMainHeader::ECAT7_PolarMap:					
+			type = CECATSubHeader::ECAT7_PolarMap;
+		break;
 
 		default:
 		{
@@ -430,7 +519,8 @@ CECATSubHeader::Type CECATFile::subHeaderType(CECATMainHeader::Type fileType)
 		}
 	}
 
-	return CECATSubHeader::Unknown;
+	RETURN(type);
+	return type;
 }
 
 bool CECATFile::setFileType(CECATMainHeader::Type fileType)
@@ -460,13 +550,13 @@ bool CECATFile::setFileType(CECATMainHeader::Type fileType)
 			case CECATMainHeader::ECAT7_Normalization_3D:
 			case CECATMainHeader::ECAT7_PolarMap:
 			{
-				m_iECATformat	= ECAT7;
+				m_pData->iECATformat	= ECAT7;
 			}
 			break;
 
 			default:
 			{
-				m_iECATformat	= Undefined;
+				m_pData->iECATformat	= Undefined;
 			}
 			break;
 		}
@@ -491,20 +581,20 @@ bool CECATFile::readMainHeader(CECATMainHeader*& mainHeader)
 		// check if we have a cached main header somewhere around so
 		// we can take that one instead of loading the main header from
 		// scratch again
-		if(m_pCachedMainHeader)
+		if(m_pData->cachedMainHeader)
 		{
-			switch(m_iECATformat)
+			switch(m_pData->iECATformat)
 			{
 				case CECATFile::ECAT7:
 				{
-					mainHeader = new CECAT7MainHeader(*static_cast<const CECAT7MainHeader*>(m_pCachedMainHeader));
+					mainHeader = new CECAT7MainHeader(*static_cast<const CECAT7MainHeader*>(m_pData->cachedMainHeader));
 					result = true;
 				}
 				break;
 
 				case CECATFile::ECAT6:
 				{
-					mainHeader = new CECAT6MainHeader(*static_cast<const CECAT6MainHeader*>(m_pCachedMainHeader));
+					mainHeader = new CECAT6MainHeader(*static_cast<const CECAT6MainHeader*>(m_pData->cachedMainHeader));
 					result = true;
 				}
 				break;
@@ -513,14 +603,18 @@ bool CECATFile::readMainHeader(CECATMainHeader*& mainHeader)
 					// nothing
 				break;
 			}
+
+			// we set the MedIOData object of the newly created main
+			// header now
+			mainHeader->setMedIOData(this);
 		}
 		else
 		{
-			switch(m_iECATformat)
+			switch(m_pData->iECATformat)
 			{
 				case CECATFile::ECAT7:
 				{
-					mainHeader = new CECAT7MainHeader(this, m_iMainHeaderType);
+					mainHeader = new CECAT7MainHeader(this, m_pData->iMainHeaderType);
 					if(mainHeader->load())
 						result = true;
 					else
@@ -530,7 +624,7 @@ bool CECATFile::readMainHeader(CECATMainHeader*& mainHeader)
 
 				case CECATFile::ECAT6:
 				{
-					mainHeader = new CECAT6MainHeader(this, m_iMainHeaderType);
+					mainHeader = new CECAT6MainHeader(this, m_pData->iMainHeaderType);
 					if(mainHeader->load())
 						result = true;
 					else
@@ -551,22 +645,26 @@ bool CECATFile::readMainHeader(CECATMainHeader*& mainHeader)
 	{
 		// if the loading was successfull we have to make sure to use that
 		// new instance of the main header as the new cached one.
-		if(m_pCachedMainHeader == NULL)
+		if(m_pData->cachedMainHeader == NULL)
 		{
-			switch(m_iECATformat)
+			switch(m_pData->iECATformat)
 			{
 				case CECATFile::ECAT7:
-					m_pCachedMainHeader = new CECAT7MainHeader(*static_cast<CECAT7MainHeader*>(mainHeader));
+					m_pData->cachedMainHeader = new CECAT7MainHeader(*static_cast<CECAT7MainHeader*>(mainHeader));
 				break;
 
 				case CECATFile::ECAT6:
-					m_pCachedMainHeader = new CECAT6MainHeader(*static_cast<CECAT6MainHeader*>(mainHeader));
+					m_pData->cachedMainHeader = new CECAT6MainHeader(*static_cast<CECAT6MainHeader*>(mainHeader));
 				break;
 
 				default:
 					// nothing
 				break;
 			}
+
+			// set the CECATFile object as the MedIOData object
+			// of the cached header
+			m_pData->cachedMainHeader->setMedIOData(this);
 		}
 	}
 
@@ -580,12 +678,12 @@ bool CECATFile::readSubHeader(CECATSubHeader*& subHeader, short frame,
 	ENTER();
 	bool result = false;
 
-	ASSERT(m_pMainDirectory);
+	ASSERT(m_pData->directory);
 
 	// before we are going to read the SubHeader from the ECAT file we
 	// have to check wheter the file is correctly open in Read mode.
-	if(isReadable() && m_pMainDirectory)
-		result = m_pMainDirectory->readSubHeader(subHeader, frame, plane, gate, bed, data);
+	if(isReadable() && m_pData->directory)
+		result = m_pData->directory->readSubHeader(subHeader, frame, plane, gate, bed, data);
 	
 	RETURN(result);
 	return result;
@@ -597,14 +695,14 @@ bool CECATFile::readMatrix(QByteArray*& matrixData, short frame, short plane,
 {
 	ENTER();
 	bool result = false;
-	ASSERT(m_pMainDirectory);
+	ASSERT(m_pData->directory);
 	
 	// we have to perform a search within the whole DirectoryList
 	// to get the MatrixData but we just need to query the
 	// Main directory here as it will forward the query to it's sub
 	// directories
-	if(isReadable() && m_pMainDirectory)
-		result = m_pMainDirectory->readMatrix(matrixData, frame, plane, gate, bed, data);
+	if(isReadable() && m_pData->directory)
+		result = m_pData->directory->readMatrix(matrixData, frame, plane, gate, bed, data);
 
 	RETURN(result);
 	return result;
@@ -616,14 +714,14 @@ bool CECATFile::readMatrix(char*& matrixData, unsigned int& len, short frame,
 	ENTER();
 	bool result = false;
 
-	ASSERT(m_pMainDirectory);
+	ASSERT(m_pData->directory);
 
 	// we have to perform a search within the whole DirectoryList
 	// to get the MatrixData but we just need to query the
 	// Main directory here as it will forward the query to it's sub
 	// directories
-	if(isReadable() && m_pMainDirectory)
-		result = m_pMainDirectory->readMatrix(matrixData, len, frame, plane, gate, bed, data);
+	if(isReadable() && m_pData->directory)
+		result = m_pData->directory->readMatrix(matrixData, len, frame, plane, gate, bed, data);
 
 	RETURN(result);
 	return result;
@@ -634,14 +732,14 @@ bool CECATFile::readMatrix(QByteArray*& matrixData, CECATSubHeader*& subHeader,
 {
 	ENTER();
 	bool result = false;
-	ASSERT(m_pMainDirectory);
+	ASSERT(m_pData->directory);
 	
 	// we have to perform a search within the whole DirectoryList
 	// to get the MatrixData but we just need to query the
 	// Main directory here as it will forward the query to it's sub
 	// directories
-	if(isReadable() && m_pMainDirectory)
-		result = m_pMainDirectory->readMatrix(matrixData, subHeader, frame, plane, gate, bed, data);
+	if(isReadable() && m_pData->directory)
+		result = m_pData->directory->readMatrix(matrixData, subHeader, frame, plane, gate, bed, data);
 
 	RETURN(result);
 	return result;
@@ -653,14 +751,14 @@ bool CECATFile::readMatrix(char*& matrixData, unsigned int& len, CECATSubHeader*
 	ENTER();
 	bool result = false;
 
-	ASSERT(m_pMainDirectory);
+	ASSERT(m_pData->directory);
 
 	// we have to perform a search within the whole DirectoryList
 	// to get the MatrixData but we just need to query the
 	// Main directory here as it will forward the query to it's sub
 	// directories
-	if(isReadable() && m_pMainDirectory)
-		result = m_pMainDirectory->readMatrix(matrixData, len, subHeader, frame, plane, gate, bed, data);
+	if(isReadable() && m_pData->directory)
+		result = m_pData->directory->readMatrix(matrixData, len, subHeader, frame, plane, gate, bed, data);
 
 	RETURN(result);
 	return result;
@@ -685,12 +783,12 @@ bool CECATFile::writeSubHeader(const CECATSubHeader& subHeader, short frame,
 	ENTER();
 	bool result = false;
 
-	ASSERT(m_pMainDirectory);
+	ASSERT(m_pData->directory);
 	
 	// forward the write request to the MainDirectory which is going to manage
 	// everything else for us
-	if(m_pMainDirectory &&
-		 m_pMainDirectory->writeSubHeader(subHeader, frame, plane, gate, bed, data))
+	if(m_pData->directory &&
+		 m_pData->directory->writeSubHeader(subHeader, frame, plane, gate, bed, data))
 	{
 		// make sure the frames/planes/gates/bedpos parameters in the mainheader
 		// are in sync
@@ -721,12 +819,12 @@ bool CECATFile::writeMatrix(const QByteArray& matrixData,
 	ENTER();
 	bool result = false;
 
-	ASSERT(m_pMainDirectory);
+	ASSERT(m_pData->directory);
 	
 	// forward the write request to the MainDirectory which is going to manage
 	// everything else for us
-	if(m_pMainDirectory &&
-		 m_pMainDirectory->writeMatrix(matrixData, frame, plane, gate, bed, data))
+	if(m_pData->directory &&
+		 m_pData->directory->writeMatrix(matrixData, frame, plane, gate, bed, data))
 	{
 		// make sure the frames/planes/gates/bedpos parameters in the mainheader
 		// are in sync
@@ -757,12 +855,12 @@ bool CECATFile::writeMatrix(const char* matrixData, unsigned int size,
 	ENTER();
 	bool result = false;
 
-	ASSERT(m_pMainDirectory);
+	ASSERT(m_pData->directory);
 	
 	// forward the write request to the MainDirectory which is going to manage
 	// everything else for us
-	if(m_pMainDirectory && 
-		 m_pMainDirectory->writeMatrix(matrixData, size, frame, plane, gate, bed, data))
+	if(m_pData->directory && 
+		 m_pData->directory->writeMatrix(matrixData, size, frame, plane, gate, bed, data))
 	{
 		// make sure the frames/planes/gates/bedpos parameters in the mainheader
 		// are in sync
@@ -793,12 +891,12 @@ bool CECATFile::writeMatrix(const QByteArray& matrixData, const CECATSubHeader& 
 	ENTER();
 	bool result = false;
 
-	ASSERT(m_pMainDirectory);
+	ASSERT(m_pData->directory);
 	
 	// forward the write request to the MainDirectory which is going to manage
 	// everything else for us
-	if(m_pMainDirectory &&
-		 m_pMainDirectory->writeMatrix(matrixData, subHeader, frame, plane, gate, bed, data))
+	if(m_pData->directory &&
+		 m_pData->directory->writeMatrix(matrixData, subHeader, frame, plane, gate, bed, data))
 	{
 		// make sure the frames/planes/gates/bedpos parameters in the mainheader
 		// are in sync
@@ -829,12 +927,12 @@ bool CECATFile::writeMatrix(const char* matrixData, unsigned int size, const CEC
 	ENTER();
 	bool result = false;
 
-	ASSERT(m_pMainDirectory);
+	ASSERT(m_pData->directory);
 	
 	// forward the write request to the MainDirectory which is going to manage
 	// everything else for us
-	if(m_pMainDirectory && 
-		 m_pMainDirectory->writeMatrix(matrixData, size, subHeader, frame, plane, gate, bed, data))
+	if(m_pData->directory && 
+		 m_pData->directory->writeMatrix(matrixData, size, subHeader, frame, plane, gate, bed, data))
 	{
 		// make sure the frames/planes/gates/bedpos parameters in the mainheader
 		// are in sync
@@ -865,12 +963,12 @@ bool CECATFile::writeMatrix(const QByteArray& matrixData, CECATSubHeader::Data_T
 	ENTER();
 	bool result = false;
 
-	ASSERT(m_pMainDirectory);
+	ASSERT(m_pData->directory);
 	
 	// forward the write request to the MainDirectory which is going to manage
 	// everything else for us
-	if(m_pMainDirectory &&
-		 m_pMainDirectory->writeMatrix(matrixData, type, frame, plane, gate, bed, data))
+	if(m_pData->directory &&
+		 m_pData->directory->writeMatrix(matrixData, type, frame, plane, gate, bed, data))
 	{
 		// make sure the frames/planes/gates/bedpos parameters in the mainheader
 		// are in sync
@@ -901,12 +999,12 @@ bool CECATFile::writeMatrix(const char* matrixData, unsigned int size, CECATSubH
 	ENTER();
 	bool result = false;
 
-	ASSERT(m_pMainDirectory);
+	ASSERT(m_pData->directory);
 	
 	// forward the write request to the MainDirectory which is going to manage
 	// everything else for us
-	if(m_pMainDirectory && 
-		 m_pMainDirectory->writeMatrix(matrixData, size, type, frame, plane, gate, bed, data))
+	if(m_pData->directory && 
+		 m_pData->directory->writeMatrix(matrixData, size, type, frame, plane, gate, bed, data))
 	{
 		// make sure the frames/planes/gates/bedpos parameters in the mainheader
 		// are in sync
@@ -937,15 +1035,15 @@ CECATMainHeader* CECATFile::createEmptyMainHeader(void)
 	CECATMainHeader* pEmptyMainHeader = NULL;
 	if(isOpen())
 	{
-		switch(m_iECATformat)
-		{
-			case CECATFile::ECAT7:
-				pEmptyMainHeader = new CECAT7MainHeader(this, m_iMainHeaderType);
-			break;
+			switch(m_pData->iECATformat)
+			{
+				case CECATFile::ECAT7:
+					pEmptyMainHeader = new CECAT7MainHeader(this, m_pData->iMainHeaderType);
+				break;
 
-			case CECATFile::ECAT6:
-				pEmptyMainHeader = new CECAT6MainHeader(this, m_iMainHeaderType);
-			break;
+				case CECATFile::ECAT6:
+					pEmptyMainHeader = new CECAT6MainHeader(this, m_pData->iMainHeaderType);
+				break;
 
 			default:
 				// nothing
@@ -1006,29 +1104,23 @@ void CECATFile::mainHeaderWritten(const CECATMainHeader& mainHeader)
 
 	// now that a new main Header has been written we have to
 	// update our cached copy accordingly.
-	switch(m_iECATformat)
+	switch(m_pData->iECATformat)
 	{
 		case CECATFile::ECAT7:
 		{
-			if(m_pCachedMainHeader)
-			{
-				if(m_pCachedMainHeader != &mainHeader)
-					*static_cast<CECAT7MainHeader*>(m_pCachedMainHeader) = *static_cast<const CECAT7MainHeader*>(&mainHeader);
-			}
+			if(m_pData->cachedMainHeader)
+				*static_cast<CECAT7MainHeader*>(m_pData->cachedMainHeader) = *static_cast<const CECAT7MainHeader*>(&mainHeader);
 			else
-				m_pCachedMainHeader = new CECAT7MainHeader(*static_cast<const CECAT7MainHeader*>(&mainHeader));
+				m_pData->cachedMainHeader = new CECAT7MainHeader(*static_cast<const CECAT7MainHeader*>(&mainHeader));
 		}
 		break;
 
 		case CECATFile::ECAT6:
 		{
-			if(m_pCachedMainHeader)
-			{
-				if(m_pCachedMainHeader != &mainHeader)
-					*static_cast<CECAT6MainHeader*>(m_pCachedMainHeader) = *static_cast<const CECAT6MainHeader*>(&mainHeader);
-			}
+			if(m_pData->cachedMainHeader)
+				*static_cast<CECAT6MainHeader*>(m_pData->cachedMainHeader) = *static_cast<const CECAT6MainHeader*>(&mainHeader);
 			else
-				m_pCachedMainHeader = new CECAT6MainHeader(*static_cast<const CECAT6MainHeader*>(&mainHeader));
+				m_pData->cachedMainHeader = new CECAT6MainHeader(*static_cast<const CECAT6MainHeader*>(&mainHeader));
 		}
 		break;
 
@@ -1039,14 +1131,18 @@ void CECATFile::mainHeaderWritten(const CECATMainHeader& mainHeader)
 
 	// in addition to that we have to place the correct frames/planes/gates/bedPos
 	// stuff in the cached header to be totally correct.
-	if(m_pCachedMainHeader)
+	if(m_pData->cachedMainHeader)
 	{
 		// Please note that we do not specify any PLANES here as in ECAT7 the
 		// planes are normally integrated in one matrix file. So we have to
 		// allow the user to specify the planes himself.
-		m_pCachedMainHeader->setNum_Frames(numFrames());
-		m_pCachedMainHeader->setNum_Gates(numGates());
-		m_pCachedMainHeader->setNum_Bed_Pos(numBedPos());
+		m_pData->cachedMainHeader->setNum_Frames(numFrames());
+		m_pData->cachedMainHeader->setNum_Gates(numGates());
+		m_pData->cachedMainHeader->setNum_Bed_Pos(numBedPos());
+		
+		// set the CECATFile object as the MedIOData object
+		// of the cached header
+		m_pData->cachedMainHeader->setMedIOData(this);
 	}
 
 	LEAVE();
@@ -1057,8 +1153,8 @@ bool CECATFile::reWriteMainHeader(void)
 	ENTER();
 	bool result = false;
 
-	if(m_pCachedMainHeader)
-		result = m_pCachedMainHeader->save();
+	if(m_pData->cachedMainHeader)
+		result = m_pData->cachedMainHeader->save();
 	else
 	{
 		CECATMainHeader* mHeader;

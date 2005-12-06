@@ -33,6 +33,7 @@
 #endif
 
 // forward declarations
+class CECAT7SubHeaderPolarMapPrivate;
 class CECATFile;
 class CECATDirectoryItem;
 
@@ -52,9 +53,15 @@ class CECAT7SubHeaderPolarMap : public CECATSubHeader
 														PMapCalcProtoUsed		=	(1<<8) };
 
 		// constructors
-		CECAT7SubHeaderPolarMap(CECATFile* ecatFile,
+		CECAT7SubHeaderPolarMap(CECATFile* ecatFile = NULL,
 														CECATDirectoryItem* pDirItem = NULL);
-		
+		~CECAT7SubHeaderPolarMap();
+
+		// copy constructur and default assignment operator
+		CECAT7SubHeaderPolarMap(const CECAT7SubHeaderPolarMap& src);		
+		CECAT7SubHeaderPolarMap& operator=(const CECAT7SubHeaderPolarMap& src);
+
+		// header clear method				
 		void clear();
 
 		// public methods
@@ -126,42 +133,8 @@ class CECAT7SubHeaderPolarMap : public CECATSubHeader
 		void setCTI_Reserved(const short i, const short n);
 		void setUser_Reserved(const short i, const short n);
 
-	protected:
-		// constructors
-		CECAT7SubHeaderPolarMap();
-
-#ifdef __MEDIO_PRIVATE__
 	private:
-		struct ECAT7SubHeader_PolarMap
-		{
-			quint16	Data_Type;
-			quint16	Polar_Map_Type;
-			quint16	Num_Rings;
-			quint16	Sectors_Per_Ring[32];
-			float		Ring_Position[32];
-			quint16	Ring_Angle[32];
-			quint16	Start_Angle;
-			quint16	Long_Axis_Left[3];
-			quint16	Long_Axis_Right[3];
-			quint16	Position_Data;
-			quint16	Image_Min;
-			quint16	Image_Max;
-			float		Scale_Factor;
-			float		Pixel_Size;
-			quint32	Frame_Duration;
-			quint32	Frame_Start_Time;
-			quint16	Processing_Code;
-			quint16	Quant_Units;
-			char		Annotation[40];
-			quint32	Gate_Duration;
-			quint32	R_Wave_Offset;
-			quint32	Num_Accepted_Beats;
-			char		Polar_Map_Protocol[20];
-			char		Database_Name[30];
-			quint16	CTI_reserved[27];
-			quint16	User_Reserved[27];
-		} m_Data;
-#endif
+		CECAT7SubHeaderPolarMapPrivate* m_pData;
 };
 
 #endif // CECAT7SUBHEADERPOLARMAP_H

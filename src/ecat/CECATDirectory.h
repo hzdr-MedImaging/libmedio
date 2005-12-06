@@ -24,10 +24,6 @@
 #ifndef CECATDIRECTORY_H
 #define CECATDIRECTORY_H
 
-#include <QHash>
-#include <QIODevice>
-#include <QVector>
-
 #ifndef __MEDIO_PRIVATE__
 #include <CECATDirectoryItem>
 #else
@@ -35,13 +31,19 @@
 #endif
 
 // forward declarations
+class CECATDirectoryPrivate;
 class CECATFile;
 
-class CECATDirectory : protected QHash<int, CECATDirectoryItem*>
+class CECATDirectory
 {
 	public:
+		// constructors		
 		CECATDirectory(CECATFile* ecatFile);
 		~CECATDirectory();
+
+		// copy constructur and default assignment operator
+		CECATDirectory(const CECATDirectory& src);		
+		CECATDirectory& operator=(const CECATDirectory& src);	
 
 		// file i/o routines
 		bool load(void);
@@ -89,19 +91,8 @@ class CECATDirectory : protected QHash<int, CECATDirectoryItem*>
 		bool writeMatrix(const char* matrix, unsigned int size, const CECATSubHeader& subHeader,
 										 short frame, short plane=1, short gate=1, short bed=0, short data=0);
 
-#ifdef __MEDIO_PRIVATE__
 	private:
-		CECATFile* m_pECATFile;	// ptr to our associated ECATFile
-																				
-		QVector<qint64>* m_pFilePositions; // for each DirList we
-																			 // could have different file
-																			 // positions which we have
-																			 // to store
-
-		// some private methods 
-		CECATDirectoryItem* newItem(quint32 matrixID);
-		qint64 lastDirItemOffset(void) const;
-#endif
+		CECATDirectoryPrivate* m_pData;
 };
 
 #endif // CECATDIRECTORY_H

@@ -29,17 +29,93 @@
 
 #include <rtdebug.h>
 
+// we define the private inline class of that one so that we
+// are able to hide the private methods & data of that class in the
+// public headers
+class CECAT7SubHeaderAttenCorrPrivate
+{
+	public:
+		struct HeaderData
+		{
+			quint16	Data_Type;
+			quint16	Num_Dimensions;
+			quint16	Attenuation_Type;
+			quint16	Num_R_Elements;
+			quint16	Num_Angles;
+			quint16	Num_Z_Elements;
+			quint16	Ring_Difference;
+			float		X_Resolution;
+			float		Y_Resolution;
+			float		Z_Resolution;
+			float		W_Resolution;
+			float		Scale_Factor;
+			float		X_Offset;
+			float		Y_Offset;
+			float		X_Radius;
+			float		Y_Radius;
+			float		Tilt_Angle;
+			float		Attenuation_Coeff;
+			float		Attenuation_Min;
+			float		Attenuation_Max;
+			float		Skull_Thickness;
+			quint16	Num_Additional_Atten_Coeff;
+			float		Additional_Atten_Coeff[8];
+			float		Edge_Finding_Threshold;
+			quint16	Storage_Order;
+			quint16	Span;
+			quint16	Z_Elements[64];
+			quint16	Unused[86];
+			quint16	CTI_Reserved[50];
+		} header;
+};
+
 CECAT7SubHeaderAttenCorr::CECAT7SubHeaderAttenCorr(CECATFile* ecatFile,
 																									 CECATDirectoryItem* pDirItem)
 	: CECATSubHeader(ecatFile, pDirItem)
 {
+	ENTER();
+
+	// allocate data from our private instance class
+	m_pData = new CECAT7SubHeaderAttenCorrPrivate();
+	
 	clear();
+
+	LEAVE();
 }
 
-CECAT7SubHeaderAttenCorr::CECAT7SubHeaderAttenCorr()
-	: CECATSubHeader(NULL)
+CECAT7SubHeaderAttenCorr::~CECAT7SubHeaderAttenCorr()
 {
-	clear();
+	ENTER();
+
+	delete m_pData;
+
+	LEAVE();
+}
+
+CECAT7SubHeaderAttenCorr::CECAT7SubHeaderAttenCorr(const CECAT7SubHeaderAttenCorr& src)
+	: CECATSubHeader(src)
+{
+	ENTER();
+
+	// allocate data from our private instance class
+	m_pData = new CECAT7SubHeaderAttenCorrPrivate(*(src.m_pData));
+
+	LEAVE();
+}
+
+CECAT7SubHeaderAttenCorr& CECAT7SubHeaderAttenCorr::operator=(const CECAT7SubHeaderAttenCorr& src)
+{
+	ENTER();
+
+	if(m_pData != src.m_pData)
+	{
+		memcpy(&m_pData->header, 
+					 &src.m_pData->header, 
+					 sizeof(struct CECAT7SubHeaderAttenCorrPrivate::HeaderData));
+	}
+
+	LEAVE();
+	return *this;
 }
 
 void CECAT7SubHeaderAttenCorr::clear()
@@ -47,7 +123,7 @@ void CECAT7SubHeaderAttenCorr::clear()
 	ENTER();
 	
 	// clear our header structure first
-	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_AttenCorr));
+	memset(&m_pData->header, 0, sizeof(struct CECAT7SubHeaderAttenCorrPrivate::HeaderData));
 		
 	setData_Type(CECATSubHeader::UnknownDataType);
 	setAttenuation_Type(Atten_None);
@@ -86,76 +162,76 @@ bool CECAT7SubHeaderAttenCorr::load(void)
 	// lets read in each single data element of our
 	// data structure to maintain the correct endianess of the
 	// data
-	stream >> m_Data.Data_Type;										//   0: Data_Type
-	stream >> m_Data.Num_Dimensions;							//   2: Num_Dimensions
-	stream >> m_Data.Attenuation_Type;						//   4: Attenuation_Type
-	stream >> m_Data.Num_R_Elements;							//   6: Num_R_Elements
-	stream >> m_Data.Num_Angles;									//   8: Num_Angles
-	stream >> m_Data.Num_Z_Elements;							//  10: Num_Z_Elements
-	stream >> m_Data.Ring_Difference;							//  12: Ring_Difference
-	stream >> m_Data.X_Resolution;								//  14: X_Resolution
-	stream >> m_Data.Y_Resolution;								//  18: Y_Resolution
-	stream >> m_Data.Z_Resolution;								//  22: Z_Resolution
-	stream >> m_Data.W_Resolution;								//  26: W_Resolution
-	stream >> m_Data.Scale_Factor;								//  30: Scale_Factor
-	stream >> m_Data.X_Offset;										//  34: X_Offset
-	stream >> m_Data.Y_Offset;										//  38: Y_Offset
-	stream >> m_Data.X_Radius;										//  42: X_Radius
-	stream >> m_Data.Y_Radius;										//  46: Y_Radius
-	stream >> m_Data.Tilt_Angle;									//  50: Tilt_Angle
-	stream >> m_Data.Attenuation_Coeff;						//  54: Attenuation_Coeff
-	stream >> m_Data.Attenuation_Min;							//  58: Attenuation_Min
-	stream >> m_Data.Attenuation_Max;							//  62: Attenuation_Max
-	stream >> m_Data.Skull_Thickness;							//  66: Skull_Thickness
-	stream >> m_Data.Num_Additional_Atten_Coeff;	//  70: Num_Additional_Atten_Coeff
+	stream >> m_pData->header.Data_Type;										//   0: Data_Type
+	stream >> m_pData->header.Num_Dimensions;							//   2: Num_Dimensions
+	stream >> m_pData->header.Attenuation_Type;						//   4: Attenuation_Type
+	stream >> m_pData->header.Num_R_Elements;							//   6: Num_R_Elements
+	stream >> m_pData->header.Num_Angles;									//   8: Num_Angles
+	stream >> m_pData->header.Num_Z_Elements;							//  10: Num_Z_Elements
+	stream >> m_pData->header.Ring_Difference;							//  12: Ring_Difference
+	stream >> m_pData->header.X_Resolution;								//  14: X_Resolution
+	stream >> m_pData->header.Y_Resolution;								//  18: Y_Resolution
+	stream >> m_pData->header.Z_Resolution;								//  22: Z_Resolution
+	stream >> m_pData->header.W_Resolution;								//  26: W_Resolution
+	stream >> m_pData->header.Scale_Factor;								//  30: Scale_Factor
+	stream >> m_pData->header.X_Offset;										//  34: X_Offset
+	stream >> m_pData->header.Y_Offset;										//  38: Y_Offset
+	stream >> m_pData->header.X_Radius;										//  42: X_Radius
+	stream >> m_pData->header.Y_Radius;										//  46: Y_Radius
+	stream >> m_pData->header.Tilt_Angle;									//  50: Tilt_Angle
+	stream >> m_pData->header.Attenuation_Coeff;						//  54: Attenuation_Coeff
+	stream >> m_pData->header.Attenuation_Min;							//  58: Attenuation_Min
+	stream >> m_pData->header.Attenuation_Max;							//  62: Attenuation_Max
+	stream >> m_pData->header.Skull_Thickness;							//  66: Skull_Thickness
+	stream >> m_pData->header.Num_Additional_Atten_Coeff;	//  70: Num_Additional_Atten_Coeff
 	for(int i=0; i < 8; i++)
-		stream >> m_Data.Additional_Atten_Coeff[i];	//  72: Additional_Atten_Coeff (8)
-	stream >> m_Data.Edge_Finding_Threshold;			// 104: Edge_Finding_Threshold
-	stream >> m_Data.Storage_Order;								// 108: Storage_Order
-	stream >> m_Data.Span;												// 110: Span
+		stream >> m_pData->header.Additional_Atten_Coeff[i];	//  72: Additional_Atten_Coeff (8)
+	stream >> m_pData->header.Edge_Finding_Threshold;			// 104: Edge_Finding_Threshold
+	stream >> m_pData->header.Storage_Order;								// 108: Storage_Order
+	stream >> m_pData->header.Span;												// 110: Span
 	for(int i=0; i < 64; i++)
-		stream >> m_Data.Z_Elements[i];							// 112: Z_Elements (64)
+		stream >> m_pData->header.Z_Elements[i];							// 112: Z_Elements (64)
 	for(int i=0; i < 86; i++)
-		stream >> m_Data.Unused[i];									// 240: Unused (86)
+		stream >> m_pData->header.Unused[i];									// 240: Unused (86)
 	for(int i=0; i < 64; i++)
-		stream >> m_Data.CTI_Reserved[i];						// 412: CTI_Reserved (64)
+		stream >> m_pData->header.CTI_Reserved[i];						// 412: CTI_Reserved (64)
 
 	// some more debug output
 #if defined(DEBUG)
 	D("ECAT7 Attenuation Correction SubHeader loaded:");
 	D("---------------------------------------------");
-	D("Data_Type	               : %d",				m_Data.Data_Type);
-	D("Num_Dimensions					   : %d",				m_Data.Num_Dimensions);
-	D("Attenuation_Type          : %d",				m_Data.Attenuation_Type);
-	D("Num_R_Elements		         : %d",				m_Data.Num_R_Elements);
-	D("Num_Angles                : %d",				m_Data.Num_Angles);
-	D("Num_Z_Elements            : %d",				m_Data.Num_Z_Elements);
-	D("Ring_Difference           : %d",				m_Data.Ring_Difference);
-	D("X_Resolution              : %f cm",		m_Data.X_Resolution);
-	D("Y_Resolution              : %f cm",		m_Data.Y_Resolution);
-	D("Z_Resolution              : %f cm",		m_Data.Z_Resolution);
-	D("W_Resolution              : %f",				m_Data.W_Resolution);
-	D("Scale_Factor              : %f",				m_Data.Scale_Factor);
-	D("X_Offset				           : %f cm",		m_Data.X_Offset);
-	D("Y_Offset			             : %f cm",		m_Data.Y_Offset);
-	D("X_Radius                  : %f cm",		m_Data.X_Radius);
-	D("Y_Radius                  : %f cm",		m_Data.Y_Radius);
-	D("Tilt_Angle                : %f°",			m_Data.Tilt_Angle);
-	D("Attenuation_Coeff         : %f cm^-1",	m_Data.Attenuation_Coeff);
-	D("Attenuation_Min           : %f",				m_Data.Attenuation_Min);
-	D("Attenuation_Max           : %f",				m_Data.Attenuation_Max);
-	D("Skull_Thickness           : %f cm",		m_Data.Skull_Thickness);
-	D("Num_Additional_Atten_Coeff: %d",				m_Data.Num_Additional_Atten_Coeff);
-	for(int i=0; i < m_Data.Num_Additional_Atten_Coeff; i++)
+	D("Data_Type	               : %d",				m_pData->header.Data_Type);
+	D("Num_Dimensions					   : %d",				m_pData->header.Num_Dimensions);
+	D("Attenuation_Type          : %d",				m_pData->header.Attenuation_Type);
+	D("Num_R_Elements		         : %d",				m_pData->header.Num_R_Elements);
+	D("Num_Angles                : %d",				m_pData->header.Num_Angles);
+	D("Num_Z_Elements            : %d",				m_pData->header.Num_Z_Elements);
+	D("Ring_Difference           : %d",				m_pData->header.Ring_Difference);
+	D("X_Resolution              : %f cm",		m_pData->header.X_Resolution);
+	D("Y_Resolution              : %f cm",		m_pData->header.Y_Resolution);
+	D("Z_Resolution              : %f cm",		m_pData->header.Z_Resolution);
+	D("W_Resolution              : %f",				m_pData->header.W_Resolution);
+	D("Scale_Factor              : %f",				m_pData->header.Scale_Factor);
+	D("X_Offset				           : %f cm",		m_pData->header.X_Offset);
+	D("Y_Offset			             : %f cm",		m_pData->header.Y_Offset);
+	D("X_Radius                  : %f cm",		m_pData->header.X_Radius);
+	D("Y_Radius                  : %f cm",		m_pData->header.Y_Radius);
+	D("Tilt_Angle                : %f°",			m_pData->header.Tilt_Angle);
+	D("Attenuation_Coeff         : %f cm^-1",	m_pData->header.Attenuation_Coeff);
+	D("Attenuation_Min           : %f",				m_pData->header.Attenuation_Min);
+	D("Attenuation_Max           : %f",				m_pData->header.Attenuation_Max);
+	D("Skull_Thickness           : %f cm",		m_pData->header.Skull_Thickness);
+	D("Num_Additional_Atten_Coeff: %d",				m_pData->header.Num_Additional_Atten_Coeff);
+	for(int i=0; i < m_pData->header.Num_Additional_Atten_Coeff; i++)
 	{
-		D("Additional_Atten_Coeff[%d]: %f", i+1, m_Data.Additional_Atten_Coeff[i]);
+		D("Additional_Atten_Coeff[%d]: %f", i+1, m_pData->header.Additional_Atten_Coeff[i]);
 	}
-	D("Edge_Finding_Threshold    : %f",				m_Data.Edge_Finding_Threshold);
-	D("Storage_Order						 : %d",				m_Data.Storage_Order);
-	D("Span				               : %d",				m_Data.Span);
+	D("Edge_Finding_Threshold    : %f",				m_pData->header.Edge_Finding_Threshold);
+	D("Storage_Order						 : %d",				m_pData->header.Storage_Order);
+	D("Span				               : %d",				m_pData->header.Span);
 	for(int i=0; i < 64; i++)
 	{
-		D("Z_Elements							[%d]: %f", i+1, m_Data.Z_Elements[i]);
+		D("Z_Elements							[%d]: %f", i+1, m_pData->header.Z_Elements[i]);
 	}
 #endif
 
@@ -185,39 +261,39 @@ bool CECAT7SubHeaderAttenCorr::save(void) const
 	// lets write out each single data element of our
 	// data structure to maintain the correct endianess of the
 	// data
-	stream << m_Data.Data_Type;										//   0: Data_Type
-	stream << m_Data.Num_Dimensions;							//   2: Num_Dimensions
-	stream << m_Data.Attenuation_Type;						//   4: Attenuation_Type
-	stream << m_Data.Num_R_Elements;							//   6: Num_R_Elements
-	stream << m_Data.Num_Angles;									//   8: Num_Angles
-	stream << m_Data.Num_Z_Elements;							//  10: Num_Z_Elements
-	stream << m_Data.Ring_Difference;							//  12: Ring_Difference
-	stream << m_Data.X_Resolution;								//  14: X_Resolution
-	stream << m_Data.Y_Resolution;								//  18: Y_Resolution
-	stream << m_Data.Z_Resolution;								//  22: Z_Resolution
-	stream << m_Data.W_Resolution;								//  26: W_Resolution
-	stream << m_Data.Scale_Factor;								//  30: Scale_Factor
-	stream << m_Data.X_Offset;										//  34: X_Offset
-	stream << m_Data.Y_Offset;										//  38: Y_Offset
-	stream << m_Data.X_Radius;										//  42: X_Radius
-	stream << m_Data.Y_Radius;										//  46: Y_Radius
-	stream << m_Data.Tilt_Angle;									//  50: Tilt_Angle
-	stream << m_Data.Attenuation_Coeff;						//  54: Attenuation_Coeff
-	stream << m_Data.Attenuation_Min;							//  58: Attenuation_Min
-	stream << m_Data.Attenuation_Max;							//  62: Attenuation_Max
-	stream << m_Data.Skull_Thickness;							//  66: Skull_Thickness
-	stream << m_Data.Num_Additional_Atten_Coeff;	//  70: Num_Additional_Atten_Coeff
+	stream << m_pData->header.Data_Type;										//   0: Data_Type
+	stream << m_pData->header.Num_Dimensions;							//   2: Num_Dimensions
+	stream << m_pData->header.Attenuation_Type;						//   4: Attenuation_Type
+	stream << m_pData->header.Num_R_Elements;							//   6: Num_R_Elements
+	stream << m_pData->header.Num_Angles;									//   8: Num_Angles
+	stream << m_pData->header.Num_Z_Elements;							//  10: Num_Z_Elements
+	stream << m_pData->header.Ring_Difference;							//  12: Ring_Difference
+	stream << m_pData->header.X_Resolution;								//  14: X_Resolution
+	stream << m_pData->header.Y_Resolution;								//  18: Y_Resolution
+	stream << m_pData->header.Z_Resolution;								//  22: Z_Resolution
+	stream << m_pData->header.W_Resolution;								//  26: W_Resolution
+	stream << m_pData->header.Scale_Factor;								//  30: Scale_Factor
+	stream << m_pData->header.X_Offset;										//  34: X_Offset
+	stream << m_pData->header.Y_Offset;										//  38: Y_Offset
+	stream << m_pData->header.X_Radius;										//  42: X_Radius
+	stream << m_pData->header.Y_Radius;										//  46: Y_Radius
+	stream << m_pData->header.Tilt_Angle;									//  50: Tilt_Angle
+	stream << m_pData->header.Attenuation_Coeff;						//  54: Attenuation_Coeff
+	stream << m_pData->header.Attenuation_Min;							//  58: Attenuation_Min
+	stream << m_pData->header.Attenuation_Max;							//  62: Attenuation_Max
+	stream << m_pData->header.Skull_Thickness;							//  66: Skull_Thickness
+	stream << m_pData->header.Num_Additional_Atten_Coeff;	//  70: Num_Additional_Atten_Coeff
 	for(int i=0; i < 8; i++)
-		stream << m_Data.Additional_Atten_Coeff[i];	//  72: Additional_Atten_Coeff (8)
-	stream << m_Data.Edge_Finding_Threshold;			// 104: Edge_Finding_Threshold
-	stream << m_Data.Storage_Order;								// 108: Storage_Order
-	stream << m_Data.Span;												// 110: Span
+		stream << m_pData->header.Additional_Atten_Coeff[i];	//  72: Additional_Atten_Coeff (8)
+	stream << m_pData->header.Edge_Finding_Threshold;			// 104: Edge_Finding_Threshold
+	stream << m_pData->header.Storage_Order;								// 108: Storage_Order
+	stream << m_pData->header.Span;												// 110: Span
 	for(int i=0; i < 64; i++)
-		stream << m_Data.Z_Elements[i];							// 112: Z_Elements (64)
+		stream << m_pData->header.Z_Elements[i];							// 112: Z_Elements (64)
 	for(int i=0; i < 86; i++)
-		stream << m_Data.Unused[i];									// 240: Unused (86)
+		stream << m_pData->header.Unused[i];									// 240: Unused (86)
 	for(int i=0; i < 64; i++)
-		stream << m_Data.CTI_Reserved[i];						// 412: CTI_Reserved (64)		
+		stream << m_pData->header.CTI_Reserved[i];						// 412: CTI_Reserved (64)		
 
 	// now write out to our outStream
 	bool result = false;
@@ -262,7 +338,10 @@ bool CECAT7SubHeaderAttenCorr::convertFrom(const CMedIOHeader* pHead1, const CMe
 				// via a simple memcpy()
 				case CECATSubHeader::ECAT7_AttenCorr:
 				{
-					memcpy(&(this->m_Data), &(static_cast<const CECAT7SubHeaderAttenCorr*>(pHead1)->m_Data), sizeof(struct ECAT7SubHeader_AttenCorr));
+					// we use the assignment operator which will do the convertation
+					// for us.
+					*this = *static_cast<const CECAT7SubHeaderAttenCorr*>(pHead1);
+					
 					bResult = true;
 				}
 				break;
@@ -310,291 +389,291 @@ CMedIOHeader* CECAT7SubHeaderAttenCorr::clone() const
 // data access methods
 CECATSubHeader::Data_Type CECAT7SubHeaderAttenCorr::data_Type(void) const
 {
-	return static_cast<CECATSubHeader::Data_Type>(m_Data.Data_Type);
+	return static_cast<CECATSubHeader::Data_Type>(m_pData->header.Data_Type);
 }
 
 short	CECAT7SubHeaderAttenCorr::num_Dimensions(void) const
 {
-	return m_Data.Num_Dimensions;
+	return m_pData->header.Num_Dimensions;
 }
 
 CECAT7SubHeaderAttenCorr::Attenuation_Type CECAT7SubHeaderAttenCorr::attenuation_Type(void) const
 {
-	return static_cast<CECAT7SubHeaderAttenCorr::Attenuation_Type>(m_Data.Attenuation_Type);
+	return static_cast<CECAT7SubHeaderAttenCorr::Attenuation_Type>(m_pData->header.Attenuation_Type);
 }
 
 short CECAT7SubHeaderAttenCorr::num_R_Elements(void) const
 {
-	return m_Data.Num_R_Elements;
+	return m_pData->header.Num_R_Elements;
 }
 
 short CECAT7SubHeaderAttenCorr::num_Angles(void) const
 {
-	return m_Data.Num_Angles;
+	return m_pData->header.Num_Angles;
 }
 
 short CECAT7SubHeaderAttenCorr::num_Z_Elements(void) const
 {
-	return m_Data.Num_Z_Elements;
+	return m_pData->header.Num_Z_Elements;
 }
 
 short CECAT7SubHeaderAttenCorr::ring_Difference(void) const
 {
-	return m_Data.Ring_Difference;
+	return m_pData->header.Ring_Difference;
 }
 
 float CECAT7SubHeaderAttenCorr::x_Resolution(void) const
 {
-	return m_Data.X_Resolution;
+	return m_pData->header.X_Resolution;
 }
 
 float CECAT7SubHeaderAttenCorr::y_Resolution(void) const
 {
-	return m_Data.Y_Resolution;
+	return m_pData->header.Y_Resolution;
 }
 
 float	CECAT7SubHeaderAttenCorr::z_Resolution(void) const
 {
-	return m_Data.Z_Resolution;
+	return m_pData->header.Z_Resolution;
 }
 
 float CECAT7SubHeaderAttenCorr::w_Resolution(void) const
 {
-	return m_Data.W_Resolution;
+	return m_pData->header.W_Resolution;
 }
 
 float	CECAT7SubHeaderAttenCorr::scale_Factor(void) const
 {
-	return m_Data.Scale_Factor;
+	return m_pData->header.Scale_Factor;
 }
 
 float	CECAT7SubHeaderAttenCorr::x_Offset(void) const
 {
-	return m_Data.X_Offset;
+	return m_pData->header.X_Offset;
 }
 
 float	CECAT7SubHeaderAttenCorr::y_Offset(void) const
 {
-	return m_Data.Y_Offset;
+	return m_pData->header.Y_Offset;
 }
 
 float	CECAT7SubHeaderAttenCorr::x_Radius(void) const
 {
-	return m_Data.X_Radius;
+	return m_pData->header.X_Radius;
 }
 
 float	CECAT7SubHeaderAttenCorr::y_Radius(void) const
 {
-	return m_Data.Y_Radius;
+	return m_pData->header.Y_Radius;
 }
 
 float	CECAT7SubHeaderAttenCorr::tilt_Angle(void) const
 {
-	return m_Data.Tilt_Angle;
+	return m_pData->header.Tilt_Angle;
 }
 
 float CECAT7SubHeaderAttenCorr::attenuation_Coeff(void) const
 {
-	return m_Data.Attenuation_Coeff;
+	return m_pData->header.Attenuation_Coeff;
 }
 
 float	CECAT7SubHeaderAttenCorr::attenuation_Min(void) const
 {
-	return m_Data.Attenuation_Min;
+	return m_pData->header.Attenuation_Min;
 }
 
 float	CECAT7SubHeaderAttenCorr::attenuation_Max(void) const
 {
-	return m_Data.Attenuation_Max;
+	return m_pData->header.Attenuation_Max;
 }
 
 float	CECAT7SubHeaderAttenCorr::skull_Thickness(void) const
 {
-	return m_Data.Skull_Thickness;
+	return m_pData->header.Skull_Thickness;
 }
 
 short	CECAT7SubHeaderAttenCorr::num_Additional_Atten_Coeff(void) const
 {
-	return m_Data.Num_Additional_Atten_Coeff;
+	return m_pData->header.Num_Additional_Atten_Coeff;
 }
 
 float	CECAT7SubHeaderAttenCorr::additional_Atten_Coeff(int n) const
 {
-	return m_Data.Additional_Atten_Coeff[n];
+	return m_pData->header.Additional_Atten_Coeff[n];
 }
 
 float	CECAT7SubHeaderAttenCorr::edge_Finding_Threshold(void) const
 {
-	return m_Data.Edge_Finding_Threshold;
+	return m_pData->header.Edge_Finding_Threshold;
 }
 
 short CECAT7SubHeaderAttenCorr::storage_Order(void) const
 {
-	return m_Data.Storage_Order;
+	return m_pData->header.Storage_Order;
 }
 
 short CECAT7SubHeaderAttenCorr::span(void) const
 {
-	return m_Data.Span;
+	return m_pData->header.Span;
 }
 
 short CECAT7SubHeaderAttenCorr::z_Elements(int n) const
 {
-	return m_Data.Z_Elements[n];
+	return m_pData->header.Z_Elements[n];
 }
 
 short	CECAT7SubHeaderAttenCorr::unused(int n) const
 {
-	return m_Data.Unused[n];
+	return m_pData->header.Unused[n];
 }
 
 short CECAT7SubHeaderAttenCorr::cti_Reserved(int n) const
 {
-	return m_Data.CTI_Reserved[n];
+	return m_pData->header.CTI_Reserved[n];
 }
 
 void CECAT7SubHeaderAttenCorr::setData_Type(const CECATSubHeader::Data_Type dType)
 {
-	m_Data.Data_Type = static_cast<quint16>(dType);
+	m_pData->header.Data_Type = static_cast<quint16>(dType);
 }
 
 void CECAT7SubHeaderAttenCorr::setNum_Dimensions(const short n)
 {
-	m_Data.Num_Dimensions = n;
+	m_pData->header.Num_Dimensions = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setAttenuation_Type(const Attenuation_Type n)
 {
-	m_Data.Attenuation_Type = static_cast<quint16>(n);
+	m_pData->header.Attenuation_Type = static_cast<quint16>(n);
 }
 
 void CECAT7SubHeaderAttenCorr::setNum_R_Elements(const short n)
 {
-	m_Data.Num_R_Elements = n;
+	m_pData->header.Num_R_Elements = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setNum_Angles(const short n)
 {
-	m_Data.Num_Angles = n;
+	m_pData->header.Num_Angles = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setNum_Z_Elements(const short n)
 {
-	m_Data.Num_Z_Elements = n;
+	m_pData->header.Num_Z_Elements = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setRing_Difference(const short n)
 {
-	m_Data.Ring_Difference = n;
+	m_pData->header.Ring_Difference = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setX_Resolution(const float n)
 {
-	m_Data.X_Resolution = n;
+	m_pData->header.X_Resolution = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setY_Resolution(const float n)
 {
-	m_Data.Y_Resolution = n;
+	m_pData->header.Y_Resolution = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setZ_Resolution(const float n)
 {
-	m_Data.Z_Resolution = n;
+	m_pData->header.Z_Resolution = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setW_Resolution(const float n)
 {
-	m_Data.W_Resolution = n;
+	m_pData->header.W_Resolution = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setScale_Factor(const float n)
 {
-	m_Data.Scale_Factor = n;
+	m_pData->header.Scale_Factor = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setX_Offset(const float n)
 {
-	m_Data.X_Offset = n;
+	m_pData->header.X_Offset = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setY_Offset(const float n)
 {
-	m_Data.Y_Offset = n;
+	m_pData->header.Y_Offset = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setX_Radius(const float n)
 {
-	m_Data.X_Radius = n;
+	m_pData->header.X_Radius = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setY_Radius(const float n)
 {
-	m_Data.Y_Radius = n;
+	m_pData->header.Y_Radius = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setTilt_Angle(const float n)
 {
-	m_Data.Tilt_Angle = n;
+	m_pData->header.Tilt_Angle = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setAttenuation_Coeff(const float n)
 {
-	m_Data.Attenuation_Coeff = n;
+	m_pData->header.Attenuation_Coeff = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setAttenuation_Min(const float n)
 {
-	m_Data.Attenuation_Min = n;
+	m_pData->header.Attenuation_Min = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setAttenuation_Max(const float n)
 {
-	m_Data.Attenuation_Max = n;
+	m_pData->header.Attenuation_Max = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setSkull_Thickness(const float n)
 {
-	m_Data.Skull_Thickness = n;
+	m_pData->header.Skull_Thickness = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setNum_Additional_Atten_Coeff(const short n)
 {
-	m_Data.Num_Additional_Atten_Coeff = n;
+	m_pData->header.Num_Additional_Atten_Coeff = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setAdditional_Atten_Coeff(const short i, const float n)
 {
-	m_Data.Additional_Atten_Coeff[i] = n;
+	m_pData->header.Additional_Atten_Coeff[i] = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setEdge_Finding_Threshold(const float n)
 {
-	m_Data.Edge_Finding_Threshold = n;
+	m_pData->header.Edge_Finding_Threshold = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setStorage_Order(const short n)
 {
-	m_Data.Storage_Order = n;
+	m_pData->header.Storage_Order = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setSpan(const short n)
 {
-	m_Data.Span = n;
+	m_pData->header.Span = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setZ_Elements(const short i, const short n)
 {
-	m_Data.Z_Elements[i] = n;
+	m_pData->header.Z_Elements[i] = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setUnused(const short i, const short n)
 {
-	m_Data.Unused[i] = n;
+	m_pData->header.Unused[i] = n;
 }
 
 void CECAT7SubHeaderAttenCorr::setCTI_Reserverd(const short i, const short n)
 {
-	m_Data.CTI_Reserved[i] = n;
+	m_pData->header.CTI_Reserved[i] = n;
 }
 
