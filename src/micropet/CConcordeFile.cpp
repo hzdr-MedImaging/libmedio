@@ -78,7 +78,7 @@ CConcordeFile::CConcordeFile(const CConcordeFile& src)
 	LEAVE();
 }
 	
-CConcordeFile& CConcordeFile::operator=(const CConcordeFile& src)
+CConcordeFile& CConcordeFile::operator=(const CConcordeFile&)
 {
 	ENTER();
 

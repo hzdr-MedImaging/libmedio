@@ -50,7 +50,7 @@ CMedIOHeader::~CMedIOHeader()
 	LEAVE();
 }
 
-CMedIOHeader::CMedIOHeader(const CMedIOHeader& src __attribute__((unused)))
+CMedIOHeader::CMedIOHeader(const CMedIOHeader&)
 	: m_pMedIOData(NULL)
 {
 	ENTER();
