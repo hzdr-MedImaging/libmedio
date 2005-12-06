@@ -63,6 +63,7 @@
 #endif
 
 // forward declarations
+class CECATDirectoryItemPrivate;
 class CECATFile;
 
 class Q_EXPORT CECATDirectoryItem
@@ -73,12 +74,17 @@ class Q_EXPORT CECATDirectoryItem
 												Finished=1
 											};
 
+		// constructors
 		CECATDirectoryItem(CECATFile* file,
 											 Q_UINT32 matrixID = 0);
 		~CECATDirectoryItem();
+
+		// copy constructur and default assignment operator
+		CECATDirectoryItem(const CECATDirectoryItem& src);		
+		CECATDirectoryItem& operator=(const CECATDirectoryItem& src);			
 	
 		// accessor methods
-		unsigned int matrixID(void) const;
+		Q_UINT32 matrixID(void) const;
 		QIODevice::Offset dataBlock_Start(void) const;
 		QIODevice::Offset dataBlock_End(void) const;
 		AccessStatus dataBlock_Status(void) const;
@@ -120,23 +126,9 @@ class Q_EXPORT CECATDirectoryItem
 
 		// internal methods to sync specific data with our headers
 		void subHeaderWritten(const CECATSubHeader& subHeader);
-		void cacheSubHeader(const CECATSubHeader& subHeader);
 
-#ifdef __MEDIO_PRIVATE__
 	private:
-		CECATFile*						m_pECATFile;				// pointer to the ECATFile
-		CECATSubHeader*				m_pCachedSubHeader;	// pointer to a cached SubHeader object
-
-		// META information about the directory Item
-		short									m_iFrame;						// information normally
-		short									m_iPlane;						// encoded in
-		short									m_iGate;						// the MatrixID
-		short									m_iBed;
-		short									m_iData;
-		QIODevice::Offset			m_iDataBlock_Start; // also start of SubHeader
-		QIODevice::Offset			m_iDataBlock_End;		// end of raw Data area
-		enum AccessStatus			m_iStatus;
-#endif
+		CECATDirectoryItemPrivate* m_pData;
 };
 
 #endif // CECATDIRECTORYITEM_H

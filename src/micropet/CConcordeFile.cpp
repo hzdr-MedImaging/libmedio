@@ -45,7 +45,8 @@
 //!
 ////////////////////////////////////////////////////////////////////////////////
 CConcordeFile::CConcordeFile(const QString& fileName)
-	: CMedIOData(fileName)
+	: CMedIOData(fileName),
+		m_pCachedMainHeader(NULL)
 {
 	ENTER();
 	LEAVE();
@@ -60,7 +61,36 @@ CConcordeFile::CConcordeFile(const QString& fileName)
 CConcordeFile::~CConcordeFile()
 {
 	ENTER();
+
+	delete m_pCachedMainHeader;
+	
 	LEAVE();
+}
+
+CConcordeFile::CConcordeFile(const CConcordeFile& src)
+	: CMedIOData(src.fileName())
+{
+	ENTER();
+
+	// just set the cachedMainHeader pointer to NULL
+	m_pCachedMainHeader = NULL;
+
+	LEAVE();
+}
+	
+CConcordeFile& CConcordeFile::operator=(const CConcordeFile& src)
+{
+	ENTER();
+
+	// do nothing
+
+	LEAVE();
+	return *this;
+}
+
+int CConcordeFile::rtti() const 
+{ 
+	return CMedIOData::ConcordeMicropet;
 }
 
 //  Class: CConcordeFile

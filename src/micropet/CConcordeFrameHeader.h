@@ -35,10 +35,10 @@
 #include <CMedIOHeader>
 #else
 #include <CMedIOHeader.h>
-#include <CKeyParser.h>
 #endif
 
 // forward declarations
+class CConcordeFrameHeaderPrivate;
 class CConcordeFile;
 
 //! @class CConcordeFrameHeader
@@ -52,27 +52,28 @@ class CConcordeFile;
 class CConcordeFrameHeader : public CMedIOHeader
 {
 	public :
-	//contructors
 		//! @brief constructor
 		//! @param Filename: complete path to file holding header
 		//! @param frame: specific frame of header which holds information
-		CConcordeFrameHeader(QString Filename, int frame);
+		CConcordeFrameHeader(const QString& filename, int frame);
 		CConcordeFrameHeader(CConcordeFile* file, int frame);
 
-	//destructor
 		//! @brief destructor
-		~CConcordeFrameHeader(){};	
+		~CConcordeFrameHeader();
+
+		// copy constructur and default assignment operator
+		CConcordeFrameHeader(const CConcordeFrameHeader& src);		
+		CMedIOHeader& operator=(const CMedIOHeader& src);
 		
-	//members
+		// header clear method
+		void clear();
+
 		enum EventType{UnknownEventType = 0, Singles, Prompt, Delay, Trues};
-	//methods
-		//CMedIOData* fileObject() const;
 		bool load();
 		bool save() const;
 		CMedIOHeader::Format headerFormat() const;
 		CMedIOHeader* clone() const;
 		bool convertFrom(const CMedIOHeader* srcMainHeader, const CMedIOHeader* srcSubHeader = NULL);
-		void clear();
 
 		//accessor methods
 		int frame(void) const;
@@ -123,41 +124,8 @@ class CConcordeFrameHeader : public CMedIOHeader
 	protected:
 		bool copyData(const CMedIOHeader* src);	
 
-#ifdef __MEDIO_PRIVATE__
-	private :
-	//members
-		CKeyParser Parser;
-		typedef struct //Concorde Micropet Header <--> ECAT7 Header
-    		{
-			int		frame;
-			int		event_type;
-			int		gate;
-			int		bed;
-			float		bed_offset;
-			float		ending_bed_offset;
-			float		vertical_bed_offset;
-			QString		data_file_pointer;
-			float		frame_start;
-			float		frame_duration;
-			float		scale_factor;
-			float		minimum;
-			float		maximum;
-			float		deadtime_correction;
-			float		decay_correction;
-			QString		prompts;
-			QString		delays;
-			QString		trues;
-			int		prompts_rate;
-			int		delays_rate;
-			float		singles[168];
-			float		rawsingles[168];
-		}
-		ConcordeHeaderFrame;
-		ConcordeHeaderFrame m_Data;
-		QString File;
-		//methods
-		void init();
-#endif
+	private:
+		CConcordeFrameHeaderPrivate* m_pData;
 };
 
 #endif

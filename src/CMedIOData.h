@@ -61,7 +61,6 @@ class CMedIOData : public QFile
 			MERR_Unspecified = 1, //!< Some unspecified error occurred
 		};
 
-		
 		//! @brief constructor
 		//! @param file: complete path to file holding medical data
 		CMedIOData(const QString& filename);
@@ -81,10 +80,6 @@ class CMedIOData : public QFile
 		//! @return specific class type at runtime
 		virtual int rtti() const = 0;
 		
-		//! @brief access to associated header of medical data
-		//! @return header of medical data
-		//CMedIOHeader* header() const { return m_pHeader; }
-		
 		//! @brief access to filename
 		//! @return filename of medical data file
 		QString fileName(void) const;
@@ -93,11 +88,8 @@ class CMedIOData : public QFile
 		//! @return integer value for the specific error reason
 		int errorStatus(void) const;
 
-#ifdef __MEDIO_PRIVATE__
 	protected :
-		//CMedIOHeader* m_pHeader;	//!< associated header of medical data
 		int	m_iErrStatus;  		//!< error status variable
-#endif
 };
 
 #endif

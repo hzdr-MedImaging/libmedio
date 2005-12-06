@@ -29,33 +29,21 @@
 #ifndef CCONCORDEMAINHEADER_H
 #define CCONCORDEMAINHEADER_H
 
+#include <qdatetime.h>
+
 #ifndef __MEDIO_PRIVATE__
 #include <CMedIOHeader>
 #else
 #include <CMedIOHeader.h>
-#include <CKeyParser.h>
-#include <CIntVector.h>
-#include <CDate.h>
 #endif
 
 // forward declarations
+class CConcordeMainHeaderPrivate;
 class CConcordeFile;
 
 class CConcordeMainHeader : public CMedIOHeader
 {
-	public :
-	//contructors
-		//! @brief constructor
-		//! @param File: complete path to file holding header
-		CConcordeMainHeader(QString File);
-
-		//! @brief default constructor
-		CConcordeMainHeader(CConcordeFile* file = NULL);
-
-	//destructor
-		//! @brief destructor
-		~CConcordeMainHeader();	
-	//members
+	public:
 		enum FileType{UnknownFile = 0, ListMode, Sinogram, Normalization, Attenuation,
 				Image, Blank, MuMap = 8, Scatter};
 		enum AquisitionMode{UnknownAquisition = 0, BlankAquisition, Emission, Dynamic, Gated,
@@ -87,16 +75,28 @@ class CConcordeMainHeader : public CMedIOHeader
 					HeadFirstRight, FeetFirstLeft, HeadFirstLeft};
 		enum SubjectLengthUnits{UnknownSubjectLengthUnits = 0, Millimeters, Centimeters, Inches};
 		enum SubjectWeightUnits{UnknownSubjectWeightUnits = 0, Grams, Ounces, Kilograms, Pounds};
-	//methods
-		//! @brief set default values in header
+		
+		//! @brief constructor
+		//! @param File: complete path to file holding header
+		CConcordeMainHeader(const QString& fileName);
+
+		//! @brief default constructor
+		CConcordeMainHeader(CConcordeFile* file = NULL);
+
+		//! @brief destructor
+		~CConcordeMainHeader();	
+
+		// copy constructur and default assignment operator
+		CConcordeMainHeader(const CConcordeMainHeader& src);		
+		CConcordeMainHeader& operator=(const CConcordeMainHeader& src);
+		
+		// header clear method
 		void clear();
 		
-		//CMedIOData* fileObject() const;
 		bool load();
-		bool load(QString File);
+		bool load(const QString& fileName);
 		bool save() const;
 		CMedIOHeader::Format headerFormat() const;
-		//int rtti();
 		
 		//! @return framesize of a sinogram in bytes
 		virtual unsigned int frameSize() = 0;
@@ -104,15 +104,6 @@ class CConcordeMainHeader : public CMedIOHeader
 		virtual CMedIOHeader* clone() const = 0;
 		bool convertFrom(const CMedIOHeader* srcMainHeader, const CMedIOHeader* srcSubHeader = NULL);
 
-		
-		//! @return framesize of a imagevolume in bytes
-		//unsigned int getImageFrameSize();
-		
-		//accessor methods
-		//! @brief access frames starting with frame 1 as first frame -> i = 1
-		//! @return frame specific header
-		//CHeaderConcordeFrame* frame(int i);
-		
 		int model(void) const;
 		QString institution(void) const;
 		QString study(void) const;
@@ -278,95 +269,8 @@ class CConcordeMainHeader : public CMedIOHeader
 		void setFoodAccess(const QString value);
 		void setWaterAccess(const QString value);
 
-	protected:
-		bool copyData(const CMedIOHeader* src);	
-	
-#ifdef __MEDIO_PRIVATE__
-	//members
-		//QList<CHeaderConcordeFrame*> frames;
-		CKeyParser Parser;
-		typedef struct //Concorde Micropet Header <--> ECAT7 Header
-    		{
-			int		model;			//System_Type;
-			QString		institution;		//Facility_Name;
-			QString		study;			//Study type/description (string)
-			QString		file_name;		//Original_File_Name;
-			int		file_type;		//File_Type;
-			int		acquisition_mode;	//Acquisition_Type;
-			int		bed_motion;		//0 static/unknown : 1 continuous motion
-			int		total_frames;
-			QString		isotope;		//Isotope_Name;
-			float		isotope_half_time; 	//Isotope_Halflife;
-			float		isotope_branching_fraction;	//Branching_Fraction;
-			int		transaxial_crystals_per_block;
-			int		axial_crystals_per_block;
-			int		intrinsic_crystal_offset;
-			int		transaxial_blocks;
-			int		axial_blocks;
-			float		transaxial_crystal_pitch;
-			float		axial_crystal_pitch;
-			float		radius;
-			float		radial_fov;		//Distance_Scanned Transaxial_FOV;
-			float		src_radius;
-			float		src_cm_per_rev;
-			int		tx_src_type;
-			float		transaxial_bin_size;	//Bin_Size; X_Resolution;
-			float		axial_plane_size;	//Z_Resolution;
-			float		lld;			//Lwr_True_Thres;
-			float		uld;			//Upr_True_Thres;
-			int		data_type;		//Data_Type;
-			int		data_order;		//0 Segment|Axis|View|Ring_Diff
-								//1 Segment|View|Axis|Ring_Diff
-			int		span;			//Axial_Compression;
-			int		ring_difference;	//Ring_Difference;
-			int		number_of_dimensions;	//Num_Dimensions;
-			int		x_dimension;		//Num_R_Elements;
-			int		y_dimension;		//Num_Angles;
-			int		z_dimension;
-			int		w_dimension;
-			CIntVector	delta_elements;	//Num_Z_Elements[64];
-			int		deadtime_correction_applied;
-			int		decay_correction_applied;
-			int		normalization_applied;
-			int		attenuation_applied;
-			int		scatter_correction;
-			int		arc_correction_applied;		//0 none : != 0 true
-			float		x_offset;
-			float		y_offset;
-			float		zoom;
-			float		pixel_size;
-			int		calibration_units;
-			float		calibration_factor;
-			float		calibration_branching_fraction;
-			int		number_of_singles_rates;
-			QString		investigator;
-			QString		Operator;
-			QString		study_identifier;
-			CDate		scan_time;		//Scan_Start_Time;
-			QString		injected_compound;
-			int		dose_units;
-			float		dose;
-			CDate		injection_time;
-			float		injection_decay_correction;
-			QString		subject_identifier;
-			QString		subject_genus;
-			int		subject_orientation;	//Patient_Orientation;
-			int		subject_length_units;
-			float		subject_length;
-			int		subject_weight_units;
-			float		subject_weight;
-			QString		subject_phenotype;
-			QString		study_model;
-			QString		anesthesia;
-			QString		analgesia;
-			QString		other_drugs;
-			QString		food_access;
-			QString		water_access;
-    		} ConcordeHeader;
-		ConcordeHeader m_Data;
-	//methods
-		bool init();
-#endif
+	private:
+		CConcordeMainHeaderPrivate* m_pData;
 };
 
 #endif

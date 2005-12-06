@@ -33,6 +33,7 @@
 #endif
 
 // forward declarations
+class CECAT7SubHeaderNorm3DPrivate;
 class CECATFile;
 class CECATDirectoryItem;
 
@@ -43,9 +44,15 @@ class Q_EXPORT CECAT7SubHeaderNorm3D : public CECATSubHeader
 		enum Norm_Qual_Factor_Code { TBD };
 
 		// constructors
-		CECAT7SubHeaderNorm3D(CECATFile* ecatFile,
+		CECAT7SubHeaderNorm3D(CECATFile* ecatFile = NULL,
 													CECATDirectoryItem* pDirItem = NULL);
+		~CECAT7SubHeaderNorm3D();
 
+		// copy constructur and default assignment operator
+		CECAT7SubHeaderNorm3D(const CECAT7SubHeaderNorm3D& src);		
+		CECAT7SubHeaderNorm3D& operator=(const CECAT7SubHeaderNorm3D& src);
+
+		// header clear method		
 		void clear();
 
 		// public methods
@@ -102,34 +109,8 @@ class Q_EXPORT CECAT7SubHeaderNorm3D : public CECATSubHeader
 		void setCTI_Reserved(const short i, const short n);
 		void setUser_Reserved(const short i, const short n);
 
-	protected:
-		// constructors
-		CECAT7SubHeaderNorm3D();
-		
-#ifdef __MEDIO_PRIVATE__
 	private:
-		struct ECAT7SubHeader_Norm3D
-		{
-			Q_UINT16	Data_Type;
-			Q_UINT16	Num_R_Elements;
-			Q_UINT16	Num_Transaxial_Crystals;
-			Q_UINT16	Num_Crystal_Rings;
-			Q_UINT16	Crystals_Per_Ring;
-			Q_UINT16	Num_Geo_Corr_Planes;
-			Q_UINT16	ULD;
-			Q_UINT16	LLD;
-			Q_UINT16	Scatter_Energy;
-			float			Norm_Quality_Factor;
-			Q_UINT16	Norm_Quality_Factor_Code;
-			float			Ring_DTCor1[32];
-			float			Ring_DTCor2[32];
-			float			Crystal_DTCor[8];
-			Q_UINT16	Span;
-			Q_UINT16	Max_Ring_Diff;
-			Q_UINT16	CTI_reserved[48];
-			Q_UINT16	User_Reserved[50];
-		} m_Data;
-#endif
+		CECAT7SubHeaderNorm3DPrivate* m_pData;
 };
 
 #endif // CECAT7SUBHEADERNORM3D_H

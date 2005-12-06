@@ -29,17 +29,90 @@
 
 #include <rtdebug.h>
 
+// we define the private inline class of that one so that we
+// are able to hide the private methods & data of that class in the
+// public headers
+class CECAT7SubHeaderPolarMapPrivate
+{
+	public:
+		struct HeaderData
+		{
+			Q_UINT16	Data_Type;
+			Q_UINT16	Polar_Map_Type;
+			Q_UINT16	Num_Rings;
+			Q_UINT16	Sectors_Per_Ring[32];
+			float			Ring_Position[32];
+			Q_UINT16	Ring_Angle[32];
+			Q_UINT16	Start_Angle;
+			Q_UINT16	Long_Axis_Left[3];
+			Q_UINT16	Long_Axis_Right[3];
+			Q_UINT16	Position_Data;
+			Q_UINT16	Image_Min;
+			Q_UINT16	Image_Max;
+			float			Scale_Factor;
+			float			Pixel_Size;
+			Q_UINT32	Frame_Duration;
+			Q_UINT32	Frame_Start_Time;
+			Q_UINT16	Processing_Code;
+			Q_UINT16	Quant_Units;
+			char			Annotation[40];
+			Q_UINT32	Gate_Duration;
+			Q_UINT32	R_Wave_Offset;
+			Q_UINT32	Num_Accepted_Beats;
+			char			Polar_Map_Protocol[20];
+			char			Database_Name[30];
+			Q_UINT16	CTI_reserved[27];
+			Q_UINT16	User_Reserved[27];
+		} header;
+};
+
 CECAT7SubHeaderPolarMap::CECAT7SubHeaderPolarMap(CECATFile* ecatFile,
 																								 CECATDirectoryItem* pDirItem)
 	: CECATSubHeader(ecatFile, pDirItem)
 {
+	ENTER();
+
+	// allocate data from our private instance class
+	m_pData = new CECAT7SubHeaderPolarMapPrivate();
+	
 	clear();
+
+	LEAVE();
 }
 
-CECAT7SubHeaderPolarMap::CECAT7SubHeaderPolarMap()
-	: CECATSubHeader(NULL)
+CECAT7SubHeaderPolarMap::~CECAT7SubHeaderPolarMap()
 {
-	clear();
+	ENTER();
+
+	delete m_pData;
+
+	LEAVE();
+}
+
+CECAT7SubHeaderPolarMap::CECAT7SubHeaderPolarMap(const CECAT7SubHeaderPolarMap& src)
+	: CECATSubHeader(src)
+{
+	ENTER();
+
+	// allocate data from our private instance class
+	m_pData = new CECAT7SubHeaderPolarMapPrivate(*(src.m_pData));
+
+	LEAVE();
+}
+
+CECAT7SubHeaderPolarMap& CECAT7SubHeaderPolarMap::operator=(const CECAT7SubHeaderPolarMap& src)
+{
+	ENTER();
+
+	if(m_pData != src.m_pData)
+	{
+		memcpy(&m_pData->header, 
+					 &src.m_pData->header, 
+					 sizeof(struct CECAT7SubHeaderPolarMapPrivate::HeaderData));
+	}
+
+	LEAVE();
+	return *this;
 }
 
 void CECAT7SubHeaderPolarMap::clear()
@@ -47,7 +120,7 @@ void CECAT7SubHeaderPolarMap::clear()
 	ENTER();
 
 	// then clear the structure
-	memset(&m_Data, 0, sizeof(struct ECAT7SubHeader_PolarMap));			
+	memset(&m_pData->header, 0, sizeof(struct CECAT7SubHeaderPolarMapPrivate::HeaderData));			
 
 	setData_Type(CECATSubHeader::UnknownDataType);
 
@@ -85,83 +158,83 @@ bool CECAT7SubHeaderPolarMap::load(void)
 	// lets read in each single data element of our
 	// data structure to maintain the correct endianess of the
 	// data
-	stream >> m_Data.Data_Type;															//   0: Data_Type
-	stream >> m_Data.Polar_Map_Type;												//   2: Polar_Map_Type
-	stream >> m_Data.Num_Rings;															//   4: Num_Rings
+	stream >> m_pData->header.Data_Type;															//   0: Data_Type
+	stream >> m_pData->header.Polar_Map_Type;												//   2: Polar_Map_Type
+	stream >> m_pData->header.Num_Rings;															//   4: Num_Rings
 	for(int i=0; i < 32; i++)
-		stream >> m_Data.Sectors_Per_Ring[i];									//   6: Sectors_Per_Ring (32)
+		stream >> m_pData->header.Sectors_Per_Ring[i];									//   6: Sectors_Per_Ring (32)
 	for(int i=0; i < 32; i++)
-		stream >> m_Data.Ring_Position[i];										//  70: Ring_Position
+		stream >> m_pData->header.Ring_Position[i];										//  70: Ring_Position
 	for(int i=0; i < 32; i++)
-		stream >> m_Data.Ring_Angle[i];												// 198: Ring_Angle
-	stream >> m_Data.Start_Angle;														// 262: Start_Angle
+		stream >> m_pData->header.Ring_Angle[i];												// 198: Ring_Angle
+	stream >> m_pData->header.Start_Angle;														// 262: Start_Angle
 	for(int i=0; i < 3; i++)
-		stream >> m_Data.Long_Axis_Left[i];										// 264: Long_Axis_Left
+		stream >> m_pData->header.Long_Axis_Left[i];										// 264: Long_Axis_Left
 	for(int i=0; i < 3; i++)
-		stream >> m_Data.Long_Axis_Right[i];									// 270: Long_Axis_Right
-	stream >> m_Data.Position_Data;													// 276: Position_Data
-	stream >> m_Data.Image_Min;															// 278: Image_Min
-	stream >> m_Data.Image_Max;															// 280: Image_Max
-	stream >> m_Data.Scale_Factor;													// 282: Scale_Factor
-	stream >> m_Data.Pixel_Size;														// 286: Pixel_Size
-	stream >> m_Data.Frame_Duration;												// 290: Frame_Duration
-	stream >> m_Data.Frame_Start_Time;											// 294: Frame_Start_Time
-	stream >> m_Data.Processing_Code;												// 298: Processing_Code
-	stream >> m_Data.Quant_Units;														// 300: Quant_Units
-	stream.readRawBytes(&m_Data.Annotation[0], 40);					// 302: Annotation
-	stream >> m_Data.Gate_Duration;													// 342: Gate_Duration
-	stream >> m_Data.R_Wave_Offset;													// 346: R_Wave_Offset
-	stream >> m_Data.Num_Accepted_Beats;										// 350: Num_Accepted_Beats
-	stream.readRawBytes(&m_Data.Polar_Map_Protocol[0], 20);	// 354: Polar_Map_Protocol
-	stream.readRawBytes(&m_Data.Database_Name[0], 30);			// 374: Database_Name
+		stream >> m_pData->header.Long_Axis_Right[i];									// 270: Long_Axis_Right
+	stream >> m_pData->header.Position_Data;													// 276: Position_Data
+	stream >> m_pData->header.Image_Min;															// 278: Image_Min
+	stream >> m_pData->header.Image_Max;															// 280: Image_Max
+	stream >> m_pData->header.Scale_Factor;													// 282: Scale_Factor
+	stream >> m_pData->header.Pixel_Size;														// 286: Pixel_Size
+	stream >> m_pData->header.Frame_Duration;												// 290: Frame_Duration
+	stream >> m_pData->header.Frame_Start_Time;											// 294: Frame_Start_Time
+	stream >> m_pData->header.Processing_Code;												// 298: Processing_Code
+	stream >> m_pData->header.Quant_Units;														// 300: Quant_Units
+	stream.readRawBytes(&m_pData->header.Annotation[0], 40);					// 302: Annotation
+	stream >> m_pData->header.Gate_Duration;													// 342: Gate_Duration
+	stream >> m_pData->header.R_Wave_Offset;													// 346: R_Wave_Offset
+	stream >> m_pData->header.Num_Accepted_Beats;										// 350: Num_Accepted_Beats
+	stream.readRawBytes(&m_pData->header.Polar_Map_Protocol[0], 20);	// 354: Polar_Map_Protocol
+	stream.readRawBytes(&m_pData->header.Database_Name[0], 30);			// 374: Database_Name
 	for(int i=0; i < 27; i++)
-		stream >> m_Data.CTI_reserved[i];											// 404: CTI_reserved
+		stream >> m_pData->header.CTI_reserved[i];											// 404: CTI_reserved
 	for(int i=0; i < 27; i++)
-		stream >> m_Data.User_Reserved[i];										// 464: User_Reserved
+		stream >> m_pData->header.User_Reserved[i];										// 464: User_Reserved
 
 	// some more debug output
 #if defined(DEBUG)
 	D("ECAT7 PolarMap SubHeader loaded:");
 	D("-------------------------------");
-	D("Data_Type	               : %d",				m_Data.Data_Type);
-	D("Polar_Map_Type            : %d",				m_Data.Polar_Map_Type);
-	D("Num_Rings                 : %d",				m_Data.Num_Rings);
+	D("Data_Type	               : %d",				m_pData->header.Data_Type);
+	D("Polar_Map_Type            : %d",				m_pData->header.Polar_Map_Type);
+	D("Num_Rings                 : %d",				m_pData->header.Num_Rings);
 	for(int i=0; i < 32; i++)
 	{
-		D("Sectors_Per_Ring      [%02d]: %d", i+1, m_Data.Sectors_Per_Ring[i]);
+		D("Sectors_Per_Ring      [%02d]: %d", i+1, m_pData->header.Sectors_Per_Ring[i]);
 	}
 	for(int i=0; i < 32; i++)
 	{
-		D("Ring_Position         [%02d]: %f", i+1, m_Data.Ring_Position[i]);
+		D("Ring_Position         [%02d]: %f", i+1, m_pData->header.Ring_Position[i]);
 	}
 	for(int i=0; i < 32; i++)
 	{
-		D("Ring_Angle            [%02d]: %d", i+1, m_Data.Ring_Angle[i]);
+		D("Ring_Angle            [%02d]: %d", i+1, m_pData->header.Ring_Angle[i]);
 	}
-	D("Start_Angle               : %d",				m_Data.Start_Angle);
+	D("Start_Angle               : %d",				m_pData->header.Start_Angle);
 	for(int i=0; i < 3; i++)
 	{
-		D("Long_Axis_Left         [%d]: %d", i+1, m_Data.Long_Axis_Left[i]);
+		D("Long_Axis_Left         [%d]: %d", i+1, m_pData->header.Long_Axis_Left[i]);
 	}
 	for(int i=0; i < 3; i++)
 	{
-		D("Long_Axis_Right        [%d]: %d", i+1, m_Data.Long_Axis_Right[i]);
+		D("Long_Axis_Right        [%d]: %d", i+1, m_pData->header.Long_Axis_Right[i]);
 	}
-	D("Position_Data             : %d",				m_Data.Position_Data);
-	D("Image_Min                 : %d",				m_Data.Image_Min);
-	D("Image_Max                 : %d",				m_Data.Image_Max);
-	D("Scale_Factor              : %f",				m_Data.Scale_Factor);
-	D("Pixel_Size                : %f",				m_Data.Pixel_Size);
-	D("Frame_Duration            : %d",				m_Data.Frame_Duration);
-	D("Frame_Start_Time          : %d",				m_Data.Frame_Start_Time);
-	D("Processing_Code           : %d",				m_Data.Processing_Code);
-	D("Quant_Units               : %d",				m_Data.Quant_Units);
-	D("Annotation                : %s",				m_Data.Annotation);
-	D("Gate_Duration             : %d msec",	m_Data.Gate_Duration);
-	D("R_Wave_Offset             : %d msec",	m_Data.R_Wave_Offset);
-	D("Num_Accepted_Beats        : %d",				m_Data.Num_Accepted_Beats);
-	D("Polar_Map_Protocol        : %s",				m_Data.Polar_Map_Protocol);
-	D("Database_Name             : %s",				m_Data.Database_Name);
+	D("Position_Data             : %d",				m_pData->header.Position_Data);
+	D("Image_Min                 : %d",				m_pData->header.Image_Min);
+	D("Image_Max                 : %d",				m_pData->header.Image_Max);
+	D("Scale_Factor              : %f",				m_pData->header.Scale_Factor);
+	D("Pixel_Size                : %f",				m_pData->header.Pixel_Size);
+	D("Frame_Duration            : %d",				m_pData->header.Frame_Duration);
+	D("Frame_Start_Time          : %d",				m_pData->header.Frame_Start_Time);
+	D("Processing_Code           : %d",				m_pData->header.Processing_Code);
+	D("Quant_Units               : %d",				m_pData->header.Quant_Units);
+	D("Annotation                : %s",				m_pData->header.Annotation);
+	D("Gate_Duration             : %d msec",	m_pData->header.Gate_Duration);
+	D("R_Wave_Offset             : %d msec",	m_pData->header.R_Wave_Offset);
+	D("Num_Accepted_Beats        : %d",				m_pData->header.Num_Accepted_Beats);
+	D("Polar_Map_Protocol        : %s",				m_pData->header.Polar_Map_Protocol);
+	D("Database_Name             : %s",				m_pData->header.Database_Name);
 #endif
 
 	RETURN(true);
@@ -190,39 +263,39 @@ bool CECAT7SubHeaderPolarMap::save(void) const
 	// lets read in each single data element of our
 	// data structure to maintain the correct endianess of the
 	// data
-	stream << m_Data.Data_Type;															//   0: Data_Type
-	stream << m_Data.Polar_Map_Type;												//   2: Polar_Map_Type
-	stream << m_Data.Num_Rings;															//   4: Num_Rings
+	stream << m_pData->header.Data_Type;															//   0: Data_Type
+	stream << m_pData->header.Polar_Map_Type;												//   2: Polar_Map_Type
+	stream << m_pData->header.Num_Rings;															//   4: Num_Rings
 	for(int i=0; i < 32; i++)
-		stream << m_Data.Sectors_Per_Ring[i];									//   6: Sectors_Per_Ring (32)
+		stream << m_pData->header.Sectors_Per_Ring[i];									//   6: Sectors_Per_Ring (32)
 	for(int i=0; i < 32; i++)
-		stream << m_Data.Ring_Position[i];										//  70: Ring_Position
+		stream << m_pData->header.Ring_Position[i];										//  70: Ring_Position
 	for(int i=0; i < 32; i++)
-		stream << m_Data.Ring_Angle[i];												// 198: Ring_Angle
-	stream << m_Data.Start_Angle;														// 262: Start_Angle
+		stream << m_pData->header.Ring_Angle[i];												// 198: Ring_Angle
+	stream << m_pData->header.Start_Angle;														// 262: Start_Angle
 	for(int i=0; i < 3; i++)
-		stream << m_Data.Long_Axis_Left[i];										// 264: Long_Axis_Left
+		stream << m_pData->header.Long_Axis_Left[i];										// 264: Long_Axis_Left
 	for(int i=0; i < 3; i++)
-		stream << m_Data.Long_Axis_Right[i];									// 270: Long_Axis_Right
-	stream << m_Data.Position_Data;													// 276: Position_Data
-	stream << m_Data.Image_Min;															// 278: Image_Min
-	stream << m_Data.Image_Max;															// 280: Image_Max
-	stream << m_Data.Scale_Factor;													// 282: Scale_Factor
-	stream << m_Data.Pixel_Size;														// 286: Pixel_Size
-	stream << m_Data.Frame_Duration;												// 290: Frame_Duration
-	stream << m_Data.Frame_Start_Time;											// 294: Frame_Start_Time
-	stream << m_Data.Processing_Code;												// 298: Processing_Code
-	stream << m_Data.Quant_Units;														// 300: Quant_Units
-	stream.writeRawBytes(&m_Data.Annotation[0], 40);				// 302: Annotation
-	stream << m_Data.Gate_Duration;													// 342: Gate_Duration
-	stream << m_Data.R_Wave_Offset;													// 346: R_Wave_Offset
-	stream << m_Data.Num_Accepted_Beats;										// 350: Num_Accepted_Beats
-	stream.writeRawBytes(&m_Data.Polar_Map_Protocol[0], 20);// 354: Polar_Map_Protocol
-	stream.writeRawBytes(&m_Data.Database_Name[0], 30);			// 374: Database_Name
+		stream << m_pData->header.Long_Axis_Right[i];									// 270: Long_Axis_Right
+	stream << m_pData->header.Position_Data;													// 276: Position_Data
+	stream << m_pData->header.Image_Min;															// 278: Image_Min
+	stream << m_pData->header.Image_Max;															// 280: Image_Max
+	stream << m_pData->header.Scale_Factor;													// 282: Scale_Factor
+	stream << m_pData->header.Pixel_Size;														// 286: Pixel_Size
+	stream << m_pData->header.Frame_Duration;												// 290: Frame_Duration
+	stream << m_pData->header.Frame_Start_Time;											// 294: Frame_Start_Time
+	stream << m_pData->header.Processing_Code;												// 298: Processing_Code
+	stream << m_pData->header.Quant_Units;														// 300: Quant_Units
+	stream.writeRawBytes(&m_pData->header.Annotation[0], 40);				// 302: Annotation
+	stream << m_pData->header.Gate_Duration;													// 342: Gate_Duration
+	stream << m_pData->header.R_Wave_Offset;													// 346: R_Wave_Offset
+	stream << m_pData->header.Num_Accepted_Beats;										// 350: Num_Accepted_Beats
+	stream.writeRawBytes(&m_pData->header.Polar_Map_Protocol[0], 20);// 354: Polar_Map_Protocol
+	stream.writeRawBytes(&m_pData->header.Database_Name[0], 30);			// 374: Database_Name
 	for(int i=0; i < 27; i++)
-		stream << m_Data.CTI_reserved[i];											// 404: CTI_reserved
+		stream << m_pData->header.CTI_reserved[i];											// 404: CTI_reserved
 	for(int i=0; i < 27; i++)
-		stream << m_Data.User_Reserved[i];										// 464: User_Reserved
+		stream << m_pData->header.User_Reserved[i];										// 464: User_Reserved
 
 	// now write out to our outStream
 	bool result = false;
@@ -267,7 +340,10 @@ bool CECAT7SubHeaderPolarMap::convertFrom(const CMedIOHeader* pHead1, const CMed
 				// via a simple memcpy()
 				case CECATSubHeader::ECAT7_PolarMap:
 				{
-					memcpy(&(this->m_Data), &(static_cast<const CECAT7SubHeaderPolarMap*>(pHead1)->m_Data), sizeof(struct ECAT7SubHeader_PolarMap));
+					// we use the assignment operator which will do the convertation
+					// for us.
+					*this = *static_cast<const CECAT7SubHeaderPolarMap*>(pHead1);
+
 					bResult = true;
 				}
 				break;
@@ -315,261 +391,261 @@ CMedIOHeader* CECAT7SubHeaderPolarMap::clone() const
 // data access methods
 CECATSubHeader::Data_Type CECAT7SubHeaderPolarMap::data_Type(void) const
 {
-	return static_cast<CECATSubHeader::Data_Type>(m_Data.Data_Type);
+	return static_cast<CECATSubHeader::Data_Type>(m_pData->header.Data_Type);
 }
 
 short CECAT7SubHeaderPolarMap::polar_Map_Type(void) const
 {
-	return m_Data.Polar_Map_Type;
+	return m_pData->header.Polar_Map_Type;
 }
 
 short CECAT7SubHeaderPolarMap::num_Rings(void) const
 {
-	return m_Data.Num_Rings;
+	return m_pData->header.Num_Rings;
 }
 
 short CECAT7SubHeaderPolarMap::sectors_Per_Ring(const short i) const
 {
-	return m_Data.Sectors_Per_Ring[i];
+	return m_pData->header.Sectors_Per_Ring[i];
 }
 
 float CECAT7SubHeaderPolarMap::ring_Position(const short i) const
 {
-	return m_Data.Ring_Position[i];
+	return m_pData->header.Ring_Position[i];
 }
 
 short CECAT7SubHeaderPolarMap::ring_Angle(const short i) const
 {
-	return m_Data.Ring_Angle[i];
+	return m_pData->header.Ring_Angle[i];
 }
 
 short CECAT7SubHeaderPolarMap::start_Angle(void) const
 {
-	return m_Data.Start_Angle;
+	return m_pData->header.Start_Angle;
 }
 
 short CECAT7SubHeaderPolarMap::long_Axis_Left(const short i) const
 {
-	return m_Data.Long_Axis_Left[i];
+	return m_pData->header.Long_Axis_Left[i];
 }
 
 short CECAT7SubHeaderPolarMap::long_Axis_Right(const short i) const
 {
-	return m_Data.Long_Axis_Right[i];
+	return m_pData->header.Long_Axis_Right[i];
 }
 
 short CECAT7SubHeaderPolarMap::position_Data(void) const
 {
-	return m_Data.Position_Data;
+	return m_pData->header.Position_Data;
 }
 
 short CECAT7SubHeaderPolarMap::image_Min(void) const
 {
-	return m_Data.Image_Min;
+	return m_pData->header.Image_Min;
 }
 
 short CECAT7SubHeaderPolarMap::image_Max(void) const
 {
-	return m_Data.Image_Max;
+	return m_pData->header.Image_Max;
 }
 
 float CECAT7SubHeaderPolarMap::scale_Factor(void) const
 {
-	return m_Data.Scale_Factor;
+	return m_pData->header.Scale_Factor;
 }
 
 float CECAT7SubHeaderPolarMap::pixel_Size(void) const
 {
-	return m_Data.Pixel_Size;
+	return m_pData->header.Pixel_Size;
 }
 
 unsigned int CECAT7SubHeaderPolarMap::frame_Duration(void) const
 {
-	return m_Data.Frame_Duration;
+	return m_pData->header.Frame_Duration;
 }
 
 unsigned int CECAT7SubHeaderPolarMap::frame_Start_Time(void) const
 {
-	return m_Data.Frame_Start_Time;
+	return m_pData->header.Frame_Start_Time;
 }
 
 unsigned int CECAT7SubHeaderPolarMap::processing_Code(void) const
 {
-	return m_Data.Processing_Code;
+	return m_pData->header.Processing_Code;
 }
 
 short CECAT7SubHeaderPolarMap::quant_Units(void) const
 {
-	return m_Data.Quant_Units;
+	return m_pData->header.Quant_Units;
 }
 
 const char* CECAT7SubHeaderPolarMap::annotation(void) const
 {
-	return m_Data.Annotation;
+	return m_pData->header.Annotation;
 }
 
 unsigned int CECAT7SubHeaderPolarMap::gate_Duration(void) const
 {
-	return m_Data.Gate_Duration;
+	return m_pData->header.Gate_Duration;
 }
 
 unsigned int CECAT7SubHeaderPolarMap::r_Wave_Offset(void) const
 {
-	return m_Data.R_Wave_Offset;
+	return m_pData->header.R_Wave_Offset;
 }
 
 unsigned int CECAT7SubHeaderPolarMap::num_Accepted_Beats(void) const
 {
-	return m_Data.Num_Accepted_Beats;
+	return m_pData->header.Num_Accepted_Beats;
 }
 
 const char* CECAT7SubHeaderPolarMap::polar_Map_Protocol(void) const
 {
-	return m_Data.Polar_Map_Protocol;
+	return m_pData->header.Polar_Map_Protocol;
 }
 
 const char* CECAT7SubHeaderPolarMap::database_Name(void) const
 {
-	return m_Data.Database_Name;
+	return m_pData->header.Database_Name;
 }
 
 short CECAT7SubHeaderPolarMap::cti_Reserved(const short i) const
 {
-	return m_Data.CTI_reserved[i];
+	return m_pData->header.CTI_reserved[i];
 }
 
 short CECAT7SubHeaderPolarMap::user_Reserved(const short i) const
 {
-	return m_Data.User_Reserved[i];
+	return m_pData->header.User_Reserved[i];
 }
 
 
 void CECAT7SubHeaderPolarMap::setData_Type(const CECATSubHeader::Data_Type dType)
 {
-	m_Data.Data_Type = static_cast<Q_UINT16>(dType);	}		
+	m_pData->header.Data_Type = static_cast<Q_UINT16>(dType);	}		
 
 void CECAT7SubHeaderPolarMap::setPolar_Map_Type(const short n)
 {
-	m_Data.Polar_Map_Type = n;
+	m_pData->header.Polar_Map_Type = n;
 }
 
 void CECAT7SubHeaderPolarMap::setNum_Rings(const short n)
 {
-	m_Data.Num_Rings = n;
+	m_pData->header.Num_Rings = n;
 }
 
 void CECAT7SubHeaderPolarMap::setSectors_Per_Ring(const short i, const short n)
 {
-	m_Data.Sectors_Per_Ring[i] = n;
+	m_pData->header.Sectors_Per_Ring[i] = n;
 }
 
 void CECAT7SubHeaderPolarMap::setRing_Position(const short i, const float n)
 {
-	m_Data.Ring_Position[i] = n;
+	m_pData->header.Ring_Position[i] = n;
 }
 
 void CECAT7SubHeaderPolarMap::setRing_Angle(const short i, const short n)
 {
-	m_Data.Ring_Angle[i] = n;
+	m_pData->header.Ring_Angle[i] = n;
 }
 
 void CECAT7SubHeaderPolarMap::setStart_Angle(const short n)
 {
-	m_Data.Start_Angle = n;
+	m_pData->header.Start_Angle = n;
 }
 
 void CECAT7SubHeaderPolarMap::setLong_Axis_Left(const short i, const short n)
 {
-	m_Data.Long_Axis_Left[i] = n;
+	m_pData->header.Long_Axis_Left[i] = n;
 }
 
 void CECAT7SubHeaderPolarMap::setLong_Axis_Right(const short i, const short n)
 {
-	m_Data.Long_Axis_Right[i] = n;
+	m_pData->header.Long_Axis_Right[i] = n;
 }
 
 void CECAT7SubHeaderPolarMap::setPosition_Data(const short n)
 {
-	m_Data.Position_Data = n;
+	m_pData->header.Position_Data = n;
 }
 
 void CECAT7SubHeaderPolarMap::setImage_Min(const short n)
 {
-	m_Data.Image_Min = n;
+	m_pData->header.Image_Min = n;
 }
 
 void CECAT7SubHeaderPolarMap::setImage_Max(const short n)
 {
-	m_Data.Image_Max = n;
+	m_pData->header.Image_Max = n;
 }
 
 void CECAT7SubHeaderPolarMap::setScale_Factor(const float n)
 {
-	m_Data.Scale_Factor = n;
+	m_pData->header.Scale_Factor = n;
 }
 
 void CECAT7SubHeaderPolarMap::setPixel_Size(const float n)
 {
-	m_Data.Pixel_Size = n;
+	m_pData->header.Pixel_Size = n;
 }
 
 void CECAT7SubHeaderPolarMap::setFrame_Duration(const unsigned int n)
 {
-	m_Data.Frame_Duration = n;
+	m_pData->header.Frame_Duration = n;
 }
 
 void CECAT7SubHeaderPolarMap::setFrame_Start_Time(const unsigned int n)
 {
-	m_Data.Frame_Start_Time = n;
+	m_pData->header.Frame_Start_Time = n;
 }
 
 void CECAT7SubHeaderPolarMap::setProcessing_Code(const unsigned int n)
 {
-	m_Data.Processing_Code = n;
+	m_pData->header.Processing_Code = n;
 }
 
 void CECAT7SubHeaderPolarMap::setQuant_Units(const short n)
 {
-	m_Data.Quant_Units = n;
+	m_pData->header.Quant_Units = n;
 }
 
 void CECAT7SubHeaderPolarMap::setAnnotation(const char* str)
 {
-	strncpy(m_Data.Annotation, str, 40);
+	strncpy(m_pData->header.Annotation, str, 40);
 }
 
 void CECAT7SubHeaderPolarMap::setGate_Duration(const unsigned int n)
 {
-	m_Data.Gate_Duration = n;
+	m_pData->header.Gate_Duration = n;
 }
 
 void CECAT7SubHeaderPolarMap::setR_Wave_Offset(const unsigned int n)
 {
-	m_Data.R_Wave_Offset = n;
+	m_pData->header.R_Wave_Offset = n;
 }
 
 void CECAT7SubHeaderPolarMap::setNum_Accepted_Beats(const unsigned int n)
 {
-	m_Data.Num_Accepted_Beats = n;
+	m_pData->header.Num_Accepted_Beats = n;
 }
 
 void CECAT7SubHeaderPolarMap::setPolar_Map_Protocol(const char* str)
 {
-	strncpy(m_Data.Polar_Map_Protocol, str, 20);
+	strncpy(m_pData->header.Polar_Map_Protocol, str, 20);
 }
 
 void CECAT7SubHeaderPolarMap::setDatabase_Name(const char* str)
 {
-	strncpy(m_Data.Database_Name, str, 30);
+	strncpy(m_pData->header.Database_Name, str, 30);
 }
 
 void CECAT7SubHeaderPolarMap::setCTI_Reserved(const short i, const short n)
 {
-	m_Data.CTI_reserved[i] = n;
+	m_pData->header.CTI_reserved[i] = n;
 }
 
 void CECAT7SubHeaderPolarMap::setUser_Reserved(const short i, const short n)
 {
-	m_Data.User_Reserved[i] = n;
+	m_pData->header.User_Reserved[i] = n;
 }
 

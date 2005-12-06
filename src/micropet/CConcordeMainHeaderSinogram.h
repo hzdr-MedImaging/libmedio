@@ -44,8 +44,9 @@ class CMedIOHeader;
 class CConcordeMainHeaderSinogram : public CConcordeMainHeader
 {
 	public:
-		CConcordeMainHeaderSinogram(QString File) : CConcordeMainHeader(File){}
-		CConcordeMainHeaderSinogram(CConcordeFile* file = NULL) : CConcordeMainHeader(file){}
+		CConcordeMainHeaderSinogram(const QString& fileName);
+		CConcordeMainHeaderSinogram(CConcordeFile* file = NULL);
+
 		unsigned int frameSize();
 		CMedIOHeader* clone() const;
 };

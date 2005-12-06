@@ -34,6 +34,7 @@
 #endif
 
 // forward declarations
+class CECAT6MainHeaderPrivate;
 class CECATFile;
 class CMedIOHeader;
 
@@ -42,11 +43,17 @@ class Q_EXPORT CECAT6MainHeader : public CECATMainHeader
 	public:
 		enum File_Type { Unknown=0, // FIXME: Others are missing for the moment
 									 };
-		
-		CECAT6MainHeader(CECATFile* ecatFile = NULL,
-										 CECATMainHeader::Type fileType = 
-												CECATMainHeader::Unknown);
 
+		// constructors
+		CECAT6MainHeader(CECATFile* ecatFile = NULL,
+										 CECATMainHeader::Type fileType = CECATMainHeader::Unknown);
+		~CECAT6MainHeader();
+
+		// copy constructur and default assignment operator
+		CECAT6MainHeader(const CECAT6MainHeader& src);		
+		CECAT6MainHeader& operator=(const CECAT6MainHeader& src);
+		
+		// header clear method
 		void clear();
 
 		// public methods
@@ -83,70 +90,8 @@ class Q_EXPORT CECAT6MainHeader : public CECATMainHeader
 		void setNum_Gates(const short num);
 		void setNum_Bed_Pos(const short num);
 
-#ifdef __MEDIO_PRIVATE__
 	private:
-		struct ECAT6MainHeader
-		{
-			char			Original_File_Name[20];
-			Q_UINT16	SW_Version;
-			Q_UINT16	Data_Type;
-      Q_UINT16	System_Type;
-			Q_UINT16	File_Type;
-			char			Node_ID[10];
-			Q_UINT16	Scan_Start_Day;
-      Q_UINT16	Scan_Start_Month;
-      Q_UINT16	Scan_Start_Year;
-			Q_UINT16	Scan_Start_Hour;
-			Q_UINT16	Scan_Start_Minute;
-			Q_UINT16	Scan_Start_Second;
-      char			Isotope_Code[8];
-      float			Isotope_Halflife;
-      char			Radiopharmaceutical[32];
-      float			Gantry_Tilt;
-			float			Gantry_Rotation;
-			float			Bed_Elevation;
-      Q_UINT16	Rot_Source_Speed;
-			Q_UINT16	Wobble_Speed;
-      Q_UINT16	Transm_Source_Type;
-      float			Axial_FOV;
-			float			Transaxial_FOV;
-      Q_UINT16	Transaxial_Samp_Mode;
-			Q_UINT16	Coin_Samp_Mode;
-      Q_UINT16	Axial_Samp_Mode;
-      float			Calibration_Factor;
-      Q_UINT16	Calibration_Units;
-			Q_UINT16	Compression_Code;
-      char			Study_Name[12];
-			char			Patient_ID[16];
-			char			Patient_Name[32];
-      char			Patient_Sex[1];
-      char			Patient_Age[10];
-      char			Patient_Height[10];
-      char			Patient_Weight[10];
-      char			Patient_Dexterity[1];
-      char			Physician_Name[32];
-      char			Operator_Name[32];
-      char			Study_Description[32];
-      Q_UINT16	Acquisition_Type;
-			Q_UINT16	Bed_Type;
-			Q_UINT16	Septa_Type;
-      char			Facility_Name[20];
-      Q_UINT16	Num_Planes;
-      Q_UINT16	Num_Frames;
-      Q_UINT16	Num_Gates;
-      Q_UINT16	Num_Bed_Pos;
-      float			Init_Bed_Position;
-			float			Bed_Offset[15];
-      float			Plane_Separation;
-      Q_UINT16	Lwr_Sctr_Thres;
-      Q_UINT16	Lwr_True_Thres;
-      Q_UINT16	Upr_True_Thres;
-      float			Collimator;
-      char			User_Process_Code[10];
-      Q_UINT16	Acquisition_Mode;
-			Q_UINT16	CTI_Reserved[33];
-		} m_Data;
-#endif
+		CECAT6MainHeaderPrivate* m_pData;
 };
 
 #endif // CECAT6MAINHEADER_H

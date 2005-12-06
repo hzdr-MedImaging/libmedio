@@ -53,8 +53,16 @@ class CMedIOHeader
 			ECATSubHeader			//!< sub header of ECAT6/7 PET scanners
 		};
 
+		// constructors
 		CMedIOHeader(CMedIOData* data=NULL);
 		virtual ~CMedIOHeader();
+
+		// copy constructor
+		CMedIOHeader(const CMedIOHeader& src);
+
+		//! @brief default assignment operator which enforces that m_pMedIOData
+		//!        is NOT copied as well.
+		CMedIOHeader& operator=(const CMedIOHeader& src);
 		
 		//! @brief set the header to a defined state
 		virtual void clear() = 0;
@@ -80,14 +88,12 @@ class CMedIOHeader
 		//! @return the new created CMedIOHeader object
 		virtual CMedIOHeader* clone() const = 0;
 
-		//! @brief default assignment operator which enforces that m_pMedIOData
-		//!        is NOT copied as well.
-		CMedIOHeader& operator=(const CMedIOHeader& src);
+		//! @brief provid a facility to set the MedIOData object
+		//!        which is in fact used by some subHeader implementation
+		virtual void setMedIOData(CMedIOData* data);
 
-#ifdef __MEDIO_PRIVATE__
 	protected:
 		CMedIOData* m_pMedIOData; //!< the associated MedIOData this header belongs to
-#endif
 };
 
 #endif

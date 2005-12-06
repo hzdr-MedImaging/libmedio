@@ -54,6 +54,13 @@ class Q_EXPORT CECATMainHeader : public CMedIOHeader
 		// constructor
 		CECATMainHeader(CMedIOData* ecatFile);
 
+		// copy constructur and default assignment operator
+		CECATMainHeader(const CECATMainHeader& src);		
+		CECATMainHeader& operator=(const CECATMainHeader& src);
+
+		// header clear method
+		virtual void clear() = 0;	
+
 		// some pure virtual methods to load/save information
 		// prepresented by this class
 		virtual bool load()	= 0;

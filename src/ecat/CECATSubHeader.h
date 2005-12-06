@@ -62,6 +62,11 @@ class Q_EXPORT CECATSubHeader : public CMedIOHeader
 		CECATSubHeader(CMedIOData* ecatFile,
 									 CECATDirectoryItem* dItem = NULL);
 		
+		// copy constructur and default assignment operator
+		CECATSubHeader(const CECATSubHeader& src);		
+		CECATSubHeader& operator=(const CECATSubHeader& src);
+
+		// header clear method
 		virtual void clear() = 0;
 
 		// our virtual load/save I/O routines
@@ -89,11 +94,9 @@ class Q_EXPORT CECATSubHeader : public CMedIOHeader
 		// copy all meta information
 		virtual CMedIOHeader* clone() const = 0;
 
-#ifdef __MEDIO_PRIVATE__
 	protected:
 		CECATDirectoryItem* m_pDirItem; // the directory item to which this
 																		// subHeader belongs
-#endif
 };
 
 #endif // CECATSUBHEADER_H

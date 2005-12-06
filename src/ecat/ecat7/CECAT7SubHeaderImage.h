@@ -33,6 +33,7 @@
 #endif
 
 // forward declarations
+class CECAT7SubHeaderImagePrivate;
 class CECATFile;
 class CECATDirectoryItem;
 
@@ -76,9 +77,15 @@ class Q_EXPORT CECAT7SubHeaderImage : public CECATSubHeader
 														OnlineCompression		= (1<<10) };
 
 		// constructors
-		CECAT7SubHeaderImage(CECATFile* ecatFile,
+		CECAT7SubHeaderImage(CECATFile* ecatFile = NULL,
 												 CECATDirectoryItem* pDirItem = NULL);
+		~CECAT7SubHeaderImage();
 
+		// copy constructur and default assignment operator
+		CECAT7SubHeaderImage(const CECAT7SubHeaderImage& src);		
+		CECAT7SubHeaderImage& operator=(const CECAT7SubHeaderImage& src);
+
+		// header clear method
 		void clear();
 
 		// public methods
@@ -212,77 +219,8 @@ class Q_EXPORT CECAT7SubHeaderImage : public CECATSubHeader
 		void setCTI_Reserved(const short i, const short n);
 		void setUser_Reserved(const short i, const short n);
 		
-	protected:
-		// constructors
-		CECAT7SubHeaderImage();
-
-#ifdef __MEDIO_PRIVATE__
 	private:
-		struct ECAT7SubHeader_Image
-		{
-			Q_UINT16	Data_Type;
-			Q_UINT16	Num_Dimensions;
-			Q_UINT16	X_Dimension;
-			Q_UINT16	Y_Dimension;
-			Q_UINT16	Z_Dimension;
-			float			X_Offset;
-			float			Y_Offset;
-			float			Z_Offset;
-			float			Recon_Zoom;
-			float			Scale_Factor;
-			Q_UINT16	Image_Min;
-			Q_UINT16	Image_Max;
-			float			X_Pixel_Size;
-			float			Y_Pixel_Size;
-			float			Z_Pixel_Size;
-			Q_UINT32	Frame_Duration;
-			Q_UINT32	Frame_Start_Time;
-			Q_UINT16	Filter_Code;
-			float			X_Resolution;
-			float			Y_Resolution;
-			float			Z_Resolution;
-			float			Num_R_Elements;
-			float			Num_Angles;
-			float			Z_Rotation_Angle;
-			float			Decay_Corr_Fctr;
-			Q_UINT32	Processing_Code;
-			Q_UINT32	Gate_Duration;
-			Q_UINT32	R_Wave_Offset;
-			Q_UINT32	Num_Accepted_Beats;
-			float			Filter_Cutoff_Frequency;
-			float			Filter_Resolution;
-			float			Filter_Ramp_Slope;
-			Q_UINT16	Filter_Order;
-			float			Filter_Scatter_Fraction;
-			float			Filter_Scatter_Slope;
-			char			Annotation[40];
-			float			MT_1_1;
-			float			MT_1_2;
-			float			MT_1_3;
-			float			MT_2_1;
-			float			MT_2_2;
-			float			MT_2_3;
-			float			MT_3_1;
-			float			MT_3_2;
-			float			MT_3_3;
-			float			RFilter_Cutoff;
-			float			RFilter_Resolution;
-			Q_UINT16	RFilter_Code;
-			Q_UINT16	RFilter_Order;
-			float			ZFilter_Cutoff;
-			float			ZFilter_Resolution;
-			Q_UINT16	ZFilter_Code;
-			Q_UINT16	ZFilter_Order;
-			float			MT_1_4;
-			float			MT_2_4;
-			float			MT_3_4;
-			Q_UINT16	Scatter_Type;
-			Q_UINT16	Recon_Type;
-			Q_UINT16	Recon_Views;
-			Q_UINT16	CTI_Reserved[87];
-			Q_UINT16	User_Reserved[49];
-		} m_Data;
-#endif
+		CECAT7SubHeaderImagePrivate* m_pData;
 };
 
 #endif // CECAT7SUBHEADERIMAGE_H

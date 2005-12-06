@@ -5,6 +5,24 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2005-12-06  Jens Langner <Jens.Langner@light-speed.de>
+
+  * misc: another big change to the general API of libmedio. First,
+    removed some of the wrongfully placed __MEDIO_PRIVATE__ #ifdef
+    which caused third party programs to allocate not enough memory and
+    therefore run into certain memory issues. This however required to
+    implement another data hiding mechanism to the public classes of
+    libmedio such that no unnecessary methods and private methods are
+    exposed to the library user. There private classes were created
+    which embeed all private members of the main class and are publically
+    accessible by it. This also required to introduce default copy 
+    constructor and assignment operator methods to all main libmedio 
+    classes. Please note that also all copy constructors of header classes
+    were modified to NOT copy anything file related like the normally
+    corresponding MedIOData pointer. This in fact means that an "="
+    operation on two header object 'just' copies their content and
+    leave the data pointer intact.
+  
 2005-12-02  Jens Langner <Jens.Langner@light-speed.de>
 
   * testcases/ecat/readwritematrix.cpp: fixed the missing and incorrect
@@ -13,7 +31,7 @@ $Id$
     routines where it happened that we did a memcpy() over the same
     header, which in fact was not what we wanted to do. Also fixed
     a huge bunch of memory leaks cause by the internals of libmedio.
-		Thanks to valgrind for showing the problems.
+    Thanks to valgrind for showing the problems.
 
 2005-12-01  Jens Langner <Jens.Langner@light-speed.de>
 

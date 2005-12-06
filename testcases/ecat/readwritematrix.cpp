@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
 
 	// fill it with random data
 	srand(time(NULL));
-	for(long i=0; i < MATRIX_SIZE; i++)
+	for(unsigned int i=0; i < MATRIX_SIZE; i++)
 	{
 		matrixData_frame1[i] = 1;
 		matrixData_frame2[i] = 2;
@@ -222,7 +222,7 @@ int main(int argc, char* argv[])
 				cout << "read " << len << " bytes of data" << endl;
 				cout << "comparing read data with written data..." << endl;
 				
-				long i=0;
+				unsigned int i=0;
 				for(; i < MATRIX_SIZE; i++)
 				{
 					if(matrixData_frame1[i] != readBuf[i])
@@ -251,7 +251,7 @@ int main(int argc, char* argv[])
 				cout << "read " << len << " bytes of data" << endl;
 				cout << "comparing read data with written data..." << endl;
 				
-				long i=0;
+				unsigned int i=0;
 				for(; i < MATRIX_SIZE; i++)
 				{
 					if(matrixData_frame2[i] != readBuf[i])
@@ -293,7 +293,7 @@ int main(int argc, char* argv[])
 					break;
 				}
 
-				long j=0;
+				unsigned int j=0;
 				for(; j < MATRIX_SIZE; j++)
 				{
 					if(matrixData_frame2[j] != readBuf[j])

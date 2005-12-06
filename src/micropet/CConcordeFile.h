@@ -65,6 +65,10 @@ class CConcordeFile : public CMedIOData
 		//! @brief destructor
 		virtual ~CConcordeFile();
 
+		// copy constructur and default assignment operator
+		CConcordeFile(const CConcordeFile& src);		
+		CConcordeFile& operator=(const CConcordeFile& src);
+		
 		// static methods for the MedIOData interface
 		static bool isOfType(const QString& fileName);
 		static CMedIOData* createFromFile(const QString& fileName);
@@ -78,22 +82,21 @@ class CConcordeFile : public CMedIOData
 		void close();
 
 		//! @brief reads the mainheader of the Concorde microPET file
-                //! @param mainHeader: Pointer to CHeaderConcorde object where mainheader should be stored to
-                //! @return true if reading is successful otherwise false
-                bool readMainHeader(CConcordeMainHeader*& mainHeader);
+		//! @param mainHeader: Pointer to CHeaderConcorde object where mainheader should be stored to
+		//! @return true if reading is successful otherwise false
+		bool readMainHeader(CConcordeMainHeader*& mainHeader);
 
 		//! @brief reads the subheader of the Concorde microPET file
-                //! @param subHeader: Pointer to CHeaderConcordeFrame object where subheader should be stored to
-                //! @param frame: specify the frame - frame starts with 1 to number of frames in study
-                //! @return true if reading is successful otherwise false
-                bool readSubHeader(CConcordeFrameHeader*& subHeader, int frame);
-
+		//! @param subHeader: Pointer to CHeaderConcordeFrame object where subheader should be stored to
+		//! @param frame: specify the frame - frame starts with 1 to number of frames in study
+		//! @return true if reading is successful otherwise false
+		bool readSubHeader(CConcordeFrameHeader*& subHeader, int frame);
 
 		//! @brief run time typeinformation  
 		//! @return specific class type at runtime
-		int rtti() const { return CMedIOData::ConcordeMicropet; }
+		int rtti() const;
 
-		virtual int fileType() = 0;
+		virtual int fileType() const = 0;
 
 		//! @brief checks format of file  
 		//! @return specific format or Unknown if unknown or error
@@ -104,12 +107,8 @@ class CConcordeFile : public CMedIOData
 		bool readMatrix(char*& matrixData, unsigned int& length, short frame);
 		bool readMatrix(char*& matrixData, unsigned int& length, CConcordeFrameHeader*& subHeader, short frame);
 		
-#ifdef __MEDIO_PRIVATE__
 	protected :
-	//members
 		CConcordeMainHeader* m_pCachedMainHeader;
-	//methods
-#endif
 };
 
 #endif

@@ -26,22 +26,18 @@
 //! @author Hagen Moelle
 
 #include "CMedIOHeader.h"
+#include "CMedIOData.h"
+
 #include <rtdebug.h>
 
 CMedIOHeader::CMedIOHeader(CMedIOData* data)
 	: m_pMedIOData(data)
 { 
 	ENTER();
+	
 	LEAVE();
 }
 
-CMedIOHeader& CMedIOHeader::operator=(const CMedIOHeader& src)
-{
-	ENTER();
-	LEAVE();
-	return *this;
-}
-	
 //  Class: CMedIOHeader
 //  Destructor:  CMedIOHeader
 //!
@@ -51,5 +47,34 @@ CMedIOHeader& CMedIOHeader::operator=(const CMedIOHeader& src)
 CMedIOHeader::~CMedIOHeader()
 {
 	ENTER();
+	LEAVE();
+}
+
+CMedIOHeader::CMedIOHeader(const CMedIOHeader& src __attribute__((unused)))
+	: m_pMedIOData(NULL)
+{
+	ENTER();
+
+	// do nothing
+
+	LEAVE();
+}
+
+CMedIOHeader& CMedIOHeader::operator=(const CMedIOHeader& src)
+{
+	ENTER();
+
+	convertFrom(&src);
+
+	LEAVE();
+	return *this;
+}
+
+void CMedIOHeader::setMedIOData(CMedIOData* data)
+{
+	ENTER();
+
+	m_pMedIOData = data;
+	
 	LEAVE();
 }

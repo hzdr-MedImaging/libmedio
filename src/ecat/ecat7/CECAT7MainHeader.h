@@ -37,6 +37,7 @@
 #include <time.h>
 
 // forward declarations
+class CECAT7MainHeaderPrivate;
 class CECATFile;
 
 class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
@@ -73,9 +74,14 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 				
 		// constructors
 		CECAT7MainHeader(CECATFile* ecatFile = NULL, 
-										 CECATMainHeader::Type fileType =
-												CECATMainHeader::Unknown);
+										 CECATMainHeader::Type fileType = CECATMainHeader::Unknown);
+		~CECAT7MainHeader();
 
+		// copy constructur and default assignment operator
+		CECAT7MainHeader(const CECAT7MainHeader& src);		
+		CECAT7MainHeader& operator=(const CECAT7MainHeader& src);
+
+		// header clear method
 		void clear();
 
 		// file i/o Methods
@@ -230,84 +236,8 @@ class Q_EXPORT CECAT7MainHeader : public CECATMainHeader
 		void setScan_Start_Time_Qt(const QDateTime& dateTime);
 		void setDose_Start_Time_Qt(const QDateTime& dateTime);
 
-#ifdef __MEDIO_PRIVATE__
-	protected:
-		void updateMagicNumber(void);
-
-		// helper methods for converting the header from concorde to ecat7
-		QString concorde2ECAT7dataUnits(CConcordeMainHeader::CalibrationUnits u) const;
-		float concorde2ECAT7dosage(float d, CConcordeMainHeader::DoseUnits u) const;
-		float concorde2ECAT7Height(float l, CConcordeMainHeader::SubjectLengthUnits u) const;
-		float concorde2ECAT7Weight(float w, CConcordeMainHeader::SubjectWeightUnits u) const;
-		CECAT7MainHeader::Patient_Sex concorde2ECAT7Sex(const QString& genus) const;
-		CECAT7MainHeader::Patient_Orientation concorde2ECAT7Orientation(const CConcordeMainHeader::SubjectOrientation o) const;
-
 	private:
-		// MainHeader structure (should be 512bytes)
-		struct ECAT7MainHeader
-		{
-			char					Magic_Number[14];
-			char					Original_File_Name[32];
-			Q_UINT16			SW_Version;
-			Q_UINT16			System_Type;
-			Q_UINT16			File_Type;
-			char					Serial_Number[10];
-			Q_INT32				Scan_Start_Time;
-			char					Isotope_Name[8];
-			float					Isotope_Halflife;
-			char					Radiopharmaceutical[32];
-      float					Gantry_Tilt;
-      float					Gantry_Rotation;
-      float					Bed_Elevation;
-      float					Intrinsic_Tilt;
-      Q_UINT16			Wobble_Speed;
-      Q_UINT16			Transm_Source_Type;
-			float					Distance_Scanned;
-      float					Transaxial_FOV;
-      Q_UINT16			Angular_Compression;
-      Q_UINT16			Coin_Samp_Mode;
-      Q_UINT16			Axial_Samp_Mode;
-      float					Calibration_Factor;
-      Q_UINT16			Calibration_Units;
-      Q_UINT16			Calibration_Units_Label;
-      Q_UINT16			Compression_Code;
-      char					Study_Type[12];
-			char					Patient_ID[16];
-      char					Patient_Name[32];
-      char					Patient_Sex[1];
-      char					Patient_Dexterity[1];
-      float					Patient_Age;
-      float					Patient_Height;
-      float					Patient_Weight;
-      Q_INT32				Patient_Birth_Date;
-      char					Physician_Name[32];
-      char					Operator_Name[32];
-      char					Study_Description[32];
-      Q_UINT16			Acquisition_Type;
-      Q_UINT16			Patient_Orientation;
-			char					Facility_Name[20];
-      Q_UINT16			Num_Planes;
-      Q_UINT16			Num_Frames;
-      Q_UINT16			Num_Gates;
-      Q_UINT16			Num_Bed_Pos;
-      float					Init_Bed_Position;
-      float					Bed_Offset[15];
-      float					Plane_Separation;
-      Q_UINT16			Lwr_Sctr_Thres;
-      Q_UINT16			Lwr_True_Thres;
-      Q_UINT16			Upr_True_Thres;
-      char					User_Process_Code[10];
-      Q_UINT16			Acquisition_Mode;
-      float					Bin_Size;
-      float					Branching_Fraction;
-      Q_INT32				Dose_Start_Time;
-			float					Dosage;
-      float					Well_Counter_Corr_Factor;
-      char					Data_Units[32];
-      Q_UINT16			Septa_State;
-			Q_UINT16			CTI_Reserved[6];
-		} m_Data;
-#endif
+		CECAT7MainHeaderPrivate*	m_pData;
 };
 
 #endif // CECAT7MAINHEADER_H
