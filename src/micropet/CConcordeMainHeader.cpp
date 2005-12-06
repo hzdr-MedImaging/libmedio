@@ -1272,7 +1272,7 @@ void CConcordeMainHeaderPrivate::init()
 	parser.addKey("water_access", &header.water_access);
 }
 
-bool CConcordeMainHeader::convertFrom(const CMedIOHeader* srcHeader1, const CMedIOHeader* srcHeader2)
+bool CConcordeMainHeader::convertFrom(const CMedIOHeader* srcHeader1, const CMedIOHeader*)
 {
 	ENTER();
 	bool bResult = false;

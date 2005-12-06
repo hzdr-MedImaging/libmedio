@@ -36,7 +36,7 @@ CECATSubHeader::CECATSubHeader(CMedIOData* ecatFile,
 	LEAVE();
 }
 
-CECATSubHeader::CECATSubHeader(const CECATSubHeader& src __attribute__((unused)))
+CECATSubHeader::CECATSubHeader(const CECATSubHeader& src)
 	: CMedIOHeader(src)
 {
 	ENTER();
