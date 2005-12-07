@@ -26,18 +26,19 @@ dnl
 dnl AC_CXX_NAMESPACES: checks for proper C++ namespaces compatibility
 dnl
 AC_DEFUN([AC_CXX_NAMESPACES],
-[AC_CACHE_CHECK(whether the compiler implements namespaces,
-ac_cv_cxx_namespaces,
-[AC_LANG_SAVE
- AC_LANG_CPLUSPLUS
- AC_TRY_COMPILE([namespace Outer { namespace Inner { int i = 0; }}],
-                [using namespace Outer::Inner; return i;],
- ac_cv_cxx_namespaces=yes, ac_cv_cxx_namespaces=no)
- AC_LANG_RESTORE
-])
-if test "$ac_cv_cxx_namespaces" = yes; then
-  AC_DEFINE(HAVE_NAMESPACES,,[define if the compiler implements namespaces])
-fi
+	[AC_CACHE_CHECK(whether the compiler implements namespaces,
+			ac_cv_cxx_namespaces,
+			[AC_LANG_SAVE
+			 AC_LANG_CPLUSPLUS
+			 AC_TRY_COMPILE([namespace Outer { namespace Inner { int i = 0; }}],
+											[using namespace Outer::Inner; return i;],
+											ac_cv_cxx_namespaces=yes, ac_cv_cxx_namespaces=no)
+			 AC_LANG_RESTORE
+	])
+
+	if test "$ac_cv_cxx_namespaces" = yes; then
+		AC_DEFINE(HAVE_NAMESPACES,,[define if the compiler implements namespaces])
+	fi
 ])
 
 dnl
@@ -66,7 +67,7 @@ dnl
 dnl AC_ANSI_COLOR: provides a switch to enable/disable ANSI color
 dnl output for compilation/debugging via rtdebug library
 dnl
-AC_DEFUN(AC_ANSI_COLOR,
+AC_DEFUN([AC_ANSI_COLOR],
 [
 	AC_MSG_CHECKING(whether ANSI color should be used for terminal output)
 	AC_ARG_ENABLE(ansi-color,
@@ -93,7 +94,7 @@ AC_DEFUN(AC_ANSI_COLOR,
 dnl
 dnl AC_ENABLE_DEBUG: provides a switch to enable/disable debugging
 dnl
-AC_DEFUN(AC_ENABLE_DEBUG,
+AC_DEFUN([AC_ENABLE_DEBUG],
 [
 	AC_MSG_CHECKING(whether to enable debugging)
 	AC_ARG_ENABLE(debug,
@@ -120,7 +121,7 @@ dnl
 dnl AC_ENABLE_STATIC_QT: provides a switch to control the link level (static/shared)
 dnl of a linked Qt library.
 dnl
-AC_DEFUN(AC_ENABLE_STATIC_QT,
+AC_DEFUN([AC_ENABLE_STATIC_QT],
 [
 	AC_MSG_CHECKING(whether to link the Qt library static)
 	AC_ARG_ENABLE(static-qt,
@@ -147,7 +148,7 @@ dnl
 dnl AC_ENABLE_STATIC_RTDEBUG: provides a switch to control the link level (static/shared)
 dnl of a linked rtdebug library
 dnl
-AC_DEFUN(AC_ENABLE_STATIC_RTDEBUG,
+AC_DEFUN([AC_ENABLE_STATIC_RTDEBUG],
 [
 	AC_MSG_CHECKING(whether to link rtdebug library static)
 	AC_ARG_ENABLE(static-rtdebug,
@@ -178,7 +179,7 @@ dnl
 dnl AC_ENABLE_STATIC_LIB: if the project is a library this macro can be used to control
 dnl if the library should be build as a shared or static library
 dnl
-AC_DEFUN(AC_ENABLE_STATIC_LIB,
+AC_DEFUN([AC_ENABLE_STATIC_LIB],
 [
 	AC_MSG_CHECKING(whether to link as a static library)
 	AC_ARG_ENABLE(static-lib,
@@ -205,8 +206,8 @@ dnl
 dnl AC_PROG_GCC_VERSION: finds out if the used gcc version is a supported one
 dnl or not
 dnl
-AC_DEFUN(AC_PROG_GCC_VERSION,[
-
+AC_DEFUN([AC_PROG_GCC_VERSION],
+[
  AC_MSG_CHECKING([for gcc version])
 
  dnl check if $CC exists or not
@@ -259,7 +260,7 @@ dnl
 dnl AC_PATH_QRTDEBUG: allows to override the default library search path for
 dnl searching for the rtdebug library.
 dnl
-AC_DEFUN(AC_PATH_RTDEBUG,
+AC_DEFUN([AC_PATH_RTDEBUG],
 [
   AC_ARG_WITH(rtdebug, [AC_HELP_STRING([--with-rtdebug], [where the rtdebug environment is located.])],
 											 [RTDEBUGDIR="$withval" ])
@@ -269,7 +270,7 @@ dnl
 dnl AC_PATH_RTDEBUG_LIB: checks for the existance of the rtdebug library in the
 dnl default pathes and allows to override them as well
 dnl
-AC_DEFUN(AC_PATH_RTDEBUG_LIB,
+AC_DEFUN([AC_PATH_RTDEBUG_LIB],
 [
   AC_REQUIRE_CPP()
   AC_ARG_WITH(rtdebug-lib,
@@ -356,7 +357,7 @@ dnl AC_PATH_RTDEBUG_INC: checks the existance of the includes files for successf
 dnl compiling support for the rtdebug library and also allows to override the default
 dnl path to that includes.
 dnl
-AC_DEFUN(AC_PATH_RTDEBUG_INC,
+AC_DEFUN([AC_PATH_RTDEBUG_INC],
 [
   AC_REQUIRE_CPP()
   AC_MSG_CHECKING(for rtdebug.h include)
@@ -415,7 +416,7 @@ dnl
 dnl AC_QTSHAREDBUILD: tries to find out if the used Qt3 library was build
 dnl as a shared or static library
 dnl
-AC_DEFUN(AC_QTSHAREDBUILD,
+AC_DEFUN([AC_QTSHAREDBUILD],
 [
   AC_REQUIRE_CPP()
   AC_REQUIRE([AC_PATH_QT3_INC])
@@ -458,7 +459,7 @@ dnl
 dnl AC_PATH_QT3DIR: allows to override the Qt3 specific QTDIR variable for
 dnl specifying the main directory where Qt3 is installed
 dnl
-AC_DEFUN(AC_PATH_QT3DIR,
+AC_DEFUN([AC_PATH_QT3DIR],
 [
   AC_ARG_WITH(qt3, [AC_HELP_STRING([--with-qt3], [where the Qt3 multithreaded library is located.])],
                   [QTDIR="$withval" ])
@@ -474,7 +475,7 @@ dnl AC_PATH_QT3_LIB: tries to check for the existenance of the Qt3 libraries and
 dnl also provides means of overriding the default directory in which we are going
 dnl to search for the Qt3 libs
 dnl
-AC_DEFUN(AC_PATH_QT3_LIB,
+AC_DEFUN([AC_PATH_QT3_LIB],
 [
   AC_REQUIRE_CPP()
   AC_ARG_WITH(qt3-lib,[AC_HELP_STRING([--with-qt3-lib], [where the Qt3 multithreaded library is located.])],
@@ -576,7 +577,7 @@ dnl
 dnl AC_PATH_QT3_INC: tries to find out if the Qt3 headers are reachable and provides
 dnl means of overriding the default search pathes.
 dnl
-AC_DEFUN(AC_PATH_QT3_INC,
+AC_DEFUN([AC_PATH_QT3_INC],
 [
   AC_REQUIRE_CPP()
   AC_REQUIRE([AC_PATH_X])
@@ -658,7 +659,7 @@ dnl
 dnl AC_PATH_QT3_QMAKE: tries to find out if the "qmake" binary of Qt3 is reachable or not and
 dnl allows to override the default path to it
 dnl
-AC_DEFUN(AC_PATH_QT3_QMAKE,
+AC_DEFUN([AC_PATH_QT3_QMAKE],
 [
   AC_ARG_WITH(qt3-qmake,[AC_HELP_STRING([--with-qt3-qmake], [where the Qt3 qmake binary is located.])],
                         [ac_qt_qmake="$withval"], ac_qt_qmake="")
@@ -708,7 +709,7 @@ dnl
 dnl AC_PATH_QT4_LIB: checks if the Qt4 libraries are reachable and provides means
 dnl of overriding the default search path
 dnl
-AC_DEFUN(AC_PATH_QT4_LIB,
+AC_DEFUN([AC_PATH_QT4_LIB],
 [
   AC_REQUIRE_CPP()
   AC_ARG_WITH(qt4-lib,[AC_HELP_STRING([--with-qt4-lib], [where the Qt4 libraries are located.])],
@@ -794,7 +795,7 @@ dnl
 dnl AC_PATH_QT4_INC: checks for the existance of the Qt4 includes and provides means
 dnl to override the default search pathes to it
 dnl
-AC_DEFUN(AC_PATH_QT4_INC,
+AC_DEFUN([AC_PATH_QT4_INC],
 [
   AC_REQUIRE_CPP()
   AC_MSG_CHECKING(for Qt4 includes)
@@ -854,7 +855,7 @@ dnl
 dnl AC_PATH_QT4_QMAKE: tries to find out if the "qmake" binary of Qt4 is reachable or not and
 dnl allows to override the default path to it
 dnl
-AC_DEFUN(AC_PATH_QT4_QMAKE,
+AC_DEFUN([AC_PATH_QT4_QMAKE],
 [
   AC_ARG_WITH(qt4-qmake,[AC_HELP_STRING([--with-qt4-qmake], [where the Qt4 qmake binary is located.])],
                         [ac_qt_qmake="$withval"], ac_qt_qmake="")
