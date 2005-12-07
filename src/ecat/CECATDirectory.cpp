@@ -180,7 +180,7 @@ bool CECATDirectory::load(void)
 	{
 		// add each DirList position to our filePositions value list
 		// for later reference
-		SHOWVALUE(m_pData->file->at());
+		SHOWVALUE(m_pData->file->pos());
 		m_pData->filePositions.append(m_pData->file->pos());
 
 		// we use a ByteArray buffer to speed up the endianess decoding

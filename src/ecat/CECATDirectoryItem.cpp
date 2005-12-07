@@ -399,7 +399,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 			return false;
 		}
 
-		SHOWVALUE(m_pData->file->at());
+		SHOWVALUE(m_pData->file->pos());
 
 		// then we allocate some memory for loading the matrixdata
 		// this should be:
@@ -1004,7 +1004,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 		return false;
 	}
 
-	SHOWVALUE(m_pData->file->at());
+	SHOWVALUE(m_pData->file->pos());
 
 	// then we process the matrix data that is associated with
 	// this directoryitem.
