@@ -467,6 +467,16 @@ AC_DEFUN([AC_PATH_RTDEBUG_INC],
 ])
 
 dnl
+dnl AC_PATH_MEDIO: allows to override the default library search path for
+dnl searching for the medio library.
+dnl
+AC_DEFUN([AC_PATH_MEDIO],
+[
+  AC_ARG_WITH(medio, [AC_HELP_STRING([--with-medio], [where the medio environment is located.])],
+										 [MEDIODIR="$withval" ])
+])
+
+dnl
 dnl AC_PATH_MEDIO_LIB: checks for the existance of the medio library in the
 dnl default pathes and allows to override them as well
 dnl
@@ -486,7 +496,9 @@ AC_DEFUN([AC_PATH_MEDIO_LIB],
   dnl No they didnt, so lets look for them...
   dnl If you need to add extra directories to check, add them here.
   if test -z "$ac_medio_libraries"; then
-    medio_library_dirs="$medio_library_dirs \
+    medio_library_dirs="$MEDIODIR/lib \
+												$MEDIODIR/medio \
+												$MEDIODIR \
 												/usr/local/petlib/lib \
 												/usr/local/petlib/lib/medio \	
 		                    /usr/local/lib \
@@ -568,6 +580,9 @@ AC_DEFUN([AC_PATH_MEDIO_INC],
       dnl No they didn't, so lets look for them...
       dnl If you need to add extra directories to check, add them here.
       medio_include_dirs="\
+				$MEDIODIR/include \
+				$MEDIODIR/include/rtdebug \
+				$MEDIODIR \			
 			  /usr/local/petlib/include \
 				/usr/local/petlib/include/medio \					
         /usr/local/include \
@@ -577,8 +592,8 @@ AC_DEFUN([AC_PATH_MEDIO_INC],
     fi
 
     for medio_dir in $medio_include_dirs; do
-      if test -r "$medio_dir/CECATFile.h"; then
-        if test -r "$medio_dir/CECATDirectory.h"; then
+      if test -r "$medio_dir/CMedIO"; then
+        if test -r "$medio_dir/CMedIOData"; then
           ac_medio_includes=$medio_dir
           break;
         fi
@@ -605,6 +620,16 @@ AC_DEFUN([AC_PATH_MEDIO_INC],
 ])
 
 dnl
+dnl AC_PATH_GSL: allows to override the default library search path for
+dnl searching for the medio library.
+dnl
+AC_DEFUN([AC_PATH_GSL],
+[
+  AC_ARG_WITH(gsl, [AC_HELP_STRING([--with-gsl], [where the gsl environment is located.])],
+									 [GSLDIR="$withval" ])
+])
+
+dnl
 dnl AC_PATH_GSL_LIB: checks for the existance of the gsl library in the
 dnl default pathes and allows to override them as well
 dnl
@@ -624,7 +649,9 @@ AC_DEFUN([AC_PATH_GSL_LIB],
   dnl No they didnt, so lets look for them...
   dnl If you need to add extra directories to check, add them here.
   if test -z "$ac_gsl_libraries"; then
-    gsl_library_dirs="$gsl_library_dirs \
+    gsl_library_dirs="$GSLDIR/lib \
+											$GSLDIR/gsl \
+											$GSLDIR \
 		                  /usr/local/lib \
 											/usr/local/lib/gsl \
 		                  /usr/lib \
@@ -703,6 +730,9 @@ AC_DEFUN([AC_PATH_GSL_INC],
       dnl No they didn't, so lets look for them...
       dnl If you need to add extra directories to check, add them here.
       gsl_include_dirs="\
+				$GSLDIR/include \
+				$GSLDIR/include/gsl \
+				$GSLDIR \						
         /usr/local/gsl/include \
         /usr/include/gsl \
         /usr/lib/gsl/include \
