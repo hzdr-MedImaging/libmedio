@@ -1,6 +1,6 @@
 TEMPLATE = app
 CONFIG	 *= qt thread warn_on @ANSI_COLOR@ @QTLINK_LEVEL@
-QT	 += core qt3support
+QT	 += core
 TARGET    = mp2ecat
 VERSION   = 0.1
 DESTDIR   = ../

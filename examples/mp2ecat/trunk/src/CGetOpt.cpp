@@ -47,13 +47,13 @@ bool CGetOpt::parse(int argc, char* argv[])
 			CGetOptOption* curArgOption = 0;
 			if(curOption[1] == '-')
 			{
-		    Q3PtrListIterator<CGetOptCategory> it(*this);
-				for(; !found && it.current(); ++it)
+		    QListIterator<CGetOptCategory*> it(*this);
+				for(; !found && it.hasNext();)
 				{
-					Q3PtrListIterator<CGetOptOption> it2(*it.current());
-					while((curArgOption = it2.current()) != 0)
+					QListIterator<CGetOptOption*> it2(*it.next());
+					while(it2.hasNext())
 					{
-						++it2;
+						curArgOption = it2.next();
 
 						char* curArgLongOpt = curArgOption->getLongOption();
 
@@ -73,13 +73,13 @@ bool CGetOpt::parse(int argc, char* argv[])
 							(curOption[2] == '\0' || curOption[2] == '=')
 						 )
 			{
-		    Q3PtrListIterator<CGetOptCategory> it(*this);
-				for(; !found && it.current(); ++it)
+		    QListIterator<CGetOptCategory*> it(*this);
+				for(; !found && it.hasNext();)
 				{	
-					Q3PtrListIterator<CGetOptOption> it2(*it.current());
-					while((curArgOption = it2.current()) != 0)
+					QListIterator<CGetOptOption*> it2(*it.next());
+					while(it2.hasNext())
 					{
-						++it2;
+						curArgOption = it2.next();
 
 						if(curOption[1] == curArgOption->getShortOption())
 						{
@@ -166,12 +166,12 @@ bool CGetOpt::parse(int argc, char* argv[])
 						case CGetOptOption::Flag:
 						{
 							if((str.toShort(&validType) == 0 || str.toShort(&validType) == 1) && validType) { }
-							else if(str.lower() == "yes")
+							else if(str.toLower() == "yes")
 							{
 								curArgOption->setFoundValue("1");
 								validType = true;
 							}
-							else if(str.lower() == "no")
+							else if(str.toLower() == "no")
 							{
 								curArgOption->setFoundValue("0");
 								validType = true;
@@ -205,20 +205,20 @@ bool CGetOpt::parse(int argc, char* argv[])
 void CGetOpt::showAllOptions(void)
 {
 	// format the Options output
-  Q3PtrListIterator<CGetOptCategory> it(*this);
-	for(; it.current(); ++it)
+  QListIterator<CGetOptCategory*> it(*this);
+	while(it.hasNext())
 	{	
-		it.current()->showOptions();
+		it.next()->showOptions();
 	}
 }
 
 void CGetOpt::showCategoryOptions(QString category)
 {
-  Q3PtrListIterator<CGetOptCategory> it(*this);
+  QListIterator<CGetOptCategory*> it(*this);
 	CGetOptCategory* curCategory;
-	while((curCategory = it.current()))
+	while(it.hasNext())
 	{	
-		++it;
+		curCategory = it.next();
 
 		if(curCategory->getName() == category)
 		{
@@ -276,11 +276,11 @@ void CGetOptCategory::showOptions(void)
 {
 	std::cout << m_Name.toAscii().data() << ":" << std::endl;
 		
-	Q3PtrListIterator<CGetOptOption> it(*this);
+	QListIterator<CGetOptOption*> it(*this);
 	CGetOptOption* curArgOption;
-	while((curArgOption = it.current()) != 0)
+	while(it.hasNext())
 	{
-		++it;
+		curArgOption = it.next();
 		curArgOption->show();
 	}
 

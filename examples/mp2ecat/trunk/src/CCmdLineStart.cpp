@@ -5,13 +5,14 @@
 
 #include "CCmdLineStart.h"
 
-#include <CECATFile.h>
-#include <CECAT7MainHeader.h>
-#include <CECAT7SubHeaderImage.h>
-#include <CConcordeMainHeader.h>
-#include <CConcordeImage.h>
-#include <CMedIOData.h>
-#include <CMedIODataFactory.h>
+#include <CECATFile>
+#include <CECAT7MainHeader>
+#include <CECAT7SubHeaderImage>
+#include <CConcordeMainHeader>
+#include <CConcordeFrameHeader>
+#include <CConcordeImage>
+#include <CMedIOData>
+#include <CMedIODataFactory>
 #include <QString>
 #include <math.h>
 #include <iostream>
@@ -93,7 +94,7 @@ QString CCmdLineStart::process(int argc, char* argv[])
 	if(foundError || errorMsg.isNull() == false)
 	{
 		if(errorMsg.isNull() == false)
-			std::cerr << argv[0] << ": " << errorMsg.ascii() << std::endl;
+			std::cerr << argv[0] << ": " << errorMsg.toAscii().data() << std::endl;
 
 		std::cout << std::endl;
 		std::cout << "Usage: " << argv[0] << " -i <input file name> -o <output file name> [-n patient name]" << std::endl << std::endl;

@@ -24,9 +24,9 @@
 #ifndef CGETOPT_H
 #define CGETOPT_H
 
-#include <q3dict.h>
-#include <q3ptrlist.h>
-
+//#include <q3dict.h>
+#include <QList>
+#include <QString>
 #include <iostream>
 
 #include <rtdebug.h>
@@ -82,13 +82,13 @@ class CGetOptOption
 		char*							m_pFoundValue;
 };
 
-class CGetOptCategory : public Q3PtrList<CGetOptOption>
+class CGetOptCategory : public QList<CGetOptOption*>
 {
 	public:
 		CGetOptCategory(QString catName=0, QString catDesc=0)
 			: m_Name(catName), m_Description(catDesc)
 		{
-			setAutoDelete(true);
+			//setAutoDelete(true);
 		}
 
 		bool addOption(CGetOptOption::Type optType, char shortOpt, char* desc,
@@ -105,11 +105,11 @@ class CGetOptCategory : public Q3PtrList<CGetOptOption>
 		char* getValueOption(char shortOpt)
 		{
 			// we need to search through all our categories to find the option
-			Q3PtrListIterator<CGetOptOption> it(*this);
+			QListIterator<CGetOptOption*> it(*this);
 			CGetOptOption* curOption;
-			while((curOption = it.current()) != 0 )
+			while(it.hasNext())
 			{
-				++it;
+				curOption = it.next();
 
 				if(curOption->getShortOption() == shortOpt)
 				{
@@ -130,12 +130,12 @@ class CGetOptCategory : public Q3PtrList<CGetOptOption>
 		QString m_Description;
 };
 
-class CGetOpt : private Q3PtrList<CGetOptCategory>
+class CGetOpt : private QList<CGetOptCategory*>
 {
 	public:
 		CGetOpt()
 		{
-			setAutoDelete(true);
+			//setAutoDelete(true);
 		}
 
 		CGetOptCategory* addCategory(char* catName, char* catDescription=0)
@@ -153,11 +153,11 @@ class CGetOpt : private Q3PtrList<CGetOptCategory>
 		{
 			// lets iterate through our list and find the category with the supplied
 			// name
-			Q3PtrListIterator<CGetOptCategory> it(*this);
+			QListIterator<CGetOptCategory*> it(*this);
 			CGetOptCategory* curCategory;
-			while((curCategory = it.current()) != 0 )
+			while(it.hasNext())
 			{
-				++it;
+				curCategory = it.next();
 				if(curCategory->getName() == category) break;
 			}
 
@@ -182,11 +182,11 @@ class CGetOpt : private Q3PtrList<CGetOptCategory>
 		char* getValueOption(char shortOpt)
 		{
 			// we need to search through all our categories to find the option
-			Q3PtrListIterator<CGetOptCategory> it(*this);
+			QListIterator<CGetOptCategory*> it(*this);
 			CGetOptCategory* curCategory;
-			while((curCategory = it.current()) != 0 )
+			while(it.hasNext())
 			{
-				++it;
+				curCategory = it.next();
 				char* curFoundValue = curCategory->getValueOption(shortOpt);
 				if(curFoundValue) return curFoundValue;
 			}

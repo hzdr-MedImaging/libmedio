@@ -665,8 +665,8 @@ AC_DEFUN(AC_PATH_MEDIO_INC,
     fi
 
     for medio_dir in $medio_include_dirs; do
-      if test -r "$medio_dir/CECATFile.h"; then
-        if test -r "$medio_dir/CECATDirectory.h"; then
+      if test -r "$medio_dir/CECATFile"; then
+        if test -r "$medio_dir/CECATDirectory"; then
           ac_medio_includes=$medio_dir
           break;
         fi
