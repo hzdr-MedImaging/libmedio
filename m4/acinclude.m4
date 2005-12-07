@@ -786,8 +786,8 @@ dnl specifying the main directory where Qt3 is installed
 dnl
 AC_DEFUN([AC_PATH_QT3DIR],
 [
-  AC_ARG_WITH(qtdir, [AC_HELP_STRING([--with-qtdir], [set the main Qt3 'QTDIR' search variable manually.])],
-										 [QTDIR="$withval" ])
+	AC_ARG_WITH(qt3, [AC_HELP_STRING([--with-qt3], [where the Qt3 multithreaded library is located.])],
+									 [QTDIR="$withval" ])
 
   if test -z "$QTDIR"; then
     AC_MSG_WARN([environment variable QTDIR is not set, you may run into problems])
