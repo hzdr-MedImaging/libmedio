@@ -5,6 +5,12 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2005-12-07  Hagen Moelle <draggore@gmx.de>
+
+  * misc: fixed compile error in debug mode 
+    swap files are ignored during checkin
+
+
 2005-12-06  Jens Langner <Jens.Langner@light-speed.de>
 
   * misc: another big change to the general API of libmedio. First,
