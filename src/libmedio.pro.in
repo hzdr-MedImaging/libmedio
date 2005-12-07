@@ -212,7 +212,7 @@ ansi_color {
 	DEFINES *= ANSI_COLOR
 }
 else {
-	QMAKE_CXX		= @printf 'Compiling $<\n';$$QMAKE_CXX
-	QMAKE_LINK	= @printf 'Linking $@\n';$$QMAKE_LINK
+	QMAKE_CXX		= @echo 'Compiling $<';$$QMAKE_CXX
+	QMAKE_LINK	= @echo 'Linking $@';$$QMAKE_LINK
 	DEFINES -= ANSI_COLOR
 }
