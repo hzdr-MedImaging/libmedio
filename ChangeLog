@@ -5,6 +5,11 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2005-12-09  Christian Poetzsch <cp@burningdragon.de>
+	
+	*	m4/acinclude.m4,src/libmedio.pro.in: some changes for better support 
+		of compiling/installing on the windows platform
+	
 2005-12-06  Jens Langner <Jens.Langner@light-speed.de>
 
   * misc: another big change to the general API of libmedio. First,
