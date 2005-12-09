@@ -23,7 +23,7 @@
 
 # main variables
 TEMPLATE		= lib
-CONFIG		 *= qt thread warn_on @ANSI_COLOR@ @QTLINK_LEVEL@
+CONFIG		 *= qt thread warn_on create_prl @ANSI_COLOR@ @QTLINK_LEVEL@
 QT					= core
 QMAKE_QMAKE = @QMAKE_PATH@
 TARGET			= medio
@@ -32,9 +32,16 @@ DESTDIR			= ../lib/
 DEFINES		 *= __MEDIO_PRIVATE__
 
 # directory specification
-OBJECTS_DIR = .obj
-MOC_DIR     = .moc
-UI_DIR      = .ui
+unix {
+	OBJECTS_DIR = .obj
+	MOC_DIR     = .moc
+	UI_DIR      = .ui
+}
+win32 {
+	OBJECTS_DIR = _obj
+	MOC_DIR     = _moc
+	UI_DIR      = _ui
+}
 
 # define headers and source files for compilation
 # PUB_HEADER: public headers going into /usr/local/include/medio
@@ -109,34 +116,39 @@ DEPENDPATH   = . ecat ecat/ecat6 ecat/ecat7 micropet
 INCLUDEPATH  = . include ecat ecat/ecat6 ecat/ecat7 micropet helpers
 
 # UNIX based target platforms installation defines
-unix {
-  # on unix we use configure to define everything like install path
-	PREFIX=@prefix@
-  LIB_DIR=@prefix@/lib
-  INCLUDE_DIR=@prefix@/include
-  DATA_DIR=@prefix@/share
-	
-  # -p option should be -P, so that "make install" as root creates files owned by root
-  # and links are preserved.
-  QMAKE_COPY_FILE = $(COPY) -P
-	
-	# C++ include stubs
-	stubs.path = $$INCLUDE_DIR/medio
-	stubs.files = ./include/stubs/*
+# on unix we use configure to define everything like install path
+PREFIX=@prefix@
+LIB_DIR=@prefix@/lib
+INCLUDE_DIR=@prefix@/include
+DATA_DIR=@prefix@/share
 
-  # install header 
-  include.path  = $$INCLUDE_DIR/medio/2
-  include.files = $$PUB_HEADER
+# -p option should be -P, so that "make install" as root creates files owned by root
+# and links are preserved.
+QMAKE_COPY_FILE = $(COPY) -P
 
-  # install documentation html
-  documentation.path = $$DATA_DIR/medio/doc
-  documentation.files = ../doc/*.html ../doc/*.css
+# C++ include stubs
+stubs.path = $$INCLUDE_DIR/medio
+stubs.files = ./include/stubs/*
 
-  # install library
-  target.path = $$LIB_DIR
+# install header 
+include.path  = $$INCLUDE_DIR/medio/2
+include.files = $$PUB_HEADER
 
-  # "make install" configuration options
-  INSTALLS += target stubs include documentation
+# install documentation html
+documentation.path = $$DATA_DIR/medio/doc
+documentation.files = ../doc/*.html ../doc/*.css
+
+# install library
+target.path = $$LIB_DIR
+
+# "make install" configuration options
+INSTALLS += target stubs include
+
+# as an result of a buggy qmake win implementation
+# QMAKE_TARGET is not defined on windows, so we
+# add the install target ourself
+win32:staticlib {
+  target.files *= $${DESTDIR}libmedio.a $${DESTDIR}libmedio.prl
 }
 
 # set the config to either release or debug
@@ -206,13 +218,15 @@ else {
 }
 
 # use ANSI colors if it was specified on configure time
-ansi_color {
-	QMAKE_CXX		= @printf '\033[32mCompiling $<\033[0m\n';$$QMAKE_CXX
-	QMAKE_LINK	= @printf '\033[32mLinking \033[1m$@\033[0m\n';$$QMAKE_LINK
-	DEFINES *= ANSI_COLOR
-}
-else {
-	QMAKE_CXX		= @echo 'Compiling $<';$$QMAKE_CXX
-	QMAKE_LINK	= @echo 'Linking $@';$$QMAKE_LINK
-	DEFINES -= ANSI_COLOR
+!win32 {
+	ansi_color {
+		QMAKE_CXX		= @printf '\033[32mCompiling $<\033[0m\n';$$QMAKE_CXX
+		QMAKE_LINK	= @printf '\033[32mLinking \033[1m$@\033[0m\n';$$QMAKE_LINK
+		DEFINES *= ANSI_COLOR
+	}
+	else {
+		QMAKE_CXX		= @echo 'Compiling $<';$$QMAKE_CXX
+		QMAKE_LINK	= @echo 'Linking $@';$$QMAKE_LINK
+		DEFINES -= ANSI_COLOR
+	}
 }

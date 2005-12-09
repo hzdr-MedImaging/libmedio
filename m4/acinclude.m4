@@ -437,7 +437,7 @@ AC_DEFUN([AC_PATH_RTDEBUG_INC],
         /usr/include/rtdebug \
         /usr/lib/rtdebug/include \
         /usr/local/include/rtdebug \
-				C:/petlib/include"
+				C:/petlib/include/rtdebug"
     fi
 
     for rtdebug_dir in $rtdebug_include_dirs; do
