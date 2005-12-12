@@ -1626,13 +1626,37 @@ QDate CECAT7MainHeader::patient_Birth_Date_Qt(void) const
 		birthDate.setTime_t(m_pData->header.Patient_Birth_Date);
 	else
 	{
-		// as workaround we calculate the days and secs of the time_t
+#ifdef Q_WS_WIN
+		// As workaround we couldn't use the posix ctime function as below
+		// cause under win no negative values allowed as well.
+		// Instead we calculate the days and secs of the time_t
 		// value cause time_t is long int and add this negative values 
-		// to the date 1/1/1970 00:00:00.
+		// to the date 1/1/1970 00:00:00. 
+		// ATTENTION: addDays/addSecs didn't realize the daylight saving
+		// of the target date. So if the file is written in sommertime one
+		// hour is missing. No workaround until now. This fact isn't hard 
+		// that much because birthday usally contains no time information.
 		birthDate.setTime_t(0, Qt::LocalTime);
 		int days = m_pData->header.Patient_Birth_Date / (24 * 60 * 60);
 		int secs = m_pData->header.Patient_Birth_Date % (24 * 60 * 60);
 		birthDate = birthDate.addDays(days).addSecs(secs);
+#else // Q_WS_WIN
+		// do the calculations on our own with help of POSIX
+		// ctime() :(
+		time_t dateval = static_cast<time_t>(m_pData->header.Patient_Birth_Date);
+
+		#if defined(HAVE_CTIME_R)
+		char buf[40];
+		QString dateString(ctime_r(&dateval, buf));
+		#elif defined(HAVE_CTIME)
+		#warning "no ctime_r() function used -> libmedio not threadsafe!"
+		QString dateString(ctime(&dateval));
+		#else
+		#error "no ctime_r() or ctime() function found!"
+		#endif
+
+		birthDate = QDateTime::fromString(dateString.stripWhiteSpace());
+#endif // Q_WS_WIN	
 	}
 
 	return birthDate.date();
@@ -1651,13 +1675,37 @@ QDateTime CECAT7MainHeader::scan_Start_Time_Qt(void) const
 		scanStartTime.setTime_t(m_pData->header.Scan_Start_Time);
 	else
 	{
-		// as workaround we calculate the days and secs of the time_t
+#ifdef Q_WS_WIN
+		// As workaround we couldn't use the posix ctime function as below
+		// cause under win no negative values allowed as well.
+		// Instead we calculate the days and secs of the time_t
 		// value cause time_t is long int and add this negative values 
-		// to the date 1/1/1970 00:00:00.
+		// to the date 1/1/1970 00:00:00. 
+		// ATTENTION: addDays/addSecs didn't realize the daylight saving
+		// of the target date. So if the file is written in sommertime one
+		// hour is missing. No workaround until now. This fact isn't hard 
+		// that much because all dates should be after 1/1/1970.
 		scanStartTime.setTime_t(0, Qt::LocalTime);
 		int days = m_pData->header.Scan_Start_Time / (24 * 60 * 60);
 		int secs = m_pData->header.Scan_Start_Time % (24 * 60 * 60);
 		scanStartTime = scanStartTime.addDays(days).addSecs(secs);
+#else // Q_WS_WIN
+		// do the calculations on our own with help of POSIX
+		// ctime() :(
+		time_t dateval = static_cast<time_t>(m_pData->header.Scan_Start_Time);
+
+		#if defined(HAVE_CTIME_R)
+		char buf[40];
+		QString dateString(ctime_r(&dateval, buf));
+		#elif defined(HAVE_CTIME)
+		#warning "no ctime_r() function used -> libmedio not threadsafe!"
+		QString dateString(ctime(&dateval));
+		#else
+		#error "no ctime_r() or ctime() function found!"
+		#endif
+
+		scanStartTime = QDateTime::fromString(dateString.stripWhiteSpace());
+#endif // Q_WS_WIN
 	}
 
 	return scanStartTime;
@@ -1676,13 +1724,37 @@ QDateTime CECAT7MainHeader::dose_Start_Time_Qt(void) const
 		doseStartTime.setTime_t(m_pData->header.Dose_Start_Time);
 	else
 	{
-		// as workaround we calculate the days and secs of the time_t
+#ifdef Q_WS_WIN
+		// As workaround we couldn't use the posix ctime function as below
+		// cause under win no negative values allowed as well.
+		// Instead we calculate the days and secs of the time_t
 		// value cause time_t is long int and add this negative values 
-		// to the date 1/1/1970 00:00:00.
+		// to the date 1/1/1970 00:00:00. 
+		// ATTENTION: addDays/addSecs didn't realize the daylight saving
+		// of the target date. So if the file is written in sommertime one
+		// hour is missing. No workaround until now. This fact isn't hard 
+		// that much because all dates should be after 1/1/1970.
 		doseStartTime.setTime_t(0, Qt::LocalTime);
 		int days = m_pData->header.Dose_Start_Time / (24 * 60 * 60);
 		int secs = m_pData->header.Dose_Start_Time % (24 * 60 * 60);
 		doseStartTime = doseStartTime.addDays(days).addSecs(secs);
+#else // Q_WS_WIN
+		// do the calculations on our own with help of POSIX
+		// ctime() :(
+		time_t dateval = static_cast<time_t>(m_pData->header.Dose_Start_Time);
+
+		#if defined(HAVE_CTIME_R)
+		char buf[40];
+		QString dateString(ctime_r(&dateval, buf));
+		#elif defined(HAVE_CTIME)
+		#warning "no ctime_r() function used -> libmedio not threadsafe!"
+		QString dateString(ctime(&dateval));
+		#else
+		#error "no ctime_r() or ctime() function found!"
+		#endif
+
+		doseStartTime = QDateTime::fromString(dateString.stripWhiteSpace());
+#endif // Q_WS_WIN
 	}
 
 	return doseStartTime;
