@@ -5,6 +5,11 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2005-12-12  Christian Poetzsch <cp@burningdragon.de>
+
+	* src/ecat/ecat7/CECAT7MainHeader.cpp: handling of date/time functions
+	  should be right on windows now
+
 2005-12-09  Christian Poetzsch <cp@burningdragon.de>
 	
 	*	m4/acinclude.m4,src/libmedio.pro.in: some changes for better support 
