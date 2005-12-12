@@ -1773,6 +1773,16 @@ void CECAT7MainHeader::setPatient_Birth_Date_Qt(const QDate& birthDate)
 	SHOWSTRING(birthDateTime.toString().ascii());
 	if(birthDateTime < Jan1970)
 	{
+#ifdef Q_WS_WIN
+		// mktime in windows dosen't handle dates before 1970 
+		// right. So we workaround it.
+		// ATTENTION: secsTo return int, where time_t is long int
+		// We have to define 1/1/1970 00:00:00 as local time, so
+		// we didn't use Jan1970 which is defined as UTC.
+		QDateTime d;
+		d.setTime_t(0, Qt::LocalTime);
+		m_pData->header.Patient_Birth_Date = d.secsTo(birthDateTime);
+#else // Q_WS_WIN
 		// we have to convert the birthDateTime on our own by
 		// using standard POSIX functions.
 		struct tm timeVal;
@@ -1787,6 +1797,7 @@ void CECAT7MainHeader::setPatient_Birth_Date_Qt(const QDate& birthDate)
 		timeVal.tm_isdst = 0;
 
 		m_pData->header.Patient_Birth_Date = mktime(&timeVal);
+#endif // Q_WS_WIN
 	}
 	else
 		m_pData->header.Patient_Birth_Date = birthDateTime.toTime_t();
@@ -1804,9 +1815,18 @@ void CECAT7MainHeader::setScan_Start_Time_Qt(const QDateTime& scanStartTime)
 	SHOWSTRING(scanStartTime.toString().ascii());
 	if(scanStartTime < Jan1970)
 	{
+#ifdef Q_WS_WIN
+		// mktime in windows dosen't handle dates before 1970 
+		// right. So we workaround it.
+		// ATTENTION: secsTo return int, where time_t is long int
+		// We have to define 1/1/1970 00:00:00 as local time, so
+		// we didn't use Jan1970 which is defined as UTC.
+		QDateTime d;
+		d.setTime_t(0, Qt::LocalTime);
+		m_pData->header.Scan_Start_Time = d.secsTo(scanStartTime);
+#else // Q_WS_WIN
 		QDate scanDate = scanStartTime.date();
 		QTime scanTime = scanStartTime.time();
-		
 		// we have to convert the birthDateTime on our own by
 		// using standard POSIX functions.
 		struct tm timeVal;
@@ -1821,6 +1841,7 @@ void CECAT7MainHeader::setScan_Start_Time_Qt(const QDateTime& scanStartTime)
 		timeVal.tm_isdst = 0;
 
 		m_pData->header.Scan_Start_Time = mktime(&timeVal);
+#endif // Q_WS_WIN
 	}
 	else
 		m_pData->header.Scan_Start_Time = scanStartTime.toTime_t();	
@@ -1838,9 +1859,18 @@ void CECAT7MainHeader::setDose_Start_Time_Qt(const QDateTime& doseStartTime)
 	SHOWSTRING(doseStartTime.toString().ascii());
 	if(doseStartTime < Jan1970)
 	{
+#ifdef Q_WS_WIN
+		// mktime in windows dosen't handle dates before 1970 
+		// right. So we workaround it.
+		// ATTENTION: secsTo return int, where time_t is long int
+		// We have to define 1/1/1970 00:00:00 as local time, so
+		// we didn't use Jan1970 which is defined as UTC.
+		QDateTime d;
+		d.setTime_t(0, Qt::LocalTime);
+		m_pData->header.Scan_Start_Time = d.secsTo(doseStartTime);
+#else // Q_WS_WIN
 		QDate doseDate = doseStartTime.date();
 		QTime doseTime = doseStartTime.time();
-		
 		// we have to convert the birthDateTime on our own by
 		// using standard POSIX functions.
 		struct tm timeVal;
@@ -1855,6 +1885,7 @@ void CECAT7MainHeader::setDose_Start_Time_Qt(const QDateTime& doseStartTime)
 		timeVal.tm_isdst = 0;
 
 		m_pData->header.Dose_Start_Time = mktime(&timeVal);
+#endif // Q_WS_WIN
 	}
 	else
 		m_pData->header.Dose_Start_Time = doseStartTime.toTime_t();		
