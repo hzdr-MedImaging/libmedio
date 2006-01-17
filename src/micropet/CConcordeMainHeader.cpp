@@ -45,7 +45,6 @@ class CConcordeMainHeaderPrivate
 {
 	public:
 		void init();
-
 		CKeyParser parser;
 		struct HeaderData
 		{
