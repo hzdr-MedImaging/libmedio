@@ -39,6 +39,7 @@
 // forward declarations
 class CConcordeMainHeader;
 class CConcordeFrameHeader;
+class CConcordeFilePrivate;
 
 //! @class CConcordeFile
 //! @brief class to handle all file produced by a concorde microPET scanner
@@ -109,6 +110,9 @@ class CConcordeFile : public CMedIOData
 
 	protected :
 		CConcordeMainHeader* m_pCachedMainHeader;
+
+	private:
+		CConcordeFilePrivate* m_pData;
 };
 
 #endif

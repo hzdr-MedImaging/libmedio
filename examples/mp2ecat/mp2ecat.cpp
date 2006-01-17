@@ -2,14 +2,14 @@
 //! @author Hagen Moelle
 //! @date 11/13/2004
 
-#include <CECATFile>
-#include <CECAT7MainHeader>
-#include <CECAT7SubHeaderImage>
-#include <CConcordeMainHeader>
-#include <CConcordeFrameHeader>
-#include <CConcordeImage>
-#include <CMedIOData>
-#include <CMedIODataFactory>
+#include <CECATFile.h>
+#include <CECAT7MainHeader.h>
+#include <CECAT7SubHeaderImage.h>
+#include <CConcordeMainHeader.h>
+#include <CConcordeFrameHeader.h>
+#include <CConcordeImage.h>
+#include <CMedIOData.h>
+#include <CMedIODataFactory.h>
 
 #include <QString>
 #include <QDateTime>
@@ -62,12 +62,12 @@ int main( int argc, char ** argv )
 					cout << "Injectiontime: " << head->injectionTime() << endl;
 					QDateTime dt;
 					dt.setTime_t(head->scanTime());
-					cout << "Scantime: " << dt.toString().data() << endl;
-					cout << "Scantime: " << head->scanTimeQt().toString().data() << endl;
-					cout << "Injectiontime: " << head->injectionTimeQt().toString().data() << endl;
-					cout << "Weightunits: " << head->strSubjectWeightUnits().data() << endl;
-					cout << "Lengthunits: " << head->strSubjectLengthUnits().data() << endl;
-					cout << "Doseunits: " << head->strDoseUnits().data() << endl;
+					cout << "Scantime: " << dt.toString().toAscii().data() << endl;
+					cout << "Scantime: " << head->scanTimeQt().toString().toAscii().data() << endl;
+					cout << "Injectiontime: " << head->injectionTimeQt().toString().toAscii().data() << endl;
+					cout << "Weightunits: " << head->strSubjectWeightUnits().toAscii().data() << endl;
+					cout << "Lengthunits: " << head->strSubjectLengthUnits().toAscii().data() << endl;
+					cout << "Doseunits: " << head->strDoseUnits().toAscii().data() << endl;
 					for(int i = 0; i < head->totalFrames(); i++)
 					{
 						QByteArray* data = NULL;

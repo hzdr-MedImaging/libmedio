@@ -210,8 +210,8 @@ bool CKeyParser::processLine(QString& Line)
 	QHash<QString, CKeyValue*>::iterator it = KeyDictionary.find(Keyword);
 	if(it == KeyDictionary.end())
 		return false;
+
 	CKeyValue* KValue = it.value();
-	
 	
 	switch(KValue->getType())
 	{

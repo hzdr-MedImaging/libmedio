@@ -254,68 +254,71 @@ bool CECAT6MainHeader::load(void)
 	
 	// some more debug output
 #if defined(DEBUG)
-	D("ECAT6 Main Header loaded:");
-	D("------------------------");
-	D("Original_File_Name      : %s",  	 	 	 	    m_pData->header.Original_File_Name);
-	D("SW_Version              : %d",  	 	 	 	    m_pData->header.SW_Version);
-	D("Data_Type               : %d",  	 	 	 	    m_pData->header.Data_Type);
-	D("System_Type             : %d",  	 	 	 	    m_pData->header.System_Type);
-	D("File_Type               : %d",  	 	 	 	    m_pData->header.File_Type);
-	D("Node_ID                 : %s",  	 	 	 	    m_pData->header.Node_ID);
-	D("Scan_Start_Day          : %d",  	 	 	 	    m_pData->header.Scan_Start_Day);
-	D("Scan_Start_Month        : %d",  	 	 	 	    m_pData->header.Scan_Start_Month);
-	D("Scan_Start_Year         : %d",  	 	 	 	    m_pData->header.Scan_Start_Year);
-	D("Scan_Start_Hour         : %d",  	 	 	 	    m_pData->header.Scan_Start_Hour);
-	D("Scan_Start_Minute       : %d",  	 	 	 	    m_pData->header.Scan_Start_Minute);
-	D("Scan_Start_Second       : %d",  	 	 	 	    m_pData->header.Scan_Start_Second);
-	D("Isotope Name            : %s",  	 	 	 	    m_pData->header.Isotope_Code);
-	D("Isotope Halflife        : %f sec",				  m_pData->header.Isotope_Halflife);
-	D("Radiopharmaceutical     : %s",			 	 		  m_pData->header.Radiopharmaceutical);
-	D("Gantry Tilt             : %f°",					  m_pData->header.Gantry_Tilt);
-	D("Gantry Rotation         : %f°",			 	 	  m_pData->header.Gantry_Rotation);
-	D("Bed elevation           : %f cm",		 	 	  m_pData->header.Bed_Elevation);
-	D("Rot_Source_Speed        : %d",  	 	 	 	    m_pData->header.Rot_Source_Speed);
-	D("Wobble_Speed            : %d",  	 	 	 	    m_pData->header.Wobble_Speed);
-	D("Transm_Source_Type      : %d",  	 	 	 	    m_pData->header.Transm_Source_Type);
-	D("Axial_FOV               : %f cm",  			  m_pData->header.Axial_FOV);
-	D("Transaxial_FOV          : %f cm",  			  m_pData->header.Transaxial_FOV);
-	D("Transaxial_Samp_Mode    : %d",							m_pData->header.Transaxial_Samp_Mode);
-	D("Coin_Samp_Mode          : %d",							m_pData->header.Coin_Samp_Mode);
-	D("Axial_Samp_Mode         : %d",							m_pData->header.Axial_Samp_Mode);
-	D("Calibration_Factor      : %f",     			  m_pData->header.Calibration_Factor);
-	D("Calibration_Units       : %d",     			  m_pData->header.Calibration_Units);
-	D("Compression Code        : %d",							m_pData->header.Compression_Code);
-	D("Study_Name              : %s",							m_pData->header.Study_Name);
-	D("Patient ID              : %s",							m_pData->header.Patient_ID);
-	D("Patient Name            : %s",							m_pData->header.Patient_Name);
-	D("Patient Sex             : %c",							m_pData->header.Patient_Sex[0]);
-	D("Patient Age             : %f years",				m_pData->header.Patient_Age);
-	D("Patient Height          : %f cm",					m_pData->header.Patient_Height);
-	D("Patient Weight          : %f kg",					m_pData->header.Patient_Weight);
-	D("Patient Dexterity       : %c",							m_pData->header.Patient_Dexterity[0]);
-	D("Physician Name          : %s",							m_pData->header.Physician_Name);
-	D("Operator Name           : %s",							m_pData->header.Operator_Name);
-	D("Study Description       : %s",							m_pData->header.Study_Description);
-	D("Acquisition Type        : %d",							m_pData->header.Acquisition_Type);
-	D("Bed_Type                : %d",							m_pData->header.Bed_Type);
-	D("Septa_Type              : %d",							m_pData->header.Septa_Type);
-	D("Facility Name           : %s",							m_pData->header.Facility_Name);
-	D("Planes                  : %d",							m_pData->header.Num_Planes);
-	D("Frames                  : %d",							m_pData->header.Num_Frames);
-	D("Gates                   : %d",							m_pData->header.Num_Gates);
-	D("Bed positions           : %d",							m_pData->header.Num_Bed_Pos);
-	D("Initial Bed position    : %f cm",					m_pData->header.Init_Bed_Position);
-	for(int i=0; i < 15; i++)
+	if(m_pData->header.SW_Version > 0 && m_pData->header.SW_Version <= 69)
 	{
-		D("Bed offset          [%2d]: %f cm", i+1, m_pData->header.Bed_Offset[i]);
+		D("ECAT6 Main Header loaded:");
+		D("------------------------");
+		D("Original_File_Name      : %s",  	 	 	 	    m_pData->header.Original_File_Name);
+		D("SW_Version              : %d",  	 	 	 	    m_pData->header.SW_Version);
+		D("Data_Type               : %d",  	 	 	 	    m_pData->header.Data_Type);
+		D("System_Type             : %d",  	 	 	 	    m_pData->header.System_Type);
+		D("File_Type               : %d",  	 	 	 	    m_pData->header.File_Type);
+		D("Node_ID                 : %s",  	 	 	 	    m_pData->header.Node_ID);
+		D("Scan_Start_Day          : %d",  	 	 	 	    m_pData->header.Scan_Start_Day);
+		D("Scan_Start_Month        : %d",  	 	 	 	    m_pData->header.Scan_Start_Month);
+		D("Scan_Start_Year         : %d",  	 	 	 	    m_pData->header.Scan_Start_Year);
+		D("Scan_Start_Hour         : %d",  	 	 	 	    m_pData->header.Scan_Start_Hour);
+		D("Scan_Start_Minute       : %d",  	 	 	 	    m_pData->header.Scan_Start_Minute);
+		D("Scan_Start_Second       : %d",  	 	 	 	    m_pData->header.Scan_Start_Second);
+		D("Isotope Name            : %s",  	 	 	 	    m_pData->header.Isotope_Code);
+		D("Isotope Halflife        : %f sec",				  m_pData->header.Isotope_Halflife);
+		D("Radiopharmaceutical     : %s",			 	 		  m_pData->header.Radiopharmaceutical);
+		D("Gantry Tilt             : %f°",					  m_pData->header.Gantry_Tilt);
+		D("Gantry Rotation         : %f°",			 	 	  m_pData->header.Gantry_Rotation);
+		D("Bed elevation           : %f cm",		 	 	  m_pData->header.Bed_Elevation);
+		D("Rot_Source_Speed        : %d",  	 	 	 	    m_pData->header.Rot_Source_Speed);
+		D("Wobble_Speed            : %d",  	 	 	 	    m_pData->header.Wobble_Speed);
+		D("Transm_Source_Type      : %d",  	 	 	 	    m_pData->header.Transm_Source_Type);
+		D("Axial_FOV               : %f cm",  			  m_pData->header.Axial_FOV);
+		D("Transaxial_FOV          : %f cm",  			  m_pData->header.Transaxial_FOV);
+		D("Transaxial_Samp_Mode    : %d",							m_pData->header.Transaxial_Samp_Mode);
+		D("Coin_Samp_Mode          : %d",							m_pData->header.Coin_Samp_Mode);
+		D("Axial_Samp_Mode         : %d",							m_pData->header.Axial_Samp_Mode);
+		D("Calibration_Factor      : %f",     			  m_pData->header.Calibration_Factor);
+		D("Calibration_Units       : %d",     			  m_pData->header.Calibration_Units);
+		D("Compression Code        : %d",							m_pData->header.Compression_Code);
+		D("Study_Name              : %s",							m_pData->header.Study_Name);
+		D("Patient ID              : %s",							m_pData->header.Patient_ID);
+		D("Patient Name            : %s",							m_pData->header.Patient_Name);
+		D("Patient Sex             : %c",							m_pData->header.Patient_Sex[0]);
+		D("Patient Age             : %f years",				m_pData->header.Patient_Age);
+		D("Patient Height          : %f cm",					m_pData->header.Patient_Height);
+		D("Patient Weight          : %f kg",					m_pData->header.Patient_Weight);
+		D("Patient Dexterity       : %c",							m_pData->header.Patient_Dexterity[0]);
+		D("Physician Name          : %s",							m_pData->header.Physician_Name);
+		D("Operator Name           : %s",							m_pData->header.Operator_Name);
+		D("Study Description       : %s",							m_pData->header.Study_Description);
+		D("Acquisition Type        : %d",							m_pData->header.Acquisition_Type);
+		D("Bed_Type                : %d",							m_pData->header.Bed_Type);
+		D("Septa_Type              : %d",							m_pData->header.Septa_Type);
+		D("Facility Name           : %s",							m_pData->header.Facility_Name);
+		D("Planes                  : %d",							m_pData->header.Num_Planes);
+		D("Frames                  : %d",							m_pData->header.Num_Frames);
+		D("Gates                   : %d",							m_pData->header.Num_Gates);
+		D("Bed positions           : %d",							m_pData->header.Num_Bed_Pos);
+		D("Initial Bed position    : %f cm",					m_pData->header.Init_Bed_Position);
+		for(int i=0; i < 15; i++)
+		{
+			D("Bed offset          [%2d]: %f cm", i+1, m_pData->header.Bed_Offset[i]);
+		}
+		D("Plane separation        : %f cm",					m_pData->header.Plane_Separation);
+		D("Lowest Threshold Scatter: %d KeV",					m_pData->header.Lwr_Sctr_Thres);
+		D("Lower Threshold Trues   : %d KeV",					m_pData->header.Lwr_True_Thres);
+		D("Upper Threshold Trues   : %d KeV",					m_pData->header.Upr_True_Thres);
+		D("Collimator              : %f",							m_pData->header.Collimator);
+		D("User_Process_Code       : %s",							m_pData->header.User_Process_Code);
+		D("Acquisition_Mode        : %d",							m_pData->header.Acquisition_Mode);
 	}
-	D("Plane separation        : %f cm",					m_pData->header.Plane_Separation);
-	D("Lowest Threshold Scatter: %d KeV",					m_pData->header.Lwr_Sctr_Thres);
-	D("Lower Threshold Trues   : %d KeV",					m_pData->header.Lwr_True_Thres);
-	D("Upper Threshold Trues   : %d KeV",					m_pData->header.Upr_True_Thres);
-	D("Collimator              : %f",							m_pData->header.Collimator);
-	D("User_Process_Code       : %s",							m_pData->header.User_Process_Code);
-	D("Acquisition_Mode        : %d",							m_pData->header.Acquisition_Mode);
 #endif
 	
 	RETURN(true);
