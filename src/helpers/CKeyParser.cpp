@@ -207,7 +207,7 @@ bool CKeyParser::processLine(QString& Line)
 	CKeyValue* KValue = KeyDictionary.find(Keyword);
 	if(KValue == NULL)
 		return false;
-
+	D("KeyWord: %s - KeyValue: %s", Keyword.ascii(), Value.ascii());
 	if(KValue->getType() == CKeyType::ASCII)
 		*((QString*)KValue->getPToValue()) = Value;
 	

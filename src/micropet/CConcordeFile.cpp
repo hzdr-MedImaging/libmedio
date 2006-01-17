@@ -32,11 +32,34 @@
 #include "CConcordeMainHeaderImage.h"
 #include "CConcordeFrameHeader.h"
 #include "CMedIOData.h"
+#include "CIntVector.h"
+#include "CKeyParser.h"
 
 #include <rtdebug.h>
 #include <qdatastream.h>
 
 #define READ_SIZE 8192
+
+class CConcordeFilePrivate
+{
+	public:
+		CIntVector frameOrder;
+		CConcordeFilePrivate(const QString& fileName);
+	
+};
+
+CConcordeFilePrivate::CConcordeFilePrivate(const QString& fileName)
+{
+	ENTER();
+	//at first get frame order from header file
+	CKeyParser frameOrderParser;
+	frameOrderParser.addSeparator(" ");
+	frameOrderParser.addComment("#");
+	frameOrderParser.addKey("frame", &frameOrder, CIntVector::wrapper_parseKeyValue);	
+	if(!frameOrderParser.parse(fileName+".hdr"))
+		E("Error on parsing frame order from headerfile!");
+	LEAVE();
+}
 
 //  Class: CConcordeFile
 //  Constructor: CConcordeFile
@@ -49,6 +72,7 @@ CConcordeFile::CConcordeFile(const QString& fileName)
 		m_pCachedMainHeader(NULL)
 {
 	ENTER();
+	m_pData = new CConcordeFilePrivate(fileName);
 	LEAVE();
 }
 
@@ -73,6 +97,7 @@ CConcordeFile::CConcordeFile(const CConcordeFile& src)
 	ENTER();
 
 	// just set the cachedMainHeader pointer to NULL
+	m_pData = new CConcordeFilePrivate(src.fileName());
 	m_pCachedMainHeader = NULL;
 
 	LEAVE();
@@ -174,7 +199,8 @@ bool CConcordeFile::readSubHeader(CConcordeFrameHeader*& subHeader, int frame)
 	{
 		//TODO: check if frame is in between 1 and number of frames in study
 		W("TODO: check if frame is in between 1 and number of frames in study");
-		subHeader = new CConcordeFrameHeader(this, frame-1);
+		//subHeader = new CConcordeFrameHeader(this, frame-1);
+		subHeader = new CConcordeFrameHeader(this, m_pData->frameOrder[frame-1]);
 		if(subHeader)
 			result = true;
 	}
