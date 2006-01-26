@@ -5,15 +5,20 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2006-01-26  Jens Langner <Jens.Langner@light-speed.de>
+
+  * examples/ecat/anonymize: added an ECAT6/7 anonymizer tool as an 
+    additional example of how to process on ECAT files.
+
 2005-12-12  Christian Poetzsch <cp@burningdragon.de>
 
-	* src/ecat/ecat7/CECAT7MainHeader.cpp: handling of date/time functions
-	  should be right on windows now
+  * src/ecat/ecat7/CECAT7MainHeader.cpp: handling of date/time functions
+    should be right on windows now
 
 2005-12-09  Christian Poetzsch <cp@burningdragon.de>
 	
-	*	m4/acinclude.m4,src/libmedio.pro.in: some changes for better support 
-		of compiling/installing on the windows platform
+  *	m4/acinclude.m4,src/libmedio.pro.in: some changes for better support 
+    of compiling/installing on the windows platform
 	
 2005-12-07  Hagen Moelle <draggore@gmx.de>
 
