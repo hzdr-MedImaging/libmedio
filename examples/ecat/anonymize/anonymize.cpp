@@ -194,7 +194,7 @@ int main(int argc, char* argv[])
 		cout << "Options:" << endl;
 		cout << "  -o <file>    : write the anonymized file to <file>." << endl;
 		cout << "  -r <string>  : replace all patient data with string <string>." << endl;
-		cout << "  -a           : anonymize as much as possible. (e.g. birthdate, etc.)" << endl;
+		cout << "  -a           : anonymize as much as possible. (e.g. scan starttime, etc.)" << endl;
 		cout << "  -f           : force overwrite operation." << endl << endl;
 	}
 	else
