@@ -40,6 +40,7 @@ QString inputFileName;
 QString outputFileName;
 QString replaceString;
 bool forceOperation = false;
+bool anonymizeAll = false;
 
 //  Function:    main
 //! 
@@ -115,6 +116,10 @@ int main(int argc, char* argv[])
 		if(args.contains("-f"))
 			forceOperation = true;
 
+		// the user wants to strip as much as possible
+		if(args.contains("-a"))
+			anonymizeAll = true;
+
 		// check that the user really specified an input filename
 		if(args.contains("infile"))
 		{
@@ -183,13 +188,14 @@ int main(int argc, char* argv[])
 	if(returnCode > 0)
 	{
 		cout << endl;
-		cout << "libmedio ECAT6/7 file anonymizer" << endl;
-		cout << "--------------------------------" << endl;
+		cout << "libmedio ECAT6/7 file anonymizer v1.0" << endl;
+		cout << "-------------------------------------" << endl;
 		cout << "Usage: " << argv[0] << " <options> file" << endl;
 		cout << "Options:" << endl;
 		cout << "  -o <file>    : write the anonymized file to <file>." << endl;
 		cout << "  -r <string>  : replace all patient data with string <string>." << endl;
-		cout << "  -f           : force operation." << endl;
+		cout << "  -a           : anonymize as much as possible. (e.g. birthdate, etc.)" << endl;
+		cout << "  -f           : force overwrite operation." << endl << endl;
 	}
 	else
 	{
@@ -209,24 +215,29 @@ int main(int argc, char* argv[])
 				{
 					CECAT7MainHeader* mHeader = static_cast<CECAT7MainHeader*>(mainHeader);
 
-					// now we overwrite the patient/study relevent data in out
-					// main header structure
+					// we first make sure we anonymize all must have items
 					mHeader->setOriginal_File_Name(replaceString.toAscii());
-					mHeader->setScan_Start_Time(0);
 					mHeader->setStudy_Type(replaceString.toAscii());
-					mHeader->setPatient_ID(replaceString.toAscii());
 					mHeader->setPatient_Name(replaceString.toAscii());
-					mHeader->setPatient_Sex(CECAT7MainHeader::Sex_Unknown);
-					mHeader->setPatient_Dexterity(CECAT7MainHeader::Dext_Unknown);
+					mHeader->setPatient_Birth_Date(0);
 					mHeader->setPatient_Age(0);
 					mHeader->setPatient_Height(0);
 					mHeader->setPatient_Weight(0);
-					mHeader->setPatient_Birth_Date(0);
-					mHeader->setPhysician_Name(replaceString.toAscii());
-					mHeader->setOperator_Name(replaceString.toAscii());
 					mHeader->setStudy_Description(replaceString.toAscii());
 					mHeader->setFacility_Name(replaceString.toAscii());
-					mHeader->setDose_Start_Time(0);
+
+					// and if the option "-a" is also given we also
+					// strip of as much study/patient relevant data as possible
+					if(anonymizeAll)
+					{
+						mHeader->setScan_Start_Time(0);
+						mHeader->setPatient_ID(replaceString.toAscii());
+						mHeader->setPatient_Sex(CECAT7MainHeader::Sex_Unknown);
+						mHeader->setPatient_Dexterity(CECAT7MainHeader::Dext_Unknown);
+						mHeader->setPhysician_Name(replaceString.toAscii());
+						mHeader->setOperator_Name(replaceString.toAscii());
+						mHeader->setDose_Start_Time(0);
+					}
 
 					// now we write back the main Header for finally clearing it
 					if(mHeader->save() == false)
