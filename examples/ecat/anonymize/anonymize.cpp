@@ -225,6 +225,8 @@ int main(int argc, char* argv[])
 					mHeader->setPatient_Weight(0);
 					mHeader->setStudy_Description(replaceString.toAscii());
 					mHeader->setFacility_Name(replaceString.toAscii());
+					mHeader->setPhysician_Name(replaceString.toAscii());
+					mHeader->setOperator_Name(replaceString.toAscii());
 
 					// and if the option "-a" is also given we also
 					// strip of as much study/patient relevant data as possible
@@ -234,8 +236,6 @@ int main(int argc, char* argv[])
 						mHeader->setPatient_ID(replaceString.toAscii());
 						mHeader->setPatient_Sex(CECAT7MainHeader::Sex_Unknown);
 						mHeader->setPatient_Dexterity(CECAT7MainHeader::Dext_Unknown);
-						mHeader->setPhysician_Name(replaceString.toAscii());
-						mHeader->setOperator_Name(replaceString.toAscii());
 						mHeader->setDose_Start_Time(0);
 					}
 
