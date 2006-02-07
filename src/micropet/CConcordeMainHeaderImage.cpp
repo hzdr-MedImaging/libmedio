@@ -90,9 +90,6 @@ unsigned int CConcordeMainHeaderImage::frameSize()
 
 CMedIOHeader* CConcordeMainHeaderImage::clone() const
 {
-	CConcordeMainHeaderImage* pTmp = new CConcordeMainHeaderImage(NULL);
-	if(pTmp->convertFrom(this))
-		return pTmp;
-	else
-		return NULL;
+	CConcordeMainHeaderImage* pTmp = new CConcordeMainHeaderImage(*this);
+	return pTmp;
 }
