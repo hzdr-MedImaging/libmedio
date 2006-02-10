@@ -188,7 +188,7 @@ int main(int argc, char* argv[])
 	if(returnCode > 0)
 	{
 		cout << endl;
-		cout << "libmedio ECAT6/7 file anonymizer v1.0" << endl;
+		cout << "libmedio ECAT6/7 file anonymizer v1.1" << endl;
 		cout << "-------------------------------------" << endl;
 		cout << "Usage: " << argv[0] << " <options> file" << endl;
 		cout << "Options:" << endl;
@@ -221,8 +221,6 @@ int main(int argc, char* argv[])
 					mHeader->setPatient_Name(replaceString.toAscii());
 					mHeader->setPatient_Birth_Date(0);
 					mHeader->setPatient_Age(0);
-					mHeader->setPatient_Height(0);
-					mHeader->setPatient_Weight(0);
 					mHeader->setStudy_Description(replaceString.toAscii());
 					mHeader->setFacility_Name(replaceString.toAscii());
 					mHeader->setPhysician_Name(replaceString.toAscii());
@@ -237,6 +235,9 @@ int main(int argc, char* argv[])
 						mHeader->setPatient_Sex(CECAT7MainHeader::Sex_Unknown);
 						mHeader->setPatient_Dexterity(CECAT7MainHeader::Dext_Unknown);
 						mHeader->setDose_Start_Time(0);
+						mHeader->setDosage(0);
+						mHeader->setPatient_Height(0);
+						mHeader->setPatient_Weight(0);						
 					}
 
 					// now we write back the main Header for finally clearing it
