@@ -88,9 +88,6 @@ unsigned int CConcordeMainHeaderSinogram::frameSize()
 
 CMedIOHeader* CConcordeMainHeaderSinogram::clone() const
 {
-	CConcordeMainHeaderSinogram* pTmp = new CConcordeMainHeaderSinogram(NULL);
-	if(pTmp->convertFrom(this))
-		return pTmp;
-	else
-		return NULL;
+	CConcordeMainHeaderSinogram* pTmp = new CConcordeMainHeaderSinogram(*this);
+	return pTmp;
 }

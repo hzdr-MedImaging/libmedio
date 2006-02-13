@@ -464,11 +464,8 @@ void CConcordeFrameHeader::setDelaysRate(const int value)
 
 CMedIOHeader* CConcordeFrameHeader::clone() const
 {
-	CConcordeFrameHeader* pTmp = new CConcordeFrameHeader(NULL, frame());
-	if(pTmp->convertFrom(this))
-		return pTmp;
-	else
-		return NULL;
+	CConcordeFrameHeader* pTmp = new CConcordeFrameHeader(*this);
+	return pTmp;
 }
 
 bool CConcordeFrameHeader::convertFrom(const CMedIOHeader* srcMainHeader, const CMedIOHeader*)

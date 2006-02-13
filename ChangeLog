@@ -5,10 +5,18 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2006-02-07 Hagen Moelle <draggore@gmx.de>
+
+  * bugfix due to nullpointer exception within internal headercreation
+
 2006-01-26  Jens Langner <Jens.Langner@light-speed.de>
 
   * examples/ecat/anonymize: added an ECAT6/7 anonymizer tool as an 
     additional example of how to process on ECAT files.
+
+2006-01-17 Hagen Moelle <draggore@gmx.de>
+
+  * small changes to medio interface
 
 2005-12-12  Christian Poetzsch <cp@burningdragon.de>
 
