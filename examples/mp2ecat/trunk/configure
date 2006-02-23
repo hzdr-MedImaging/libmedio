@@ -724,13 +724,13 @@ echo X"$0" |
   	  /^X\(\/\).*/{ s//\1/; q; }
   	  s/.*/./; q'`
   srcdir=$ac_confdir
-  if test ! -r "$srcdir/$ac_unique_file"; then
+  if test ! -r $srcdir/$ac_unique_file; then
     srcdir=..
   fi
 else
   ac_srcdir_defaulted=no
 fi
-if test ! -r "$srcdir/$ac_unique_file"; then
+if test ! -r $srcdir/$ac_unique_file; then
   if test "$ac_srcdir_defaulted" = yes; then
     { echo "$as_me: error: cannot find sources ($ac_unique_file) in $ac_confdir or .." >&2
    { (exit 1); exit 1; }; }
@@ -739,7 +739,7 @@ if test ! -r "$srcdir/$ac_unique_file"; then
    { (exit 1); exit 1; }; }
   fi
 fi
-(cd $srcdir && test -r "./$ac_unique_file") 2>/dev/null ||
+(cd $srcdir && test -r ./$ac_unique_file) 2>/dev/null ||
   { echo "$as_me: error: sources are in $srcdir, but \`cd $srcdir' does not work" >&2
    { (exit 1); exit 1; }; }
 srcdir=`echo "$srcdir" | sed 's%\([^\\/]\)[\\/]*$%\1%'`
@@ -3117,7 +3117,7 @@ else
   ;;
   *)
   as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-as_dummy="/usr/lib/qt4/bin:/usr/bin:/usr/X11R6/bin:/usr/lib/qt/bin:/usr/local/qt/bin:/Developer/qt4/bin:$PATH
+as_dummy="/usr/local/qt4/bin:/usr/lib/qt4/bin:/usr/bin:/usr/X11R6/bin:/usr/lib/qt/bin:/usr/local/qt/bin:/Developer/qt4/bin:$PATH
     "
 for as_dir in $as_dummy
 do
@@ -3496,7 +3496,9 @@ else
 
       if test -z "$ac_medio_libraries"; then
     medio_library_dirs="$medio_library_dirs \
-		                    /usr/local/lib \
+		                    /usr/local/petlib/lib \
+												/usr/local/petlib/lib/medio \
+												/usr/local/lib \
 												/usr/local/lib/medio \
 		                    /usr/lib \
 		                    /usr/lib/medio \
@@ -3623,7 +3625,9 @@ else
         if test -z "$medio_include_dirs"; then
 
                   medio_include_dirs="\
-        /usr/local/medio/include \
+        /usr/local/petlib/include \
+				/usr/local/petlib/include/medio \
+				/usr/local/medio/include \
         /usr/include/medio \
         /usr/lib/medio/include \
         /usr/local/include/medio"

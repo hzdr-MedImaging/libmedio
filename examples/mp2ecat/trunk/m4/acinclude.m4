@@ -175,6 +175,29 @@ AC_DEFUN(AC_ENABLE_STATIC_MEDIO,
 	AC_SUBST(QTLINK_LEVEL) 
 ])
 
+AC_DEFUN(AC_ENABLE_STATIC_MTRACK,
+[
+	AC_MSG_CHECKING(whether to link the mtrack library static)
+	AC_ARG_ENABLE(static-mtrack,
+								[AC_HELP_STRING([--enable-static-mtrack], [turn on static linking of mtrack libs [default=no]])],
+								[case "${enableval}" in
+									yes) test_on_enable_static_mtrack=yes	;;
+									no)	 test_on_enable_static_mtrack=no	;;
+									*)	 AC_MSG_ERROR(bad value ${enableval} for --enable-static-mtrack) ;;
+								esac],
+								[test_on_enable_static_mtrack=no])
+
+	if test "$test_on_enable_static_mtrack" = "yes"; then
+		QTLINK_LEVEL="${QTLINK_LEVEL} staticmtrack"
+		AC_MSG_RESULT(yes)
+	else
+		QTLINK_LEVEL="${QTLINK_LEVEL}"
+		AC_MSG_RESULT(no)
+	fi
+
+	AC_SUBST(QTLINK_LEVEL) 
+])
+
 # this macro is used to get the arguments supplied
 # to the configure script (./configure --enable-static-medrecon)
 AC_DEFUN(AC_ENABLE_STATIC_MEDRECON,
@@ -508,7 +531,9 @@ AC_DEFUN(AC_PATH_MEDIO_LIB,
   dnl If you need to add extra directories to check, add them here.
   if test -z "$ac_medio_libraries"; then
     medio_library_dirs="$medio_library_dirs \
-		                    /usr/local/lib \
+		                    /usr/local/petlib/lib \
+												/usr/local/petlib/lib/medio \
+												/usr/local/lib \
 												/usr/local/lib/medio \
 		                    /usr/lib \
 		                    /usr/lib/medio \
@@ -564,6 +589,80 @@ Try --with-medio-lib to specify the path, manually.])
   dnl AC_SUBST(MEDIO_LDFLAGS)
   AC_SUBST(MEDIO_LIBDIR)
   AC_SUBST(LIB_MEDIO)
+])
+
+AC_DEFUN(AC_PATH_MTRACK_LIB,
+[
+  AC_REQUIRE_CPP()
+  AC_ARG_WITH(mtrack-lib,
+              [AC_HELP_STRING([--with-mtrack-lib], [where the libmtrack library is located.])],
+							[ac_mtrack_libraries="$withval"], ac_mtrack_libraries="")
+
+  AC_MSG_CHECKING(for mtrack library)
+
+  AC_CACHE_VAL(ac_cv_lib_mtracklib, [
+
+  mtrack_libdir=
+
+  dnl No they didnt, so lets look for them...
+  dnl If you need to add extra directories to check, add them here.
+  if test -z "$ac_mtrack_libraries"; then
+    mtrack_library_dirs="$mtrack_library_dirs \
+		                    /usr/local/lib \
+												/usr/local/lib/mtrack \
+		                    /usr/lib \
+		                    /usr/lib/mtrack \
+		                    /Developer/mtrack/lib"
+  else
+    mtrack_library_dirs="$ac_mtrack_libraries"
+  fi
+
+  dnl Save some global vars
+  save_LDFLAGS="$LDFLAGS"
+  save_LIBS="$LIBS"
+
+  mtrack_found="0"
+  ac_mtrack_libdir=
+  ac_mtrack_libname="-lmtrack"
+  
+  LIBS="$ac_mtrack_libname $save_LIBS"
+  for mtrack_dir in $mtrack_library_dirs; do
+    LDFLAGS="-L$mtrack_dir $save_LDFLAGS -L$GSL_LIBDIR $LIB_GSL"
+    AC_TRY_LINK_FUNC(main, [mtrack_found="1"], [mtrack_found="0"])
+    if test $mtrack_found = 1; then
+      ac_mtrack_libdir="$mtrack_dir"
+      break;
+    else
+      echo "tried $mtrack_dir" >&AC_FD_CC 
+    fi
+  done
+
+  dnl Restore the saved vars
+  LDFLAGS="$save_LDFLAGS"
+  LIBS="$save_LIBS"
+
+  ac_cv_lib_mtracklib="ac_mtrack_libname=$ac_mtrack_libname ac_mtrack_libdir=$ac_mtrack_libdir"
+  ])
+
+  eval "$ac_cv_lib_mtracklib"
+
+  dnl Define a shell variable for later checks
+  if test -z "$ac_mtrack_libdir"; then
+    have_mtrack_lib="no"
+    AC_MSG_RESULT([no])
+    AC_MSG_ERROR([Cannot find required libmtrack in linker path.
+Try --with-mtrack-lib to specify the path, manually.])
+  else
+    have_mtrack_lib="yes"
+    AC_MSG_RESULT([yes, $ac_mtrack_libname in $ac_mtrack_libdir found.])
+  fi
+
+  MTRACK_LDFLAGS="-L$ac_mtrack_libdir"
+  MTRACK_LIBDIR="$ac_mtrack_libdir"
+  LIB_MTRACK="$ac_mtrack_libname"
+  AC_SUBST(MTRACK_LDFLAGS)
+  AC_SUBST(MTRACK_LIBDIR)
+  AC_SUBST(LIB_MTRACK)
 ])
 
 AC_DEFUN(AC_PATH_MEDRECON_LIB,
@@ -658,7 +757,9 @@ AC_DEFUN(AC_PATH_MEDIO_INC,
       dnl No they didn't, so lets look for them...
       dnl If you need to add extra directories to check, add them here.
       medio_include_dirs="\
-        /usr/local/medio/include \
+        /usr/local/petlib/include \
+				/usr/local/petlib/include/medio \
+				/usr/local/medio/include \
         /usr/include/medio \
         /usr/lib/medio/include \
         /usr/local/include/medio"
@@ -693,7 +794,59 @@ Try --with-medio-inc to specify the path, manually.])
   AC_SUBST(MEDIO_INCDIR)
 ])
 
+AC_DEFUN(AC_PATH_MTRACK_INC,
+[
+  AC_REQUIRE_CPP()
+  AC_MSG_CHECKING(for libmtrack includes)
 
+  AC_ARG_WITH(mtrack-inc,
+              [AC_HELP_STRING([--with-mtrack-inc], [where the libmtrack headers are located.])],
+              [mtrack_include_dirs="$withval"], mtrack_include_dirs="")
+
+  AC_CACHE_VAL(ac_cv_header_mtrackinc, [
+
+    dnl Did the user give --with-mtrack-includes?
+    if test -z "$mtrack_include_dirs"; then
+
+      dnl No they didn't, so lets look for them...
+      dnl If you need to add extra directories to check, add them here.
+      mtrack_include_dirs="\
+        /usr/local/petlib/include \
+				/usr/local/petlib/include/mtrack \
+				/usr/local/mtrack/include \
+        /usr/include/mtrack \
+        /usr/lib/mtrack/include \
+        /usr/local/include/mtrack"
+    fi
+
+    for mtrack_dir in $mtrack_include_dirs; do
+      if test -r "$mtrack_dir/C3DBody.h"; then
+        if test -r "$mtrack_dir/CCoordTransMatrix.h"; then
+          ac_mtrack_includes=$mtrack_dir
+					break;
+				fi
+			fi
+    done
+
+    ac_cv_header_mtrackinc=$ac_mtrack_includes
+
+  ])
+
+  if test -z "$ac_cv_header_mtrackinc"; then
+    have_mtrack_inc="no"
+    AC_MSG_RESULT([no])
+    AC_MSG_WARN([libmtrack include directory not found, you may run into problems.
+Try --with-mtrack-inc to specify the path, manually.])
+  else
+    have_mtrack_inc="yes"
+    AC_MSG_RESULT([yes, in $ac_cv_header_mtrackinc])
+  fi
+
+  MTRACK_INCLUDES="-I$ac_cv_header_mtrackinc"
+  MTRACK_INCDIR="$ac_cv_header_mtrackinc"
+  AC_SUBST(MTRACK_INCLUDES)
+  AC_SUBST(MTRACK_INCDIR)
+])
 
 AC_DEFUN(AC_PATH_MEDRECON_INC,
 [
@@ -1498,7 +1651,7 @@ dnl
 dnl AC_PATH_QT4_QMAKE: tries to find out if the "qmake" binary of Qt4 is reachable or not and
 dnl allows to override the default path to it
 dnl
-AC_DEFUN(AC_PATH_QT4_QMAKE,
+AC_DEFUN([AC_PATH_QT4_QMAKE],
 [
   AC_ARG_WITH(qt4-qmake,[AC_HELP_STRING([--with-qt4-qmake], [where the Qt4 qmake binary is located.])],
                         [ac_qt_qmake="$withval"], ac_qt_qmake="")
@@ -1508,7 +1661,7 @@ AC_DEFUN(AC_PATH_QT4_QMAKE,
       QMAKE_PATH,
       qmake,
       qmake,
-      /usr/lib/qt4/bin:/usr/bin:/usr/X11R6/bin:/usr/lib/qt/bin:/usr/local/qt/bin:/Developer/qt4/bin:$PATH
+      /usr/local/qt4/bin:/usr/lib/qt4/bin:/usr/bin:/usr/X11R6/bin:/usr/lib/qt/bin:/usr/local/qt/bin:/Developer/qt4/bin:$PATH
     )
   else
     AC_MSG_CHECKING(for qmake)
