@@ -5,6 +5,10 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2006-02-23 Hagen Moelle <draggore@gmx.de>
+
+  *	memory leak occured during read micropet data fixed
+
 2006-02-07 Hagen Moelle <draggore@gmx.de>
 
   * bugfix due to nullpointer exception within internal headercreation

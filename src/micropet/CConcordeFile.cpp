@@ -317,6 +317,7 @@ bool CConcordeFile::readMatrix(QByteArray*& matrixData, short frame)
 				{
 						result = true;
 						matrixData = new QByteArray(pTmp, iFrameSize);
+						delete [] pTmp;
 				}
 		}
 		RETURN(result);
