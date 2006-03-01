@@ -28,9 +28,18 @@
 #include <CECATDirectory.h>
 #include <CECAT7SubHeaderImage.h>
 
+#include <rtdebug.h>
+
 #include <iostream>
 
-#define ADDITIONAL_ITEMS	35
+#define ADDITIONAL_ITEMS	0
+#define NUM_DIMENSIONS 3
+#define X_DIMENSION 4
+#define Y_DIMENSION 4
+#define Z_DIMENSION 2
+#define NUM_FRAMES 33
+
+#define MATRIX_SIZE	(X_DIMENSION*Y_DIMENSION*Z_DIMENSION*sizeof(quint16)/sizeof(quint16))
 
 using namespace std;
 
@@ -57,7 +66,6 @@ int main(int argc, char* argv[])
 	// generate some huge matrix data which we can use for verification later
 	//#define MATRIX_SIZE	(2064414/sizeof(quint16)) // non dividable through ECAT_BLOCKSIZE
 	//#define MATRIX_SIZE	(2063872/sizeof(quint16))
-	#define MATRIX_SIZE	(2064384/sizeof(quint16))
 	quint16* matrixData_frame1 = new quint16[MATRIX_SIZE];
 	quint16* matrixData_frame2 = new quint16[MATRIX_SIZE];
 
@@ -326,6 +334,51 @@ int main(int argc, char* argv[])
 	}
 	else
 		cout << "Error on opening the file writeonly" << endl;
+
+	W("Creating empty ecat image: debug.v");
+	CECATFile e7image(QString("debug.v"), CECATMainHeader::ECAT7_Volume16);
+	
+	if(!e7image.open(QIODevice::WriteOnly))	
+	{
+		cout << "Could not write to outputfile - check permissions of directory or file!." << endl;
+		returnCode = 1;
+	}
+	else
+	{
+		CECAT7MainHeader* e7_header = static_cast<CECAT7MainHeader*>(e7image.createEmptyMainHeader());
+
+		int iNrFrames = NUM_FRAMES;
+
+		QByteArray* data = new QByteArray(MATRIX_SIZE*sizeof(short), 119);
+		for(int i = 0; i < iNrFrames; i++)
+		{
+				CECAT7SubHeaderImage* e7_subheader;
+				e7_subheader = static_cast<CECAT7SubHeaderImage*>(e7image.createEmptySubHeader());
+				e7_subheader->setData_Type(CECATSubHeader::SunShort);
+				e7_subheader->setNum_Dimensions(NUM_DIMENSIONS);
+				e7_subheader->setX_Dimension(X_DIMENSION);
+				e7_subheader->setY_Dimension(Y_DIMENSION);
+				e7_subheader->setZ_Dimension(Z_DIMENSION);
+
+				e7_subheader->setFrame_Duration((unsigned int)(i+1));
+
+				e7image.writeMatrix(*data, *e7_subheader, i+1);
+				//if(!e7image.writeSubHeader(*e7_subheader, i+1))
+				//{
+				//	cout << "something went wrong saving subheader" << endl;
+				//	return 1;
+				//}
+				////if(i != iNrFrames-1)
+				//if(!e7image.writeMatrix(*data,i+1))
+				//{
+				//	cout << "something went wrong saving matrixdata" << endl;
+				//	return 1;
+				//}
+		}
+		e7image.writeMainHeader(*e7_header);
+		e7image.close();
+	}
+	
 
 	return returnCode;
 }
