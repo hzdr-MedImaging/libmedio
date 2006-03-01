@@ -5,6 +5,13 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2006-03-01  Jens Langner <Jens.Langner@light-speed.de>
+
+  * src/ecat/CECATDirectory.cpp: fixed a serious bug in the directory
+    list saving routines where it happened that upon separate use of
+    writeSubHeader()/writeMatrix(), the directory list was saved
+    incorrectly for the 32nd item in the list.
+
 2006-02-23 Hagen Moelle <draggore@gmx.de>
 
   *	memory leak occured during read micropet data fixed
