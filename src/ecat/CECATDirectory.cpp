@@ -1,7 +1,7 @@
 /* vim:set ts=2 nowrap: ****************************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004-2005 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2004-2006 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -31,6 +31,8 @@
 
 #include <rtdebug.h>
 
+// some very own defines specifying the boundaries
+// of a ecat directory list
 #define ECAT_DIRHEAD_SIZE 16
 #define ECAT_DIRITEM_SIZE 16
 #define ECAT_DIRITEM_NUM  31
@@ -58,6 +60,14 @@ struct ECAT_DirList // should be 512 bytes
 	struct ECAT_DirHead head;
 	struct ECAT_DirItem items[ECAT_DIRITEM_NUM];
 };
+
+// macro for quickly checking if the frame/plane/gate/bed/data
+// matrix parameters are between bounds or not
+#define matrixParamsValid(f, p, g, b, d) ((f) > 0 && (f) < 256 && \
+												 								  (p) > 0 && (f) < 256 && \
+																					(g) > 0 && (f) < 256 && \
+																					(b) >= 0 && (b) < 256 && \
+																					(d) >= 0 && (d) < 256)
 
 // we define the private inline class of that one so that we
 // are able to hide the private methods & data of that class in the
@@ -249,7 +259,12 @@ bool CECATDirectory::load(void)
 		}
 		#endif
 
-		m_pData->file->seek(ECATBlock2FilePos(dList.head.Next));
+		if(m_pData->file->seek(ECATBlock2FilePos(dList.head.Next)) == false)
+		{
+			E("couldn't seek to file position %lld.", ECATBlock2FilePos(dList.head.Next));
+			result = false;
+			break;
+		}
 	}
 	while(dList.head.Next > ECAT_POS_MAINDIR && result == true);
 	
@@ -288,11 +303,11 @@ bool CECATDirectory::save(void) const
 	// now we have to go through our directory and stream all items
 	// in 31 chunks as the directory list can only have 31 items plus
 	// 1 chunk for the header
-	int frame=1;
-	int plane=1;
-	int gate=1;
-	int bed=0;
-	int data=0;
+	short frame=1;
+	short plane=1;
+	short gate=1;
+	short bed=0;
+	short data=0;
 	short depth=4; // we have five depth levels (4==data, 3==bed, 2==gate, 1==plane, 0==frame)
 	unsigned int currentDirPos = ECAT_POS_MAINDIR;
 	unsigned int nextDirPos;
@@ -402,7 +417,12 @@ bool CECATDirectory::save(void) const
 
 				// clear also the DirItem buffer
 				memset(dirItemBuffer.data(), 0, dirItemBuffer.size());
-				dirItemStream.device()->seek(0);
+				if(dirItemStream.device()->seek(0) == false)
+				{
+					E("couldn't seek to dirItemStream position #0");
+					result = false;
+					break;
+				}
 
 				// iterate to the next dirList
 				curDirList++;
@@ -492,12 +512,21 @@ unsigned int CECATDirectory::count() const
 CECATDirectoryItem* CECATDirectory::item(short frame, short plane,
 																			 	 short gate, short bed, short data)
 {
-	// form the MatrixID from the supplied data and
-	// process a find in the QIntDict
-	quint32 mID = convertToMatrixID(frame, plane, gate, bed, data);
-	D("Generated MatrixID: %08lx", mID);
+	ENTER();
+	CECATDirectoryItem* dirItem = NULL;
 
-	return m_pData->dirItems.value(mID);
+	if(matrixParamsValid(frame, plane, gate, bed, data))
+	{
+		// form the MatrixID from the supplied data and
+		// process a find in the QIntDict
+		quint32 mID = convertToMatrixID(frame, plane, gate, bed, data);
+		D("Generated MatrixID: %08lx", mID);
+
+		dirItem = m_pData->dirItems.value(mID);
+	}
+
+	RETURN(dirItem);
+	return dirItem;
 }
 
 CECATDirectoryItem* CECATDirectoryPrivate::newDirItem(quint32 matrixID)
@@ -564,6 +593,7 @@ qint64 CECATDirectoryPrivate::lastDirItemOffset(void) const
 
 short CECATDirectory::numFrames(void) const
 {
+	ENTER();
 	short framesNum = 0;
 
 	// we iterate through our dictionary looking for the highest available
@@ -573,9 +603,13 @@ short CECATDirectory::numFrames(void) const
 	{
 		i.next();
 		if(i.value()->frame() > framesNum)
+		{
 			framesNum = i.value()->frame();
+			ASSERT(framesNum > 0 && framesNum <= 256);
+		}
 	}
 	
+	RETURN(framesNum);
 	return framesNum;
 }
 
@@ -590,7 +624,10 @@ short CECATDirectory::numPlanes(void) const
 	{
 		i.next();
 		if(i.value()->plane() > planesNum)
+		{
 			planesNum = i.value()->plane();
+			ASSERT(planesNum > 0 && planesNum <= 256);
+		}
 	}
 	
 	return planesNum;
@@ -607,7 +644,10 @@ short CECATDirectory::numGates(void) const
 	{
 		i.next();
 		if(i.value()->gate() > gatesNum)
+		{
 			gatesNum = i.value()->gate();
+			ASSERT(gatesNum > 0 && gatesNum <= 256);
+		}
 	}
 
 	return gatesNum;
@@ -624,7 +664,10 @@ short CECATDirectory::numBedPos(void) const
 	{
 		i.next();
 		if(i.value()->bed() > bedsNum)
+		{
 			bedsNum = i.value()->bed();
+			ASSERT(bedsNum >= 0 && bedsNum < 256);
+		}
 	}
 
 	return bedsNum;
@@ -634,13 +677,20 @@ short CECATDirectory::numBedPos(void) const
 bool CECATDirectory::readSubHeader(CECATSubHeader*& subHeader, short frame, short plane,
 																	 short gate, short bed, short data)
 {
-	// get the directoryItem so that we can query the matrix from it
-	CECATDirectoryItem* pDirItem = m_pData->dirItems.value(convertToMatrixID(frame, plane, gate, bed, data));
+	ENTER();
+	bool result = false;
 
-	if(pDirItem)
-		return pDirItem->readSubHeader(subHeader);
+	if(matrixParamsValid(frame, plane, gate, bed, data))
+	{
+		// get the directoryItem so that we can query the matrix from it
+		CECATDirectoryItem* pDirItem = m_pData->dirItems.value(convertToMatrixID(frame, plane, gate, bed, data));
 
-	return false;
+		if(pDirItem)
+			result = pDirItem->readSubHeader(subHeader);
+	}
+	
+	RETURN(result);
+	return result;
 }
 
 bool CECATDirectory::readMatrix(QByteArray*& matrixData, short frame, short plane,
@@ -649,11 +699,14 @@ bool CECATDirectory::readMatrix(QByteArray*& matrixData, short frame, short plan
 	ENTER();
 	bool result = false;
 
-	// get the directoryItem so that we can query the matrix from it
-	CECATDirectoryItem* pDirItem = m_pData->dirItems.value(convertToMatrixID(frame, plane, gate, bed, data));
+	if(matrixParamsValid(frame, plane, gate, bed, data))
+	{
+		// get the directoryItem so that we can query the matrix from it
+		CECATDirectoryItem* pDirItem = m_pData->dirItems.value(convertToMatrixID(frame, plane, gate, bed, data));
 
-	if(pDirItem)
-		result = pDirItem->readMatrix(matrixData);
+		if(pDirItem)
+			result = pDirItem->readMatrix(matrixData);
+	}
 
 	RETURN(result);
 	return result;
@@ -665,12 +718,15 @@ bool CECATDirectory::readMatrix(char*& matrixData, unsigned int& len, short fram
 	ENTER();
 	bool result = false;
 
-	// get the directoryItem so that we can query the matrix from it
-	CECATDirectoryItem* pDirItem = m_pData->dirItems.value(convertToMatrixID(frame, plane, gate, bed, data));
+	if(matrixParamsValid(frame, plane, gate, bed, data))
+	{
+		// get the directoryItem so that we can query the matrix from it
+		CECATDirectoryItem* pDirItem = m_pData->dirItems.value(convertToMatrixID(frame, plane, gate, bed, data));
 
-	if(pDirItem)
-		result = pDirItem->readMatrix(matrixData, len);
-
+		if(pDirItem)
+			result = pDirItem->readMatrix(matrixData, len);
+	}
+	
 	RETURN(result);
 	return result;
 }
@@ -681,12 +737,15 @@ bool CECATDirectory::readMatrix(QByteArray*& matrixData, CECATSubHeader*& subHea
 	ENTER();
 	bool result = false;
 
-	// get the directoryItem so that we can query the matrix from it
-	CECATDirectoryItem* pDirItem = m_pData->dirItems.value(convertToMatrixID(frame, plane, gate, bed, data));
+	if(matrixParamsValid(frame, plane, gate, bed, data))
+	{
+		// get the directoryItem so that we can query the matrix from it
+		CECATDirectoryItem* pDirItem = m_pData->dirItems.value(convertToMatrixID(frame, plane, gate, bed, data));
 
-	if(pDirItem)
-		result = pDirItem->readMatrix(matrixData, subHeader);
-
+		if(pDirItem)
+			result = pDirItem->readMatrix(matrixData, subHeader);
+	}
+	
 	RETURN(result);
 	return result;
 }
@@ -697,12 +756,15 @@ bool CECATDirectory::readMatrix(char*& matrixData, unsigned int& len, CECATSubHe
 	ENTER();
 	bool result = false;
 
-	// get the directoryItem so that we can query the matrix from it
-	CECATDirectoryItem* pDirItem = m_pData->dirItems.value(convertToMatrixID(frame, plane, gate, bed, data));
+	if(matrixParamsValid(frame, plane, gate, bed, data))
+	{
+		// get the directoryItem so that we can query the matrix from it
+		CECATDirectoryItem* pDirItem = m_pData->dirItems.value(convertToMatrixID(frame, plane, gate, bed, data));
 
-	if(pDirItem)
-		result = pDirItem->readMatrix(matrixData, len, subHeader);
-
+		if(pDirItem)
+			result = pDirItem->readMatrix(matrixData, len, subHeader);
+	}
+	
 	RETURN(result);
 	return result;
 }
@@ -713,26 +775,29 @@ bool CECATDirectory::writeSubHeader(const CECATSubHeader& subHeader, short frame
 	ENTER();
 	bool result = false;
 
-	// form the MatrixID from the supplied data and create a new
-	// DirectoryItem (or replace an existing one)
-	quint32 mID = convertToMatrixID(frame, plane, gate, bed, data);
-	D("Generated MatrixID: %08lx", mID);
+	if(matrixParamsValid(frame, plane, gate, bed, data))
+	{	
+		// form the MatrixID from the supplied data and create a new
+		// DirectoryItem (or replace an existing one)
+		quint32 mID = convertToMatrixID(frame, plane, gate, bed, data);
+		D("Generated MatrixID: %08lx", mID);
 
-	// see if we already have an item with the same matrixID in our
-	// dictonary and if so we reuse that one and place a new subheader at
-	// this position
-	CECATDirectoryItem* pNewDItem = m_pData->dirItems.value(mID);
-	if(pNewDItem == NULL)
-	{
-		// create a new DirectoryItem which we put in this Directory
-		pNewDItem = m_pData->newDirItem(mID);
+		// see if we already have an item with the same matrixID in our
+		// dictonary and if so we reuse that one and place a new subheader at
+		// this position
+		CECATDirectoryItem* pNewDItem = m_pData->dirItems.value(mID);
+		if(pNewDItem == NULL)
+		{
+			// create a new DirectoryItem which we put in this Directory
+			pNewDItem = m_pData->newDirItem(mID);
+		}
+
+		// then we make sure the subheader is written to the ECAT file.
+		result = pNewDItem->writeSubHeader(subHeader);
+		if(result)
+			save();
 	}
 
-	// then we make sure the subheader is written to the ECAT file.
-	result = pNewDItem->writeSubHeader(subHeader);
-	if(result)
-		save();
-	
 	RETURN(result);
 	return result;
 }
@@ -743,25 +808,28 @@ bool CECATDirectory::writeMatrix(const QByteArray& matrixData,
 	ENTER();
 	bool result = false;
 
-	// form the MatrixID from the supplied data and create a new
-	// DirectoryItem (or replace an existing one)
-	quint32 mID = convertToMatrixID(frame, plane, gate, bed, data);
-	D("Generated MatrixID: %08lx", mID);
-
-	// see if we already have an item with the same matrixID in our
-	// dictonary and if so we reuse that one and place a new subheader at
-	// this position
-	CECATDirectoryItem* pNewDItem = m_pData->dirItems.value(mID);
-	if(pNewDItem == NULL)
+	if(matrixParamsValid(frame, plane, gate, bed, data))
 	{
-		// create a new DirectoryItem which we put in this Directory
-		pNewDItem = m_pData->newDirItem(mID);
-	}
+		// form the MatrixID from the supplied data and create a new
+		// DirectoryItem (or replace an existing one)
+		quint32 mID = convertToMatrixID(frame, plane, gate, bed, data);
+		D("Generated MatrixID: %08lx", mID);
 
-	// then we make sure the subheader is written to the ECAT file.
-	result = pNewDItem->writeMatrix(matrixData);
-	if(result)
-		save();
+		// see if we already have an item with the same matrixID in our
+		// dictonary and if so we reuse that one and place a new subheader at
+		// this position
+		CECATDirectoryItem* pNewDItem = m_pData->dirItems.value(mID);
+		if(pNewDItem == NULL)
+		{
+			// create a new DirectoryItem which we put in this Directory
+			pNewDItem = m_pData->newDirItem(mID);
+		}
+
+		// then we make sure the subheader is written to the ECAT file.
+		result = pNewDItem->writeMatrix(matrixData);
+		if(result)
+			save();
+	}
 	
 	RETURN(result);
 	return result;
@@ -773,25 +841,28 @@ bool CECATDirectory::writeMatrix(const char* matrixData, unsigned int size,
 	ENTER();
 	bool result = false;
 
-	// form the MatrixID from the supplied data and create a new
-	// DirectoryItem (or replace an existing one)
-	quint32 mID = convertToMatrixID(frame, plane, gate, bed, data);
-	D("Generated MatrixID: %08lx", mID);
+	if(matrixParamsValid(frame, plane, gate, bed, data))
+	{	
+		// form the MatrixID from the supplied data and create a new
+		// DirectoryItem (or replace an existing one)
+		quint32 mID = convertToMatrixID(frame, plane, gate, bed, data);
+		D("Generated MatrixID: %08lx", mID);
 
-	// see if we already have an item with the same matrixID in our
-	// dictonary and if so we reuse that one and place a new subheader at
-	// this position
-	CECATDirectoryItem* pNewDItem = m_pData->dirItems.value(mID);
-	if(pNewDItem == NULL)
-	{
-		// create a new DirectoryItem which we put in this Directory
-		pNewDItem = m_pData->newDirItem(mID);
+		// see if we already have an item with the same matrixID in our
+		// dictonary and if so we reuse that one and place a new subheader at
+		// this position
+		CECATDirectoryItem* pNewDItem = m_pData->dirItems.value(mID);
+		if(pNewDItem == NULL)
+		{
+			// create a new DirectoryItem which we put in this Directory
+			pNewDItem = m_pData->newDirItem(mID);
+		}
+
+		// then we make sure the subheader is written to the ECAT file.
+		result = pNewDItem->writeMatrix(matrixData, size);
+		if(result)
+			save();
 	}
-
-	// then we make sure the subheader is written to the ECAT file.
-	result = pNewDItem->writeMatrix(matrixData, size);
-	if(result)
-		save();
 
 	RETURN(result);
 	return result;
@@ -803,25 +874,28 @@ bool CECATDirectory::writeMatrix(const QByteArray& matrixData, CECATSubHeader::D
 	ENTER();
 	bool result = false;
 
-	// form the MatrixID from the supplied data and create a new
-	// DirectoryItem (or replace an existing one)
-	quint32 mID = convertToMatrixID(frame, plane, gate, bed, data);
-	D("Generated MatrixID: %08lx", mID);
-
-	// see if we already have an item with the same matrixID in our
-	// dictonary and if so we reuse that one and place a new subheader at
-	// this position
-	CECATDirectoryItem* pNewDItem = m_pData->dirItems.value(mID);
-	if(pNewDItem == NULL)
+	if(matrixParamsValid(frame, plane, gate, bed, data))
 	{
-		// create a new DirectoryItem which we put in this Directory
-		pNewDItem = m_pData->newDirItem(mID);
-	}
+		// form the MatrixID from the supplied data and create a new
+		// DirectoryItem (or replace an existing one)
+		quint32 mID = convertToMatrixID(frame, plane, gate, bed, data);
+		D("Generated MatrixID: %08lx", mID);
 
-	// then we make sure the subheader is written to the ECAT file.
-	result = pNewDItem->writeMatrix(matrixData, type);
-	if(result)
-		save();
+		// see if we already have an item with the same matrixID in our
+		// dictonary and if so we reuse that one and place a new subheader at
+		// this position
+		CECATDirectoryItem* pNewDItem = m_pData->dirItems.value(mID);
+		if(pNewDItem == NULL)
+		{
+			// create a new DirectoryItem which we put in this Directory
+			pNewDItem = m_pData->newDirItem(mID);
+		}
+
+		// then we make sure the subheader is written to the ECAT file.
+		result = pNewDItem->writeMatrix(matrixData, type);
+		if(result)
+			save();
+	}
 	
 	RETURN(result);
 	return result;
@@ -834,25 +908,28 @@ bool CECATDirectory::writeMatrix(const char* matrixData, unsigned int size,
 	ENTER();
 	bool result = false;
 
-	// form the MatrixID from the supplied data and create a new
-	// DirectoryItem (or replace an existing one)
-	quint32 mID = convertToMatrixID(frame, plane, gate, bed, data);
-	D("Generated MatrixID: %08lx", mID);
-
-	// see if we already have an item with the same matrixID in our
-	// dictonary and if so we reuse that one and place a new subheader at
-	// this position
-	CECATDirectoryItem* pNewDItem = m_pData->dirItems.value(mID);
-	if(pNewDItem == NULL)
+	if(matrixParamsValid(frame, plane, gate, bed, data))
 	{
-		// create a new DirectoryItem which we put in this Directory
-		pNewDItem = m_pData->newDirItem(mID);
-	}
+		// form the MatrixID from the supplied data and create a new
+		// DirectoryItem (or replace an existing one)
+		quint32 mID = convertToMatrixID(frame, plane, gate, bed, data);
+		D("Generated MatrixID: %08lx", mID);
 
-	// then we make sure the subheader is written to the ECAT file.
-	result = pNewDItem->writeMatrix(matrixData, size, type);
-	if(result)
-		save();
+		// see if we already have an item with the same matrixID in our
+		// dictonary and if so we reuse that one and place a new subheader at
+		// this position
+		CECATDirectoryItem* pNewDItem = m_pData->dirItems.value(mID);
+		if(pNewDItem == NULL)
+		{
+			// create a new DirectoryItem which we put in this Directory
+			pNewDItem = m_pData->newDirItem(mID);
+		}
+
+		// then we make sure the subheader is written to the ECAT file.
+		result = pNewDItem->writeMatrix(matrixData, size, type);
+		if(result)
+			save();
+	}
 
 	RETURN(result);
 	return result;
@@ -864,25 +941,28 @@ bool CECATDirectory::writeMatrix(const QByteArray& matrixData, const CECATSubHea
 	ENTER();
 	bool result = false;
 
-	// form the MatrixID from the supplied data and create a new
-	// DirectoryItem (or replace an existing one)
-	quint32 mID = convertToMatrixID(frame, plane, gate, bed, data);
-	D("Generated MatrixID: %08lx", mID);
+	if(matrixParamsValid(frame, plane, gate, bed, data))
+	{	
+		// form the MatrixID from the supplied data and create a new
+		// DirectoryItem (or replace an existing one)
+		quint32 mID = convertToMatrixID(frame, plane, gate, bed, data);
+		D("Generated MatrixID: %08lx", mID);
 
-	// see if we already have an item with the same matrixID in our
-	// dictonary and if so we reuse that one and place a new subheader at
-	// this position
-	CECATDirectoryItem* pNewDItem = m_pData->dirItems.value(mID);
-	if(pNewDItem == NULL)
-	{
-		// create a new DirectoryItem which we put in this Directory
-		pNewDItem = m_pData->newDirItem(mID);
+		// see if we already have an item with the same matrixID in our
+		// dictonary and if so we reuse that one and place a new subheader at
+		// this position
+		CECATDirectoryItem* pNewDItem = m_pData->dirItems.value(mID);
+		if(pNewDItem == NULL)
+		{
+			// create a new DirectoryItem which we put in this Directory
+			pNewDItem = m_pData->newDirItem(mID);
+		}
+
+		// then we make sure the subheader is written to the ECAT file.
+		result = pNewDItem->writeMatrix(matrixData, subHeader);
+		if(result)
+			save();
 	}
-
-	// then we make sure the subheader is written to the ECAT file.
-	result = pNewDItem->writeMatrix(matrixData, subHeader);
-	if(result)
-		save();
 	
 	RETURN(result);
 	return result;
@@ -894,25 +974,28 @@ bool CECATDirectory::writeMatrix(const char* matrixData, unsigned int size, cons
 	ENTER();
 	bool result = false;
 
-	// form the MatrixID from the supplied data and create a new
-	// DirectoryItem (or replace an existing one)
-	quint32 mID = convertToMatrixID(frame, plane, gate, bed, data);
-	D("Generated MatrixID: %08lx", mID);
+	if(matrixParamsValid(frame, plane, gate, bed, data))
+	{	
+		// form the MatrixID from the supplied data and create a new
+		// DirectoryItem (or replace an existing one)
+		quint32 mID = convertToMatrixID(frame, plane, gate, bed, data);
+		D("Generated MatrixID: %08lx", mID);
 
-	// see if we already have an item with the same matrixID in our
-	// dictonary and if so we reuse that one and place a new subheader at
-	// this position
-	CECATDirectoryItem* pNewDItem = m_pData->dirItems.value(mID);
-	if(pNewDItem == NULL)
-	{
-		// create a new DirectoryItem which we put in this Directory
-		pNewDItem = m_pData->newDirItem(mID);
+		// see if we already have an item with the same matrixID in our
+		// dictonary and if so we reuse that one and place a new subheader at
+		// this position
+		CECATDirectoryItem* pNewDItem = m_pData->dirItems.value(mID);
+		if(pNewDItem == NULL)
+		{
+			// create a new DirectoryItem which we put in this Directory
+			pNewDItem = m_pData->newDirItem(mID);
+		}
+
+		// then we make sure the subheader is written to the ECAT file.
+		result = pNewDItem->writeMatrix(matrixData, size, subHeader);
+		if(result)
+			save();
 	}
-
-	// then we make sure the subheader is written to the ECAT file.
-	result = pNewDItem->writeMatrix(matrixData, size, subHeader);
-	if(result)
-		save();
 
 	RETURN(result);
 	return result;

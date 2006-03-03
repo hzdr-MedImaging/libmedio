@@ -404,7 +404,6 @@ bool CConcordeFile::readMatrix(char*& matrixData, unsigned int& length, short fr
 			}
 			else
 			{
-				
 				//set readpointer to appropriate frame
 				if((result = seek(((qint64)(frame-1))*framesize)))
 				{
@@ -638,6 +637,7 @@ bool CConcordeFile::readMatrix(char*& matrixData, unsigned int& length, short fr
 					E("Error when seeking frame: %d at filepos: %lld", frame, ((qint64)(frame-1))*framesize);
 				}
 			}
+
 			if(!result)
 			{
 				delete matrixData;
