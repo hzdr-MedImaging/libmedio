@@ -7,6 +7,9 @@ $Id$
 
 2006-03-03  Jens Langner <Jens.Langner@light-speed.de>
 
+  * testcases/readwritematrix.cpp: updated testcase to conatin more
+	  detailed tests which will also generate ecat files with up to the
+		maximum allowed number of frames.
   * src/ecat/CECATDirectory.cpp: added an additional check that the
 	  supplied frame/plane/gate/bed/data matrix parameters are within
 		allowed bounds. Otherwise they will return false now.
