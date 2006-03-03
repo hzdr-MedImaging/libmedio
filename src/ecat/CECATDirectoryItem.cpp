@@ -1386,8 +1386,8 @@ QDataStream& operator>>(QDataStream& stream, CECATDirectoryItem& dItem)
 																											dItem.m_pData->bed,
 																											dItem.m_pData->data);
 
-	D("DItem.DataBlock_Start : %d (%d)", dItem.m_pData->dataBlock_Start, FilePos2ECATBlock(dItem.m_pData->dataBlock_Start));
-	D("DItem.DataBlock_End   : %d (%d)", dItem.m_pData->dataBlock_End, FilePos2ECATBlock(dItem.m_pData->dataBlock_End));
+	D("DItem.DataBlock_Start : %ld (%ld)", dItem.m_pData->dataBlock_Start, FilePos2ECATBlock(dItem.m_pData->dataBlock_Start));
+	D("DItem.DataBlock_End   : %ld (%ld)", dItem.m_pData->dataBlock_End, FilePos2ECATBlock(dItem.m_pData->dataBlock_End));
 	D("DItem.DataBlock_Status: %d", dItem.m_pData->status);
 	
 	LEAVE();

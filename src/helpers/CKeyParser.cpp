@@ -96,13 +96,22 @@ void CKeyParser::addKey(const QString& Key, void* p2Object, void (*p2Function)(v
 bool CKeyParser::parse(const QString Filename)
 {
 	QFile file( Filename );
-        if(!file.open(QIODevice::ReadOnly))
+  if(!file.open(QIODevice::ReadOnly))
 	{
-        	E("Opening of file %s failed!", Filename.toAscii().data());
+    E("Opening of file %s failed!", Filename.toAscii().data());
 		return false;
-        }
+  }
 
+	// using QTextStream to read a file on harddisk takes a long time
+	// so we read the file all at once 
+	//int iFileSize = file.size();
+
+	//QByteArray* p_Tmp = new QByteArray(iFileSize, 0);
+	//file.read(p_Tmp->data(), iFileSize);
+
+	// do not read the file line by line anymore - instead use QByteArray
 	QTextStream ts(&file);
+	//QTextStream ts(p_Tmp);
 	
 	//only parse lines if either a start symbol or no stop symbol is found in file
 	bool start_symbol_found = false;
@@ -134,12 +143,12 @@ bool CKeyParser::parse(const QString Filename)
 		{
 			for(QStringList::Iterator it = StartSymbols.begin(); it != StartSymbols.end(); ++it ) 
 			{
-        			if(Line.startsWith(*it))
+        if(Line.startsWith(*it))
 				{
 					start_symbol_found = true;
 					break;
 				}
-    			}
+    	}
 			//if line is not a start symbol -> skip it
 			if(!start_symbol_found)
 				continue;

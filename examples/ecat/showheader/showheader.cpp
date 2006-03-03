@@ -46,11 +46,11 @@ int main(int argc, char* argv[])
 
   // You want this, unless you mix couts output with C output.
   // Read  http://gcc.gnu.org/onlinedocs/libstdc++/27_io/howto.html#8 for an explanation.
-  ios::sync_with_stdio(false);
+  //ios::sync_with_stdio(false);
 
 	cout << "libmedio ECAT6/7 file processing example" << endl;
 	cout << "----------------------------------------" << endl;
-
+	
 	// check if the user has specified a filename or not
 	if(argc > 1)
 	{
@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
 			 file.format() != CECATFile::Undefined)
 		{
 			cout << "Successfully loaded file '" << filename << "'" << endl << endl;
-
+			return returnCode;
 			// now that we have successfully loaded the ECAT file we can go and
 			// output some statistics on it:
 			cout << "General file information:" << endl;

@@ -12,6 +12,10 @@ $Id$
     writeSubHeader()/writeMatrix(), the directory list was saved
     incorrectly for the 32nd item in the list.
 
+2006-02-24 Hagen Moelle <draggore@gmx.de>
+
+  *	when converting Mainheader microPET to ECAT7 now calibration and dose units are set in the right way
+
 2006-02-23 Hagen Moelle <draggore@gmx.de>
 
   *	memory leak occured during read micropet data fixed

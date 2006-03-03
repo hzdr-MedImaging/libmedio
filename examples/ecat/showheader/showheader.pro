@@ -25,7 +25,8 @@ TEMPLATE = app
 QT = core
 DEPENDPATH += .
 INCLUDEPATH += . /usr/local/petlib/include/medio
-LIBS *= -L/usr/local/petlib/lib -lmedio
+LIBS *= /usr/local/petlib/lib/libmedio.so.2
+LIBS *= -L/usr/local/petlib -lrtdebug
 
 # Input
 SOURCES += showheader.cpp
