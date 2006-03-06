@@ -24,8 +24,12 @@
 TEMPLATE = app
 DEPENDPATH += .
 INCLUDEPATH += . ../../src/ ../../src/ecat ../../src/ecat/ecat6 ../../src/ecat/ecat7 ../../src/micropet ../../src/helpers
+INCLUDEPATH += /usr/local/petlib/include/rtdebug
 LIBS *= -L../../lib -lmedio
+LIBS *= -L/usr/local/petlib/lib -lrtdebug
 DEFINES *= __MEDIO_PRIVATE__
+DEFINES *= DEBUG
+COMPILE_LEVEL = debug
 
 # Input
 SOURCES += readwritematrix.cpp

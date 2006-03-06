@@ -80,11 +80,15 @@ CConcordeFrameHeader::CConcordeFrameHeader(const QString& filename, int frame)
 
 	// allocate data from our private instance class
 	m_pData = new CConcordeFrameHeaderPrivate();
+	
+	// before initialising we clear the frame information
+	clear();
+	
+	// and set some important information
 	m_pData->fileName = filename;
 	m_pData->header.frame = frame;
 	m_pData->init();
 
-	clear();
 	
 	if(!load())
 	{
@@ -103,11 +107,14 @@ CConcordeFrameHeader::CConcordeFrameHeader(CConcordeFile* file, int frame)
 
 	// allocate data from our private instance class
 	m_pData = new CConcordeFrameHeaderPrivate();
+	
+	// before initialising we clear the frame information
+	clear();
+
+	// and set some important information
 	m_pData->fileName = file->fileName() + ".hdr";
 	m_pData->header.frame = frame;
 	m_pData->init();
-
-	clear();
 	
 	if(!load())
 	{

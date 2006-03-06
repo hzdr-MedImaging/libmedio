@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Starts the readwritematrix test with
 # the correct LD_LIBRARY_PATH
