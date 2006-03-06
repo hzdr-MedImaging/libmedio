@@ -5,6 +5,31 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2006-03-03  Jens Langner <Jens.Langner@light-speed.de>
+
+  * testcases/readwritematrix.cpp: updated testcase to conatin more
+    detailed tests which will also generate ecat files with up to the
+    maximum allowed number of frames.
+  * src/ecat/CECATDirectory.cpp: added an additional check that the
+    supplied frame/plane/gate/bed/data matrix parameters are within
+    allowed bounds. Otherwise they will return false now.
+
+2006-03-01  Jens Langner <Jens.Langner@light-speed.de>
+
+  * src/ecat/CECATDirectory.cpp: fixed a serious bug in the directory
+    list saving routines where it happened that upon separate use of
+    writeSubHeader()/writeMatrix(), the directory list was saved
+    incorrectly for the 32nd item in the list.
+
+2006-02-24 Hagen Moelle <draggore@gmx.de>
+
+  * when converting Mainheader microPET to ECAT7 now calibration and
+    dose units are set in the right way
+
+2006-02-23 Hagen Moelle <draggore@gmx.de>
+
+  * memory leak occured during read micropet data fixed
+
 2006-02-07 Hagen Moelle <draggore@gmx.de>
 
   * bugfix due to nullpointer exception within internal headercreation

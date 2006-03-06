@@ -684,7 +684,6 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 	return result;
 }
 
-
 bool CECATDirectoryItem::readMatrix(QByteArray*& matrixData, CECATSubHeader*& subHeader)
 {
 	ENTER();
@@ -1299,12 +1298,12 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 			if(m_pData->file->writeBlock(fillData, fillLen) != (Q_LONG)fillLen)
 			{
 				result = false;
-				E("Error occurred while trying to write %ld NULL bytes.", fillLen);
+				E("Error occurred while trying to write %d NULL bytes.", fillLen);
 			}
 			else
 			{
 				matrixSize += fillLen;
-				W("matrixsize %% ECAT_BLOCKSIZE != 0. added %ld NULL bytes", fillLen);
+				W("matrixsize %% ECAT_BLOCKSIZE != 0. added %d NULL bytes", fillLen);
 			}
 		}
 
@@ -1349,8 +1348,8 @@ QDataStream& operator<<(QDataStream& stream, const CECATDirectoryItem& dItem)
 																											dItem.m_pData->bed,
 																											dItem.m_pData->data);
 
-	D("DItem.DataBlock_Start : %d (%d)", dItem.m_pData->dataBlock_Start, FilePos2ECATBlock(dItem.m_pData->dataBlock_Start));
-	D("DItem.DataBlock_End   : %d (%d)", dItem.m_pData->dataBlock_End, FilePos2ECATBlock(dItem.m_pData->dataBlock_End));
+	D("DItem.DataBlock_Start : %lld (%lld)", FilePos2ECATBlock(dItem.m_pData->dataBlock_Start), dItem.m_pData->dataBlock_Start);
+	D("DItem.DataBlock_End   : %lld (%lld)", FilePos2ECATBlock(dItem.m_pData->dataBlock_End), dItem.m_pData->dataBlock_End);
 	D("DItem.DataBlock_Status: %d", dItem.m_pData->status);
 	
 	LEAVE();
@@ -1391,8 +1390,8 @@ QDataStream& operator>>(QDataStream& stream, CECATDirectoryItem& dItem)
 																											dItem.m_pData->bed,
 																											dItem.m_pData->data);
 
-	D("DItem.DataBlock_Start : %d (%d)", dItem.m_pData->dataBlock_Start, FilePos2ECATBlock(dItem.m_pData->dataBlock_Start));
-	D("DItem.DataBlock_End   : %d (%d)", dItem.m_pData->dataBlock_End, FilePos2ECATBlock(dItem.m_pData->dataBlock_End));
+	D("DItem.DataBlock_Start : %ld (%ld)", dItem.m_pData->dataBlock_Start, FilePos2ECATBlock(dItem.m_pData->dataBlock_Start));
+	D("DItem.DataBlock_End   : %ld (%ld)", dItem.m_pData->dataBlock_End, FilePos2ECATBlock(dItem.m_pData->dataBlock_End));
 	D("DItem.DataBlock_Status: %d", dItem.m_pData->status);
 	
 	LEAVE();

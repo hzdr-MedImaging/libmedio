@@ -262,6 +262,7 @@ CConcordeMainHeader& CConcordeMainHeader::operator=(const CConcordeMainHeader& s
 	m_pData->header.arc_correction_applied = src.arcCorrectionApplied();
 	m_pData->header.calibration_factor = src.calibrationFactor();
 	m_pData->header.calibration_branching_fraction = src.calibrationBranchingFraction();
+	m_pData->header.calibration_units = src.calibrationUnits();
 	m_pData->header.number_of_singles_rates = src.numberOfSinglesRates();
 	m_pData->header.investigator = src.investigatorName();
 	m_pData->header.Operator = src.operatorName();

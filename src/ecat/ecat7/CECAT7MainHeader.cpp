@@ -49,6 +49,7 @@ class CECAT7MainHeaderPrivate
 
 		// helper methods for converting the header from concorde to ecat7
 		QString concorde2ECAT7dataUnits(CConcordeMainHeader::CalibrationUnits u) const;
+		CECAT7MainHeader::Calibration_Units concorde2ECAT7calibrationUnits(CConcordeMainHeader::CalibrationUnits u) const;
 		float concorde2ECAT7dosage(float d, CConcordeMainHeader::DoseUnits u) const;
 		float concorde2ECAT7Height(float l, CConcordeMainHeader::SubjectLengthUnits u) const;
 		float concorde2ECAT7Weight(float w, CConcordeMainHeader::SubjectWeightUnits u) const;
@@ -857,10 +858,6 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
 			setCoin_Samp_Mode(CECAT7MainHeader::NetTrues);
 			setCalibration_Factor(head->calibrationFactor());
 
-			if(head->calibrationFactor() == 1.0F)
-				setCalibration_Units(CECAT7MainHeader::Uncalibrated);
-			else
-				setCalibration_Units(CECAT7MainHeader::Calibrated);
 			setStudy_Type(head->study().ascii());
 			setPatient_ID(head->subjectIdentifier().ascii());
 			setPatient_Name(head->subjectIdentifier().ascii());
@@ -890,7 +887,8 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
 			setDose_Start_Time(head->injectionTime());
 			setDosage(m_pData->concorde2ECAT7dosage(head->dose(), head->doseUnits()));
 			setData_Units(m_pData->concorde2ECAT7dataUnits(head->calibrationUnits()).ascii());
-
+			setCalibration_Units(m_pData->concorde2ECAT7calibrationUnits(head->calibrationUnits()));
+			
 			//check if additional information is available
 			if(pHead2)
 			{
@@ -1904,6 +1902,22 @@ QString CECAT7MainHeaderPrivate::concorde2ECAT7dataUnits(CConcordeMainHeader::Ca
 	}
 
 	RETURN(E7u.ascii());
+	return E7u;
+}
+
+CECAT7MainHeader::Calibration_Units CECAT7MainHeaderPrivate::concorde2ECAT7calibrationUnits(CConcordeMainHeader::CalibrationUnits u) const
+{
+	ENTER();
+
+	CECAT7MainHeader::Calibration_Units E7u;
+	switch(u)
+	{
+		case CConcordeMainHeader::nCiPerCC: E7u = CECAT7MainHeader::Uncalibrated; break;
+		case CConcordeMainHeader::BqPerCC: E7u = CECAT7MainHeader::Calibrated; break;
+		default: E7u = CECAT7MainHeader::Uncalibrated; break;
+	}
+
+	RETURN(E7u);
 	return E7u;
 }
 
