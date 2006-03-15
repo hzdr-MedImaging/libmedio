@@ -2,7 +2,7 @@ TEMPLATE = app
 CONFIG	 *= qt thread warn_on @ANSI_COLOR@ @QTLINK_LEVEL@
 QT	 += core
 TARGET    = mp2ecat
-VERSION   = 0.1
+VERSION   = @PACKAGE_VERSION@
 DESTDIR   = ../
 
 # directory specification

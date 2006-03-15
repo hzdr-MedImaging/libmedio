@@ -1,3 +1,7 @@
+2006-03-15  Hagen Moelle <draggore@gmx.de>
+
+  * CCmdLineStart: limited number of frames to 255 to be written to ECAT7 file
+
 2006-02-23  Hagen Moelle <draggore@gmx.de>
 
   *	memory leak fixed

@@ -230,7 +230,8 @@ bool CCmdLineStart::convertFile()
 			else
 			{
 				CConcordeMainHeader* head = NULL;
-				if(!((CConcordeFile*)ImageVolume)->readMainHeader(head) || !(head->fileType() == CConcordeMainHeader::Image))
+				if(!((CConcordeFile*)ImageVolume)->readMainHeader(head) ||
+            !(((CConcordeFile*)ImageVolume)->fileType() == CConcordeFile::ConcordeMicropet_Image))
 				{
 					cout << "Error when reading the mainheader or file is not an concorde microPET image." << endl;
 					result = 1;
@@ -250,10 +251,19 @@ bool CCmdLineStart::convertFile()
 						
 						e7_header->convertFrom(head);
 						e7_header->setPatient_Name(m_sPatientName.toAscii().data());
+						
+						int iNrFrames = head->totalFrames();
+            if(iNrFrames > 255)
+            {
+              cout << "Warning: can not create ECAT7 image file with more than 255 frames - will only create 255 frames" << endl;
+              iNrFrames = 255;
+            }
+						unsigned int framesize = head->frameSize();
+						// temporary 
 
-						for(int i = 0; i < head->totalFrames(); i++)
+						for(int i = 0; i < iNrFrames; i++)
 						{
-							QByteArray* data = NULL;
+              QByteArray* data = NULL;
 							CConcordeFrameHeader* subHeader = NULL;
 							if(!((CConcordeFile*)ImageVolume)->readSubHeader(subHeader, i+1) || !((CConcordeFile*)ImageVolume)->readMatrix(data, i+1))
 							{
@@ -267,8 +277,7 @@ bool CCmdLineStart::convertFile()
 							}
 							else
 							{	
-								unsigned int framesize = head->frameSize();
-								cout << "Framesize: " << framesize << endl;
+								cout << "Converting Frame: " << (i+1) << " of " << iNrFrames << endl;
 								float* b = (float*)data->data();
 								
 								char* byte_image = new char[framesize/2];
@@ -304,6 +313,7 @@ bool CCmdLineStart::convertFile()
 							
 								D("Scalefactor: %f", scale_factor);
 								D("Scale factor in header: %f", subHeader->scaleFactor());
+                cout << "Image min: " << min << "image max: " << max << endl;
 
 								delete data;
 								data = new QByteArray(byte_image,framesize/2);
@@ -317,12 +327,12 @@ bool CCmdLineStart::convertFile()
 								e7_subheader->setScale_Factor(subHeader->scaleFactor()*scale_factor);
 								if(fabs(max) > fabs(min))
 								{
-									e7_subheader->setImage_Min((short)ceil(min*scale_factor));
+									e7_subheader->setImage_Min((short)floor(min*scale_factor));
 									e7_subheader->setImage_Max(32767);
 								}
 								else
 								{
-									e7_subheader->setImage_Max((short)ceil(min*scale_factor));
+									e7_subheader->setImage_Max((short)ceil(max*scale_factor));
 									e7_subheader->setImage_Min(-32768);
 								}
 								e7image.writeSubHeader(*e7_subheader, i+1);
