@@ -399,7 +399,7 @@ bool CECATDirectory::save(void) const
 				else
 					D("DirList #%d successfully written @ %lld (%lld)", curDirList, 
 																														FilePos2ECATBlock(m_pData->file->at()-ECAT_DIRLIST_SIZE),
-																														m_pData->file->pos()-ECAT_DIRLIST_SIZE);
+																														m_pData->file->at()-ECAT_DIRLIST_SIZE);
 
 				// clear the dirHead so that we can immediately reuse it
 				dirHead.FreeItems			= ECAT_DIRITEM_NUM;
@@ -484,7 +484,7 @@ bool CECATDirectory::save(void) const
 			else
 				D("DirList #%d successfully written @ %lld (%lld)", curDirList, 
 																														FilePos2ECATBlock(m_pData->file->at()-ECAT_DIRLIST_SIZE),
-																														m_pData->file->pos()-ECAT_DIRLIST_SIZE);
+																														m_pData->file->at()-ECAT_DIRLIST_SIZE);
 		}
 	}
 

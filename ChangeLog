@@ -5,6 +5,15 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2006-03-16  Jens Langner <Jens.Langner@light-speed.de>
+
+  * src/ecat/ecat7/CECAT7MainHeader.cpp: fixed a minor bug in the
+    date/time conversion routines which the new testcase change
+    releaved.
+	* testcases/readwritematrix.cpp: added some test functionality
+    for checking the date/time conversion routines of libmedio
+  * m4: updated the autoconf macros/environment
+
 2006-03-03  Jens Langner <Jens.Langner@light-speed.de>
 
   * testcases/readwritematrix.cpp: updated testcase to conatin more

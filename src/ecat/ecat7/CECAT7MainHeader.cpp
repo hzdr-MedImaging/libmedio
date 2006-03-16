@@ -1769,7 +1769,7 @@ void CECAT7MainHeader::setPatient_Birth_Date_Qt(const QDate& birthDate)
 	QDateTime birthDateTime(birthDate, QTime());
 
 	SHOWSTRING(birthDateTime.toString().ascii());
-	if(birthDateTime < Jan1970)
+	if(birthDateTime <= Jan1970)
 	{
 #ifdef Q_WS_WIN
 		// mktime in windows dosen't handle dates before 1970 
@@ -1811,7 +1811,7 @@ void CECAT7MainHeader::setScan_Start_Time_Qt(const QDateTime& scanStartTime)
 	QDateTime Jan1970(QDate(1970, 1, 1), QTime());
 
 	SHOWSTRING(scanStartTime.toString().ascii());
-	if(scanStartTime < Jan1970)
+	if(scanStartTime <= Jan1970)
 	{
 #ifdef Q_WS_WIN
 		// mktime in windows dosen't handle dates before 1970 
@@ -1855,7 +1855,7 @@ void CECAT7MainHeader::setDose_Start_Time_Qt(const QDateTime& doseStartTime)
 	QDateTime Jan1970(QDate(1970, 1, 1), QTime());
 
 	SHOWSTRING(doseStartTime.toString().ascii());
-	if(doseStartTime < Jan1970)
+	if(doseStartTime <= Jan1970)
 	{
 #ifdef Q_WS_WIN
 		// mktime in windows dosen't handle dates before 1970 

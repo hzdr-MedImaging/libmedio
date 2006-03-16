@@ -641,7 +641,7 @@ bool CConcordeFile::readMatrix(char*& matrixData, unsigned int& length, short fr
 				}
 				else
 				{
-					E("Error when seeking frame: %d at filepos: %lld", frame, ((qint64)(frame-1))*framesize);
+					E("Error when seeking frame: %d at filepos: %lld", frame, ((Q_INT64)(frame-1))*framesize);
 				}
 			}
 

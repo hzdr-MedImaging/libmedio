@@ -172,7 +172,7 @@ else {
 INCLUDEPATH *= @RTDEBUG_INCDIR@
 contains(DEFINES, DEBUG) {
 	staticmedio {
-		LIBS *= @RTDEBUG_LIBDIR@/librtdebug.a
+		LIBS *= @RTDEBUG_LIBDIR@/@LIB_RTDEBUG@
 	}
 	else {
 		LIBS *= -L@RTDEBUG_LIBDIR@ @LIB_RTDEBUG@
