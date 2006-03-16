@@ -1609,280 +1609,43 @@ QTextStream& operator<<(QTextStream& stream, const CECAT7MainHeader& mHeader)
 
 QDate CECAT7MainHeader::patient_Birth_Date_Qt(void) const
 {
-	QDateTime birthDate;
-
-	// unfortunatley the QDateTime class seems not to
-	// properly handle time_t values which are normally
-	// defined as a signed value. In fact Qt seems to
-	// handle that stuff unsigned which makes it impossible
-	// to place a negative value to QDateTime
-	if(m_pData->header.Patient_Birth_Date > 0)
-		birthDate.setTime_t(m_pData->header.Patient_Birth_Date);
-	else
-	{
-#ifdef Q_WS_WIN
-		// As workaround we couldn't use the posix ctime function as below
-		// cause under win no negative values allowed as well.
-		// Instead we calculate the days and secs of the time_t
-		// value cause time_t is long int and add this negative values 
-		// to the date 1/1/1970 00:00:00. 
-		// ATTENTION: addDays/addSecs didn't realize the daylight saving
-		// of the target date. So if the file is written in sommertime one
-		// hour is missing. No workaround until now. This fact isn't hard 
-		// that much because birthday usally contains no time information.
-		birthDate.setTime_t(0, Qt::LocalTime);
-		int days = m_pData->header.Patient_Birth_Date / (24 * 60 * 60);
-		int secs = m_pData->header.Patient_Birth_Date % (24 * 60 * 60);
-		birthDate = birthDate.addDays(days).addSecs(secs);
-#else // Q_WS_WIN
-		// do the calculations on our own with help of POSIX
-		// ctime() :(
-		time_t dateval = static_cast<time_t>(m_pData->header.Patient_Birth_Date);
-
-		#if defined(HAVE_CTIME_R)
-		char buf[40];
-		QString dateString(ctime_r(&dateval, buf));
-		#elif defined(HAVE_CTIME)
-		#warning "no ctime_r() function used -> libmedio not threadsafe!"
-		QString dateString(ctime(&dateval));
-		#else
-		#error "no ctime_r() or ctime() function found!"
-		#endif
-
-		birthDate = QDateTime::fromString(dateString.trimmed());
-#endif // Q_WS_WIN	
-	}
-
-	return birthDate.date();
+	QDateTime Jan1970(QDate(1970, 1, 1), QTime(), Qt::UTC);
+	QDateTime birthDate = Jan1970.addSecs(m_pData->header.Patient_Birth_Date);
+	return birthDate.toLocalTime().date();
 }
 
 QDateTime CECAT7MainHeader::scan_Start_Time_Qt(void) const
 {
-	QDateTime scanStartTime;
-
-	// unfortunatley the QDateTime class seems not to
-	// properly handle time_t values which are normally
-	// defined as a signed value. In fact Qt seems to
-	// handle that stuff unsigned which makes it impossible
-	// to place a negative value to QDateTime
-	if(m_pData->header.Scan_Start_Time > 0)
-		scanStartTime.setTime_t(m_pData->header.Scan_Start_Time);
-	else
-	{
-#ifdef Q_WS_WIN
-		// As workaround we couldn't use the posix ctime function as below
-		// cause under win no negative values allowed as well.
-		// Instead we calculate the days and secs of the time_t
-		// value cause time_t is long int and add this negative values 
-		// to the date 1/1/1970 00:00:00. 
-		// ATTENTION: addDays/addSecs didn't realize the daylight saving
-		// of the target date. So if the file is written in sommertime one
-		// hour is missing. No workaround until now. This fact isn't hard 
-		// that much because all dates should be after 1/1/1970.
-		scanStartTime.setTime_t(0, Qt::LocalTime);
-		int days = m_pData->header.Scan_Start_Time / (24 * 60 * 60);
-		int secs = m_pData->header.Scan_Start_Time % (24 * 60 * 60);
-		scanStartTime = scanStartTime.addDays(days).addSecs(secs);
-#else // Q_WS_WIN
-		// do the calculations on our own with help of POSIX
-		// ctime() :(
-		time_t dateval = static_cast<time_t>(m_pData->header.Scan_Start_Time);
-
-		#if defined(HAVE_CTIME_R)
-		char buf[40];
-		QString dateString(ctime_r(&dateval, buf));
-		#elif defined(HAVE_CTIME)
-		#warning "no ctime_r() function used -> libmedio not threadsafe!"
-		QString dateString(ctime(&dateval));
-		#else
-		#error "no ctime_r() or ctime() function found!"
-		#endif
-
-		scanStartTime = QDateTime::fromString(dateString.trimmed());
-#endif // Q_WS_WIN
-	}
-
-	return scanStartTime;
+	QDateTime Jan1970(QDate(1970, 1, 1), QTime(), Qt::UTC);
+	QDateTime scanStartTime = Jan1970.addSecs(m_pData->header.Scan_Start_Time);
+	return scanStartTime.toLocalTime();
 }
 
 QDateTime CECAT7MainHeader::dose_Start_Time_Qt(void) const
 {
-	QDateTime doseStartTime;
-
-	// unfortunatley the QDateTime class seems not to
-	// properly handle time_t values which are normally
-	// defined as a signed value. In fact Qt seems to
-	// handle that stuff unsigned which makes it impossible
-	// to place a negative value to QDateTime
-	if(m_pData->header.Dose_Start_Time > 0)
-		doseStartTime.setTime_t(m_pData->header.Dose_Start_Time);
-	else
-	{
-#ifdef Q_WS_WIN
-		// As workaround we couldn't use the posix ctime function as below
-		// cause under win no negative values allowed as well.
-		// Instead we calculate the days and secs of the time_t
-		// value cause time_t is long int and add this negative values 
-		// to the date 1/1/1970 00:00:00. 
-		// ATTENTION: addDays/addSecs didn't realize the daylight saving
-		// of the target date. So if the file is written in sommertime one
-		// hour is missing. No workaround until now. This fact isn't hard 
-		// that much because all dates should be after 1/1/1970.
-		doseStartTime.setTime_t(0, Qt::LocalTime);
-		int days = m_pData->header.Dose_Start_Time / (24 * 60 * 60);
-		int secs = m_pData->header.Dose_Start_Time % (24 * 60 * 60);
-		doseStartTime = doseStartTime.addDays(days).addSecs(secs);
-#else // Q_WS_WIN
-		// do the calculations on our own with help of POSIX
-		// ctime() :(
-		time_t dateval = static_cast<time_t>(m_pData->header.Dose_Start_Time);
-
-		#if defined(HAVE_CTIME_R)
-		char buf[40];
-		QString dateString(ctime_r(&dateval, buf));
-		#elif defined(HAVE_CTIME)
-		#warning "no ctime_r() function used -> libmedio not threadsafe!"
-		QString dateString(ctime(&dateval));
-		#else
-		#error "no ctime_r() or ctime() function found!"
-		#endif
-
-		doseStartTime = QDateTime::fromString(dateString.trimmed());
-#endif // Q_WS_WIN
-	}
-
-	return doseStartTime;
+	QDateTime Jan1970(QDate(1970, 1, 1), QTime(), Qt::UTC);
+	QDateTime doseStartTime = Jan1970.addSecs(m_pData->header.Scan_Start_Time);
+	return doseStartTime.toLocalTime();
 }
 
 void CECAT7MainHeader::setPatient_Birth_Date_Qt(const QDate& birthDate)
 {
-	// unfortunatley the QDateTime class seems not to
-	// properly handle time_t values which are normally
-	// defined as a signed value. In fact Qt seems to
-	// handle that stuff unsigned which makes it impossible
-	// to place a negative value to QDateTime
-	QDateTime Jan1970(QDate(1970, 1, 1), QTime());
-	QDateTime birthDateTime(birthDate, QTime());
-
-	SHOWSTRING(birthDateTime.toString().toAscii());
-	if(birthDateTime < Jan1970)
-	{
-#ifdef Q_WS_WIN
-		// mktime in windows dosen't handle dates before 1970 
-		// right. So we workaround it.
-		// ATTENTION: secsTo return int, where time_t is long int
-		// We have to define 1/1/1970 00:00:00 as local time, so
-		// we didn't use Jan1970 which is defined as UTC.
-		QDateTime d;
-		d.setTime_t(0, Qt::LocalTime);
-		m_pData->header.Patient_Birth_Date = d.secsTo(birthDateTime);
-#else // Q_WS_WIN
-		// we have to convert the birthDateTime on our own by
-		// using standard POSIX functions.
-		struct tm timeVal;
-		timeVal.tm_sec   = 0;
-		timeVal.tm_min   = 0;
-		timeVal.tm_hour  = 0;
-		timeVal.tm_mday  = birthDate.day();
-		timeVal.tm_mon   = birthDate.month()-1;
-		timeVal.tm_year  = birthDate.year()-1900;
-		timeVal.tm_wday  = birthDate.dayOfWeek()-1;
-		timeVal.tm_yday  = birthDate.dayOfYear()-1;
-		timeVal.tm_isdst = 0;
-
-		m_pData->header.Patient_Birth_Date = mktime(&timeVal);
-#endif // Q_WS_WIN
-	}
-	else
-		m_pData->header.Patient_Birth_Date = birthDateTime.toTime_t();
+	QDateTime Jan1970(QDate(1970, 1, 1), QTime(), Qt::UTC);
+	SHOWSTRING(birthDate.toString().toAscii().constData());
+	m_pData->header.Patient_Birth_Date = Jan1970.secsTo(QDateTime(birthDate, QTime()));
+	SHOWVALUE(m_pData->header.Patient_Birth_Date);
 }
 
 void CECAT7MainHeader::setScan_Start_Time_Qt(const QDateTime& scanStartTime)
 {
-	// unfortunatley the QDateTime class seems not to
-	// properly handle time_t values which are normally
-	// defined as a signed value. In fact Qt seems to
-	// handle that stuff unsigned which makes it impossible
-	// to place a negative value to QDateTime
-	QDateTime Jan1970(QDate(1970, 1, 1), QTime());
-
-	SHOWSTRING(scanStartTime.toString().toAscii());
-	if(scanStartTime < Jan1970)
-	{
-#ifdef Q_WS_WIN
-		// mktime in windows dosen't handle dates before 1970 
-		// right. So we workaround it.
-		// ATTENTION: secsTo return int, where time_t is long int
-		// We have to define 1/1/1970 00:00:00 as local time, so
-		// we didn't use Jan1970 which is defined as UTC.
-		QDateTime d;
-		d.setTime_t(0, Qt::LocalTime);
-		m_pData->header.Scan_Start_Time = d.secsTo(scanStartTime);
-#else // Q_WS_WIN
-		QDate scanDate = scanStartTime.date();
-		QTime scanTime = scanStartTime.time();
-		// we have to convert the birthDateTime on our own by
-		// using standard POSIX functions.
-		struct tm timeVal;
-		timeVal.tm_sec   = scanTime.second();
-		timeVal.tm_min   = scanTime.minute();
-		timeVal.tm_hour  = scanTime.hour();
-		timeVal.tm_mday  = scanDate.day();
-		timeVal.tm_mon   = scanDate.month()-1;
-		timeVal.tm_year  = scanDate.year()-1900;
-		timeVal.tm_wday  = scanDate.dayOfWeek()-1;
-		timeVal.tm_yday  = scanDate.dayOfYear()-1;
-		timeVal.tm_isdst = 0;
-
-		m_pData->header.Scan_Start_Time = mktime(&timeVal);
-#endif // Q_WS_WIN
-	}
-	else
-		m_pData->header.Scan_Start_Time = scanStartTime.toTime_t();	
+	QDateTime Jan1970(QDate(1970, 1, 1), QTime(), Qt::UTC);
+	m_pData->header.Scan_Start_Time = Jan1970.secsTo(scanStartTime.toUTC());
 }
 
 void CECAT7MainHeader::setDose_Start_Time_Qt(const QDateTime& doseStartTime)
 {
-	// unfortunatley the QDateTime class seems not to
-	// properly handle time_t values which are normally
-	// defined as a signed value. In fact Qt seems to
-	// handle that stuff unsigned which makes it impossible
-	// to place a negative value to QDateTime
-	QDateTime Jan1970(QDate(1970, 1, 1), QTime());
-
-	SHOWSTRING(doseStartTime.toString().toAscii());
-	if(doseStartTime < Jan1970)
-	{
-#ifdef Q_WS_WIN
-		// mktime in windows dosen't handle dates before 1970 
-		// right. So we workaround it.
-		// ATTENTION: secsTo return int, where time_t is long int
-		// We have to define 1/1/1970 00:00:00 as local time, so
-		// we didn't use Jan1970 which is defined as UTC.
-		QDateTime d;
-		d.setTime_t(0, Qt::LocalTime);
-		m_pData->header.Scan_Start_Time = d.secsTo(doseStartTime);
-#else // Q_WS_WIN
-		QDate doseDate = doseStartTime.date();
-		QTime doseTime = doseStartTime.time();
-		// we have to convert the birthDateTime on our own by
-		// using standard POSIX functions.
-		struct tm timeVal;
-		timeVal.tm_sec   = doseTime.second();
-		timeVal.tm_min   = doseTime.minute();
-		timeVal.tm_hour  = doseTime.hour();
-		timeVal.tm_mday  = doseDate.day();
-		timeVal.tm_mon   = doseDate.month()-1;
-		timeVal.tm_year  = doseDate.year()-1900;
-		timeVal.tm_wday  = doseDate.dayOfWeek()-1;
-		timeVal.tm_yday  = doseDate.dayOfYear()-1;
-		timeVal.tm_isdst = 0;
-
-		m_pData->header.Dose_Start_Time = mktime(&timeVal);
-#endif // Q_WS_WIN
-	}
-	else
-		m_pData->header.Dose_Start_Time = doseStartTime.toTime_t();		
+	QDateTime Jan1970(QDate(1970, 1, 1), QTime(), Qt::UTC);
+	m_pData->header.Dose_Start_Time = Jan1970.secsTo(doseStartTime.toUTC());
 }
 
 QString CECAT7MainHeaderPrivate::concorde2ECAT7dataUnits(CConcordeMainHeader::CalibrationUnits u) const
