@@ -11,6 +11,8 @@ $Id$
     conversion routines and removed the unecessary workaround for
     certain problems of the date/time functionality in Qt. It seems
     Qt4 deals a bit better with time/date calculations than Qt3.
+	* testcases/readwritematrix.cpp: added some test functionality
+    for checking the date/time conversion routines of libmedio		
   * m4: updated the autoconf macros/environment
 		
 2006-03-03  Jens Langner <Jens.Langner@light-speed.de>
