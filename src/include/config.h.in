@@ -1,11 +1,5 @@
 /* src/include/config.h.in.  Generated from m4/configure.in by autoheader.  */
 
-/* Define to 1 if you have the `ctime' function. */
-#undef HAVE_CTIME
-
-/* Define to 1 if you have the `ctime_r' function. */
-#undef HAVE_CTIME_R
-
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
@@ -15,9 +9,6 @@
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
-
-/* Define to 1 if you have the `mktime' function. */
-#undef HAVE_MKTIME
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
