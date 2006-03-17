@@ -7,6 +7,9 @@ $Id$
 
 2006-03-17  Jens Langner <Jens.Langner@light-speed.de>
 
+  * examples/ecat/ecatcmp/ecatcmp.cpp: added main and scan3d
+    subheader compare/diffing routines so that we can now
+    completely compare ECAT files (sinograms).
   * src/ecat/CECATDirectory.cpp: fixed a bug in the operator[]
     method where we did not return the 0th element. Also changed
     the definition of the operator to use "unsigned int" instead
