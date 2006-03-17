@@ -76,11 +76,11 @@ class CECATDirectoryPrivate
 {
 	public:
 		CECATFile* file;	// ptr to our associated ECATFile
-		QHash<int, CECATDirectoryItem*>	 dirItems;			// dictonary for the dirItems
-		QVector<qint64>									 filePositions; // for each DirList we
-																										// could have different file
-																										// positions which we have
-																										// to store
+		QHash<quint32, CECATDirectoryItem*>	 dirItems;			// dictonary for the dirItems
+		QVector<qint64>	 filePositions; // for each DirList we
+																		// may have different file
+																		// positions which we have
+																		// to store
 
 		// some private methods 
 		CECATDirectoryItem* newDirItem(quint32 matrixID);
@@ -114,7 +114,7 @@ CECATDirectory::~CECATDirectory()
 
 	// now we iterate through our QHash and make sure we delete all our
 	// stored diritems correctly.
-  QHashIterator<int, CECATDirectoryItem*> i(m_pData->dirItems);
+  QHashIterator<quint32, CECATDirectoryItem*> i(m_pData->dirItems);
 	while(i.hasNext())
 	{
 		i.next();
@@ -571,7 +571,7 @@ qint64 CECATDirectoryPrivate::lastDirItemOffset(void) const
 
 	// we search through our item list and check the for the
 	// very last item position
-  QHashIterator<int, CECATDirectoryItem*> i(dirItems);
+  QHashIterator<quint32, CECATDirectoryItem*> i(dirItems);
 	while(i.hasNext())
 	{
 		i.next();
@@ -598,7 +598,7 @@ short CECATDirectory::numFrames(void) const
 
 	// we iterate through our dictionary looking for the highest available
 	// frame number
-  QHashIterator<int, CECATDirectoryItem*> i(m_pData->dirItems);
+  QHashIterator<quint32, CECATDirectoryItem*> i(m_pData->dirItems);
 	while(i.hasNext())
 	{
 		i.next();
@@ -619,7 +619,7 @@ short CECATDirectory::numPlanes(void) const
 
 	// we iterate through our dictionary looking for the highest available
 	// plane number
-  QHashIterator<int, CECATDirectoryItem*> i(m_pData->dirItems);
+  QHashIterator<quint32, CECATDirectoryItem*> i(m_pData->dirItems);
 	while(i.hasNext())
 	{
 		i.next();
@@ -639,7 +639,7 @@ short CECATDirectory::numGates(void) const
 
 	// we iterate through our dictionary looking for the highest available
 	// gates number
-  QHashIterator<int, CECATDirectoryItem*> i(m_pData->dirItems);
+  QHashIterator<quint32, CECATDirectoryItem*> i(m_pData->dirItems);
 	while(i.hasNext())
 	{
 		i.next();
@@ -659,7 +659,7 @@ short CECATDirectory::numBedPos(void) const
 
 	// we iterate through our dictionary looking for the highest available
 	// plane number
-  QHashIterator<int, CECATDirectoryItem*> i(m_pData->dirItems);
+  QHashIterator<quint32, CECATDirectoryItem*> i(m_pData->dirItems);
 	while(i.hasNext())
 	{
 		i.next();
@@ -1001,18 +1001,23 @@ bool CECATDirectory::writeMatrix(const char* matrixData, unsigned int size, cons
 	return result;
 }
 
-CECATDirectoryItem* CECATDirectory::operator[](long num) const
+CECATDirectoryItem* CECATDirectory::operator[](unsigned int num) const
 {
 	ENTER();
 	CECATDirectoryItem* foundItem = NULL;
 
 	// use an QHashIterator to iterate until we got the num'th
 	// element in our dictonary and return it
-  QHashIterator<int, CECATDirectoryItem*> it(m_pData->dirItems);
-	for(long i=0; i < num && it.hasNext(); i++)
+  QHashIterator<quint32, CECATDirectoryItem*> it(m_pData->dirItems);
+	for(unsigned int i=0; it.hasNext(); i++)
 	{
 		it.next();
-		foundItem = it.value();
+
+		if(i == num)
+		{
+			foundItem = it.value();
+			break;
+		}
 	}
 	
 	RETURN(foundItem);
