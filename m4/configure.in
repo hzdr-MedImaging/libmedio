@@ -88,7 +88,6 @@ AC_STRUCT_TM
 
 # Checks for library functions.
 AC_FUNC_MALLOC
-AC_CHECK_FUNCS([mktime ctime_r ctime])
 
 AC_PROG_MAKE_SET
 
