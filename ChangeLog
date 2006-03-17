@@ -5,6 +5,12 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2006-03-17  Jens Langner <Jens.Langner@light-speed.de>
+
+  * src/ecat/CECATDirectory.cpp: Changed the definition of the
+    operator[] to use "unsigned int" instead of "long" as this
+    might be a better datatype.
+
 2006-03-16  Jens Langner <Jens.Langner@light-speed.de>
 
   * src/ecat/ecat7/CECAT7MainHeader.cpp: fixed a minor bug in the

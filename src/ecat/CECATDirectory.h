@@ -52,7 +52,7 @@ class Q_EXPORT CECATDirectory
 		// accessor methods
 		bool isEmpty() const;
 		unsigned int count() const;
-		CECATDirectoryItem* operator[](long num) const;
+		CECATDirectoryItem* operator[](unsigned int num) const;
 		CECATDirectoryItem* item(short frame, short plane=1,
 														 short gate=1, short bed=0, short data=0);
 

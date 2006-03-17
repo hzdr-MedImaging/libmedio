@@ -990,14 +990,17 @@ bool CECATDirectory::writeMatrix(const char* matrixData, unsigned int size, cons
 	return result;
 }
 
-CECATDirectoryItem* CECATDirectory::operator[](long num) const
+CECATDirectoryItem* CECATDirectory::operator[](unsigned int num) const
 {
 	ENTER();
 
 	// use an IntDictIterator to iterate until we got the num'th
 	// element in our dictonary and return it
 	QIntDictIterator<CECATDirectoryItem> it(m_pData->dirItems);
-	for(long i=0; i < num && it.current(); i++, ++it);
+	for(unsigned int i=0; i < num && it.current(); i++)
+	{
+		++it;
+	}
 
 	RETURN(it.current());
 	return it.current();
