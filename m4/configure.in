@@ -22,7 +22,7 @@
 #****************************************************************************
 
 AC_PREREQ(2.57)
-AC_INIT(libmedio, 2.2.4, Jens.Langner@light-speed.de)
+AC_INIT(libmedio, 2.2.5, Jens.Langner@light-speed.de)
 AC_COPYRIGHT(Copyright (c) 2004-2006 by Jens Langner <Jens.Langner@light-speed.de>)
 AC_REVISION($Revision$)
 AC_CONFIG_SRCDIR([src])

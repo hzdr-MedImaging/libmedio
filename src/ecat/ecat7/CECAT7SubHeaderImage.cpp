@@ -514,7 +514,10 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead1, const CMedIOH
 						setZ_Dimension(mainHeader->zDimension());
 						setX_Pixel_Size(mainHeader->pixelSize());
 						setY_Pixel_Size(mainHeader->pixelSize());
-						setZ_Pixel_Size(mainHeader->axialPlaneSize());
+						//since microPET header 1.711 axial_plane_size does not exist
+            //anymore -> use axial_crystal_pitch/2: works for older header
+            //versions too
+            setZ_Pixel_Size(mainHeader->axialCrystalPitch()/2.0F);
 						setNum_R_Elements(mainHeader->yDimension());
 						setNum_Angles(mainHeader->xDimension());
 					};break;
