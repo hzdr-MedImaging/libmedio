@@ -56,19 +56,13 @@ int main( int argc, char ** argv )
 					CECATFile e7image(StoreFileName, CECATMainHeader::ECAT7_Volume16);
 					e7image.open(IO_WriteOnly);	
 					CECAT7MainHeader* e7_header = static_cast<CECAT7MainHeader*>(e7image.createEmptyMainHeader());
-					
 					e7_header->convertFrom(head);
-					cout << "Scantime: " << head->scanTime() << endl;
-					cout << "Injectiontime: " << head->injectionTime() << endl;
-					QDateTime dt;
-					dt.setTime_t(head->scanTime());
-					cout << "Scantime: " << dt.toString().data() << endl;
-					cout << "Scantime: " << head->scanTimeQt().toString().data() << endl;
-					cout << "Injectiontime: " << head->injectionTimeQt().toString().data() << endl;
-					cout << "Weightunits: " << head->strSubjectWeightUnits().data() << endl;
-					cout << "Lengthunits: " << head->strSubjectLengthUnits().data() << endl;
-					cout << "Doseunits: " << head->strDoseUnits().data() << endl;
-					for(int i = 0; i < head->totalFrames(); i++)
+
+          int iTotalFrames = head->totalFrames();
+          unsigned int framesize = head->frameSize();
+          
+          
+					for(int i = 0; i < iTotalFrames; i++)
 					{
 						QByteArray* data = NULL;
 						CConcordeFrameHeader* subHeader = NULL;
@@ -84,8 +78,7 @@ int main( int argc, char ** argv )
 						}
 						else
 						{	
-							unsigned int framesize = head->frameSize();
-							cout << "Framesize: " << framesize << endl;
+							cout << "Converting Frame " << i+1 << " of Frame " << iTotalFrames << endl;
 							float* b = (float*)data->data();
 							
 							char* byte_image = new char[framesize/2];
@@ -119,9 +112,6 @@ int main( int argc, char ** argv )
 								
 							}
 						
-							cout << "Scalefactor: " << scale_factor << endl;
-							cout << "Scale factor in header: " << subHeader->scaleFactor() << endl;
-							
 							char* tmp = data->data();
 							data->resetRawData(tmp, framesize);
 							delete [] tmp;
@@ -136,12 +126,12 @@ int main( int argc, char ** argv )
 							e7_subheader->setScale_Factor(subHeader->scaleFactor()*scale_factor);
 							if(fabs(max) > fabs(min))
 							{
-								e7_subheader->setImage_Min((short)ceil(min*scale_factor));
+								e7_subheader->setImage_Min((short)floor(min*scale_factor));
 								e7_subheader->setImage_Max(32767);
 							}
 							else
 							{
-								e7_subheader->setImage_Max((short)ceil(min*scale_factor));
+								e7_subheader->setImage_Max((short)ceil(max*scale_factor));
 								e7_subheader->setImage_Min(-32768);
 							}
 							e7image.writeSubHeader(*e7_subheader, i+1);
