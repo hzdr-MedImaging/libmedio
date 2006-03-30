@@ -5,6 +5,12 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2006-03-28  Hagen Moelle <draggore@gmx.de>
+
+  * src/ecat/ecat7/CECAT7ImageSubHeader.cpp: since microPET header
+    version 1.711 key axial_plane_size is	not longer in header
+    we use axial_crystal_pitch/2 when	converting microPET to ECAT7
+
 2006-03-17  Jens Langner <Jens.Langner@light-speed.de>
 
   * examples/ecat/ecatcmp/ecatcmp.cpp: added main and scan3d
