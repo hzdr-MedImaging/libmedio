@@ -5,6 +5,11 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2006-05-31 Frank Hofheinz <f.hofheinz@fz-rossendorf.de>
+
+  * src/ecat/ecat7/CECAT7ImageSubHeader.cpp: added subheader 
+    values according to dispheader
+
 2006-03-28  Hagen Moelle <draggore@gmx.de>
 
   * src/ecat/ecat7/CECAT7ImageSubHeader.cpp: since microPET header
