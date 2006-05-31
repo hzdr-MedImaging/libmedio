@@ -47,7 +47,11 @@ class CECAT7SubHeaderImage : public CECATSubHeader
 														Hanning,
 														Hamming,
 														Parzen,
-														Shepp };
+														Shepp,
+														ButterWoth2,
+														Gaussian,
+														Median,
+														Boxcar };
 
 		enum Scatter_Type			{	None=0,
 														Deconvolution,
@@ -60,7 +64,15 @@ class CECAT7SubHeaderImage : public CECATSubHeader
 														Favor3D,
 														SSRB,
 														MultiSliceRebinning,
-														FORE };
+														FORE,
+														BasicOsem,
+														CPUReconBase,
+														FourierCPURecon,
+														FilteredBackProjectionCPURecon,
+														IterativeCPURecon,
+														FourierCPUReconSmallFOV,
+														FilteredBackProjectionCPUReconSmallFOV,
+								                                                IterativeCPUReconSmallFOV };
 
 		// public BitMask field
 		enum Processing_Code	{	NotProcessed				= (0<<0),
@@ -74,7 +86,10 @@ class CECAT7SubHeaderImage : public CECATSubHeader
 														Scatter3DCorr				=	(1<<7),
 														ArcCorrection				=	(1<<8),
 														DecayCorrection			=	(1<<9),
-														OnlineCompression		= (1<<10) };
+						                                                                OnlineCompression		= (1<<10),
+														FourierRebinning			=	(1<<11),
+														SingleSliceRebinning			=	(1<<12),
+														SegmentZeroOnly		= (1<<13) };
 
 		// constructors
 		CECAT7SubHeaderImage(CECATFile* ecatFile = NULL,
