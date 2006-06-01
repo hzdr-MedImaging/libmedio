@@ -5,6 +5,12 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2006-06-01 Christian Poetzsch <cp@burningdragon.de>
+
+	* src/helpers/MedIOUnits.h,src/micropet/CConcordeMainHeader.cpp,
+	  src/ecat/ecat7/CECAT7MainHeader.cpp: added unit classes for
+		parsing, convertation and printing of the various units
+
 2006-05-31 Frank Hofheinz <f.hofheinz@fz-rossendorf.de>
 
   * src/ecat/ecat7/CECAT7ImageSubHeader.cpp: added subheader
