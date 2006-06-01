@@ -73,6 +73,7 @@ PUB_HEADER =	CMedIO.h \
 							micropet/CConcordeFile.h \
 							micropet/CConcordeSinogram.h \
 							micropet/CConcordeImage.h \
+							helpers/MedIOUnits.h
 
 
 HEADERS  = $$PUB_HEADER \
