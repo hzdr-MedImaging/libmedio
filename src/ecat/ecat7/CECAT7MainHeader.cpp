@@ -26,6 +26,7 @@
 #include "CECATFile.h"
 #include "CECATDirectoryItem.h"
 #include "CConcordeFrameHeader.h"
+#include "MedIOUnits.h"
 
 #include "config.h"
 
@@ -1893,13 +1894,14 @@ QString CECAT7MainHeaderPrivate::concorde2ECAT7dataUnits(CConcordeMainHeader::Ca
 {
 	ENTER();
 
-	QString E7u;
+	CActivityConcentrationUnit calUnit;
 	switch(u)
 	{
-		case CConcordeMainHeader::nCiPerCC: E7u = "nCi/cc"; break;
-		case CConcordeMainHeader::BqPerCC: E7u = "Bq/cc"; break;
-		default: E7u = "Unknown units"; break;
+		case CConcordeMainHeader::nCiPerCC: calUnit.setUnit(CActivityConcentrationUnit::NanoCuriesPerCubiccentimeter_units); break;
+		case CConcordeMainHeader::BqPerCC: calUnit.setUnit(CActivityConcentrationUnit::BequerelsPerCubiccentimeter_units); break;
+		default: calUnit.setUnit(CActivityConcentrationUnit::Unknown_units); break;
 	}
+	QString E7u = calUnit.unitAsString();
 
 	RETURN(E7u.ascii());
 	return E7u;
@@ -1926,13 +1928,15 @@ float CECAT7MainHeaderPrivate::concorde2ECAT7dosage(float d, CConcordeMainHeader
 	ENTER();
 
 	// dosage in ECAT7 is Bq always
-	float E7d;
+	CDosage dosage(d);
+
 	switch(u)
 	{
-		case CConcordeMainHeader::mCi: E7d = d * 1e-3 / 3.7e10; break;
-		case CConcordeMainHeader::MBq: E7d = d * 1e6; break;
-		default: E7d = 0.0; break;
+		case CConcordeMainHeader::mCi: dosage.setUnit(CDosage::Millicurie_units); break;
+		case CConcordeMainHeader::MBq: dosage.setUnit(CDosage::Megabequerels_units); break;
+		default: dosage.setUnit(CDosage::Unknown_units); break;
 	}
+	float E7d = dosage.convertTo(CDosage::Bequerels_units).dosage();
 
 	RETURN(E7d);
 	return E7d;
@@ -1941,16 +1945,18 @@ float CECAT7MainHeaderPrivate::concorde2ECAT7dosage(float d, CConcordeMainHeader
 float CECAT7MainHeaderPrivate::concorde2ECAT7Height(float l, CConcordeMainHeader::SubjectLengthUnits u) const
 {
 	ENTER();
-
+	
 	// height in ECAT7 is cm always
-	float E7l;
+	CLength height(l);
+
 	switch(u)
 	{
-		case CConcordeMainHeader::Millimeters: E7l = l / 10.0; break;
-		case CConcordeMainHeader::Centimeters: E7l = l; break;
-		case CConcordeMainHeader::Inches: E7l = l * 2.54; break;
-		default: E7l = 0.0; break;
+		case CConcordeMainHeader::Millimeters: height.setUnit(CLength::Millimeter_units); break;
+		case CConcordeMainHeader::Centimeters: height.setUnit(CLength::Centimeter_units); break;
+		case CConcordeMainHeader::Inches: height.setUnit(CLength::Inch_units); break;
+		default: height.setUnit(CLength::Unknown_units); break;
 	}
+	float E7l = height.convertTo(CLength::Centimeter_units).length();
 
 	RETURN(E7l);
 	return E7l;
@@ -1960,16 +1966,18 @@ float CECAT7MainHeaderPrivate::concorde2ECAT7Weight(float w, CConcordeMainHeader
 {
 	ENTER();
 
+	CWeight weight(w);
+
 	// weight in ECAT7 is kilograms always
-	float E7w;
 	switch(u)
 	{
-		case CConcordeMainHeader::Grams: E7w = w / 1000.0; break;
-		case CConcordeMainHeader::Ounces: E7w = w * 0.028349; break;
-		case CConcordeMainHeader::Kilograms: E7w = w; break;
-		case CConcordeMainHeader::Pounds:  E7w = w * 0.45359237; break;
-		default: E7w = 0.0; break;
+		case CConcordeMainHeader::Grams: weight.setUnit(CWeight::Gram_units); break;
+		case CConcordeMainHeader::Ounces: weight.setUnit(CWeight::Ounce_units); break;
+		case CConcordeMainHeader::Kilograms: weight.setUnit(CWeight::Kilogram_units); break;
+		case CConcordeMainHeader::Pounds: weight.setUnit(CWeight::Pound_units); break;
+		default: weight.setUnit(CWeight::Unknown_units); break;
 	}
+	float E7w = weight.convertTo(CWeight::Kilogram_units).weight();
 
 	RETURN(E7w);
 	return E7w;

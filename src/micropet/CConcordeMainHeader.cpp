@@ -35,6 +35,7 @@
 #include "CKeyParser.h"
 #include "CIntVector.h"
 #include "CDate.h"
+#include "MedIOUnits.h"
 
 #include <rtdebug.h>
 
@@ -649,39 +650,41 @@ QDateTime CConcordeMainHeader::injectionTimeQt(void) const
 
 QString CConcordeMainHeader::strSubjectWeightUnits(void) const
 {
-	QString tmp; 
+	CWeight weight;
 	switch(m_pData->header.subject_weight_units)
 	{
-		case Grams: tmp = "g"; break;
-		case Ounces: tmp = "oz"; break;
-		case Kilograms: tmp = "kg"; break;
-		case Pounds: tmp = "pounds"; break;
-		default: tmp = "unknown units"; break;
+		case Grams: weight.setUnit(CWeight::Gram_units); break;
+		case Ounces: weight.setUnit(CWeight::Ounce_units); break;
+		case Kilograms: weight.setUnit(CWeight::Kilogram_units); break;
+		case Pounds: weight.setUnit(CWeight::Pound_units); break;
+		default: weight.setUnit(CWeight::Unknown_units); break;
 	}
-	return tmp;
+	return weight.unitAsString();
 }
+
 QString CConcordeMainHeader::strSubjectLengthUnits(void) const
 {
-	QString tmp; 
+	CLength length; 
 	switch(m_pData->header.subject_length_units)
 	{
-		case Millimeters: tmp = "mm"; break;
-		case Centimeters: tmp = "cm"; break;
-		case Inches: tmp = "in"; break;
-		default: tmp = "unknown units"; break;
+		case Millimeters: length.setUnit(CLength::Millimeter_units); break;
+		case Centimeters: length.setUnit(CLength::Centimeter_units); break;
+		case Inches: length.setUnit(CLength::Inch_units); break;
+		default: length.setUnit(CLength::Unknown_units); break;
 	}
-	return tmp;
+	return length.unitAsString();
 }
+
 QString CConcordeMainHeader::strDoseUnits(void) const
 {
-	QString tmp; 
+	CDosage dosage;
 	switch(m_pData->header.dose_units)
 	{
-		case mCi: tmp = "mCi"; break;
-		case MBq: tmp = "MBq"; break;
-		default: tmp = "unknown units"; break;
+		case mCi: dosage.setUnit(CDosage::Millicurie_units); break;
+		case MBq: dosage.setUnit(CDosage::Megabequerels_units); break;
+		default: dosage.setUnit(CDosage::Unknown_units); break;
 	}
-	return tmp;
+	return dosage.unitAsString();
 }
 
 //mutator methods
