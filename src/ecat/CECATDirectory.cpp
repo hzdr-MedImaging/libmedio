@@ -26,7 +26,7 @@
 #include "CECATFile.h"
 
 #include <qdatastream.h>
-#include <qintdict.h>
+#include <qmap.h>
 #include <qvaluevector.h>
 
 #include <rtdebug.h>
@@ -76,7 +76,7 @@ class CECATDirectoryPrivate
 {
 	public:
 		CECATFile* file;	// ptr to our associated ECATFile
-		QIntDict<CECATDirectoryItem>		 dirItems;			// dictonary for the dirItems
+		QMap<Q_UINT32, CECATDirectoryItem*> dirItems;		// value map of dirItems
 		QValueVector<QIODevice::Offset>  filePositions; // for each DirList we
 																										// could have different file
 																										// positions which we have
@@ -96,7 +96,6 @@ CECATDirectory::CECATDirectory(CECATFile* ecatFile)
 
 	// create the int dictonary for the dirItems and set it to autodelete
 	m_pData->dirItems.clear();
-	m_pData->dirItems.setAutoDelete(true);
 
   // create a new value vector for carrying all the different file
   // positions this directory list is splitted to.
@@ -112,6 +111,12 @@ CECATDirectory::CECATDirectory(CECATFile* ecatFile)
 CECATDirectory::~CECATDirectory()
 {
 	ENTER();
+
+	// now we iterate through our QHash and make sure we delete all our
+	// stored diritems correctly.
+  QMap<Q_UINT32, CECATDirectoryItem*>::Iterator it;
+	for(it=m_pData->dirItems.begin(); it != m_pData->dirItems.end(); ++it)
+		delete it.data();
 
 	delete m_pData;
 
@@ -296,26 +301,27 @@ bool CECATDirectory::save(void) const
 	// now we have to go through our directory and stream all items
 	// in 31 chunks as the directory list can only have 31 items plus
 	// 1 chunk for the header
-	short frame=1;
-	short plane=1;
-	short gate=1;
-	short bed=0;
-	short data=0;
-	short depth=4; // we have five depth levels (4==data, 3==bed, 2==gate, 1==plane, 0==frame)
 	unsigned int currentDirPos = ECAT_POS_MAINDIR;
-	unsigned int nextDirPos;
-	unsigned int foundDirItems = 0;
+	unsigned int processedDirItems = 0;
 	unsigned short curDirList = 0;
+	Q_UINT32 nextDirPos;
 	QIODevice::Offset lastDirListPos = 0;
-	do
-	{
-		Q_UINT32 matrixID = convertToMatrixID(frame, plane, gate, bed, data);
-		CECATDirectoryItem* pDirItem = m_pData->dirItems.find(matrixID);
 
+	// now iterate through our sorted QMap and write out the
+	// data sorted as well.
+  QMap<Q_UINT32, CECATDirectoryItem*>::Iterator it;
+	for(it=m_pData->dirItems.begin(); it != m_pData->dirItems.end(); ++it)
+	{
+		CECATDirectoryItem* pDirItem = it.data();
 		if(pDirItem)
 		{
-			D("found DirItem: %d/%d/%d/%d/%d", frame, plane, gate, bed, data);
-			foundDirItems++;
+			processedDirItems++;
+
+			D("found DirItem: %d/%d/%d/%d/%d", pDirItem->frame(), 
+																				 pDirItem->plane(), 
+																				 pDirItem->gate(), 
+																				 pDirItem->bed(), 
+																				 pDirItem->data());
 
 			// we fix a problem where it happened that in case the writeSubHeader()/
 			// writeMatrix() where used separately, the directory got overwritten
@@ -336,7 +342,7 @@ bool CECATDirectory::save(void) const
 			// first we check wheter the dirList is filled up (>=31 items)
 			// and then write it out separate first.
 			if(dirHead.ItemsToFollow == ECAT_DIRITEM_NUM && 
-				 foundDirItems < count())
+				 processedDirItems < count())
 			{
 				QIODevice::Offset appendPos;
 
@@ -398,8 +404,8 @@ bool CECATDirectory::save(void) const
 				}
 				else
 					D("DirList #%d successfully written @ %lld (%lld)", curDirList, 
-																														FilePos2ECATBlock(m_pData->file->at()-ECAT_DIRLIST_SIZE),
-																														m_pData->file->at()-ECAT_DIRLIST_SIZE);
+																															FilePos2ECATBlock(m_pData->file->at()-ECAT_DIRLIST_SIZE),
+																															m_pData->file->at()-ECAT_DIRLIST_SIZE);
 
 				// clear the dirHead so that we can immediately reuse it
 				dirHead.FreeItems			= ECAT_DIRITEM_NUM;
@@ -420,28 +426,8 @@ bool CECATDirectory::save(void) const
 				// iterate to the next dirList
 				curDirList++;
 			}
-			
-			if(depth < 4)				depth++;	
-			if(depth == 4)			data++;
-			else if(depth == 3) bed++;
-			else if(depth == 2) gate++;
-			else if(depth == 1) plane++;
-			else if(depth == 0) frame++;			
 		}
-		else
-		{
-			if(depth == 0 || foundDirItems == count())
-				break;
-			else if(depth == 1) { frame++;	plane=1; }
-			else if(depth == 2) { plane++;	gate=1;	 }
-			else if(depth == 3) { gate++;		bed=0;	 }
-			else if(depth == 4) { bed++;		data=0;	 }
-			
-			depth--;
-		}
-
 	}
-	while(1);
 
 	// now we make sure that even not fully filled up directory lists
 	// get written out at the end
@@ -516,7 +502,9 @@ CECATDirectoryItem* CECATDirectory::item(short frame, short plane,
 		Q_UINT32 mID = convertToMatrixID(frame, plane, gate, bed, data);
 		D("Generated MatrixID: %08lx", mID);
 
-		dirItem = m_pData->dirItems.find(mID);
+		QMap<Q_UINT32, CECATDirectoryItem*>::Iterator it = m_pData->dirItems.find(mID);
+		if(it != m_pData->dirItems.end())
+			dirItem = it.data();
 	}
 
 	RETURN(dirItem);
@@ -565,11 +553,13 @@ QIODevice::Offset CECATDirectoryPrivate::lastDirItemOffset(void) const
 
 	// we search through our item list and check the for the
 	// very last item position
-	QIntDictIterator<CECATDirectoryItem> it(dirItems);
-	for(;it.current(); ++it)
+  QMap<Q_UINT32, CECATDirectoryItem*>::ConstIterator it;
+	for(it=dirItems.begin(); it != dirItems.end(); ++it)
 	{
-		if(it.current()->dataBlock_End() > offset)
-			offset = it.current()->dataBlock_End();
+		CECATDirectoryItem* dItem = it.data();
+
+		if(dItem->dataBlock_End() > offset)
+			offset = dItem->dataBlock_End();
 	}
 
 	// in addition to the diritem position check we have to check
@@ -591,12 +581,14 @@ short CECATDirectory::numFrames(void) const
 
 	// we iterate through our dictionary looking for the highest available
 	// frame number
-	QIntDictIterator<CECATDirectoryItem> it(m_pData->dirItems);
-	for(;it.current(); ++it)
+  QMap<Q_UINT32, CECATDirectoryItem*>::ConstIterator it;
+	for(it=m_pData->dirItems.begin(); it != m_pData->dirItems.end(); ++it)
 	{
-		if(it.current()->frame() > framesNum)
+		CECATDirectoryItem* dItem = it.data();
+		
+		if(dItem->frame() > framesNum)
 		{
-			framesNum = it.current()->frame();
+			framesNum = dItem->frame();
 			ASSERT(framesNum > 0 && framesNum <= 256);
 		}
 	}
@@ -611,12 +603,14 @@ short CECATDirectory::numPlanes(void) const
 
 	// we iterate through our dictionary looking for the highest available
 	// plane number
-	QIntDictIterator<CECATDirectoryItem> it(m_pData->dirItems);
-	for(;it.current(); ++it)
+  QMap<Q_UINT32, CECATDirectoryItem*>::ConstIterator it;
+	for(it=m_pData->dirItems.begin(); it != m_pData->dirItems.end(); ++it)
 	{
-		if(it.current()->plane() > planesNum)
+		CECATDirectoryItem* dItem = it.data();
+
+		if(dItem->plane() > planesNum)
 		{
-			planesNum = it.current()->plane();
+			planesNum = dItem->plane();
 			ASSERT(planesNum > 0 && planesNum <= 256);
 		}
 	}
@@ -630,12 +624,14 @@ short CECATDirectory::numGates(void) const
 
 	// we iterate through our dictionary looking for the highest available
 	// gates number
-	QIntDictIterator<CECATDirectoryItem> it(m_pData->dirItems);
-	for(;it.current(); ++it)
+  QMap<Q_UINT32, CECATDirectoryItem*>::ConstIterator it;
+	for(it=m_pData->dirItems.begin(); it != m_pData->dirItems.end(); ++it)
 	{
-		if(it.current()->gate() > gatesNum)
+		CECATDirectoryItem* dItem = it.data();
+
+		if(dItem->gate() > gatesNum)
 		{
-			gatesNum = it.current()->gate();
+			gatesNum = dItem->gate();
 			ASSERT(gatesNum > 0 && gatesNum <= 256);
 		}
 	}
@@ -649,12 +645,14 @@ short CECATDirectory::numBedPos(void) const
 
 	// we iterate through our dictionary looking for the highest available
 	// plane number
-	QIntDictIterator<CECATDirectoryItem> it(m_pData->dirItems);
-	for(;it.current(); ++it)
+  QMap<Q_UINT32, CECATDirectoryItem*>::ConstIterator it;
+	for(it=m_pData->dirItems.begin(); it != m_pData->dirItems.end(); ++it)
 	{
-		if(it.current()->bed() > bedsNum)
+		CECATDirectoryItem* dItem = it.data();
+
+		if(dItem->bed() > bedsNum)
 		{
-			bedsNum = it.current()->bed();
+			bedsNum = dItem->bed();
 			ASSERT(bedsNum >= 0 && bedsNum < 256);
 		}
 	}
@@ -672,10 +670,10 @@ bool CECATDirectory::readSubHeader(CECATSubHeader*& subHeader, short frame, shor
 	if(matrixParamsValid(frame, plane, gate, bed, data))
 	{
 		// get the directoryItem so that we can query the matrix from it
-		CECATDirectoryItem* pDirItem = m_pData->dirItems.find(convertToMatrixID(frame, plane, gate, bed, data));
+		QMap<Q_UINT32, CECATDirectoryItem*>::Iterator it = m_pData->dirItems.find(convertToMatrixID(frame, plane, gate, bed, data));
 
-		if(pDirItem)
-			result = pDirItem->readSubHeader(subHeader);
+		if(it != m_pData->dirItems.end())
+			result = it.data()->readSubHeader(subHeader);
 	}
 	
 	RETURN(result);
@@ -691,10 +689,10 @@ bool CECATDirectory::readMatrix(QByteArray*& matrixData, short frame, short plan
 	if(matrixParamsValid(frame, plane, gate, bed, data))
 	{
 		// get the directoryItem so that we can query the matrix from it
-		CECATDirectoryItem* pDirItem = m_pData->dirItems.find(convertToMatrixID(frame, plane, gate, bed, data));
+		QMap<Q_UINT32, CECATDirectoryItem*>::Iterator it = m_pData->dirItems.find(convertToMatrixID(frame, plane, gate, bed, data));
 
-		if(pDirItem)
-			result = pDirItem->readMatrix(matrixData);
+		if(it != m_pData->dirItems.end())
+			result = it.data()->readMatrix(matrixData);
 	}
 
 	RETURN(result);
@@ -710,10 +708,10 @@ bool CECATDirectory::readMatrix(char*& matrixData, unsigned int& len, short fram
 	if(matrixParamsValid(frame, plane, gate, bed, data))
 	{
 		// get the directoryItem so that we can query the matrix from it
-		CECATDirectoryItem* pDirItem = m_pData->dirItems.find(convertToMatrixID(frame, plane, gate, bed, data));
+		QMap<Q_UINT32, CECATDirectoryItem*>::Iterator it = m_pData->dirItems.find(convertToMatrixID(frame, plane, gate, bed, data));
 
-		if(pDirItem)
-			result = pDirItem->readMatrix(matrixData, len);
+		if(it != m_pData->dirItems.end())
+			result = it.data()->readMatrix(matrixData, len);
 	}
 	
 	RETURN(result);
@@ -729,10 +727,10 @@ bool CECATDirectory::readMatrix(QByteArray*& matrixData, CECATSubHeader*& subHea
 	if(matrixParamsValid(frame, plane, gate, bed, data))
 	{
 		// get the directoryItem so that we can query the matrix from it
-		CECATDirectoryItem* pDirItem = m_pData->dirItems.find(convertToMatrixID(frame, plane, gate, bed, data));
+		QMap<Q_UINT32, CECATDirectoryItem*>::Iterator it = m_pData->dirItems.find(convertToMatrixID(frame, plane, gate, bed, data));
 
-		if(pDirItem)
-			result = pDirItem->readMatrix(matrixData, subHeader);
+		if(it != m_pData->dirItems.end())
+			result = it.data()->readMatrix(matrixData, subHeader);
 	}
 	
 	RETURN(result);
@@ -748,10 +746,10 @@ bool CECATDirectory::readMatrix(char*& matrixData, unsigned int& len, CECATSubHe
 	if(matrixParamsValid(frame, plane, gate, bed, data))
 	{
 		// get the directoryItem so that we can query the matrix from it
-		CECATDirectoryItem* pDirItem = m_pData->dirItems.find(convertToMatrixID(frame, plane, gate, bed, data));
+		QMap<Q_UINT32, CECATDirectoryItem*>::Iterator it = m_pData->dirItems.find(convertToMatrixID(frame, plane, gate, bed, data));
 
-		if(pDirItem)
-			result = pDirItem->readMatrix(matrixData, len, subHeader);
+		if(it != m_pData->dirItems.end())
+			result = it.data()->readMatrix(matrixData, len, subHeader);
 	}
 	
 	RETURN(result);
@@ -774,8 +772,13 @@ bool CECATDirectory::writeSubHeader(const CECATSubHeader& subHeader, short frame
 		// see if we already have an item with the same matrixID in our
 		// dictonary and if so we reuse that one and place a new subheader at
 		// this position
-		CECATDirectoryItem* pNewDItem = m_pData->dirItems.find(mID);
-		if(pNewDItem == NULL)
+		CECATDirectoryItem* pNewDItem;
+		
+		// get the directoryItem so that we can query the matrix from it
+		QMap<Q_UINT32, CECATDirectoryItem*>::Iterator it = m_pData->dirItems.find(mID);
+		if(it != m_pData->dirItems.end())
+			pNewDItem = it.data();
+		else
 		{
 			// create a new DirectoryItem which we put in this Directory
 			pNewDItem = m_pData->newDirItem(mID);
@@ -807,8 +810,13 @@ bool CECATDirectory::writeMatrix(const QByteArray& matrixData,
 		// see if we already have an item with the same matrixID in our
 		// dictonary and if so we reuse that one and place a new subheader at
 		// this position
-		CECATDirectoryItem* pNewDItem = m_pData->dirItems.find(mID);
-		if(pNewDItem == NULL)
+		CECATDirectoryItem* pNewDItem;
+		
+		// get the directoryItem so that we can query the matrix from it
+		QMap<Q_UINT32, CECATDirectoryItem*>::Iterator it = m_pData->dirItems.find(mID);
+		if(it != m_pData->dirItems.end())
+			pNewDItem = it.data();
+		else
 		{
 			// create a new DirectoryItem which we put in this Directory
 			pNewDItem = m_pData->newDirItem(mID);
@@ -840,8 +848,13 @@ bool CECATDirectory::writeMatrix(const char* matrixData, unsigned int size,
 		// see if we already have an item with the same matrixID in our
 		// dictonary and if so we reuse that one and place a new subheader at
 		// this position
-		CECATDirectoryItem* pNewDItem = m_pData->dirItems.find(mID);
-		if(pNewDItem == NULL)
+		CECATDirectoryItem* pNewDItem;
+		
+		// get the directoryItem so that we can query the matrix from it
+		QMap<Q_UINT32, CECATDirectoryItem*>::Iterator it = m_pData->dirItems.find(mID);
+		if(it != m_pData->dirItems.end())
+			pNewDItem = it.data();
+		else
 		{
 			// create a new DirectoryItem which we put in this Directory
 			pNewDItem = m_pData->newDirItem(mID);
@@ -873,8 +886,13 @@ bool CECATDirectory::writeMatrix(const QByteArray& matrixData, CECATSubHeader::D
 		// see if we already have an item with the same matrixID in our
 		// dictonary and if so we reuse that one and place a new subheader at
 		// this position
-		CECATDirectoryItem* pNewDItem = m_pData->dirItems.find(mID);
-		if(pNewDItem == NULL)
+		CECATDirectoryItem* pNewDItem;
+		
+		// get the directoryItem so that we can query the matrix from it
+		QMap<Q_UINT32, CECATDirectoryItem*>::Iterator it = m_pData->dirItems.find(mID);
+		if(it != m_pData->dirItems.end())
+			pNewDItem = it.data();
+		else
 		{
 			// create a new DirectoryItem which we put in this Directory
 			pNewDItem = m_pData->newDirItem(mID);
@@ -907,8 +925,13 @@ bool CECATDirectory::writeMatrix(const char* matrixData, unsigned int size,
 		// see if we already have an item with the same matrixID in our
 		// dictonary and if so we reuse that one and place a new subheader at
 		// this position
-		CECATDirectoryItem* pNewDItem = m_pData->dirItems.find(mID);
-		if(pNewDItem == NULL)
+		CECATDirectoryItem* pNewDItem;
+		
+		// get the directoryItem so that we can query the matrix from it
+		QMap<Q_UINT32, CECATDirectoryItem*>::Iterator it = m_pData->dirItems.find(mID);
+		if(it != m_pData->dirItems.end())
+			pNewDItem = it.data();
+		else
 		{
 			// create a new DirectoryItem which we put in this Directory
 			pNewDItem = m_pData->newDirItem(mID);
@@ -940,8 +963,13 @@ bool CECATDirectory::writeMatrix(const QByteArray& matrixData, const CECATSubHea
 		// see if we already have an item with the same matrixID in our
 		// dictonary and if so we reuse that one and place a new subheader at
 		// this position
-		CECATDirectoryItem* pNewDItem = m_pData->dirItems.find(mID);
-		if(pNewDItem == NULL)
+		CECATDirectoryItem* pNewDItem;
+		
+		// get the directoryItem so that we can query the matrix from it
+		QMap<Q_UINT32, CECATDirectoryItem*>::Iterator it = m_pData->dirItems.find(mID);
+		if(it != m_pData->dirItems.end())
+			pNewDItem = it.data();
+		else
 		{
 			// create a new DirectoryItem which we put in this Directory
 			pNewDItem = m_pData->newDirItem(mID);
@@ -973,8 +1001,13 @@ bool CECATDirectory::writeMatrix(const char* matrixData, unsigned int size, cons
 		// see if we already have an item with the same matrixID in our
 		// dictonary and if so we reuse that one and place a new subheader at
 		// this position
-		CECATDirectoryItem* pNewDItem = m_pData->dirItems.find(mID);
-		if(pNewDItem == NULL)
+		CECATDirectoryItem* pNewDItem;
+		
+		// get the directoryItem so that we can query the matrix from it
+		QMap<Q_UINT32, CECATDirectoryItem*>::Iterator it = m_pData->dirItems.find(mID);
+		if(it != m_pData->dirItems.end())
+			pNewDItem = it.data();
+		else
 		{
 			// create a new DirectoryItem which we put in this Directory
 			pNewDItem = m_pData->newDirItem(mID);
@@ -994,14 +1027,18 @@ CECATDirectoryItem* CECATDirectory::operator[](unsigned int num) const
 {
 	ENTER();
 
-	// use an IntDictIterator to iterate until we got the num'th
+	// use an QMap iterator to iterate until we got the num'th
 	// element in our dictonary and return it
-	QIntDictIterator<CECATDirectoryItem> it(m_pData->dirItems);
-	for(unsigned int i=0; i < num && it.current(); i++)
-	{
+	QMap<Q_UINT32, CECATDirectoryItem*>::ConstIterator it = m_pData->dirItems.begin();
+	for(unsigned int i=0; i < num && it != m_pData->dirItems.end(); i++)
 		++it;
-	}
 
-	RETURN(it.current());
-	return it.current();
+	CECATDirectoryItem* dItem;
+	if(it != m_pData->dirItems.end())
+		dItem = it.data();
+	else
+		dItem = NULL;
+
+	RETURN(dItem);
+	return dItem;
 }
