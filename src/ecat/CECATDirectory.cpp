@@ -26,7 +26,7 @@
 #include "CECATFile.h"
 
 #include <QDataStream>
-#include <QHash>
+#include <QMap>
 #include <QVector>
 
 #include <rtdebug.h>
@@ -76,7 +76,7 @@ class CECATDirectoryPrivate
 {
 	public:
 		CECATFile* file;	// ptr to our associated ECATFile
-		QHash<quint32, CECATDirectoryItem*>	 dirItems;			// dictonary for the dirItems
+		QMap<quint32, CECATDirectoryItem*> dirItems; // value map of dirItems
 		QVector<qint64>	 filePositions; // for each DirList we
 																		// may have different file
 																		// positions which we have
@@ -114,7 +114,7 @@ CECATDirectory::~CECATDirectory()
 
 	// now we iterate through our QHash and make sure we delete all our
 	// stored diritems correctly.
-  QHashIterator<quint32, CECATDirectoryItem*> i(m_pData->dirItems);
+  QMapIterator<quint32, CECATDirectoryItem*> i(m_pData->dirItems);
 	while(i.hasNext())
 	{
 		i.next();
@@ -303,26 +303,29 @@ bool CECATDirectory::save(void) const
 	// now we have to go through our directory and stream all items
 	// in 31 chunks as the directory list can only have 31 items plus
 	// 1 chunk for the header
-	short frame=1;
-	short plane=1;
-	short gate=1;
-	short bed=0;
-	short data=0;
-	short depth=4; // we have five depth levels (4==data, 3==bed, 2==gate, 1==plane, 0==frame)
 	unsigned int currentDirPos = ECAT_POS_MAINDIR;
-	unsigned int nextDirPos;
-	unsigned int foundDirItems = 0;
+	unsigned int processedDirItems = 0;
 	unsigned short curDirList = 0;
+	quint32 nextDirPos;
 	qint64 lastDirListPos = 0;
-	do
-	{
-		quint32 matrixID = convertToMatrixID(frame, plane, gate, bed, data);
-		CECATDirectoryItem* pDirItem = m_pData->dirItems.value(matrixID);
 
+	// now iterate through our sorted QMap and write out the
+	// data sorted as well.
+  QMapIterator<quint32, CECATDirectoryItem*> it(m_pData->dirItems);
+	while(it.hasNext())
+	{
+		it.next();
+		
+		CECATDirectoryItem* pDirItem = it.value();
 		if(pDirItem)
 		{
-			D("found DirItem: %d/%d/%d/%d/%d", frame, plane, gate, bed, data);
-			foundDirItems++;
+			processedDirItems++;
+
+			D("found DirItem: %d/%d/%d/%d/%d", pDirItem->frame(), 
+																				 pDirItem->plane(), 
+																				 pDirItem->gate(), 
+																				 pDirItem->bed(), 
+																				 pDirItem->data());
 
 			// we fix a problem where it happened that in case the writeSubHeader()/
 			// writeMatrix() where used separately, the directory got overwritten
@@ -343,7 +346,7 @@ bool CECATDirectory::save(void) const
 			// first we check wheter the dirList is filled up (>=31 items)
 			// and then write it out separate first.
 			if(dirHead.ItemsToFollow == ECAT_DIRITEM_NUM && 
-				 foundDirItems < count())
+				 processedDirItems < count())
 			{
 				qint64 appendPos;
 
@@ -405,8 +408,8 @@ bool CECATDirectory::save(void) const
 				}
 				else
 					D("DirList #%d successfully written @ %lld (%lld)", curDirList, 
-																														FilePos2ECATBlock(m_pData->file->pos()-ECAT_DIRLIST_SIZE),
-																														m_pData->file->pos()-ECAT_DIRLIST_SIZE);
+																															FilePos2ECATBlock(m_pData->file->pos()-ECAT_DIRLIST_SIZE),
+																															m_pData->file->pos()-ECAT_DIRLIST_SIZE);
 
 				// clear the dirHead so that we can immediately reuse it
 				dirHead.FreeItems			= ECAT_DIRITEM_NUM;
@@ -427,28 +430,8 @@ bool CECATDirectory::save(void) const
 				// iterate to the next dirList
 				curDirList++;
 			}
-			
-			if(depth < 4)				depth++;	
-			if(depth == 4)			data++;
-			else if(depth == 3) bed++;
-			else if(depth == 2) gate++;
-			else if(depth == 1) plane++;
-			else if(depth == 0) frame++;			
 		}
-		else
-		{
-			if(depth == 0 || foundDirItems == count())
-				break;
-			else if(depth == 1) { frame++;	plane=1; }
-			else if(depth == 2) { plane++;	gate=1;	 }
-			else if(depth == 3) { gate++;		bed=0;	 }
-			else if(depth == 4) { bed++;		data=0;	 }
-			
-			depth--;
-		}
-
 	}
-	while(1);
 
 	// now we make sure that even not fully filled up directory lists
 	// get written out at the end
@@ -571,7 +554,7 @@ qint64 CECATDirectoryPrivate::lastDirItemOffset(void) const
 
 	// we search through our item list and check the for the
 	// very last item position
-  QHashIterator<quint32, CECATDirectoryItem*> i(dirItems);
+  QMapIterator<quint32, CECATDirectoryItem*> i(dirItems);
 	while(i.hasNext())
 	{
 		i.next();
@@ -598,7 +581,7 @@ short CECATDirectory::numFrames(void) const
 
 	// we iterate through our dictionary looking for the highest available
 	// frame number
-  QHashIterator<quint32, CECATDirectoryItem*> i(m_pData->dirItems);
+  QMapIterator<quint32, CECATDirectoryItem*> i(m_pData->dirItems);
 	while(i.hasNext())
 	{
 		i.next();
@@ -619,7 +602,7 @@ short CECATDirectory::numPlanes(void) const
 
 	// we iterate through our dictionary looking for the highest available
 	// plane number
-  QHashIterator<quint32, CECATDirectoryItem*> i(m_pData->dirItems);
+  QMapIterator<quint32, CECATDirectoryItem*> i(m_pData->dirItems);
 	while(i.hasNext())
 	{
 		i.next();
@@ -639,7 +622,7 @@ short CECATDirectory::numGates(void) const
 
 	// we iterate through our dictionary looking for the highest available
 	// gates number
-  QHashIterator<quint32, CECATDirectoryItem*> i(m_pData->dirItems);
+  QMapIterator<quint32, CECATDirectoryItem*> i(m_pData->dirItems);
 	while(i.hasNext())
 	{
 		i.next();
@@ -659,7 +642,7 @@ short CECATDirectory::numBedPos(void) const
 
 	// we iterate through our dictionary looking for the highest available
 	// plane number
-  QHashIterator<quint32, CECATDirectoryItem*> i(m_pData->dirItems);
+  QMapIterator<quint32, CECATDirectoryItem*> i(m_pData->dirItems);
 	while(i.hasNext())
 	{
 		i.next();
@@ -1006,9 +989,9 @@ CECATDirectoryItem* CECATDirectory::operator[](unsigned int num) const
 	ENTER();
 	CECATDirectoryItem* foundItem = NULL;
 
-	// use an QHashIterator to iterate until we got the num'th
+	// use an QMapIterator to iterate until we got the num'th
 	// element in our dictonary and return it
-  QHashIterator<quint32, CECATDirectoryItem*> it(m_pData->dirItems);
+  QMapIterator<quint32, CECATDirectoryItem*> it(m_pData->dirItems);
 	for(unsigned int i=0; it.hasNext(); i++)
 	{
 		it.next();
