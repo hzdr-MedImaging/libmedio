@@ -1,0 +1,373 @@
+/* vim:set ts=2 nowrap: ****************************************************
+
+ libmedio - Medical Data C++ I/O Library
+ Copyright (C) 2004 by Jens Langner <Jens.Langner@light-speed.de>
+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 2.1 of the License, or (at your option) any later version.
+
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public
+ License along with this library; if not, write to the Free Software
+ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+ $Id: ecatcmp.cpp 317 2006-03-17 17:51:06Z langner $
+
+***************************************************************************/
+
+#include <CECATFile>
+#include <CECAT6MainHeader>
+#include <CECAT7MainHeader>
+#include <CECATDirectory>
+#include <CECATDirectoryItem>
+#include <CECAT7SubHeaderScan3D>
+
+#include <QFileInfo>
+#include <QMultiHash>
+#include <QString>
+#include <QStringList>
+
+#include <iostream>
+#include <iomanip>
+
+using namespace std;
+
+// global data
+QString inputFileName;
+QString outputFileName;
+quint32 replaceMatrixID=0;
+quint32 newMatrixID=0;
+
+//  Function:    main
+//! 
+//! This is a small and simple example utility to modify an ECAT file and process
+//! some operations on it (e.g. remove or add a frame/matrix)
+//! 
+//! @param       argc number of commandline options
+//! @param       *argv[] pointer to a array of the commandline options
+//! @return      integer of the exit code.
+////////////////////////////////////////////////////////////////////////////////
+int main(int argc, char* argv[])
+{
+	int returnCode = 0; // return no error on default
+
+  // You want this, unless you mix couts output with C output.
+  // Read  http://gcc.gnu.org/onlinedocs/libstdc++/27_io/howto.html#8 for an explanation.
+  ios::sync_with_stdio(false);
+
+	// put all arguments in a temporary MultiHash
+	QMultiHash<QString, QString> args;
+
+	// if the user has specified some commandline options
+	// lets process and parse them.
+	for(int i=1; i < argc; i++)
+	{
+		QString option(argv[i]);
+
+		if(option[0] == '-')
+		{
+			if(i+1 < argc && argv[i+1][0] != '-')
+			{
+				args.insert(option, argv[i+1]);
+			}
+			else
+				args.insert(option, "");
+		}
+		else 
+			args.insert("infile", argv[i]);
+	}
+		
+	// check if the user has specified at least 2 arguments which
+	// is the bare minimum
+	if(args.isEmpty() == false &&
+		 args.contains("-h") == false)
+	{
+		// if the user wants to remove a specific
+		// matrix from the input ECAT file, we do it now
+		if(args.contains("-r"))
+		{
+			QString replaceString = args.value("-r");
+
+			if(replaceString.isEmpty())
+			{
+				cout << "ERROR: empty replace string option found." << endl;
+				returnCode = 2;
+			}
+			else
+			{
+				// now we generate the replace matrixID
+				QStringList list = replaceString.split(',');
+				if(list.isEmpty() == false)
+				{
+					short frame=1;
+					short plane=1;
+					short gate=1;
+					short bed=0;
+					short data=0;
+
+					QStringListIterator it(list);
+					int i;
+					for(i=0; it.hasNext() && i <= 4; i++)
+					{
+						bool success = false;
+						short num = it.next().toInt(&success);
+
+						if(success == false)
+						{
+							i=-1;
+							break;
+						}
+
+						if(i==0)
+							frame = num;
+						else if(i==1)
+							plane = num;
+						else if(i==2)
+							gate = num;
+						else if(i==3)
+							bed = num;
+						else if(i==4)
+							data = num;
+					}
+
+					if(i != -1)
+					{
+						replaceMatrixID = convertToMatrixID(frame, plane, gate, bed, data);
+					}
+					else
+					{
+						cout << "ERROR: on converting supplied replace matrix ID: '" << replaceString.toAscii().constData() << "'" << endl;
+						returnCode = 2;
+					}
+				}
+				else
+				{
+					cout << "ERROR: invalid replace matrix definition found." << endl;
+					returnCode = 2;
+				}
+			}
+		}
+
+		if(args.contains("-n"))
+		{
+			QString newString = args.value("-n");
+
+			if(newString.isEmpty())
+			{
+				cout << "ERROR: empty new string option found." << endl;
+				returnCode = 2;
+			}
+			else
+			{
+				// now we generate the replace matrixID
+				QStringList list = newString.split(',');
+				if(list.isEmpty() == false)
+				{
+					short frame=1;
+					short plane=1;
+					short gate=1;
+					short bed=0;
+					short data=0;
+
+					QStringListIterator it(list);
+					int i;
+					for(i=0; it.hasNext() && i <= 4; i++)
+					{
+						bool success = false;
+						short num = it.next().toInt(&success);
+
+						if(success == false)
+						{
+							i=-1;
+							break;
+						}
+
+						if(i==0)
+							frame = num;
+						else if(i==1)
+							plane = num;
+						else if(i==2)
+							gate = num;
+						else if(i==3)
+							bed = num;
+						else if(i==4)
+							data = num;
+					}
+
+					if(i != -1)
+					{
+						newMatrixID = convertToMatrixID(frame, plane, gate, bed, data);
+					}
+					else
+					{
+						cout << "ERROR: on converting supplied new matrix ID: '" << newString.toAscii().constData() << "'" << endl;
+						returnCode = 2;
+					}			
+				}
+			}
+		}
+
+		if(args.contains("infile"))
+		{
+			inputFileName = args.value("infile");
+
+			if(QFileInfo(inputFileName).isFile() == false && QFileInfo(inputFileName).exists() == false)
+			{
+				cout << "ERROR: specified input filename isn't a file or doesn't exist." << endl;
+				returnCode = 2;
+			}
+		}
+		else
+		{
+			cout << "ERROR: no input file specified." << endl;
+			returnCode = 2;
+		}
+
+		if(args.contains("-o") && args.value("-o").isEmpty() == false)
+			outputFileName = args.value("-o");
+		else
+			outputFileName = inputFileName+"_modified";		
+	}
+	else
+		returnCode = 2;
+
+	if(returnCode > 0)
+	{
+		cout << endl;
+		cout << "libmedio ECAT6/7 file utility v1.0" << endl;
+		cout << "----------------------------------" << endl;
+		cout << "Usage: " << argv[0] << " <options> file" << endl;
+		cout << "Options:" << endl;
+		cout << "  -o <file>    : write the output data to <file> instead to '*_new'" << endl;
+		cout << "  -r <matrixID>: remove matrix from ECAT file with ID <frame,plane,gate,data,bed>." << endl;
+		cout << "  -n <matrixID>: create an empty matrix." << endl;
+		cout << "  -h           : this help page." << endl << endl;
+	}
+	else
+	{
+		// open the first file
+		CECATFile infile(inputFileName);
+		if(infile.open(QIODevice::ReadOnly) && 
+			 infile.format() != CECATFile::Undefined)
+		{
+			cout << "Successfully loaded file: '" << inputFileName.toAscii().constData() << "'" << endl;
+
+			// lets open the output file now
+			CECATFile outfile(outputFileName, infile.fileType());
+			if(outfile.open(QIODevice::WriteOnly))
+			{
+				cout << "Successfully opened file: '" << outputFileName.toAscii().constData() << "'" << endl;
+
+				// now we first copy the main headers
+				CECATMainHeader* mainHeader;
+				if(infile.readMainHeader(mainHeader))
+				{
+					cout << "processing main header: ";
+					CECATMainHeader* outMainHeader = outfile.createEmptyMainHeader();
+					if(outMainHeader)
+					{
+						*outMainHeader = *mainHeader;
+
+						if(outfile.writeMainHeader(*outMainHeader))
+						{
+							cout << "copied." << endl;
+
+							// now we iterate through the directory list of the input
+							// file and write out each matrix to the output file
+							CECATDirectory* inDir = infile.directory();
+							CECATDirectoryItem* inDitem;
+
+							// on a first operation we first go and add new matrices
+							if(newMatrixID != 0 && (inDitem = (*inDir)[0]))
+							{
+								CECATSubHeader* dummySubHeader;
+								QByteArray* dummyData;
+
+								// we read in the very first dir item to clone it with
+								// a new matrixID
+								cout << "processing matrix (" << std::hex << newMatrixID << "): ";
+								if(inDitem->readMatrix(dummyData, dummySubHeader))
+								{
+									// now we clear the data and write it back under the new matrixID
+									dummyData->fill(0);
+
+									// write the data to the new matrix
+									if(outfile.writeMatrix(*dummyData, *dummySubHeader, matrixID2Frame(newMatrixID),
+																																			matrixID2Plane(newMatrixID),
+																																			matrixID2Gate(newMatrixID),
+																																			matrixID2Bed(newMatrixID),
+																																			matrixID2Data(newMatrixID)))
+									{
+										cout << "new empty matrix generated." << endl;
+									}
+									else
+										cout << "ERROR! couldn't write to output file." << endl;
+
+									delete dummyData;
+									delete dummySubHeader;
+								}
+								else
+									cout << "ERROR! couldn't read in first diritem" << endl;
+							}							
+
+							for(int i=0; (inDitem = (*inDir)[i]); i++)
+							{
+								quint32 matrixID = inDitem->matrixID();
+								CECATSubHeader* subHeader;
+								QByteArray* matrixData;
+
+								cout << "processing matrix (" << std::hex << matrixID << "): ";
+								if(matrixID != newMatrixID && matrixID != replaceMatrixID)
+								{
+									// read in the matrix data and subheader
+									if(inDitem->readMatrix(matrixData, subHeader))
+									{
+										// now we generate a new matrix with the same ID in our
+										// output file
+										if(outfile.writeMatrix(*matrixData, *subHeader, matrixID2Frame(matrixID)))
+										{
+											cout << "copied." << endl;
+										}
+										else
+											cout << "ERROR! couldn't write to output file." << endl;
+
+										delete matrixData;
+										delete subHeader;
+									}
+									else
+										cout << "ERROR! couldn't read matrix data." << endl;
+								}
+								else
+									cout << "skipped." << endl;
+							}
+						}
+						else
+							cout << "ERROR! couldn't write main header." << endl;
+
+						delete outMainHeader;
+					}
+
+					delete mainHeader;
+				}
+				else
+					cout << "ERROR! couldn't read main header." << endl;
+
+				outfile.close();
+			}
+			else
+				cout << "ERROR: couldn't open file '" << outputFileName.toAscii().constData() << "'" << endl;
+
+			infile.close();
+		}
+		else
+			cout << "ERROR: couldn't open file '" << inputFileName.toAscii().constData() << "'" << endl;
+	}
+
+	return returnCode;
+}

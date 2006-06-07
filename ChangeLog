@@ -5,6 +5,14 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2006-06-07 Jens Langner <Jens.Langner@light-speed.de>
+
+  * examples/ecat/ecatutil: added a new example tool 'ecatutil'
+		which allows to strip a specific matrix from an ECAT file,
+		but also allows to add a new, empty matrix to a file. It should
+		illustrate how to use CECATDirectory/CECATDirectoryItem
+		directly.
+
 2006-06-07 Frank Hofheinz <f.hofheinz@fz-rossendorf.de>
 
 	* src/helpers/MedIOUnits.h: method setUnitFromString in CDosage
