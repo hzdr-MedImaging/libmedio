@@ -311,6 +311,29 @@ public:
 	float dosage() const {return m_value;};
 
 	void setUnit(DosageUnits unit) {m_unit = unit;};
+	void setUnitFromString(const QString& s)
+	{
+	    m_unit = Unknown_units;
+	    QRegExp t;
+	    t.setCaseSensitive(false);
+	    
+	    t.setPattern("\\s*Bq\\s*");
+	    if(t.exactMatch(s))
+	      m_unit = Bequerels_units;
+
+	    t.setPattern("\\s*MBq\\s*");
+	    if(t.exactMatch(s))
+	      m_unit = Megabequerels_units;
+	    
+	    t.setPattern("\\s*nCi\\s*");
+	    if(t.exactMatch(s))
+	      m_unit = Nanocurie_units;
+
+	    t.setPattern("\\s*mCi\\s*");
+	    if(t.exactMatch(s))
+	      m_unit = Millicurie_units;
+	};
+
 	DosageUnits unit() const {return m_unit;};
 
 	QString unitAsString() const
