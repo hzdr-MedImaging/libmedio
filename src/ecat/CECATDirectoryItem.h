@@ -42,6 +42,8 @@
 #define ECATBlock2FilePos(v)	(((v)-1)*ECAT_BLOCKSIZE)
 #define FilePos2ECATBlock(v)	((v)/ECAT_BLOCKSIZE+1)
 
+#endif
+
 // special macros to convert the MatrixID to their respect
 // frame/plane/gate/bed and data representation
 #define matrixID2Frame(x)	((x) & 0x1FF)
@@ -60,8 +62,6 @@
 																					 gate2MatrixID(g)  | \
 																					 bed2MatrixID(b)	 | \
 																					 data2MatrixID(d) )
-#endif
-
 // forward declarations
 class CECATDirectoryItemPrivate;
 class CECATFile;

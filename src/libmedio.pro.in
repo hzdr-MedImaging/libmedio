@@ -90,6 +90,7 @@ SOURCES  = CMedIO.cpp \
 					 helpers/CKeyParser.cpp \
 					 helpers/CIntVector.cpp \
 					 helpers/CDate.cpp \
+					 helpers/MedIOUnits.cpp \
 					 ecat/CECATDirectory.cpp \
 					 ecat/CECATDirectoryItem.cpp \
 					 ecat/CECATFile.cpp \

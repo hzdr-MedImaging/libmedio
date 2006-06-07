@@ -5,12 +5,19 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2006-06-07 Jens Langner <Jens.Langner@light-speed.de>
+
+	* src/helpers/MedIOUnits.h: removed all inline functions and
+		put the functions into a new MedIOUnits.cpp source file so
+		that in future no recompilation is required in case a minor
+		bug is fixed.
+	* src/ecat/CECATDirectoryItem.h: moved the matrixID macros out
+		of the private header area so that application can directly use
+		those macros.
+
 2006-06-07 Frank Hofheinz <f.hofheinz@fz-rossendorf.de>
 
 	* src/helpers/MedIOUnits.h: method setUnitFromString in CDosage
-	
-2006-06-07 Frank Hofheinz <f.hofheinz@fz-rossendorf.de>
-
 	* src/helpers/MedIOUnits.h: bugfix in unit conversion
 	
 2006-06-06 Jens Langner <Jens.Langner@light-speed.de>
