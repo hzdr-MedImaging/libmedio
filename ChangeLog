@@ -5,8 +5,15 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+#### 1.2.6 RELEASE ###########################################################
+
 2006-06-07 Jens Langner <Jens.Langner@light-speed.de>
 
+	* src/helpers/MedIOUnits: removed all tr() uses and also the formerly
+		necessary QObject derivation. This should make the helps classes
+		much more simple and intuitive.
+	* src/helpers/MedIOUnits.cpp: enhanced and fixed the setUnitFromString()
+		functions to use else branches for a faster identification routine.
 	* src/helpers/MedIOUnits.h: removed all inline functions and
 		put the functions into a new MedIOUnits.cpp source file so
 		that in future no recompilation is required in case a minor

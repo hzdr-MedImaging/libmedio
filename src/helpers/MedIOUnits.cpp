@@ -36,8 +36,7 @@ CWeight::CWeight()
 }
 
 CWeight::CWeight(const CWeight& other)
-	: QObject(), 
-		m_value(other.m_value), 
+	: m_value(other.m_value), 
 		m_unit(other.m_unit)
 {
 	ENTER();
@@ -79,11 +78,11 @@ QString CWeight::unitAsString() const
 	
 	switch (m_unit)
 	{
-		case Gram_units: s = tr("g");break;
-		case Ounce_units: s = tr("oz");break;
-		case Kilogram_units: s = tr("kg");break;
-		case Pound_units: s = tr("pounds");break;
-		default: s = tr("unknown unit");break;
+		case Gram_units: s = "g";break;
+		case Ounce_units: s = "oz";break;
+		case Kilogram_units: s = "kg";break;
+		case Pound_units: s = "pounds";break;
+		default: s = "unknown unit";break;
 	}
 
 	LEAVE();
@@ -177,8 +176,7 @@ CLength::CLength()
 }
 
 CLength::CLength(const CLength& other)
-	: QObject(), 
-		m_value(other.m_value), 
+	: m_value(other.m_value), 
 		m_unit(other.m_unit)
 {
 	ENTER();
@@ -220,11 +218,11 @@ QString CLength::unitAsString() const
 	
 	switch (m_unit)
 	{
-		case Millimeter_units: s = tr("mm");break;
-		case Centimeter_units: s = tr("cm");break;
-		case Meter_units: s = tr("m");break;
-		case Inch_units: s = tr("in");break;
-		default: s = tr("unknown unit");break;
+		case Millimeter_units: s = "mm";break;
+		case Centimeter_units: s = "cm";break;
+		case Meter_units: s = "m";break;
+		case Inch_units: s = "in";break;
+		default: s = "unknown unit";break;
 	}
 
 	LEAVE();
@@ -317,8 +315,7 @@ CActivityConcentrationUnit::CActivityConcentrationUnit(const ActivityConcentrati
 }
 
 CActivityConcentrationUnit::CActivityConcentrationUnit(const CActivityConcentrationUnit& other)
-	: QObject(), 
-		m_unit(other.m_unit)
+	: m_unit(other.m_unit)
 {
 	ENTER();
 	LEAVE();
@@ -344,15 +341,22 @@ void CActivityConcentrationUnit::setUnitFromString(const QString& s)
 	m_unit = Unknown_units;
 	QRegExp t;
 	t.setCaseSensitive(false);
+
 	t.setPattern("\\s*Bq\\/?cc\\s*");
 	if(t.exactMatch(s))
 		m_unit = BequerelsPerCubiccentimeter_units;
-	t.setPattern("\\s*Bq\\/?ml\\s*");
-	if(t.exactMatch(s))
-		m_unit = BequerelsPerMilliliter_units;
-	t.setPattern("\\s*nCi\\/cc\\s*");
-	if(t.exactMatch(s))
-		m_unit = NanoCuriesPerCubiccentimeter_units;
+	else
+	{
+		t.setPattern("\\s*Bq\\/?ml\\s*");
+		if(t.exactMatch(s))
+			m_unit = BequerelsPerMilliliter_units;
+		else
+		{
+			t.setPattern("\\s*nCi\\/cc\\s*");
+			if(t.exactMatch(s))
+				m_unit = NanoCuriesPerCubiccentimeter_units;
+		}
+	}
 
 	LEAVE();
 }
@@ -369,10 +373,10 @@ QString CActivityConcentrationUnit::unitAsString() const
 
 	switch(m_unit)
 	{
-		case BequerelsPerCubiccentimeter_units: s = tr("Bq/cc");break;
-		case BequerelsPerMilliliter_units: s = tr("Bq/ml");break;
-		case NanoCuriesPerCubiccentimeter_units: s = tr("nCi/cc");break;
-		default: s = tr("unknown unit");break;
+		case BequerelsPerCubiccentimeter_units: s = "Bq/cc";break;
+		case BequerelsPerMilliliter_units: s = "Bq/ml";break;
+		case NanoCuriesPerCubiccentimeter_units: s = "nCi/cc";break;
+		default: s = "unknown unit";break;
 	}
 
 	LEAVE();
@@ -387,9 +391,9 @@ QString CActivityConcentrationUnit::activityUnitAsString() const
 	switch (m_unit)
 	{
 		case BequerelsPerCubiccentimeter_units:
-		case BequerelsPerMilliliter_units: s = tr("Bq");break;
-		case NanoCuriesPerCubiccentimeter_units: s = tr("nCi");break;
-		default: s = tr("unknown unit");break;
+		case BequerelsPerMilliliter_units: s = "Bq";break;
+		case NanoCuriesPerCubiccentimeter_units: s = "nCi";break;
+		default: s = "unknown unit";break;
 	}
 
 	LEAVE();
@@ -416,8 +420,7 @@ CDosage::CDosage()
 }
 
 CDosage::CDosage(const CDosage& other)
-	: QObject(), 
-		m_value(other.m_value), 
+	: m_value(other.m_value), 
 		m_unit(other.m_unit)
 {
 	ENTER();
@@ -455,21 +458,27 @@ void CDosage::setUnitFromString(const QString& s)
 	QRegExp t;
 	t.setCaseSensitive(false);
 
-	t.setPattern("\\s*Bq\\s*");
-	if(t.exactMatch(s))
-		m_unit = Bequerels_units;
-
 	t.setPattern("\\s*MBq\\s*");
 	if(t.exactMatch(s))
 		m_unit = Megabequerels_units;
-
-	t.setPattern("\\s*nCi\\s*");
-	if(t.exactMatch(s))
-		m_unit = Nanocurie_units;
-
-	t.setPattern("\\s*mCi\\s*");
-	if(t.exactMatch(s))
-		m_unit = Millicurie_units;
+	else
+	{
+		t.setPattern("\\s*Bq\\s*");
+		if(t.exactMatch(s))
+			m_unit = Bequerels_units;
+		else
+		{
+			t.setPattern("\\s*nCi\\s*");
+			if(t.exactMatch(s))
+				m_unit = Nanocurie_units;
+			else
+			{
+				t.setPattern("\\s*mCi\\s*");
+				if(t.exactMatch(s))
+					m_unit = Millicurie_units;
+			}
+		}
+	}
 
 	LEAVE();
 }
@@ -486,11 +495,11 @@ QString CDosage::unitAsString() const
 
 	switch (m_unit)
 	{
-		case Bequerels_units: s = tr("Bq");break;
-		case Megabequerels_units: s = tr("MBq");break;
-		case Nanocurie_units: s = tr("nCi");break;
-		case Millicurie_units: s = tr("mCi");break;
-		default: s = tr("unknown unit");break;
+		case Bequerels_units: s = "Bq";break;
+		case Megabequerels_units: s = "MBq";break;
+		case Nanocurie_units: s = "nCi";break;
+		case Millicurie_units: s = "mCi";break;
+		default: s = "unknown unit";break;
 	}
 
 	LEAVE();

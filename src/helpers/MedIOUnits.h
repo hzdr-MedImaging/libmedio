@@ -24,15 +24,12 @@
 #ifndef MEDIOUNITS_H
 #define MEDIOUNITS_H
 
-// Qt includes
-#include <qobject.h>
+#include <qstring.h>
 
 // forward declarations
 
-class CWeight: public QObject
+class CWeight
 {
-	Q_OBJECT
-
 	public:
 		enum WeightUnits { Unknown_units = 0,
 											 Gram_units,
@@ -61,10 +58,8 @@ class CWeight: public QObject
 		WeightUnits m_unit;	
 };
 
-class CLength: public QObject
+class CLength
 {
-	Q_OBJECT
-
 	public:
 		enum LengthUnits { Unknown_units = 0,
 											 Millimeter_units,
@@ -93,10 +88,8 @@ class CLength: public QObject
 		LengthUnits m_unit;
 };
 
-class CActivityConcentrationUnit: public QObject
+class CActivityConcentrationUnit
 {
-	Q_OBJECT
-
 	public:
 		enum ActivityConcentrationUnits { Unknown_units = 0,
 																			BequerelsPerCubiccentimeter_units,
@@ -123,10 +116,8 @@ class CActivityConcentrationUnit: public QObject
 		ActivityConcentrationUnits m_unit;
 };
 
-class CDosage: public QObject
+class CDosage
 {
-	Q_OBJECT
-
 	public:
 		enum DosageUnits { Unknown_units = 0,
 											 Bequerels_units,
