@@ -344,15 +344,22 @@ void CActivityConcentrationUnit::setUnitFromString(const QString& s)
 	m_unit = Unknown_units;
 	QRegExp t;
 	t.setCaseSensitivity(Qt::CaseInsensitive);
+
 	t.setPattern("\\s*Bq\\/?cc\\s*");
 	if(t.exactMatch(s))
 		m_unit = BequerelsPerCubiccentimeter_units;
-	t.setPattern("\\s*Bq\\/?ml\\s*");
-	if(t.exactMatch(s))
-		m_unit = BequerelsPerMilliliter_units;
-	t.setPattern("\\s*nCi\\/cc\\s*");
-	if(t.exactMatch(s))
-		m_unit = NanoCuriesPerCubiccentimeter_units;
+	else
+	{
+		t.setPattern("\\s*Bq\\/?ml\\s*");
+		if(t.exactMatch(s))
+			m_unit = BequerelsPerMilliliter_units;
+		else
+		{
+			t.setPattern("\\s*nCi\\/cc\\s*");
+			if(t.exactMatch(s))
+				m_unit = NanoCuriesPerCubiccentimeter_units;
+		}
+	}
 
 	LEAVE();
 }
@@ -455,21 +462,27 @@ void CDosage::setUnitFromString(const QString& s)
 	QRegExp t;
 	t.setCaseSensitivity(Qt::CaseInsensitive);
 
-	t.setPattern("\\s*Bq\\s*");
-	if(t.exactMatch(s))
-		m_unit = Bequerels_units;
-
 	t.setPattern("\\s*MBq\\s*");
 	if(t.exactMatch(s))
 		m_unit = Megabequerels_units;
-
-	t.setPattern("\\s*nCi\\s*");
-	if(t.exactMatch(s))
-		m_unit = Nanocurie_units;
-
-	t.setPattern("\\s*mCi\\s*");
-	if(t.exactMatch(s))
-		m_unit = Millicurie_units;
+	else
+	{
+		t.setPattern("\\s*Bq\\s*");
+		if(t.exactMatch(s))
+			m_unit = Bequerels_units;
+		else
+		{
+			t.setPattern("\\s*nCi\\s*");
+			if(t.exactMatch(s))
+				m_unit = Nanocurie_units;
+			else
+			{
+				t.setPattern("\\s*mCi\\s*");
+				if(t.exactMatch(s))
+					m_unit = Millicurie_units;
+			}
+		}
+	}
 
 	LEAVE();
 }
