@@ -12,13 +12,13 @@ $Id$
 		but also allows to add a new, empty matrix to a file. It should
 		illustrate how to use CECATDirectory/CECATDirectoryItem
 		directly.
+	* src/ecat/CECATDirectoryItem.h: moved the matrixID macros out
+		of the private header area so that application can directly use
+		those macros.
 
 2006-06-07 Frank Hofheinz <f.hofheinz@fz-rossendorf.de>
 
 	* src/helpers/MedIOUnits.h: method setUnitFromString in CDosage
-	
-2006-06-07 Frank Hofheinz <f.hofheinz@fz-rossendorf.de>
-
 	* src/helpers/MedIOUnits.h: bugfix in unit conversion
 	
 2006-06-06 Jens Langner <Jens.Langner@light-speed.de>
