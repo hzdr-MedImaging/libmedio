@@ -197,7 +197,7 @@ public:
 					case Millimeter_units: r = m_value * 1000; break;
 					case Centimeter_units: r = m_value * 100; break;
 					case Meter_units: r = m_value; break;
-					case Inch_units: r = m_value * 0.0254; break;
+					case Inch_units: r = m_value / 0.0254; break;
 					default: r = 0.0; break;
 				}
 			};break;
@@ -341,8 +341,8 @@ public:
 				{
 					case Bequerels_units: r = m_value; break;
 					case Megabequerels_units: r = m_value / 1e6; break;
-					case Nanocurie_units: r = m_value * 3.7e10 * 1e-9; break;
-					case Millicurie_units: r = m_value * 3.7e10 * 1e-3; break;
+					case Nanocurie_units: r = m_value / 3.7e1; break;
+					case Millicurie_units: r = m_value / 3.7e7; break;
 					default: r = 0.0; break;
 				}
 			};break;
@@ -352,8 +352,8 @@ public:
 				{
 					case Bequerels_units: r = m_value * 1e6; break;
 					case Megabequerels_units: r = m_value; break;
-					case Nanocurie_units: r = m_value * 1e6 * 3.7e10 * 1e-9; break;
-					case Millicurie_units: r = m_value * 1e6 * 3.7e10 * 1e-3; break;
+					case Nanocurie_units: r = m_value  / 3.7e-5; break;
+					case Millicurie_units: r = m_value / 3.7e1; break;
 					default: r = 0.0; break;
 				}
 			};break;
@@ -361,10 +361,10 @@ public:
 			{
 				switch (u)
 				{
-					case Bequerels_units: r = m_value * 1e-9 / 3.7e10; break;
-					case Megabequerels_units: r = m_value * 1e-9 / 3.7e10 / 1e6; break;
+					case Bequerels_units: r = m_value * 3.7e1; break;
+					case Megabequerels_units: r = m_value * 3.7e-5; break;
 					case Nanocurie_units: r = m_value; break;
-					case Millicurie_units: r = m_value * 1e-9 / 1e-3; break;
+					case Millicurie_units: r = m_value * 1e-6; break;
 					default: r = 0.0; break;
 				}
 			};break;
@@ -372,9 +372,9 @@ public:
 			{
 				switch (u)
 				{
-					case Bequerels_units: r = m_value * 1e-3 / 3.7e10; break;
-					case Megabequerels_units: r = m_value * 1e-3 / 3.7e10 * 1e-6; break;
-					case Nanocurie_units: r = m_value * 1e3 / 1e-9; break;
+					case Bequerels_units: r = m_value * 3.7e7; break;
+					case Megabequerels_units: r = m_value * 3.7e1; break;
+					case Nanocurie_units: r = m_value * 1e6; break;
 					case Millicurie_units: r = m_value; break;
 					default: r = 0.0; break;
 				}
