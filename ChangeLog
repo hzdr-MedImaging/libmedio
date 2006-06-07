@@ -7,6 +7,10 @@ $Id$
 
 2006-06-07 Jens Langner <Jens.Langner@light-speed.de>
 
+	* src/helpers/MedIOUnits.h: removed all inline functions and
+		put the functions into a new MedIOUnits.cpp source file so
+		that in future no recompilation is required in case a minor
+		bug is fixed.
   * examples/ecat/ecatutil: added a new example tool 'ecatutil'
 		which allows to strip a specific matrix from an ECAT file,
 		but also allows to add a new, empty matrix to a file. It should
