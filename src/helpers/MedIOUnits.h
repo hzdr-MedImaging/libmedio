@@ -315,7 +315,7 @@ public:
 	{
 	    m_unit = Unknown_units;
 	    QRegExp t;
-	    t.setCaseSensitive(false);
+	    t.setCaseSensitivity(Qt::CaseInsensitive);
 	    
 	    t.setPattern("\\s*Bq\\s*");
 	    if(t.exactMatch(s))
