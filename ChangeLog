@@ -5,6 +5,11 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2006-06-07 Frank Hofheinz <f.hofheinz@fz-rossendorf.de>
+
+	* src/helpers/MedIOUnits.h: bugfix in unit conversion
+
+	
 2006-06-06 Jens Langner <Jens.Langner@light-speed.de>
 
   * src/ecat/CECATDirectory.cpp: changed the unsorted QHash use
