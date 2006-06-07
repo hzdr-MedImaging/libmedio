@@ -7,6 +7,9 @@ $Id$
 
 2006-06-07 Jens Langner <Jens.Langner@light-speed.de>
 
+	* src/helpers/MedIOUnits: removed all tr() uses and also the formerly
+		necessary QObject derivation. This should make the helps classes
+		much more simple and intuitive.
 	* src/helpers/MedIOUnits.cpp: enhanced and fixed the setUnitFromString()
 		functions to use else branches for a faster identification routine.
 	* src/helpers/MedIOUnits.h: removed all inline functions and
