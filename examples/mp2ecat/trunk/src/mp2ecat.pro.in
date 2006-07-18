@@ -11,8 +11,6 @@ MOC_DIR     = .moc
 UI_DIR      = .ui
 
 DEPENDPATH += includes
-               
-
 INCLUDEPATH += . \ 
                includes 
 	       
@@ -33,14 +31,14 @@ contains(HOST_OS, [sS]un[oO][sS]) {
 	QMAKE_CXXFLAGS += -mcpu=v9 -mtune=ultrasparc3
 }
 else {
-  contains(HOST_OS, [dD]arwin) {
-    contains(HOST_CPU, [pP]ower[pP]c) {
-      QMAKE_CXXFLAGS += -Acpu=powerpc # for G5: "-mcpu=970 -mtune=970 -mpowerpc64 -mpowerpc-gpopt -force_cpusubtype_ALL"
-    }
-  }
-  else {
+	contains(HOST_OS, [dD]arwin) {
+		contains(HOST_CPU, [pP]ower[pP]c) {
+			QMAKE_CXXFLAGS += -Acpu=powerpc # for G5: "-mcpu=970 -mtune=970 -mpowerpc64 -mpowerpc-gpopt -force_cpusubtype_ALL"
+		}
+	}
+	else {
 		contains(HOST_OS, [lL]inux) {
-			#contains(HOST_CPU, [oO]pteron) {			
+			#contains(HOST_CPU, [oO]pteron) {
 				#QMAKE_CXXFLAGS += -march=athlon-xp -mmmx -msse -msse2 -m3dnow -mfpmath=sse,387
 			#}
 		}
@@ -62,7 +60,7 @@ else {
 	QMAKE_LINK += -s # this is for stripping the executable while linking
 	DEFINES -= DEBUG
 
-  # depending on the gcc version we set some addition optimization flags
+	# depending on the gcc version we set some addition optimization flags
 	contains(GCC_VERSION, 3.3) {
 		QMAKE_CXXFLAGS_RELEASE += -ftracer
 	}	
@@ -78,19 +76,18 @@ ansi_color {
 # UNIX based target platforms installation defines
 unix {
 	# on unix we use configure to define everything like install path
-    PREFIX=@prefix@
+	PREFIX=@prefix@
 	BIN_DIR=@prefix@/bin
 
 	# -p option should be -P, so that "make install" as root creates files owned by root
 	# and links are preserved.
 	QMAKE_COPY_FILE = $(COPY) -P
 
-
 	# install library
 	target.path = $$BIN_DIR
-   
+
 	# "make install" configuration options
-	INSTALLS += target 
+	INSTALLS += target
 }
 
 ### LIBRTDEBUG ############################################################
@@ -111,10 +108,10 @@ contains(DEFINES, DEBUG) {
 # we link wih the static variant of libmedio instead
 INCLUDEPATH *= @MEDIO_INCDIR@
 staticmedio {
-        LIBS *= @MEDIO_LIBDIR@/libmedio.a
+	LIBS *= @MEDIO_LIBDIR@/libmedio.a
 }
 else {
-        LIBS *= @MEDIO_LIBDIR@/@LIB_MEDIO@
+	LIBS *= @MEDIO_LIBDIR@/@LIB_MEDIO@
 }
 
 ### LIBCOREG ##############################################################
@@ -139,10 +136,10 @@ else {
 # we link with the static variant of libgsl and libgslc instead
 #INCLUDEPATH *= @GSL_INCDIR@
 #staticgsl {
-#        LIBS *= @GSL_LIBDIR@/libgsl.a @GSL_LIBDIR@/libgslcblas.a
+#	LIBS *= @GSL_LIBDIR@/libgsl.a @GSL_LIBDIR@/libgslcblas.a
 #}
 #else {
-#        LIBS *= -L@GSL_LIBDIR@ @LIB_GSL@
+#	LIBS *= -L@GSL_LIBDIR@ @LIB_GSL@
 #}
 
 
@@ -151,16 +148,14 @@ else {
 # we link wih the static variant of libmedrecon instead
 #INCLUDEPATH *= @MEDRECON_INCDIR@
 #staticmedrecon {
-#        LIBS *= @MEDRECON_LIBDIR@/libmedrecon.a
+#	LIBS *= @MEDRECON_LIBDIR@/libmedrecon.a
 #}
 #else {
-#        LIBS *= -L@MEDRECON_LIBDIR@ @LIB_MEDRECON@
+#	LIBS *= -L@MEDRECON_LIBDIR@ @LIB_MEDRECON@
 #}
 
 # Input
-HEADERS += CCmdLineStart.h \
-		   CGetOpt.h
+HEADERS +=	CApplication.h
 
-SOURCES += mp2ecat.cpp \
-		   CCmdLineStart.cpp \
-		   CGetOpt.cpp
+SOURCES +=	mp2ecat.cpp \
+						CApplication.cpp

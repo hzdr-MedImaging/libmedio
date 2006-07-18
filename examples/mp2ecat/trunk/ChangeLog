@@ -1,3 +1,8 @@
+2006-07-18  Hagen Moelle <draggore@gmx.de>
+
+  * CApplication: completely reworked convert method
+	* CCmdLineStart: in replaced by CApplication class
+
 2006-03-15  Hagen Moelle <draggore@gmx.de>
 
   * CCmdLineStart: limited number of frames to 255 to be written to ECAT7 file
