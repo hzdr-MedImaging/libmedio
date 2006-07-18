@@ -223,48 +223,42 @@ int CConcordeFile::isoftype(QString file)
 	//return CData::Unknwon - if it is not a concorde type 
 	ENTER();
 	D("Check if file is a specific concorde file");
-        // try to get Headerinfo on Sinogramfile
-        QString hfile(file+".hdr");
-        
+	// try to get Headerinfo on Sinogramfile
+	QString hfile(file+".hdr");
+
 	CConcordeMainHeaderSinogram head(file+".hdr");
-	
+
 	int result = 0;
-        
-	if(head.model() == 2000)
-        {
-                D("File is from concorde");
-		//file type = 2 -> Sinogram
-		//file type = 3 -> Normalisation
-		//file type = 4 -> Attenuation (transmission)
-		//file type = 5 -> Image
-		//file type = 8 -> Mu map ( also image )
-		// since attenuationfile/Normalisation is a sinogram we could define it as one 
-		switch(head.fileType())
+	//file type = 2 -> Sinogram
+	//file type = 3 -> Normalisation
+	//file type = 4 -> Attenuation (transmission)
+	//file type = 5 -> Image
+	//file type = 8 -> Mu map ( also image )
+	// since attenuationfile/Normalisation is a sinogram we could define it as one 
+	switch(head.fileType())
+	{
+		case CConcordeMainHeader::Sinogram:
+		case CConcordeMainHeader::Normalization:
+		case CConcordeMainHeader::Attenuation:
 		{
-			case CConcordeMainHeader::Sinogram:
-			case CConcordeMainHeader::Normalization:
-			case CConcordeMainHeader::Attenuation:
-			{
-				D("File is a sinogram");
-				result = CConcordeFile::ConcordeMicropet_Sinogram;
-			}
-			break;
-			case CConcordeMainHeader::Image:
-			case CConcordeMainHeader::MuMap:
-			{
-				D("File is an image");
-				result = CConcordeFile::ConcordeMicropet_Image;
-			}
-			break;
-			default:
-				result = CConcordeFile::Unknown;
+			D("File is a concorde sinogram");
+			result = CConcordeFile::ConcordeMicropet_Sinogram;
 		}
-        }
-        else
-        {
-		D("File is not from Concorde");
-		result = CMedIOData::Unknown;
+		break;
+		case CConcordeMainHeader::Image:
+		case CConcordeMainHeader::MuMap:
+		{
+			D("File is an concorde image");
+			result = CConcordeFile::ConcordeMicropet_Image;
+		}
+		break;
+		default:
+		{
+			D("File is not from Concorde");
+			result = CConcordeFile::Unknown;
+		}
 	}
+
 	RETURN(result);
 	return result;
 }

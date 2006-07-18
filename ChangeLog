@@ -5,6 +5,13 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2006-07-18  Hagen Moelle <draggore@gmx.de>
+
+  * src/micropet/CConcordeFile: method isoftype() which trys to identify
+		concorde image type now uses fileType() method of CConcordeMainHeader
+		to verify concorde type. The old version were model entry of CConcordeMainHeader
+		was used did not work for images converted with xmedcon.
+
 #### 1.2.6 RELEASE ###########################################################
 
 2006-06-07 Jens Langner <Jens.Langner@light-speed.de>
