@@ -82,6 +82,10 @@ class CMedIOHeader
 		//! @brief try to convert the given medio header in this header type
 		//! @return true for success; false for failure
 		virtual bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL) = 0;
+
+		//! @brief user defined rtti
+		//! @return user defined rtti if defined else -1
+		virtual int userRtti() const;
 		
 		//! @brief create a new medio header of the same type as pSrc and
 		//!				 copy all meta information
