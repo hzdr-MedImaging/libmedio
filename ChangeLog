@@ -5,6 +5,10 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2006-09-28  Frank Hofheinz <f.hofheinz@fz-rossendorf.de>
+
+  * CMedIOHeader.cpp, CMedIOHeader.h: user defined rtti'
+	
 2006-07-18  Hagen Moelle <draggore@gmx.de>
 
   * src/micropet/CConcordeFile: method isoftype() which trys to identify
