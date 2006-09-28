@@ -49,6 +49,11 @@ QString CMedIO::buildDate()
 	return QString(__DATE__) + " " + QString(__TIME__);
 }
 
+QString CMedIO::copyright()
+{
+	return QString("Copyright (C) 2004-2006 by Jens Langner <Jens.Langner@light-speed.de>");
+}
+
 unsigned int CMedIO::qtMajorVersion()
 {
 	return (QT_VERSION & 0xff0000)>>16;
