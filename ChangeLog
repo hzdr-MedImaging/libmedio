@@ -5,6 +5,8 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+#### 1.2.7 RELEASE ###########################################################
+	
 2006-09-28  Frank Hofheinz <f.hofheinz@fz-rossendorf.de>
 
   * CMedIOHeader.cpp, CMedIOHeader.h: user defined rtti'
