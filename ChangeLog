@@ -5,8 +5,14 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
-#### 2.2.7 RELEASE ###########################################################
+#### 2.3.0 RELEASE ###########################################################
 	
+2006-09-28 Jens Langner <Jens.Langner@light-speed.de>
+
+  * m4/configure.in: the last change 'userRtti' was an API change, so lets
+    bump the major version instead and have 2.3.0
+  * CMedIOHeader.cpp: minor fix to debugging output.
+
 2006-09-28  Frank Hofheinz <f.hofheinz@fz-rossendorf.de>
 
   * CMedIOHeader.cpp, CMedIOHeader.h: user defined rtti'

@@ -82,8 +82,7 @@ void CMedIOHeader::setMedIOData(CMedIOData* data)
 int CMedIOHeader::userRtti() const
 {
   ENTER();
-  
+ 
+  RETURN(-1);
   return -1;
-
-  LEAVE();
 }
