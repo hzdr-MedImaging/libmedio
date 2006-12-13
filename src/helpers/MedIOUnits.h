@@ -109,11 +109,15 @@ class CActivityConcentrationUnit
 		QString activityUnitAsString() const;
 		QString toString() const;
 
+    void setUnknownUnitString(const QString & S);
+    QString unknownUnitString(){return m_unknownUnitString;}
+
 		CActivityConcentrationUnit& operator=(const CActivityConcentrationUnit& other);
 
 	protected:
 		// Private member vars
 		ActivityConcentrationUnits m_unit;
+    QString m_unknownUnitString;
 };
 
 class CDosage

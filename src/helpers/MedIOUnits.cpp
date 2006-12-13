@@ -308,14 +308,16 @@ CLength& CLength::operator=(const CLength& other)
 }
 
 CActivityConcentrationUnit::CActivityConcentrationUnit(const ActivityConcentrationUnits u)
-	: m_unit(u)
+	: m_unit(u),
+    m_unknownUnitString("unknown unit")
 {
 	ENTER();
 	LEAVE();
 }
 
 CActivityConcentrationUnit::CActivityConcentrationUnit(const CActivityConcentrationUnit& other)
-	: m_unit(other.m_unit)
+	: m_unit(other.m_unit),
+    m_unknownUnitString(other.m_unknownUnitString)
 {
 	ENTER();
 	LEAVE();
@@ -325,13 +327,24 @@ CActivityConcentrationUnit::CActivityConcentrationUnit(const QString& s)
 	: m_unit(Unknown_units)
 {
 	ENTER();
-	setUnitFromString(s);
+  setUnitFromString(s);
 	LEAVE();
 }
 	
+
+void CActivityConcentrationUnit::setUnknownUnitString(const QString & S)
+{
+
+  ENTER();
+  m_unknownUnitString = S;
+  LEAVE();
+}
+
 void CActivityConcentrationUnit::setUnit(const ActivityConcentrationUnits unit)
 {
+  ENTER();
 	m_unit = unit;
+  LEAVE();
 }
 
 void CActivityConcentrationUnit::setUnitFromString(const QString& s)
@@ -358,6 +371,12 @@ void CActivityConcentrationUnit::setUnitFromString(const QString& s)
 		}
 	}
 
+  if(!s.isEmpty())
+  {
+    QString testString(s);
+    if(!testString.remove(" ").isEmpty())
+      m_unknownUnitString = s;
+  }
 	LEAVE();
 }
 
@@ -376,7 +395,7 @@ QString CActivityConcentrationUnit::unitAsString() const
 		case BequerelsPerCubiccentimeter_units: s = "Bq/cc";break;
 		case BequerelsPerMilliliter_units: s = "Bq/ml";break;
 		case NanoCuriesPerCubiccentimeter_units: s = "nCi/cc";break;
-		default: s = "unknown unit";break;
+		default: s = m_unknownUnitString;break;
 	}
 
 	LEAVE();
@@ -393,7 +412,7 @@ QString CActivityConcentrationUnit::activityUnitAsString() const
 		case BequerelsPerCubiccentimeter_units:
 		case BequerelsPerMilliliter_units: s = "Bq";break;
 		case NanoCuriesPerCubiccentimeter_units: s = "nCi";break;
-		default: s = "unknown unit";break;
+		default: s = m_unknownUnitString;break;
 	}
 
 	LEAVE();

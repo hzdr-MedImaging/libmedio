@@ -5,6 +5,14 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+#### 2.4.0 RELEASE ###########################################################
+
+2006-12-13  Frank Hofheinz <f.hofheinz@fz-rossendorf.de>
+
+  * MedIOUnits.cpp, MedIOUnits.h: method 'setUnknownUnitString': allows
+	to set a unit string which does not represent a concentration 
+
+	
 #### 2.3.0 RELEASE ###########################################################
 	
 2006-09-28 Jens Langner <Jens.Langner@light-speed.de>
