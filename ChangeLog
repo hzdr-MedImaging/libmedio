@@ -9,10 +9,7 @@ $Id$
 
 2007-01-15  Frank Hofheinz <f.hofheinz@fzd.de>
 
-  * MedIOUnits.cpp, MedIOUnits.h: method 'setUnknownUnitString': allows
-	to set a unit string which does not represent a concentration 
-
-
+  * CECAT7MainHeader.h: method 'clone' and 'convert' are virtual now
 	
 #### 1.4.0 RELEASE ###########################################################
 
