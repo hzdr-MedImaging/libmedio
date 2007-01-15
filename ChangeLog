@@ -5,6 +5,13 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+#### 2.5.0 RELEASE ###########################################################
+
+2007-01-15  Frank Hofheinz <f.hofheinz@fzd.de>
+
+  * CECAT7MainHeader.h: method 'clone' and 'convert' are virtual now
+
+	
 #### 2.4.0 RELEASE ###########################################################
 
 2006-12-13  Frank Hofheinz <f.hofheinz@fz-rossendorf.de>
