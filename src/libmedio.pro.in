@@ -1,7 +1,7 @@
 #/* vim:set ts=2 nowrap: ****************************************************
 #
 # libmedio - Medical Data C++ I/O Library
-# Copyright (C) 2004-2005 by Jens Langner <Jens.Langner@light-speed.de>
+# Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -23,7 +23,7 @@
 
 # main variables
 TEMPLATE		= lib
-CONFIG		 *= qt thread warn_on create_prl @ANSI_COLOR@ @QTLINK_LEVEL@
+CONFIG		 *= qt thread no_mocdepend warn_on create_prl @ANSI_COLOR@ @QTLINK_LEVEL@
 QMAKE_QMAKE = @QMAKE_PATH@
 TARGET			= medio
 VERSION			= @PACKAGE_VERSION@
@@ -221,13 +221,15 @@ else {
 # use ANSI colors if it was specified on configure time
 !win32 {
 	ansi_color {
-		QMAKE_CXX		= @printf '\033[32mCompiling $<\033[0m\n';$$QMAKE_CXX
-		QMAKE_LINK	= @printf '\033[32mLinking \033[1m$@\033[0m\n';$$QMAKE_LINK
+		QMAKE_CXX = @printf '\033[32mCompiling $<\033[0m\n'; $$QMAKE_CXX
+		QMAKE_LINK = @printf '\033[32mLinking \033[1m$@\033[0m\n'; $$QMAKE_LINK
+		QMAKE_MOC = @printf '\033[33mGenerating $@\033[0m\n'; $$QMAKE_MOC	
 		DEFINES *= ANSI_COLOR
 	}
 	else {
-		QMAKE_CXX		= @echo 'Compiling $<';$$QMAKE_CXX
-		QMAKE_LINK	= @echo 'Linking $@';$$QMAKE_LINK
+		QMAKE_CXX	= @echo 'Compiling $<'; $$QMAKE_CXX
+		QMAKE_LINK= @echo 'Linking $@'; $$QMAKE_LINK
+		QMAKE_MOC	= @echo 'Generating $@'; $$QMAKE_LINK
 		DEFINES -= ANSI_COLOR
 	}
 }
