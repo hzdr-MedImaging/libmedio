@@ -23,7 +23,7 @@
 
 # main variables
 TEMPLATE		= lib
-CONFIG		 *= qt thread warn_on create_prl @ANSI_COLOR@ @QTLINK_LEVEL@
+CONFIG		 *= qt thread no_mocdepend warn_on create_prl @ANSI_COLOR@ @QTLINK_LEVEL@
 QT					= core
 QMAKE_QMAKE = @QMAKE_PATH@
 TARGET			= medio
