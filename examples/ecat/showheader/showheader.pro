@@ -26,7 +26,7 @@ QT = core
 DEPENDPATH += .
 INCLUDEPATH += . /usr/local/petlib/include/medio
 LIBS *= /usr/local/petlib/lib/libmedio.so.2
-LIBS *= -L/usr/local/petlib -lrtdebug
+LIBS *= -L/usr/local/petlib/lib -lrtdebug
 
 # Input
 SOURCES += showheader.cpp
