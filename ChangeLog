@@ -9,6 +9,8 @@ $Id$
 
 2007-01-17 Jens Langner <Jens.Langner@light-speed.de>
 
+  * libmedio.pro.in: adapted the printf() build overloading commands to
+    use the proper syntax.
   * misc: minor cosmetic changes
 
 2007-01-15 Frank Hofheinz <f.hofheinz@fzd.de>
