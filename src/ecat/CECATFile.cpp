@@ -293,6 +293,10 @@ bool CECATFile::open(QIODevice::OpenModeFlag mode)
 	// with the user settings.
 	if(result)
 	{
+		// to make the open operation a bit safer we mask out the IO operation
+		// bits we don't need
+	  mode = static_cast<QIODevice::OpenModeFlag>(mode & ~(QIODevice::Append|QIODevice::Truncate|QIODevice::Text));
+		
 		// make sure the file is always openend in read mode also
 		// because we need to read in data as we write as well 
 		if((result = QFile::open(mode|QIODevice::ReadOnly)) == false)
