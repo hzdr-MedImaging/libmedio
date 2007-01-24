@@ -5,6 +5,13 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+#### 1.5.1 RELEASE ###########################################################
+
+2007-01-24 Jens Langner <Jens.Langner@light-speed.de>
+
+  * CECATFile.cpp: fixed a possible bug in the open() routine where we didn't
+    correctly check the OpenMode flags and may have run into problems.
+
 #### 1.5.0 RELEASE ###########################################################
 
 2007-01-17 Jens Langner <Jens.Langner@light-speed.de>

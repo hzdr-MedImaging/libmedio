@@ -162,9 +162,10 @@ bool CECATFile::open(int mode)
 	m_pData->cachedMainHeader = NULL;
 
 	// depending on the specified open mode we either read some META data from
-	// an existing ECAT file or we create it here
-	if(exists() &&
-		 mode & (IO_ReadOnly|IO_WriteOnly) == (IO_ReadOnly|IO_WriteOnly))
+	// an existing ECAT file or we create an empty one
+	if((((mode & IO_ReadWrite) == IO_ReadWrite) || // ReadWrite mode requested 
+		  ((mode & IO_ReadOnly) == IO_ReadOnly))  && // or ReadOnly mode requested	
+		 exists()) // and file exists
 	{
 		// we open the file and read in the
 		// main header and directory list of the ecat file
@@ -253,10 +254,8 @@ bool CECATFile::open(int mode)
 			QFile::close();
 		}
 	}
-	else if(mode & IO_WriteOnly)
+	else if((mode & IO_WriteOnly) == IO_WriteOnly) // mode contains WriteOnly flag
 	{
-		D("preparing IO_WriteOnly mode: %d", m_pData->iECATformat);
-
 		// the file doesn't exist and therefore we do not have any
 		// main header or directory list. so lets create some empty ones
 		if(m_pData->iECATformat != CECATFile::Undefined)
@@ -283,20 +282,22 @@ bool CECATFile::open(int mode)
 			E("ECATformat unknown");
 
 		// make sure the file is removed upon opening it
+		// we don't do a plain QFile::remove() here because otherwise
+		// QFile will close and free our data.
 		if(result)
 			QFile::remove(name());
 	}
-
-	// to make the open operation a bit safer we mask out the IO operation
-	// bits we don't need
-	mode &= ~(IO_Raw|IO_Append|IO_Truncate|IO_Translate);
 
 	// only if we succeeded with our mainheader/dirlisting loading
 	// we can assume everything worked out fine and reopen the file
 	// with the user settings.
 	if(result)
 	{
-		// make sure the file is always openend in read mode also
+		// to make the open operation a bit safer we mask out the IO operation
+    // bits we don't need
+	  mode &= ~(IO_Append|IO_Truncate|IO_Translate);
+
+	  // make sure the file is always openend in read mode also
 		// because we need to read in data as we write as well 
 		if((result = QFile::open(mode|IO_ReadOnly)) == false)
 			QFile::close();
