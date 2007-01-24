@@ -162,9 +162,10 @@ bool CECATFile::open(QIODevice::OpenModeFlag mode)
 	m_pData->cachedMainHeader = NULL;
 
 	// depending on the specified open mode we either read some META data from
-	// an existing ECAT file or we create it here
-	if(exists() &&
-		 mode & (QIODevice::ReadOnly|QIODevice::WriteOnly) == (QIODevice::ReadOnly|QIODevice::WriteOnly))
+	// an existing ECAT file or we create an empty one
+	if((((mode & QIODevice::ReadWrite) == QIODevice::ReadWrite) || // ReadWrite mode requested 
+		  ((mode & QIODevice::ReadOnly) == QIODevice::ReadOnly))  && // or ReadOnly mode requested	
+		 exists()) // and file exists
 	{
 		// we open the file and read in the
 		// main header and directory list of the ecat file
@@ -253,10 +254,8 @@ bool CECATFile::open(QIODevice::OpenModeFlag mode)
 			QFile::close();
 		}
 	}
-	else if(mode & QIODevice::WriteOnly)
+	else if((mode & QIODevice::WriteOnly) == QIODevice::WriteOnly) // mode contains WriteOnly flag
 	{
-		D("preparing IO_WriteOnly mode: %d", m_pData->iECATformat);
-
 		// the file doesn't exist and therefore we do not have any
 		// main header or directory list. so lets create some empty ones
 		if(m_pData->iECATformat != CECATFile::Undefined)
@@ -283,6 +282,8 @@ bool CECATFile::open(QIODevice::OpenModeFlag mode)
 			E("ECATformat unknown");
 
 		// make sure the file is removed upon opening it
+		// we don't do a plain QFile::remove() here because otherwise
+		// QFile will close and free our data.
 		if(result)
 			QFile::remove(fileName());
 	}
