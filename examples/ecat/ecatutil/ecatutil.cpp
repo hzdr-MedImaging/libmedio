@@ -36,11 +36,16 @@
 #include <iostream>
 #include <iomanip>
 
+#define INFEED_3D 116.40
+#define INFEED_2D 135.80
+
 using namespace std;
 
 // global data
 QString inputFileName;
 QString outputFileName;
+QStringList appendFilesList;
+float g_fInfeed = 116.40;
 quint32 replaceMatrixID=0;
 quint32 newMatrixID=0;
 
@@ -75,12 +80,15 @@ int main(int argc, char* argv[])
 			if(i+1 < argc && argv[i+1][0] != '-')
 			{
 				args.insert(option, argv[i+1]);
+				i++;
 			}
 			else
 				args.insert(option, "");
 		}
-		else 
+		else
+		{
 			args.insert("infile", argv[i]);
+		}
 	}
 		
 	// check if the user has specified at least 2 arguments which
@@ -212,8 +220,37 @@ int main(int argc, char* argv[])
 				}
 			}
 		}
-
-		if(args.contains("infile"))
+		if(args.contains("-f"))
+		{
+			g_fInfeed = args.value("-f").toFloat();
+		}
+		if(args.contains("-a"))
+		{
+			appendFilesList = args.value("-a").split(',', QString::SkipEmptyParts);
+			QStringListIterator i(appendFilesList);
+			if(appendFilesList.isEmpty())
+			{
+				cout << "ERROR: no files found to append." << endl;
+				returnCode = 2;
+			}
+			else
+			{
+				inputFileName = appendFilesList[0];
+				QRegExp rx("([a-z,A-Z,-]+)");
+				int pos = 0;
+				if((pos = rx.indexIn(QFileInfo(appendFilesList[0]).baseName(), pos)) != -1)
+				{
+					outputFileName = rx.cap(1) + QString(".v");
+					cout << outputFileName.toAscii().data() << endl;
+				}
+				else
+				{
+					cout << "ERROR: could not generate outputfile." << endl;
+					returnCode = 2;
+				}
+			}
+		}
+		if(args.contains("infile") && !args.contains("-a"))
 		{
 			inputFileName = args.value("infile");
 
@@ -223,7 +260,7 @@ int main(int argc, char* argv[])
 				returnCode = 2;
 			}
 		}
-		else
+		else if(!args.contains("-a"))
 		{
 			cout << "ERROR: no input file specified." << endl;
 			returnCode = 2;
@@ -231,8 +268,8 @@ int main(int argc, char* argv[])
 
 		if(args.contains("-o") && args.value("-o").isEmpty() == false)
 			outputFileName = args.value("-o");
-		else
-			outputFileName = inputFileName+"_modified";		
+		else if(!args.contains("-a"))
+			outputFileName = inputFileName+"_modified";
 	}
 	else
 		returnCode = 2;
@@ -247,6 +284,9 @@ int main(int argc, char* argv[])
 		cout << "  -o <file>    : write the output data to <file> instead to '*_new'" << endl;
 		cout << "  -r <matrixID>: remove matrix from ECAT file with ID <frame,plane,gate,data,bed>." << endl;
 		cout << "  -n <matrixID>: create an empty matrix." << endl;
+		cout << "  -a <file1,file2,...>: append first matrix from each file to new file in specified order." << endl;
+		cout << "  -f <infeed>  : defines infeed in mm for each bedposition (default: 3D - 116.40mm)" << endl;
+
 		cout << "  -h           : this help page." << endl << endl;
 	}
 	else
@@ -273,78 +313,124 @@ int main(int argc, char* argv[])
 					if(outMainHeader)
 					{
 						*outMainHeader = *mainHeader;
+						CECAT7MainHeader* pTmp = static_cast<CECAT7MainHeader*>(outMainHeader);
+						for(int i = 0; i < appendFilesList.count(); i++)
+							pTmp->setBed_Offset(i, (i+1)*g_fInfeed/10.0F);
 
 						if(outfile.writeMainHeader(*outMainHeader))
 						{
 							cout << "copied." << endl;
 
-							// now we iterate through the directory list of the input
-							// file and write out each matrix to the output file
-							CECATDirectory* inDir = infile.directory();
-							CECATDirectoryItem* inDitem;
-
-							// on a first operation we first go and add new matrices
-							if(newMatrixID != 0 && (inDitem = (*inDir)[0]))
+							if(!args.contains("-a"))
 							{
-								CECATSubHeader* dummySubHeader;
-								QByteArray* dummyData;
+								// now we iterate through the directory list of the input
+								// file and write out each matrix to the output file
+								CECATDirectory* inDir = infile.directory();
+								CECATDirectoryItem* inDitem;
 
-								// we read in the very first dir item to clone it with
-								// a new matrixID
-								cout << "processing matrix (" << std::hex << newMatrixID << "): ";
-								if(inDitem->readMatrix(dummyData, dummySubHeader))
+								// on a first operation we first go and add new matrices
+								if(newMatrixID != 0 && (inDitem = (*inDir)[0]))
 								{
-									// now we clear the data and write it back under the new matrixID
-									dummyData->fill(0);
+									CECATSubHeader* dummySubHeader;
+									QByteArray* dummyData;
 
-									// write the data to the new matrix
-									if(outfile.writeMatrix(*dummyData, *dummySubHeader, matrixID2Frame(newMatrixID),
-																																			matrixID2Plane(newMatrixID),
-																																			matrixID2Gate(newMatrixID),
-																																			matrixID2Bed(newMatrixID),
-																																			matrixID2Data(newMatrixID)))
+									// we read in the very first dir item to clone it with
+									// a new matrixID
+									cout << "processing matrix (" << std::hex << newMatrixID << "): ";
+									if(inDitem->readMatrix(dummyData, dummySubHeader))
 									{
-										cout << "new empty matrix generated." << endl;
-									}
-									else
-										cout << "ERROR! couldn't write to output file." << endl;
+										// now we clear the data and write it back under the new matrixID
+										dummyData->fill(0);
 
-									delete dummyData;
-									delete dummySubHeader;
-								}
-								else
-									cout << "ERROR! couldn't read in first diritem" << endl;
-							}							
-
-							for(int i=0; (inDitem = (*inDir)[i]); i++)
-							{
-								quint32 matrixID = inDitem->matrixID();
-								CECATSubHeader* subHeader;
-								QByteArray* matrixData;
-
-								cout << "processing matrix (" << std::hex << matrixID << "): ";
-								if(matrixID != newMatrixID && matrixID != replaceMatrixID)
-								{
-									// read in the matrix data and subheader
-									if(inDitem->readMatrix(matrixData, subHeader))
-									{
-										// now we generate a new matrix with the same ID in our
-										// output file
-										if(outfile.writeMatrix(*matrixData, *subHeader, matrixID2Frame(matrixID)))
+										// write the data to the new matrix
+										if(outfile.writeMatrix(*dummyData, *dummySubHeader, matrixID2Frame(newMatrixID),
+																																				matrixID2Plane(newMatrixID),
+																																				matrixID2Gate(newMatrixID),
+																																				matrixID2Bed(newMatrixID),
+																																				matrixID2Data(newMatrixID)))
 										{
-											cout << "copied." << endl;
+											cout << "new empty matrix generated." << endl;
 										}
 										else
 											cout << "ERROR! couldn't write to output file." << endl;
 
-										delete matrixData;
-										delete subHeader;
+										delete dummyData;
+										delete dummySubHeader;
 									}
 									else
-										cout << "ERROR! couldn't read matrix data." << endl;
+										cout << "ERROR! couldn't read in first diritem" << endl;
+								}							
+
+								for(int i=0; (inDitem = (*inDir)[i]); i++)
+								{
+									quint32 matrixID = inDitem->matrixID();
+									CECATSubHeader* subHeader;
+									QByteArray* matrixData;
+
+									cout << "processing matrix (" << std::hex << matrixID << "): ";
+									if(matrixID != newMatrixID && matrixID != replaceMatrixID)
+									{
+										// read in the matrix data and subheader
+										if(inDitem->readMatrix(matrixData, subHeader))
+										{
+											// now we generate a new matrix with the same ID in our
+											// output file
+											if(outfile.writeMatrix(*matrixData, *subHeader, matrixID2Frame(matrixID)))
+											{
+												cout << "copied." << endl;
+											}
+											else
+												cout << "ERROR! couldn't write to output file." << endl;
+
+											delete matrixData;
+											delete subHeader;
+										}
+										else
+											cout << "ERROR! couldn't read matrix data." << endl;
+									}
+									else
+										cout << "skipped." << endl;
 								}
-								else
-									cout << "skipped." << endl;
+							}
+							else
+							{
+								cout << g_fInfeed << endl;
+								QStringListIterator it(appendFilesList);
+								int i = 1;
+								while(it.hasNext())
+								{
+									QString appendFile = it.next();
+									cout << "processing: " << appendFile.toAscii().data() << endl;
+									CECATFile file(appendFile);
+									if(file.open(QIODevice::ReadOnly) && infile.format() != CECATFile::Undefined)
+									{
+										QByteArray* pMatrixData = NULL;
+										CECATSubHeader* pSubHeader = NULL;
+										if(!file.readMatrix(pMatrixData, pSubHeader, 1))
+										{
+											cout << "ERROR! couldn't read matrix from: " << appendFile.toAscii().data() << endl;
+											file.close();
+											break;
+										}
+										if(outfile.writeMatrix(*pMatrixData, *pSubHeader, 1,1,1,i,0))
+										{
+											cout << "matrix copied." << endl;
+										}
+										else
+										{
+											cout << "ERROR! couldn't write matrix to: " << outputFileName.toAscii().data() << endl;
+											file.close();
+											break;
+										}
+										file.close();
+									}
+									else
+									{
+										cout << "ERROR! couldn't open" << appendFile.toAscii().data() << endl;
+										break;
+									}
+									i++;
+								}
 							}
 						}
 						else

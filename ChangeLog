@@ -5,6 +5,11 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2007-01-31 Hagen Moelle <draggore@gmx.de>
+
+	* ecatutil: appending of files to multiple bedpositions (sinograms, imagges
+	...)
+
 #### 2.5.1 RELEASE ###########################################################
 
 2007-01-24 Jens Langner <Jens.Langner@light-speed.de>
