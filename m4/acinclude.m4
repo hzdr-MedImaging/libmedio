@@ -238,29 +238,58 @@ AC_DEFUN([AC_ENABLE_STATIC_GSL],
 ])
 
 dnl
-dnl AC_ENABLE_STATIC_LIBLM: provides a switch to control the link level (static/shared)
-dnl of a linked liblm library
+dnl AC_ENABLE_STATIC_LIBMEDLM: provides a switch to control the link level (static/shared)
+dnl of a linked libmedlm library
 dnl
-AC_DEFUN([AC_ENABLE_STATIC_LIBLM],
+AC_DEFUN([AC_ENABLE_STATIC_MEDLM],
 [
-	AC_MSG_CHECKING(whether to link the liblm library static)
-	AC_ARG_ENABLE(static-liblm,
-								[AC_HELP_STRING([--enable-static-liblm], [turn on static linking of liblm [default=no]])],
+	AC_MSG_CHECKING(whether to link the medlm library static)
+	AC_ARG_ENABLE(static-medlm,
+								[AC_HELP_STRING([--enable-static-medlm], [turn on static linking of medlm lib [default=no]])],
 								[case "${enableval}" in
-									yes) test_on_enable_static_liblm=yes	;;
-									no)	 test_on_enable_static_liblm=no	;;
-									*)	 AC_MSG_ERROR(bad value ${enableval} for --enable-static-liblm) ;;
+									yes) test_on_enable_static_medlm=yes	;;
+									no)	 test_on_enable_static_medlm=no	;;
+									*)	 AC_MSG_ERROR(bad value ${enableval} for --enable-static-medlm) ;;
 								esac],
-								[test_on_enable_static_liblm=no])
+								[test_on_enable_static_medlm=no])
 
-	if test "$test_on_enable_static_liblm" = "yes"; then
-		QTLINK_LEVEL="${QTLINK_LEVEL} staticliblm"
+	if test "$test_on_enable_static_medlm" = "yes"; then
+		QTLINK_LEVEL="${QTLINK_LEVEL} staticmedlm"
 		AC_MSG_RESULT(yes)
-		ac_liblm_link_level="static"
+		ac_medlm_link_level="static"
 	else
 		QTLINK_LEVEL="${QTLINK_LEVEL}"
 		AC_MSG_RESULT(no)
-		ac_liblm_link_level="shared"
+		ac_medlm_link_level="shared"
+	fi
+
+	AC_SUBST(QTLINK_LEVEL) 
+])
+
+dnl
+dnl AC_ENABLE_STATIC_LIBMTRACK: provides a switch to control the link level (static/shared)
+dnl of a linked libmtrack library
+dnl
+AC_DEFUN([AC_ENABLE_STATIC_MTRACK],
+[
+	AC_MSG_CHECKING(whether to link the mtrack library static)
+	AC_ARG_ENABLE(static-mtrack,
+								[AC_HELP_STRING([--enable-static-mtrack], [turn on static linking of mtrack lib [default=no]])],
+								[case "${enableval}" in
+									yes) test_on_enable_static_mtrack=yes	;;
+									no)	 test_on_enable_static_mtrack=no	;;
+									*)	 AC_MSG_ERROR(bad value ${enableval} for --enable-static-mtrack) ;;
+								esac],
+								[test_on_enable_static_mtrack=no])
+
+	if test "$test_on_enable_static_mtrack" = "yes"; then
+		QTLINK_LEVEL="${QTLINK_LEVEL} staticmtrack"
+		AC_MSG_RESULT(yes)
+		ac_mtrack_link_level="static"
+	else
+		QTLINK_LEVEL="${QTLINK_LEVEL}"
+		AC_MSG_RESULT(no)
+		ac_mtrack_link_level="shared"
 	fi
 
 	AC_SUBST(QTLINK_LEVEL) 
@@ -400,7 +429,11 @@ AC_DEFUN([AC_PATH_RTDEBUG_LIB],
 	  ac_rtdebug_libname="librtdebug.a"
 		LIB_RTDEBUG="$ac_rtdebug_libname"
 	else
-		ac_rtdebug_libname="librtdebug.so"
+		if test "$HOST_OS" = "Darwin"; then
+		  ac_rtdebug_libname="librtdebug.dylib"
+    else
+		  ac_rtdebug_libname="librtdebug.so"
+    fi
 		LIB_RTDEBUG="-lrtdebug"
 	fi
 
@@ -553,7 +586,11 @@ AC_DEFUN([AC_PATH_MEDIO_LIB],
 	  ac_medio_libname="libmedio.a"
 		LIB_MEDIO="$ac_medio_libname"
 	else
-		ac_medio_libname="libmedio.so"
+		if test "$HOST_OS" = "Darwin"; then
+		  ac_medio_libname="libmedio.dylib"
+    else
+		  ac_medio_libname="libmedio.so"
+    fi
 		LIB_MEDIO="-lmedio"
 	fi
 
@@ -701,7 +738,11 @@ AC_DEFUN([AC_PATH_GSL_LIB],
 	  ac_gsl_libname="libgsl.a"
 		LIB_GSL="$ac_gsl_libname"
 	else
-		ac_gsl_libname="libgsl.so"
+		if test "$HOST_OS" = "Darwin"; then
+		  ac_gsl_libname="libgsl.dylib"
+    else
+		  ac_gsl_libname="libgsl.so"
+    fi
 		LIB_GSL="-lgsl -lgslcblas"
 	fi
 
@@ -760,17 +801,16 @@ AC_DEFUN([AC_PATH_GSL_INC],
       dnl If you need to add extra directories to check, add them here.
       gsl_include_dirs="\
 				$GSLDIR/include \
-				$GSLDIR/include/gsl \
 				$GSLDIR \						
         /usr/local/gsl/include \
-        /usr/include/gsl \
+        /usr/include/ \
         /usr/lib/gsl/include \
-        /usr/local/include/gsl"
+        /usr/local/include/"
     fi
 
     for gsl_dir in $gsl_include_dirs; do
-      if test -r "$gsl_dir/gsl_version.h"; then
-        if test -r "$gsl_dir/gsl_types.h"; then
+      if test -r "$gsl_dir/gsl/gsl_version.h"; then
+        if test -r "$gsl_dir/gsl/gsl_types.h"; then
           ac_gsl_includes=$gsl_dir
           break;
         fi
@@ -798,38 +838,38 @@ Try --with-gsl-inc to specify the path, manually.])
 ])
 
 dnl
-dnl AC_PATH_LIBLM: allows to override the default library search path for
-dnl searching for the liblm library.
+dnl AC_PATH_MEDLM: allows to override the default library search path for
+dnl searching for the libmedlm library.
 dnl
-AC_DEFUN([AC_PATH_LIBLM],
+AC_DEFUN([AC_PATH_MEDLM],
 [
-  AC_ARG_WITH(liblm, [AC_HELP_STRING([--with-liblm], [where the liblm environment is located.])],
-										 [LIBLMDIR="$withval" ])
+  AC_ARG_WITH(medlm, [AC_HELP_STRING([--with-medlm], [where the libmedlm environment is located.])],
+										 [MEDLMDIR="$withval" ])
 ])
 
 dnl
-dnl AC_PATH_LIBLM_LIB: checks for the existance of the liblm library in the
+dnl AC_PATH_MEDLM_LIB: checks for the existance of the libmedlm library in the
 dnl default pathes and allows to override them as well
 dnl
-AC_DEFUN([AC_PATH_LIBLM_LIB],
+AC_DEFUN([AC_PATH_MEDLM_LIB],
 [
   AC_REQUIRE_CPP()
-  AC_ARG_WITH(liblm-lib,
-              [AC_HELP_STRING([--with-liblm-lib], [where the liblm library is located.])],
-							[ac_liblm_libraries="$withval"], ac_liblm_libraries="")
+  AC_ARG_WITH(medlm-lib,
+              [AC_HELP_STRING([--with-medlm-lib], [where the medlm library is located.])],
+							[ac_medlm_libraries="$withval"], ac_medlm_libraries="")
 
   AC_MSG_CHECKING(for listmode library)
 
-  AC_CACHE_VAL(ac_cv_lib_liblmlib, [
+  AC_CACHE_VAL(ac_cv_lib_medlmlib, [
 
-  liblm_libdir=
+  medlm_libdir=
 
   dnl No they didnt, so lets look for them...
   dnl If you need to add extra directories to check, add them here.
-  if test -z "$ac_liblm_libraries"; then
-    liblm_library_dirs="$LIBLMDIR/lib \
-												$LIBLMDIR/lm \
-												$LIBLMDIR \
+  if test -z "$ac_medlm_libraries"; then
+    medlm_library_dirs="$MEDLMDIR/lib \
+												$MEDLMDIR/lm \
+												$MEDLMDIR \
 												/usr/local/petlib/lib \
 												/usr/local/petlib/lib/lm \	
 		                    /usr/local/lib \
@@ -838,113 +878,271 @@ AC_DEFUN([AC_PATH_LIBLM_LIB],
 		                    /usr/lib/lm \
 		                    /Developer/lm/lib"
   else
-    liblm_library_dirs="$ac_liblm_libraries"
+    medlm_library_dirs="$ac_medlm_libraries"
   fi
 
   dnl for simplicity we simply go and check if
-	dnl we can find the liblm library in one of
+	dnl we can find the libmedlm library in one of
 	dnl our search pathes
-  ac_liblm_libdir=""
-  if test "$ac_liblm_link_level" = "static"; then
-	  ac_liblm_libname="liblm.a"
-		LIB_LIBLM="$ac_liblm_libname"
+  ac_medlm_libdir=""
+  if test "$ac_medlm_link_level" = "static"; then
+	  ac_medlm_libname="libmedlm.a"
+		LIB_MEDLM="$ac_medlm_libname"
 	else
-		ac_liblm_libname="liblm.so"
-		LIB_LIBLM="-llm"
+		if test "$HOST_OS" = "Darwin"; then
+		  ac_medlm_libname="libmedlm.dylib"
+    else
+		  ac_medlm_libname="libmedlm.so"
+    fi
+		LIB_MEDLM="-lmedlm"
 	fi
 
-  for liblm_dir in $liblm_library_dirs; do
-		if test -r "$liblm_dir/$ac_liblm_libname"; then
-      ac_liblm_libdir="$liblm_dir"
+  for medlm_dir in $medlm_library_dirs; do
+		if test -r "$medlm_dir/$ac_medlm_libname"; then
+      ac_medlm_libdir="$medlm_dir"
       break;
     else
-      echo "tried $liblm_dir" >&AC_FD_CC 
+      echo "tried $medlm_dir" >&AC_FD_CC 
     fi
   done
 
-  ac_cv_lib_liblmlib="ac_liblm_libname=$ac_liblm_libname ac_liblm_libdir=$ac_liblm_libdir"
+  ac_cv_lib_medlmlib="ac_medlm_libname=$ac_medlm_libname ac_medlm_libdir=$ac_medlm_libdir"
   ])
 
-  eval "$ac_cv_lib_liblmlib"
+  eval "$ac_cv_lib_medlmlib"
 
   dnl Define a shell variable for later checks
-  if test -z "$ac_liblm_libdir"; then
-    have_liblm_lib="no"
+  if test -z "$ac_medlm_libdir"; then
+    have_medlm_lib="no"
     AC_MSG_RESULT([no])
-    AC_MSG_ERROR([Cannot find required $ac_liblm_link_level listmode library (liblm) in linker path.
-Try --with-liblm-lib to specify the path, manually.])
+    AC_MSG_ERROR([Cannot find required $ac_medlm_link_level listmode library (libmedlm) in linker path.
+Try --with-medlm-lib to specify the path, manually.])
   else
-    have_liblm_lib="yes"
-    AC_MSG_RESULT([yes, $ac_liblm_libname in $ac_liblm_libdir found.])
+    have_medlm_lib="yes"
+    AC_MSG_RESULT([yes, $ac_medlm_libname in $ac_medlm_libdir found.])
   fi
 
-  LIBLM_LDFLAGS="-L$ac_liblm_libdir"
-  LIBLM_LIBDIR="$ac_liblm_libdir"
-  AC_SUBST(LIBLM_LDFLAGS)
-  AC_SUBST(LIBLM_LIBDIR)
-  AC_SUBST(LIB_LIBLM)
+  MEDLM_LDFLAGS="-L$ac_medlm_libdir"
+  MEDLM_LIBDIR="$ac_medlm_libdir"
+  AC_SUBST(MEDLM_LDFLAGS)
+  AC_SUBST(MEDLM_LIBDIR)
+  AC_SUBST(LIB_MEDLM)
 ])
 
 dnl
-dnl AC_PATH_LIBLM_INC: checks the existance of the includes files for successfully
-dnl compiling support for the liblm library and also allows to override the default
+dnl AC_PATH_MEDLM_INC: checks the existance of the includes files for successfully
+dnl compiling support for the libmedlm library and also allows to override the default
 dnl path to that includes.
 dnl
-AC_DEFUN([AC_PATH_LIBLM_INC],
+AC_DEFUN([AC_PATH_MEDLM_INC],
 [
   AC_REQUIRE_CPP()
-  AC_MSG_CHECKING(for liblm includes)
+  AC_MSG_CHECKING(for libmedlm includes)
 
-  AC_ARG_WITH(liblm-inc,
-              [AC_HELP_STRING([--with-liblm-inc], [where the liblm headers are located.])],
-              [liblm_include_dirs="$withval"], liblm_include_dirs="")
+  AC_ARG_WITH(medlm-inc,
+              [AC_HELP_STRING([--with-medlm-inc], [where the libmedlm headers are located.])],
+              [medlm_include_dirs="$withval"], medlm_include_dirs="")
 
-  AC_CACHE_VAL(ac_cv_header_liblminc, [
+  AC_CACHE_VAL(ac_cv_header_medlminc, [
 
-    dnl Did the user give --with-liblm-includes?
-    if test -z "$liblm_include_dirs"; then
+    dnl Did the user give --with-medlm-includes?
+    if test -z "$medlm_include_dirs"; then
 
       dnl No they didn't, so lets look for them...
       dnl If you need to add extra directories to check, add them here.
-      liblm_include_dirs="\
-				$LIBLMDIR/include \
-				$LIBLMDIR/include/lm \
-				$LIBLMDIR \			
+      medlm_include_dirs="\
+				$MEDLMDIR/include \
+				$MEDLMDIR/include/medlm \
+				$MEDLMDIR \			
 			  /usr/local/petlib/include \
-				/usr/local/petlib/include/lm \					
+				/usr/local/petlib/include/medlm \					
         /usr/local/include \
-        /usr/local/include/lm \
-        /usr/include/lm \
-        /usr/lib/lm/include"
+        /usr/local/include/medlm \
+        /usr/include/medlm \
+        /usr/lib/medlm/include"
     fi
 
-    for liblm_dir in $liblm_include_dirs; do
-      if test -r "$liblm_dir/CListModeFile.h"; then
-        if test -r "$liblm_dir/CSinglesFile.h"; then
-          ac_liblm_includes=$liblm_dir
+    for medlm_dir in $medlm_include_dirs; do
+      if test -r "$medlm_dir/CListModeFile.h"; then
+        if test -r "$medlm_dir/CSinglesFile.h"; then
+          ac_medlm_includes=$medlm_dir
           break;
         fi
       fi
     done
 
-    ac_cv_header_liblminc=$ac_liblm_includes
+    ac_cv_header_medlminc=$ac_medlm_includes
 
   ])
 
-  if test -z "$ac_cv_header_liblminc"; then
-    have_liblm_inc="no"
+  if test -z "$ac_cv_header_medlminc"; then
+    have_medlm_inc="no"
     AC_MSG_RESULT([no])
-    AC_MSG_WARN([liblm include directory not found, you may run into problems.
-Try --with-liblm-inc to specify the path, manually.])
+    AC_MSG_WARN([libmedlm include directory not found, you may run into problems.
+Try --with-medlm-inc to specify the path, manually.])
   else
-    have_liblm_inc="yes"
-    AC_MSG_RESULT([yes, in $ac_cv_header_liblminc])
+    have_medlm_inc="yes"
+    AC_MSG_RESULT([yes, in $ac_cv_header_medlminc])
   fi
 
-  LIBLM_INCLUDES="-I$ac_cv_header_liblminc"
-  LIBLM_INCDIR="$ac_cv_header_liblminc"
-  AC_SUBST(LIBLM_INCLUDES)
-  AC_SUBST(LIBLM_INCDIR)
+  MEDLM_INCLUDES="-I$ac_cv_header_medlminc"
+  MEDLM_INCDIR="$ac_cv_header_medlminc"
+  AC_SUBST(MEDLM_INCLUDES)
+  AC_SUBST(MEDLM_INCDIR)
+])
+
+dnl
+dnl AC_PATH_MTRACK: allows to override the default library search path for
+dnl searching for the libmtrack library.
+dnl
+AC_DEFUN([AC_PATH_MTRACK],
+[
+  AC_ARG_WITH(mtrack, [AC_HELP_STRING([--with-mtrack], [where the libmtrack environment is located.])],
+										  [MTRACKDIR="$withval" ])
+])
+
+dnl
+dnl AC_PATH_MTRACK_LIB: checks for the existance of the libmtrack library in the
+dnl default pathes and allows to override them as well
+dnl
+AC_DEFUN([AC_PATH_MTRACK_LIB],
+[
+  AC_REQUIRE_CPP()
+  AC_ARG_WITH(mtrack-lib,
+              [AC_HELP_STRING([--with-mtrack-lib], [where the mtrack library is located.])],
+							[ac_mtrack_libraries="$withval"], ac_mtrack_libraries="")
+
+  AC_MSG_CHECKING(for motion-tracking library)
+
+  AC_CACHE_VAL(ac_cv_lib_mtracklib, [
+
+  mtrack_libdir=
+
+  dnl No they didnt, so lets look for them...
+  dnl If you need to add extra directories to check, add them here.
+  if test -z "$ac_mtrack_libraries"; then
+    mtrack_library_dirs="$MTRACKDIR/lib \
+												 $MTRACKDIR/mtrack \
+												 $MTRACKDIR \
+												 /usr/local/petlib/lib \
+												 /usr/local/petlib/lib/mtrack \	
+		                     /usr/local/lib \
+												 /usr/local/lib/mtrack \
+		                     /usr/lib \
+		                     /usr/lib/mtrack \
+		                     /Developer/mtrack/lib"
+  else
+    mtrack_library_dirs="$ac_mtrack_libraries"
+  fi
+
+  dnl for simplicity we simply go and check if
+	dnl we can find the libmtrack library in one of
+	dnl our search pathes
+  ac_mtrack_libdir=""
+  if test "$ac_mtrack_link_level" = "static"; then
+	  ac_mtrack_libname="libmtrack.a"
+		LIB_MTRACK="$ac_mtrack_libname"
+	else
+		if test "$HOST_OS" = "Darwin"; then
+		  ac_mtrack_libname="libmtrack.dylib"
+    else
+		  ac_mtrack_libname="libmtrack.so"
+    fi
+		LIB_MTRACK="-lmtrack"
+	fi
+
+  for mtrack_dir in $mtrack_library_dirs; do
+		if test -r "$mtrack_dir/$ac_mtrack_libname"; then
+      ac_mtrack_libdir="$mtrack_dir"
+      break;
+    else
+      echo "tried $mtrack_dir" >&AC_FD_CC 
+    fi
+  done
+
+  ac_cv_lib_mtracklib="ac_mtrack_libname=$ac_mtrack_libname ac_mtrack_libdir=$ac_mtrack_libdir"
+  ])
+
+  eval "$ac_cv_lib_mtracklib"
+
+  dnl Define a shell variable for later checks
+  if test -z "$ac_mtrack_libdir"; then
+    have_mtrack_lib="no"
+    AC_MSG_RESULT([no])
+    AC_MSG_ERROR([Cannot find required $ac_mtrack_link_level motion-tracking library (libmtrack) in linker path.
+Try --with-mtrack-lib to specify the path, manually.])
+  else
+    have_mtrack_lib="yes"
+    AC_MSG_RESULT([yes, $ac_mtrack_libname in $ac_mtrack_libdir found.])
+  fi
+
+  MTRACK_LDFLAGS="-L$ac_mtrack_libdir"
+  MTRACK_LIBDIR="$ac_mtrack_libdir"
+  AC_SUBST(MTRACK_LDFLAGS)
+  AC_SUBST(MTRACK_LIBDIR)
+  AC_SUBST(LIB_MTRACK)
+])
+
+dnl
+dnl AC_PATH_MTRACK_INC: checks the existance of the includes files for successfully
+dnl compiling support for the libmtrack library and also allows to override the default
+dnl path to that includes.
+dnl
+AC_DEFUN([AC_PATH_MTRACK_INC],
+[
+  AC_REQUIRE_CPP()
+  AC_MSG_CHECKING(for libmtrack includes)
+
+  AC_ARG_WITH(mtrack-inc,
+              [AC_HELP_STRING([--with-mtrack-inc], [where the libmtrack headers are located.])],
+              [mtrack_include_dirs="$withval"], mtrack_include_dirs="")
+
+  AC_CACHE_VAL(ac_cv_header_mtrackinc, [
+
+    dnl Did the user give --with-mtrack-includes?
+    if test -z "$mtrack_include_dirs"; then
+
+      dnl No they didn't, so lets look for them...
+      dnl If you need to add extra directories to check, add them here.
+      mtrack_include_dirs="\
+				$MTRACKDIR/include \
+				$MTRACKDIR/include/mtrack \
+				$MTRACKDIR \			
+			  /usr/local/petlib/include \
+				/usr/local/petlib/include/mtrack \					
+        /usr/local/include \
+        /usr/local/include/mtrack \
+        /usr/include/mtrack \
+        /usr/lib/mtrack/include"
+    fi
+
+    for mtrack_dir in $mtrack_include_dirs; do
+      if test -r "$mtrack_dir/CMotionData.h"; then
+        if test -r "$mtrack_dir/CTransMatrix.h"; then
+          ac_mtrack_includes=$mtrack_dir
+          break;
+        fi
+      fi
+    done
+
+    ac_cv_header_mtrackinc=$ac_mtrack_includes
+
+  ])
+
+  if test -z "$ac_cv_header_mtrackinc"; then
+    have_mtrack_inc="no"
+    AC_MSG_RESULT([no])
+    AC_MSG_WARN([libmtrack include directory not found, you may run into problems.
+Try --with-mtrack-inc to specify the path, manually.])
+  else
+    have_mtrack_inc="yes"
+    AC_MSG_RESULT([yes, in $ac_cv_header_mtrackinc])
+  fi
+
+  MTRACK_INCLUDES="-I$ac_cv_header_mtrackinc"
+  MTRACK_INCDIR="$ac_cv_header_mtrackinc"
+  AC_SUBST(MTRACK_INCLUDES)
+  AC_SUBST(MTRACK_INCDIR)
 ])
 
 dnl
@@ -1059,7 +1257,11 @@ AC_DEFUN([AC_PATH_QT3_LIB],
 	  ac_qt_libname="libqt-mt.a"
 		LIB_QT="$ac_qt_libname"
 	else
-		ac_qt_libname="libqt-mt.so"
+		if test "$HOST_OS" = "Darwin"; then
+		  ac_qt_libname="libqt-mt.dylib"
+    else
+		  ac_qt_libname="libqt-mt.so"
+    fi
 		LIB_QT="-lqt-mt"
 	fi
 
@@ -1227,6 +1429,17 @@ AC_DEFUN([AC_PATH_QT3_QMAKE],
 ])
 
 dnl
+dnl AC_PATH_QT4: allows to override the default library search path for
+dnl searching for the Qt4 libraries/binaries and stuff.
+dnl
+AC_DEFUN([AC_PATH_QT4],
+[
+  AC_ARG_WITH(qt4, [AC_HELP_STRING([--with-qt4], [where the Qt4 environment is located.])],
+									 [QT4DIR="$withval" ])
+])
+
+
+dnl
 dnl AC_PATH_QT4_LIB: checks if the Qt4 libraries are reachable and provides means
 dnl of overriding the default search path
 dnl
@@ -1245,7 +1458,8 @@ AC_DEFUN([AC_PATH_QT4_LIB],
   dnl No they didnt, so lets look for them...
   dnl If you need to add extra directories to check, add them here.
   if test -z "$ac_qt_libraries"; then
-    qt_library_dirs="/usr/lib/qt4 \
+    qt_library_dirs="$QT4DIR/lib \
+                     /usr/lib/qt4 \
 										 /usr/local/qt4/lib \
 										 /usr/local/qt/lib \
                      /usr/local/lib/qt4 \
@@ -1273,7 +1487,11 @@ AC_DEFUN([AC_PATH_QT4_LIB],
 	  ac_qt_libname="libQtCore.a"
 		LIB_QT="$ac_qt_libname"
 	else
-		ac_qt_libname="libQtCore.so"
+		if test "$HOST_OS" = "Darwin"; then
+			ac_qt_libname="libQtCore.dylib"
+		else
+			ac_qt_libname="libQtCore.so"
+		fi
 		LIB_QT="-lQtCore"
 	fi
 
@@ -1326,6 +1544,7 @@ AC_DEFUN([AC_PATH_QT4_INC],
     dnl Did the user give --with-qt-includes?
     if test -z "$qt_include_dirs"; then
       qt_include_dirs="\
+        $QT4DIR/include \
 			  /usr/include/qt4/ \
 				/usr/local/qt4/include \
         /usr/lib/qt/include \
@@ -1379,29 +1598,29 @@ AC_DEFUN([AC_PATH_QT4_QMAKE],
   AC_ARG_WITH(qt4-qmake,[AC_HELP_STRING([--with-qt4-qmake], [where the Qt4 qmake binary is located.])],
                         [ac_qt_qmake="$withval"], ac_qt_qmake="")
 
-  if test -z "$ac_qt_qmake"; then
+  if test -z "$QT4DIR" && test -z "$ac_qt_make"; then
     AC_PATH_PROG(
       QMAKE_PATH,
       qmake,
       qmake,
       /usr/local/qt4/bin:/usr/lib/qt4/bin:/usr/bin:/usr/X11R6/bin:/usr/lib/qt/bin:/usr/local/qt/bin:/Developer/qt4/bin:$PATH
     )
-  else
-    AC_MSG_CHECKING(for qmake)
-
-    if test -f $ac_qt_qmake && test -x $ac_qt_qmake; then
-      QMAKE_PATH=$ac_qt_qmake
-    else
-      AC_MSG_ERROR(
-        --with-qt4-qmake expects path and name of the qmake tool
-      )
-    fi
-
-    AC_MSG_RESULT($QMAKE_PATH)
   fi
 
   if test -z "$QMAKE_PATH"; then
-    AC_MSG_ERROR(couldn't find Qt4 qmake. Please use --with-qt4-qmake)
+    AC_MSG_CHECKING(for qmake)
+
+    if test -f "$ac_qt_qmake" && test -x "$ac_qt_qmake"; then
+      QMAKE_PATH=$ac_qt_qmake
+    else
+      if test -f "$QT4DIR/bin/qmake" && test -x "$QT4DIR/bin/qmake"; then
+        QMAKE_PATH="$QT4DIR/bin/qmake"
+      else
+        AC_MSG_ERROR(couldn't find Qt4 qmake. Please use --with-qt4-qmake)
+      fi
+    fi
+
+    AC_MSG_RESULT($QMAKE_PATH)
   fi
 
   dnl Check if we have the right qmake by outputing the version
