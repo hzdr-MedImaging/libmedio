@@ -412,7 +412,7 @@ int main(int argc, char* argv[])
 											file.close();
 											break;
 										}
-										if(outfile.writeMatrix(*pMatrixData, *pSubHeader, 1,1,1,i,0))
+										if(outfile.writeMatrix(*pMatrixData, *pSubHeader, 1,1,1,i-1,0))
 										{
 											cout << "matrix copied." << endl;
 										}

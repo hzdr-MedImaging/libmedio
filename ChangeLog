@@ -5,6 +5,11 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2007-02-27 Hagen Moelle <draggore@gmx.de>
+
+	* ecatutil: when appending files to multiple bedposition file
+		the index of bedposition in file was wrong - fixed
+
 2007-02-04 Jens Langner <Jens.Langner@light-speed.de>
 
   * misc: adapted autoconf ennvironment to MacOSX build.
