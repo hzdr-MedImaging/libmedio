@@ -508,7 +508,7 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
 			else if(typeString == "SERIAL_NUMBER")
 				strncpy(mHeader.m_pData->header.Serial_Number, dataString.toAscii(), 10);
 			else if(typeString == "SCAN_START_TIME")
-				mHeader.m_pData->header.Scan_Start_Time = dataString.toLong(&convertSuccess);
+				mHeader.m_pData->header.Scan_Start_Time = dataString.toInt(&convertSuccess);
 			else if(typeString == "ISOTOPE_NAME")
 				strncpy(mHeader.m_pData->header.Isotope_Name, dataString.toAscii(), 8);
 			else if(typeString == "ISOTOPE_HALFLIFE")
@@ -562,7 +562,7 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
 			else if(typeString == "PATIENT_WEIGHT")
 				mHeader.m_pData->header.Patient_Weight = dataString.toFloat(&convertSuccess);
 			else if(typeString == "PATIENT_BIRTH_DATE")
-				mHeader.m_pData->header.Patient_Birth_Date = dataString.toLong(&convertSuccess);
+				mHeader.m_pData->header.Patient_Birth_Date = dataString.toInt(&convertSuccess);
 			else if(typeString == "PHYSICIAN_NAME")
 				strncpy(mHeader.m_pData->header.Physician_Name, dataString.toAscii(), 32);
 			else if(typeString == "OPERATOR_NAME")
@@ -613,7 +613,7 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
 			else if(typeString == "BRANCHING_FRACTION")
 				mHeader.m_pData->header.Branching_Fraction = dataString.toFloat(&convertSuccess);
 			else if(typeString == "DOSE_START_TIME")
-				mHeader.m_pData->header.Dose_Start_Time = dataString.toLong(&convertSuccess);
+				mHeader.m_pData->header.Dose_Start_Time = dataString.toInt(&convertSuccess);
 			else if(typeString == "DOSAGE")
 				mHeader.m_pData->header.Dosage = dataString.toFloat(&convertSuccess);
 			else if(typeString == "WELL_COUNTER_CORR_FACTOR")

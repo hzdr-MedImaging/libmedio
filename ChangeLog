@@ -5,10 +5,15 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2007-03-02 Jens Langner <Jens.Langner@light-speed.de>
+
+  * CECATMainHeader.cpp: changed all toLong() -> toInt() as the variables
+    in question were anyway just 32bit integer variables.
+
 2007-02-27 Hagen Moelle <draggore@gmx.de>
 
-	* ecatutil: when appending files to multiple bedposition file
-		the index of bedposition in file was wrong - fixed
+  * ecatutil: when appending files to multiple bedposition file
+    the index of bedposition in file was wrong - fixed
 
 2007-02-04 Jens Langner <Jens.Langner@light-speed.de>
 
@@ -16,8 +21,8 @@ $Id$
 
 2007-01-31 Hagen Moelle <draggore@gmx.de>
 
-	* ecatutil: appending of files to multiple bedpositions (sinograms, images,
-     etc.)
+  * ecatutil: appending of files to multiple bedpositions (sinograms, images,
+    etc.)
 
 #### 2.5.1 RELEASE ###########################################################
 
