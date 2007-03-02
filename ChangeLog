@@ -5,6 +5,11 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2007-03-02 Jens Langner <Jens.Langner@light-speed.de>
+
+  * CECATMainHeader.cpp: changed all toLong() -> toInt() as the variables
+    in question were anyway just 32bit integer variables.
+
 #### 1.5.1 RELEASE ###########################################################
 
 2007-01-24 Jens Langner <Jens.Langner@light-speed.de>
