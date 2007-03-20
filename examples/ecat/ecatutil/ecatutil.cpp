@@ -45,7 +45,7 @@ using namespace std;
 QString inputFileName;
 QString outputFileName;
 QStringList appendFilesList;
-float g_fInfeed = 116.40;
+float g_fInfeed = INFEED_3D;
 quint32 replaceMatrixID=0;
 quint32 newMatrixID=0;
 
@@ -314,7 +314,7 @@ int main(int argc, char* argv[])
 					{
 						*outMainHeader = *mainHeader;
 						CECAT7MainHeader* pTmp = static_cast<CECAT7MainHeader*>(outMainHeader);
-						for(int i = 0; i < appendFilesList.count(); i++)
+						for(int i = 0; i < appendFilesList.count()-1; i++)
 							pTmp->setBed_Offset(i, (i+1)*g_fInfeed/10.0F);
 
 						if(outfile.writeMainHeader(*outMainHeader))
