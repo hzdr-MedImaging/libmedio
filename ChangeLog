@@ -5,6 +5,11 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2007-03-30 Hagen Moelle <draggore@gmx.de>
+
+	*	CECAT7SubHeaderAttenCorr.cpp: due to wrong sizes of unused/CTI_Reserved
+		space memory was overwitten when reading data to variables (load method)
+
 2007-03-23 Hagen Moelle <draggore@gmx.de>
 
 	*	ecatutil: setting of frame start time in specified input filename
