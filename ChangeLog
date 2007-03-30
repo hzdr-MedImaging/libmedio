@@ -5,6 +5,8 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+#### 2.5.2 RELEASE ###########################################################
+
 2007-03-30 Hagen Moelle <draggore@gmx.de>
 
 	*	CECAT7SubHeaderAttenCorr.cpp: due to wrong sizes of unused/CTI_Reserved
