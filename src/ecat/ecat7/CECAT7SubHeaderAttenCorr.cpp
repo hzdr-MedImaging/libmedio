@@ -64,7 +64,7 @@ class CECAT7SubHeaderAttenCorrPrivate
 			Q_UINT16	Storage_Order;
 			Q_UINT16	Span;
 			Q_UINT16	Z_Elements[64];
-			Q_UINT16	Unused[86];
+			Q_UINT16	Unused[90];
 			Q_UINT16	CTI_Reserved[50];
 		} header;
 };
@@ -191,11 +191,12 @@ bool CECAT7SubHeaderAttenCorr::load(void)
 	stream >> m_pData->header.Span;												// 110: Span
 	for(int i=0; i < 64; i++)
 		stream >> m_pData->header.Z_Elements[i];							// 112: Z_Elements (64)
-	for(int i=0; i < 86; i++)
-		stream >> m_pData->header.Unused[i];									// 240: Unused (86)
-	for(int i=0; i < 64; i++)
-		stream >> m_pData->header.CTI_Reserved[i];						// 412: CTI_Reserved (64)
+	for(int i=0; i < 90; i++)
+		stream >> m_pData->header.Unused[i];									// 240: Unused (90)
+	for(int i=0; i < 50; i++)
+		stream >> m_pData->header.CTI_Reserved[i];						// 412: CTI_Reserved (50)
 
+	return true;
 	// some more debug output
 #if defined(DEBUG)
 	D("ECAT7 Attenuation Correction SubHeader loaded:");
@@ -290,10 +291,10 @@ bool CECAT7SubHeaderAttenCorr::save(void) const
 	stream << m_pData->header.Span;												// 110: Span
 	for(int i=0; i < 64; i++)
 		stream << m_pData->header.Z_Elements[i];							// 112: Z_Elements (64)
-	for(int i=0; i < 86; i++)
-		stream << m_pData->header.Unused[i];									// 240: Unused (86)
-	for(int i=0; i < 64; i++)
-		stream << m_pData->header.CTI_Reserved[i];						// 412: CTI_Reserved (64)		
+	for(int i=0; i < 90; i++)
+		stream << m_pData->header.Unused[i];									// 240: Unused (90)
+	for(int i=0; i < 50; i++)
+		stream << m_pData->header.CTI_Reserved[i];						// 412: CTI_Reserved (50)
 
 	// now write out to our outStream
 	bool result = false;

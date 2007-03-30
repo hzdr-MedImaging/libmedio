@@ -5,10 +5,41 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+#### 1.5.2 RELEASE ###########################################################
+
+2007-03-30 Hagen Moelle <draggore@gmx.de>
+
+	*	CECAT7SubHeaderAttenCorr.cpp: due to wrong sizes of unused/CTI_Reserved
+		space memory was overwitten when reading data to variables (load method)
+
+2007-03-23 Hagen Moelle <draggore@gmx.de>
+
+	*	ecatutil: setting of frame start time in specified input filename
+		implemented
+
+2007-02-27 Hagen Moelle <draggore@gmx.de>
+
+  * ecatutil: corrected number of bed offsets in multiple bed
+		position files
+
 2007-03-02 Jens Langner <Jens.Langner@light-speed.de>
 
   * CECATMainHeader.cpp: changed all toLong() -> toInt() as the variables
     in question were anyway just 32bit integer variables.
+
+2007-02-27 Hagen Moelle <draggore@gmx.de>
+
+  * ecatutil: when appending files to multiple bedposition file
+    the index of bedposition in file was wrong - fixed
+
+2007-02-04 Jens Langner <Jens.Langner@light-speed.de>
+
+  * misc: adapted autoconf ennvironment to MacOSX build.
+
+2007-01-31 Hagen Moelle <draggore@gmx.de>
+
+  * ecatutil: appending of files to multiple bedpositions (sinograms, images,
+    etc.)
 
 #### 1.5.1 RELEASE ###########################################################
 
