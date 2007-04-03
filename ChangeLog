@@ -5,6 +5,11 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2007-03-23 Hagen Moelle <draggore@gmx.de>
+
+	*	ecatutil: setting of dose and scan start time in specified input filename
+		implemented
+
 #### 2.5.2 RELEASE ###########################################################
 
 2007-03-30 Hagen Moelle <draggore@gmx.de>

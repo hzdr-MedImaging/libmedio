@@ -32,6 +32,7 @@
 #include <QMultiHash>
 #include <QString>
 #include <QStringList>
+#include <QDateTime>
 
 #include <iostream>
 #include <iomanip>
@@ -49,6 +50,8 @@ float g_fInfeed = INFEED_3D;
 quint32 replaceMatrixID=0;
 quint32 newMatrixID=0;
 int g_iFrameStartTime = 0;
+QDateTime g_scanStartTime;
+QDateTime g_doseStartTime;
 
 //  Function:    main
 //! 
@@ -229,6 +232,14 @@ int main(int argc, char* argv[])
 		{
 			g_iFrameStartTime = args.value("-s").toInt();
 		}
+		if(args.contains("-d"))
+		{
+			g_doseStartTime = QDateTime::fromString(args.value("-d"), QString("dd.MM.yyyy hh:mm:ss"));
+		}
+		if(args.contains("-c"))
+		{
+			g_scanStartTime = QDateTime::fromString(args.value("-c"), QString("dd.MM.yyyy hh:mm:ss"));
+		}
 		if(args.contains("-a"))
 		{
 			appendFilesList = args.value("-a").split(',', QString::SkipEmptyParts);
@@ -292,6 +303,8 @@ int main(int argc, char* argv[])
 		cout << "  -a <file1,file2,...>: append first matrix from each file to new file in specified order." << endl;
 		cout << "  -f <infeed>  : defines infeed in mm for each bedposition (default: 3D - 116.40mm)" << endl;
 		cout << "  -s <starttime>: sets frame start time [msecs] in given file" << endl;
+		cout << "  -d <startdatetime>: sets dose start date and time [DD.MM.YYYY HH:MM:SS]" << endl;
+		cout << "  -c <startdatetime>: sets scan start date and time [DD.MM.YYYY HH:MM:SS]" << endl;
 
 		cout << "  -h           : this help page." << endl << endl;
 	}
@@ -303,7 +316,7 @@ int main(int argc, char* argv[])
 			 infile.format() != CECATFile::Undefined)
 		{
 			cout << "Successfully loaded file: '" << inputFileName.toAscii().constData() << "'" << endl;
-			if(!args.contains("-s"))
+			if(!args.contains("-s") && !args.contains("-d") && !args.contains("-c"))
 			{
 				// lets open the output file now
 				CECATFile outfile(outputFileName, infile.fileType());
@@ -458,30 +471,52 @@ int main(int argc, char* argv[])
 			}
 			else
 			{
-				CECATSubHeader* pSubHeader = NULL;
-				if(infile.readSubHeader(pSubHeader, 1))
+				if(args.contains("-d") || args.contains("-c"))
 				{
-					if(pSubHeader->subHeaderType() == CECATSubHeader::ECAT7_Scan3D)
+					CECATMainHeader* mainHeader;
+					if(infile.readMainHeader(mainHeader))
 					{
-						CECAT7SubHeaderScan3D* pTmp = static_cast<CECAT7SubHeaderScan3D*>(pSubHeader);
-						pTmp->setFrame_Start_Time(g_iFrameStartTime);
-						if(infile.writeSubHeader(*pTmp, 1,1,1,0,0))
+						CECAT7MainHeader* pTmp = static_cast<CECAT7MainHeader*>(mainHeader);
+						if(args.contains("-d"))
+							pTmp->setDose_Start_Time_Qt(g_doseStartTime);
+						if(args.contains("-c"))
+							pTmp->setScan_Start_Time_Qt(g_scanStartTime);
+						if(infile.writeMainHeader(*pTmp))
+							cout << "Successfully updated main header '" << inputFileName.toAscii().constData() << "'" << endl;
+						else
+							cout << "ERROR: couldn't write main header '" << inputFileName.toAscii().constData() << "'" << endl;
+					}
+					else
+						cout << "ERROR: couldn't read main header '" << inputFileName.toAscii().constData() << "'" << endl;
+				}
+
+				if(args.contains("-s"))
+				{
+					CECATSubHeader* pSubHeader = NULL;
+					if(infile.readSubHeader(pSubHeader, 1))
+					{
+						if(pSubHeader->subHeaderType() == CECATSubHeader::ECAT7_Scan3D)
 						{
-							cout << "Successfully updated frame start time '" << inputFileName.toAscii().constData() << "'" << endl;
+							CECAT7SubHeaderScan3D* pTmp = static_cast<CECAT7SubHeaderScan3D*>(pSubHeader);
+							pTmp->setFrame_Start_Time(g_iFrameStartTime);
+							if(infile.writeSubHeader(*pTmp, 1,1,1,0,0))
+							{
+								cout << "Successfully updated frame start time '" << inputFileName.toAscii().constData() << "'" << endl;
+							}
+							else
+							{
+								cout << "ERROR: couldn't write subheader '" << inputFileName.toAscii().constData() << "'" << endl;
+							}
 						}
 						else
 						{
-							cout << "ERROR: couldn't write subheader '" << inputFileName.toAscii().constData() << "'" << endl;
+							cout << "ERROR: no scan 3d subheader '" << inputFileName.toAscii().constData() << "'" << endl;
 						}
 					}
 					else
 					{
-						cout << "ERROR: no scan 3d subheader '" << inputFileName.toAscii().constData() << "'" << endl;
+						cout << "ERROR: couldn't read subheader '" << inputFileName.toAscii().constData() << "'" << endl;
 					}
-				}
-				else
-				{
-					cout << "ERROR: couldn't read subheader '" << inputFileName.toAscii().constData() << "'" << endl;
 				}
 			}
 			infile.close();

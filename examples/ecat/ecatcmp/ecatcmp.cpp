@@ -572,7 +572,7 @@ int main(int argc, char* argv[])
 							dirItem2 = dir2->item(dirItem1->frame(),
 																	  dirItem1->plane(),
 																	  dirItem1->gate(),
-																	  dirItem1->bed(),
+																	  4,
 																		dirItem1->data());							
 						}
 							
