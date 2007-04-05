@@ -26,6 +26,7 @@
 #include <CECAT7MainHeader>
 #include <CECATDirectory>
 #include <CECAT7SubHeaderScan3D>
+#include <CECAT7SubHeaderAttenCorr>
 
 #include <iostream>
 #include <iomanip>
@@ -519,6 +520,76 @@ int main(int argc, char* argv[])
 
 												}
 												break;
+												case CECATSubHeader::ECAT7_AttenCorr:
+												{
+													CECAT7SubHeaderAttenCorr* sh1 = static_cast<CECAT7SubHeaderAttenCorr*>(subHeader1);
+													CECAT7SubHeaderAttenCorr* sh2 = static_cast<CECAT7SubHeaderAttenCorr*>(subHeader2);
+
+													if(sh1->data_Type() != sh2->data_Type())
+														cout << "     DATA_TYPE...............: '" << sh1->data_Type() << "' != '" << sh2->data_Type() << "'" << endl;
+													if(sh1->num_Dimensions() != sh2->num_Dimensions())
+														cout << "     NUM_DIMENSIONS..........: '" << sh1->num_Dimensions() << "' != '" << sh2->num_Dimensions() << "'" << endl;
+													if(sh1->attenuation_Type() != sh2->attenuation_Type())
+														cout << "     ATTENUATION_TYPE........: '" << sh1->attenuation_Type() << "' != '" << sh2->attenuation_Type() << "'" << endl;
+													if(sh1->num_R_Elements() != sh2->num_R_Elements())
+														cout << "     NUM_R_ELEMENTS..........: '" << sh1->num_R_Elements() << "' != '" << sh2->num_R_Elements() << "'" << endl;
+													if(sh1->num_Angles() != sh2->num_Angles())
+														cout << "     NUM_ANGLES..............: '" << sh1->num_Angles() << "' != '" << sh2->num_Angles() << "'" << endl;
+													for(short i=0; i < 64; i++)
+													{
+														if(sh1->z_Elements(i) != sh2->z_Elements(i))
+															cout << "     NUM_Z_ELEMENTS[" << setw(2) << i << "]......: '" << sh1->z_Elements(i) << "' != '" << sh2->z_Elements(i) << "'" << endl;
+													}
+													if(sh1->ring_Difference() != sh2->ring_Difference())
+														cout << "     RING_DIFFERENCE.........: '" << sh1->ring_Difference() << "' != '" << sh2->ring_Difference() << "'" << endl;
+													if(sh1->x_Resolution() != sh2->x_Resolution())
+														cout << "     X_RESOLUTION............: '" << sh1->x_Resolution() << "' != '" << sh2->x_Resolution() << "'" << endl;
+													if(sh1->y_Resolution() != sh2->y_Resolution())
+														cout << "     Y_RESOLUTION............: '" << sh1->y_Resolution() << "' != '" << sh2->y_Resolution() << "'" << endl;
+													if(sh1->z_Resolution() != sh2->z_Resolution())
+														cout << "     Z_RESOLUTION............: '" << sh1->z_Resolution() << "' != '" << sh2->z_Resolution() << "'" << endl;
+													if(sh1->w_Resolution() != sh2->w_Resolution())
+														cout << "     W_RESOLUTION............: '" << sh1->w_Resolution() << "' != '" << sh2->w_Resolution() << "'" << endl;
+													if(sh1->scale_Factor() != sh2->scale_Factor())
+														cout << "     SCALE_FACTOR............: '" << sh1->scale_Factor() << "' != '" << sh2->scale_Factor() << "'" << endl;
+													if(sh1->x_Offset() != sh2->x_Offset())
+														cout << "     X_OFFSET................: '" << sh1->x_Offset() << "' != '" << sh2->x_Offset() << "'" << endl;
+													if(sh1->y_Offset() != sh2->y_Offset())
+														cout << "     X_OFFSET................: '" << sh1->y_Offset() << "' != '" << sh2->y_Offset() << "'" << endl;
+													if(sh1->x_Radius() != sh2->x_Radius())
+														cout << "     X_RADIUS................: '" << sh1->x_Radius() << "' != '" << sh2->x_Radius() << "'" << endl;
+													if(sh1->y_Radius() != sh2->y_Radius())
+														cout << "     Y_RADIUS................: '" << sh1->y_Radius() << "' != '" << sh2->y_Radius() << "'" << endl;
+													if(sh1->tilt_Angle() != sh2->tilt_Angle())
+														cout << "     TILT_ANGLE..............: '" << sh1->tilt_Angle() << "' != '" << sh2->tilt_Angle() << "'" << endl;
+													if(sh1->skull_Thickness() != sh2->skull_Thickness())
+														cout << "     SKULL_THICKNESS.........: '" << sh1->skull_Thickness() << "' != '" << sh2->skull_Thickness() << "'" << endl;
+													if(sh1->num_Additional_Atten_Coeff() != sh2->num_Additional_Atten_Coeff())
+														cout << "     NUM_ADDITIONAL_ATTEN_COEFF: '" << sh1->num_Additional_Atten_Coeff() << "' != '" << sh2->num_Additional_Atten_Coeff() << "'" << endl;
+													for(short i=0; i < 8; i++)
+													{
+														if(sh1->additional_Atten_Coeff(i) != sh2->additional_Atten_Coeff(i))
+															cout << "     ADDITIONAL_ATTEN_COEFF[" << setw(2) << i << "]........: '" << sh1->additional_Atten_Coeff(i) << "' != '" << sh2->additional_Atten_Coeff(i) << "'" << endl;
+													}
+													if(sh1->edge_Finding_Threshold() != sh2->edge_Finding_Threshold())
+														cout << "     EDGE_FINDING_THRESHOLD..: '" << sh1->edge_Finding_Threshold() << "' != '" << sh2->edge_Finding_Threshold() << "'" << endl;
+													if(sh1->storage_Order() != sh2->storage_Order())
+														cout << "     STORAGE_ORDER...........: '" << sh1->storage_Order() << "' != '" << sh2->storage_Order() << "'" << endl;
+													if(sh1->span() != sh2->span())
+														cout << "     SPAN....................: '" << sh1->span() << "' != '" << sh2->span() << "'" << endl;
+
+													for(short i=0; i < 90; i++)
+													{
+														if(sh1->cti_Reserved(i) != sh2->cti_Reserved(i))
+															cout << "     CTI_RESERVED[" << setw(2) << i << "]........: '" << sh1->cti_Reserved(i) << "' != '" << sh2->cti_Reserved(i) << "'" << endl;
+													}
+													for(short i=0; i < 50; i++)
+													{
+														if(sh1->unused(i) != sh2->unused(i))
+															cout << "     USER_RESERVED[" << setw(2) << i << "].......: '" << sh1->unused(i) << "' != '" << sh2->unused(i) << "'" << endl;
+													}
+												}
+												break;
 
 												default:
 													cout << "     WARNING! compare of subHeaderType " << subHeader1->subHeaderType() << " currently not supported!" << endl;
@@ -572,7 +643,8 @@ int main(int argc, char* argv[])
 							dirItem2 = dir2->item(dirItem1->frame(),
 																	  dirItem1->plane(),
 																	  dirItem1->gate(),
-																	  4,
+																	  //dirItem1->bed(),
+																		2,
 																		dirItem1->data());							
 						}
 							
@@ -687,8 +759,8 @@ int main(int argc, char* argv[])
 
 															if(val1 != val2)
 															{
-																cout << "     " << setw(8) << setfill('0') << hex << i << "| ";
-																cout << setfill(' ') << setw(3) << setprecision(3) << dec << val1 << " : " << val2 << endl;
+																//cout << "     " << setw(8) << setfill('0') << hex << i << "| ";
+																//cout << setfill(' ') << setw(3) << setprecision(3) << dec << val1 << " : " << val2 << endl;
 																diffs++;
 															}
 														}
@@ -713,11 +785,11 @@ int main(int argc, char* argv[])
 
 															if(val1 != val2)
 															{
-																cout << "     " << setw(8) << setfill('0') << hex << i << "| ";
-																cout << setfill(' ') << setw(5) << dec << val1 << " : " << setw(5) << val2;
-																cout << " |";
-																cout << "  " << setfill('0') << setw(4) << hex << val1 << " : " << setw(4) << val2;
-																cout << " |" << endl;
+																//cout << "     " << setw(8) << setfill('0') << hex << i << "| ";
+																//cout << setfill(' ') << setw(5) << dec << val1 << " : " << setw(5) << val2;
+																//cout << " |";
+																//cout << "  " << setfill('0') << setw(4) << hex << val1 << " : " << setw(4) << val2;
+																//cout << " |" << endl;
 																diffs++;
 															}
 														}
@@ -773,7 +845,7 @@ int main(int argc, char* argv[])
 								delete matrixData2;
 							}
 							else
-								cout << "NOT found in both files";
+								cout << "NOT found in both files" << endl;
 						}
 						else
 							cout << "Unknown error";

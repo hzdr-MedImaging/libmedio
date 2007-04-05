@@ -5,6 +5,11 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2007-04-05 Hagen Moelle <draggore@gmx.de>
+
+	*	ecatutil:	setting of bed elevation in specified input filename implemented
+	*	ecatcmp:	comparing of attenuation files implemented
+
 2007-03-23 Hagen Moelle <draggore@gmx.de>
 
 	*	ecatutil: setting of dose and scan start time in specified input filename

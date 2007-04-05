@@ -52,6 +52,7 @@ quint32 newMatrixID=0;
 int g_iFrameStartTime = 0;
 QDateTime g_scanStartTime;
 QDateTime g_doseStartTime;
+double g_dBedElevation;
 
 //  Function:    main
 //! 
@@ -240,6 +241,10 @@ int main(int argc, char* argv[])
 		{
 			g_scanStartTime = QDateTime::fromString(args.value("-c"), QString("dd.MM.yyyy hh:mm:ss"));
 		}
+		if(args.contains("-e"))
+		{
+			g_dBedElevation = args.value("-e").toDouble();
+		}
 		if(args.contains("-a"))
 		{
 			appendFilesList = args.value("-a").split(',', QString::SkipEmptyParts);
@@ -305,6 +310,7 @@ int main(int argc, char* argv[])
 		cout << "  -s <starttime>: sets frame start time [msecs] in given file" << endl;
 		cout << "  -d <startdatetime>: sets dose start date and time [DD.MM.YYYY HH:MM:SS]" << endl;
 		cout << "  -c <startdatetime>: sets scan start date and time [DD.MM.YYYY HH:MM:SS]" << endl;
+		cout << "  -e <elevation>: sets bed bed elevation [cm]" << endl;
 
 		cout << "  -h           : this help page." << endl << endl;
 	}
@@ -316,7 +322,7 @@ int main(int argc, char* argv[])
 			 infile.format() != CECATFile::Undefined)
 		{
 			cout << "Successfully loaded file: '" << inputFileName.toAscii().constData() << "'" << endl;
-			if(!args.contains("-s") && !args.contains("-d") && !args.contains("-c"))
+			if(!args.contains("-s") && !args.contains("-d") && !args.contains("-c") && !args.contains("-e"))
 			{
 				// lets open the output file now
 				CECATFile outfile(outputFileName, infile.fileType());
@@ -471,7 +477,7 @@ int main(int argc, char* argv[])
 			}
 			else
 			{
-				if(args.contains("-d") || args.contains("-c"))
+				if(args.contains("-d") || args.contains("-c") || args.contains("-e"))
 				{
 					CECATMainHeader* mainHeader;
 					if(infile.readMainHeader(mainHeader))
@@ -481,6 +487,8 @@ int main(int argc, char* argv[])
 							pTmp->setDose_Start_Time_Qt(g_doseStartTime);
 						if(args.contains("-c"))
 							pTmp->setScan_Start_Time_Qt(g_scanStartTime);
+						if(args.contains("-e"))
+							pTmp->setBed_Elevation(g_dBedElevation);
 						if(infile.writeMainHeader(*pTmp))
 							cout << "Successfully updated main header '" << inputFileName.toAscii().constData() << "'" << endl;
 						else
