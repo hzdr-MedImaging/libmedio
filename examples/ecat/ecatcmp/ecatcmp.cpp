@@ -1,7 +1,7 @@
 /* vim:set ts=2 nowrap: ****************************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -28,8 +28,12 @@
 #include <CECAT7SubHeaderScan3D>
 #include <CECAT7SubHeaderAttenCorr>
 
+#include <math.h>
+
 #include <iostream>
 #include <iomanip>
+
+#include "config.h" // for big/little endianness check
 
 using namespace std;
 
@@ -50,7 +54,7 @@ int main(int argc, char* argv[])
   // Read  http://gcc.gnu.org/onlinedocs/libstdc++/27_io/howto.html#8 for an explanation.
   ios::sync_with_stdio(false);
 
-	cout << "libmedio ECAT6/7 file/data compare tool 1.1" << endl;
+	cout << "libmedio ECAT6/7 file/data compare tool 1.2" << endl;
 	cout << "-------------------------------------------" << endl;
 
 	// check if the user has specified a filename or not
@@ -643,8 +647,7 @@ int main(int argc, char* argv[])
 							dirItem2 = dir2->item(dirItem1->frame(),
 																	  dirItem1->plane(),
 																	  dirItem1->gate(),
-																	  //dirItem1->bed(),
-																		2,
+																	  dirItem1->bed(),
 																		dirItem1->data());							
 						}
 							
@@ -751,7 +754,13 @@ int main(int argc, char* argv[])
 														QDataStream stream1(matrixData1, QIODevice::ReadOnly);
 														QDataStream stream2(matrixData2, QIODevice::ReadOnly);
 
+                            #if !defined(WORDS_BIGENDIAN)
+                            stream1.setByteOrder(QDataStream::LittleEndian);
+                            stream2.setByteOrder(QDataStream::LittleEndian);
+                            #endif
+
 														cout << "     IEEEFloat datatype" << endl;
+                            cout << "        Pos        Value1          Value2         difference" << endl;
 														for(int i=0; stream1.atEnd() == false; i++)
 														{
 															stream1 >> val1;
@@ -759,8 +768,10 @@ int main(int argc, char* argv[])
 
 															if(val1 != val2)
 															{
-																//cout << "     " << setw(8) << setfill('0') << hex << i << "| ";
-																//cout << setfill(' ') << setw(3) << setprecision(3) << dec << val1 << " : " << val2 << endl;
+																cout << "     " << setw(8) << setfill('0') << hex << i << "| ";
+																cout << setfill(' ') << setw(13) << setprecision(6) << scientific << val1 << " : ";
+                                cout << setfill(' ') << setw(13) << setprecision(6) << scientific << val2 << " | ";
+                                cout << setw(13) << setprecision(6) << scientific << fabs(val1-val2) << endl;
 																diffs++;
 															}
 														}
@@ -776,6 +787,11 @@ int main(int argc, char* argv[])
 														QDataStream stream1(matrixData1, QIODevice::ReadOnly);
 														QDataStream stream2(matrixData2, QIODevice::ReadOnly);
 
+                            #if !defined(WORDS_BIGENDIAN)
+                            stream1.setByteOrder(QDataStream::LittleEndian);
+                            stream2.setByteOrder(QDataStream::LittleEndian);
+                            #endif
+
 														cout << "     SunShort datatype" << endl;
 														cout << "        Pos    Value1 Value2    HEX    HEX" << endl; 														
 														for(int i=0; stream1.atEnd() == false; i++)
@@ -785,11 +801,11 @@ int main(int argc, char* argv[])
 
 															if(val1 != val2)
 															{
-																//cout << "     " << setw(8) << setfill('0') << hex << i << "| ";
-																//cout << setfill(' ') << setw(5) << dec << val1 << " : " << setw(5) << val2;
-																//cout << " |";
-																//cout << "  " << setfill('0') << setw(4) << hex << val1 << " : " << setw(4) << val2;
-																//cout << " |" << endl;
+																cout << "     " << setw(8) << setfill('0') << hex << i << "| ";
+																cout << setfill(' ') << setw(5) << dec << val1 << " : " << setw(5) << dec << val2;
+																cout << " |";
+																cout << "  " << setfill('0') << setw(4) << hex << val1 << " : " << setw(4) << hex << val2;
+																cout << " |" << endl;
 																diffs++;
 															}
 														}
@@ -804,6 +820,11 @@ int main(int argc, char* argv[])
 
 														QDataStream stream1(matrixData1, QIODevice::ReadOnly);
 														QDataStream stream2(matrixData2, QIODevice::ReadOnly);
+
+                            #if !defined(WORDS_BIGENDIAN)
+                            stream1.setByteOrder(QDataStream::LittleEndian);
+                            stream2.setByteOrder(QDataStream::LittleEndian);
+                            #endif                            
 
 														cout << "     SunLong datatype" << endl;
 														cout << "        Pos     Value1   Value2       HEX       HEX" << endl; 														
@@ -848,7 +869,7 @@ int main(int argc, char* argv[])
 								cout << "NOT found in both files" << endl;
 						}
 						else
-							cout << "Unknown error";
+							cout << "Unknown error" << endl;
 					}
 
 					cout << endl;

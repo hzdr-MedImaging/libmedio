@@ -65,6 +65,9 @@ AC_PATH_RTDEBUG_INC
 # checking gcc version
 AC_PROG_GCC_VERSION
 
+# check for big/little endian
+AC_C_BIGENDIAN
+
 # Checks for some tools which we need
 AC_PATH_PROG(MKDIR_PATH, mkdir)
 AC_PATH_PROG(CP_PATH, cp)

@@ -24,7 +24,7 @@
 TEMPLATE = app
 QT = core
 DEPENDPATH += .
-INCLUDEPATH += . /usr/local/petlib/include/medio
+INCLUDEPATH += . ../../../src/include /usr/local/petlib/include/medio
 LIBS *= /usr/local/petlib/lib/libmedio.so.2
 
 # Input
