@@ -26,7 +26,9 @@
 #include <CECAT7MainHeader>
 #include <CECATDirectory>
 #include <CECAT7SubHeaderScan3D>
+#include <CECAT7SubHeaderNorm3D>
 #include <CECAT7SubHeaderAttenCorr>
+#include <CECAT7SubHeaderImage>
 
 #include <math.h>
 
@@ -36,6 +38,13 @@
 #include "config.h" // for big/little endianness check
 
 using namespace std;
+
+// local prototypes
+static void compareECAT7MainHeader(CECATMainHeader* mh1, CECATMainHeader* mh2);
+static void compareECAT7Scan3DSubHeaders(CECATSubHeader* subHeader1, CECATSubHeader* subHeader2);
+static void compareECAT7Norm3DSubHeaders(CECATSubHeader* subHeader1, CECATSubHeader* subHeader2);
+static void compareECAT7AttenCorrSubHeaders(CECATSubHeader* subHeader1, CECATSubHeader* subHeader2);
+static void compareECAT7ImageSubHeaders(CECATSubHeader* subHeader1, CECATSubHeader* subHeader2);
 
 //  Function:    main
 //! 
@@ -54,7 +63,7 @@ int main(int argc, char* argv[])
   // Read  http://gcc.gnu.org/onlinedocs/libstdc++/27_io/howto.html#8 for an explanation.
   ios::sync_with_stdio(false);
 
-	cout << "libmedio ECAT6/7 file/data compare tool 1.2" << endl;
+	cout << "libmedio ECAT6/7 file/data compare tool 1.4" << endl;
 	cout << "-------------------------------------------" << endl;
 
 	// check if the user has specified a filename or not
@@ -125,142 +134,12 @@ int main(int argc, char* argv[])
 
 							if(header1->rtti() == header2->rtti())
 							{
+								cout << "ok!" << endl;
+
 								if(file1.format() == CECATFile::ECAT7)
 								{								
-									CECAT7MainHeader* eh1 = static_cast<CECAT7MainHeader*>(header1);
-									CECAT7MainHeader* eh2 = static_cast<CECAT7MainHeader*>(header2);
-
-									cout << "ok!" << endl;
-
 									cout << "   Checking for header entry differences: " << endl;
-									
-									if(strcmp(eh1->magic_Number(), eh2->magic_Number()) != 0)
-										cout << "     MAGIC_NUMBER............: '" << eh1->magic_Number() << "' != '" << eh2->magic_Number() << "'" << endl;
-									if(strcmp(eh1->original_File_Name(), eh2->original_File_Name()) != 0)
-										cout << "     ORIGINAL_FILE_NAME......: '" << eh1->original_File_Name() << "' != '" << eh2->original_File_Name() << "'" << endl;
-									if(eh1->sw_Version() != eh2->sw_Version())
-										cout << "     SW_VERSION..............: '" << eh1->original_File_Name() << "' != '" << eh2->original_File_Name() << "'" << endl;
-									if(eh1->system_Type() != eh2->system_Type())
-										cout << "     SYSTEM_TYPE.............: '" << eh1->system_Type() << "' != '" << eh2->system_Type() << "'" << endl;
-									if(eh1->file_Type() != eh2->file_Type())
-										cout << "     FILE_TYPE...............: '" << eh1->file_Type() << "' != '" << eh2->file_Type() << "'" << endl;
-									if(strcmp(eh1->serial_Number(), eh2->serial_Number()) != 0)
-										cout << "     SERIAL_NUMBER...........: '" << eh1->serial_Number() << "' != '" << eh2->serial_Number() << "'" << endl;									
-									if(eh1->scan_Start_Time() != eh2->scan_Start_Time())
-										cout << "     SCAN_START_TIME.........: '" << eh1->scan_Start_Time() << "' != '" << eh2->scan_Start_Time() << "'" << endl;									
-									if(strcmp(eh1->isotope_Name(), eh2->isotope_Name()))
-										cout << "     ISOTOPE_NAME............: '" << eh1->isotope_Name() << "' != '" << eh2->isotope_Name() << "'" << endl;									
-									if(eh1->isotope_Halflife() != eh2->isotope_Halflife())
-										cout << "     ISOTOPE_HALFLIFE........: '" << eh1->isotope_Halflife() << "' != '" << eh2->isotope_Halflife() << "'" << endl;									
-									if(strcmp(eh1->radiopharmaceutical(), eh2->radiopharmaceutical()))
-										cout << "     RADIOPHARMACEUTICAL.....: '" << eh1->radiopharmaceutical() << "' != '" << eh2->radiopharmaceutical() << "'" << endl;	
-									if(eh1->gantry_Tilt() != eh2->gantry_Tilt())
-										cout << "     GANTRY_TILT.............: '" << eh1->gantry_Tilt() << "' != '" << eh2->gantry_Tilt() << "'" << endl;	
-									if(eh1->gantry_Rotation() != eh2->gantry_Rotation())
-										cout << "     GANTRY_ROTATION.........: '" << eh1->gantry_Rotation() << "' != '" << eh2->gantry_Rotation() << "'" << endl;	
-									if(eh1->bed_Elevation() != eh2->bed_Elevation())
-										cout << "     BED_ELEVATION...........: '" << eh1->bed_Elevation() << "' != '" << eh2->bed_Elevation() << "'" << endl;	
-									if(eh1->intrinsic_Tilt() != eh2->intrinsic_Tilt())
-										cout << "     INTRINSIC_TILT..........: '" << eh1->intrinsic_Tilt() << "' != '" << eh2->intrinsic_Tilt() << "'" << endl;	
-									if(eh1->wobble_Speed() != eh2->wobble_Speed())
-										cout << "     WOBBLE_SPEED............: '" << eh1->wobble_Speed() << "' != '" << eh2->wobble_Speed() << "'" << endl;	
-									if(eh1->transm_Source_Type() != eh2->transm_Source_Type())
-										cout << "     TRANSM_SOURCE_TYPE......: '" << eh1->transm_Source_Type() << "' != '" << eh2->transm_Source_Type() << "'" << endl;	
-									if(eh1->distance_Scanned() != eh2->distance_Scanned())
-										cout << "     DISTANCE_SCANNED........: '" << eh1->distance_Scanned() << "' != '" << eh2->distance_Scanned() << "'" << endl;	
-									if(eh1->transaxial_FOV() != eh2->transaxial_FOV())
-										cout << "     TRANSAXIAL_FOV..........: '" << eh1->transaxial_FOV() << "' != '" << eh2->transaxial_FOV() << "'" << endl;
-									if(eh1->angular_Compression() != eh2->angular_Compression())
-										cout << "     ANGULAR_COMPRESSION.....: '" << eh1->angular_Compression() << "' != '" << eh2->angular_Compression() << "'" << endl;
-									if(eh1->coin_Samp_Mode() != eh2->coin_Samp_Mode())
-										cout << "     COIN_SAMP_MODE..........: '" << eh1->coin_Samp_Mode() << "' != '" << eh2->coin_Samp_Mode() << "'" << endl;
-									if(eh1->axial_Samp_Mode() != eh2->axial_Samp_Mode())
-										cout << "     AXIAL_SAMP_MODE.........: '" << eh1->axial_Samp_Mode() << "' != '" << eh2->axial_Samp_Mode() << "'" << endl;
-									if(eh1->calibration_Factor() != eh2->calibration_Factor())
-										cout << "     CALIBRATION_FACTOR......: '" << eh1->calibration_Factor() << "' != '" << eh2->calibration_Factor() << "'" << endl;
-									if(eh1->calibration_Units() != eh2->calibration_Units())
-										cout << "     CALIBRATION_UNITS.......: '" << eh1->calibration_Units() << "' != '" << eh2->calibration_Units() << "'" << endl;
-									if(eh1->calibration_Units_Label() != eh2->calibration_Units_Label())
-										cout << "     CALIBRATION_UNITS_LABEL.: '" << eh1->calibration_Units_Label() << "' != '" << eh2->calibration_Units_Label() << "'" << endl;
-									if(eh1->compression_Code() != eh2->compression_Code())
-										cout << "     COMPRESSION_CODE........: '" << eh1->compression_Code() << "' != '" << eh2->compression_Code() << "'" << endl;
-									if(strcmp(eh1->study_Type(), eh2->study_Type()))
-										cout << "     STUDY_TYPE..............: '" << eh1->study_Type() << "' != '" << eh2->study_Type() << "'" << endl;
-									if(strcmp(eh1->patient_ID(), eh2->patient_ID()))
-										cout << "     PATIENT_ID..............: '" << eh1->patient_ID() << "' != '" << eh2->patient_ID() << "'" << endl;
-									if(strcmp(eh1->patient_Name(), eh2->patient_Name()))
-										cout << "     PATIENT_NAME............: '" << eh1->patient_Name() << "' != '" << eh2->patient_Name() << "'" << endl;
-									if(eh1->patient_Sex() != eh2->patient_Sex())
-										cout << "     PATIENT_SEX.............: '" << eh1->patient_Sex() << "' != '" << eh2->patient_Sex() << "'" << endl;
-									if(eh1->patient_Dexterity() != eh2->patient_Dexterity())
-										cout << "     PATIENT_DEXTERITY.......: '" << eh1->patient_Dexterity() << "' != '" << eh2->patient_Dexterity() << "'" << endl;
-									if(eh1->patient_Age() != eh2->patient_Age())
-										cout << "     PATIENT_AGE.............: '" << eh1->patient_Age() << "' != '" << eh2->patient_Age() << "'" << endl;
-									if(eh1->patient_Height() != eh2->patient_Height())
-										cout << "     PATIENT_HEIGHT..........: '" << eh1->patient_Height() << "' != '" << eh2->patient_Height() << "'" << endl;
-									if(eh1->patient_Weight() != eh2->patient_Weight())
-										cout << "     PATIENT_WEIGHT..........: '" << eh1->patient_Weight() << "' != '" << eh2->patient_Weight() << "'" << endl;
-									if(eh1->patient_Birth_Date() != eh2->patient_Birth_Date())
-										cout << "     PATIENT_BIRTH_DATE......: '" << eh1->patient_Birth_Date() << "' != '" << eh2->patient_Birth_Date() << "'" << endl;
-									if(strcmp(eh1->physician_Name(), eh2->physician_Name()))
-										cout << "     PATIENT_NAME............: '" << eh1->physician_Name() << "' != '" << eh2->physician_Name() << "'" << endl;
-									if(strcmp(eh1->operator_Name(), eh2->operator_Name()))
-										cout << "     OPERATOR_NAME...........: '" << eh1->operator_Name() << "' != '" << eh2->operator_Name() << "'" << endl;
-									if(strcmp(eh1->study_Description(), eh2->study_Description()))
-										cout << "     STUDY_DESCRIPTION.......: '" << eh1->study_Description() << "' != '" << eh2->study_Description() << "'" << endl;
-									if(eh1->acquisition_Type() != eh2->acquisition_Type())
-										cout << "     ACQUISITION_TYPE........: '" << eh1->acquisition_Type() << "' != '" << eh2->acquisition_Type() << "'" << endl;
-									if(eh1->patient_Orientation() != eh2->patient_Orientation())
-										cout << "     PATIENT_ORIENTATION.....: '" << eh1->patient_Orientation() << "' != '" << eh2->patient_Orientation() << "'" << endl;
-									if(strcmp(eh1->facility_Name(), eh2->facility_Name()))
-										cout << "     FACILITY_NAME...........: '" << eh1->facility_Name() << "' != '" << eh2->facility_Name() << "'" << endl;
-									if(eh1->num_Planes() != eh2->num_Planes())
-										cout << "     NUM_PLANES..............: '" << eh1->num_Planes() << "' != '" << eh2->num_Planes() << "'" << endl;
-									if(eh1->num_Frames() != eh2->num_Frames())
-										cout << "     NUM_FRAMES..............: '" << eh1->num_Frames() << "' != '" << eh2->num_Frames() << "'" << endl;
-									if(eh1->num_Gates() != eh2->num_Gates())
-										cout << "     NUM_GATES...............: '" << eh1->num_Gates() << "' != '" << eh2->num_Gates() << "'" << endl;
-									if(eh1->num_Bed_Pos() != eh2->num_Bed_Pos())
-										cout << "     NUM_BED_POS.............: '" << eh1->num_Bed_Pos() << "' != '" << eh2->num_Bed_Pos() << "'" << endl;
-									if(eh1->init_Bed_Position() != eh2->init_Bed_Position())
-										cout << "     INIT_BED_POSITION.......: '" << eh1->init_Bed_Position() << "' != '" << eh2->init_Bed_Position() << "'" << endl;
-									for(int i=0; i < 15; i++)
-									{
-										if(eh1->bed_Offset(i) != eh2->bed_Offset(i))
-											cout << "     BED_OFFSET[" << setw(2) << i << "]..........: '" << eh1->bed_Offset(i) << "' != '" << eh2->bed_Offset(i) << "'" << endl;
-									}
-									if(eh1->plane_Separation() != eh2->plane_Separation())
-										cout << "     PLANE_SEPARATION........: '" << eh1->plane_Separation() << "' != '" << eh2->plane_Separation() << "'" << endl;
-									if(eh1->lwr_Sctr_Thres() != eh2->lwr_Sctr_Thres())
-										cout << "     LWR_SCTR_THRES..........: '" << eh1->lwr_Sctr_Thres() << "' != '" << eh2->lwr_Sctr_Thres() << "'" << endl;
-									if(eh1->lwr_True_Thres() != eh2->lwr_True_Thres())
-										cout << "     LWR_TRUE_THRES..........: '" << eh1->lwr_True_Thres() << "' != '" << eh2->lwr_True_Thres() << "'" << endl;
-									if(eh1->upr_True_Thres() != eh2->upr_True_Thres())
-										cout << "     UPR_TRUE_THRES..........: '" << eh1->upr_True_Thres() << "' != '" << eh2->upr_True_Thres() << "'" << endl;
-									if(strcmp(eh1->user_Process_Code(), eh2->user_Process_Code()) != 0)
-										cout << "     USER_PROCESS_CODE.......: '" << eh1->user_Process_Code() << "' != '" << eh2->user_Process_Code() << "'" << endl;
-									if(eh1->acquisition_Mode() != eh2->acquisition_Mode())
-										cout << "     ACQUISITION_MODE........: '" << eh1->acquisition_Mode() << "' != '" << eh2->acquisition_Mode() << "'" << endl;
-									if(eh1->bin_Size() != eh2->bin_Size())
-										cout << "     BIN_SIZE................: '" << eh1->bin_Size() << "' != '" << eh2->bin_Size() << "'" << endl;
-									if(eh1->branching_Fraction() != eh2->branching_Fraction())
-										cout << "     BRANCHING_FRACTION......: '" << eh1->branching_Fraction() << "' != '" << eh2->branching_Fraction() << "'" << endl;
-									if(eh1->dose_Start_Time() != eh2->dose_Start_Time())
-										cout << "     DOSE_START_TIME.........: '" << eh1->dose_Start_Time() << "' != '" << eh2->dose_Start_Time() << "'" << endl;
-									if(eh1->dosage() != eh2->dosage())
-										cout << "     DOSAGE..................: '" << eh1->dosage() << "' != '" << eh2->dosage() << "'" << endl;
-									if(eh1->well_Counter_Corr_Factor() != eh2->well_Counter_Corr_Factor())
-										cout << "     WELL_COUNTER_CORR_FACTOR: '" << eh1->well_Counter_Corr_Factor() << "' != '" << eh2->well_Counter_Corr_Factor() << "'" << endl;
-									if(strcmp(eh1->data_Units(), eh2->data_Units()) != 0)
-										cout << "     DATA_UNITS..............: '" << eh1->data_Units() << "' != '" << eh2->data_Units() << "'" << endl;
-									if(eh1->septa_State() != eh2->septa_State())
-										cout << "     SEPTA_STATE.............: '" << eh1->septa_State() << "' != '" << eh2->septa_State() << "'" << endl;
-									for(int i=0; i < 6; i++)
-									{
-										if(eh1->cti_Reserved(i) != eh2->cti_Reserved(i))
-											cout << "     CTI_RESERVED[" << i << "].........: '" << eh1->cti_Reserved(i) << "' != '" << eh2->cti_Reserved(i) << "'" << endl;
-									}
-									
+									compareECAT7MainHeader(header1, header2);
 								}
 								else
 									cout << "WARNING! only mainheader checking of ECAT7 files supported." << endl;
@@ -436,163 +315,19 @@ int main(int argc, char* argv[])
 											switch(subHeader1->subHeaderType())
 											{
 												case CECATSubHeader::ECAT7_Scan3D:
-												{
-													CECAT7SubHeaderScan3D* sh1 = static_cast<CECAT7SubHeaderScan3D*>(subHeader1);
-													CECAT7SubHeaderScan3D* sh2 = static_cast<CECAT7SubHeaderScan3D*>(subHeader2);
-
-													if(sh1->data_Type() != sh2->data_Type())
-														cout << "     DATA_TYPE...............: '" << sh1->data_Type() << "' != '" << sh2->data_Type() << "'" << endl;
-													if(sh1->num_Dimensions() != sh2->num_Dimensions())
-														cout << "     NUM_DIMENSIONS..........: '" << sh1->num_Dimensions() << "' != '" << sh2->num_Dimensions() << "'" << endl;
-													if(sh1->num_R_Elements() != sh2->num_R_Elements())
-														cout << "     NUM_R_ELEMENTS..........: '" << sh1->num_R_Elements() << "' != '" << sh2->num_R_Elements() << "'" << endl;
-													if(sh1->num_Angles() != sh2->num_Angles())
-														cout << "     NUM_ANGLES..............: '" << sh1->num_Angles() << "' != '" << sh2->num_Angles() << "'" << endl;
-													if(sh1->corrections_Applied() != sh2->corrections_Applied())
-														cout << "     CORRECTIONS_APPLIED.....: '" << sh1->corrections_Applied() << "' != '" << sh2->corrections_Applied() << "'" << endl;
-													for(short i=0; i < 64; i++)
-													{
-														if(sh1->num_Z_Elements(i) != sh2->num_Z_Elements(i))
-															cout << "     NUM_Z_ELEMENTS[" << setw(2) << i << "]......: '" << sh1->num_Z_Elements(i) << "' != '" << sh2->num_Z_Elements(i) << "'" << endl;
-													}
-													if(sh1->ring_Difference() != sh2->ring_Difference())
-														cout << "     RING_DIFFERENCE.........: '" << sh1->ring_Difference() << "' != '" << sh2->ring_Difference() << "'" << endl;
-													if(sh1->storage_Order() != sh2->storage_Order())
-														cout << "     STORAGE_ORDER...........: '" << sh1->storage_Order() << "' != '" << sh2->storage_Order() << "'" << endl;
-													if(sh1->axial_Compression() != sh2->axial_Compression())
-														cout << "     AXIAL_COMPRESSION.......: '" << sh1->axial_Compression() << "' != '" << sh2->axial_Compression() << "'" << endl;
-													if(sh1->X_Resolution() != sh2->X_Resolution())
-														cout << "     X_RESOLUTION............: '" << sh1->X_Resolution() << "' != '" << sh2->X_Resolution() << "'" << endl;
-													if(sh1->V_Resolution() != sh2->V_Resolution())
-														cout << "     Y_RESOLUTION............: '" << sh1->V_Resolution() << "' != '" << sh2->V_Resolution() << "'" << endl;
-													if(sh1->Z_Resolution() != sh2->Z_Resolution())
-														cout << "     Z_RESOLUTION............: '" << sh1->Z_Resolution() << "' != '" << sh2->Z_Resolution() << "'" << endl;
-													if(sh1->W_Resolution() != sh2->W_Resolution())
-														cout << "     W_RESOLUTION............: '" << sh1->W_Resolution() << "' != '" << sh2->W_Resolution() << "'" << endl;
-													for(short i=0; i < 6; i++)
-													{
-														if(sh1->gate_Reserved(i) != sh2->gate_Reserved(i))
-															cout << "     GATE_RESERVED[" << i << "]........: '" << sh1->gate_Reserved(i) << "' != '" << sh2->gate_Reserved(i) << "'" << endl;
-													}
-													if(sh1->gate_Duration() != sh2->gate_Duration())
-														cout << "     GATE_DURATION...........: '" << sh1->gate_Duration() << "' != '" << sh2->gate_Duration() << "'" << endl;
-													if(sh1->r_Wave_Offset() != sh2->r_Wave_Offset())
-														cout << "     R_WAVE_OFFSET...........: '" << sh1->r_Wave_Offset() << "' != '" << sh2->r_Wave_Offset() << "'" << endl;
-													if(sh1->num_Accepted_Beats() != sh2->num_Accepted_Beats())
-														cout << "     NUM_ACCEPTED_BEATS......: '" << sh1->num_Accepted_Beats() << "' != '" << sh2->num_Accepted_Beats() << "'" << endl;
-													if(sh1->scale_Factor() != sh2->scale_Factor())
-														cout << "     SCALE_FACTOR............: '" << sh1->scale_Factor() << "' != '" << sh2->scale_Factor() << "'" << endl;
-													if(sh1->scan_Min() != sh2->scan_Min())
-														cout << "     SCAN_MIN................: '" << sh1->scan_Min() << "' != '" << sh2->scan_Min() << "'" << endl;
-													if(sh1->scan_Max() != sh2->scan_Max())
-														cout << "     SCAN_MAX................: '" << sh1->scan_Max() << "' != '" << sh2->scan_Max() << "'" << endl;
-													if(sh1->prompts() != sh2->prompts())
-														cout << "     PROMPTS.................: '" << sh1->prompts() << "' != '" << sh2->prompts() << "'" << endl;
-													if(sh1->delayed() != sh2->delayed())
-														cout << "     DELAYED.................: '" << sh1->delayed() << "' != '" << sh2->delayed() << "'" << endl;
-													if(sh1->multiples() != sh2->multiples())
-														cout << "     MULTIPLES...............: '" << sh1->multiples() << "' != '" << sh2->multiples() << "'" << endl;
-													if(sh1->net_Trues() != sh2->net_Trues())
-														cout << "     NET_TRUES...............: '" << sh1->net_Trues() << "' != '" << sh2->net_Trues() << "'" << endl;
-													if(sh1->tot_Avg_Cor() != sh2->tot_Avg_Cor())
-														cout << "     TOT_AVG_COR.............: '" << sh1->tot_Avg_Cor() << "' != '" << sh2->tot_Avg_Cor() << "'" << endl;
-													if(sh1->tot_Avg_Uncor() != sh2->tot_Avg_Uncor())
-														cout << "     TOT_AVG_UNCOR...........: '" << sh1->tot_Avg_Uncor() << "' != '" << sh2->tot_Avg_Uncor() << "'" << endl;
-													if(sh1->total_Coin_Rate() != sh2->total_Coin_Rate())
-														cout << "     TOTAL_COIN_RATE.........: '" << sh1->total_Coin_Rate() << "' != '" << sh2->total_Coin_Rate() << "'" << endl;
-													if(sh1->frame_Start_Time() != sh2->frame_Start_Time())
-														cout << "     FRAME_START_TIME........: '" << sh1->frame_Start_Time() << "' != '" << sh2->frame_Start_Time() << "'" << endl;
-													if(sh1->frame_Duration() != sh2->frame_Duration())
-														cout << "     FRAME_DURATION..........: '" << sh1->frame_Duration() << "' != '" << sh2->frame_Duration() << "'" << endl;
-													if(sh1->deadtime_Correction_Factor() != sh2->deadtime_Correction_Factor())
-														cout << "     DEADTIME_CORR_FACTOR....: '" << sh1->deadtime_Correction_Factor() << "' != '" << sh2->deadtime_Correction_Factor() << "'" << endl;
-													for(short i=0; i < 90; i++)
-													{
-														if(sh1->cti_Reserved(i) != sh2->cti_Reserved(i))
-															cout << "     CTI_RESERVED[" << setw(2) << i << "]........: '" << sh1->cti_Reserved(i) << "' != '" << sh2->cti_Reserved(i) << "'" << endl;
-													}
-													for(short i=0; i < 50; i++)
-													{
-														if(sh1->user_Reserved(i) != sh2->user_Reserved(i))
-															cout << "     USER_RESERVED[" << setw(2) << i << "].......: '" << sh1->user_Reserved(i) << "' != '" << sh2->user_Reserved(i) << "'" << endl;
-													}
-													for(short i=0; i < 128; i++)
-													{
-														if(sh1->uncor_Singles(i) != sh2->uncor_Singles(i))
-															cout << "     UNCOR_SINGLES[" << setw(3) << i << "]......: '" << sh1->uncor_Singles(i) << "' != '" << sh2->uncor_Singles(i) << "'" << endl;
-													}
-
-												}
+													compareECAT7Scan3DSubHeaders(subHeader1, subHeader2);
 												break;
+                       
+												case CECATSubHeader::ECAT7_Norm3D:
+													compareECAT7Norm3DSubHeaders(subHeader1, subHeader2);
+												break;
+
 												case CECATSubHeader::ECAT7_AttenCorr:
-												{
-													CECAT7SubHeaderAttenCorr* sh1 = static_cast<CECAT7SubHeaderAttenCorr*>(subHeader1);
-													CECAT7SubHeaderAttenCorr* sh2 = static_cast<CECAT7SubHeaderAttenCorr*>(subHeader2);
+													compareECAT7AttenCorrSubHeaders(subHeader1, subHeader2);
+												break;
 
-													if(sh1->data_Type() != sh2->data_Type())
-														cout << "     DATA_TYPE...............: '" << sh1->data_Type() << "' != '" << sh2->data_Type() << "'" << endl;
-													if(sh1->num_Dimensions() != sh2->num_Dimensions())
-														cout << "     NUM_DIMENSIONS..........: '" << sh1->num_Dimensions() << "' != '" << sh2->num_Dimensions() << "'" << endl;
-													if(sh1->attenuation_Type() != sh2->attenuation_Type())
-														cout << "     ATTENUATION_TYPE........: '" << sh1->attenuation_Type() << "' != '" << sh2->attenuation_Type() << "'" << endl;
-													if(sh1->num_R_Elements() != sh2->num_R_Elements())
-														cout << "     NUM_R_ELEMENTS..........: '" << sh1->num_R_Elements() << "' != '" << sh2->num_R_Elements() << "'" << endl;
-													if(sh1->num_Angles() != sh2->num_Angles())
-														cout << "     NUM_ANGLES..............: '" << sh1->num_Angles() << "' != '" << sh2->num_Angles() << "'" << endl;
-													for(short i=0; i < 64; i++)
-													{
-														if(sh1->z_Elements(i) != sh2->z_Elements(i))
-															cout << "     NUM_Z_ELEMENTS[" << setw(2) << i << "]......: '" << sh1->z_Elements(i) << "' != '" << sh2->z_Elements(i) << "'" << endl;
-													}
-													if(sh1->ring_Difference() != sh2->ring_Difference())
-														cout << "     RING_DIFFERENCE.........: '" << sh1->ring_Difference() << "' != '" << sh2->ring_Difference() << "'" << endl;
-													if(sh1->x_Resolution() != sh2->x_Resolution())
-														cout << "     X_RESOLUTION............: '" << sh1->x_Resolution() << "' != '" << sh2->x_Resolution() << "'" << endl;
-													if(sh1->y_Resolution() != sh2->y_Resolution())
-														cout << "     Y_RESOLUTION............: '" << sh1->y_Resolution() << "' != '" << sh2->y_Resolution() << "'" << endl;
-													if(sh1->z_Resolution() != sh2->z_Resolution())
-														cout << "     Z_RESOLUTION............: '" << sh1->z_Resolution() << "' != '" << sh2->z_Resolution() << "'" << endl;
-													if(sh1->w_Resolution() != sh2->w_Resolution())
-														cout << "     W_RESOLUTION............: '" << sh1->w_Resolution() << "' != '" << sh2->w_Resolution() << "'" << endl;
-													if(sh1->scale_Factor() != sh2->scale_Factor())
-														cout << "     SCALE_FACTOR............: '" << sh1->scale_Factor() << "' != '" << sh2->scale_Factor() << "'" << endl;
-													if(sh1->x_Offset() != sh2->x_Offset())
-														cout << "     X_OFFSET................: '" << sh1->x_Offset() << "' != '" << sh2->x_Offset() << "'" << endl;
-													if(sh1->y_Offset() != sh2->y_Offset())
-														cout << "     X_OFFSET................: '" << sh1->y_Offset() << "' != '" << sh2->y_Offset() << "'" << endl;
-													if(sh1->x_Radius() != sh2->x_Radius())
-														cout << "     X_RADIUS................: '" << sh1->x_Radius() << "' != '" << sh2->x_Radius() << "'" << endl;
-													if(sh1->y_Radius() != sh2->y_Radius())
-														cout << "     Y_RADIUS................: '" << sh1->y_Radius() << "' != '" << sh2->y_Radius() << "'" << endl;
-													if(sh1->tilt_Angle() != sh2->tilt_Angle())
-														cout << "     TILT_ANGLE..............: '" << sh1->tilt_Angle() << "' != '" << sh2->tilt_Angle() << "'" << endl;
-													if(sh1->skull_Thickness() != sh2->skull_Thickness())
-														cout << "     SKULL_THICKNESS.........: '" << sh1->skull_Thickness() << "' != '" << sh2->skull_Thickness() << "'" << endl;
-													if(sh1->num_Additional_Atten_Coeff() != sh2->num_Additional_Atten_Coeff())
-														cout << "     NUM_ADDITIONAL_ATTEN_COEFF: '" << sh1->num_Additional_Atten_Coeff() << "' != '" << sh2->num_Additional_Atten_Coeff() << "'" << endl;
-													for(short i=0; i < 8; i++)
-													{
-														if(sh1->additional_Atten_Coeff(i) != sh2->additional_Atten_Coeff(i))
-															cout << "     ADDITIONAL_ATTEN_COEFF[" << setw(2) << i << "]........: '" << sh1->additional_Atten_Coeff(i) << "' != '" << sh2->additional_Atten_Coeff(i) << "'" << endl;
-													}
-													if(sh1->edge_Finding_Threshold() != sh2->edge_Finding_Threshold())
-														cout << "     EDGE_FINDING_THRESHOLD..: '" << sh1->edge_Finding_Threshold() << "' != '" << sh2->edge_Finding_Threshold() << "'" << endl;
-													if(sh1->storage_Order() != sh2->storage_Order())
-														cout << "     STORAGE_ORDER...........: '" << sh1->storage_Order() << "' != '" << sh2->storage_Order() << "'" << endl;
-													if(sh1->span() != sh2->span())
-														cout << "     SPAN....................: '" << sh1->span() << "' != '" << sh2->span() << "'" << endl;
-
-													for(short i=0; i < 90; i++)
-													{
-														if(sh1->cti_Reserved(i) != sh2->cti_Reserved(i))
-															cout << "     CTI_RESERVED[" << setw(2) << i << "]........: '" << sh1->cti_Reserved(i) << "' != '" << sh2->cti_Reserved(i) << "'" << endl;
-													}
-													for(short i=0; i < 50; i++)
-													{
-														if(sh1->unused(i) != sh2->unused(i))
-															cout << "     USER_RESERVED[" << setw(2) << i << "].......: '" << sh1->unused(i) << "' != '" << sh2->unused(i) << "'" << endl;
-													}
-												}
+												case CECATSubHeader::ECAT7_Image:
+													compareECAT7ImageSubHeaders(subHeader1, subHeader2);
 												break;
 
 												default:
@@ -894,4 +629,488 @@ int main(int argc, char* argv[])
 	}
 
 	return returnCode;
+}
+
+static void compareECAT7MainHeader(CECATMainHeader* header1, CECATMainHeader* header2)
+{
+	CECAT7MainHeader* eh1 = static_cast<CECAT7MainHeader*>(header1);
+	CECAT7MainHeader* eh2 = static_cast<CECAT7MainHeader*>(header2);
+									
+	if(strcmp(eh1->magic_Number(), eh2->magic_Number()) != 0)
+		cout << "     MAGIC_NUMBER............: '" << eh1->magic_Number() << "' != '" << eh2->magic_Number() << "'" << endl;
+	if(strcmp(eh1->original_File_Name(), eh2->original_File_Name()) != 0)
+		cout << "     ORIGINAL_FILE_NAME......: '" << eh1->original_File_Name() << "' != '" << eh2->original_File_Name() << "'" << endl;
+	if(eh1->sw_Version() != eh2->sw_Version())
+		cout << "     SW_VERSION..............: '" << eh1->original_File_Name() << "' != '" << eh2->original_File_Name() << "'" << endl;
+	if(eh1->system_Type() != eh2->system_Type())
+		cout << "     SYSTEM_TYPE.............: '" << eh1->system_Type() << "' != '" << eh2->system_Type() << "'" << endl;
+	if(eh1->file_Type() != eh2->file_Type())
+		cout << "     FILE_TYPE...............: '" << eh1->file_Type() << "' != '" << eh2->file_Type() << "'" << endl;
+	if(strcmp(eh1->serial_Number(), eh2->serial_Number()) != 0)
+		cout << "     SERIAL_NUMBER...........: '" << eh1->serial_Number() << "' != '" << eh2->serial_Number() << "'" << endl;									
+	if(eh1->scan_Start_Time() != eh2->scan_Start_Time())
+		cout << "     SCAN_START_TIME.........: '" << eh1->scan_Start_Time() << "' != '" << eh2->scan_Start_Time() << "'" << endl;									
+	if(strcmp(eh1->isotope_Name(), eh2->isotope_Name()))
+		cout << "     ISOTOPE_NAME............: '" << eh1->isotope_Name() << "' != '" << eh2->isotope_Name() << "'" << endl;									
+	if(eh1->isotope_Halflife() != eh2->isotope_Halflife())
+		cout << "     ISOTOPE_HALFLIFE........: '" << eh1->isotope_Halflife() << "' != '" << eh2->isotope_Halflife() << "'" << endl;									
+	if(strcmp(eh1->radiopharmaceutical(), eh2->radiopharmaceutical()))
+		cout << "     RADIOPHARMACEUTICAL.....: '" << eh1->radiopharmaceutical() << "' != '" << eh2->radiopharmaceutical() << "'" << endl;	
+	if(eh1->gantry_Tilt() != eh2->gantry_Tilt())
+		cout << "     GANTRY_TILT.............: '" << eh1->gantry_Tilt() << "' != '" << eh2->gantry_Tilt() << "'" << endl;	
+	if(eh1->gantry_Rotation() != eh2->gantry_Rotation())
+		cout << "     GANTRY_ROTATION.........: '" << eh1->gantry_Rotation() << "' != '" << eh2->gantry_Rotation() << "'" << endl;	
+	if(eh1->bed_Elevation() != eh2->bed_Elevation())
+		cout << "     BED_ELEVATION...........: '" << eh1->bed_Elevation() << "' != '" << eh2->bed_Elevation() << "'" << endl;	
+	if(eh1->intrinsic_Tilt() != eh2->intrinsic_Tilt())
+		cout << "     INTRINSIC_TILT..........: '" << eh1->intrinsic_Tilt() << "' != '" << eh2->intrinsic_Tilt() << "'" << endl;	
+	if(eh1->wobble_Speed() != eh2->wobble_Speed())
+		cout << "     WOBBLE_SPEED............: '" << eh1->wobble_Speed() << "' != '" << eh2->wobble_Speed() << "'" << endl;	
+	if(eh1->transm_Source_Type() != eh2->transm_Source_Type())
+		cout << "     TRANSM_SOURCE_TYPE......: '" << eh1->transm_Source_Type() << "' != '" << eh2->transm_Source_Type() << "'" << endl;	
+	if(eh1->distance_Scanned() != eh2->distance_Scanned())
+		cout << "     DISTANCE_SCANNED........: '" << eh1->distance_Scanned() << "' != '" << eh2->distance_Scanned() << "'" << endl;	
+	if(eh1->transaxial_FOV() != eh2->transaxial_FOV())
+		cout << "     TRANSAXIAL_FOV..........: '" << eh1->transaxial_FOV() << "' != '" << eh2->transaxial_FOV() << "'" << endl;
+	if(eh1->angular_Compression() != eh2->angular_Compression())
+		cout << "     ANGULAR_COMPRESSION.....: '" << eh1->angular_Compression() << "' != '" << eh2->angular_Compression() << "'" << endl;
+	if(eh1->coin_Samp_Mode() != eh2->coin_Samp_Mode())
+		cout << "     COIN_SAMP_MODE..........: '" << eh1->coin_Samp_Mode() << "' != '" << eh2->coin_Samp_Mode() << "'" << endl;
+	if(eh1->axial_Samp_Mode() != eh2->axial_Samp_Mode())
+		cout << "     AXIAL_SAMP_MODE.........: '" << eh1->axial_Samp_Mode() << "' != '" << eh2->axial_Samp_Mode() << "'" << endl;
+	if(eh1->calibration_Factor() != eh2->calibration_Factor())
+		cout << "     CALIBRATION_FACTOR......: '" << eh1->calibration_Factor() << "' != '" << eh2->calibration_Factor() << "'" << endl;
+	if(eh1->calibration_Units() != eh2->calibration_Units())
+		cout << "     CALIBRATION_UNITS.......: '" << eh1->calibration_Units() << "' != '" << eh2->calibration_Units() << "'" << endl;
+	if(eh1->calibration_Units_Label() != eh2->calibration_Units_Label())
+		cout << "     CALIBRATION_UNITS_LABEL.: '" << eh1->calibration_Units_Label() << "' != '" << eh2->calibration_Units_Label() << "'" << endl;
+	if(eh1->compression_Code() != eh2->compression_Code())
+		cout << "     COMPRESSION_CODE........: '" << eh1->compression_Code() << "' != '" << eh2->compression_Code() << "'" << endl;
+	if(strcmp(eh1->study_Type(), eh2->study_Type()))
+		cout << "     STUDY_TYPE..............: '" << eh1->study_Type() << "' != '" << eh2->study_Type() << "'" << endl;
+	if(strcmp(eh1->patient_ID(), eh2->patient_ID()))
+		cout << "     PATIENT_ID..............: '" << eh1->patient_ID() << "' != '" << eh2->patient_ID() << "'" << endl;
+	if(strcmp(eh1->patient_Name(), eh2->patient_Name()))
+		cout << "     PATIENT_NAME............: '" << eh1->patient_Name() << "' != '" << eh2->patient_Name() << "'" << endl;
+	if(eh1->patient_Sex() != eh2->patient_Sex())
+		cout << "     PATIENT_SEX.............: '" << eh1->patient_Sex() << "' != '" << eh2->patient_Sex() << "'" << endl;
+	if(eh1->patient_Dexterity() != eh2->patient_Dexterity())
+		cout << "     PATIENT_DEXTERITY.......: '" << eh1->patient_Dexterity() << "' != '" << eh2->patient_Dexterity() << "'" << endl;
+	if(eh1->patient_Age() != eh2->patient_Age())
+		cout << "     PATIENT_AGE.............: '" << eh1->patient_Age() << "' != '" << eh2->patient_Age() << "'" << endl;
+	if(eh1->patient_Height() != eh2->patient_Height())
+		cout << "     PATIENT_HEIGHT..........: '" << eh1->patient_Height() << "' != '" << eh2->patient_Height() << "'" << endl;
+	if(eh1->patient_Weight() != eh2->patient_Weight())
+		cout << "     PATIENT_WEIGHT..........: '" << eh1->patient_Weight() << "' != '" << eh2->patient_Weight() << "'" << endl;
+	if(eh1->patient_Birth_Date() != eh2->patient_Birth_Date())
+		cout << "     PATIENT_BIRTH_DATE......: '" << eh1->patient_Birth_Date() << "' != '" << eh2->patient_Birth_Date() << "'" << endl;
+	if(strcmp(eh1->physician_Name(), eh2->physician_Name()))
+		cout << "     PATIENT_NAME............: '" << eh1->physician_Name() << "' != '" << eh2->physician_Name() << "'" << endl;
+	if(strcmp(eh1->operator_Name(), eh2->operator_Name()))
+		cout << "     OPERATOR_NAME...........: '" << eh1->operator_Name() << "' != '" << eh2->operator_Name() << "'" << endl;
+	if(strcmp(eh1->study_Description(), eh2->study_Description()))
+		cout << "     STUDY_DESCRIPTION.......: '" << eh1->study_Description() << "' != '" << eh2->study_Description() << "'" << endl;
+	if(eh1->acquisition_Type() != eh2->acquisition_Type())
+		cout << "     ACQUISITION_TYPE........: '" << eh1->acquisition_Type() << "' != '" << eh2->acquisition_Type() << "'" << endl;
+	if(eh1->patient_Orientation() != eh2->patient_Orientation())
+		cout << "     PATIENT_ORIENTATION.....: '" << eh1->patient_Orientation() << "' != '" << eh2->patient_Orientation() << "'" << endl;
+	if(strcmp(eh1->facility_Name(), eh2->facility_Name()))
+		cout << "     FACILITY_NAME...........: '" << eh1->facility_Name() << "' != '" << eh2->facility_Name() << "'" << endl;
+	if(eh1->num_Planes() != eh2->num_Planes())
+		cout << "     NUM_PLANES..............: '" << eh1->num_Planes() << "' != '" << eh2->num_Planes() << "'" << endl;
+	if(eh1->num_Frames() != eh2->num_Frames())
+		cout << "     NUM_FRAMES..............: '" << eh1->num_Frames() << "' != '" << eh2->num_Frames() << "'" << endl;
+	if(eh1->num_Gates() != eh2->num_Gates())
+		cout << "     NUM_GATES...............: '" << eh1->num_Gates() << "' != '" << eh2->num_Gates() << "'" << endl;
+	if(eh1->num_Bed_Pos() != eh2->num_Bed_Pos())
+		cout << "     NUM_BED_POS.............: '" << eh1->num_Bed_Pos() << "' != '" << eh2->num_Bed_Pos() << "'" << endl;
+	if(eh1->init_Bed_Position() != eh2->init_Bed_Position())
+		cout << "     INIT_BED_POSITION.......: '" << eh1->init_Bed_Position() << "' != '" << eh2->init_Bed_Position() << "'" << endl;
+	for(int i=0; i < 15; i++)
+	{
+		if(eh1->bed_Offset(i) != eh2->bed_Offset(i))
+			cout << "     BED_OFFSET[" << setw(2) << i << "]..........: '" << eh1->bed_Offset(i) << "' != '" << eh2->bed_Offset(i) << "'" << endl;
+	}
+	if(eh1->plane_Separation() != eh2->plane_Separation())
+		cout << "     PLANE_SEPARATION........: '" << eh1->plane_Separation() << "' != '" << eh2->plane_Separation() << "'" << endl;
+	if(eh1->lwr_Sctr_Thres() != eh2->lwr_Sctr_Thres())
+		cout << "     LWR_SCTR_THRES..........: '" << eh1->lwr_Sctr_Thres() << "' != '" << eh2->lwr_Sctr_Thres() << "'" << endl;
+	if(eh1->lwr_True_Thres() != eh2->lwr_True_Thres())
+		cout << "     LWR_TRUE_THRES..........: '" << eh1->lwr_True_Thres() << "' != '" << eh2->lwr_True_Thres() << "'" << endl;
+	if(eh1->upr_True_Thres() != eh2->upr_True_Thres())
+		cout << "     UPR_TRUE_THRES..........: '" << eh1->upr_True_Thres() << "' != '" << eh2->upr_True_Thres() << "'" << endl;
+	if(strcmp(eh1->user_Process_Code(), eh2->user_Process_Code()) != 0)
+		cout << "     USER_PROCESS_CODE.......: '" << eh1->user_Process_Code() << "' != '" << eh2->user_Process_Code() << "'" << endl;
+	if(eh1->acquisition_Mode() != eh2->acquisition_Mode())
+		cout << "     ACQUISITION_MODE........: '" << eh1->acquisition_Mode() << "' != '" << eh2->acquisition_Mode() << "'" << endl;
+	if(eh1->bin_Size() != eh2->bin_Size())
+		cout << "     BIN_SIZE................: '" << eh1->bin_Size() << "' != '" << eh2->bin_Size() << "'" << endl;
+	if(eh1->branching_Fraction() != eh2->branching_Fraction())
+		cout << "     BRANCHING_FRACTION......: '" << eh1->branching_Fraction() << "' != '" << eh2->branching_Fraction() << "'" << endl;
+	if(eh1->dose_Start_Time() != eh2->dose_Start_Time())
+		cout << "     DOSE_START_TIME.........: '" << eh1->dose_Start_Time() << "' != '" << eh2->dose_Start_Time() << "'" << endl;
+	if(eh1->dosage() != eh2->dosage())
+		cout << "     DOSAGE..................: '" << eh1->dosage() << "' != '" << eh2->dosage() << "'" << endl;
+	if(eh1->well_Counter_Corr_Factor() != eh2->well_Counter_Corr_Factor())
+		cout << "     WELL_COUNTER_CORR_FACTOR: '" << eh1->well_Counter_Corr_Factor() << "' != '" << eh2->well_Counter_Corr_Factor() << "'" << endl;
+	if(strcmp(eh1->data_Units(), eh2->data_Units()) != 0)
+		cout << "     DATA_UNITS..............: '" << eh1->data_Units() << "' != '" << eh2->data_Units() << "'" << endl;
+	if(eh1->septa_State() != eh2->septa_State())
+		cout << "     SEPTA_STATE.............: '" << eh1->septa_State() << "' != '" << eh2->septa_State() << "'" << endl;
+	for(int i=0; i < 6; i++)
+	{
+		if(eh1->cti_Reserved(i) != eh2->cti_Reserved(i))
+			cout << "     CTI_RESERVED[" << i << "].........: '" << eh1->cti_Reserved(i) << "' != '" << eh2->cti_Reserved(i) << "'" << endl;
+	}
+}
+
+static void compareECAT7Scan3DSubHeaders(CECATSubHeader* subHeader1, CECATSubHeader* subHeader2)
+{
+	CECAT7SubHeaderScan3D* sh1 = static_cast<CECAT7SubHeaderScan3D*>(subHeader1);
+	CECAT7SubHeaderScan3D* sh2 = static_cast<CECAT7SubHeaderScan3D*>(subHeader2);
+
+	if(sh1->data_Type() != sh2->data_Type())
+		cout << "     DATA_TYPE...............: '" << sh1->data_Type() << "' != '" << sh2->data_Type() << "'" << endl;
+	if(sh1->num_Dimensions() != sh2->num_Dimensions())
+		cout << "     NUM_DIMENSIONS..........: '" << sh1->num_Dimensions() << "' != '" << sh2->num_Dimensions() << "'" << endl;
+	if(sh1->num_R_Elements() != sh2->num_R_Elements())
+		cout << "     NUM_R_ELEMENTS..........: '" << sh1->num_R_Elements() << "' != '" << sh2->num_R_Elements() << "'" << endl;
+	if(sh1->num_Angles() != sh2->num_Angles())
+		cout << "     NUM_ANGLES..............: '" << sh1->num_Angles() << "' != '" << sh2->num_Angles() << "'" << endl;
+	if(sh1->corrections_Applied() != sh2->corrections_Applied())
+		cout << "     CORRECTIONS_APPLIED.....: '" << sh1->corrections_Applied() << "' != '" << sh2->corrections_Applied() << "'" << endl;
+	for(short i=0; i < 64; i++)
+	{
+		if(sh1->num_Z_Elements(i) != sh2->num_Z_Elements(i))
+			cout << "     NUM_Z_ELEMENTS[" << setw(2) << i << "]......: '" << sh1->num_Z_Elements(i) << "' != '" << sh2->num_Z_Elements(i) << "'" << endl;
+	}
+	if(sh1->ring_Difference() != sh2->ring_Difference())
+		cout << "     RING_DIFFERENCE.........: '" << sh1->ring_Difference() << "' != '" << sh2->ring_Difference() << "'" << endl;
+	if(sh1->storage_Order() != sh2->storage_Order())
+		cout << "     STORAGE_ORDER...........: '" << sh1->storage_Order() << "' != '" << sh2->storage_Order() << "'" << endl;
+	if(sh1->axial_Compression() != sh2->axial_Compression())
+		cout << "     AXIAL_COMPRESSION.......: '" << sh1->axial_Compression() << "' != '" << sh2->axial_Compression() << "'" << endl;
+	if(sh1->X_Resolution() != sh2->X_Resolution())
+		cout << "     X_RESOLUTION............: '" << sh1->X_Resolution() << "' != '" << sh2->X_Resolution() << "'" << endl;
+	if(sh1->V_Resolution() != sh2->V_Resolution())
+		cout << "     Y_RESOLUTION............: '" << sh1->V_Resolution() << "' != '" << sh2->V_Resolution() << "'" << endl;
+	if(sh1->Z_Resolution() != sh2->Z_Resolution())
+		cout << "     Z_RESOLUTION............: '" << sh1->Z_Resolution() << "' != '" << sh2->Z_Resolution() << "'" << endl;
+	if(sh1->W_Resolution() != sh2->W_Resolution())
+		cout << "     W_RESOLUTION............: '" << sh1->W_Resolution() << "' != '" << sh2->W_Resolution() << "'" << endl;
+	for(short i=0; i < 6; i++)
+	{
+		if(sh1->gate_Reserved(i) != sh2->gate_Reserved(i))
+			cout << "     GATE_RESERVED[" << i << "]........: '" << sh1->gate_Reserved(i) << "' != '" << sh2->gate_Reserved(i) << "'" << endl;
+	}
+	if(sh1->gate_Duration() != sh2->gate_Duration())
+		cout << "     GATE_DURATION...........: '" << sh1->gate_Duration() << "' != '" << sh2->gate_Duration() << "'" << endl;
+	if(sh1->r_Wave_Offset() != sh2->r_Wave_Offset())
+		cout << "     R_WAVE_OFFSET...........: '" << sh1->r_Wave_Offset() << "' != '" << sh2->r_Wave_Offset() << "'" << endl;
+	if(sh1->num_Accepted_Beats() != sh2->num_Accepted_Beats())
+		cout << "     NUM_ACCEPTED_BEATS......: '" << sh1->num_Accepted_Beats() << "' != '" << sh2->num_Accepted_Beats() << "'" << endl;
+	if(sh1->scale_Factor() != sh2->scale_Factor())
+		cout << "     SCALE_FACTOR............: '" << sh1->scale_Factor() << "' != '" << sh2->scale_Factor() << "'" << endl;
+	if(sh1->scan_Min() != sh2->scan_Min())
+		cout << "     SCAN_MIN................: '" << sh1->scan_Min() << "' != '" << sh2->scan_Min() << "'" << endl;
+	if(sh1->scan_Max() != sh2->scan_Max())
+		cout << "     SCAN_MAX................: '" << sh1->scan_Max() << "' != '" << sh2->scan_Max() << "'" << endl;
+	if(sh1->prompts() != sh2->prompts())
+		cout << "     PROMPTS.................: '" << sh1->prompts() << "' != '" << sh2->prompts() << "'" << endl;
+	if(sh1->delayed() != sh2->delayed())
+		cout << "     DELAYED.................: '" << sh1->delayed() << "' != '" << sh2->delayed() << "'" << endl;
+	if(sh1->multiples() != sh2->multiples())
+		cout << "     MULTIPLES...............: '" << sh1->multiples() << "' != '" << sh2->multiples() << "'" << endl;
+	if(sh1->net_Trues() != sh2->net_Trues())
+		cout << "     NET_TRUES...............: '" << sh1->net_Trues() << "' != '" << sh2->net_Trues() << "'" << endl;
+	if(sh1->tot_Avg_Cor() != sh2->tot_Avg_Cor())
+		cout << "     TOT_AVG_COR.............: '" << sh1->tot_Avg_Cor() << "' != '" << sh2->tot_Avg_Cor() << "'" << endl;
+	if(sh1->tot_Avg_Uncor() != sh2->tot_Avg_Uncor())
+		cout << "     TOT_AVG_UNCOR...........: '" << sh1->tot_Avg_Uncor() << "' != '" << sh2->tot_Avg_Uncor() << "'" << endl;
+	if(sh1->total_Coin_Rate() != sh2->total_Coin_Rate())
+		cout << "     TOTAL_COIN_RATE.........: '" << sh1->total_Coin_Rate() << "' != '" << sh2->total_Coin_Rate() << "'" << endl;
+	if(sh1->frame_Start_Time() != sh2->frame_Start_Time())
+		cout << "     FRAME_START_TIME........: '" << sh1->frame_Start_Time() << "' != '" << sh2->frame_Start_Time() << "'" << endl;
+	if(sh1->frame_Duration() != sh2->frame_Duration())
+		cout << "     FRAME_DURATION..........: '" << sh1->frame_Duration() << "' != '" << sh2->frame_Duration() << "'" << endl;
+	if(sh1->deadtime_Correction_Factor() != sh2->deadtime_Correction_Factor())
+		cout << "     DEADTIME_CORR_FACTOR....: '" << sh1->deadtime_Correction_Factor() << "' != '" << sh2->deadtime_Correction_Factor() << "'" << endl;
+	for(short i=0; i < 90; i++)
+	{
+		if(sh1->cti_Reserved(i) != sh2->cti_Reserved(i))
+			cout << "     CTI_RESERVED[" << setw(2) << i << "]........: '" << sh1->cti_Reserved(i) << "' != '" << sh2->cti_Reserved(i) << "'" << endl;
+	}
+	for(short i=0; i < 50; i++)
+	{
+		if(sh1->user_Reserved(i) != sh2->user_Reserved(i))
+			cout << "     USER_RESERVED[" << setw(2) << i << "].......: '" << sh1->user_Reserved(i) << "' != '" << sh2->user_Reserved(i) << "'" << endl;
+	}
+	for(short i=0; i < 128; i++)
+	{
+		if(sh1->uncor_Singles(i) != sh2->uncor_Singles(i))
+			cout << "     UNCOR_SINGLES[" << setw(3) << i << "]......: '" << sh1->uncor_Singles(i) << "' != '" << sh2->uncor_Singles(i) << "'" << endl;
+	}
+}
+
+static void compareECAT7Norm3DSubHeaders(CECATSubHeader* subHeader1, CECATSubHeader* subHeader2)
+{
+	CECAT7SubHeaderNorm3D* sh1 = static_cast<CECAT7SubHeaderNorm3D*>(subHeader1);
+	CECAT7SubHeaderNorm3D* sh2 = static_cast<CECAT7SubHeaderNorm3D*>(subHeader2);
+
+	if(sh1->data_Type() != sh2->data_Type())
+		cout << "     DATA_TYPE...............: '" << sh1->data_Type() << "' != '" << sh2->data_Type() << "'" << endl;
+	if(sh1->num_R_Elements() != sh2->num_R_Elements())
+		cout << "     NUM_R_ELEMENTS..........: '" << sh1->num_R_Elements() << "' != '" << sh2->num_R_Elements() << "'" << endl;
+	if(sh1->num_Transaxial_Crystals() != sh2->num_Transaxial_Crystals())
+		cout << "     NUM_TRANSAXIAL_CRYSTAL..: '" << sh1->num_Transaxial_Crystals() << "' != '" << sh2->num_Transaxial_Crystals() << "'" << endl;
+	if(sh1->num_Crystal_Rings() != sh2->num_Crystal_Rings())
+		cout << "     NUM_CRYSTAL_RINGS.......: '" << sh1->num_Crystal_Rings() << "' != '" << sh2->num_Crystal_Rings() << "'" << endl;
+	if(sh1->crystals_Per_Ring() != sh2->crystals_Per_Ring())
+		cout << "     CRYSTALS_PER_RING.......: '" << sh1->crystals_Per_Ring() << "' != '" << sh2->crystals_Per_Ring() << "'" << endl;
+	if(sh1->num_Geo_Corr_Planes() != sh2->num_Geo_Corr_Planes())
+		cout << "     NUM_GEO_CORR_PLANES.....: '" << sh1->num_Geo_Corr_Planes() << "' != '" << sh2->num_Geo_Corr_Planes() << "'" << endl;
+	if(sh1->uld() != sh2->uld())
+		cout << "     ULD.....................: '" << sh1->uld() << "' != '" << sh2->uld() << "'" << endl;
+	if(sh1->lld() != sh2->lld())
+		cout << "     LLD.....................: '" << sh1->lld() << "' != '" << sh2->lld() << "'" << endl;
+	if(sh1->scatter_Energy() != sh2->scatter_Energy())
+		cout << "     SCATTER_ENERGY..........: '" << sh1->scatter_Energy() << "' != '" << sh2->scatter_Energy() << "'" << endl;
+	if(sh1->norm_Quality_Factor() != sh2->norm_Quality_Factor())
+		cout << "     NORM_QUALITY_FACTOR.....: '" << sh1->norm_Quality_Factor() << "' != '" << sh2->norm_Quality_Factor() << "'" << endl;
+	if(sh1->norm_Quality_Factor_Code() != sh2->norm_Quality_Factor_Code())
+		cout << "     NORM_QUALITY_FACTOR_CODE: '" << sh1->norm_Quality_Factor_Code() << "' != '" << sh2->norm_Quality_Factor_Code() << "'" << endl;
+
+	for(short i=0; i < 32; i++)
+	{
+		if(sh1->ring_DTCor1(i) != sh2->ring_DTCor1(i))
+			cout << "     RING_DTCOR1[" << setw(2) << i << "].........: '" << sh1->ring_DTCor1(i) << "' != '" << sh2->ring_DTCor1(i) << "'" << endl;
+	}
+
+	for(short i=0; i < 32; i++)
+	{
+		if(sh1->ring_DTCor2(i) != sh2->ring_DTCor2(i))
+			cout << "     RING_DTCOR2[" << setw(2) << i << "].........: '" << sh1->ring_DTCor2(i) << "' != '" << sh2->ring_DTCor2(i) << "'" << endl;
+	}  
+		
+	for(short i=0; i < 8; i++)
+	{
+		if(sh1->crystal_DTCor(i) != sh2->crystal_DTCor(i))
+			cout << "     CRYSTAL_DTCOR[" << setw(1) << i << "]........: '" << sh1->crystal_DTCor(i) << "' != '" << sh2->crystal_DTCor(i) << "'" << endl;
+	}
+
+	if(sh1->span() != sh2->span())
+		cout << "     SPAN....................: '" << sh1->span() << "' != '" << sh2->span() << "'" << endl;
+	if(sh1->max_Ring_Diff() != sh2->max_Ring_Diff())
+		cout << "     MAX_RING_DIFF...........: '" << sh1->max_Ring_Diff() << "' != '" << sh2->max_Ring_Diff() << "'" << endl;
+
+	for(short i=0; i < 48; i++)
+	{
+		if(sh1->cti_Reserved(i) != sh2->cti_Reserved(i))
+			cout << "     CTI_RESERVED[" << setw(2) << i << "]........: '" << sh1->cti_Reserved(i) << "' != '" << sh2->cti_Reserved(i) << "'" << endl;
+	}
+
+	for(short i=0; i < 50; i++)
+	{
+		if(sh1->user_Reserved(i) != sh2->user_Reserved(i))
+			cout << "     USER_RESERVED[" << setw(2) << i << "].......: '" << sh1->user_Reserved(i) << "' != '" << sh2->user_Reserved(i) << "'" << endl;
+	}           
+}
+
+static void compareECAT7AttenCorrSubHeaders(CECATSubHeader* subHeader1, CECATSubHeader* subHeader2)
+{
+	CECAT7SubHeaderAttenCorr* sh1 = static_cast<CECAT7SubHeaderAttenCorr*>(subHeader1);
+	CECAT7SubHeaderAttenCorr* sh2 = static_cast<CECAT7SubHeaderAttenCorr*>(subHeader2);
+
+	if(sh1->data_Type() != sh2->data_Type())
+		cout << "     DATA_TYPE...............: '" << sh1->data_Type() << "' != '" << sh2->data_Type() << "'" << endl;
+	if(sh1->num_Dimensions() != sh2->num_Dimensions())
+		cout << "     NUM_DIMENSIONS..........: '" << sh1->num_Dimensions() << "' != '" << sh2->num_Dimensions() << "'" << endl;
+	if(sh1->attenuation_Type() != sh2->attenuation_Type())
+		cout << "     ATTENUATION_TYPE........: '" << sh1->attenuation_Type() << "' != '" << sh2->attenuation_Type() << "'" << endl;
+	if(sh1->num_R_Elements() != sh2->num_R_Elements())
+		cout << "     NUM_R_ELEMENTS..........: '" << sh1->num_R_Elements() << "' != '" << sh2->num_R_Elements() << "'" << endl;
+	if(sh1->num_Angles() != sh2->num_Angles())
+		cout << "     NUM_ANGLES..............: '" << sh1->num_Angles() << "' != '" << sh2->num_Angles() << "'" << endl;
+	for(short i=0; i < 64; i++)
+	{
+		if(sh1->z_Elements(i) != sh2->z_Elements(i))
+			cout << "     NUM_Z_ELEMENTS[" << setw(2) << i << "]......: '" << sh1->z_Elements(i) << "' != '" << sh2->z_Elements(i) << "'" << endl;
+	}
+	if(sh1->ring_Difference() != sh2->ring_Difference())
+		cout << "     RING_DIFFERENCE.........: '" << sh1->ring_Difference() << "' != '" << sh2->ring_Difference() << "'" << endl;
+	if(sh1->x_Resolution() != sh2->x_Resolution())
+		cout << "     X_RESOLUTION............: '" << sh1->x_Resolution() << "' != '" << sh2->x_Resolution() << "'" << endl;
+	if(sh1->y_Resolution() != sh2->y_Resolution())
+		cout << "     Y_RESOLUTION............: '" << sh1->y_Resolution() << "' != '" << sh2->y_Resolution() << "'" << endl;
+	if(sh1->z_Resolution() != sh2->z_Resolution())
+		cout << "     Z_RESOLUTION............: '" << sh1->z_Resolution() << "' != '" << sh2->z_Resolution() << "'" << endl;
+	if(sh1->w_Resolution() != sh2->w_Resolution())
+		cout << "     W_RESOLUTION............: '" << sh1->w_Resolution() << "' != '" << sh2->w_Resolution() << "'" << endl;
+	if(sh1->scale_Factor() != sh2->scale_Factor())
+		cout << "     SCALE_FACTOR............: '" << sh1->scale_Factor() << "' != '" << sh2->scale_Factor() << "'" << endl;
+	if(sh1->x_Offset() != sh2->x_Offset())
+		cout << "     X_OFFSET................: '" << sh1->x_Offset() << "' != '" << sh2->x_Offset() << "'" << endl;
+	if(sh1->y_Offset() != sh2->y_Offset())
+		cout << "     X_OFFSET................: '" << sh1->y_Offset() << "' != '" << sh2->y_Offset() << "'" << endl;
+	if(sh1->x_Radius() != sh2->x_Radius())
+		cout << "     X_RADIUS................: '" << sh1->x_Radius() << "' != '" << sh2->x_Radius() << "'" << endl;
+	if(sh1->y_Radius() != sh2->y_Radius())
+		cout << "     Y_RADIUS................: '" << sh1->y_Radius() << "' != '" << sh2->y_Radius() << "'" << endl;
+	if(sh1->tilt_Angle() != sh2->tilt_Angle())
+		cout << "     TILT_ANGLE..............: '" << sh1->tilt_Angle() << "' != '" << sh2->tilt_Angle() << "'" << endl;
+	if(sh1->skull_Thickness() != sh2->skull_Thickness())
+		cout << "     SKULL_THICKNESS.........: '" << sh1->skull_Thickness() << "' != '" << sh2->skull_Thickness() << "'" << endl;
+	if(sh1->num_Additional_Atten_Coeff() != sh2->num_Additional_Atten_Coeff())
+		cout << "     NUM_ADDITIONAL_ATTEN_COEFF: '" << sh1->num_Additional_Atten_Coeff() << "' != '" << sh2->num_Additional_Atten_Coeff() << "'" << endl;
+	for(short i=0; i < 8; i++)
+	{
+		if(sh1->additional_Atten_Coeff(i) != sh2->additional_Atten_Coeff(i))
+			cout << "     ADDITIONAL_ATTEN_COEFF[" << setw(2) << i << "]........: '" << sh1->additional_Atten_Coeff(i) << "' != '" << sh2->additional_Atten_Coeff(i) << "'" << endl;
+	}
+	if(sh1->edge_Finding_Threshold() != sh2->edge_Finding_Threshold())
+		cout << "     EDGE_FINDING_THRESHOLD..: '" << sh1->edge_Finding_Threshold() << "' != '" << sh2->edge_Finding_Threshold() << "'" << endl;
+	if(sh1->storage_Order() != sh2->storage_Order())
+		cout << "     STORAGE_ORDER...........: '" << sh1->storage_Order() << "' != '" << sh2->storage_Order() << "'" << endl;
+	if(sh1->span() != sh2->span())
+		cout << "     SPAN....................: '" << sh1->span() << "' != '" << sh2->span() << "'" << endl;
+
+	for(short i=0; i < 90; i++)
+	{
+		if(sh1->cti_Reserved(i) != sh2->cti_Reserved(i))
+			cout << "     CTI_RESERVED[" << setw(2) << i << "]........: '" << sh1->cti_Reserved(i) << "' != '" << sh2->cti_Reserved(i) << "'" << endl;
+	}
+	for(short i=0; i < 50; i++)
+	{
+		if(sh1->unused(i) != sh2->unused(i))
+			cout << "     USER_RESERVED[" << setw(2) << i << "].......: '" << sh1->unused(i) << "' != '" << sh2->unused(i) << "'" << endl;
+	}
+}
+
+static void compareECAT7ImageSubHeaders(CECATSubHeader* subHeader1, CECATSubHeader* subHeader2)
+{
+	CECAT7SubHeaderImage* sh1 = static_cast<CECAT7SubHeaderImage*>(subHeader1);
+	CECAT7SubHeaderImage* sh2 = static_cast<CECAT7SubHeaderImage*>(subHeader2);
+
+	if(sh1->data_Type() != sh2->data_Type())
+		cout << "     DATA_TYPE...............: '" << sh1->data_Type() << "' != '" << sh2->data_Type() << "'" << endl;
+	if(sh1->num_Dimensions() != sh2->num_Dimensions())
+		cout << "     NUM_DIMENSIONS..........: '" << sh1->num_Dimensions() << "' != '" << sh2->num_Dimensions() << "'" << endl;
+	if(sh1->x_Dimension() != sh2->x_Dimension())
+		cout << "     X_DIMENSION.............: '" << sh1->x_Dimension() << "' != '" << sh2->x_Dimension() << "'" << endl;
+	if(sh1->y_Dimension() != sh2->y_Dimension())
+		cout << "     Y_DIMENSION.............: '" << sh1->y_Dimension() << "' != '" << sh2->y_Dimension() << "'" << endl;
+	if(sh1->z_Dimension() != sh2->z_Dimension())
+		cout << "     Z_DIMENSION.............: '" << sh1->z_Dimension() << "' != '" << sh2->z_Dimension() << "'" << endl;
+	if(sh1->x_Offset() != sh2->x_Offset())
+		cout << "     X_OFFSET................: '" << sh1->x_Offset() << "' != '" << sh2->x_Offset() << "'" << endl;
+	if(sh1->y_Offset() != sh2->y_Offset())
+		cout << "     Y_OFFSET................: '" << sh1->y_Offset() << "' != '" << sh2->y_Offset() << "'" << endl;
+	if(sh1->z_Offset() != sh2->z_Offset())
+		cout << "     Z_OFFSET................: '" << sh1->z_Offset() << "' != '" << sh2->z_Offset() << "'" << endl;
+	if(sh1->recon_Zoom() != sh2->recon_Zoom())
+		cout << "     RECON_ZOOM..............: '" << sh1->recon_Zoom() << "' != '" << sh2->recon_Zoom() << "'" << endl;
+	if(sh1->scale_Factor() != sh2->scale_Factor())
+		cout << "     SCALE_FACTOR............: '" << sh1->scale_Factor() << "' != '" << sh2->scale_Factor() << "'" << endl;
+	if(sh1->image_Min() != sh2->image_Min())
+		cout << "     IMAGE_MIN...............: '" << sh1->image_Min() << "' != '" << sh2->image_Min() << "'" << endl;
+	if(sh1->image_Max() != sh2->image_Max())
+		cout << "     IMAGE_MAX...............: '" << sh1->image_Max() << "' != '" << sh2->image_Max() << "'" << endl;
+	if(sh1->x_Pixel_Size() != sh2->x_Pixel_Size())
+		cout << "     X_PIXEL_SIZE............: '" << sh1->x_Pixel_Size() << "' != '" << sh2->x_Pixel_Size() << "'" << endl;
+	if(sh1->y_Pixel_Size() != sh2->y_Pixel_Size())
+		cout << "     Y_PIXEL_SIZE............: '" << sh1->y_Pixel_Size() << "' != '" << sh2->y_Pixel_Size() << "'" << endl;
+	if(sh1->z_Pixel_Size() != sh2->z_Pixel_Size())
+		cout << "     Z_PIXEL_SIZE............: '" << sh1->z_Pixel_Size() << "' != '" << sh2->z_Pixel_Size() << "'" << endl;
+	if(sh1->frame_Duration() != sh2->frame_Duration())
+		cout << "     FRAME_DURATION..........: '" << sh1->frame_Duration() << "' != '" << sh2->frame_Duration() << "'" << endl;
+	if(sh1->frame_Start_Time() != sh2->frame_Start_Time())
+		cout << "     FRAME_START_TIME........: '" << sh1->frame_Start_Time() << "' != '" << sh2->frame_Start_Time() << "'" << endl;
+	if(sh1->filter_Code() != sh2->filter_Code())
+		cout << "     FILTER_CODE.............: '" << sh1->filter_Code() << "' != '" << sh2->filter_Code() << "'" << endl;
+	if(sh1->x_Resolution() != sh2->x_Resolution())
+		cout << "     X_RESOLUTION............: '" << sh1->x_Resolution() << "' != '" << sh2->x_Resolution() << "'" << endl;
+	if(sh1->y_Resolution() != sh2->y_Resolution())
+		cout << "     Y_RESOLUTION............: '" << sh1->y_Resolution() << "' != '" << sh2->y_Resolution() << "'" << endl;
+	if(sh1->z_Resolution() != sh2->z_Resolution())
+		cout << "     Z_RESOLUTION............: '" << sh1->z_Resolution() << "' != '" << sh2->z_Resolution() << "'" << endl;
+	if(sh1->num_R_Elements() != sh2->num_R_Elements())
+		cout << "     NUM_R_ELEMENTS..........: '" << sh1->num_R_Elements() << "' != '" << sh2->num_R_Elements() << "'" << endl;
+	if(sh1->num_Angles() != sh2->num_Angles())
+		cout << "     NUM_ANGLES..............: '" << sh1->num_Angles() << "' != '" << sh2->num_Angles() << "'" << endl;
+	if(sh1->z_Rotation_Angle() != sh2->z_Rotation_Angle())
+		cout << "     Z_ROTATION_ANGLE........: '" << sh1->z_Rotation_Angle() << "' != '" << sh2->z_Rotation_Angle() << "'" << endl;
+	if(sh1->decay_Corr_Fctr() != sh2->decay_Corr_Fctr())
+		cout << "     DECAY_CORR_FCTR.........: '" << sh1->decay_Corr_Fctr() << "' != '" << sh2->decay_Corr_Fctr() << "'" << endl;
+	if(sh1->processing_Code() != sh2->processing_Code())
+		cout << "     PROCESSING_CODE.........: '" << sh1->processing_Code() << "' != '" << sh2->processing_Code() << "'" << endl;
+	if(sh1->gate_Duration() != sh2->gate_Duration())
+		cout << "     GATE_DURATION...........: '" << sh1->gate_Duration() << "' != '" << sh2->gate_Duration() << "'" << endl;
+	if(sh1->r_Wave_Offset() != sh2->r_Wave_Offset())
+		cout << "     R_WAVE_OFFSET...........: '" << sh1->r_Wave_Offset() << "' != '" << sh2->r_Wave_Offset() << "'" << endl;
+	if(sh1->num_Accepted_Beats() != sh2->num_Accepted_Beats())
+		cout << "     NUM_ACCEPTED_BEATS......: '" << sh1->num_Accepted_Beats() << "' != '" << sh2->num_Accepted_Beats() << "'" << endl;
+	if(sh1->filter_Cutoff_Frequency() != sh2->filter_Cutoff_Frequency())
+		cout << "     FILTER_CUTOFF_FREQUENCY.: '" << sh1->filter_Cutoff_Frequency() << "' != '" << sh2->filter_Cutoff_Frequency() << "'" << endl;
+	if(sh1->filter_Resolution() != sh2->filter_Resolution())
+		cout << "     FILTER_RESOLUTION.......: '" << sh1->filter_Resolution() << "' != '" << sh2->filter_Resolution() << "'" << endl;
+	if(sh1->filter_Ramp_Slope() != sh2->filter_Ramp_Slope())
+		cout << "     FILTER_RAMP_SLOPE.......: '" << sh1->filter_Ramp_Slope() << "' != '" << sh2->filter_Ramp_Slope() << "'" << endl;
+	if(sh1->filter_Order() != sh2->filter_Order())
+		cout << "     FILTER_ORDER............: '" << sh1->filter_Order() << "' != '" << sh2->filter_Order() << "'" << endl;
+	if(sh1->filter_Scatter_Fraction() != sh2->filter_Scatter_Fraction())
+		cout << "     FILTER_SCATTER_FRACTION.: '" << sh1->filter_Scatter_Fraction() << "' != '" << sh2->filter_Scatter_Fraction() << "'" << endl;
+	if(sh1->filter_Scatter_Slope() != sh2->filter_Scatter_Slope())
+		cout << "     FILTER_SCATTER_SLOPE....: '" << sh1->filter_Scatter_Slope() << "' != '" << sh2->filter_Scatter_Slope() << "'" << endl;
+	if(sh1->annotation() != sh2->annotation())
+		cout << "     ANNOTATION..............: '" << sh1->annotation() << "' != '" << sh2->annotation() << "'" << endl;
+	if(sh1->mt_1_1() != sh2->mt_1_1())
+		cout << "     MT_1_1..................: '" << sh1->mt_1_1() << "' != '" << sh2->mt_1_1() << "'" << endl;
+	if(sh1->mt_1_2() != sh2->mt_1_2())
+		cout << "     MT_1_2..................: '" << sh1->mt_1_2() << "' != '" << sh2->mt_1_2() << "'" << endl;
+	if(sh1->mt_1_3() != sh2->mt_1_3())
+		cout << "     MT_1_3..................: '" << sh1->mt_1_3() << "' != '" << sh2->mt_1_3() << "'" << endl;
+	if(sh1->mt_2_1() != sh2->mt_2_1())
+		cout << "     MT_2_1..................: '" << sh1->mt_2_1() << "' != '" << sh2->mt_2_1() << "'" << endl;
+	if(sh1->mt_2_2() != sh2->mt_2_2())
+		cout << "     MT_2_2..................: '" << sh1->mt_2_2() << "' != '" << sh2->mt_2_2() << "'" << endl;
+	if(sh1->mt_2_3() != sh2->mt_2_3())
+		cout << "     MT_2_3..................: '" << sh1->mt_2_3() << "' != '" << sh2->mt_2_3() << "'" << endl;
+	if(sh1->mt_3_1() != sh2->mt_3_1())
+		cout << "     MT_3_1..................: '" << sh1->mt_3_1() << "' != '" << sh2->mt_3_1() << "'" << endl;
+	if(sh1->mt_3_2() != sh2->mt_3_2())
+		cout << "     MT_3_2..................: '" << sh1->mt_3_2() << "' != '" << sh2->mt_3_2() << "'" << endl;
+	if(sh1->mt_3_3() != sh2->mt_3_3())
+		cout << "     MT_3_3..................: '" << sh1->mt_3_3() << "' != '" << sh2->mt_3_3() << "'" << endl;
+	if(sh1->rfilter_Cutoff() != sh2->rfilter_Cutoff())
+		cout << "     RFILTER_CUTOFF..........: '" << sh1->rfilter_Cutoff() << "' != '" << sh2->rfilter_Cutoff() << "'" << endl;
+	if(sh1->rfilter_Resolution() != sh2->rfilter_Resolution())
+		cout << "     RFILTER_RESOLUTION......: '" << sh1->rfilter_Resolution() << "' != '" << sh2->rfilter_Resolution() << "'" << endl;
+	if(sh1->zfilter_Code() != sh2->zfilter_Code())
+		cout << "     ZFILTER_CODE............: '" << sh1->zfilter_Code() << "' != '" << sh2->zfilter_Code() << "'" << endl;
+	if(sh1->rfilter_Order() != sh2->rfilter_Order())
+		cout << "     RFILTER_CODE............: '" << sh1->rfilter_Order() << "' != '" << sh2->rfilter_Order() << "'" << endl;
+	if(sh1->mt_1_4() != sh2->mt_1_4())
+		cout << "     MT_1_4..................: '" << sh1->mt_1_4() << "' != '" << sh2->mt_1_4() << "'" << endl;
+	if(sh1->mt_2_4() != sh2->mt_2_4())
+		cout << "     MT_2_4..................: '" << sh1->mt_2_4() << "' != '" << sh2->mt_2_4() << "'" << endl;
+	if(sh1->mt_3_4() != sh2->mt_3_4())
+		cout << "     MT_3_4..................: '" << sh1->mt_3_4() << "' != '" << sh2->mt_3_4() << "'" << endl;
+	if(sh1->scatter_Type() != sh2->scatter_Type())
+		cout << "     SCATTER_TYPE............: '" << sh1->scatter_Type() << "' != '" << sh2->scatter_Type() << "'" << endl;
+	if(sh1->recon_Type() != sh2->recon_Type())
+		cout << "     RECON_TYPE..............: '" << sh1->recon_Type() << "' != '" << sh2->recon_Type() << "'" << endl;
+	if(sh1->recon_Views() != sh2->recon_Views())
+		cout << "     RECON_VIEWS.............: '" << sh1->recon_Views() << "' != '" << sh2->recon_Views() << "'" << endl;
+
+	for(short i=0; i < 87; i++)
+	{
+		if(sh1->cti_Reserved(i) != sh2->cti_Reserved(i))
+			cout << "     CTI_RESERVED[" << setw(2) << i << "]........: '" << sh1->cti_Reserved(i) << "' != '" << sh2->cti_Reserved(i) << "'" << endl;
+	}
+
+	for(short i=0; i < 49; i++)
+	{
+		if(sh1->user_Reserved(i) != sh2->user_Reserved(i))
+			cout << "     USER_RESERVED[" << setw(2) << i << "].......: '" << sh1->user_Reserved(i) << "' != '" << sh2->user_Reserved(i) << "'" << endl;
+	}
 }

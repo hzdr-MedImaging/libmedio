@@ -5,6 +5,11 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2007-05-02 Jens Langner <Jens.Langner@light-speed.de>
+
+  * ecatcmp: added Image subheader compare function to allow to compare
+    subheaders of ECAT7 image files as well.
+
 2007-04-16 Jens Langner <Jens.Langner@light-speed.de>
 
   * ecatutil: fixed the floating point based difference output by using
