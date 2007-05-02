@@ -1085,8 +1085,8 @@ static void compareECAT7ImageSubHeaders(CECATSubHeader* subHeader1, CECATSubHead
 		cout << "     RFILTER_CUTOFF..........: '" << sh1->rfilter_Cutoff() << "' != '" << sh2->rfilter_Cutoff() << "'" << endl;
 	if(sh1->rfilter_Resolution() != sh2->rfilter_Resolution())
 		cout << "     RFILTER_RESOLUTION......: '" << sh1->rfilter_Resolution() << "' != '" << sh2->rfilter_Resolution() << "'" << endl;
-	if(sh1->rfilter_Order() != sh2->rfilter_Order())
-		cout << "     RFILTER_CODE............: '" << sh1->rfilter_Order() << "' != '" << sh2->rfilter_Order() << "'" << endl;
+	if(sh1->rfilter_Code() != sh2->rfilter_Code())
+		cout << "     RFILTER_CODE............: '" << sh1->rfilter_Code() << "' != '" << sh2->rfilter_Code() << "'" << endl;
 	if(sh1->rfilter_Order() != sh2->rfilter_Order())
 		cout << "     RFILTER_ORDER...........: '" << sh1->rfilter_Order() << "' != '" << sh2->rfilter_Order() << "'" << endl;	
 	if(sh1->zfilter_Cutoff() != sh2->zfilter_Cutoff())
