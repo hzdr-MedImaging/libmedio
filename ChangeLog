@@ -5,6 +5,32 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+#### 1.6.0 RELEASE ###########################################################
+
+2007-05-02 Jens Langner <Jens.Langner@light-speed.de>
+
+  * CECAT7SubHeaderImage.cpp: the ZFilter relevant get/set methods were
+    missing and applications weren't able to query/set these subheader values.
+  * ecatcmp: added Image subheader compare function to allow to compare
+    subheaders of ECAT7 image files as well.
+
+2007-04-16 Jens Langner <Jens.Langner@light-speed.de>
+
+  * ecatutil: fixed the floating point based difference output by using
+	 scientific notations only. In addition, the difference output should now
+	 be correct due to the explicit use of setByteOrder() in case it is
+	 compiled on a little endian machine.
+
+2007-04-05 Hagen Moelle <draggore@gmx.de>
+
+	* ecatutil:	setting of bed elevation in specified input filename implemented
+	* ecatcmp: comparing of attenuation files implemented
+
+2007-03-23 Hagen Moelle <draggore@gmx.de>
+
+	* ecatutil: setting of dose and scan start time in specified input filename
+	  implemented
+
 #### 1.5.2 RELEASE ###########################################################
 
 2007-03-30 Hagen Moelle <draggore@gmx.de>

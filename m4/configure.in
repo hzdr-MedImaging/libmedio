@@ -22,7 +22,7 @@
 #****************************************************************************
 
 AC_PREREQ(2.57)
-AC_INIT(libmedio, 1.5.2, Jens.Langner@light-speed.de)
+AC_INIT(libmedio, 1.6.0, Jens.Langner@light-speed.de)
 AC_COPYRIGHT(Copyright (c) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>)
 AC_REVISION($Revision$)
 AC_CONFIG_SRCDIR([src])
@@ -65,6 +65,9 @@ AC_PATH_RTDEBUG_INC
 
 # checking gcc version
 AC_PROG_GCC_VERSION
+
+# check for big/little endian
+AC_C_BIGENDIAN
 
 # Checks for some tools which we need
 AC_PATH_PROG(MKDIR_PATH, mkdir)

@@ -164,8 +164,12 @@ class Q_EXPORT CECAT7SubHeaderImage : public CECATSubHeader
 		float mt_3_3(void) const;
 		float rfilter_Cutoff(void) const;
 		float rfilter_Resolution(void) const;
-		short zfilter_Code(void) const;
+		Filter_Code rfilter_Code(void) const;
 		short rfilter_Order(void) const;
+		float zfilter_Cutoff(void) const;
+		float zfilter_Resolution(void) const;
+		Filter_Code zfilter_Code(void) const;
+		short zfilter_Order(void) const;
 		float mt_1_4(void) const;
 		float mt_2_4(void) const;
 		float mt_3_4(void) const;
@@ -223,8 +227,12 @@ class Q_EXPORT CECAT7SubHeaderImage : public CECATSubHeader
 		void setMT_3_3(const float value);
 		void setRFilter_Cutoff(const float cutoff);
 		void setRFilter_Resolution(const float res);
-		void setZFilter_Code(const short code);
+		void setRFilter_Code(const Filter_Code code);
 		void setRFilter_Order(const short order);
+		void setZFilter_Cutoff(const float cutoff);
+		void setZFilter_Resolution(const float res);
+		void setZFilter_Code(const Filter_Code code);
+		void setZFilter_Order(const short order);
 		void setMT_1_4(const float value);
 		void setMT_2_4(const float value);
 		void setMT_3_4(const float value);
