@@ -5,8 +5,12 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+#### 2.6.0 RELEASE ###########################################################
+
 2007-05-02 Jens Langner <Jens.Langner@light-speed.de>
 
+  * CECAT7SubHeaderImage.cpp: the ZFilter relevant get/set methods were
+    missing and applications weren't able to query/set these subheader values.
   * ecatcmp: added Image subheader compare function to allow to compare
     subheaders of ECAT7 image files as well.
 

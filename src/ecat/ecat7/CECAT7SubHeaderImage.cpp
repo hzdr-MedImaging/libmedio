@@ -784,14 +784,34 @@ float CECAT7SubHeaderImage::rfilter_Resolution(void) const
 	return m_pData->header.RFilter_Resolution;
 }
 
-short CECAT7SubHeaderImage::zfilter_Code(void) const
+CECAT7SubHeaderImage::Filter_Code CECAT7SubHeaderImage::rfilter_Code(void) const
 {
-	return m_pData->header.ZFilter_Code;
+	return static_cast<CECAT7SubHeaderImage::Filter_Code>(m_pData->header.RFilter_Code);
 }
 
 short CECAT7SubHeaderImage::rfilter_Order(void) const
 {
 	return m_pData->header.RFilter_Order;
+}
+
+float CECAT7SubHeaderImage::zfilter_Cutoff(void) const
+{
+	return m_pData->header.ZFilter_Cutoff;
+}
+
+float CECAT7SubHeaderImage::zfilter_Resolution(void) const
+{
+	return m_pData->header.ZFilter_Resolution;
+}
+
+CECAT7SubHeaderImage::Filter_Code CECAT7SubHeaderImage::zfilter_Code(void) const
+{
+	return static_cast<CECAT7SubHeaderImage::Filter_Code>(m_pData->header.ZFilter_Code);
+}
+
+short CECAT7SubHeaderImage::zfilter_Order(void) const
+{
+	return m_pData->header.ZFilter_Order;
 }
 
 float CECAT7SubHeaderImage::mt_1_4(void) const
@@ -1071,14 +1091,34 @@ void CECAT7SubHeaderImage::setRFilter_Resolution(const float res)
 	m_pData->header.RFilter_Resolution = res;
 }
 
-void CECAT7SubHeaderImage::setZFilter_Code(const short code)						
+void CECAT7SubHeaderImage::setRFilter_Code(const CECAT7SubHeaderImage::Filter_Code code)						
 {
-	m_pData->header.ZFilter_Code = code;
+	m_pData->header.RFilter_Code = code;
 }
 
 void CECAT7SubHeaderImage::setRFilter_Order(const short order)						
 {
 	m_pData->header.RFilter_Order = order;
+}
+
+void CECAT7SubHeaderImage::setZFilter_Cutoff(const float cutoff)						
+{
+	m_pData->header.ZFilter_Cutoff = cutoff;
+}
+
+void CECAT7SubHeaderImage::setZFilter_Resolution(const float res)						
+{
+	m_pData->header.ZFilter_Resolution = res;
+}
+
+void CECAT7SubHeaderImage::setZFilter_Code(const CECAT7SubHeaderImage::Filter_Code code)						
+{
+	m_pData->header.ZFilter_Code = code;
+}
+
+void CECAT7SubHeaderImage::setZFilter_Order(const short order)						
+{
+	m_pData->header.ZFilter_Order = order;
 }
 
 void CECAT7SubHeaderImage::setMT_1_4(const float value)						
