@@ -5,6 +5,13 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2007-05-14 Jens Langner <Jens.Langner@light-speed.de>
+
+  * examples/ecatcmp: after having compared the raw data, ecatcmp will now
+    output the min/max values found in the raw data and output them
+	 accordingly. In addition, a new "-v" option will now allow to explicitly
+	 enable the output of raw data differences.
+
 #### 2.6.0 RELEASE ###########################################################
 
 2007-05-02 Jens Langner <Jens.Langner@light-speed.de>

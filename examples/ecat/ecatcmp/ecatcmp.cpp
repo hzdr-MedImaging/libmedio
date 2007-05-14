@@ -30,6 +30,9 @@
 #include <CECAT7SubHeaderAttenCorr>
 #include <CECAT7SubHeaderImage>
 
+#include <QHash>
+#include <QStringList>
+
 #include <math.h>
 
 #include <iostream>
@@ -40,6 +43,7 @@
 using namespace std;
 
 // local prototypes
+static void getMinMaxValues(QByteArray* matrixData, CECATSubHeader::Data_Type matrixType, float& minValue, float& maxValue);
 static void compareECAT7MainHeader(CECATMainHeader* mh1, CECATMainHeader* mh2);
 static void compareECAT7Scan3DSubHeaders(CECATSubHeader* subHeader1, CECATSubHeader* subHeader2);
 static void compareECAT7Norm3DSubHeaders(CECATSubHeader* subHeader1, CECATSubHeader* subHeader2);
@@ -63,27 +67,55 @@ int main(int argc, char* argv[])
   // Read  http://gcc.gnu.org/onlinedocs/libstdc++/27_io/howto.html#8 for an explanation.
   ios::sync_with_stdio(false);
 
-	cout << "libmedio ECAT6/7 file/data compare tool 1.4" << endl;
-	cout << "-------------------------------------------" << endl;
+	cout << "ecatcmp 1.5 - a libmedio ECAT6/7 file/data compare tool" << endl
+		   << "(" __DATE__ ")  Copyright (c) 2006-2007 by Jens Langner / www.fzd.de" << endl << endl;
+
+	// put all arguments in a temporary MultiHash
+	QHash<QString, QString> args;
+
+ 	// and all potential input filenames into a QStringList
+	QStringList inputFileNames; 
+
+	// if the user has specified some commandline options
+	// lets process and parse them.
+	for(int i=1; i < argc; i++)
+	{
+		QString option(argv[i]);
+
+		if(option[0] == '-')
+		{
+			if(i+1 < argc && argv[i+1][0] != '-')
+			{
+				args.insert(option, argv[i+1]);
+			}
+			else
+				args.insert(option, "");
+		}
+		else 
+      inputFileNames << argv[i];
+	}
 
 	// check if the user has specified a filename or not
-	if(argc > 2)
+	if(inputFileNames.count() == 2 &&
+		 args.contains("-h") == false)
 	{
-		char* fileName1 = argv[1];
-		char* fileName2 = argv[2];
+		QString fileName1 = inputFileNames[0];
+		QString fileName2 = inputFileNames[1];
+
+		bool verboseMode = args.contains("-v");
 
 		// open the first file
 		CECATFile file1(fileName1);
 		if(file1.open(QIODevice::ReadOnly) && 
 			 file1.format() != CECATFile::Undefined)
 		{
-			cout << "Successfully loaded file1: '" << fileName1 << "'" << endl;
+			cout << "Successfully loaded file1: '" << qPrintable(fileName1) << "'" << endl;
 
 			// lets open the other file now
 			CECATFile file2(fileName2);
 			if(file2.open(QIODevice::ReadOnly))
 			{
-				cout << "Successfully loaded file2: '" << fileName2 << "'" << endl;
+				cout << "Successfully loaded file2: '" << qPrintable(fileName2) << "'" << endl;
 				
 				if(file1.format() != file2.format())
 					cout << "Error: Specified files do have a different file format. Can't compare them" << endl;
@@ -412,7 +444,8 @@ int main(int argc, char* argv[])
 
 								cout << endl;
 
-								CECATSubHeader::Data_Type subHeaderType = subHeader1->data_Type();
+								CECATSubHeader::Data_Type subHeaderType1 = subHeader1->data_Type();
+								CECATSubHeader::Data_Type subHeaderType2 = subHeader2->data_Type();
 
 								delete subHeader1;
 								delete subHeader2;
@@ -438,7 +471,7 @@ int main(int argc, char* argv[])
 										cout << "     comparing data size " << matrixData1->size() << ":" << matrixData2->size() << "... " << flush;
 										if(matrixData1->size() != matrixData2->size())
 											cout << "ERROR: matrix sizes are not equal!";
-										else
+										else 
 										{
 											cout << "ok!" << endl;
 
@@ -449,149 +482,166 @@ int main(int argc, char* argv[])
 												long diffs = 0;
 												short dataTypeSize = 0;
 												
-												cout << "ERROR: matrix is not equal!" << endl;
-												cout << "     performing deeper search for differences... " << endl << endl;
+												cout << "ERROR: matrix is not equal!";
 
-												// depending on the datatype we have to do different conversions
-												switch(subHeaderType)
+												if(verboseMode == true)
 												{
-													case CECATSubHeader::ByteData:
+													cout << endl << "     performing deeper search for differences... " << endl << endl;
+
+													// depending on the datatype we have to do different conversions
+													switch(subHeaderType1)
 													{
-														dataTypeSize = sizeof(char);
-														cout << "BYTE datatype" << endl;
-														cout << "        Pos      Value1   Value2" << endl;  
-
-														// now we search through the byte array step by step, outputing all
-														// differences
-														for(unsigned int i=0; i < (unsigned int)matrixData1->count(); i++)
+														case CECATSubHeader::ByteData:
 														{
-															char c1 = (*matrixData1)[i];
-															char c2 = (*matrixData2)[i];
+															dataTypeSize = sizeof(char);
+															cout << "BYTE datatype" << endl;
+															cout << "        Pos      Value1   Value2" << endl;  
 
-															// do a bytewise compare
-															if(c1 != c2)
+															// now we search through the byte array step by step, outputing all
+															// differences
+															for(unsigned int i=0; i < (unsigned int)matrixData1->count(); i++)
 															{
-																cout << "     " << setw(8) << setfill('0') << hex << i << ": ";
-																cout << setfill(' ') << setw(3) << dec << (qint8)c1 << " : " << (qint8)c2 << endl;
-																diffs++;
+																char c1 = (*matrixData1)[i];
+																char c2 = (*matrixData2)[i];
+
+																// do a bytewise compare
+																if(c1 != c2)
+																{
+																	cout << "     " << setw(8) << setfill('0') << hex << i << ": ";
+																	cout << setfill(' ') << setw(3) << dec << (qint8)c1 << " : " << (qint8)c2 << endl;
+																	diffs++;
+																}
 															}
 														}
-													}
-													break;
+														break;
 
-													case CECATSubHeader::IEEEFloat:
-													{
-														dataTypeSize = sizeof(float);
-														
-														float val1;
-														float val2;
-
-														QDataStream stream1(matrixData1, QIODevice::ReadOnly);
-														QDataStream stream2(matrixData2, QIODevice::ReadOnly);
-
-                            #if !defined(WORDS_BIGENDIAN)
-                            stream1.setByteOrder(QDataStream::LittleEndian);
-                            stream2.setByteOrder(QDataStream::LittleEndian);
-                            #endif
-
-														cout << "     IEEEFloat datatype" << endl;
-                            cout << "        Pos        Value1          Value2         difference" << endl;
-														for(int i=0; stream1.atEnd() == false; i++)
+														case CECATSubHeader::IEEEFloat:
 														{
-															stream1 >> val1;
-															stream2 >> val2;
+															dataTypeSize = sizeof(float);
+															
+															float val1;
+															float val2;
 
-															if(val1 != val2)
+															QDataStream stream1(matrixData1, QIODevice::ReadOnly);
+															QDataStream stream2(matrixData2, QIODevice::ReadOnly);
+
+															#if !defined(WORDS_BIGENDIAN)
+															stream1.setByteOrder(QDataStream::LittleEndian);
+															stream2.setByteOrder(QDataStream::LittleEndian);
+															#endif
+
+															cout << "     IEEEFloat datatype" << endl;
+															cout << "        Pos        Value1          Value2         difference" << endl;
+															for(int i=0; stream1.atEnd() == false; i++)
 															{
-																cout << "     " << setw(8) << setfill('0') << hex << i << "| ";
-																cout << setfill(' ') << setw(13) << setprecision(6) << scientific << val1 << " : ";
-                                cout << setfill(' ') << setw(13) << setprecision(6) << scientific << val2 << " | ";
-                                cout << setw(13) << setprecision(6) << scientific << fabs(val1-val2) << endl;
-																diffs++;
+																stream1 >> val1;
+																stream2 >> val2;
+
+																if(val1 != val2)
+																{
+																	cout << "     " << setw(8) << setfill('0') << hex << i << "| ";
+																	cout << setfill(' ') << setw(13) << setprecision(6) << scientific << val1 << " : ";
+																	cout << setfill(' ') << setw(13) << setprecision(6) << scientific << val2 << " | ";
+																	cout << setw(13) << setprecision(6) << scientific << fabs(val1-val2) << endl;
+																	diffs++;
+																}
 															}
 														}
-													}
-													break;													
+														break;													
 
-													case CECATSubHeader::SunShort:
-													{
-														dataTypeSize = sizeof(qint16);
-														qint16 val1;
-														qint16 val2;
-
-														QDataStream stream1(matrixData1, QIODevice::ReadOnly);
-														QDataStream stream2(matrixData2, QIODevice::ReadOnly);
-
-                            #if !defined(WORDS_BIGENDIAN)
-                            stream1.setByteOrder(QDataStream::LittleEndian);
-                            stream2.setByteOrder(QDataStream::LittleEndian);
-                            #endif
-
-														cout << "     SunShort datatype" << endl;
-														cout << "        Pos    Value1 Value2    HEX    HEX" << endl; 														
-														for(int i=0; stream1.atEnd() == false; i++)
+														case CECATSubHeader::SunShort:
 														{
-															stream1 >> val1;
-															stream2 >> val2;
+															dataTypeSize = sizeof(qint16);
+															qint16 val1;
+															qint16 val2;
 
-															if(val1 != val2)
+															QDataStream stream1(matrixData1, QIODevice::ReadOnly);
+															QDataStream stream2(matrixData2, QIODevice::ReadOnly);
+
+															#if !defined(WORDS_BIGENDIAN)
+															stream1.setByteOrder(QDataStream::LittleEndian);
+															stream2.setByteOrder(QDataStream::LittleEndian);
+															#endif
+
+															cout << "     SunShort datatype" << endl;
+															cout << "        Pos    Value1 Value2    HEX    HEX" << endl; 														
+															for(int i=0; stream1.atEnd() == false; i++)
 															{
-																cout << "     " << setw(8) << setfill('0') << hex << i << "| ";
-																cout << setfill(' ') << setw(5) << dec << val1 << " : " << setw(5) << dec << val2;
-																cout << " |";
-																cout << "  " << setfill('0') << setw(4) << hex << val1 << " : " << setw(4) << hex << val2;
-																cout << " |" << endl;
-																diffs++;
+																stream1 >> val1;
+																stream2 >> val2;
+
+																if(val1 != val2)
+																{
+																	cout << "     " << setw(8) << setfill('0') << hex << i << "| ";
+																	cout << setfill(' ') << setw(5) << dec << val1 << " : " << setw(5) << dec << val2;
+																	cout << " |";
+																	cout << "  " << setfill('0') << setw(4) << hex << val1 << " : " << setw(4) << hex << val2;
+																	cout << " |" << endl;
+																	diffs++;
+																}
 															}
 														}
-													}
-													break;
+														break;
 
-													case CECATSubHeader::SunLong:
-													{
-														dataTypeSize = sizeof(qint32);
-														qint32 val1;
-														qint32 val2;
-
-														QDataStream stream1(matrixData1, QIODevice::ReadOnly);
-														QDataStream stream2(matrixData2, QIODevice::ReadOnly);
-
-                            #if !defined(WORDS_BIGENDIAN)
-                            stream1.setByteOrder(QDataStream::LittleEndian);
-                            stream2.setByteOrder(QDataStream::LittleEndian);
-                            #endif                            
-
-														cout << "     SunLong datatype" << endl;
-														cout << "        Pos     Value1   Value2       HEX       HEX" << endl; 														
-														for(int i=0; stream1.atEnd() == false; i++)
+														case CECATSubHeader::SunLong:
 														{
-															stream1 >> val1;
-															stream2 >> val2;
+															dataTypeSize = sizeof(qint32);
+															qint32 val1;
+															qint32 val2;
 
-															if(val1 != val2)
+															QDataStream stream1(matrixData1, QIODevice::ReadOnly);
+															QDataStream stream2(matrixData2, QIODevice::ReadOnly);
+
+															#if !defined(WORDS_BIGENDIAN)
+															stream1.setByteOrder(QDataStream::LittleEndian);
+															stream2.setByteOrder(QDataStream::LittleEndian);
+															#endif                            
+
+															cout << "     SunLong datatype" << endl;
+															cout << "        Pos     Value1   Value2       HEX       HEX" << endl; 														
+															for(int i=0; stream1.atEnd() == false; i++)
 															{
-																cout << "     " << setw(8) << setfill('0') << hex << i << "| ";
-																cout << setfill(' ') << setw(8) << dec << val1 << " : " << setw(8) << val2;
-																cout << " |";
-																cout << " " << setfill('0') << setw(8) << hex << val1 << " : " << setw(8) << val2;
-																cout << " |" << endl;
-																diffs++;
+																stream1 >> val1;
+																stream2 >> val2;
+
+																if(val1 != val2)
+																{
+																	cout << "     " << setw(8) << setfill('0') << hex << i << "| ";
+																	cout << setfill(' ') << setw(8) << dec << val1 << " : " << setw(8) << val2;
+																	cout << " |";
+																	cout << " " << setfill('0') << setw(8) << hex << val1 << " : " << setw(8) << val2;
+																	cout << " |" << endl;
+																	diffs++;
+																}
 															}
 														}
-													}
-													break;													
+														break;													
 
-													default:
-														cout << "ERROR: This datatype is currently not support by ecatcmp!" << endl;
-													break;
+														default:
+															cout << "ERROR: This datatype is currently not support by ecatcmp!" << endl;
+														break;
+													}
+
+													if(dataTypeSize > 0)
+														cout << endl << dec << "     " << diffs << " differences in " << matrixData1->size()/dataTypeSize << " values found!";
 												}
-
-												if(dataTypeSize > 0)
-													cout << endl << dec << "     " << diffs << " differences in " << matrixData1->size()/dataTypeSize << " values found!";
+												else
+													cout << " (use -v for verbose output)";
 											}
 											else
 												cout << "equal data... ok!";
 										}
+
+										// now we try to get the min/max values of each matrix and compare it
+										cout << endl << "     comparing min/max values in matrix data:" << endl;
+										float minValue1, maxValue1;
+										float minValue2, maxValue2;
+
+										cout << "       calculating (min:max) of data item #1... " << flush;
+										getMinMaxValues(matrixData1, subHeaderType1, minValue1, maxValue1);
+
+										cout << "       calculating (min:max) of data item #2... " << flush;
+										getMinMaxValues(matrixData2, subHeaderType2, minValue2, maxValue2);
 									}
 								}
 
@@ -614,21 +664,122 @@ int main(int argc, char* argv[])
 				file2.close();
 			}
 			else
-				cout << "Error on loading file '" << fileName2 << "' as an ECAT6/7 file.\n";
+				cout << "Error on loading file '" << qPrintable(fileName2) << "' as an ECAT6/7 file.\n";
 
 			// close the ECAT file
 			file1.close();
 		}
 		else
-			cout << "Error on loading file '" << fileName1 << "' as an ECAT6/7 file.\n";
+			cout << "Error on loading file '" << qPrintable(fileName1) << "' as an ECAT6/7 file.\n";
 	}
 	else
 	{
-		cout << "Error: Not enough filenames were specified on the commandline" << endl;
-		cout << argv[0] << " <file1> <file2>" << endl;
+		cout << "ERROR: Not enough filenames were specified on the commandline" << endl;
+
+		cout << "Usage: " << argv[0] << " <options> file1 file2" << endl
+				 << "Options:" << endl
+				 << "  -v : be somewhat more verbose when comparing the raw data." << endl
+				 << "  -h : this help page." << endl;
 	}
 
 	return returnCode;
+}
+
+static void getMinMaxValues(QByteArray* matrixData, CECATSubHeader::Data_Type matrixType,
+														float& minValue, float& maxValue)
+{
+	// reset the min/max values
+	minValue = 0;
+	maxValue = 0;
+
+	// depending on the datatype we have to do different conversions
+	switch(matrixType)
+	{
+		case CECATSubHeader::ByteData:
+		{
+			// now we search through the byte array step by step, outputing all
+			// differences
+			for(unsigned int i=0; i < (unsigned int)matrixData->count(); i++)
+			{
+				char c = (*matrixData)[i];
+
+				// check for min/max
+				minValue = qMin(static_cast<float>(c), minValue);
+				maxValue = qMax(static_cast<float>(c), maxValue);
+			}
+		}
+		break;
+
+		case CECATSubHeader::IEEEFloat:
+		{
+			float val;
+
+			QDataStream stream(matrixData, QIODevice::ReadOnly);
+
+			#if !defined(WORDS_BIGENDIAN)
+			stream.setByteOrder(QDataStream::LittleEndian);
+			#endif
+
+			for(int i=0; stream.atEnd() == false; i++)
+			{
+				stream >> val;
+
+				// check for min/max
+				minValue = qMin(val, minValue);
+				maxValue = qMax(val, maxValue);
+			}
+		}
+		break;													
+
+		case CECATSubHeader::SunShort:
+		{
+			qint16 val;
+
+			QDataStream stream(matrixData, QIODevice::ReadOnly);
+
+			#if !defined(WORDS_BIGENDIAN)
+			stream.setByteOrder(QDataStream::LittleEndian);
+			#endif
+
+			for(int i=0; stream.atEnd() == false; i++)
+			{
+				stream >> val;
+
+				// check for min/max
+				minValue = qMin(static_cast<float>(val), minValue);
+				maxValue = qMax(static_cast<float>(val), maxValue);
+			}
+		}
+		break;
+
+		case CECATSubHeader::SunLong:
+		{
+			qint32 val;
+
+			QDataStream stream(matrixData, QIODevice::ReadOnly);
+
+			#if !defined(WORDS_BIGENDIAN)
+			stream.setByteOrder(QDataStream::LittleEndian);
+			#endif                            
+
+			for(int i=0; stream.atEnd() == false; i++)
+			{
+				stream >> val;
+
+				// check for min/max
+				minValue = qMin(static_cast<float>(val), minValue);
+				maxValue = qMax(static_cast<float>(val), maxValue);
+			}
+		}
+		break;													
+
+		default:
+			cout << "ERROR: This datatype is currently not support by ecatcmp!" << endl;
+		break;
+	}
+
+	cout << setfill(' ') << setw(13) << setprecision(6) << scientific << minValue << " : "
+			 << setfill(' ') << setw(13) << setprecision(6) << scientific << maxValue << endl;
 }
 
 static void compareECAT7MainHeader(CECATMainHeader* header1, CECATMainHeader* header2)
