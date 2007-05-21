@@ -496,7 +496,7 @@ int main(int argc, char* argv[])
 							pTmp->setBed_Elevation(g_dBedElevation);
 						if(args.contains("-t"))
 						{
-							cout << pTmp->rtti() << endl;
+							cout << pTmp->file_Type() << endl;
 						}
 						else
 						{
