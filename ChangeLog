@@ -5,6 +5,10 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2007-05-21 Hagen Moelle <draggore@gmx.de>
+
+	*	ecatutil:	prints type of ecat file when called with -t
+
 2007-05-14 Jens Langner <Jens.Langner@light-speed.de>
 
   * examples/ecatcmp: after having compared the raw data, ecatcmp will now
@@ -30,8 +34,8 @@ $Id$
 
 2007-04-05 Hagen Moelle <draggore@gmx.de>
 
-	* ecatutil:	setting of bed elevation in specified input filename implemented
-	* ecatcmp: comparing of attenuation files implemented
+	*	ecatutil:	setting of bed elevation in specified input filename implemented
+	*	ecatcmp:	comparing of attenuation files implemented
 
 2007-03-23 Hagen Moelle <draggore@gmx.de>
 

@@ -245,6 +245,10 @@ int main(int argc, char* argv[])
 		{
 			g_dBedElevation = args.value("-e").toDouble();
 		}
+		if(args.contains("-t"))
+		{
+			args.insert("infile", args.value("-t"));
+		}
 		if(args.contains("-a"))
 		{
 			appendFilesList = args.value("-a").split(',', QString::SkipEmptyParts);
@@ -311,6 +315,7 @@ int main(int argc, char* argv[])
 		cout << "  -d <startdatetime>: sets dose start date and time [DD.MM.YYYY HH:MM:SS]" << endl;
 		cout << "  -c <startdatetime>: sets scan start date and time [DD.MM.YYYY HH:MM:SS]" << endl;
 		cout << "  -e <elevation>: sets bed bed elevation [cm]" << endl;
+		cout << "  -t           : get type of ecat file" << endl;
 
 		cout << "  -h           : this help page." << endl << endl;
 	}
@@ -321,9 +326,9 @@ int main(int argc, char* argv[])
 		if(infile.open(QIODevice::ReadWrite) && 
 			 infile.format() != CECATFile::Undefined)
 		{
-			cout << "Successfully loaded file: '" << inputFileName.toAscii().constData() << "'" << endl;
-			if(!args.contains("-s") && !args.contains("-d") && !args.contains("-c") && !args.contains("-e"))
+			if(!args.contains("-s") && !args.contains("-d") && !args.contains("-c") && !args.contains("-e") && !args.contains("-t"))
 			{
+				cout << "Successfully loaded file: '" << inputFileName.toAscii().constData() << "'" << endl;
 				// lets open the output file now
 				CECATFile outfile(outputFileName, infile.fileType());
 				if(outfile.open(QIODevice::WriteOnly))
@@ -477,7 +482,7 @@ int main(int argc, char* argv[])
 			}
 			else
 			{
-				if(args.contains("-d") || args.contains("-c") || args.contains("-e"))
+				if(args.contains("-d") || args.contains("-c") || args.contains("-e") || args.contains("-t"))
 				{
 					CECATMainHeader* mainHeader;
 					if(infile.readMainHeader(mainHeader))
@@ -489,10 +494,17 @@ int main(int argc, char* argv[])
 							pTmp->setScan_Start_Time_Qt(g_scanStartTime);
 						if(args.contains("-e"))
 							pTmp->setBed_Elevation(g_dBedElevation);
-						if(infile.writeMainHeader(*pTmp))
-							cout << "Successfully updated main header '" << inputFileName.toAscii().constData() << "'" << endl;
+						if(args.contains("-t"))
+						{
+							cout << pTmp->rtti() << endl;
+						}
 						else
-							cout << "ERROR: couldn't write main header '" << inputFileName.toAscii().constData() << "'" << endl;
+						{
+							if(infile.writeMainHeader(*pTmp))
+								cout << "Successfully updated main header '" << inputFileName.toAscii().constData() << "'" << endl;
+							else
+								cout << "ERROR: couldn't write main header '" << inputFileName.toAscii().constData() << "'" << endl;
+						}
 					}
 					else
 						cout << "ERROR: couldn't read main header '" << inputFileName.toAscii().constData() << "'" << endl;
