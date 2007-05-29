@@ -5,6 +5,11 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2007-05-29 Hagen Moelle <draggore@gmx.de>
+
+	*	ecatutil:	updates mainheader of smoother processed image
+		file with data from reference file when called with -b
+
 2007-05-21 Hagen Moelle <draggore@gmx.de>
 
 	*	ecatutil:	prints type of ecat file when called with -t
