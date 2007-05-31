@@ -317,6 +317,7 @@ int main(int argc, char* argv[])
 		cout << "  -e <elevation>: sets bed bed elevation [cm]" << endl;
 		cout << "  -t           : get type of ecat file" << endl;
 		cout << "  -b <file>    : rectify header values of smoother processed infile with values from file." << endl;
+		cout << "  -m <file>    : rectify header values of mips processed infile with values from file." << endl;
 
 		cout << "  -h           : this help page." << endl << endl;
 	}
@@ -327,7 +328,7 @@ int main(int argc, char* argv[])
 		if(infile.open(QIODevice::ReadWrite) && 
 			 infile.format() != CECATFile::Undefined)
 		{
-			if(!args.contains("-s") && !args.contains("-d") && !args.contains("-c") && !args.contains("-e") && !args.contains("-t") && !args.contains("-b"))
+			if(!args.contains("-s") && !args.contains("-d") && !args.contains("-c") && !args.contains("-e") && !args.contains("-t") && !args.contains("-b") && !args.contains("-m"))
 			{
 				cout << "Successfully loaded file: '" << inputFileName.toAscii().constData() << "'" << endl;
 				// lets open the output file now
@@ -525,6 +526,41 @@ int main(int argc, char* argv[])
 							if(reffile.readMainHeader(refMainHeader))
 							{
 								CECAT7MainHeader* pTmp_Ref = static_cast<CECAT7MainHeader*>(refMainHeader);
+								pTmp->setOriginal_File_Name(pTmp_Ref->original_File_Name());
+								pTmp->setAngular_Compression(pTmp_Ref->angular_Compression());
+								pTmp->setCalibration_Units_Label(pTmp_Ref->calibration_Units_Label());
+								pTmp->setData_Units(pTmp_Ref->data_Units());
+								if(infile.writeMainHeader(*pTmp))
+									cout << "Successfully updated main header '" << inputFileName.toAscii().constData() << "'" << endl;
+								else
+									cout << "ERROR: couldn't write main header '" << inputFileName.toAscii().constData() << "'" << endl;
+								reffile.close();
+							}
+							else 
+							cout << "ERROR: couldn't read main header '" << args.value("-b").toAscii().constData() << "'" << endl;
+						}
+						else
+							cout << "ERROR: couldn't read reference file '" << args.value("-b").toAscii().constData() << "'" << endl;
+					}
+					else
+						cout << "ERROR: couldn't read main header '" << inputFileName.toAscii().constData() << "'" << endl;
+				}
+
+				if(args.contains("-m"))
+				{
+					CECATMainHeader* mainHeader;
+					if(infile.readMainHeader(mainHeader))
+					{
+						CECAT7MainHeader* pTmp = static_cast<CECAT7MainHeader*>(mainHeader);
+						CECATFile reffile(args.value("-m"));
+						if(reffile.open(QIODevice::ReadOnly) && 
+							reffile.format() != CECATFile::Undefined)
+						{
+							CECATMainHeader* refMainHeader;
+							if(reffile.readMainHeader(refMainHeader))
+							{
+								CECAT7MainHeader* pTmp_Ref = static_cast<CECAT7MainHeader*>(refMainHeader);
+								pTmp->setFile_Type(CECAT7MainHeader::Projection16);
 								pTmp->setOriginal_File_Name(pTmp_Ref->original_File_Name());
 								pTmp->setAngular_Compression(pTmp_Ref->angular_Compression());
 								pTmp->setCalibration_Units_Label(pTmp_Ref->calibration_Units_Label());

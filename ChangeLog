@@ -5,6 +5,11 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2007-05-31 Hagen Moelle <draggore@gmx.de>
+
+	*	ecatutil:	updates mainheader of mips processed image
+		file with data from reference file when called with -m
+
 2007-05-29 Hagen Moelle <draggore@gmx.de>
 
 	*	ecatutil:	updates mainheader of smoother processed image
