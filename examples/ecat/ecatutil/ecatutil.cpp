@@ -55,6 +55,7 @@ QDateTime g_scanStartTime;
 QDateTime g_doseStartTime;
 double g_dBedElevation=0;
 float g_fResolution=0;
+float g_fZoom=1;
 
 //  Function:    main
 //! 
@@ -239,6 +240,10 @@ int main(int argc, char* argv[])
 		{
 			g_fResolution = args.value("-g").toFloat();
 		}
+		if(args.contains("-z"))
+		{
+			g_fZoom = args.value("-z").toFloat();
+		}
 		if(args.contains("-d"))
 		{
 			g_doseStartTime = QDateTime::fromString(args.value("-d"), QString("dd.MM.yyyy hh:mm:ss"));
@@ -325,6 +330,7 @@ int main(int argc, char* argv[])
 		cout << "  -b <file>    : rectify header values of smoother processed infile with values from file." << endl;
 		cout << "  -m <file>    : rectify header values of mips processed infile with values from file." << endl;
 		cout << "  -g <res>     : set resolution (cm) in smoother processed infile." << endl;
+		cout << "  -z <zoom>    : set zoom factor in smoother processed infile." << endl;
 
 		cout << "  -h           : this help page." << endl << endl;
 	}
@@ -553,6 +559,10 @@ int main(int argc, char* argv[])
 										pTmp->setRFilter_Resolution(g_fResolution);
 										pTmp->setZFilter_Code(CECAT7SubHeaderImage::Gaussian);
 										pTmp->setZFilter_Resolution(g_fResolution);
+										pTmp->setRecon_Zoom(g_fZoom);
+										pTmp->setNum_R_Elements(288);
+										pTmp->setNum_Angles(144);
+										pTmp->setProcessing_Code(835);
 										if(infile.writeSubHeader(*pTmp, 1,1,1,0,0))
 										{
 											cout << "Successfully updated subheader '" << inputFileName.toAscii().constData() << "'" << endl;
