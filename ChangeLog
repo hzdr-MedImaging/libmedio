@@ -5,6 +5,11 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2007-06-05 Hagen Moelle <draggore@gmx.de>
+
+	*	ecatutil:	sets filter values in subheader of smoother 
+		processed image file when called with -b
+
 2007-05-31 Hagen Moelle <draggore@gmx.de>
 
 	*	ecatutil:	updates mainheader of mips processed image

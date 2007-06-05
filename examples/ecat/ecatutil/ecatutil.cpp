@@ -27,6 +27,7 @@
 #include <CECATDirectory>
 #include <CECATDirectoryItem>
 #include <CECAT7SubHeaderScan3D>
+#include <CECAT7SubHeaderImage>
 
 #include <QFileInfo>
 #include <QMultiHash>
@@ -52,7 +53,8 @@ quint32 newMatrixID=0;
 int g_iFrameStartTime = 0;
 QDateTime g_scanStartTime;
 QDateTime g_doseStartTime;
-double g_dBedElevation;
+double g_dBedElevation=0;
+float g_fResolution=0;
 
 //  Function:    main
 //! 
@@ -233,6 +235,10 @@ int main(int argc, char* argv[])
 		{
 			g_iFrameStartTime = args.value("-s").toInt();
 		}
+		if(args.contains("-g"))
+		{
+			g_fResolution = args.value("-g").toFloat();
+		}
 		if(args.contains("-d"))
 		{
 			g_doseStartTime = QDateTime::fromString(args.value("-d"), QString("dd.MM.yyyy hh:mm:ss"));
@@ -318,6 +324,7 @@ int main(int argc, char* argv[])
 		cout << "  -t           : get type of ecat file" << endl;
 		cout << "  -b <file>    : rectify header values of smoother processed infile with values from file." << endl;
 		cout << "  -m <file>    : rectify header values of mips processed infile with values from file." << endl;
+		cout << "  -g <res>     : set resolution (cm) in smoother processed infile." << endl;
 
 		cout << "  -h           : this help page." << endl << endl;
 	}
@@ -535,6 +542,35 @@ int main(int argc, char* argv[])
 								else
 									cout << "ERROR: couldn't write main header '" << inputFileName.toAscii().constData() << "'" << endl;
 								reffile.close();
+								CECATSubHeader* pSubHeader = NULL;
+								if(infile.readSubHeader(pSubHeader, 1))
+								{
+									if(pSubHeader->subHeaderType() == CECATSubHeader::ECAT7_Image)
+									{
+										CECAT7SubHeaderImage* pTmp = static_cast<CECAT7SubHeaderImage*>(pSubHeader);
+										pTmp->setFilter_Code(CECAT7SubHeaderImage::Ramp);
+										pTmp->setRFilter_Code(CECAT7SubHeaderImage::Gaussian);
+										pTmp->setRFilter_Resolution(g_fResolution);
+										pTmp->setZFilter_Code(CECAT7SubHeaderImage::Gaussian);
+										pTmp->setZFilter_Resolution(g_fResolution);
+										if(infile.writeSubHeader(*pTmp, 1,1,1,0,0))
+										{
+											cout << "Successfully updated subheader '" << inputFileName.toAscii().constData() << "'" << endl;
+										}
+										else
+										{
+											cout << "ERROR: couldn't write subheader '" << inputFileName.toAscii().constData() << "'" << endl;
+										}
+									}
+									else
+									{
+										cout << "ERROR: no image subheader '" << inputFileName.toAscii().constData() << "'" << endl;
+									}
+								}
+								else
+								{
+									cout << "ERROR: couldn't read subheader '" << inputFileName.toAscii().constData() << "'" << endl;
+								}
 							}
 							else 
 							cout << "ERROR: couldn't read main header '" << args.value("-b").toAscii().constData() << "'" << endl;
