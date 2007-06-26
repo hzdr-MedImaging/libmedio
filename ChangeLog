@@ -5,6 +5,10 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2007-06-26 Jens Langner <Jens.Langner@light-speed.de>
+
+  * examples/ecatcmp: added calculation of min/max count statistic
+
 2007-06-05 Hagen Moelle <draggore@gmx.de>
 
 	*	ecatutil:	sets filter values in subheader of smoother 

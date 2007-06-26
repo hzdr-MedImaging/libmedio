@@ -44,6 +44,7 @@ using namespace std;
 
 // local prototypes
 static void getMinMaxValues(QByteArray* matrixData, CECATSubHeader::Data_Type matrixType, float& minValue, float& maxValue);
+static void getMaxCountValue(QByteArray* matrixData, CECATSubHeader::Data_Type matrixType, float matrixDataScaleFactor);
 static void compareECAT7MainHeader(CECATMainHeader* mh1, CECATMainHeader* mh2);
 static void compareECAT7Scan3DSubHeaders(CECATSubHeader* subHeader1, CECATSubHeader* subHeader2);
 static void compareECAT7Norm3DSubHeaders(CECATSubHeader* subHeader1, CECATSubHeader* subHeader2);
@@ -67,7 +68,7 @@ int main(int argc, char* argv[])
   // Read  http://gcc.gnu.org/onlinedocs/libstdc++/27_io/howto.html#8 for an explanation.
   ios::sync_with_stdio(false);
 
-	cout << "ecatcmp 1.5 - a libmedio ECAT6/7 file/data compare tool" << endl
+	cout << "ecatcmp 1.6 - a libmedio ECAT6/7 file/data compare tool" << endl
 		   << "(" __DATE__ ")  Copyright (c) 2006-2007 by Jens Langner / www.fzd.de" << endl << endl;
 
 	// put all arguments in a temporary MultiHash
@@ -447,6 +448,46 @@ int main(int argc, char* argv[])
 								CECATSubHeader::Data_Type subHeaderType1 = subHeader1->data_Type();
 								CECATSubHeader::Data_Type subHeaderType2 = subHeader2->data_Type();
 
+								// get the scale factor 
+								float matrixDataScaleFactor1 = 0;
+								switch(subHeader1->subHeaderType())
+								{
+									case CECATSubHeader::ECAT7_Scan3D:
+										matrixDataScaleFactor1 = static_cast<CECAT7SubHeaderScan3D*>(subHeader1)->scale_Factor();
+									break;
+								 
+									case CECATSubHeader::ECAT7_AttenCorr:
+										matrixDataScaleFactor1 = static_cast<CECAT7SubHeaderAttenCorr*>(subHeader1)->scale_Factor();
+									break;
+
+									case CECATSubHeader::ECAT7_Image:
+										matrixDataScaleFactor1 = static_cast<CECAT7SubHeaderImage*>(subHeader1)->scale_Factor();
+									break;
+
+									default:
+									break;
+								}
+
+								float matrixDataScaleFactor2 = 0;
+								switch(subHeader2->subHeaderType())
+								{
+									case CECATSubHeader::ECAT7_Scan3D:
+										matrixDataScaleFactor2 = static_cast<CECAT7SubHeaderScan3D*>(subHeader2)->scale_Factor();
+									break;
+								 
+									case CECATSubHeader::ECAT7_AttenCorr:
+										matrixDataScaleFactor2 = static_cast<CECAT7SubHeaderAttenCorr*>(subHeader2)->scale_Factor();
+									break;
+
+									case CECATSubHeader::ECAT7_Image:
+										matrixDataScaleFactor2 = static_cast<CECAT7SubHeaderImage*>(subHeader2)->scale_Factor();
+									break;
+
+									default:
+									break;
+								}
+							
+								// free the subheaders
 								delete subHeader1;
 								delete subHeader2;
 
@@ -642,6 +683,12 @@ int main(int argc, char* argv[])
 
 										cout << "       calculating (min:max) of data item #2... " << flush;
 										getMinMaxValues(matrixData2, subHeaderType2, minValue2, maxValue2);
+
+										cout << "       calculating max.count of data item #1... " << flush;
+										getMaxCountValue(matrixData1, subHeaderType1, matrixDataScaleFactor1);
+
+										cout << "       calculating max.count of data item #2... " << flush;
+										getMaxCountValue(matrixData2, subHeaderType2, matrixDataScaleFactor2);
 									}
 								}
 
@@ -780,6 +827,107 @@ static void getMinMaxValues(QByteArray* matrixData, CECATSubHeader::Data_Type ma
 
 	cout << setfill(' ') << setw(13) << setprecision(6) << scientific << minValue << " : "
 			 << setfill(' ') << setw(13) << setprecision(6) << scientific << maxValue << endl;
+}
+
+static void getMaxCountValue(QByteArray* matrixData, CECATSubHeader::Data_Type matrixType, float scaleFactor)
+{
+	float minCount = 0;
+	float maxCount = 0;
+
+	// depending on the datatype we have to do different conversions
+	switch(matrixType)
+	{
+		case CECATSubHeader::ByteData:
+		{
+			// now we search through the byte array step by step, outputing all
+			// differences
+			for(unsigned int i=0; i < (unsigned int)matrixData->count(); i++)
+			{
+				char c = (*matrixData)[i];
+
+				if(c > 0)
+					maxCount += static_cast<float>(c);
+				else
+					minCount += static_cast<float>(c);
+			}
+		}
+		break;
+
+		case CECATSubHeader::IEEEFloat:
+		{
+			float val;
+
+			QDataStream stream(matrixData, QIODevice::ReadOnly);
+
+			#if !defined(WORDS_BIGENDIAN)
+			stream.setByteOrder(QDataStream::LittleEndian);
+			#endif
+
+			for(int i=0; stream.atEnd() == false; i++)
+			{
+				stream >> val;
+
+				if(val > 0)
+					maxCount += val;
+				else
+					minCount += val;
+			}
+		}
+		break;													
+
+		case CECATSubHeader::SunShort:
+		{
+			qint16 val;
+
+			QDataStream stream(matrixData, QIODevice::ReadOnly);
+
+			#if !defined(WORDS_BIGENDIAN)
+			stream.setByteOrder(QDataStream::LittleEndian);
+			#endif
+
+			for(int i=0; stream.atEnd() == false; i++)
+			{
+				stream >> val;
+
+				if(val > 0)
+					maxCount += val;
+				else
+					minCount += val;
+			}
+		}
+		break;
+
+		case CECATSubHeader::SunLong:
+		{
+			qint32 val;
+
+			QDataStream stream(matrixData, QIODevice::ReadOnly);
+
+			#if !defined(WORDS_BIGENDIAN)
+			stream.setByteOrder(QDataStream::LittleEndian);
+			#endif                            
+
+			for(int i=0; stream.atEnd() == false; i++)
+			{
+				stream >> val;
+
+				if(val > 0)
+					maxCount += val;
+				else
+					minCount += val;
+			}
+		}
+		break;													
+
+		default:
+			cout << "ERROR: This datatype is currently not support by ecatcmp!" << endl;
+		break;
+	}
+
+	cout << setfill(' ') << setw(13) << setprecision(6) << scientific << maxCount << " ("
+			 << setfill(' ') << setw(13) << setprecision(6) << scientific << maxCount*scaleFactor << ") : "
+			 << setfill(' ') << setw(13) << setprecision(6) << scientific << minCount << " ("
+			 << setfill(' ') << setw(13) << setprecision(6) << scientific << minCount*scaleFactor << ")" << endl;
 }
 
 static void compareECAT7MainHeader(CECATMainHeader* header1, CECATMainHeader* header2)
