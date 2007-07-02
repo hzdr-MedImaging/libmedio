@@ -1625,7 +1625,7 @@ QDateTime CECAT7MainHeader::scan_Start_Time_Qt(void) const
 QDateTime CECAT7MainHeader::dose_Start_Time_Qt(void) const
 {
 	QDateTime Jan1970(QDate(1970, 1, 1), QTime(), Qt::UTC);
-	QDateTime doseStartTime = Jan1970.addSecs(m_pData->header.Scan_Start_Time);
+	QDateTime doseStartTime = Jan1970.addSecs(m_pData->header.Dose_Start_Time);
 	return doseStartTime.toLocalTime();
 }
 

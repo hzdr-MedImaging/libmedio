@@ -5,6 +5,14 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+#### 2.6.1 RELEASE ###########################################################
+	
+2007-07-02 Frank Hofheinz <f.hofheinz@fzd.de>
+
+  * CECAT7MainHeader.cpp: bugfix in dose_Start_Time_Qt(void)
+      (returned scan start time instead of dosestart time)
+
+	
 2007-06-26 Jens Langner <Jens.Langner@light-speed.de>
 
   * examples/ecatcmp: added calculation of min/max count statistic
