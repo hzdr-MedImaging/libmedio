@@ -5,13 +5,21 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+#### 1.6.2 RELEASE ###########################################################
+
+2007-07-05 Jens Langner <Jens.Langner@light-speed.de>
+
+  * CECATDirectory.cpp: fixed matrixParamsValid() macro which made incorrect
+    assumptions about the minimum/maximum allowed numbers for frame/plane/gate
+    bed and data number specifiers. This could have ended up in not being 
+    able to write/read all minimum/maximum allowed frames, for example.
+
 #### 1.6.1 RELEASE ###########################################################
 	
-2007-07-07 Frank Hofheinz <f.hofheinz@fzd.de>
+2007-07-02 Frank Hofheinz <f.hofheinz@fzd.de>
 
-  * changed version to be synchronous with qt4 branch
+  * bumped version to be in sync with qt4 branch
 
-	
 #### 1.6.0 RELEASE ###########################################################
 
 2007-05-02 Jens Langner <Jens.Langner@light-speed.de>

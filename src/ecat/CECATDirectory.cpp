@@ -63,11 +63,11 @@ struct ECAT_DirList // should be 512 bytes
 
 // macro for quickly checking if the frame/plane/gate/bed/data
 // matrix parameters are between bounds or not
-#define matrixParamsValid(f, p, g, b, d) ((f) > 0 && (f) < 256 && \
-												 								  (p) > 0 && (f) < 256 && \
-																					(g) > 0 && (f) < 256 && \
-																					(b) >= 0 && (b) < 256 && \
-																					(d) >= 0 && (d) < 256)
+#define matrixParamsValid(f, p, g, b, d) ((f) >= 0 && (f) < 512  && \
+												 								  (p) >= 0 && (p) < 1024 && \
+																					(g) >= 0 && (g) < 64   && \
+																					(b) >= 0 && (b) < 16   && \
+																					(d) >= 0 && (d) < 8)
 
 // we define the private inline class of that one so that we
 // are able to hide the private methods & data of that class in the
