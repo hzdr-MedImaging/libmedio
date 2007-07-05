@@ -5,36 +5,44 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+#### 2.6.2 RELEASE ###########################################################
+
+2007-07-05 Jens Langner <Jens.Langner@light-speed.de>
+
+  * CECATDirectory.cpp: fixed matrixParamsValid() macro which made incorrect
+    assumptions about the minimum/maximum allowed numbers for frame/plane/gate
+    bed and data number specifiers. This could have ended up in not being 
+    able to write/read all minimum/maximum allowed frames, for example.
+
 #### 2.6.1 RELEASE ###########################################################
 	
 2007-07-02 Frank Hofheinz <f.hofheinz@fzd.de>
 
   * CECAT7MainHeader.cpp: bugfix in dose_Start_Time_Qt(void)
-      (returned scan start time instead of dosestart time)
+    (returned scan start time instead of dosestart time)
 
-	
 2007-06-26 Jens Langner <Jens.Langner@light-speed.de>
 
   * examples/ecatcmp: added calculation of min/max count statistic
 
 2007-06-05 Hagen Moelle <draggore@gmx.de>
 
-	*	ecatutil:	sets filter values in subheader of smoother 
-		processed image file when called with -b
+  * ecatutil: sets filter values in subheader of smoother processed image file
+    when called with -b
 
 2007-05-31 Hagen Moelle <draggore@gmx.de>
 
-	*	ecatutil:	updates mainheader of mips processed image
-		file with data from reference file when called with -m
+  * ecatutil: updates mainheader of mips processed image file with data from
+    reference file when called with -m
 
 2007-05-29 Hagen Moelle <draggore@gmx.de>
 
-	*	ecatutil:	updates mainheader of smoother processed image
-		file with data from reference file when called with -b
+  * ecatutil: updates mainheader of smoother processed image file with data from
+    reference file when called with -b
 
 2007-05-21 Hagen Moelle <draggore@gmx.de>
 
-	*	ecatutil:	prints type of ecat file when called with -t
+  * ecatutil: prints type of ecat file when called with -t
 
 2007-05-14 Jens Langner <Jens.Langner@light-speed.de>
 
