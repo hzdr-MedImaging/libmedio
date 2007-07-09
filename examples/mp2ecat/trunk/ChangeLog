@@ -1,3 +1,8 @@
+2007-07-09  Hagen Moelle <draggore@gmx.de>
+
+	*	CApplication: limited number of frames to be written to 512 due to
+		a bugfix within libmedio / improved version info
+
 2006-07-18  Hagen Moelle <draggore@gmx.de>
 
   * CApplication: completely reworked convert method

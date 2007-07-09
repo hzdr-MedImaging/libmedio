@@ -1,9 +1,6 @@
-//! @file CCmdLineStart.cpp
-//! @brief contains the implementation of the class CCmdLineStart
-//! @author Hagen Moelle
-//! @date 11/13/2004
-
 #include "CApplication.h"
+
+#include "config.h"
 
 #include <CECATFile>
 #include <CECAT7MainHeader>
@@ -13,6 +10,7 @@
 #include <CConcordeImage>
 #include <CMedIOData>
 #include <CMedIODataFactory>
+#include <CMedIO>
 
 #include <math.h>
 #include <iostream>
@@ -90,12 +88,50 @@ bool CApplication::parseCmdLine(int argc, char* argv[])
 		}
 	}
 
+	// output some general program information
+	if(bResult == false)
+	{
+		cout << endl
+				 << PACKAGE_STRING << " - A Qt4-based program for retrieving gating information" << endl
+				 << "(" __DATE__ ") Copyright (c) 2006-2007 by Hagen Moelle / FZ-Rossendorf" << endl << endl;
+	}
+
 	if(args.contains("-v"))
 	{
-		//cout << "Using:" << endl
-		//		 << "  libmedio " << CMedIO::version().toAscii().constData() <<  " ("
-		//		 << CMedIO::buildDate().toAscii().constData() << ")" << endl;
-		//		 //<< "  " << CMedIO::copyright().toAscii().constData() << endl;
+		cout << "Detailed compilation information:" << endl << endl
+
+				 // Compiler information
+				 << "  "
+				 #if defined(__GNUC__)
+				 << "GCC " << __GNUC__ << "." << __GNUC_MINOR__ <<  "." << __GNUC_PATCHLEVEL__ << " "
+				 #else
+				 #warning unknown compiler suite
+				 << "unknown compiler "
+				 #endif
+				 #if #cpu(sparc)
+				 << "[sparc]"
+				 #elif #cpu(sparc64)
+				 << "[sparc64]"
+				 #elif #cpu(powerpc)
+				 << "[ppc]"
+				 #elif #cpu(i386)
+				 << "[x86]"
+				 #elif #cpu(amd64)
+				 << "[amd64]"
+				 #else
+				 #warning Unknown CPU model
+				 << "[Unknown]"
+				 #endif
+				 << endl << endl
+
+				 // Qt version information
+				 << "  Qt " << qVersion() << endl
+										<< "  Copyright (c) 2006-2007 Trolltech Inc." << endl << endl
+
+				 // libmedio version information
+				 << "  libmedio " << CMedIO::version().toAscii().constData() <<  " ("
+				 << CMedIO::buildDate().toAscii().constData() << ")" << endl
+				 << "  " << CMedIO::copyright().toAscii().constData() << endl;
 	}
 	else if(bResult == false) // output usage information on the console.
 	{
@@ -172,10 +208,10 @@ bool CApplication::convertFile()
 						pEcat7ImgHeader->setPatient_Name(m_sPatientName.toAscii().data());
 						
 						int iNrFrames = pSrcImageHeader->totalFrames();
-						if(iNrFrames > 255)
+						if(iNrFrames > 511)
 						{
-							cout << "Warning: Can not create ECAT7 image file with more than 255 frames - will only create 255 frames" << endl;
-							iNrFrames = 255;
+							cout << "Warning: Can not create ECAT7 image file with more than 511 frames - will only create 511 frames" << endl;
+							iNrFrames = 511;
 						}
 
 						unsigned int iFramesize = pSrcImageHeader->frameSize();
