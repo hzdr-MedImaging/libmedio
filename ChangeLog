@@ -5,6 +5,10 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2007-06-05 Hagen Moelle <draggore@gmx.de>
+
+	*	ecatutil: complete revision of ecatutil
+
 #### 2.6.2 RELEASE ###########################################################
 
 2007-07-05 Jens Langner <Jens.Langner@light-speed.de>
