@@ -1375,82 +1375,105 @@ bool processCommando_New()
 
 	if(bResult)
 	{
-		// open ecatfile
-		CECATFile ecatFile(g_sECATFileName);
-		if(ecatFile.open(QIODevice::WriteOnly) && ecatFile.format() != CECATFile::Undefined)
+		CECATMainHeader::Type srcFileType = CECATMainHeader::Unknown;
+		// first we determine the type of our source ecat files / therefore we
+		// open the first ecat source file
+		CECATFile srcEcatFile(g_sSrcFileNames.first());
+		if(srcEcatFile.open(QIODevice::ReadOnly) && srcEcatFile.format() != CECATFile::Undefined)
 		{
-			// open src ecat file
-			CECATFile srcEcatFile(g_sSrcFileNames.first());
-			if(srcEcatFile.open(QIODevice::ReadOnly) && ecatFile.format() != CECATFile::Undefined)
+			srcFileType = srcEcatFile.fileType();
+			if(srcFileType == CECATMainHeader::Unknown)
 			{
-				// check if subheader and matrix is in available in source file
-				CECATMainHeader* pSrcMainHeader = NULL;
-				CECATSubHeader* pSrcSubHeader = NULL;
-				QByteArray* pSrcMatrixData = NULL;
-				if(srcEcatFile.readMainHeader(pSrcMainHeader))
+				cout << "ERROR: can not determine file type of source files." << endl;
+				bResult = false;
+			}
+			srcEcatFile.close();
+		}
+		else
+		{
+			cout << "ERROR: provided source file is not an ecat file." << endl;
+			bResult = false;
+		}
+
+		if(bResult)
+		{
+			// open ecatfile
+			CECATFile ecatFile(g_sECATFileName, srcFileType);
+			if(ecatFile.open(QIODevice::WriteOnly))
+			{
+				// open src ecat file
+				CECATFile srcEcatFile(g_sSrcFileNames.first());
+				if(srcEcatFile.open(QIODevice::ReadOnly) && ecatFile.format() != CECATFile::Undefined)
 				{
-					if(srcEcatFile.readSubHeader(pSrcSubHeader, iFrame, iPlane, iGate, iBed, iData))
+					// check if subheader and matrix is in available in source file
+					CECATMainHeader* pSrcMainHeader = NULL;
+					CECATSubHeader* pSrcSubHeader = NULL;
+					QByteArray* pSrcMatrixData = NULL;
+					if(srcEcatFile.readMainHeader(pSrcMainHeader))
 					{
-						if(srcEcatFile.readMatrix(pSrcMatrixData, iFrame, iPlane, iGate, iBed, iData))
+						if(srcEcatFile.readSubHeader(pSrcSubHeader, iFrame, iPlane, iGate, iBed, iData))
 						{
-							CECATMainHeader* pDestMainHeader = NULL;
-							pDestMainHeader = ecatFile.createEmptyMainHeader();
-							*pDestMainHeader = *pSrcMainHeader;
-							if(ecatFile.writeMainHeader(*pDestMainHeader))
+							if(srcEcatFile.readMatrix(pSrcMatrixData, iFrame, iPlane, iGate, iBed, iData))
 							{
-								CECATSubHeader* pDestSubHeader = NULL;
-								pDestSubHeader = ecatFile.createEmptySubHeader();
-								*pDestSubHeader = *pSrcSubHeader;
-								if(ecatFile.writeSubHeader(*pDestSubHeader, 1, 1, 1, 0, 0))
+								CECATMainHeader* pDestMainHeader = NULL;
+								pDestMainHeader = ecatFile.createEmptyMainHeader();
+								*pDestMainHeader = *pSrcMainHeader;
+								if(ecatFile.writeMainHeader(*pDestMainHeader))
 								{
-									if(!ecatFile.writeMatrix(*pSrcMatrixData, 1, 1, 1, 0, 0))
+									CECATSubHeader* pDestSubHeader = NULL;
+									pDestSubHeader = ecatFile.createEmptySubHeader();
+									*pDestSubHeader = *pSrcSubHeader;
+									if(ecatFile.writeSubHeader(*pDestSubHeader, 1, 1, 1, 0, 0))
 									{
-										cout << "ERROR: can not write destination matrix." << endl;
+										if(!ecatFile.writeMatrix(*pSrcMatrixData, 1, 1, 1, 0, 0))
+										{
+											cout << "ERROR: can not write destination matrix." << endl;
+											bResult = false;
+										}
+									}
+									else
+									{
+										cout << "ERROR: can not write destination subheader." << endl;
 										bResult = false;
 									}
 								}
 								else
 								{
-									cout << "ERROR: can not write destination subheader." << endl;
+									cout << "ERROR: can not write destination mainheader." << endl;
 									bResult = false;
 								}
 							}
 							else
 							{
-								cout << "ERROR: can not write destination mainheader." << endl;
+								cout << "ERROR: could not read matrix data of eact source file." << endl;
 								bResult = false;
 							}
 						}
 						else
 						{
-							cout << "ERROR: could not read matrix data of eact source file." << endl;
+							cout << "ERROR: could not read subheader of eact source file." << endl;
 							bResult = false;
 						}
 					}
 					else
 					{
-						cout << "ERROR: could not read subheader of eact source file." << endl;
+						cout << "ERROR: could not read mainheader of eact source file." << endl;
 						bResult = false;
 					}
+					srcEcatFile.close();
 				}
 				else
 				{
-					cout << "ERROR: could not read mainheader of eact source file." << endl;
+					cout << "ERROR: provided src file is not an ECAT file." << endl;
 					bResult = false;
 				}
-				srcEcatFile.close();
+				ecatFile.close();
 			}
 			else
 			{
-				cout << "ERROR: provided src file is not an ECAT file." << endl;
+				cout << "ERROR: provided ecatfile is not an ECAT file." << endl;
 				bResult = false;
 			}
-			ecatFile.close();
-		}
-		else
-		{
-			cout << "ERROR: provided ecatfile is not an ECAT file." << endl;
-			bResult = false;
 		}
 	}
 
@@ -1732,7 +1755,7 @@ void showVersionInformation()
 void showHelp(int& argc, char** argv)
 {
 	cout << endl;
-	cout << "libmedio ECAT6/7 file utility v2.0" << endl;
+	cout << "libmedio ECAT6/7 file utility v2.1" << endl;
 	cout << "----------------------------------" << endl;
 	cout << "Usage: " << argv[0] << " <options> ecatfile" << endl;
 	cout << "Options:" << endl;

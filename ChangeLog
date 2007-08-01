@@ -5,7 +5,12 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
-2007-06-05 Hagen Moelle <draggore@gmx.de>
+2007-08-01 Hagen Moelle <draggore@gmx.de>
+
+	*	ecatutil: when creating a new ecatfile the file was not opened
+		with any filetype resulting in an error
+
+2007-07-31 Hagen Moelle <draggore@gmx.de>
 
 	*	ecatutil: complete revision of ecatutil
 
