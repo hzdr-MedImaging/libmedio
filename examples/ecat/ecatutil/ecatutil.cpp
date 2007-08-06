@@ -334,6 +334,7 @@ bool processCommando_Get()
 						{
 							case MAGIC_NUMBER: cout << pECAT7MainHeader->magic_Number() << endl; break;
 							case FILE_TYPE: cout << pECAT7MainHeader->file_Type() << endl; break;
+							case ORIGINAL_FILE_NAME: cout << pECAT7MainHeader->original_File_Name() << endl; break;
 							default:
 							{
 								cout << "ERROR: main header entry not supported." << endl;
