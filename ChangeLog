@@ -5,9 +5,15 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2007-11-14 Hagen Moelle <draggore@gmx.de>
+
+	*	CECAT7MainHeader.cpp: when converting micropet concorde header
+		to ecat7 main header radiopharmaceutical is set to injected
+		compound (micropet concorde header)
+
 2007-08-06 Hagen Moelle <draggore@gmx.de>
 
-	*	ecatutil: retrieving original filename, angular compression, 
+	*	ecatutil: retrieving original filename, angular compression,
 		calibration units label and data units of ecat file implemented
 
 2007-08-01 Hagen Moelle <draggore@gmx.de>
