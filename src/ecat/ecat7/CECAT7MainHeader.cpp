@@ -852,8 +852,8 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
 			setScan_Start_Time(head->scanTime());
 			setIsotope_Name(head->isotope().ascii());
 			setIsotope_Halflife(head->isotopeHalfTime());
-			setRadiopharmaceutical(head->isotope().ascii());
-			
+			setRadiopharmaceutical(head->injectedCompound().ascii());
+
 			setDistance_Scanned(head->radialFov());
 			setTransaxial_FOV(head->radialFov());
 			setCoin_Samp_Mode(CECAT7MainHeader::NetTrues);
