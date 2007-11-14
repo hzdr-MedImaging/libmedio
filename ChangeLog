@@ -5,6 +5,8 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+#### 2.6.3 RELEASE ###########################################################
+
 2007-11-14 Jens Langner <Jens.Langner@light-speed.de>
 
   * CECATDirectoryItem.cpp: fixed a minor bug where an empty body statement
