@@ -822,7 +822,7 @@ void CECATDirectoryItem::subHeaderWritten(const CECATSubHeader& subHeader)
 
 	// if the subHeaderWritten is the same as our cached subheader we don't
 	// have to copy it again and can break out immediately
-	if(&subHeader != m_pData->cachedSubHeader);
+	if(&subHeader != m_pData->cachedSubHeader)
 	{
 		// otherwise we make sure the written subHeader is cached
 		m_pData->cacheSubHeader(subHeader);

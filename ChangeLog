@@ -5,11 +5,16 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2007-11-14 Jens Langner <Jens.Langner@light-speed.de>
+
+  * CECATDirectoryItem.cpp: fixed a minor bug where an empty body statement
+    may haven ended up in an unused statement.
+
 2007-11-14 Hagen Moelle <draggore@gmx.de>
 
-	*	CECAT7MainHeader.cpp: when converting micropet concorde header
-		to ecat7 main header radiopharmaceutical is set to injected
-		compound (micropet concorde header)
+  * CECAT7MainHeader.cpp: when converting micropet concorde header
+    to ecat7 main header radiopharmaceutical is set to injected
+    compound (micropet concorde header)
 
 2007-08-06 Hagen Moelle <draggore@gmx.de>
 
