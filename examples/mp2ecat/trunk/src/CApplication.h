@@ -17,9 +17,19 @@ class CApplication
 		bool convertFile();
 
 	private:
-		QString m_sInputFileName;
-		QString m_sOutputFileName;
-		QString m_sPatientName;
+		// methods
+		void showUsage(int argc, char* argv[]);
+		void showAppInfo();
+		void showVersion();
+		bool convIntArrayToShort();
+		bool checkOutputFile(QString sFileName);
+		bool checkOutputDir(QString sDirectory);
+
+		// members
+		QString		m_sInputFileName;
+		QString		m_sOutputFileName;
+		QString		m_sPatientName;
+		bool			m_bOverWrite;
 };
 
 #endif // CAPPLICATION_H

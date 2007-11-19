@@ -13,9 +13,11 @@ int main( int argc, char ** argv )
 	ENTER();
 	bool bResult = false;
 	CApplication mp2Ecat;
-	if(bResult = mp2Ecat.parseCmdLine(argc, argv))
+
+	bResult = mp2Ecat.parseCmdLine(argc, argv);
+	if(bResult)
 	{
-			bResult = mp2Ecat.convertFile();
+		bResult = mp2Ecat.convertFile();
 	}
 	if(bResult)
 	{

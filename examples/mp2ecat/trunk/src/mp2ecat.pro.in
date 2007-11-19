@@ -1,93 +1,48 @@
-TEMPLATE = app
-CONFIG	 *= qt thread warn_on @ANSI_COLOR@ @QTLINK_LEVEL@
-QT	 += core
-TARGET    = mp2ecat
-VERSION   = @PACKAGE_VERSION@
-DESTDIR   = ../
+TEMPLATE		= app
+CONFIG			*= qt thread warn_on @ANSI_COLOR@ @QTLINK_LEVEL@
+QT					+= core
+QMAKE_QMAKE = @QMAKE_PATH@
+TARGET			= mp2ecat
+VERSION			= @PACKAGE_VERSION@
+DESTDIR			= ../
+DEFINES			*=
 
 # directory specification
 OBJECTS_DIR = .obj
-MOC_DIR     = .moc
-UI_DIR      = .ui
+MOC_DIR			= .moc
+UI_DIR			= .ui
 
-DEPENDPATH += includes
-INCLUDEPATH += . \ 
-               includes 
-	       
+DEPENDPATH	+= . includes
+INCLUDEPATH	+= . includes
 
-# for static compilation we define the following so that we
-# can define "staticconfig" in CONFIG if we want static linking.
-staticconfig {
-	QMAKE_LIBS_QT =
-	QMAKE_LIBS_QT_THREAD =
-	!macx:LIBS += $(QTDIR)/lib/libqt-mt.a
-	macx:LIBS += $(QTDIR)/lib/libqt-mt.a -lz -framework Carbon
-}
-
-# find out the system
-HOST_OS = @HOST_OS@
-HOST_CPU = @HOST_CPU@
-contains(HOST_OS, [sS]un[oO][sS]) {
-	QMAKE_CXXFLAGS += -mcpu=v9 -mtune=ultrasparc3
-}
-else {
-	contains(HOST_OS, [dD]arwin) {
-		contains(HOST_CPU, [pP]ower[pP]c) {
-			QMAKE_CXXFLAGS += -Acpu=powerpc # for G5: "-mcpu=970 -mtune=970 -mpowerpc64 -mpowerpc-gpopt -force_cpusubtype_ALL"
-		}
-	}
-	else {
-		contains(HOST_OS, [lL]inux) {
-			#contains(HOST_CPU, [oO]pteron) {
-				#QMAKE_CXXFLAGS += -march=athlon-xp -mmmx -msse -msse2 -m3dnow -mfpmath=sse,387
-			#}
-		}
-	}
-}
+# own QMAKE Flags definitions
+QMAKE_CXXFLAGS_RELEASE = @CXXFLAGS@
+QMAKE_CXXFLAGS_DEBUG	 = @CXXFLAGS@
 
 # set the config to either release or debug
 COMPILE_LEVEL = @COMPILE_LEVEL@
 contains(COMPILE_LEVEL, debug) {
 	CONFIG -= release
-	CONFIG += debug
-	QMAKE_CXXFLAGS_DEBUG += -g -O0
-	DEFINES += DEBUG
+	CONFIG *= debug
+	QMAKE_CXXFLAGS_DEBUG += -ggdb -O0
+	DEFINES *= DEBUG
 }
 else {
 	CONFIG -= debug
-	CONFIG += release
+	CONFIG *= release
 	QMAKE_CXXFLAGS_RELEASE += -O3 -funroll-loops
-	QMAKE_LINK += -s # this is for stripping the executable while linking
+	QMAKE_LINK *= -s # this is for stripping the executable while linking
 	DEFINES -= DEBUG
-
-	# depending on the gcc version we set some addition optimization flags
-	contains(GCC_VERSION, 3.3) {
-		QMAKE_CXXFLAGS_RELEASE += -ftracer
-	}	
 }
 
-# use ANSI colors if it was specified on configure time
-ansi_color {
-	QMAKE_CXX		= @printf '\033[32mCompiling $<\033[0m\n';$$QMAKE_CXX
-	QMAKE_LINK	= @printf '\033[32mLinking \033[1m$@\033[0m\n';$$QMAKE_LINK
-	DEFINES += ANSI_COLOR
-}
-
-# UNIX based target platforms installation defines
-unix {
-	# on unix we use configure to define everything like install path
-	PREFIX=@prefix@
-	BIN_DIR=@prefix@/bin
-
-	# -p option should be -P, so that "make install" as root creates files owned by root
-	# and links are preserved.
-	QMAKE_COPY_FILE = $(COPY) -P
-
-	# install library
-	target.path = $$BIN_DIR
-
-	# "make install" configuration options
-	INSTALLS += target
+### QT LIB ################################################################
+# if "staticqt" is specificed in the CONFIG variable (by configure)
+# we link with the static QT library instead
+staticqt {
+	QMAKE_LIBS_QT =
+	QMAKE_LIBS_QT_THREAD =
+	!macx:LIBS *= $(QTDIR)/lib/libqt-mt.a
+	macx:LIBS *= $(QTDIR)/lib/libqt-mt.a -lz -framework Carbon
 }
 
 ### LIBRTDEBUG ############################################################
@@ -114,48 +69,41 @@ else {
 	LIBS *= @MEDIO_LIBDIR@/@LIB_MEDIO@
 }
 
-### LIBCOREG ##############################################################
-# for testing hard coded
-#INCLUDEPATH *= /home/hagen/include/coreg
-#LIBS *= -L/home/hagen/lib -lcoreg
+# find out the GCC version
+# and define some gcc v3+ options only.
+GCC_VERSION = @GCC_VERSION@
+contains(GCC_VERSION, 3) {
+	QMAKE_CXXFLAGS *= -fmessage-length=0
+}
 
-### LIBSTIR ##############################################################
-# if "staticmedio" is specified in the CONFIG variable (by configure)
-# we link wih the static variant of libmedio instead
-#INCLUDEPATH *= @STIR_INCDIR@
-#INCLUDEPATH *= @STIRBOOST_INCDIR@
-#INCLUDEPATH *= @STIR_INCDIR@/../
-#INCLUDEPATH *= @STIRBOOST_INCDIR@/../
-#LIBS *= @STIR_LIBDIR@/IO_registries.o
-#LIBS *= @STIR_LIBDIR@/buildblock_registries.o
-#LIBS *= @STIR_LIBDIR@/recon_buildblock_registries.o
-#LIBS *= @STIR_LIBDIR@/libstir.a
+# find out the system
+HOST_OS=@HOST_OS@
+HOST_CPU=@HOST_CPU@
+contains(HOST_CPU, sparc) {
+	QMAKE_CXXFLAGS *= -mcpu=v9 -mtune=ultrasparc3
+}
+else {
+	contains(HOST_CPU, [pP]ower[pP]c) {
+      QMAKE_CXXFLAGS *= -Acpu=powerpc -mcpu=G4
+  }
+  else {
+		contains(HOST_CPU, [oO]pteron.+) {			
+			QMAKE_CXXFLAGS *= -Acpu=amd64 -march=opteron
+		}
+	}
+}
 
-### LIBGSL ################################################################
-# if "staticgsl" is specified in the CONFIG variable (by configure)
-# we link with the static variant of libgsl and libgslc instead
-#INCLUDEPATH *= @GSL_INCDIR@
-#staticgsl {
-#	LIBS *= @GSL_LIBDIR@/libgsl.a @GSL_LIBDIR@/libgslcblas.a
-#}
-#else {
-#	LIBS *= -L@GSL_LIBDIR@ @LIB_GSL@
-#}
-
-
-### LIBMEDRECON ##############################################################
-# if "staticmedrecon" is specified in the CONFIG variable (by configure)
-# we link wih the static variant of libmedrecon instead
-#INCLUDEPATH *= @MEDRECON_INCDIR@
-#staticmedrecon {
-#	LIBS *= @MEDRECON_LIBDIR@/libmedrecon.a
-#}
-#else {
-#	LIBS *= -L@MEDRECON_LIBDIR@ @LIB_MEDRECON@
-#}
+# use ANSI colors if it was specified on configure time
+ansi_color {
+	QMAKE_CXX = @printf \'\033[32mCompiling $<\033[0m\n\'; $$QMAKE_CXX
+	QMAKE_LINK = @printf \'\033[32mLinking \033[1m$@\033[0m\n\'; $$QMAKE_LINK
+	QMAKE_MOC = @printf \'\033[33mGenerating $@\033[0m\n\'; $$QMAKE_MOC	
+	DEFINES *= ANSI_COLOR
+}
 
 # Input
-HEADERS +=	CApplication.h
+HEADERS +=	CDataArray.h \
+						CApplication.h
 
-SOURCES +=	mp2ecat.cpp \
-						CApplication.cpp
+SOURCES +=	CApplication.cpp \
+						mp2ecat.cpp
