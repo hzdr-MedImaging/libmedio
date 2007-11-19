@@ -376,6 +376,16 @@ Try --with-gsl-inc to specify the path, manually.])
 ])
 
 dnl
+dnl AC_PATH_QRTDEBUG: allows to override the default library search path for
+dnl searching for the rtdebug library.
+dnl
+AC_DEFUN([AC_PATH_RTDEBUG],
+[
+  AC_ARG_WITH(rtdebug, [AC_HELP_STRING([--with-rtdebug], [where the rtdebug environment is located.])],
+											 [RTDEBUGDIR="$withval" ])
+])
+
+dnl
 dnl AC_PATH_RTDEBUG_LIB: checks for the existance of the rtdebug library in the
 dnl default pathes and allows to override them as well
 dnl
@@ -395,14 +405,17 @@ AC_DEFUN(AC_PATH_RTDEBUG_LIB,
   dnl No they didnt, so lets look for them...
   dnl If you need to add extra directories to check, add them here.
   if test -z "$ac_rtdebug_libraries"; then
-    rtdebug_library_dirs="$rtdebug_library_dirs \
-												/usr/local/petlib/lib \
-												/usr/local/petlib/lib/rtdebug \	
-		                    /usr/local/lib \
-												/usr/local/lib/rtdebug \
-		                    /usr/lib \
-		                    /usr/lib/rtdebug \
-		                    /Developer/rtdebug/lib"
+    rtdebug_library_dirs="$RTDEBUGDIR/lib \
+													$RTDEBUGDIR/rtdebug \
+													$RTDEBUGDIR \
+													$rtdebug_library_dirs \
+													/usr/local/petlib/lib \
+													/usr/local/petlib/lib/rtdebug \	
+													/usr/local/lib \
+													/usr/local/lib/rtdebug \
+													/usr/lib \
+													/usr/lib/rtdebug \
+													/Developer/rtdebug/lib"
   else
     rtdebug_library_dirs="$ac_rtdebug_libraries"
   fi
@@ -477,6 +490,9 @@ AC_DEFUN(AC_PATH_RTDEBUG_INC,
       dnl No they didn't, so lets look for them...
       dnl If you need to add extra directories to check, add them here.
       rtdebug_include_dirs="\
+				$RTDEBUGDIR/include \
+				$RTDEBUGDIR/include/rtdebug \
+				$RTDEBUGDIR \
 			  /usr/local/petlib/include \
 				/usr/local/petlib/include/rtdebug \		
         /usr/local/rtdebug/include \
@@ -514,6 +530,16 @@ Try --with-rtdebug-inc to specify the path, manually.])
   AC_SUBST(RTDEBUG_INCDIR)
 ])
 
+dnl
+dnl AC_PATH_MEDIO: allows to override the default library search path for
+dnl searching for the medio library.
+dnl
+AC_DEFUN([AC_PATH_MEDIO],
+[
+  AC_ARG_WITH(medio, [AC_HELP_STRING([--with-medio], [where the medio environment is located.])],
+										 [MEDIODIR="$withval" ])
+])
+
 AC_DEFUN(AC_PATH_MEDIO_LIB,
 [
   AC_REQUIRE_CPP()
@@ -530,7 +556,10 @@ AC_DEFUN(AC_PATH_MEDIO_LIB,
   dnl No they didnt, so lets look for them...
   dnl If you need to add extra directories to check, add them here.
   if test -z "$ac_medio_libraries"; then
-    medio_library_dirs="$medio_library_dirs \
+    medio_library_dirs="$MEDIODIR/lib \
+												$MEDIODIR/medio \
+												$MEDIODIR \
+												$medio_library_dirs \
 		                    /usr/local/petlib/lib \
 												/usr/local/petlib/lib/medio \
 												/usr/local/lib \
@@ -739,8 +768,12 @@ Try --with-medrecon-lib to specify the path, manually.])
   AC_SUBST(LIB_MEDRECON)
 ])
 
-
-AC_DEFUN(AC_PATH_MEDIO_INC,
+dnl
+dnl AC_PATH_MEDIO_INC: checks the existance of the includes files for successfully
+dnl compiling support for the medio library and also allows to override the default
+dnl path to that includes.
+dnl
+AC_DEFUN([AC_PATH_MEDIO_INC],
 [
   AC_REQUIRE_CPP()
   AC_MSG_CHECKING(for libmedio includes)
@@ -757,17 +790,20 @@ AC_DEFUN(AC_PATH_MEDIO_INC,
       dnl No they didn't, so lets look for them...
       dnl If you need to add extra directories to check, add them here.
       medio_include_dirs="\
-        /usr/local/petlib/include \
-				/usr/local/petlib/include/medio \
-				/usr/local/medio/include \
+				$MEDIODIR/include \
+				$MEDIODIR/include/medio \
+				$MEDIODIR \			
+			  /usr/local/petlib/include \
+				/usr/local/petlib/include/medio \					
+        /usr/local/include \
+        /usr/local/include/medio \
         /usr/include/medio \
-        /usr/lib/medio/include \
-        /usr/local/include/medio"
+        /usr/lib/medio/include"
     fi
 
     for medio_dir in $medio_include_dirs; do
-      if test -r "$medio_dir/CECATFile"; then
-        if test -r "$medio_dir/CECATDirectory"; then
+      if test -r "$medio_dir/CMedIO"; then
+        if test -r "$medio_dir/CMedIOData"; then
           ac_medio_includes=$medio_dir
           break;
         fi

@@ -1,5 +1,5 @@
 AC_PREREQ(2.57)
-AC_INIT(MicroPETtoECAT, 0.2, h.moelle@fz-rossendorf.de)
+AC_INIT(MicroPETtoECAT, 0.3, h.moelle@fz-rossendorf.de)
 AC_COPYRIGHT(Copyright (c) 2004 by Hagen Mölle <h.moelle@fz-rossendorf.de>)
 AC_REVISION($Revision$)
 AC_CONFIG_SRCDIR([src/mp2ecat.cpp])
@@ -21,39 +21,26 @@ AC_GNU_SOURCE
 
 # Check for the QT libraries
 # AC_PATH_QTDIR
+AC_ENABLE_STATIC_QT
 AC_PATH_QT4_INC
 AC_PATH_QT4_LIB
 AC_PATH_QT4_QMAKE
 # AC_QTSHAREDBUILD
-AC_ENABLE_STATIC_QT
 
 # Check if user wants to build a static library
 AC_ENABLE_STATIC_LIB
 
 # Check for the runtime debug library
+AC_ENABLE_STATIC_RTDEBUG
+AC_PATH_RTDEBUG
 AC_PATH_RTDEBUG_LIB
 AC_PATH_RTDEBUG_INC
-AC_ENABLE_STATIC_RTDEBUG
-
-# Check for the GNU scientific library
-#AC_PATH_GSL_LIB
-#AC_PATH_GSL_INC
-#AC_ENABLE_STATIC_GSL
 
 # Check for the medical IO library
+AC_ENABLE_STATIC_MEDIO
+AC_PATH_MEDIO
 AC_PATH_MEDIO_LIB
 AC_PATH_MEDIO_INC
-AC_ENABLE_STATIC_MEDIO
-
-# Check for the medical Reconstruction library
-#AC_PATH_STIR_LIB
-#AC_PATH_STIR_INC
-#AC_PATH_STIRBOOST_INC
-
-# Check for the medical Reconstruction library
-#AC_PATH_MEDRECON_LIB
-#AC_PATH_MEDRECON_INC
-#AC_ENABLE_STATIC_MEDRECON
 
 # Simple check for other libraries (pthread and math)
 AC_CHECK_LIB(pthread, pthread_create, , AC_MSG_ERROR(Cannot find required pthread library in LIBRARY_PATH))
