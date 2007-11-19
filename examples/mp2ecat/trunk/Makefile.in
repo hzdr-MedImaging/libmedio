@@ -46,17 +46,17 @@ all: qmakefiles all-recursive
 qmakefiles: src/Makefile
 
 src/Makefile: src/mp2ecat.pro
-	echo "generating '$@' by executing qmake... "
-	(cd src; $(QMAKE))
+	@echo "generating '$@' by executing qmake... "
+	@(cd src; $(QMAKE))
 
 # Make a distribution file for normal users
 dist:
-	echo "Making distribution file $(PACKAGE_TARNAME).tar.gz ..." && \
+	@echo "Making distribution file $(PACKAGE_TARNAME).tar.gz ..." && \
 	$(MKDIR) .dist/$(PACKAGE_TARNAME); \
 	list='$(SOURCES) $(HEADERS) $(TRANSLATIONS)'; for subfile in $$list; do \
 		$(COPY) --parents "src/$$subfile" .dist/$(PACKAGE_TARNAME); \
 	done; 
-	$(COPY) --parents $(DIST_COMMON) .dist/$(PACKAGE_TARNAME) && \
+	@$(COPY) --parents $(DIST_COMMON) .dist/$(PACKAGE_TARNAME) && \
 	$(COPY_DIR) --parents $(DIST_DOC) .dist/$(PACKAGE_TARNAME) && \
 	( cd `dirname .dist/$(PACKAGE_TARNAME)` && \
 	$(TAR) $(PACKAGE_TARNAME).tar $(PACKAGE_TARNAME) && \
