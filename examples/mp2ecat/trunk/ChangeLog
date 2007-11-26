@@ -1,5 +1,9 @@
 #### 0.3 RELEASE ##########################################################
 
+2007-11-26  Hagen Moelle <draggore@gmx.de>
+
+	*	CDataArray.h: bugfix in calculation of valueRange in image
+
 2007-11-19  Hagen Moelle <draggore@gmx.de>
 
 	*	mp2ecat:	complete rework of mp2ecat

@@ -39,7 +39,7 @@ template<class T> CDataArray<T>::CDataArray(QByteArray* pArray, int iNumElements
 		if(m_minValue > *pData)
 			m_minValue = *pData;
 	}
-	m_valueRange = (ABS(m_maxValue) > ABS(m_minValue))?ABS(m_maxValue):ABS(m_minValue);
+	m_valueRange = ((ABS(m_maxValue)) > (ABS(m_minValue)))?ABS(m_maxValue):ABS(m_minValue);
 	D("minValue: %f, maxValue: %f, valueRange: %f", (float)m_minValue, (float)m_maxValue, (float)m_valueRange);
 	LEAVE();
 }
