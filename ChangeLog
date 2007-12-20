@@ -5,6 +5,13 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+#### 2.6.4 RELEASE ###########################################################
+
+2007-12-20 Hagen Moelle <draggore@gmx.de>
+
+	*	CECATDirectoryItem.cpp: fixed memory leak - when creating a QByteArray 
+		from an array a deep copy is performed so array has to be deleted
+
 #### 2.6.3 RELEASE ###########################################################
 
 2007-11-14 Jens Langner <Jens.Langner@light-speed.de>

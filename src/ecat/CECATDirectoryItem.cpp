@@ -356,6 +356,7 @@ bool CECATDirectoryItem::readMatrix(QByteArray*& matrixData)
 	if(readMatrix(data, dataLen) && dataLen > 0)
 	{
 		matrixData = new QByteArray(data, dataLen);
+		delete [] data;
 		result = true;
 	}
 
@@ -693,6 +694,7 @@ bool CECATDirectoryItem::readMatrix(QByteArray*& matrixData, CECATSubHeader*& su
 	if(readMatrix(data, dataLen, subHeader) && dataLen > 0)
 	{
 		matrixData = new QByteArray(data, dataLen);
+		delete [] data;
 		result = true;
 	}
 
