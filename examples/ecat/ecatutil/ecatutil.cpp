@@ -339,6 +339,7 @@ bool processCommando_Get()
 							case CALIBRATION_UNITS_LABEL: cout << pECAT7MainHeader->calibration_Units_Label() << endl; break;
 							case DATA_UNITS: cout << pECAT7MainHeader->data_Units() << endl; break;
 							case ACQUISITION_TYPE: cout << pECAT7MainHeader->acquisition_Type() << endl; break;
+							case PATIENT_ORIENTATION: cout << pECAT7MainHeader->patient_Orientation() << endl; break;
 							default:
 							{
 								cout << "ERROR: main header entry not supported." << endl;
@@ -575,6 +576,36 @@ bool processCommando_Set()
 								else
 								{
 									cout << "ERROR: acquisition type is not a short value." << endl;
+									bResult = false;
+								}
+							}
+							break;
+							case PATIENT_ORIENTATION:
+							{
+								bool bSuccess = false;
+								short iPatientOrientation = g_sValue.toInt(&bSuccess);
+								if(bSuccess)
+								{
+									switch(iPatientOrientation)
+									{
+										case 0: pECAT7MainHeader->setPatient_Orientation(CECAT7MainHeader::FF_Prone); break;
+										case 1: pECAT7MainHeader->setPatient_Orientation(CECAT7MainHeader::HF_Prone); break;
+										case 2: pECAT7MainHeader->setPatient_Orientation(CECAT7MainHeader::FF_Supine); break;
+										case 3: pECAT7MainHeader->setPatient_Orientation(CECAT7MainHeader::HF_Supine); break;
+										case 4: pECAT7MainHeader->setPatient_Orientation(CECAT7MainHeader::FF_Right); break;
+										case 5: pECAT7MainHeader->setPatient_Orientation(CECAT7MainHeader::HF_Right); break;
+										case 6: pECAT7MainHeader->setPatient_Orientation(CECAT7MainHeader::FF_Left); break;
+										case 7: pECAT7MainHeader->setPatient_Orientation(CECAT7MainHeader::HF_Left); break;
+										default:
+										{
+											cout << "ERROR: patient orientation not supported." << endl;
+											bResult = false;
+										}
+									}
+								}
+								else
+								{
+									cout << "ERROR: patient orientation is not a short value." << endl;
 									bResult = false;
 								}
 							}
@@ -1789,7 +1820,7 @@ void showVersionInformation()
 void showHelp(int& argc, char** argv)
 {
 	cout << endl;
-	cout << "libmedio ECAT6/7 file utility v2.2" << endl;
+	cout << "libmedio ECAT6/7 file utility v2.3" << endl;
 	cout << "----------------------------------" << endl;
 	cout << "Usage: " << argv[0] << " <options> ecatfile" << endl;
 	cout << "Options:" << endl;
@@ -1883,6 +1914,7 @@ bool initHeaderMaps()
 	ecat7MainHeaderMap.insert("bedelevation", BED_ELEVATION);
 	ecat7MainHeaderMap.insert("bedposition", BED_POSITION);
 	ecat7MainHeaderMap.insert("acquisitiontype", ACQUISITION_TYPE);
+	ecat7MainHeaderMap.insert("patientorientation", PATIENT_ORIENTATION);
 
 	ecat7ImageHeaderMap.insert("filtercode", FILTER_CODE);
 	ecat7ImageHeaderMap.insert("rfiltercode", RFILTER_CODE);
