@@ -5,6 +5,10 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+2008-01-12 Hagen Moelle <draggore@gmx.de>
+
+	*	ecatutil: now supports get/set of acquisition type in mainheader
+
 #### 2.6.4 RELEASE ###########################################################
 
 2007-12-20 Hagen Moelle <draggore@gmx.de>

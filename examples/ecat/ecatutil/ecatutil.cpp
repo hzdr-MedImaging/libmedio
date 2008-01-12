@@ -338,6 +338,7 @@ bool processCommando_Get()
 							case ANGULAR_COMPRESSION: cout << pECAT7MainHeader->angular_Compression() << endl; break;
 							case CALIBRATION_UNITS_LABEL: cout << pECAT7MainHeader->calibration_Units_Label() << endl; break;
 							case DATA_UNITS: cout << pECAT7MainHeader->data_Units() << endl; break;
+							case ACQUISITION_TYPE: cout << pECAT7MainHeader->acquisition_Type() << endl; break;
 							default:
 							{
 								cout << "ERROR: main header entry not supported." << endl;
@@ -545,6 +546,35 @@ bool processCommando_Set()
 								else
 								{
 									cout << "ERROR: angular compression is not a short value." << endl;
+									bResult = false;
+								}
+							}
+							break;
+							case ACQUISITION_TYPE:
+							{
+								bool bSuccess = false;
+								short iAcquisitionType = g_sValue.toInt(&bSuccess);
+								if(bSuccess)
+								{
+									switch(iAcquisitionType)
+									{
+										case 1: pECAT7MainHeader->setAcquisition_Type(CECAT7MainHeader::Blank); break;
+										case 2: pECAT7MainHeader->setAcquisition_Type(CECAT7MainHeader::Transmission); break;
+										case 3: pECAT7MainHeader->setAcquisition_Type(CECAT7MainHeader::StaticEmission); break;
+										case 4: pECAT7MainHeader->setAcquisition_Type(CECAT7MainHeader::DynamicEmission); break;
+										case 5: pECAT7MainHeader->setAcquisition_Type(CECAT7MainHeader::GatedEmission); break;
+										case 6: pECAT7MainHeader->setAcquisition_Type(CECAT7MainHeader::TransmissionRectilinear); break;
+										case 7: pECAT7MainHeader->setAcquisition_Type(CECAT7MainHeader::EmissionRectilinear); break;
+										default:
+										{
+											cout << "ERROR: acquisition type not supported." << endl;
+											bResult = false;
+										}
+									}
+								}
+								else
+								{
+									cout << "ERROR: acquisition type is not a short value." << endl;
 									bResult = false;
 								}
 							}
@@ -1759,7 +1789,7 @@ void showVersionInformation()
 void showHelp(int& argc, char** argv)
 {
 	cout << endl;
-	cout << "libmedio ECAT6/7 file utility v2.1" << endl;
+	cout << "libmedio ECAT6/7 file utility v2.2" << endl;
 	cout << "----------------------------------" << endl;
 	cout << "Usage: " << argv[0] << " <options> ecatfile" << endl;
 	cout << "Options:" << endl;
@@ -1852,6 +1882,7 @@ bool initHeaderMaps()
 	ecat7MainHeaderMap.insert("scanstarttime", SCAN_START_TIME);
 	ecat7MainHeaderMap.insert("bedelevation", BED_ELEVATION);
 	ecat7MainHeaderMap.insert("bedposition", BED_POSITION);
+	ecat7MainHeaderMap.insert("acquisitiontype", ACQUISITION_TYPE);
 
 	ecat7ImageHeaderMap.insert("filtercode", FILTER_CODE);
 	ecat7ImageHeaderMap.insert("rfiltercode", RFILTER_CODE);
