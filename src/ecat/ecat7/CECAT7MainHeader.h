@@ -57,8 +57,8 @@ class CECAT7MainHeader : public CECATMainHeader
 		enum Coin_Samp_Mode						{	NetTrues=0, PromptsAndDelayed,
 																		PromptsDelayedMultiples=3 };
 		enum Axial_Samp_Mode					{	Normal=0, X2, X3 };
-		enum Calibration_Units				{	Uncalibrated=0, Calibrated };
-		enum Calibration_Units_Label	{	Blood_Flow=0, LMRGLU };
+		enum Calibration_Units				{	Uncalibrated=0, Calibrated, CalibrationUnits_Processed };
+		enum Calibration_Units_Label	{	Blood_Flow=0, LMRGLU, Label_Processed };
 		enum Compression_Code					{	Comp_None=0 };
 		enum Patient_Sex							{ Sex_Male='M', Sex_Female='F', Sex_Unknown='U' };
 		enum Patient_Dexterity				{ Dext_RT='R', Dext_LF='L', Dext_Unknown='U' };

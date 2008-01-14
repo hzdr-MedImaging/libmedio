@@ -340,6 +340,11 @@ bool processCommando_Get()
 							case DATA_UNITS: cout << pECAT7MainHeader->data_Units() << endl; break;
 							case ACQUISITION_TYPE: cout << pECAT7MainHeader->acquisition_Type() << endl; break;
 							case PATIENT_ORIENTATION: cout << pECAT7MainHeader->patient_Orientation() << endl; break;
+							case ISOTOPE_NAME: cout << pECAT7MainHeader->isotope_Name() << endl; break;
+							case ISOTOPE_HALFLIFE: cout << pECAT7MainHeader->isotope_Halflife() << endl; break;
+							case RADIOPHARMACEUTICAL: cout << pECAT7MainHeader->radiopharmaceutical() << endl; break;
+							case ECAT_CALIBRATION_FACTOR: cout << pECAT7MainHeader->calibration_Factor() << endl; break;
+							case CALIBRATION_UNITS: cout << pECAT7MainHeader->calibration_Units() << endl; break;
 							default:
 							{
 								cout << "ERROR: main header entry not supported." << endl;
@@ -517,6 +522,42 @@ bool processCommando_Set()
 								else
 								{
 									cout << "ERROR: file type is not a short value." << endl;
+									bResult = false;
+								}
+							}
+							break;
+							case ISOTOPE_NAME:
+							{
+								pECAT7MainHeader->setIsotope_Name(g_sValue.toAscii().data());
+							}
+							break;
+							case ISOTOPE_HALFLIFE:
+							{
+								bool success = false;
+								float fIsotopeHalflife = g_sValue.toFloat(&success);
+								if(success)
+									pECAT7MainHeader->setIsotope_Halflife(fIsotopeHalflife);
+								else
+								{
+									cout << "ERROR: can not convert isotope halflife to float value." << endl;
+									bResult = false;
+								}
+							}
+							break;
+							case RADIOPHARMACEUTICAL:
+							{
+								pECAT7MainHeader->setRadiopharmaceutical(g_sValue.toAscii().data());
+							}
+							break;
+							case ECAT_CALIBRATION_FACTOR:
+							{
+								bool success = false;
+								float fCalibrationFactor = g_sValue.toFloat(&success);
+								if(success)
+									pECAT7MainHeader->setCalibration_Factor(fCalibrationFactor);
+								else
+								{
+									cout << "ERROR: can not convert calibration factor to float value." << endl;
 									bResult = false;
 								}
 							}
@@ -1915,6 +1956,11 @@ bool initHeaderMaps()
 	ecat7MainHeaderMap.insert("bedposition", BED_POSITION);
 	ecat7MainHeaderMap.insert("acquisitiontype", ACQUISITION_TYPE);
 	ecat7MainHeaderMap.insert("patientorientation", PATIENT_ORIENTATION);
+	ecat7MainHeaderMap.insert("isotopename", ISOTOPE_NAME);
+	ecat7MainHeaderMap.insert("isotopehalflife", ISOTOPE_HALFLIFE);
+	ecat7MainHeaderMap.insert("radiopharmaceutical", RADIOPHARMACEUTICAL);
+	ecat7MainHeaderMap.insert("calibrationfactor", ECAT_CALIBRATION_FACTOR);
+	ecat7MainHeaderMap.insert("calibrationunits", CALIBRATION_UNITS);
 
 	ecat7ImageHeaderMap.insert("filtercode", FILTER_CODE);
 	ecat7ImageHeaderMap.insert("rfiltercode", RFILTER_CODE);
