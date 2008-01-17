@@ -5,6 +5,15 @@ MedIOLib - Medical Data C++ I/O Library
 
 $Id$
 
+#### 2.6.4 RELEASE ###########################################################
+
+2008-01-17 Hagen Moelle <draggore@gmx.de>
+
+	*	ecatutil: now supports get/set of x/y/z-pixel size in
+		image subheader
+	*	ecatutil: now supports get/set of extended calibration units
+		and calibration units label
+
 2008-01-14 Hagen Moelle <draggore@gmx.de>
 
 	*	CECAT7MainHeader.h: extended enum definition of calibration units
@@ -16,8 +25,6 @@ $Id$
 
 	*	ecatutil: now supports get/set of patient orientation in mainheader
 	*	ecatutil: now supports get/set of acquisition type in mainheader
-
-#### 2.6.4 RELEASE ###########################################################
 
 2007-12-20 Hagen Moelle <draggore@gmx.de>
 

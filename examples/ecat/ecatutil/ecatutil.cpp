@@ -379,6 +379,9 @@ bool processCommando_Get()
 								switch(ecat7ImageHeaderMap.value(g_sSubHeaderEntry))
 								{
 									case RECON_ZOOM: cout << pECAT7ImageSubHeader->recon_Zoom() << endl; break;
+									case X_PIXEL_SIZE: cout << pECAT7ImageSubHeader->x_Pixel_Size() << endl; break;
+									case Y_PIXEL_SIZE: cout << pECAT7ImageSubHeader->y_Pixel_Size() << endl; break;
+									case Z_PIXEL_SIZE: cout << pECAT7ImageSubHeader->z_Pixel_Size() << endl; break;
 									default:
 									{
 										cout << "ERROR: sub header entry not supported." << endl;
@@ -651,6 +654,31 @@ bool processCommando_Set()
 								}
 							}
 							break;
+							case CALIBRATION_UNITS:
+							{
+								bool bSuccess = false;
+								short iCalibrationUnits = g_sValue.toInt(&bSuccess);
+								if(bSuccess)
+								{
+									switch(iCalibrationUnits)
+									{
+										case 0: pECAT7MainHeader->setCalibration_Units(CECAT7MainHeader::Uncalibrated); break;
+										case 1: pECAT7MainHeader->setCalibration_Units(CECAT7MainHeader::Calibrated); break;
+										case 2: pECAT7MainHeader->setCalibration_Units(CECAT7MainHeader::CalibrationUnits_Processed); break;
+										default:
+										{
+											cout << "ERROR: calibration units not supported." << endl;
+											bResult = false;
+										}
+									}
+								}
+								else
+								{
+									cout << "ERROR: calibration units is not a short value." << endl;
+									bResult = false;
+								}
+							}
+							break;
 							case CALIBRATION_UNITS_LABEL:
 							{
 								bool bSuccess = false;
@@ -661,9 +689,10 @@ bool processCommando_Set()
 									{
 										case 0: pECAT7MainHeader->setCalibration_Units_Label(CECAT7MainHeader::Blood_Flow); break;
 										case 1: pECAT7MainHeader->setCalibration_Units_Label(CECAT7MainHeader::LMRGLU); break;
+										case 2: pECAT7MainHeader->setCalibration_Units_Label(CECAT7MainHeader::Label_Processed); break;
 										default:
 										{
-											cout << "ERROR: angular compression not supported." << endl;
+											cout << "ERROR: calibration units label not supported." << endl;
 											bResult = false;
 										}
 									}
@@ -781,6 +810,45 @@ bool processCommando_Set()
 							{
 								switch(ecat7ImageHeaderMap.value(g_sSubHeaderEntry))
 								{
+									case X_PIXEL_SIZE:
+									{
+										bool success = false;
+										float fPixelSize = g_sValue.toFloat(&success);
+										if(success)
+											pECAT7ImageSubHeader->setX_Pixel_Size(fPixelSize);
+										else
+										{
+											cout << "ERROR: can not convert x-pixel size to float value." << endl;
+											bResult = false;
+										}
+									}
+									break;
+									case Y_PIXEL_SIZE:
+									{
+										bool success = false;
+										float fPixelSize = g_sValue.toFloat(&success);
+										if(success)
+											pECAT7ImageSubHeader->setY_Pixel_Size(fPixelSize);
+										else
+										{
+											cout << "ERROR: can not convert y-pixel size to float value." << endl;
+											bResult = false;
+										}
+									}
+									break;
+									case Z_PIXEL_SIZE:
+									{
+										bool success = false;
+										float fPixelSize = g_sValue.toFloat(&success);
+										if(success)
+											pECAT7ImageSubHeader->setZ_Pixel_Size(fPixelSize);
+										else
+										{
+											cout << "ERROR: can not convert z-pixel size to float value." << endl;
+											bResult = false;
+										}
+									}
+									break;
 									case FILTER_CODE:
 									{
 										bool bSuccess = false;
@@ -1971,6 +2039,9 @@ bool initHeaderMaps()
 	ecat7ImageHeaderMap.insert("numrelements", NUM_R_ELEMENTS_IMAGE);
 	ecat7ImageHeaderMap.insert("numangles", NUM_ANGLES_IMAGE);
 	ecat7ImageHeaderMap.insert("processingcode", PROCESSING_CODE);
+	ecat7ImageHeaderMap.insert("xpixelsize",X_PIXEL_SIZE);
+	ecat7ImageHeaderMap.insert("ypixelsize",Y_PIXEL_SIZE);
+	ecat7ImageHeaderMap.insert("zpixelsize",Z_PIXEL_SIZE);
 
 	ecat7Scan3DHeaderMap.insert("framestarttime", FRAME_START_TIME_SCAN3D);
 	return bResult;
