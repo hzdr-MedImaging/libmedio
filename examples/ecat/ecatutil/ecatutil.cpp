@@ -1665,7 +1665,7 @@ bool parseCommandLine(int& argc, char** argv)
 
 		if(option[0] == '-')
 		{
-			if(i+1 < argc && argv[i+1][0] != '-')
+			if(i+1 < argc && (argv[i+1][0] != '-' || argv[i+1][0] == '-' && QChar(argv[i+1][1]).isDigit()))
 			{
 				g_args.insert(option, argv[i+1]);
 				i++;
