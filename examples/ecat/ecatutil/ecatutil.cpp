@@ -1929,7 +1929,7 @@ void showVersionInformation()
 void showHelp(int& argc, char** argv)
 {
 	cout << endl;
-	cout << "libmedio ECAT6/7 file utility v2.3" << endl;
+	cout << "libmedio ECAT6/7 file utility v2.4" << endl;
 	cout << "----------------------------------" << endl;
 	cout << "Usage: " << argv[0] << " <options> ecatfile" << endl;
 	cout << "Options:" << endl;
