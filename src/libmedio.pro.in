@@ -146,6 +146,11 @@ target.path = $$LIB_DIR
 # "make install" configuration options
 INSTALLS += target stubs include
 
+# mac specific options
+mac {
+  CONFIG += x86 ppc
+}
+
 # as an result of a buggy qmake win implementation
 # QMAKE_TARGET is not defined on windows, so we
 # add the install target ourself
@@ -191,8 +196,6 @@ QMAKE_CXXFLAGS_DEBUG	= @CXXFLAGS@
 staticconfig {
 	QMAKE_LIBS_QT =
 	QMAKE_LIBS_QT_THREAD =
-	!macx:LIBS += $(QTDIR)/lib/libqt-mt.a
-	macx:LIBS += $(QTDIR)/lib/libqt-mt.a -lz -framework Carbon
 }
 
 # find out the GCC version
