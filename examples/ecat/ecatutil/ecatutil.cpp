@@ -728,8 +728,16 @@ bool processCommando_Set()
 									pECAT7MainHeader->setScan_Start_Time_Qt(scanStartTime);
 								else
 								{
-									cout << "ERROR: can not convert scan start time string to datetime object." << endl;
-									bResult = false;
+									scanStartTime = QDateTime::fromString(g_sValue, QString("dd.MM.yyyy hh:mm:ss.zzz"));
+									if(scanStartTime.isValid())
+									{
+										pECAT7MainHeader->setScan_Start_Time_Qt(scanStartTime);
+									}
+									else
+									{
+										cout << "ERROR: can not convert scan start time string to datetime object." << endl;
+										bResult = false;
+									}
 								}
 							}
 							break;
@@ -1929,7 +1937,7 @@ void showVersionInformation()
 void showHelp(int& argc, char** argv)
 {
 	cout << endl;
-	cout << "libmedio ECAT6/7 file utility v2.4" << endl;
+	cout << "libmedio ECAT6/7 file utility v2.5" << endl;
 	cout << "----------------------------------" << endl;
 	cout << "Usage: " << argv[0] << " <options> ecatfile" << endl;
 	cout << "Options:" << endl;
