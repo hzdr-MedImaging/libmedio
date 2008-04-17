@@ -25,7 +25,12 @@ TEMPLATE = app
 QT = core
 DEPENDPATH += .
 INCLUDEPATH += . ../../../src/include /usr/local/petlib/include/medio
-LIBS *= /usr/local/petlib/lib/libmedio.so.2
+LIBS *= ../../../lib/libmedio.a
+
+mac {
+  CONFIG += x86 ppc
+  QMAKE_MAC_SDK=/Developer/SDKs/MacOSX10.4u.sdk
+}
 
 # Input
 SOURCES += ecatcmp.cpp

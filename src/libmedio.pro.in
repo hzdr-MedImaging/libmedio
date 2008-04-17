@@ -146,9 +146,11 @@ target.path = $$LIB_DIR
 # "make install" configuration options
 INSTALLS += target stubs include
 
-# mac specific options
+# mac specific options to build universal
+# binaries
 mac {
   CONFIG += x86 ppc
+  QMAKE_MAC_SDK=/Developer/SDKs/MacOSX10.4u.sdk
 }
 
 # as an result of a buggy qmake win implementation
