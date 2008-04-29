@@ -228,6 +228,7 @@ void showSubHeaderEntries();
 bool initHeaderMaps();
 bool retrieveMatrixIDValues(QString sMatrixID, int &iFrame, int &iPlane, int &iGate, int &iData, int &iBed);
 bool retrieveFilterCode(short iFilterCode, CECAT7SubHeaderImage::Filter_Code &filterCode);
+bool retrieveECATFileType(QString fileName, CECATMainHeader::Type& iType);
 
 //  Function:    main
 //!
@@ -1066,13 +1067,21 @@ bool processCommando_Set()
 bool processCommando_Copy()
 {
 	bool bResult = true;
+	bool bCreateNewECATFile = false;
 
 	// we check if we can read the provided ecat file
 	QFileInfo fileInfo(g_sECATFileName);
-	if(!(fileInfo.exists() && fileInfo.isFile() && fileInfo.isReadable() && fileInfo.isWritable()))
+	if(fileInfo.exists())
 	{
-		cout << "ERROR: couldn't read/write ecatfile'" << g_sECATFileName.toAscii().constData() << "'." << endl;
-		bResult = false;
+		if(!(fileInfo.isFile() && fileInfo.isReadable() && fileInfo.isWritable()))
+		{
+			cout << "ERROR: couldn't read/write ecatfile'" << g_sECATFileName.toAscii().constData() << "'." << endl;
+			bResult = false;
+		}
+	}
+	else
+	{
+		bCreateNewECATFile = true;
 	}
 
 	// first we check that we have one and only one source file to copy
@@ -1114,53 +1123,74 @@ bool processCommando_Copy()
 		{
 			case CopyMainHeader:
 			{
+				CECATMainHeader::Type iSrcFileType = CECATMainHeader::Unknown;
 				// open ecatfile
-				CECATFile ecatFile(g_sECATFileName);
-				if(ecatFile.open(QIODevice::ReadWrite) && ecatFile.format() != CECATFile::Undefined)
+				if(bCreateNewECATFile)
 				{
-					// open src ecat file
-					CECATFile srcEcatFile(g_sSrcFileNames.first());
-					if(srcEcatFile.open(QIODevice::ReadOnly) && ecatFile.format() != CECATFile::Undefined)
+					if(!retrieveECATFileType(g_sSrcFileNames.first(), iSrcFileType))
+						bResult = false;
+				}
+				if(bResult)
+				{
+					CECATFile ecatFile(g_sECATFileName, iSrcFileType);
+					if(ecatFile.open(QIODevice::ReadWrite) && ecatFile.format() != CECATFile::Undefined)
 					{
-						CECATMainHeader* srcEcatMainHeader = NULL;
-						CECATMainHeader* ecatMainHeader = NULL;
-						if(srcEcatFile.readMainHeader(srcEcatMainHeader))
+						// open src ecat file
+						CECATFile srcEcatFile(g_sSrcFileNames.first());
+						if(srcEcatFile.open(QIODevice::ReadOnly) && ecatFile.format() != CECATFile::Undefined)
 						{
-							if(ecatFile.readMainHeader(ecatMainHeader))
+							CECATMainHeader* srcEcatMainHeader = NULL;
+							CECATMainHeader* ecatMainHeader = NULL;
+							if(bCreateNewECATFile)
 							{
-								*ecatMainHeader = *srcEcatMainHeader;
-								if(!ecatFile.writeMainHeader(*ecatMainHeader))
+								ecatMainHeader = ecatFile.createEmptyMainHeader();
+								if(!ecatMainHeader)
 								{
-									cout << "ERROR: could not write destination main header." << endl;
+									cout << "ERROR: could not create new main header in destination file." << endl;
 									bResult = false;
 								}
-								cout << ecatMainHeader->num_Gates() << endl;
-								cout << srcEcatMainHeader->num_Gates() << endl;
 							}
 							else
 							{
-								cout << "ERROR: could not read destination main header." << endl;
-								bResult = false;
+								if(!ecatFile.readMainHeader(ecatMainHeader))
+								{
+									cout << "ERROR: could not read destination main header." << endl;
+									bResult = false;
+								}
 							}
+							if(bResult)
+							{
+								if(srcEcatFile.readMainHeader(srcEcatMainHeader))
+								{
+									*ecatMainHeader = *srcEcatMainHeader;
+									if(!ecatFile.writeMainHeader(*ecatMainHeader))
+									{
+										cout << "ERROR: could not write destination main header." << endl;
+										bResult = false;
+									}
+									cout << ecatMainHeader->num_Gates() << endl;
+									cout << srcEcatMainHeader->num_Gates() << endl;
+								}
+								else
+								{
+									cout << "ERROR: could not read src main header." << endl;
+									bResult = false;
+								}
+							}
+							srcEcatFile.close();
 						}
 						else
 						{
-							cout << "ERROR: could not read src main header." << endl;
+							cout << "ERROR: provided src file is not an ECAT file." << endl;
 							bResult = false;
 						}
-						srcEcatFile.close();
+						ecatFile.close();
 					}
 					else
 					{
-						cout << "ERROR: provided src file is not an ECAT file." << endl;
+						cout << "ERROR: provided ecatfile is not an ECAT file." << endl;
 						bResult = false;
 					}
-					ecatFile.close();
-				}
-				else
-				{
-					cout << "ERROR: provided ecatfile is not an ECAT file." << endl;
-					bResult = false;
 				}
 			}
 			break;
@@ -1189,60 +1219,101 @@ bool processCommando_Copy()
 					bResult = false;
 				}
 
+				CECATMainHeader::Type iSrcFileType = CECATMainHeader::Unknown;
+				// open ecatfile
+				if(bCreateNewECATFile)
+				{
+					if(!retrieveECATFileType(g_sSrcFileNames.first(), iSrcFileType))
+						bResult = false;
+				}
+
 				if(bResult)
 				{
 					// open ecatfile
-					CECATFile ecatFile(g_sECATFileName);
+					CECATFile ecatFile(g_sECATFileName, iSrcFileType);
 					if(ecatFile.open(QIODevice::ReadWrite) && ecatFile.format() != CECATFile::Undefined)
 					{
 						// open src ecat file
 						CECATFile srcEcatFile(g_sSrcFileNames.first());
 						if(srcEcatFile.open(QIODevice::ReadOnly) && ecatFile.format() != CECATFile::Undefined)
 						{
-							// check if subheader and matrix is in available in source file
-							CECATSubHeader* pSrcSubHeader = NULL;
-							QByteArray* pSrcMatrixData = NULL;
-							if(srcEcatFile.readSubHeader(pSrcSubHeader, iSrcFrame, iSrcPlane, iSrcGate, iSrcBed, iSrcData))
+							if(bCreateNewECATFile)
 							{
-								if(srcEcatFile.readMatrix(pSrcMatrixData, iSrcFrame, iSrcPlane, iSrcGate, iSrcBed, iSrcData))
+								// when a new is created we need to copy the mainheader
+								CECATMainHeader* srcEcatMainHeader = NULL;
+								CECATMainHeader* ecatMainHeader = NULL;
+								ecatMainHeader = ecatFile.createEmptyMainHeader();
+								if(!ecatMainHeader)
 								{
-									// we check if the destination matrix is already existing in destination ecat file
-									CECATSubHeader* pDestSubHeader = NULL;
-									if(!ecatFile.readSubHeader(pDestSubHeader, iDestFrame, iDestPlane, iDestGate, iDestBed, iDestData))
+									cout << "ERROR: could not create new main header in destination file." << endl;
+									bResult = false;
+								}
+								if(bResult)
+								{
+									if(srcEcatFile.readMainHeader(srcEcatMainHeader))
 									{
-										pDestSubHeader = NULL;
-										pDestSubHeader = ecatFile.createEmptySubHeader();
-										*pDestSubHeader = *pSrcSubHeader;
-										if(ecatFile.writeSubHeader(*pDestSubHeader, iDestFrame, iDestPlane, iDestGate, iDestBed, iDestData))
+										*ecatMainHeader = *srcEcatMainHeader;
+										if(!ecatFile.writeMainHeader(*ecatMainHeader))
 										{
-											if(!ecatFile.writeMatrix(*pSrcMatrixData, iDestFrame, iDestPlane, iDestGate, iDestBed, iDestData))
-											{
-												cout << "ERROR: can not write destination matrix." << endl;
-												bResult = false;
-											}
-										}
-										else
-										{
-											cout << "ERROR: can not write destination subheader." << endl;
+											cout << "ERROR: could not write destination main header." << endl;
 											bResult = false;
 										}
 									}
 									else
 									{
-										cout << "ERROR: directory item is already existing in destination ecat file." << endl;
+										cout << "ERROR: could not read src main header." << endl;
+										bResult = false;
+									}
+								}
+							}
+
+							if(bResult)
+							{
+								// check if subheader and matrix is available in source file
+								CECATSubHeader* pSrcSubHeader = NULL;
+								QByteArray* pSrcMatrixData = NULL;
+								if(srcEcatFile.readSubHeader(pSrcSubHeader, iSrcFrame, iSrcPlane, iSrcGate, iSrcBed, iSrcData))
+								{
+									if(srcEcatFile.readMatrix(pSrcMatrixData, iSrcFrame, iSrcPlane, iSrcGate, iSrcBed, iSrcData))
+									{
+										// we check if the destination matrix is already existing in destination ecat file
+										CECATSubHeader* pDestSubHeader = NULL;
+										if(!ecatFile.readSubHeader(pDestSubHeader, iDestFrame, iDestPlane, iDestGate, iDestBed, iDestData))
+										{
+											pDestSubHeader = NULL;
+											pDestSubHeader = ecatFile.createEmptySubHeader();
+											*pDestSubHeader = *pSrcSubHeader;
+											if(ecatFile.writeSubHeader(*pDestSubHeader, iDestFrame, iDestPlane, iDestGate, iDestBed, iDestData))
+											{
+												if(!ecatFile.writeMatrix(*pSrcMatrixData, iDestFrame, iDestPlane, iDestGate, iDestBed, iDestData))
+												{
+													cout << "ERROR: can not write destination matrix." << endl;
+													bResult = false;
+												}
+											}
+											else
+											{
+												cout << "ERROR: can not write destination subheader." << endl;
+												bResult = false;
+											}
+										}
+										else
+										{
+											cout << "ERROR: directory item is already existing in destination ecat file." << endl;
+											bResult = false;
+										}
+									}
+									else
+									{
+										cout << "ERROR: could not read matrix data of eact source file." << endl;
 										bResult = false;
 									}
 								}
 								else
 								{
-									cout << "ERROR: could not read matrix data of eact source file." << endl;
+									cout << "ERROR: could not read subheader of eact source file." << endl;
 									bResult = false;
 								}
-							}
-							else
-							{
-								cout << "ERROR: could not read subheader of eact source file." << endl;
-								bResult = false;
 							}
 							srcEcatFile.close();
 						}
@@ -2126,5 +2197,31 @@ bool retrieveFilterCode(short iFilterCode, CECAT7SubHeaderImage::Filter_Code &fi
 	}
 	if(bResult)
 		filterCode = fCode;
+	return bResult;
+}
+
+bool retrieveECATFileType(QString fileName, CECATMainHeader::Type& iType)
+{
+	bool bResult = true;
+	CECATMainHeader::Type srcFileType = CECATMainHeader::Unknown;
+	// first we determine the type of our source ecat files / therefore we
+	// open the first ecat source file
+	CECATFile srcEcatFile(fileName);
+	if(srcEcatFile.open(QIODevice::ReadOnly) && srcEcatFile.format() != CECATFile::Undefined)
+	{
+		srcFileType = srcEcatFile.fileType();
+		if(srcFileType == CECATMainHeader::Unknown)
+		{
+			cout << "ERROR: can not determine file type of source files." << endl;
+			bResult = false;
+		}
+		srcEcatFile.close();
+	}
+	else
+	{
+		cout << "ERROR: provided source file is not an ecat file." << endl;
+		bResult = false;
+	}
+	iType = srcFileType;
 	return bResult;
 }
