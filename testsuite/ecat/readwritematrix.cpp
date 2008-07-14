@@ -30,6 +30,7 @@
 
 #include <rtdebug.h>
 
+#include <stdlib.h>
 #include <iostream>
 
 // defines for generating the ECAT7 files
