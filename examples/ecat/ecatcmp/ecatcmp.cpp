@@ -34,6 +34,7 @@
 #include <QStringList>
 
 #include <math.h>
+#include <float.h>
 
 #include <iostream>
 #include <iomanip>
@@ -68,8 +69,8 @@ int main(int argc, char* argv[])
   // Read  http://gcc.gnu.org/onlinedocs/libstdc++/27_io/howto.html#8 for an explanation.
   ios::sync_with_stdio(false);
 
-	cout << "ecatcmp 1.6 - a libmedio ECAT6/7 file/data compare tool" << endl
-		   << "(" __DATE__ ")  Copyright (c) 2006-2007 by Jens Langner / www.fzd.de" << endl << endl;
+	cout << "ecatcmp 1.7 - a libmedio ECAT6/7 file/data compare tool" << endl
+		   << "(" __DATE__ ")  Copyright (c) 2006-2008 by Jens Langner / www.fzd.de" << endl << endl;
 
 	// put all arguments in a temporary MultiHash
 	QHash<QString, QString> args;
@@ -506,172 +507,105 @@ int main(int argc, char* argv[])
 										cout << "ERROR on loading data from file2!";
 									else
 									{
+                    bool compareRawData = false;
+
 										cout << "file2... ok!" << endl;
 
 										// check the size
 										cout << "     comparing data size " << matrixData1->size() << ":" << matrixData2->size() << "... " << flush;
 										if(matrixData1->size() != matrixData2->size())
-											cout << "ERROR: matrix sizes are not equal!";
+                    {
+											cout << "ERROR: matrix sizes are not equal!" << endl;
+                      compareRawData = true;
+                    }
 										else 
-										{
 											cout << "ok!" << endl;
 
-											// compare the raw data
-											cout << "     comparing raw data... " << flush;
-											if(*matrixData1 != *matrixData2)
+                    // compare the raw data
+										cout << "     comparing raw data... " << flush;
+										if(compareRawData == true || matrixData1 != *matrixData2)
+										{
+											cout << "ERROR: matrix is not equal!";
+
+											if(verboseMode == true)
 											{
-												long diffs = 0;
-												short dataTypeSize = 0;
-												
-												cout << "ERROR: matrix is not equal!";
+											  long diffs = 0;
+                        long i;
 
-												if(verboseMode == true)
-												{
-													cout << endl << "     performing deeper search for differences... " << endl << endl;
+												cout << endl << "     performing deeper search for differences... " << endl << endl;
 
-													// depending on the datatype we have to do different conversions
-													switch(subHeaderType1)
+                        // create DataStreams we are going to use for reading the data
+												QDataStream stream1(matrixData1, QIODevice::ReadOnly);
+												QDataStream stream2(matrixData2, QIODevice::ReadOnly);
+
+												#if !defined(WORDS_BIGENDIAN)
+												stream1.setByteOrder(QDataStream::LittleEndian);
+												stream2.setByteOrder(QDataStream::LittleEndian);
+												#endif
+
+												cout << "        Pos        Value1          Value2         difference" << endl;
+
+                        // walk through our data streams
+												for(i=0; stream1.atEnd() == false && stream2.atEnd() == false; i++)
+                        {
+                          double val[2];
+								          CECATSubHeader::Data_Type subHeaderType[2];
+                          QDataStream* stream[2];
+                          
+                          subHeaderType[0] = subHeaderType1;
+                          subHeaderType[1] = subHeaderType2;
+                          stream[0] = &stream1;
+                          stream[1] = &stream2;
+                          val[0] = 0.0f;
+                          val[1] = 0.0f;
+
+                          for(int j=0; j < 2; j++)
+                          {
+                            if(subHeaderType[j] == CECATSubHeader::ByteData)
+                            {
+                              qint8 v;
+                              *stream[j] >> v;
+                              val[j] = static_cast<double>(v);
+                            }
+                            else if(subHeaderType[j] == CECATSubHeader::IEEEFloat)
+                            {
+                              float v;
+                              *stream[j] >> v;
+                              val[j] = static_cast<double>(v);
+                            }
+                            else if(subHeaderType[j] == CECATSubHeader::SunShort)
+                            {
+                              qint16 v;
+                              *stream[j] >> v;
+                              val[j] = static_cast<double>(v);
+                            }
+                            else if(subHeaderType[j] == CECATSubHeader::SunLong)
+                            {
+                              qint32 v;
+                              *stream[j] >> v;
+                              val[j] = static_cast<double>(v);
+                            }
+                            else
+														  cout << "ERROR: This datatype is currently not support by ecatcmp!" << endl;
+                          }
+
+													if(fabs(val[0]-val[1]) >= FLT_EPSILON)
 													{
-														case CECATSubHeader::ByteData:
-														{
-															dataTypeSize = sizeof(char);
-															cout << "BYTE datatype" << endl;
-															cout << "        Pos      Value1   Value2" << endl;  
-
-															// now we search through the byte array step by step, outputing all
-															// differences
-															for(unsigned int i=0; i < (unsigned int)matrixData1->count(); i++)
-															{
-																char c1 = (*matrixData1)[i];
-																char c2 = (*matrixData2)[i];
-
-																// do a bytewise compare
-																if(c1 != c2)
-																{
-																	cout << "     " << setw(8) << setfill('0') << hex << i << ": ";
-																	cout << setfill(' ') << setw(3) << dec << (qint8)c1 << " : " << (qint8)c2 << endl;
-																	diffs++;
-																}
-															}
-														}
-														break;
-
-														case CECATSubHeader::IEEEFloat:
-														{
-															dataTypeSize = sizeof(float);
-															
-															float val1;
-															float val2;
-
-															QDataStream stream1(matrixData1, QIODevice::ReadOnly);
-															QDataStream stream2(matrixData2, QIODevice::ReadOnly);
-
-															#if !defined(WORDS_BIGENDIAN)
-															stream1.setByteOrder(QDataStream::LittleEndian);
-															stream2.setByteOrder(QDataStream::LittleEndian);
-															#endif
-
-															cout << "     IEEEFloat datatype" << endl;
-															cout << "        Pos        Value1          Value2         difference" << endl;
-															for(int i=0; stream1.atEnd() == false; i++)
-															{
-																stream1 >> val1;
-																stream2 >> val2;
-
-																if(val1 != val2)
-																{
-																	cout << "     " << setw(8) << setfill('0') << hex << i << "| ";
-																	cout << setfill(' ') << setw(13) << setprecision(6) << scientific << val1 << " : ";
-																	cout << setfill(' ') << setw(13) << setprecision(6) << scientific << val2 << " | ";
-																	cout << setw(13) << setprecision(6) << scientific << fabs(val1-val2) << endl;
-																	diffs++;
-																}
-															}
-														}
-														break;													
-
-														case CECATSubHeader::SunShort:
-														{
-															dataTypeSize = sizeof(qint16);
-															qint16 val1;
-															qint16 val2;
-
-															QDataStream stream1(matrixData1, QIODevice::ReadOnly);
-															QDataStream stream2(matrixData2, QIODevice::ReadOnly);
-
-															#if !defined(WORDS_BIGENDIAN)
-															stream1.setByteOrder(QDataStream::LittleEndian);
-															stream2.setByteOrder(QDataStream::LittleEndian);
-															#endif
-
-															cout << "     SunShort datatype" << endl;
-															cout << "        Pos    Value1 Value2    HEX    HEX" << endl; 														
-															for(int i=0; stream1.atEnd() == false; i++)
-															{
-																stream1 >> val1;
-																stream2 >> val2;
-
-																if(val1 != val2)
-																{
-																	cout << "     " << setw(8) << setfill('0') << hex << i << "| ";
-																	cout << setfill(' ') << setw(5) << dec << val1 << " : " << setw(5) << dec << val2;
-																	cout << " |";
-																	cout << "  " << setfill('0') << setw(4) << hex << val1 << " : " << setw(4) << hex << val2;
-																	cout << " |" << endl;
-																	diffs++;
-																}
-															}
-														}
-														break;
-
-														case CECATSubHeader::SunLong:
-														{
-															dataTypeSize = sizeof(qint32);
-															qint32 val1;
-															qint32 val2;
-
-															QDataStream stream1(matrixData1, QIODevice::ReadOnly);
-															QDataStream stream2(matrixData2, QIODevice::ReadOnly);
-
-															#if !defined(WORDS_BIGENDIAN)
-															stream1.setByteOrder(QDataStream::LittleEndian);
-															stream2.setByteOrder(QDataStream::LittleEndian);
-															#endif                            
-
-															cout << "     SunLong datatype" << endl;
-															cout << "        Pos     Value1   Value2       HEX       HEX" << endl; 														
-															for(int i=0; stream1.atEnd() == false; i++)
-															{
-																stream1 >> val1;
-																stream2 >> val2;
-
-																if(val1 != val2)
-																{
-																	cout << "     " << setw(8) << setfill('0') << hex << i << "| ";
-																	cout << setfill(' ') << setw(8) << dec << val1 << " : " << setw(8) << val2;
-																	cout << " |";
-																	cout << " " << setfill('0') << setw(8) << hex << val1 << " : " << setw(8) << val2;
-																	cout << " |" << endl;
-																	diffs++;
-																}
-															}
-														}
-														break;													
-
-														default:
-															cout << "ERROR: This datatype is currently not support by ecatcmp!" << endl;
-														break;
+														cout << "     " << setw(8) << setfill('0') << hex << i << "| ";
+														cout << setfill(' ') << setw(13) << setprecision(6) << scientific << val[0] << " : ";
+														cout << setfill(' ') << setw(13) << setprecision(6) << scientific << val[1] << " | ";
+														cout << setw(13) << setprecision(6) << scientific << fabs(val[0]-val[1]) << endl;
+														diffs++;
 													}
+                        }
 
-													if(dataTypeSize > 0)
-														cout << endl << dec << "     " << diffs << " differences in " << matrixData1->size()/dataTypeSize << " values found!";
-												}
-												else
-													cout << " (use -v for verbose output)";
+												cout << endl << dec << "     " << diffs << " differences in " << i << " values found!";
 											}
 											else
-												cout << "equal data... ok!";
+												cout << " (use -v for verbose output)";
 										}
+										else
+											cout << "equal data... ok!";
 
 										// now we try to get the min/max values of each matrix and compare it
 										cout << endl << "     comparing min/max values in matrix data:" << endl;
