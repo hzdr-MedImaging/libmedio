@@ -1,7 +1,7 @@
 /* vim:set ts=2 nowrap: ****************************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2004-2009 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -51,7 +51,7 @@ QString CMedIO::buildDate()
 
 QString CMedIO::copyright()
 {
-	return QString("Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>");
+	return QString("Copyright (C) 2004-2009 by Jens Langner <Jens.Langner@light-speed.de>");
 }
 
 unsigned int CMedIO::qtMajorVersion()
