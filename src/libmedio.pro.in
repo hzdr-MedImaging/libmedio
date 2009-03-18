@@ -1,7 +1,7 @@
 #/* vim:set ts=2 nowrap: ****************************************************
 #
 # libmedio - Medical Data C++ I/O Library
-# Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>
+# Copyright (C) 2004-2009 by Jens Langner <Jens.Langner@light-speed.de>
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -117,6 +117,29 @@ SOURCES  = CMedIO.cpp \
 DEPENDPATH   = . ecat ecat/ecat6 ecat/ecat7 micropet
 INCLUDEPATH  = . include ecat ecat/ecat6 ecat/ecat7 micropet helpers
 
+# find out the host os/cpu
+HOST_OS=@HOST_OS@
+HOST_CPU=@HOST_CPU@
+HOST_MACHINE=@HOST_MACHINE@
+
+# set the config to either release or debug
+COMPILE_LEVEL = @COMPILE_LEVEL@
+contains(COMPILE_LEVEL, debug) {
+  CONFIG -= release
+  CONFIG *= debug
+  DEBUG = -DDEBUG
+}
+else {
+  CONFIG -= debug
+  CONFIG *= release
+  DEBUG =
+  QMAKE_LINK *= -s
+}
+
+QMAKE_EXTRA_VARIABLES = DEBUG
+MAKE_CXXFLAGS *= $(EXPORT_DEBUG)
+QMAKE_CFLAGS *= $(EXPORT_DEBUG)
+
 # UNIX based target platforms installation defines
 # on unix we use configure to define everything like install path
 PREFIX=@prefix@
@@ -160,25 +183,6 @@ win32:staticlib {
   target.files *= $${DESTDIR}libmedio.a $${DESTDIR}libmedio.prl
 }
 
-# set the config to either release or debug
-COMPILE_LEVEL = @COMPILE_LEVEL@
-contains(COMPILE_LEVEL, debug) {
-	CONFIG -= release
-	CONFIG += debug
-	QMAKE_CXXFLAGS_DEBUG *= -g -O0
-	DEFINES *= DEBUG
-}
-else {
-	CONFIG -= debug
-	CONFIG += release
-	QMAKE_CXXFLAGS_RELEASE *= -O3 -fomit-frame-pointer -funroll-loops
-	QMAKE_LINK *= -s 
-	DEFINES -= DEBUG
-}
-
-# Qt4 has some wrong return qualifiers
-QMAKE_CXXFLAGS *= -Wno-ignored-qualifiers
-
 ### LIBRTDEBUG ############################################################
 # if "staticrtdebug" is specified in the CONFIG variable (by configure)
 # we link wih the static variant of librtdebug instead
@@ -192,10 +196,6 @@ contains(DEFINES, DEBUG) {
 	}
 }
 
-# own QMAKE Flags definitions
-QMAKE_CXXFLAGS_RELEASE	= @CXXFLAGS@
-QMAKE_CXXFLAGS_DEBUG	= @CXXFLAGS@
-
 # for static compilation we define the following so that we
 # can define "staticconfig" in CONFIG if we want static linking.
 staticconfig {
@@ -203,41 +203,35 @@ staticconfig {
 	QMAKE_LIBS_QT_THREAD =
 }
 
-# find out the GCC version
-# and define some gcc v3+ options only.
-GCC_VERSION = @GCC_VERSION@
-contains(GCC_VERSION, 3) {
-	QMAKE_CXXFLAGS *= -fmessage-length=0
+# set the general compiler optimizations
+QMAKE_CFLAGS_RELEASE = -O3 -fomit-frame-pointer -funroll-loops
+QMAKE_CXXFLAGS_RELEASE = -O3 -fomit-frame-pointer -funroll-loops
+contains(HOST_MACHINE, x86_64) {
+  QMAKE_CFLAGS_RELEASE *= -mtune=native
+  QMAKE_CXXFLAGS_RELEASE *= -mtune=native
+}
+contains(HOST_MACHINE, i[63]86) {
+  QMAKE_CFLAGS_RELEASE *= -mtune=native
+  QMAKE_CXXFLAGS_RELEASE *= -mtune=native
+}
+contains(HOST_MACHINE, sun4u) {
+  QMAKE_CFLAGS_RELEASE *= -mcpu=ultrasparc3
+  QMAKE_CXXFLAGS_RELEASE *= -mcpu=ultrasparc3
+}
+contains(HOST_MACHINE, Power.+) {
+  QMAKE_CFLAGS_RELEASE *= -mcpu=powerpc
+  QMAKE_CXXFLAGS_RELEASE *= -mcpu=powerpc
 }
 
-# find out the system
-HOST_OS=@HOST_OS@
-HOST_CPU=@HOST_CPU@
-contains(HOST_CPU, sparc) {
-	QMAKE_CXXFLAGS *= -mcpu=v9 -mtune=ultrasparc3
+# override the compile output
+QMAKE_CXX  = @echo \'  CC   $<\'; $$QMAKE_CXX
+QMAKE_LINK = @echo \'  LD   $@\'; $$QMAKE_LINK
+QMAKE_MOC  = @echo \'  MOC  $@\'; $$QMAKE_MOC
+
+# use ANSI colors if it was specified on configure time
+ansi_color {
+  DEFINES *= ANSI_COLOR
 }
 else {
-	contains(HOST_CPU, [pP]ower[pP]c) {
-      QMAKE_CXXFLAGS *= -Acpu=powerpc -mcpu=G4
-  }
-  else {
-		contains(HOST_CPU, [oO]pteron.+) {			
-			QMAKE_CXXFLAGS *= -Acpu=amd64 -march=opteron
-		}
-	}
-}
-
-!win32 {
-  # override the compile output
-  QMAKE_CXX	 = @echo \'  CC   $<\'; $$QMAKE_CXX
-  QMAKE_LINK = @echo \'  LD   $@\'; $$QMAKE_LINK
-  QMAKE_MOC  = @echo \'  MOC  $@\'; $$QMAKE_MOC
-
-  # use ANSI colors if it was specified on configure time
-  ansi_color {
-	  DEFINES *= ANSI_COLOR
-  }
-  else {
-	  DEFINES -= ANSI_COLOR
-  }
+  DEFINES -= ANSI_COLOR
 }

@@ -33,6 +33,11 @@ AC_MSG_CHECKING(for host operating system)
 AC_SUBST(HOST_OS, `uname -s`)
 AC_MSG_RESULT(${HOST_OS})
 
+# Checks for host machine type
+AC_MSG_CHECKING(for host system machine type)
+AC_SUBST(HOST_MACHINE, `uname -m`)
+AC_MSG_RESULT(${HOST_MACHINE})
+
 # Checks for host processor type
 AC_MSG_CHECKING(for host system processor type)
 AC_SUBST(HOST_CPU, `uname -p`)
