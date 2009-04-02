@@ -781,6 +781,28 @@ bool processCommando_Set()
 								}
 							}
 							break;
+							case PATIENT_BIRTH_DATE:
+							{
+								QDate birthDate = QDate::fromString(g_sValue, QString("dd.MM.yyyy"));
+								if(birthDate.isValid())
+									pECAT7MainHeader->setPatient_Birth_Date_Qt(birthDate);
+								else
+								{
+									birthDate = QDate::fromString(g_sValue, QString("dd.MMM.yyyy"));
+									if(birthDate.isValid())
+									{
+										pECAT7MainHeader->setPatient_Birth_Date_Qt(birthDate);
+									}
+									else
+									{
+										cout << "ERROR: can not convert patient birthdate string to date object." << endl;
+										bResult = false;
+									}
+								}
+								int yearsToAcqStart = birthDate.daysTo(pECAT7MainHeader->scan_Start_Time_Qt().date())/365;
+								pECAT7MainHeader->setPatient_Age(yearsToAcqStart > 0 ? yearsToAcqStart : 0);
+							}
+							break;
 							default:
 							{
 								cout << "ERROR: main header entry not supported." << endl;
@@ -2008,7 +2030,7 @@ void showVersionInformation()
 void showHelp(int& argc, char** argv)
 {
 	cout << endl;
-	cout << "libmedio ECAT6/7 file utility v2.6" << endl;
+	cout << "libmedio ECAT6/7 file utility v2.7" << endl;
 	cout << "----------------------------------" << endl;
 	cout << "Usage: " << argv[0] << " <options> ecatfile" << endl;
 	cout << "Options:" << endl;
@@ -2108,6 +2130,7 @@ bool initHeaderMaps()
 	ecat7MainHeaderMap.insert("radiopharmaceutical", RADIOPHARMACEUTICAL);
 	ecat7MainHeaderMap.insert("calibrationfactor", ECAT_CALIBRATION_FACTOR);
 	ecat7MainHeaderMap.insert("calibrationunits", CALIBRATION_UNITS);
+	ecat7MainHeaderMap.insert("patientbirthdate", PATIENT_BIRTH_DATE);
 
 	ecat7ImageHeaderMap.insert("filtercode", FILTER_CODE);
 	ecat7ImageHeaderMap.insert("rfiltercode", RFILTER_CODE);
