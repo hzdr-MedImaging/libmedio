@@ -796,8 +796,16 @@ bool processCommando_Set()
 									}
 									else
 									{
-										cout << "ERROR: can not convert patient birthdate string to date object." << endl;
-										bResult = false;
+										birthDate = QDate::fromString(g_sValue, QString("dd MMM yyyy"));
+										if(birthDate.isValid())
+										{
+											pECAT7MainHeader->setPatient_Birth_Date_Qt(birthDate);
+										}
+										else
+										{
+											cout << "ERROR: can not convert patient birthdate string to date object." << endl;
+											bResult = false;
+										}
 									}
 								}
 								int yearsToAcqStart = birthDate.daysTo(pECAT7MainHeader->scan_Start_Time_Qt().date())/365;
