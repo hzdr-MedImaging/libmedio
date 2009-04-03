@@ -346,6 +346,7 @@ bool processCommando_Get()
 							case RADIOPHARMACEUTICAL: cout << pECAT7MainHeader->radiopharmaceutical() << endl; break;
 							case ECAT_CALIBRATION_FACTOR: cout << pECAT7MainHeader->calibration_Factor() << endl; break;
 							case CALIBRATION_UNITS: cout << pECAT7MainHeader->calibration_Units() << endl; break;
+							case PATIENT_BIRTH_DATE: cout << pECAT7MainHeader->patient_Birth_Date_Qt().toString("dd MMM yyyy").toAscii().data() << endl; break;
 							default:
 							{
 								cout << "ERROR: main header entry not supported." << endl;
