@@ -1057,6 +1057,19 @@ bool processCommando_Set()
 										}
 									}
 									break;
+									case FRAME_DURATION_SCAN3D:
+									{
+										bool success = false;
+										int iFrameDuration = g_sValue.toInt(&success);
+										if(success)
+											pECAT7Scan3DSubHeader->setFrame_Duration(iFrameDuration);
+										else
+										{
+											cout << "ERROR: can not convert frame duration to int value." << endl;
+											bResult = false;
+										}
+									}
+									break;
 									default:
 									{
 										cout << "ERROR: sub header entry not supported." << endl;
@@ -1775,7 +1788,7 @@ bool parseCommandLine(int& argc, char** argv)
 
 		if(option[0] == '-')
 		{
-			if(i+1 < argc && (argv[i+1][0] != '-' || argv[i+1][0] == '-' && QChar(argv[i+1][1]).isDigit()))
+			if(i+1 < argc && ((argv[i+1][0] != '-') || (argv[i+1][0] == '-' && QChar(argv[i+1][1]).isDigit())))
 			{
 				g_args.insert(option, argv[i+1]);
 				i++;
@@ -2155,6 +2168,7 @@ bool initHeaderMaps()
 	ecat7ImageHeaderMap.insert("zpixelsize",Z_PIXEL_SIZE);
 
 	ecat7Scan3DHeaderMap.insert("framestarttime", FRAME_START_TIME_SCAN3D);
+	ecat7Scan3DHeaderMap.insert("frameduration", FRAME_DURATION_SCAN3D);
 	return bResult;
 }
 
