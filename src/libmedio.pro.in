@@ -139,6 +139,7 @@ else {
 QMAKE_EXTRA_VARIABLES = DEBUG
 MAKE_CXXFLAGS *= $(EXPORT_DEBUG)
 QMAKE_CFLAGS *= $(EXPORT_DEBUG)
+QMAKE_CXXFLAGS *= $(EXPORT_DEBUG)
 
 # UNIX based target platforms installation defines
 # on unix we use configure to define everything like install path
