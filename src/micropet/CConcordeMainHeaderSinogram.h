@@ -1,7 +1,7 @@
-/* vim:set ts=2 nowrap: ****************************************************
+/* vim:set ts=2 sw=2 expandtab: ********************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -43,12 +43,12 @@ class CMedIOHeader;
 
 class CConcordeMainHeaderSinogram : public CConcordeMainHeader
 {
-	public:
-		CConcordeMainHeaderSinogram(const QString& fileName);
-		CConcordeMainHeaderSinogram(CConcordeFile* file = NULL);
+  public:
+    CConcordeMainHeaderSinogram(const QString& fileName);
+    CConcordeMainHeaderSinogram(CConcordeFile* file = NULL);
 
-		unsigned int frameSize();
-		CMedIOHeader* clone() const;
+    unsigned int frameSize();
+    CMedIOHeader* clone() const;
 };
 
 #endif

@@ -1,7 +1,7 @@
-dnl/* vim:set ts=2 nowrap: ****************************************************
+dnl/* vim:set ts=2 sw=2 expandtab: ********************************************
 dnl
 dnl acinclude.m4 - Common configure macros especially for Qt3/Qt4
-dnl Copyright (C) 2003-2006 by Jens Langner <Jens.Langner@light-speed.de>
+dnl Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
 dnl
 dnl This library is free software; you can redistribute it and/or
 dnl modify it under the terms of the GNU Lesser General Public
@@ -26,19 +26,19 @@ dnl
 dnl AC_CXX_NAMESPACES: checks for proper C++ namespaces compatibility
 dnl
 AC_DEFUN([AC_CXX_NAMESPACES],
-	[AC_CACHE_CHECK(whether the compiler implements namespaces,
-			ac_cv_cxx_namespaces,
-			[AC_LANG_SAVE
-			 AC_LANG_CPLUSPLUS
-			 AC_TRY_COMPILE([namespace Outer { namespace Inner { int i = 0; }}],
-											[using namespace Outer::Inner; return i;],
-											ac_cv_cxx_namespaces=yes, ac_cv_cxx_namespaces=no)
-			 AC_LANG_RESTORE
-	])
+  [AC_CACHE_CHECK(whether the compiler implements namespaces,
+      ac_cv_cxx_namespaces,
+      [AC_LANG_SAVE
+       AC_LANG_CPLUSPLUS
+       AC_TRY_COMPILE([namespace Outer { namespace Inner { int i = 0; }}],
+                      [using namespace Outer::Inner; return i;],
+                      ac_cv_cxx_namespaces=yes, ac_cv_cxx_namespaces=no)
+       AC_LANG_RESTORE
+  ])
 
-	if test "$ac_cv_cxx_namespaces" = yes; then
-		AC_DEFINE(HAVE_NAMESPACES,,[define if the compiler implements namespaces])
-	fi
+  if test "$ac_cv_cxx_namespaces" = yes; then
+    AC_DEFINE(HAVE_NAMESPACES,,[define if the compiler implements namespaces])
+  fi
 ])
 
 dnl
@@ -69,26 +69,26 @@ dnl output for compilation/debugging via rtdebug library
 dnl
 AC_DEFUN([AC_ANSI_COLOR],
 [
-	AC_MSG_CHECKING(whether ANSI color should be used for terminal output)
-	AC_ARG_ENABLE(ansi-color,
-								[AC_HELP_STRING([--enable-ansi-color], [ansi-color terminal output [default=yes]])],
-								[case "${enableval}" in
-									yes) test_on_ansi_color=yes ;;
-									no)  test_on_ansi_color=no ;;
-									*)   AC_MSG_ERROR(bad value ${enableval} for --disable-ansi-color) ;;
-								esac], 
-								[test_on_ansi_color=yes])
+  AC_MSG_CHECKING(whether ANSI color should be used for terminal output)
+  AC_ARG_ENABLE(ansi-color,
+                [AC_HELP_STRING([--enable-ansi-color], [ansi-color terminal output [default=yes]])],
+                [case "${enableval}" in
+                  yes) test_on_ansi_color=yes ;;
+                  no)  test_on_ansi_color=no ;;
+                  *)   AC_MSG_ERROR(bad value ${enableval} for --disable-ansi-color) ;;
+                esac], 
+                [test_on_ansi_color=yes])
 
-	if test "$test_on_ansi_color" = "yes"; then
-		ANSI_COLOR="ansi_color" 
-		AC_DEFINE(WITH_ANSI_COLOR) 		
-		AC_MSG_RESULT(yes)
-	else	
-		AC_MSG_RESULT(no)
-	fi
-	dnl AC_DEFINE([WITH_ANSI_COLOR], [], [Use ANSI color scheme in terminal debug output])
-	
-	AC_SUBST(ANSI_COLOR) 
+  if test "$test_on_ansi_color" = "yes"; then
+    ANSI_COLOR="ansi_color" 
+    AC_DEFINE(WITH_ANSI_COLOR)     
+    AC_MSG_RESULT(yes)
+  else  
+    AC_MSG_RESULT(no)
+  fi
+  dnl AC_DEFINE([WITH_ANSI_COLOR], [], [Use ANSI color scheme in terminal debug output])
+  
+  AC_SUBST(ANSI_COLOR) 
 ])
 
 dnl
@@ -96,25 +96,25 @@ dnl AC_ENABLE_DEBUG: provides a switch to enable/disable debugging
 dnl
 AC_DEFUN([AC_ENABLE_DEBUG],
 [
-	AC_MSG_CHECKING(whether to enable debugging)
-	AC_ARG_ENABLE(debug,
-								[AC_HELP_STRING([--enable-debug], [turn on debugging mode [default=no]])],
-								[case "${enableval}" in
-									yes) test_on_enable_debug=yes	;;
-									no)	 test_on_enable_debug=no	;;
-									*)	 AC_MSG_ERROR(bad value ${enableval} for --enable-debug) ;;
-								esac],
-								[test_on_enable_debug=no])
+  AC_MSG_CHECKING(whether to enable debugging)
+  AC_ARG_ENABLE(debug,
+                [AC_HELP_STRING([--enable-debug], [turn on debugging mode [default=no]])],
+                [case "${enableval}" in
+                  yes) test_on_enable_debug=yes  ;;
+                  no)   test_on_enable_debug=no  ;;
+                  *)   AC_MSG_ERROR(bad value ${enableval} for --enable-debug) ;;
+                esac],
+                [test_on_enable_debug=no])
 
-	if test "$test_on_enable_debug" = "yes"; then
-		COMPILE_LEVEL="debug"
-		AC_MSG_RESULT(yes)
-	else
-		COMPILE_LEVEL="release"
-		AC_MSG_RESULT(no)
-	fi
+  if test "$test_on_enable_debug" = "yes"; then
+    COMPILE_LEVEL="debug"
+    AC_MSG_RESULT(yes)
+  else
+    COMPILE_LEVEL="release"
+    AC_MSG_RESULT(no)
+  fi
 
-	AC_SUBST(COMPILE_LEVEL) 
+  AC_SUBST(COMPILE_LEVEL) 
 ])
 
 dnl
@@ -123,27 +123,27 @@ dnl of a linked Qt library.
 dnl
 AC_DEFUN([AC_ENABLE_STATIC_QT],
 [
-	AC_MSG_CHECKING(whether to link the Qt library static)
-	AC_ARG_ENABLE(static-qt,
-								[AC_HELP_STRING([--enable-static-qt], [turn on static linking of Qt libs [default=no]])],
-								[case "${enableval}" in
-									yes) test_on_enable_static_qt=yes ;;
-									no)  test_on_enable_static_qt=no	 ;;
-									*)	 AC_MSG_ERROR(bad value ${enableval} for --enable-static-qt) ;;
-								esac],
-								[test_on_enable_static_qt=no])
+  AC_MSG_CHECKING(whether to link the Qt library static)
+  AC_ARG_ENABLE(static-qt,
+                [AC_HELP_STRING([--enable-static-qt], [turn on static linking of Qt libs [default=no]])],
+                [case "${enableval}" in
+                  yes) test_on_enable_static_qt=yes ;;
+                  no)  test_on_enable_static_qt=no   ;;
+                  *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-qt) ;;
+                esac],
+                [test_on_enable_static_qt=no])
 
-	if test "$test_on_enable_static_qt" = "yes"; then
-		QTLINK_LEVEL="${QTLINK_LEVEL} staticconfig"
-		AC_MSG_RESULT(yes)
-		ac_qt_link_level="static"
-	else
-		QTLINK_LEVEL="${QTLINK_LEVEL}"
-		AC_MSG_RESULT(no)
-		ac_qt_link_level="shared"
-	fi
+  if test "$test_on_enable_static_qt" = "yes"; then
+    QTLINK_LEVEL="${QTLINK_LEVEL} staticconfig"
+    AC_MSG_RESULT(yes)
+    ac_qt_link_level="static"
+  else
+    QTLINK_LEVEL="${QTLINK_LEVEL}"
+    AC_MSG_RESULT(no)
+    ac_qt_link_level="shared"
+  fi
 
-	AC_SUBST(QTLINK_LEVEL) 
+  AC_SUBST(QTLINK_LEVEL) 
 ])
 
 dnl
@@ -152,31 +152,31 @@ dnl of a linked rtdebug library
 dnl
 AC_DEFUN([AC_ENABLE_STATIC_RTDEBUG],
 [
-	AC_MSG_CHECKING(whether to link rtdebug library static)
-	AC_ARG_ENABLE(static-rtdebug,
-								[AC_HELP_STRING([--enable-static-rtdebug], [turn on static linking of rtdebug lib [default=no]])],
-								[case "${enableval}" in
-									yes) test_on_enable_static_rtdebug=yes	;;
-									no)	 test_on_enable_static_rtdebug=no	;;
-									*)	 AC_MSG_ERROR(bad value ${enableval} for --enable-static-rtdebug) ;;
-								esac],
-								[test_on_enable_static_rtdebug=no])
+  AC_MSG_CHECKING(whether to link rtdebug library static)
+  AC_ARG_ENABLE(static-rtdebug,
+                [AC_HELP_STRING([--enable-static-rtdebug], [turn on static linking of rtdebug lib [default=no]])],
+                [case "${enableval}" in
+                  yes) test_on_enable_static_rtdebug=yes  ;;
+                  no)   test_on_enable_static_rtdebug=no  ;;
+                  *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-rtdebug) ;;
+                esac],
+                [test_on_enable_static_rtdebug=no])
 
   if test "$COMPILE_LEVEL" = "release"; then
-		AC_MSG_RESULT([skipping, debug disabled])	
-	elif test "have_rtdebug_lib" = "no"; then
-		AC_MSG_RESULT([skipping, no rtdebug library found])
-	elif test "$test_on_enable_static_rtdebug" = "yes"; then
-		QTLINK_LEVEL="${QTLINK_LEVEL} staticrtdebug"
-		AC_MSG_RESULT(yes)
-		ac_rtdebug_link_level="static"
-	else
-		QTLINK_LEVEL="${QTLINK_LEVEL}"
-		AC_MSG_RESULT(no)
-		ac_rtdebug_link_level="shared"
-	fi
+    AC_MSG_RESULT([skipping, debug disabled])  
+  elif test "have_rtdebug_lib" = "no"; then
+    AC_MSG_RESULT([skipping, no rtdebug library found])
+  elif test "$test_on_enable_static_rtdebug" = "yes"; then
+    QTLINK_LEVEL="${QTLINK_LEVEL} staticrtdebug"
+    AC_MSG_RESULT(yes)
+    ac_rtdebug_link_level="static"
+  else
+    QTLINK_LEVEL="${QTLINK_LEVEL}"
+    AC_MSG_RESULT(no)
+    ac_rtdebug_link_level="shared"
+  fi
 
-	AC_SUBST(QTLINK_LEVEL) 
+  AC_SUBST(QTLINK_LEVEL) 
 ])
 
 dnl
@@ -185,27 +185,27 @@ dnl of a linked medio library
 dnl
 AC_DEFUN([AC_ENABLE_STATIC_MEDIO],
 [
-	AC_MSG_CHECKING(whether to link the medio library static)
-	AC_ARG_ENABLE(static-medio,
-								[AC_HELP_STRING([--enable-static-medio], [turn on static linking of medio libs [default=no]])],
-								[case "${enableval}" in
-									yes) test_on_enable_static_medio=yes	;;
-									no)	 test_on_enable_static_medio=no	;;
-									*)	 AC_MSG_ERROR(bad value ${enableval} for --enable-static-medio) ;;
-								esac],
-								[test_on_enable_static_medio=no])
+  AC_MSG_CHECKING(whether to link the medio library static)
+  AC_ARG_ENABLE(static-medio,
+                [AC_HELP_STRING([--enable-static-medio], [turn on static linking of medio libs [default=no]])],
+                [case "${enableval}" in
+                  yes) test_on_enable_static_medio=yes  ;;
+                  no)   test_on_enable_static_medio=no  ;;
+                  *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-medio) ;;
+                esac],
+                [test_on_enable_static_medio=no])
 
-	if test "$test_on_enable_static_medio" = "yes"; then
-		QTLINK_LEVEL="${QTLINK_LEVEL} staticmedio"
-		AC_MSG_RESULT(yes)
-		ac_medio_link_level="static"
-	else
-		QTLINK_LEVEL="${QTLINK_LEVEL}"
-		AC_MSG_RESULT(no)
-		ac_medio_link_level="shared"
-	fi
+  if test "$test_on_enable_static_medio" = "yes"; then
+    QTLINK_LEVEL="${QTLINK_LEVEL} staticmedio"
+    AC_MSG_RESULT(yes)
+    ac_medio_link_level="static"
+  else
+    QTLINK_LEVEL="${QTLINK_LEVEL}"
+    AC_MSG_RESULT(no)
+    ac_medio_link_level="shared"
+  fi
 
-	AC_SUBST(QTLINK_LEVEL) 
+  AC_SUBST(QTLINK_LEVEL) 
 ])
 
 dnl
@@ -214,27 +214,27 @@ dnl of a linked gsl library
 dnl
 AC_DEFUN([AC_ENABLE_STATIC_GSL],
 [
-	AC_MSG_CHECKING(whether to link the gsl library static)
-	AC_ARG_ENABLE(static-gsl,
-								[AC_HELP_STRING([--enable-static-gsl], [turn on static linking of gsl libs [default=no]])],
-								[case "${enableval}" in
-									yes) test_on_enable_static_gsl=yes	;;
-									no)	 test_on_enable_static_gsl=no	;;
-									*)	 AC_MSG_ERROR(bad value ${enableval} for --enable-static-gsl) ;;
-								esac],
-								[test_on_enable_static_gsl=no])
+  AC_MSG_CHECKING(whether to link the gsl library static)
+  AC_ARG_ENABLE(static-gsl,
+                [AC_HELP_STRING([--enable-static-gsl], [turn on static linking of gsl libs [default=no]])],
+                [case "${enableval}" in
+                  yes) test_on_enable_static_gsl=yes  ;;
+                  no)   test_on_enable_static_gsl=no  ;;
+                  *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-gsl) ;;
+                esac],
+                [test_on_enable_static_gsl=no])
 
-	if test "$test_on_enable_static_gsl" = "yes"; then
-		QTLINK_LEVEL="${QTLINK_LEVEL} staticgsl"
-		AC_MSG_RESULT(yes)
-		ac_gsl_link_level="static"
-	else
-		QTLINK_LEVEL="${QTLINK_LEVEL}"
-		AC_MSG_RESULT(no)
-		ac_gsl_link_level="shared"
-	fi
+  if test "$test_on_enable_static_gsl" = "yes"; then
+    QTLINK_LEVEL="${QTLINK_LEVEL} staticgsl"
+    AC_MSG_RESULT(yes)
+    ac_gsl_link_level="static"
+  else
+    QTLINK_LEVEL="${QTLINK_LEVEL}"
+    AC_MSG_RESULT(no)
+    ac_gsl_link_level="shared"
+  fi
 
-	AC_SUBST(QTLINK_LEVEL) 
+  AC_SUBST(QTLINK_LEVEL) 
 ])
 
 dnl
@@ -243,27 +243,27 @@ dnl of a linked libmedlm library
 dnl
 AC_DEFUN([AC_ENABLE_STATIC_MEDLM],
 [
-	AC_MSG_CHECKING(whether to link the medlm library static)
-	AC_ARG_ENABLE(static-medlm,
-								[AC_HELP_STRING([--enable-static-medlm], [turn on static linking of medlm lib [default=no]])],
-								[case "${enableval}" in
-									yes) test_on_enable_static_medlm=yes	;;
-									no)	 test_on_enable_static_medlm=no	;;
-									*)	 AC_MSG_ERROR(bad value ${enableval} for --enable-static-medlm) ;;
-								esac],
-								[test_on_enable_static_medlm=no])
+  AC_MSG_CHECKING(whether to link the medlm library static)
+  AC_ARG_ENABLE(static-medlm,
+                [AC_HELP_STRING([--enable-static-medlm], [turn on static linking of medlm lib [default=no]])],
+                [case "${enableval}" in
+                  yes) test_on_enable_static_medlm=yes  ;;
+                  no)   test_on_enable_static_medlm=no  ;;
+                  *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-medlm) ;;
+                esac],
+                [test_on_enable_static_medlm=no])
 
-	if test "$test_on_enable_static_medlm" = "yes"; then
-		QTLINK_LEVEL="${QTLINK_LEVEL} staticmedlm"
-		AC_MSG_RESULT(yes)
-		ac_medlm_link_level="static"
-	else
-		QTLINK_LEVEL="${QTLINK_LEVEL}"
-		AC_MSG_RESULT(no)
-		ac_medlm_link_level="shared"
-	fi
+  if test "$test_on_enable_static_medlm" = "yes"; then
+    QTLINK_LEVEL="${QTLINK_LEVEL} staticmedlm"
+    AC_MSG_RESULT(yes)
+    ac_medlm_link_level="static"
+  else
+    QTLINK_LEVEL="${QTLINK_LEVEL}"
+    AC_MSG_RESULT(no)
+    ac_medlm_link_level="shared"
+  fi
 
-	AC_SUBST(QTLINK_LEVEL) 
+  AC_SUBST(QTLINK_LEVEL) 
 ])
 
 dnl
@@ -272,27 +272,27 @@ dnl of a linked libmtrack library
 dnl
 AC_DEFUN([AC_ENABLE_STATIC_MTRACK],
 [
-	AC_MSG_CHECKING(whether to link the mtrack library static)
-	AC_ARG_ENABLE(static-mtrack,
-								[AC_HELP_STRING([--enable-static-mtrack], [turn on static linking of mtrack lib [default=no]])],
-								[case "${enableval}" in
-									yes) test_on_enable_static_mtrack=yes	;;
-									no)	 test_on_enable_static_mtrack=no	;;
-									*)	 AC_MSG_ERROR(bad value ${enableval} for --enable-static-mtrack) ;;
-								esac],
-								[test_on_enable_static_mtrack=no])
+  AC_MSG_CHECKING(whether to link the mtrack library static)
+  AC_ARG_ENABLE(static-mtrack,
+                [AC_HELP_STRING([--enable-static-mtrack], [turn on static linking of mtrack lib [default=no]])],
+                [case "${enableval}" in
+                  yes) test_on_enable_static_mtrack=yes  ;;
+                  no)   test_on_enable_static_mtrack=no  ;;
+                  *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-mtrack) ;;
+                esac],
+                [test_on_enable_static_mtrack=no])
 
-	if test "$test_on_enable_static_mtrack" = "yes"; then
-		QTLINK_LEVEL="${QTLINK_LEVEL} staticmtrack"
-		AC_MSG_RESULT(yes)
-		ac_mtrack_link_level="static"
-	else
-		QTLINK_LEVEL="${QTLINK_LEVEL}"
-		AC_MSG_RESULT(no)
-		ac_mtrack_link_level="shared"
-	fi
+  if test "$test_on_enable_static_mtrack" = "yes"; then
+    QTLINK_LEVEL="${QTLINK_LEVEL} staticmtrack"
+    AC_MSG_RESULT(yes)
+    ac_mtrack_link_level="static"
+  else
+    QTLINK_LEVEL="${QTLINK_LEVEL}"
+    AC_MSG_RESULT(no)
+    ac_mtrack_link_level="shared"
+  fi
 
-	AC_SUBST(QTLINK_LEVEL) 
+  AC_SUBST(QTLINK_LEVEL) 
 ])
 
 dnl
@@ -301,25 +301,25 @@ dnl if the library should be build as a shared or static library
 dnl
 AC_DEFUN([AC_ENABLE_STATIC_LIB],
 [
-	AC_MSG_CHECKING(whether to link as a static library)
-	AC_ARG_ENABLE(static-lib,
-								[AC_HELP_STRING([--enable-static-lib], [turn on static linking [default=no]])],
-								[case "${enableval}" in
-									yes) test_on_enable_static_lib=yes	;;
-									no)  test_on_enable_static_lib=no	;;
-									*)	 AC_MSG_ERROR(bad value ${enableval} for --enable-static-lib) ;;
-								esac],
-								[test_on_enable_static_lib=no])
+  AC_MSG_CHECKING(whether to link as a static library)
+  AC_ARG_ENABLE(static-lib,
+                [AC_HELP_STRING([--enable-static-lib], [turn on static linking [default=no]])],
+                [case "${enableval}" in
+                  yes) test_on_enable_static_lib=yes  ;;
+                  no)  test_on_enable_static_lib=no  ;;
+                  *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-lib) ;;
+                esac],
+                [test_on_enable_static_lib=no])
 
-	if test "$test_on_enable_static_lib" = "yes"; then
-		QTLINK_LEVEL="${QTLINK_LEVEL} staticlib"
-		AC_MSG_RESULT(yes)
-	else
-		QTLINK_LEVEL="${QTLINK_LEVEL}"
-		AC_MSG_RESULT(no)
-	fi
+  if test "$test_on_enable_static_lib" = "yes"; then
+    QTLINK_LEVEL="${QTLINK_LEVEL} staticlib"
+    AC_MSG_RESULT(yes)
+  else
+    QTLINK_LEVEL="${QTLINK_LEVEL}"
+    AC_MSG_RESULT(no)
+  fi
 
-	AC_SUBST(QTLINK_LEVEL) 
+  AC_SUBST(QTLINK_LEVEL) 
 ])
 
 dnl
@@ -333,40 +333,40 @@ AC_DEFUN([AC_PROG_GCC_VERSION],
  dnl check if $CC exists or not
  if eval $CC -v 2>/dev/null >/dev/null; then
    dnl Check if version of gcc is sufficient
-	 cc_name=`( $CC -v ) 2>&1 | tail -n 1 | cut -d ' ' -f 1`
-	 cc_version=`( $CC -dumpversion ) 2>&1`
-	 if test "$?" -gt 0; then
-		 cc_version="not found"
-	 fi
-	 changequote(,)dnl	 
-	 case $cc_version in
-	   '')
-		   cc_version="v. ?.??, bad"
-			 cc_verc_fail=yes
-			 ;;
-		 2.95.[2-9]|2.95.[2-9][-.]*|3.[0-9]*|3.[0-9].[0-9]*|4.[0-9].[0-9]*)
-			 _cc_major=`echo $cc_version | cut -d '.' -f 1`
-			 _cc_minor=`echo $cc_version | cut -d '.' -f 2`
-			 _cc_mini=`echo $cc_version | cut -d '.' -f 3`
-			 cc_version="$cc_version, ok"
-			 cc_verc_fail=no
-		   ;;
-		 'not found')
-		   cc_verc_fail=yes
-			 ;;
-		 *)
-		   cc_version="$cc_version, bad"
-			 cc_verc_fail=yes
-			 ;;
-	 esac
-	 changequote([, ])dnl
+   cc_name=`( $CC -v ) 2>&1 | tail -n 1 | cut -d ' ' -f 1`
+   cc_version=`( $CC -dumpversion ) 2>&1`
+   if test "$?" -gt 0; then
+     cc_version="not found"
+   fi
+   changequote(,)dnl   
+   case $cc_version in
+     '')
+       cc_version="v. ?.??, bad"
+       cc_verc_fail=yes
+       ;;
+     2.95.[2-9]|2.95.[2-9][-.]*|3.[0-9]*|3.[0-9].[0-9]*|4.[0-9].[0-9]*)
+       _cc_major=`echo $cc_version | cut -d '.' -f 1`
+       _cc_minor=`echo $cc_version | cut -d '.' -f 2`
+       _cc_mini=`echo $cc_version | cut -d '.' -f 3`
+       cc_version="$cc_version, ok"
+       cc_verc_fail=no
+       ;;
+     'not found')
+       cc_verc_fail=yes
+       ;;
+     *)
+       cc_version="$cc_version, bad"
+       cc_verc_fail=yes
+       ;;
+   esac
+   changequote([, ])dnl
 
-	 if test "$cc_verc_fail" = yes ; then
-	   AC_MSG_RESULT([$cc_version])
-		 AC_MSG_ERROR([gcc version check failed])
+   if test "$cc_verc_fail" = yes ; then
+     AC_MSG_RESULT([$cc_version])
+     AC_MSG_ERROR([gcc version check failed])
    else
- 	   AC_MSG_RESULT([$cc_version])
-		 GCC_VERSION=$_cc_major
+      AC_MSG_RESULT([$cc_version])
+     GCC_VERSION=$_cc_major
    fi
  else
    AC_MSG_RESULT(FAILED)
@@ -383,7 +383,7 @@ dnl
 AC_DEFUN([AC_PATH_RTDEBUG],
 [
   AC_ARG_WITH(rtdebug, [AC_HELP_STRING([--with-rtdebug], [where the rtdebug environment is located.])],
-											 [RTDEBUGDIR="$withval" ])
+                       [RTDEBUGDIR="$withval" ])
 ])
 
 dnl
@@ -395,7 +395,7 @@ AC_DEFUN([AC_PATH_RTDEBUG_LIB],
   AC_REQUIRE_CPP()
   AC_ARG_WITH(rtdebug-lib,
               [AC_HELP_STRING([--with-rtdebug-lib], [where the rtdebug library is located.])],
-							[ac_rtdebug_libraries="$withval"], ac_rtdebug_libraries="")
+              [ac_rtdebug_libraries="$withval"], ac_rtdebug_libraries="")
 
   AC_MSG_CHECKING(for runtime debugging library)
 
@@ -407,38 +407,38 @@ AC_DEFUN([AC_PATH_RTDEBUG_LIB],
   dnl If you need to add extra directories to check, add them here.
   if test -z "$ac_rtdebug_libraries"; then
     rtdebug_library_dirs="$RTDEBUGDIR/lib \
-													$RTDEBUGDIR/rtdebug \
-													$RTDEBUGDIR \
-													/usr/local/petlib/lib \
-													/usr/local/petlib/lib/rtdebug \	
-													/usr/local/lib \
-													/usr/local/lib/rtdebug \
-													/usr/lib \
-													/usr/lib/rtdebug \
-													/Developer/rtdebug/lib \
-													C:/petlib/lib"
+                          $RTDEBUGDIR/rtdebug \
+                          $RTDEBUGDIR \
+                          /usr/local/petlib/lib \
+                          /usr/local/petlib/lib/rtdebug \  
+                          /usr/local/lib \
+                          /usr/local/lib/rtdebug \
+                          /usr/lib \
+                          /usr/lib/rtdebug \
+                          /Developer/rtdebug/lib \
+                          C:/petlib/lib"
   else
     rtdebug_library_dirs="$ac_rtdebug_libraries"
   fi
 
   dnl for simplicity we simply go and check if
-	dnl we can find the rtdebug library in one of
-	dnl our search pathes
+  dnl we can find the rtdebug library in one of
+  dnl our search pathes
   ac_rtdebug_libdir=""
   if test "$ac_rtdebug_link_level" = "static"; then
-	  ac_rtdebug_libname="librtdebug.a"
-		LIB_RTDEBUG="$ac_rtdebug_libname"
-	else
-		if test "$HOST_OS" = "Darwin"; then
-		  ac_rtdebug_libname="librtdebug.dylib"
+    ac_rtdebug_libname="librtdebug.a"
+    LIB_RTDEBUG="$ac_rtdebug_libname"
+  else
+    if test "$HOST_OS" = "Darwin"; then
+      ac_rtdebug_libname="librtdebug.dylib"
     else
-		  ac_rtdebug_libname="librtdebug.so"
+      ac_rtdebug_libname="librtdebug.so"
     fi
-		LIB_RTDEBUG="-lrtdebug"
-	fi
+    LIB_RTDEBUG="-lrtdebug"
+  fi
 
   for rtdebug_dir in $rtdebug_library_dirs; do
-		if test -r "$rtdebug_dir/$ac_rtdebug_libname"; then
+    if test -r "$rtdebug_dir/$ac_rtdebug_libname"; then
       ac_rtdebug_libdir="$rtdebug_dir"
       break;
     else
@@ -447,16 +447,16 @@ AC_DEFUN([AC_PATH_RTDEBUG_LIB],
   done
 
   ac_cv_lib_rtdebuglib="ac_rtdebug_libname=$ac_rtdebug_libname ac_rtdebug_libdir=$ac_rtdebug_libdir"
-	
+  
   ])
 
   eval "$ac_cv_lib_rtdebuglib"
 
   dnl Define a shell variable for later checks
-	if test "$COMPILE_LEVEL" = "release"; then
-		have_rtdebug_lib="no"
- 		AC_MSG_RESULT([skipping, debug disabled])	
-	elif test -z "$ac_rtdebug_libdir"; then
+  if test "$COMPILE_LEVEL" = "release"; then
+    have_rtdebug_lib="no"
+     AC_MSG_RESULT([skipping, debug disabled])  
+  elif test -z "$ac_rtdebug_libdir"; then
     have_rtdebug_lib="no"
     AC_MSG_RESULT([no])
     AC_MSG_ERROR([Cannot find required $ac_rtdebug_link_level rtdebug library in linker path.
@@ -495,16 +495,16 @@ AC_DEFUN([AC_PATH_RTDEBUG_INC],
       dnl No they didn't, so lets look for them...
       dnl If you need to add extra directories to check, add them here.
       rtdebug_include_dirs="\
-				$RTDEBUGDIR/include \
-				$RTDEBUGDIR/include/rtdebug \
-				$RTDEBUGDIR \
-			  /usr/local/petlib/include \
-				/usr/local/petlib/include/rtdebug \		
+        $RTDEBUGDIR/include \
+        $RTDEBUGDIR/include/rtdebug \
+        $RTDEBUGDIR \
+        /usr/local/petlib/include \
+        /usr/local/petlib/include/rtdebug \    
         /usr/local/rtdebug/include \
         /usr/include/rtdebug \
         /usr/lib/rtdebug/include \
         /usr/local/include/rtdebug \
-				C:/petlib/include/rtdebug"
+        C:/petlib/include/rtdebug"
     fi
 
     for rtdebug_dir in $rtdebug_include_dirs; do
@@ -520,7 +520,7 @@ AC_DEFUN([AC_PATH_RTDEBUG_INC],
 
   if test -z "$ac_cv_header_rtdebuginc"; then
     have_rtdebug_inc="no"
-		AC_MSG_RESULT([no])
+    AC_MSG_RESULT([no])
     AC_MSG_WARN([rtdebug.h include not found, you may run into problems.
 Try --with-rtdebug-inc to specify the path, manually.])
   else
@@ -541,7 +541,7 @@ dnl
 AC_DEFUN([AC_PATH_MEDIO],
 [
   AC_ARG_WITH(medio, [AC_HELP_STRING([--with-medio], [where the medio environment is located.])],
-										 [MEDIODIR="$withval" ])
+                     [MEDIODIR="$withval" ])
 ])
 
 dnl
@@ -553,7 +553,7 @@ AC_DEFUN([AC_PATH_MEDIO_LIB],
   AC_REQUIRE_CPP()
   AC_ARG_WITH(medio-lib,
               [AC_HELP_STRING([--with-medio-lib], [where the libmedio library is located.])],
-							[ac_medio_libraries="$withval"], ac_medio_libraries="")
+              [ac_medio_libraries="$withval"], ac_medio_libraries="")
 
   AC_MSG_CHECKING(for medical IO library)
 
@@ -565,37 +565,37 @@ AC_DEFUN([AC_PATH_MEDIO_LIB],
   dnl If you need to add extra directories to check, add them here.
   if test -z "$ac_medio_libraries"; then
     medio_library_dirs="$MEDIODIR/lib \
-												$MEDIODIR/medio \
-												$MEDIODIR \
-												/usr/local/petlib/lib \
-												/usr/local/petlib/lib/medio \	
-		                    /usr/local/lib \
-												/usr/local/lib/medio \
-		                    /usr/lib \
-		                    /usr/lib/medio \
-		                    /Developer/medio/lib"
+                        $MEDIODIR/medio \
+                        $MEDIODIR \
+                        /usr/local/petlib/lib \
+                        /usr/local/petlib/lib/medio \  
+                        /usr/local/lib \
+                        /usr/local/lib/medio \
+                        /usr/lib \
+                        /usr/lib/medio \
+                        /Developer/medio/lib"
   else
     medio_library_dirs="$ac_medio_libraries"
   fi
 
   dnl for simplicity we simply go and check if
-	dnl we can find the medio library in one of
-	dnl our search pathes
+  dnl we can find the medio library in one of
+  dnl our search pathes
   ac_medio_libdir=""
   if test "$ac_medio_link_level" = "static"; then
-	  ac_medio_libname="libmedio.a"
-		LIB_MEDIO="$ac_medio_libname"
-	else
-		if test "$HOST_OS" = "Darwin"; then
-		  ac_medio_libname="libmedio.dylib"
+    ac_medio_libname="libmedio.a"
+    LIB_MEDIO="$ac_medio_libname"
+  else
+    if test "$HOST_OS" = "Darwin"; then
+      ac_medio_libname="libmedio.dylib"
     else
-		  ac_medio_libname="libmedio.so"
+      ac_medio_libname="libmedio.so"
     fi
-		LIB_MEDIO="-lmedio"
-	fi
+    LIB_MEDIO="-lmedio"
+  fi
 
   for medio_dir in $medio_library_dirs; do
-		if test -r "$medio_dir/$ac_medio_libname"; then
+    if test -r "$medio_dir/$ac_medio_libname"; then
       ac_medio_libdir="$medio_dir"
       break;
     else
@@ -648,11 +648,11 @@ AC_DEFUN([AC_PATH_MEDIO_INC],
       dnl No they didn't, so lets look for them...
       dnl If you need to add extra directories to check, add them here.
       medio_include_dirs="\
-				$MEDIODIR/include \
-				$MEDIODIR/include/rtdebug \
-				$MEDIODIR \			
-			  /usr/local/petlib/include \
-				/usr/local/petlib/include/medio \					
+        $MEDIODIR/include \
+        $MEDIODIR/include/rtdebug \
+        $MEDIODIR \      
+        /usr/local/petlib/include \
+        /usr/local/petlib/include/medio \          
         /usr/local/include \
         /usr/local/include/medio \
         /usr/include/medio \
@@ -695,7 +695,7 @@ dnl
 AC_DEFUN([AC_PATH_GSL],
 [
   AC_ARG_WITH(gsl, [AC_HELP_STRING([--with-gsl], [where the gsl environment is located.])],
-									 [GSLDIR="$withval" ])
+                   [GSLDIR="$withval" ])
 ])
 
 dnl
@@ -707,7 +707,7 @@ AC_DEFUN([AC_PATH_GSL_LIB],
   AC_REQUIRE_CPP()
   AC_ARG_WITH(gsl-lib,
               [AC_HELP_STRING([--with-gsl-lib], [where the GSL library is located.])],
-							[ac_gsl_libraries="$withval"], ac_gsl_libraries="")
+              [ac_gsl_libraries="$withval"], ac_gsl_libraries="")
 
   AC_MSG_CHECKING(for GNU Scientific library)
 
@@ -719,35 +719,35 @@ AC_DEFUN([AC_PATH_GSL_LIB],
   dnl If you need to add extra directories to check, add them here.
   if test -z "$ac_gsl_libraries"; then
     gsl_library_dirs="$GSLDIR/lib \
-											$GSLDIR/gsl \
-											$GSLDIR \
-		                  /usr/local/lib \
-											/usr/local/lib/gsl \
-		                  /usr/lib \
-		                  /usr/lib/gsl \
-		                  /Developer/gsl/lib"
+                      $GSLDIR/gsl \
+                      $GSLDIR \
+                      /usr/local/lib \
+                      /usr/local/lib/gsl \
+                      /usr/lib \
+                      /usr/lib/gsl \
+                      /Developer/gsl/lib"
   else
     gsl_library_dirs="$ac_gsl_libraries"
   fi
 
   dnl for simplicity we simply go and check if
-	dnl we can find the gsl library in one of
-	dnl our search pathes
+  dnl we can find the gsl library in one of
+  dnl our search pathes
   ac_gsl_libdir=""
   if test "$ac_gsl_link_level" = "static"; then
-	  ac_gsl_libname="libgsl.a"
-		LIB_GSL="$ac_gsl_libname"
-	else
-		if test "$HOST_OS" = "Darwin"; then
-		  ac_gsl_libname="libgsl.dylib"
+    ac_gsl_libname="libgsl.a"
+    LIB_GSL="$ac_gsl_libname"
+  else
+    if test "$HOST_OS" = "Darwin"; then
+      ac_gsl_libname="libgsl.dylib"
     else
-		  ac_gsl_libname="libgsl.so"
+      ac_gsl_libname="libgsl.so"
     fi
-		LIB_GSL="-lgsl -lgslcblas"
-	fi
+    LIB_GSL="-lgsl -lgslcblas"
+  fi
 
   for gsl_dir in $gsl_library_dirs; do
-		if test -r "$gsl_dir/$ac_gsl_libname"; then
+    if test -r "$gsl_dir/$ac_gsl_libname"; then
       ac_gsl_libdir="$gsl_dir"
       break;
     else
@@ -800,8 +800,8 @@ AC_DEFUN([AC_PATH_GSL_INC],
       dnl No they didn't, so lets look for them...
       dnl If you need to add extra directories to check, add them here.
       gsl_include_dirs="\
-				$GSLDIR/include \
-				$GSLDIR \						
+        $GSLDIR/include \
+        $GSLDIR \            
         /usr/local/gsl/include \
         /usr/include/ \
         /usr/lib/gsl/include \
@@ -844,7 +844,7 @@ dnl
 AC_DEFUN([AC_PATH_MEDLM],
 [
   AC_ARG_WITH(medlm, [AC_HELP_STRING([--with-medlm], [where the libmedlm environment is located.])],
-										 [MEDLMDIR="$withval" ])
+                     [MEDLMDIR="$withval" ])
 ])
 
 dnl
@@ -856,7 +856,7 @@ AC_DEFUN([AC_PATH_MEDLM_LIB],
   AC_REQUIRE_CPP()
   AC_ARG_WITH(medlm-lib,
               [AC_HELP_STRING([--with-medlm-lib], [where the medlm library is located.])],
-							[ac_medlm_libraries="$withval"], ac_medlm_libraries="")
+              [ac_medlm_libraries="$withval"], ac_medlm_libraries="")
 
   AC_MSG_CHECKING(for listmode library)
 
@@ -868,37 +868,37 @@ AC_DEFUN([AC_PATH_MEDLM_LIB],
   dnl If you need to add extra directories to check, add them here.
   if test -z "$ac_medlm_libraries"; then
     medlm_library_dirs="$MEDLMDIR/lib \
-												$MEDLMDIR/lm \
-												$MEDLMDIR \
-												/usr/local/petlib/lib \
-												/usr/local/petlib/lib/lm \	
-		                    /usr/local/lib \
-												/usr/local/lib/lm \
-		                    /usr/lib \
-		                    /usr/lib/lm \
-		                    /Developer/lm/lib"
+                        $MEDLMDIR/lm \
+                        $MEDLMDIR \
+                        /usr/local/petlib/lib \
+                        /usr/local/petlib/lib/lm \  
+                        /usr/local/lib \
+                        /usr/local/lib/lm \
+                        /usr/lib \
+                        /usr/lib/lm \
+                        /Developer/lm/lib"
   else
     medlm_library_dirs="$ac_medlm_libraries"
   fi
 
   dnl for simplicity we simply go and check if
-	dnl we can find the libmedlm library in one of
-	dnl our search pathes
+  dnl we can find the libmedlm library in one of
+  dnl our search pathes
   ac_medlm_libdir=""
   if test "$ac_medlm_link_level" = "static"; then
-	  ac_medlm_libname="libmedlm.a"
-		LIB_MEDLM="$ac_medlm_libname"
-	else
-		if test "$HOST_OS" = "Darwin"; then
-		  ac_medlm_libname="libmedlm.dylib"
+    ac_medlm_libname="libmedlm.a"
+    LIB_MEDLM="$ac_medlm_libname"
+  else
+    if test "$HOST_OS" = "Darwin"; then
+      ac_medlm_libname="libmedlm.dylib"
     else
-		  ac_medlm_libname="libmedlm.so"
+      ac_medlm_libname="libmedlm.so"
     fi
-		LIB_MEDLM="-lmedlm"
-	fi
+    LIB_MEDLM="-lmedlm"
+  fi
 
   for medlm_dir in $medlm_library_dirs; do
-		if test -r "$medlm_dir/$ac_medlm_libname"; then
+    if test -r "$medlm_dir/$ac_medlm_libname"; then
       ac_medlm_libdir="$medlm_dir"
       break;
     else
@@ -951,11 +951,11 @@ AC_DEFUN([AC_PATH_MEDLM_INC],
       dnl No they didn't, so lets look for them...
       dnl If you need to add extra directories to check, add them here.
       medlm_include_dirs="\
-				$MEDLMDIR/include \
-				$MEDLMDIR/include/medlm \
-				$MEDLMDIR \			
-			  /usr/local/petlib/include \
-				/usr/local/petlib/include/medlm \					
+        $MEDLMDIR/include \
+        $MEDLMDIR/include/medlm \
+        $MEDLMDIR \      
+        /usr/local/petlib/include \
+        /usr/local/petlib/include/medlm \          
         /usr/local/include \
         /usr/local/include/medlm \
         /usr/include/medlm \
@@ -998,7 +998,7 @@ dnl
 AC_DEFUN([AC_PATH_MTRACK],
 [
   AC_ARG_WITH(mtrack, [AC_HELP_STRING([--with-mtrack], [where the libmtrack environment is located.])],
-										  [MTRACKDIR="$withval" ])
+                      [MTRACKDIR="$withval" ])
 ])
 
 dnl
@@ -1010,7 +1010,7 @@ AC_DEFUN([AC_PATH_MTRACK_LIB],
   AC_REQUIRE_CPP()
   AC_ARG_WITH(mtrack-lib,
               [AC_HELP_STRING([--with-mtrack-lib], [where the mtrack library is located.])],
-							[ac_mtrack_libraries="$withval"], ac_mtrack_libraries="")
+              [ac_mtrack_libraries="$withval"], ac_mtrack_libraries="")
 
   AC_MSG_CHECKING(for motion-tracking library)
 
@@ -1022,37 +1022,37 @@ AC_DEFUN([AC_PATH_MTRACK_LIB],
   dnl If you need to add extra directories to check, add them here.
   if test -z "$ac_mtrack_libraries"; then
     mtrack_library_dirs="$MTRACKDIR/lib \
-												 $MTRACKDIR/mtrack \
-												 $MTRACKDIR \
-												 /usr/local/petlib/lib \
-												 /usr/local/petlib/lib/mtrack \	
-		                     /usr/local/lib \
-												 /usr/local/lib/mtrack \
-		                     /usr/lib \
-		                     /usr/lib/mtrack \
-		                     /Developer/mtrack/lib"
+                         $MTRACKDIR/mtrack \
+                         $MTRACKDIR \
+                         /usr/local/petlib/lib \
+                         /usr/local/petlib/lib/mtrack \  
+                         /usr/local/lib \
+                         /usr/local/lib/mtrack \
+                         /usr/lib \
+                         /usr/lib/mtrack \
+                         /Developer/mtrack/lib"
   else
     mtrack_library_dirs="$ac_mtrack_libraries"
   fi
 
   dnl for simplicity we simply go and check if
-	dnl we can find the libmtrack library in one of
-	dnl our search pathes
+  dnl we can find the libmtrack library in one of
+  dnl our search pathes
   ac_mtrack_libdir=""
   if test "$ac_mtrack_link_level" = "static"; then
-	  ac_mtrack_libname="libmtrack.a"
-		LIB_MTRACK="$ac_mtrack_libname"
-	else
-		if test "$HOST_OS" = "Darwin"; then
-		  ac_mtrack_libname="libmtrack.dylib"
+    ac_mtrack_libname="libmtrack.a"
+    LIB_MTRACK="$ac_mtrack_libname"
+  else
+    if test "$HOST_OS" = "Darwin"; then
+      ac_mtrack_libname="libmtrack.dylib"
     else
-		  ac_mtrack_libname="libmtrack.so"
+      ac_mtrack_libname="libmtrack.so"
     fi
-		LIB_MTRACK="-lmtrack"
-	fi
+    LIB_MTRACK="-lmtrack"
+  fi
 
   for mtrack_dir in $mtrack_library_dirs; do
-		if test -r "$mtrack_dir/$ac_mtrack_libname"; then
+    if test -r "$mtrack_dir/$ac_mtrack_libname"; then
       ac_mtrack_libdir="$mtrack_dir"
       break;
     else
@@ -1105,11 +1105,11 @@ AC_DEFUN([AC_PATH_MTRACK_INC],
       dnl No they didn't, so lets look for them...
       dnl If you need to add extra directories to check, add them here.
       mtrack_include_dirs="\
-				$MTRACKDIR/include \
-				$MTRACKDIR/include/mtrack \
-				$MTRACKDIR \			
-			  /usr/local/petlib/include \
-				/usr/local/petlib/include/mtrack \					
+        $MTRACKDIR/include \
+        $MTRACKDIR/include/mtrack \
+        $MTRACKDIR \      
+        /usr/local/petlib/include \
+        /usr/local/petlib/include/mtrack \          
         /usr/local/include \
         /usr/local/include/mtrack \
         /usr/include/mtrack \
@@ -1194,8 +1194,8 @@ dnl specifying the main directory where Qt3 is installed
 dnl
 AC_DEFUN([AC_PATH_QT3DIR],
 [
-	AC_ARG_WITH(qt3, [AC_HELP_STRING([--with-qt3], [where the Qt3 multithreaded library is located.])],
-									 [QTDIR="$withval" ])
+  AC_ARG_WITH(qt3, [AC_HELP_STRING([--with-qt3], [where the Qt3 multithreaded library is located.])],
+                   [QTDIR="$withval" ])
 
   if test -z "$QTDIR"; then
     AC_MSG_WARN([environment variable QTDIR is not set, you may run into problems])
@@ -1250,23 +1250,23 @@ AC_DEFUN([AC_PATH_QT3_LIB],
   fi
 
   dnl for simplicity we simply go and check if
-	dnl we can find the Qt3 library in one of
-	dnl our search pathes
+  dnl we can find the Qt3 library in one of
+  dnl our search pathes
   ac_qt_libdir=""
   if test "$ac_qt_link_level" = "static"; then
-	  ac_qt_libname="libqt-mt.a"
-		LIB_QT="$ac_qt_libname"
-	else
-		if test "$HOST_OS" = "Darwin"; then
-		  ac_qt_libname="libqt-mt.dylib"
+    ac_qt_libname="libqt-mt.a"
+    LIB_QT="$ac_qt_libname"
+  else
+    if test "$HOST_OS" = "Darwin"; then
+      ac_qt_libname="libqt-mt.dylib"
     else
-		  ac_qt_libname="libqt-mt.so"
+      ac_qt_libname="libqt-mt.so"
     fi
-		LIB_QT="-lqt-mt"
-	fi
+    LIB_QT="-lqt-mt"
+  fi
 
   for qt_dir in $qt_library_dirs; do
-		if test -r "$qt_dir/$ac_qt_libname"; then
+    if test -r "$qt_dir/$ac_qt_libname"; then
       ac_qt_libdir="$qt_dir"
       break;
     else
@@ -1419,8 +1419,8 @@ AC_DEFUN([AC_PATH_QT3_QMAKE],
   fi
 
   dnl Check if we have the right qmake by outputing the version
-	dnl information
-	qmake_vers=`"$QMAKE_PATH" -v 2>&1 | grep "Qt 3"`
+  dnl information
+  qmake_vers=`"$QMAKE_PATH" -v 2>&1 | grep "Qt 3"`
   if test -z "$qmake_vers"; then
     AC_MSG_ERROR([didn't find the correct Qt3 version of qmake, Please use --with-qt3-qmake])
   fi
@@ -1435,7 +1435,7 @@ dnl
 AC_DEFUN([AC_PATH_QT4],
 [
   AC_ARG_WITH(qt4, [AC_HELP_STRING([--with-qt4], [where the Qt4 environment is located.])],
-									 [QT4DIR="$withval" ])
+                   [QT4DIR="$withval" ])
 ])
 
 
@@ -1460,8 +1460,8 @@ AC_DEFUN([AC_PATH_QT4_LIB],
   if test -z "$ac_qt_libraries"; then
     qt_library_dirs="$QT4DIR/lib \
                      /usr/lib/qt4 \
-										 /usr/local/qt4/lib \
-										 /usr/local/qt/lib \
+                     /usr/local/qt4/lib \
+                     /usr/local/qt/lib \
                      /usr/local/lib/qt4 \
                      /usr/local/lib/qt \
                      /usr/lib \
@@ -1473,30 +1473,30 @@ AC_DEFUN([AC_PATH_QT4_LIB],
                      /usr/X11/lib/qt \
                      /usr/X11R6/lib \
                      /usr/X11R6/lib/qt \
-										 /Developer/qt4/lib
+                     /Developer/qt4/lib
                      /Developer/qt/lib"
   else
     qt_library_dirs="$ac_qt_libraries"
   fi
 
   dnl for simplicity we simply go and check if
-	dnl we can find the QtCore library in one of
-	dnl our search pathes
+  dnl we can find the QtCore library in one of
+  dnl our search pathes
   ac_qt_libdir=""
   if test "$ac_qt_link_level" = "static"; then
-	  ac_qt_libname="libQtCore.a"
-		LIB_QT="$ac_qt_libname"
-	else
-		if test "$HOST_OS" = "Darwin"; then
-			ac_qt_libname="libQtCore.dylib"
-		else
-			ac_qt_libname="libQtCore.so"
-		fi
-		LIB_QT="-lQtCore"
-	fi
+    ac_qt_libname="libQtCore.a"
+    LIB_QT="$ac_qt_libname"
+  else
+    if test "$HOST_OS" = "Darwin"; then
+      ac_qt_libname="libQtCore.dylib"
+    else
+      ac_qt_libname="libQtCore.so"
+    fi
+    LIB_QT="-lQtCore"
+  fi
 
   for qt_dir in $qt_library_dirs; do
-		if test -r "$qt_dir/$ac_qt_libname"; then
+    if test -r "$qt_dir/$ac_qt_libname"; then
       ac_qt_libdir="$qt_dir"
       break;
     else
@@ -1545,8 +1545,8 @@ AC_DEFUN([AC_PATH_QT4_INC],
     if test -z "$qt_include_dirs"; then
       qt_include_dirs="\
         $QT4DIR/include \
-			  /usr/include/qt4/ \
-				/usr/local/qt4/include \
+        /usr/include/qt4/ \
+        /usr/local/qt4/include \
         /usr/lib/qt/include \
         /usr/include/qt \
         /usr/local/qt/include \
@@ -1559,7 +1559,7 @@ AC_DEFUN([AC_PATH_QT4_INC],
         /usr/X11/lib/qt/include"
     fi
 
-		dnl now we do check for the QtCore subdir and the Qt include
+    dnl now we do check for the QtCore subdir and the Qt include
     for qt_dir in $qt_include_dirs; do
       if test -r "$qt_dir/QtCore"; then
         if test -r "$qt_dir/QtCore/Qt"; then
@@ -1624,8 +1624,8 @@ AC_DEFUN([AC_PATH_QT4_QMAKE],
   fi
 
   dnl Check if we have the right qmake by outputing the version
-	dnl information
-	qmake_vers=`"$QMAKE_PATH" -v 2>&1 | grep "Qt version 4"`
+  dnl information
+  qmake_vers=`"$QMAKE_PATH" -v 2>&1 | grep "Qt version 4"`
   if test -z "$qmake_vers"; then
     AC_MSG_ERROR([didn't find the correct Qt4 version of qmake, Please use --with-qt4-qmake])
   fi

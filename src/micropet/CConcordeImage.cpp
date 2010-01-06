@@ -19,10 +19,10 @@
 //!
 ////////////////////////////////////////////////////////////////////////////////
 CConcordeImage::CConcordeImage(const QString& fileName)
-	: CConcordeFile(fileName)
+  : CConcordeFile(fileName)
 {
-	ENTER();
-	LEAVE();
+  ENTER();
+  LEAVE();
 }
 
 //  Class: CConcordeImage
@@ -33,8 +33,8 @@ CConcordeImage::CConcordeImage(const QString& fileName)
 ////////////////////////////////////////////////////////////////////////////////
 CConcordeImage::~CConcordeImage()
 {
-	ENTER();
-	LEAVE();
+  ENTER();
+  LEAVE();
 }
 
 //  Class: CConcordeImage
@@ -46,31 +46,31 @@ CConcordeImage::~CConcordeImage()
 ////////////////////////////////////////////////////////////////////////////////
 bool CConcordeImage::open(int mode)
 {
-	ENTER();
-	bool result = false;
+  ENTER();
+  bool result = false;
 
-	if(isOpen())
-	{
-		W("File is already opened");
-		result = false;
-	}
-	else
-	{
-		//initalise and load header
-		D("Creating headerobject");
-		m_pCachedMainHeader = new CConcordeMainHeaderImage(this);
-		D("Loading header information");
-		result = m_pCachedMainHeader->load();
+  if(isOpen())
+  {
+    W("File is already opened");
+    result = false;
+  }
+  else
+  {
+    //initalise and load header
+    D("Creating headerobject");
+    m_pCachedMainHeader = new CConcordeMainHeaderImage(this);
+    D("Loading header information");
+    result = m_pCachedMainHeader->load();
 
-		if(result)
-			if((result = QFile::open(mode)) == false)
-							QFile::close();
-	}
-	RETURN(result);
-	return result;
+    if(result)
+      if((result = QFile::open(mode)) == false)
+              QFile::close();
+  }
+  RETURN(result);
+  return result;
 }
 
 int CConcordeImage::fileType() const
 {
-	return CConcordeFile::ConcordeMicropet_Image;
+  return CConcordeFile::ConcordeMicropet_Image;
 }

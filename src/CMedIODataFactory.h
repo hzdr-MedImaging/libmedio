@@ -1,7 +1,7 @@
-/* vim:set ts=2 nowrap: ****************************************************
+/* vim:set ts=2 sw=2 expandtab: ********************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -46,14 +46,14 @@
 //! can be instancieted by this class.
 class CMedIODataFactory
 {
-	public:
-		//! @brief identifies fileformat and returns the type of it
-		static CMedIOData::Format identify(const QString& fileName);
+  public:
+    //! @brief identifies fileformat and returns the type of it
+    static CMedIOData::Format identify(const QString& fileName);
 
-		//! @brief identifies fileformat and constructs CMedIOData object
-		//! @param file: filename where medical data is located
-		//! @return CMedIOData object if format is known otherwise NULL
-		static CMedIOData* create(const QString& fileName);
+    //! @brief identifies fileformat and constructs CMedIOData object
+    //! @param file: filename where medical data is located
+    //! @return CMedIOData object if format is known otherwise NULL
+    static CMedIOData* create(const QString& fileName);
 };
 
 #endif

@@ -1,7 +1,7 @@
-/* vim:set ts=2 nowrap: ****************************************************
+/* vim:set ts=2 sw=2 expandtab: ********************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -51,68 +51,68 @@ class CConcordeFilePrivate;
 //! 
 class CConcordeFile : public CMedIOData
 {
-	public :
-		enum FileType 
-		{ 
-			Unknown = 0,
-			ConcordeMicropet_Image, 
-			ConcordeMicropet_Sinogram
-		};
+  public :
+    enum FileType 
+    { 
+      Unknown = 0,
+      ConcordeMicropet_Image, 
+      ConcordeMicropet_Sinogram
+    };
 
-		//! @brief constructor
-		//! @param file: complete path to file holding concorde microPET medical data
-		CConcordeFile(const QString& filename);
+    //! @brief constructor
+    //! @param file: complete path to file holding concorde microPET medical data
+    CConcordeFile(const QString& filename);
 
-		//! @brief destructor
-		virtual ~CConcordeFile();
+    //! @brief destructor
+    virtual ~CConcordeFile();
 
-		// copy constructur and default assignment operator
-		CConcordeFile(const CConcordeFile& src);		
-		CConcordeFile& operator=(const CConcordeFile& src);
-		
-		// static methods for the MedIOData interface
-		static bool isOfType(const QString& fileName);
-		static CMedIOData* createFromFile(const QString& fileName);
+    // copy constructur and default assignment operator
+    CConcordeFile(const CConcordeFile& src);    
+    CConcordeFile& operator=(const CConcordeFile& src);
+    
+    // static methods for the MedIOData interface
+    static bool isOfType(const QString& fileName);
+    static CMedIOData* createFromFile(const QString& fileName);
 
-		//! @brief loads a given file 
-		//! @return true if loading is succesful otherwise false
-		//bool open(int mode);
+    //! @brief loads a given file 
+    //! @return true if loading is succesful otherwise false
+    //bool open(int mode);
 
-		//! @brief saves the data  
-		//! @return true if saving is succesful otherwise false
-		void close();
+    //! @brief saves the data  
+    //! @return true if saving is succesful otherwise false
+    void close();
 
-		//! @brief reads the mainheader of the Concorde microPET file
-		//! @param mainHeader: Pointer to CHeaderConcorde object where mainheader should be stored to
-		//! @return true if reading is successful otherwise false
-		bool readMainHeader(CConcordeMainHeader*& mainHeader);
+    //! @brief reads the mainheader of the Concorde microPET file
+    //! @param mainHeader: Pointer to CHeaderConcorde object where mainheader should be stored to
+    //! @return true if reading is successful otherwise false
+    bool readMainHeader(CConcordeMainHeader*& mainHeader);
 
-		//! @brief reads the subheader of the Concorde microPET file
-		//! @param subHeader: Pointer to CHeaderConcordeFrame object where subheader should be stored to
-		//! @param frame: specify the frame - frame starts with 1 to number of frames in study
-		//! @return true if reading is successful otherwise false
-		bool readSubHeader(CConcordeFrameHeader*& subHeader, int frame);
+    //! @brief reads the subheader of the Concorde microPET file
+    //! @param subHeader: Pointer to CHeaderConcordeFrame object where subheader should be stored to
+    //! @param frame: specify the frame - frame starts with 1 to number of frames in study
+    //! @return true if reading is successful otherwise false
+    bool readSubHeader(CConcordeFrameHeader*& subHeader, int frame);
 
-		//! @brief run time typeinformation  
-		//! @return specific class type at runtime
-		int rtti() const;
+    //! @brief run time typeinformation  
+    //! @return specific class type at runtime
+    int rtti() const;
 
-		virtual int fileType() const = 0;
+    virtual int fileType() const = 0;
 
-		//! @brief checks format of file  
-		//! @return specific format or Unknown if unknown or error
-		static int isoftype(QString file);
+    //! @brief checks format of file  
+    //! @return specific format or Unknown if unknown or error
+    static int isoftype(QString file);
 
-		bool readMatrix(QByteArray*& matrixData, short frame);
-		bool readMatrix(QByteArray*& matrixData, CConcordeFrameHeader*& subHeader, short frame);
-		bool readMatrix(char*& matrixData, unsigned int& length, short frame);
-		bool readMatrix(char*& matrixData, unsigned int& length, CConcordeFrameHeader*& subHeader, short frame);
-		
-	protected :
-		CConcordeMainHeader* m_pCachedMainHeader;
+    bool readMatrix(QByteArray*& matrixData, short frame);
+    bool readMatrix(QByteArray*& matrixData, CConcordeFrameHeader*& subHeader, short frame);
+    bool readMatrix(char*& matrixData, unsigned int& length, short frame);
+    bool readMatrix(char*& matrixData, unsigned int& length, CConcordeFrameHeader*& subHeader, short frame);
+    
+  protected :
+    CConcordeMainHeader* m_pCachedMainHeader;
 
-	private:
-		CConcordeFilePrivate* m_pData;
+  private:
+    CConcordeFilePrivate* m_pData;
 };
 
 #endif

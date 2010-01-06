@@ -1,7 +1,7 @@
-/* vim:set ts=2 nowrap: ****************************************************
+/* vim:set ts=2 sw=2 expandtab: ********************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -36,63 +36,63 @@ class CECATFile;
 
 class Q_EXPORT CECATDirectory
 {
-	public:
-		// constructors		
-		CECATDirectory(CECATFile* ecatFile);
-		~CECATDirectory();
+  public:
+    // constructors    
+    CECATDirectory(CECATFile* ecatFile);
+    ~CECATDirectory();
 
-		// copy constructur and default assignment operator
-		CECATDirectory(const CECATDirectory& src);		
-		CECATDirectory& operator=(const CECATDirectory& src);	
+    // copy constructur and default assignment operator
+    CECATDirectory(const CECATDirectory& src);    
+    CECATDirectory& operator=(const CECATDirectory& src);  
 
-		// file i/o routines
-		bool load(void);
-		bool save(void) const;
+    // file i/o routines
+    bool load(void);
+    bool save(void) const;
 
-		// accessor methods
-		bool isEmpty() const;
-		unsigned int count() const;
-		CECATDirectoryItem* operator[](unsigned int num) const;
-		CECATDirectoryItem* item(short frame, short plane=1,
-														 short gate=1, short bed=0, short data=0);
+    // accessor methods
+    bool isEmpty() const;
+    unsigned int count() const;
+    CECATDirectoryItem* operator[](unsigned int num) const;
+    CECATDirectoryItem* item(short frame, short plane=1,
+                             short gate=1, short bed=0, short data=0);
 
-		// methods to calculate the real amount
-		// of frame/plane/gate numbers carried in the directory.
-		short numFrames(void) const;
-		short numPlanes(void) const;
-		short numGates(void) const;
-		short numBedPos(void) const;
+    // methods to calculate the real amount
+    // of frame/plane/gate numbers carried in the directory.
+    short numFrames(void) const;
+    short numPlanes(void) const;
+    short numGates(void) const;
+    short numBedPos(void) const;
 
-		// read methods
-		bool readSubHeader(CECATSubHeader*& subHeader,
-											 short frame, short plane=1, short gate=1, short bed=0, short data=0);
-		bool readMatrix(QByteArray*& matrixData,
-										short frame, short plane=1, short gate=1, short bed=0, short data=0);
-		bool readMatrix(char*& matrixData, unsigned int& len,
-										short frame, short plane=1, short gate=1, short bed=0, short data=0);
-		bool readMatrix(QByteArray*& matrixData, CECATSubHeader*& subHeader,
-										short frame, short plane=1, short gate=1, short bed=0, short data=0);
-		bool readMatrix(char*& matrixData, unsigned int& len, CECATSubHeader*& subHeader,
-										short frame, short plane=1, short gate=1, short bed=0, short data=0);	
-	
-		// write methods
-		bool writeSubHeader(const CECATSubHeader& subHeader,
-												short frame, short plane=1, short gate=1, short bed=0, short data=0);
-		bool writeMatrix(const QByteArray& matrix,
-										 short frame, short plane=1, short gate=1, short bed=0, short data=0);
-		bool writeMatrix(const char* matrix, unsigned int size,
-										 short frame, short plane=1, short gate=1, short bed=0, short data=0);
-		bool writeMatrix(const QByteArray& matrix, CECATSubHeader::Data_Type type,
-										 short frame, short plane=1, short gate=1, short bed=0, short data=0);
-		bool writeMatrix(const char* matrix, unsigned int size, CECATSubHeader::Data_Type type,
-										 short frame, short plane=1, short gate=1, short bed=0, short data=0);		
-		bool writeMatrix(const QByteArray& matrix, const CECATSubHeader& subHeader,
-										 short frame, short plane=1, short gate=1, short bed=0, short data=0);
-		bool writeMatrix(const char* matrix, unsigned int size, const CECATSubHeader& subHeader,
-										 short frame, short plane=1, short gate=1, short bed=0, short data=0);
+    // read methods
+    bool readSubHeader(CECATSubHeader*& subHeader,
+                       short frame, short plane=1, short gate=1, short bed=0, short data=0);
+    bool readMatrix(QByteArray*& matrixData,
+                    short frame, short plane=1, short gate=1, short bed=0, short data=0);
+    bool readMatrix(char*& matrixData, unsigned int& len,
+                    short frame, short plane=1, short gate=1, short bed=0, short data=0);
+    bool readMatrix(QByteArray*& matrixData, CECATSubHeader*& subHeader,
+                    short frame, short plane=1, short gate=1, short bed=0, short data=0);
+    bool readMatrix(char*& matrixData, unsigned int& len, CECATSubHeader*& subHeader,
+                    short frame, short plane=1, short gate=1, short bed=0, short data=0);  
+  
+    // write methods
+    bool writeSubHeader(const CECATSubHeader& subHeader,
+                        short frame, short plane=1, short gate=1, short bed=0, short data=0);
+    bool writeMatrix(const QByteArray& matrix,
+                     short frame, short plane=1, short gate=1, short bed=0, short data=0);
+    bool writeMatrix(const char* matrix, unsigned int size,
+                     short frame, short plane=1, short gate=1, short bed=0, short data=0);
+    bool writeMatrix(const QByteArray& matrix, CECATSubHeader::Data_Type type,
+                     short frame, short plane=1, short gate=1, short bed=0, short data=0);
+    bool writeMatrix(const char* matrix, unsigned int size, CECATSubHeader::Data_Type type,
+                     short frame, short plane=1, short gate=1, short bed=0, short data=0);    
+    bool writeMatrix(const QByteArray& matrix, const CECATSubHeader& subHeader,
+                     short frame, short plane=1, short gate=1, short bed=0, short data=0);
+    bool writeMatrix(const char* matrix, unsigned int size, const CECATSubHeader& subHeader,
+                     short frame, short plane=1, short gate=1, short bed=0, short data=0);
 
-	private:
-		CECATDirectoryPrivate* m_pData;
+  private:
+    CECATDirectoryPrivate* m_pData;
 };
 
 #endif // CECATDIRECTORY_H

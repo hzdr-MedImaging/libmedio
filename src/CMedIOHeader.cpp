@@ -1,7 +1,7 @@
-/* vim:set ts=2 nowrap: ****************************************************
+/* vim:set ts=2 sw=2 expandtab: ********************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -31,11 +31,11 @@
 #include <rtdebug.h>
 
 CMedIOHeader::CMedIOHeader(CMedIOData* data)
-	: m_pMedIOData(data)
+  : m_pMedIOData(data)
 { 
-	ENTER();
-	
-	LEAVE();
+  ENTER();
+  
+  LEAVE();
 }
 
 //  Class: CMedIOHeader
@@ -46,37 +46,37 @@ CMedIOHeader::CMedIOHeader(CMedIOData* data)
 ////////////////////////////////////////////////////////////////////////////////
 CMedIOHeader::~CMedIOHeader()
 {
-	ENTER();
-	LEAVE();
+  ENTER();
+  LEAVE();
 }
 
 CMedIOHeader::CMedIOHeader(const CMedIOHeader&)
-	: m_pMedIOData(NULL)
+  : m_pMedIOData(NULL)
 {
-	ENTER();
+  ENTER();
 
-	// do nothing
+  // do nothing
 
-	LEAVE();
+  LEAVE();
 }
 
 CMedIOHeader& CMedIOHeader::operator=(const CMedIOHeader& src)
 {
-	ENTER();
+  ENTER();
 
-	convertFrom(&src);
+  convertFrom(&src);
 
-	LEAVE();
-	return *this;
+  LEAVE();
+  return *this;
 }
 
 void CMedIOHeader::setMedIOData(CMedIOData* data)
 {
-	ENTER();
+  ENTER();
 
-	m_pMedIOData = data;
-	
-	LEAVE();
+  m_pMedIOData = data;
+  
+  LEAVE();
 }
 
 int CMedIOHeader::userRtti() const

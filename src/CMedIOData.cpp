@@ -1,7 +1,7 @@
-/* vim:set ts=2 nowrap: ****************************************************
+/* vim:set ts=2 sw=2 expandtab: ********************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -39,10 +39,10 @@
 //!
 ////////////////////////////////////////////////////////////////////////////////
 CMedIOData::CMedIOData(const QString& fileName)
-	: QFile(fileName)
+  : QFile(fileName)
 {
-	//m_pHeader = NULL;
-	m_iErrStatus = MERR_Ok;
+  //m_pHeader = NULL;
+  m_iErrStatus = MERR_Ok;
 }
 
 //  Class: CMedIOData
@@ -53,18 +53,18 @@ CMedIOData::CMedIOData(const QString& fileName)
 ////////////////////////////////////////////////////////////////////////////////
 CMedIOData::~CMedIOData()
 {
-	//if(m_pHeader)
-	//	delete m_pHeader;
+  //if(m_pHeader)
+  //  delete m_pHeader;
 }
 
 QString CMedIOData::fileName(void) const
 { 
-	return QFile::name();
+  return QFile::name();
 }
 
 //! @brief for querying error status information
 //! @return integer value for the specific error reason
 int CMedIOData::errorStatus(void) const
 { 
-	return m_iErrStatus;
+  return m_iErrStatus;
 }

@@ -1,7 +1,7 @@
-/* vim:set ts=2 nowrap: ****************************************************
+/* vim:set ts=2 sw=2 expandtab: ********************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -44,52 +44,52 @@ class CMedIOHeader;
 //! as a baseclass.
 class CMedIOData : public QFile
 {
-	public:
-		//! @enum enumeration of supported medical data formats
-		enum Format
-		{	
-			Unknown = 0,			//!< unknown data which is not supported
-			ConcordeMicropet,	//!< data produced by a concorde micropet scanner	
-			ECAT,							//!< ECAT6/7 format
-		};
+  public:
+    //! @enum enumeration of supported medical data formats
+    enum Format
+    {  
+      Unknown = 0,      //!< unknown data which is not supported
+      ConcordeMicropet,  //!< data produced by a concorde micropet scanner  
+      ECAT,              //!< ECAT6/7 format
+    };
 
-		//! @enum enumeration carrying special IO error codes which
-		//!       can be queried with the errorStatus() method.
-		enum errStatus 
-		{ 
-			MERR_Ok = 0,	//!< No Error
-			MERR_Unspecified = 1, //!< Some unspecified error occurred
-		};
+    //! @enum enumeration carrying special IO error codes which
+    //!       can be queried with the errorStatus() method.
+    enum errStatus 
+    { 
+      MERR_Ok = 0,  //!< No Error
+      MERR_Unspecified = 1, //!< Some unspecified error occurred
+    };
 
-		//! @brief constructor
-		//! @param file: complete path to file holding medical data
-		CMedIOData(const QString& filename);
+    //! @brief constructor
+    //! @param file: complete path to file holding medical data
+    CMedIOData(const QString& filename);
 
-		//! @brief destructor
-		virtual ~CMedIOData();
-			
-		//! @brief opens the file for a certain operation
-		//! @return true if loading is succesful otherwise false
-		virtual bool open(int mode) = 0;
-		
-		//! @brief saves the data  
-		//! @return true if saving is succesful otherwise false
-		virtual void close(void) = 0;
-		
-		//! @brief run time typeinformation  
-		//! @return specific class type at runtime
-		virtual int rtti() const = 0;
-		
-		//! @brief access to filename
-		//! @return filename of medical data file
-		QString fileName(void) const;
+    //! @brief destructor
+    virtual ~CMedIOData();
+      
+    //! @brief opens the file for a certain operation
+    //! @return true if loading is succesful otherwise false
+    virtual bool open(int mode) = 0;
+    
+    //! @brief saves the data  
+    //! @return true if saving is succesful otherwise false
+    virtual void close(void) = 0;
+    
+    //! @brief run time typeinformation  
+    //! @return specific class type at runtime
+    virtual int rtti() const = 0;
+    
+    //! @brief access to filename
+    //! @return filename of medical data file
+    QString fileName(void) const;
 
-		//! @brief for querying error status information
-		//! @return integer value for the specific error reason
-		int errorStatus(void) const;
+    //! @brief for querying error status information
+    //! @return integer value for the specific error reason
+    int errorStatus(void) const;
 
-	protected :
-		int	m_iErrStatus;  		//!< error status variable
+  protected :
+    int  m_iErrStatus;      //!< error status variable
 };
 
 #endif

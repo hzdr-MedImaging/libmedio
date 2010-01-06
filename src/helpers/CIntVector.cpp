@@ -4,14 +4,14 @@
 
 void CIntVector::parseKeyValue(QString KeyValue)
 {
-	int start_index = KeyValue.find(" ");
-	QString Value = KeyValue.right(KeyValue.length()-(start_index + 1));
-	D("String was : %s", Value.ascii());
-	append(Value.toInt());
+  int start_index = KeyValue.find(" ");
+  QString Value = KeyValue.right(KeyValue.length()-(start_index + 1));
+  D("String was : %s", Value.ascii());
+  append(Value.toInt());
 }
 
 void CIntVector::wrapper_parseKeyValue(void* p2Object, QString KeyValue)
 {
-	CIntVector* myself = (CIntVector*)p2Object;
-	myself->parseKeyValue(KeyValue);
+  CIntVector* myself = (CIntVector*)p2Object;
+  myself->parseKeyValue(KeyValue);
 }

@@ -1,7 +1,7 @@
-/* vim:set ts=2 nowrap: ****************************************************
+/* vim:set ts=2 sw=2 expandtab: ********************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004-2009 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -26,51 +26,51 @@
 
 unsigned int CMedIO::majorVersion()
 {
-	return QString(PACKAGE_VERSION).section('.', 0, 0).toUInt();
+  return QString(PACKAGE_VERSION).section('.', 0, 0).toUInt();
 }
 
 unsigned int CMedIO::minorVersion()
 {
-	return QString(PACKAGE_VERSION).section('.', 1, 1).toUInt();
+  return QString(PACKAGE_VERSION).section('.', 1, 1).toUInt();
 }
 
 unsigned int CMedIO::buildVersion()
 {
-	return QString(PACKAGE_VERSION).section('.', 2, 2).toUInt();
+  return QString(PACKAGE_VERSION).section('.', 2, 2).toUInt();
 }
 
 QString CMedIO::version()
 {
-	return QString(PACKAGE_VERSION);
+  return QString(PACKAGE_VERSION);
 }
 
 QString CMedIO::buildDate()
 {
-	return QString(__DATE__) + " " + QString(__TIME__);
+  return QString(__DATE__) + " " + QString(__TIME__);
 }
 
 QString CMedIO::copyright()
 {
-	return QString("Copyright (C) 2004-2009 by Jens Langner <Jens.Langner@light-speed.de>");
+  return QString("Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>");
 }
 
 unsigned int CMedIO::qtMajorVersion()
 {
-	return (QT_VERSION & 0xff0000)>>16;
+  return (QT_VERSION & 0xff0000)>>16;
 }
 
 unsigned int CMedIO::qtMinorVersion()
 {
-	return (QT_VERSION & 0x00ff00)>>8;
+  return (QT_VERSION & 0x00ff00)>>8;
 }
 
 unsigned int CMedIO::qtBuildVersion()
 {
-	return QT_VERSION & 0x0000ff;
+  return QT_VERSION & 0x0000ff;
 }
 
 QString CMedIO::qtVersion()
 {
-	return QString::number(qtMajorVersion()) + "." + QString::number(qtMinorVersion()) + "." + QString::number(qtBuildVersion());
+  return QString::number(qtMajorVersion()) + "." + QString::number(qtMinorVersion()) + "." + QString::number(qtBuildVersion());
 }
 
