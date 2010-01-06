@@ -22,8 +22,8 @@
 #****************************************************************************
 
 AC_PREREQ(2.57)
-AC_INIT(libmedio, 1.6.5, Jens.Langner@light-speed.de)
-AC_COPYRIGHT(Copyright (c) 2004-2009 by Jens Langner <Jens.Langner@light-speed.de>)
+AC_INIT(libmedio, 1.6.6, Jens.Langner@light-speed.de)
+AC_COPYRIGHT(Copyright (c) 2004-2010 by Jens Langner <Jens.Langner@light-speed.de>)
 AC_REVISION($Revision$)
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_HEADER([src/include/config.h])

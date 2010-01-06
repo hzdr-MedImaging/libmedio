@@ -730,7 +730,8 @@ bool CECATDirectoryItem::writeSubHeader(const CECATSubHeader& subHeader)
 	m_pData->cacheSubHeader(subHeader);
 
 	// now issue a write operation upon the cached subheader
-	result = m_pData->cachedSubHeader->save();
+  if(m_pData->cachedSubHeader != NULL) 
+	  result = m_pData->cachedSubHeader->save();
 
 	RETURN(result);
 	return result;
