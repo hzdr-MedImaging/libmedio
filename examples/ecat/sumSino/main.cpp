@@ -66,13 +66,13 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-	QString outfile;
-	if(args.contains("-o"))
+  QString outfile;
+  if(args.contains("-o"))
   {
-		outfile = args.value("-o");
+    outfile = args.value("-o");
     inputFileNames.removeAll(args.value("-o"));
   }
-	
+  
   if(inputFileNames.isEmpty())
   {
     cerr << "Error: No input file given!" << endl;
@@ -87,24 +87,24 @@ int main(int argc, char *argv[])
   }
 
   if(outfile.isEmpty())
-	{
-		outfile = inputFileNames[0];
-		outfile.insert(outfile.lastIndexOf("."),QString("_sum"));
-	}
+  {
+    outfile = inputFileNames[0];
+    outfile.insert(outfile.lastIndexOf("."),QString("_sum"));
+  }
 
   // check if outfile already exists
   if(args.contains("-f") == false)
   {
-	  QFileInfo fi(outfile);
-	  if(fi.exists())
-  	{
-    	cerr << "Error: output file already exists!" << endl;
-	    return 1;
-  	}
+    QFileInfo fi(outfile);
+    if(fi.exists())
+    {
+      cerr << "Error: output file already exists!" << endl;
+      return 1;
+    }
   }
 
   CIOTransform main(inputFileNames);
   main.setOutfile(outfile);
-	
+  
   return main.exec();
 }

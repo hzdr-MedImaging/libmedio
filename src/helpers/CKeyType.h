@@ -1,7 +1,7 @@
-/* vim:set ts=2 nowrap: ****************************************************
+/* vim:set ts=2 sw=2 expandtab: ********************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -26,26 +26,26 @@
 
 class CKeyType
 {
-	public:
+  public:
 
-		enum Type
-		{	
-			ASCII = 0,		
-			DOUBLE,
-			SHORT,
-			USHORT,	
-			INT,
-			UINT,
-			LONG,
-			ULONG,
-			FLOAT,
-			USEROBJECT
-		};
-	
-	protected:
+    enum Type
+    {  
+      ASCII = 0,    
+      DOUBLE,
+      SHORT,
+      USHORT,  
+      INT,
+      UINT,
+      LONG,
+      ULONG,
+      FLOAT,
+      USEROBJECT
+    };
+  
+  protected:
 
-	private:
-	
+  private:
+  
 };
 
 #endif

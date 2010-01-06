@@ -1,7 +1,7 @@
-/* vim:set ts=2 nowrap: ****************************************************
+/* vim:set ts=2 sw=2 expandtab: ********************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -46,23 +46,23 @@
 //! 
 class CConcordeImage : public CConcordeFile
 {
-	public:
-		//! @brief constructor
-		//! @param file: complete path to file holding concorde imagevolume
-		CConcordeImage(const QString& file);
-		
-		//! @brief destructor
-		~CConcordeImage();
-		
-		//! @brief run time typeinformation  
-		//! @return specific class type at runtime
-		int fileType() const;
+  public:
+    //! @brief constructor
+    //! @param file: complete path to file holding concorde imagevolume
+    CConcordeImage(const QString& file);
+    
+    //! @brief destructor
+    ~CConcordeImage();
+    
+    //! @brief run time typeinformation  
+    //! @return specific class type at runtime
+    int fileType() const;
 
-		//! @brief loads a given file
-		//! @return true if loading is succesful otherwise false
-		bool open(QIODevice::OpenModeFlag mode);
+    //! @brief loads a given file
+    //! @return true if loading is succesful otherwise false
+    bool open(QIODevice::OpenModeFlag mode);
 
-	private:
+  private:
 };
 
 #endif

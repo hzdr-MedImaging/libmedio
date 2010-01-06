@@ -1,7 +1,7 @@
-/* vim:set ts=2 nowrap: ****************************************************
+/* vim:set ts=2 sw=2 expandtab: ********************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -33,49 +33,49 @@
 
 class CKeyParser
 {
-	public:
-		//constructor
-		CKeyParser(){};		
-		//destructor
-		~CKeyParser(){};
-		//methods
-		void addKey(const QString& Key, QString* Value);
-		void addKey(const QString& Key, double* Value);
-		void addKey(const QString& Key, short* Value);
-		void addKey(const QString& Key, unsigned short* Value);
-		void addKey(const QString& Key, int* Value);
-		void addKey(const QString& Key, unsigned int* Value);
-		void addKey(const QString& Key, long* Value);
-		void addKey(const QString& Key, unsigned long* Value);
-		void addKey(const QString& Key, float* Value);
-		void addKey(const QString& Key, void* p2Object, void (*p2Function)(void* p2Object, QString KeyValue));
-		//void addKey(const QString& Key, void* variable, 
-		//	void* p2Object, void (*p2Function)(void* p2Object, void* variable, QString KeyValue));
+  public:
+    //constructor
+    CKeyParser(){};    
+    //destructor
+    ~CKeyParser(){};
+    //methods
+    void addKey(const QString& Key, QString* Value);
+    void addKey(const QString& Key, double* Value);
+    void addKey(const QString& Key, short* Value);
+    void addKey(const QString& Key, unsigned short* Value);
+    void addKey(const QString& Key, int* Value);
+    void addKey(const QString& Key, unsigned int* Value);
+    void addKey(const QString& Key, long* Value);
+    void addKey(const QString& Key, unsigned long* Value);
+    void addKey(const QString& Key, float* Value);
+    void addKey(const QString& Key, void* p2Object, void (*p2Function)(void* p2Object, QString KeyValue));
+    //void addKey(const QString& Key, void* variable, 
+    //  void* p2Object, void (*p2Function)(void* p2Object, void* variable, QString KeyValue));
 
-		bool parse(const QString Filename);
+    bool parse(const QString Filename);
 
-		void addSeparator(const QString Sep){Separators.append(Sep);};
-		void addComment(const QString Com){Comments.append(Com);};
-		void addStartSymbol(const QString Start){StartSymbols.append(Start);};
-		void addStopSymbol(const QString Stop){StopSymbols.append(Stop);};
+    void addSeparator(const QString Sep){Separators.append(Sep);};
+    void addComment(const QString Com){Comments.append(Com);};
+    void addStartSymbol(const QString Start){StartSymbols.append(Start);};
+    void addStopSymbol(const QString Stop){StopSymbols.append(Stop);};
 
-		void clearSeparators(){Separators.clear();};
-		void clearComments(){Comments.clear();};
-		void clearStartSymbols(){StartSymbols.clear();};
-		void clearStopSymbols(){StopSymbols.clear();};
-		
-	protected:
+    void clearSeparators(){Separators.clear();};
+    void clearComments(){Comments.clear();};
+    void clearStartSymbols(){StartSymbols.clear();};
+    void clearStopSymbols(){StopSymbols.clear();};
+    
+  protected:
 
-	private:
-		//members
-		QHash<QString, CKeyValue*> KeyDictionary;
-		QStringList Separators;
-		QStringList Comments;
-		QStringList StartSymbols;
-		QStringList StopSymbols;
+  private:
+    //members
+    QHash<QString, CKeyValue*> KeyDictionary;
+    QStringList Separators;
+    QStringList Comments;
+    QStringList StartSymbols;
+    QStringList StopSymbols;
 
-		//methods
-		bool processLine(QString& Line);
+    //methods
+    bool processLine(QString& Line);
 };
 
 #endif

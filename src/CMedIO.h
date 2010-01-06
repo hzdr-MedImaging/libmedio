@@ -1,7 +1,7 @@
-/* vim:set ts=2 nowrap: ****************************************************
+/* vim:set ts=2 sw=2 expandtab: ********************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -35,18 +35,18 @@
 //! @bug no bugs reported
 class CMedIO
 {
-	public:
-		static unsigned int majorVersion();
-		static unsigned int minorVersion();
-		static unsigned int buildVersion();
-		static QString version();
-		static QString buildDate();
-		static QString copyright();		
+  public:
+    static unsigned int majorVersion();
+    static unsigned int minorVersion();
+    static unsigned int buildVersion();
+    static QString version();
+    static QString buildDate();
+    static QString copyright();    
 
-		static unsigned int qtMajorVersion();
-		static unsigned int qtMinorVersion();
-		static unsigned int qtBuildVersion();
-		static QString qtVersion();
+    static unsigned int qtMajorVersion();
+    static unsigned int qtMinorVersion();
+    static unsigned int qtBuildVersion();
+    static QString qtVersion();
 };
 
 #endif // CMEDIO_H

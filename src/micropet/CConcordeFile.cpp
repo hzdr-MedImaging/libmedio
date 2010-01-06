@@ -1,7 +1,7 @@
-/* vim:set ts=2 nowrap: ****************************************************
+/* vim:set ts=2 sw=2 expandtab: ********************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -44,23 +44,23 @@
 
 class CConcordeFilePrivate
 {
-	public:
-		CIntVector frameOrder;
-		CConcordeFilePrivate(const QString& fileName);
-	
+  public:
+    CIntVector frameOrder;
+    CConcordeFilePrivate(const QString& fileName);
+  
 };
 
 CConcordeFilePrivate::CConcordeFilePrivate(const QString& fileName)
 {
-	ENTER();
-	//at first get frame order from header file
-	CKeyParser frameOrderParser;
-	frameOrderParser.addSeparator(" ");
-	frameOrderParser.addComment("#");
-	frameOrderParser.addKey("frame", &frameOrder, CIntVector::wrapper_parseKeyValue);	
-	if(!frameOrderParser.parse(fileName+".hdr"))
-		E("Error on parsing frame order from headerfile!");
-	LEAVE();
+  ENTER();
+  //at first get frame order from header file
+  CKeyParser frameOrderParser;
+  frameOrderParser.addSeparator(" ");
+  frameOrderParser.addComment("#");
+  frameOrderParser.addKey("frame", &frameOrder, CIntVector::wrapper_parseKeyValue);  
+  if(!frameOrderParser.parse(fileName+".hdr"))
+    E("Error on parsing frame order from headerfile!");
+  LEAVE();
 }
 
 //  Class: CConcordeFile
@@ -70,12 +70,12 @@ CConcordeFilePrivate::CConcordeFilePrivate(const QString& fileName)
 //!
 ////////////////////////////////////////////////////////////////////////////////
 CConcordeFile::CConcordeFile(const QString& fileName)
-	: CMedIOData(fileName),
-		m_pCachedMainHeader(NULL)
+  : CMedIOData(fileName),
+    m_pCachedMainHeader(NULL)
 {
-	ENTER();
-	m_pData = new CConcordeFilePrivate(fileName);
-	LEAVE();
+  ENTER();
+  m_pData = new CConcordeFilePrivate(fileName);
+  LEAVE();
 }
 
 //  Class: CConcordeFile
@@ -86,38 +86,38 @@ CConcordeFile::CConcordeFile(const QString& fileName)
 ////////////////////////////////////////////////////////////////////////////////
 CConcordeFile::~CConcordeFile()
 {
-	ENTER();
+  ENTER();
 
-	delete m_pCachedMainHeader;
-	
-	LEAVE();
+  delete m_pCachedMainHeader;
+  
+  LEAVE();
 }
 
 CConcordeFile::CConcordeFile(const CConcordeFile& src)
-	: CMedIOData(src.fileName())
+  : CMedIOData(src.fileName())
 {
-	ENTER();
+  ENTER();
 
-	// just set the cachedMainHeader pointer to NULL
-	m_pData = new CConcordeFilePrivate(src.fileName());
-	m_pCachedMainHeader = NULL;
+  // just set the cachedMainHeader pointer to NULL
+  m_pData = new CConcordeFilePrivate(src.fileName());
+  m_pCachedMainHeader = NULL;
 
-	LEAVE();
+  LEAVE();
 }
-	
+  
 CConcordeFile& CConcordeFile::operator=(const CConcordeFile&)
 {
-	ENTER();
+  ENTER();
 
-	// do nothing
+  // do nothing
 
-	LEAVE();
-	return *this;
+  LEAVE();
+  return *this;
 }
 
 int CConcordeFile::rtti() const 
 { 
-	return CMedIOData::ConcordeMicropet;
+  return CMedIOData::ConcordeMicropet;
 }
 
 //  Class: CConcordeFile
@@ -129,84 +129,84 @@ int CConcordeFile::rtti() const
 ////////////////////////////////////////////////////////////////////////////////
 void CConcordeFile::close()
 {
-	ENTER();
-	m_pCachedMainHeader->save();
-	delete m_pCachedMainHeader;
-	m_pCachedMainHeader = NULL;
-	QFile::close();
-	LEAVE();
-	return;
+  ENTER();
+  m_pCachedMainHeader->save();
+  delete m_pCachedMainHeader;
+  m_pCachedMainHeader = NULL;
+  QFile::close();
+  LEAVE();
+  return;
 }
 
 bool CConcordeFile::readMainHeader(CConcordeMainHeader*& mainHeader)
 {
-	ENTER();
-	bool result = false;
-	if(!isOpen())
-	{
-		E("Can not read mainheader if file is closed");
-		result = false;
-		mainHeader = NULL;
-	}
-	else
-	{
-		D("Trying to read main header"); 
-		//delete mainHeader;
-		switch(m_pCachedMainHeader->fileType())
-		{
-			case CConcordeMainHeader::Sinogram:
-			case CConcordeMainHeader::Normalization:
-			case CConcordeMainHeader::Attenuation:
-			{
-				D("Setting new sinogram");
-				mainHeader = new CConcordeMainHeaderSinogram(this);//(fileName() + ".hdr");
-				result = true;
-			}
-			break;
-			case CConcordeMainHeader::Image:
-			case CConcordeMainHeader::MuMap:
-			{
-				//#warning "filename is wrong but not used"
-				D("Setting new image");
-				mainHeader = new CConcordeMainHeaderImage(this);//(fileName() + ".hdr");
-				result = true;
-			}
-			break;
-			default:
-			{
-				E("File type is not yet supported");
-				result = false;
-			}
-			break;
-		}
-		if(result)
-				*mainHeader = *m_pCachedMainHeader;
-	}
-	RETURN(result);
-	return result;
+  ENTER();
+  bool result = false;
+  if(!isOpen())
+  {
+    E("Can not read mainheader if file is closed");
+    result = false;
+    mainHeader = NULL;
+  }
+  else
+  {
+    D("Trying to read main header"); 
+    //delete mainHeader;
+    switch(m_pCachedMainHeader->fileType())
+    {
+      case CConcordeMainHeader::Sinogram:
+      case CConcordeMainHeader::Normalization:
+      case CConcordeMainHeader::Attenuation:
+      {
+        D("Setting new sinogram");
+        mainHeader = new CConcordeMainHeaderSinogram(this);//(fileName() + ".hdr");
+        result = true;
+      }
+      break;
+      case CConcordeMainHeader::Image:
+      case CConcordeMainHeader::MuMap:
+      {
+        //#warning "filename is wrong but not used"
+        D("Setting new image");
+        mainHeader = new CConcordeMainHeaderImage(this);//(fileName() + ".hdr");
+        result = true;
+      }
+      break;
+      default:
+      {
+        E("File type is not yet supported");
+        result = false;
+      }
+      break;
+    }
+    if(result)
+        *mainHeader = *m_pCachedMainHeader;
+  }
+  RETURN(result);
+  return result;
 }
 
 bool CConcordeFile::readSubHeader(CConcordeFrameHeader*& subHeader, int frame)
 {
-	ENTER();
-	bool result = false;
-	if(!isOpen())
-	{
-		W("Can not read mainheader if file is closed");
-		result = false;
-		subHeader = NULL;
-	}
-	else
-	{
-		//TODO: check if frame is in between 1 and number of frames in study
-		W("TODO: check if frame is in between 1 and number of frames in study");
-		//subHeader = new CConcordeFrameHeader(this, frame-1);
-		subHeader = new CConcordeFrameHeader(this, m_pData->frameOrder[frame-1]);
-		if(subHeader)
-			result = true;
-	}
-	RETURN(result);
-	return result;
+  ENTER();
+  bool result = false;
+  if(!isOpen())
+  {
+    W("Can not read mainheader if file is closed");
+    result = false;
+    subHeader = NULL;
+  }
+  else
+  {
+    //TODO: check if frame is in between 1 and number of frames in study
+    W("TODO: check if frame is in between 1 and number of frames in study");
+    //subHeader = new CConcordeFrameHeader(this, frame-1);
+    subHeader = new CConcordeFrameHeader(this, m_pData->frameOrder[frame-1]);
+    if(subHeader)
+      result = true;
+  }
+  RETURN(result);
+  return result;
 }
 
 //  Class: CConcordeFile
@@ -218,136 +218,136 @@ bool CConcordeFile::readSubHeader(CConcordeFrameHeader*& subHeader, int frame)
 ////////////////////////////////////////////////////////////////////////////////
 int CConcordeFile::isoftype(QString file)
 {
-	//try to initialise the header 
-	//check if it is a CConcordeFile
-	//return the specific type
-	//return CData::Unknwon - if it is not a concorde type 
-	ENTER();
-	D("Check if file is a specific concorde file");
-	// try to get Headerinfo on Sinogramfile
-	QString hfile(file+".hdr");
+  //try to initialise the header 
+  //check if it is a CConcordeFile
+  //return the specific type
+  //return CData::Unknwon - if it is not a concorde type 
+  ENTER();
+  D("Check if file is a specific concorde file");
+  // try to get Headerinfo on Sinogramfile
+  QString hfile(file+".hdr");
 
-	CConcordeMainHeaderSinogram head(file+".hdr");
+  CConcordeMainHeaderSinogram head(file+".hdr");
 
-	int result = 0;
-	//file type = 2 -> Sinogram
-	//file type = 3 -> Normalisation
-	//file type = 4 -> Attenuation (transmission)
-	//file type = 5 -> Image
-	//file type = 8 -> Mu map ( also image )
-	// since attenuationfile/Normalisation is a sinogram we could define it as one 
-	switch(head.fileType())
-	{
-		case CConcordeMainHeader::Sinogram:
-		case CConcordeMainHeader::Normalization:
-		case CConcordeMainHeader::Attenuation:
-		{
-			D("File is a concorde sinogram");
-			result = CConcordeFile::ConcordeMicropet_Sinogram;
-		}
-		break;
-		case CConcordeMainHeader::Image:
-		case CConcordeMainHeader::MuMap:
-		{
-			D("File is an concorde image");
-			result = CConcordeFile::ConcordeMicropet_Image;
-		}
-		break;
-		default:
-		{
-			D("File is not from Concorde");
-			result = CConcordeFile::Unknown;
-		}
-	}
+  int result = 0;
+  //file type = 2 -> Sinogram
+  //file type = 3 -> Normalisation
+  //file type = 4 -> Attenuation (transmission)
+  //file type = 5 -> Image
+  //file type = 8 -> Mu map ( also image )
+  // since attenuationfile/Normalisation is a sinogram we could define it as one 
+  switch(head.fileType())
+  {
+    case CConcordeMainHeader::Sinogram:
+    case CConcordeMainHeader::Normalization:
+    case CConcordeMainHeader::Attenuation:
+    {
+      D("File is a concorde sinogram");
+      result = CConcordeFile::ConcordeMicropet_Sinogram;
+    }
+    break;
+    case CConcordeMainHeader::Image:
+    case CConcordeMainHeader::MuMap:
+    {
+      D("File is an concorde image");
+      result = CConcordeFile::ConcordeMicropet_Image;
+    }
+    break;
+    default:
+    {
+      D("File is not from Concorde");
+      result = CConcordeFile::Unknown;
+    }
+  }
 
-	RETURN(result);
-	return result;
+  RETURN(result);
+  return result;
 }
 
 CMedIOData* CConcordeFile::createFromFile(const QString& fileName)
 {
-	ENTER();
-	CMedIOData* data = NULL;	
-	switch(CConcordeFile::isoftype(fileName))
-	{
-		case CConcordeFile::ConcordeMicropet_Sinogram:
-		{
-			D("Creating concorde microPET sinogram");
-			data = new CConcordeSinogram(fileName);
-			if(data == NULL) 
-				D("An error occured when creating sinogram");
-			else
-				D("Done with creating sinogram");
-		}
-		break;
-		case CConcordeFile::ConcordeMicropet_Image:
-		{
-			D("Creating concorde microPET image");
-			data = new CConcordeImage(fileName);
-			if(data == NULL) 
-				D("An error occured when creating image");
-			else
-				D("Done with creating image");
-		}
-		break;
-		default:
-		data = NULL;
-	}
+  ENTER();
+  CMedIOData* data = NULL;  
+  switch(CConcordeFile::isoftype(fileName))
+  {
+    case CConcordeFile::ConcordeMicropet_Sinogram:
+    {
+      D("Creating concorde microPET sinogram");
+      data = new CConcordeSinogram(fileName);
+      if(data == NULL) 
+        D("An error occured when creating sinogram");
+      else
+        D("Done with creating sinogram");
+    }
+    break;
+    case CConcordeFile::ConcordeMicropet_Image:
+    {
+      D("Creating concorde microPET image");
+      data = new CConcordeImage(fileName);
+      if(data == NULL) 
+        D("An error occured when creating image");
+      else
+        D("Done with creating image");
+    }
+    break;
+    default:
+    data = NULL;
+  }
 
-	RETURN(data);
-	return data;
+  RETURN(data);
+  return data;
 }
 
 bool CConcordeFile::readMatrix(QByteArray*& matrixData, short frame)
 {
-		ENTER();
-		bool result = false;
-		matrixData = NULL;
-		if(isOpen())
-		{
-				char* pTmp = NULL;
-				unsigned int iFrameSize = 0;
-				if(readMatrix(pTmp, iFrameSize, frame))
-				{
-						result = true;
-						matrixData = new QByteArray(pTmp, iFrameSize);
-						delete [] pTmp;
-				}
-		}
-		RETURN(result);
-		return result;
+    ENTER();
+    bool result = false;
+    matrixData = NULL;
+    if(isOpen())
+    {
+        char* pTmp = NULL;
+        unsigned int iFrameSize = 0;
+        if(readMatrix(pTmp, iFrameSize, frame))
+        {
+            result = true;
+            matrixData = new QByteArray(pTmp, iFrameSize);
+            delete [] pTmp;
+        }
+    }
+    RETURN(result);
+    return result;
 }
 
 bool CConcordeFile::readMatrix(QByteArray*& matrixData, CConcordeFrameHeader*& subHeader, short frame)
 {
-		ENTER();
-		bool result = false;
-		matrixData = NULL;
-		if(isOpen())
-				if(readSubHeader(subHeader, frame))
-				{
-						char* pTmp = matrixData->data();
-						unsigned int iFrameSize = 0;
-						if(readMatrix(pTmp, iFrameSize, frame))
-						{
-								result = true;
-								matrixData = new QByteArray(pTmp, iFrameSize);
-						}
-				}
-		RETURN(result);
-		return result;
+    ENTER();
+    bool result = false;
+    matrixData = NULL;
+    if(isOpen())
+        if(readSubHeader(subHeader, frame))
+        {
+            char* pTmp = matrixData->data();
+            unsigned int iFrameSize = 0;
+            if(readMatrix(pTmp, iFrameSize, frame))
+            {
+                result = true;
+                matrixData = new QByteArray(pTmp, iFrameSize);
+            }
+        }
+    RETURN(result);
+    return result;
 }
 
 bool CConcordeFile::readMatrix(char*& matrixData, unsigned int& length, CConcordeFrameHeader*& subHeader, short frame)
 {
-		ENTER();
-		bool result = false;
-		if(isOpen())
-				if(readSubHeader(subHeader, frame))
-						if(readMatrix(matrixData, length, frame))
-								result = true;
-		RETURN(result);
-		return result;
+    ENTER();
+    bool result = false;
+    if(isOpen())
+        if(readSubHeader(subHeader, frame))
+            if(readMatrix(matrixData, length, frame))
+                result = true;
+    RETURN(result);
+    return result;
 }
 
 //  Class: CConcordeFile
@@ -361,289 +361,289 @@ bool CConcordeFile::readMatrix(char*& matrixData, unsigned int& length, CConcord
 ////////////////////////////////////////////////////////////////////////////////
 bool CConcordeFile::readMatrix(char*& matrixData, unsigned int& length, short frame)
 {
-	ENTER();
-	bool result = true;
+  ENTER();
+  bool result = true;
 
-	//clean up
-	//if(matrixData)
-	//		delete matrixData;
-	//matrixData = NULL;
-	
-	//check if file is open
-	if(!isOpen())
-	{
-		result = false;
-	}
-	else
-	{
-		//check if header is from Concorde
-		//if(m_pCachedMainHeader->headerFormat() == CMedIOHeader::ConcordeMicropet)
-		{
-			
-			CConcordeMainHeader* head = m_pCachedMainHeader;
-			 
-			unsigned int framesize = m_pCachedMainHeader->frameSize();
-			length = framesize;
+  //clean up
+  //if(matrixData)
+  //    delete matrixData;
+  //matrixData = NULL;
+  
+  //check if file is open
+  if(!isOpen())
+  {
+    result = false;
+  }
+  else
+  {
+    //check if header is from Concorde
+    //if(m_pCachedMainHeader->headerFormat() == CMedIOHeader::ConcordeMicropet)
+    {
+      
+      CConcordeMainHeader* head = m_pCachedMainHeader;
+       
+      unsigned int framesize = m_pCachedMainHeader->frameSize();
+      length = framesize;
 
-			//matrixData = new QByteArray(framesize, 0);
-			matrixData = new char[framesize];//matrixData->data();
-	
-			
-			//check if desired frame exists
-			int totalframes = head->totalFrames();
-			if(frame > totalframes)
-			{
-				//throw exception if frame out of range
-				result = false;
-			}
-			else
-			{
-				//set readpointer to appropriate frame
-				if((result = seek(((qint64)(frame-1))*framesize)))
-				{
-					//get byte order from header and set it in datastream
-					switch(head->dataType())
-					{
-						case CConcordeMainHeader::UnknownDataType:
-						{
-							W("No or an unknown data type");
-							QFile::read(matrixData, framesize);	
-						}
-						break;
-						case CConcordeMainHeader::Byte:
-						{
-							// we use the RawBytes() method here.
-							QFile::read(matrixData, framesize);
-						}
-						break;
-						// IntelShort is a little endian short value, so we
-						// need to set the stream to little endian, read the data via the
-						// QDataStream operators to ensure correct byte swapping
-						case CConcordeMainHeader::IntelShort:
-						{
-							QByteArray bufArray(READ_SIZE, 0);
-							quint16* ptr = (quint16*)matrixData;
-							for(unsigned int read=0; read < framesize;)
-							{
-								unsigned int toRead = framesize-read >= READ_SIZE ? READ_SIZE : framesize-read;
-								unsigned int curRead = QFile::read(bufArray.data(), toRead);
-								
-								if(curRead != toRead)
-								{
-									result = false;
-									break;
-								}
-								
-								// check if the curRead value is divide able through our data type 
-								ASSERT(curRead % sizeof(quint16) == 0);
-								
-								QDataStream bufStream(bufArray);
-								bufStream.setByteOrder(QDataStream::LittleEndian);
-								for(unsigned int i=0; i < curRead; i+=sizeof(quint16))
-								{
-									bufStream >> *ptr;
-									++ptr;
-								}
-								bufStream.setByteOrder(QDataStream::BigEndian);
-		
-								// increase our read counter
-								read += curRead;
-							}	
-						}
-						break;
-						// IntelInt is a little endian 4byte integer value, so we
-						// need to set the stream to little endian, read the data via the
-						// QDataStream operators to ensure correct byte swapping
-						case CConcordeMainHeader::IntelInt:
-						{
-							D("DataType is : little endian integer");
-							D("FrameSize : %d", framesize);
-							QByteArray bufArray(READ_SIZE, 0);
-							quint32* ptr = (quint32*)matrixData;
-							for(unsigned int read=0; read < framesize;)
-							{
-								unsigned int toRead = framesize-read >= READ_SIZE ? READ_SIZE : framesize-read;
-								unsigned int curRead = QFile::read(bufArray.data(), toRead);
-								
-								if(curRead != toRead)
-								{
-									result = false;
-									break;
-								}
-								
-								// check if the curRead value is divide able through our data type 
-								ASSERT(curRead % sizeof(quint32) == 0);
-								
-								QDataStream bufStream(bufArray);
-								bufStream.setByteOrder(QDataStream::LittleEndian);
-								for(unsigned int i=0; i < curRead; i+=sizeof(quint32))
-								{
-									bufStream >> *ptr;
-									++ptr;
-								}
-								bufStream.setByteOrder(QDataStream::BigEndian);
-		
-								// increase our read counter
-								read += curRead;
-							}
-						}
-						break;
-						// IntelFloat is a little endian float value, so we
-						// need to set the stream to little endian, read the data via the
-						// QDataStream operators to ensure correct byte swapping			
-						case CConcordeMainHeader::IntelFloat:
-						{
-							D("DataType is : little endian float");
-							D("FrameSize : %d", framesize);
-							QByteArray bufArray(READ_SIZE, 0);
-							float* ptr = (float*)matrixData;
-							for(unsigned int read=0; read < framesize;)
-							{
-								unsigned int toRead = framesize-read >= READ_SIZE ? READ_SIZE : framesize-read;
-								unsigned int curRead = QFile::read(bufArray.data(), toRead);
-								
-								if(curRead != toRead)
-								{
-									result = false;
-									break;
-								}
-								
-								// check if the curRead value is divide able through our data type 
-								ASSERT(curRead % sizeof(float) == 0);
-								
-								QDataStream bufStream(bufArray);
-								bufStream.setByteOrder(QDataStream::LittleEndian);
-								for(unsigned int i=0; i < curRead; i+=sizeof(float))
-								{
-									bufStream >> *ptr;
-									++ptr;
-								}
-								bufStream.setByteOrder(QDataStream::BigEndian);
-		
-								// increase our read counter
-								read += curRead;
-							}
-						}
-						break;
-						// IEEEFloat is defined to be a big endian float value. As the QDataStream
-						// is per default big endian, we don't have to set it to another byte order
-						// and just use the QDataStream operators to ensure correct byte swapping
-						case CConcordeMainHeader::IEEEFloat:
-						{
-							QByteArray bufArray(READ_SIZE, 0);
-							float* ptr = (float*)matrixData;
-							for(unsigned int read=0; read < framesize;)
-							{
-								unsigned int toRead = framesize-read >= READ_SIZE ? READ_SIZE : framesize-read;
-								unsigned int curRead = QFile::read(bufArray.data(), toRead);
-								
-								if(curRead != toRead)
-								{
-									result = false;
-									break;
-								}
-								
-								// check if the curRead value is divide able through our data type 
-								ASSERT(curRead % sizeof(float) == 0);
-								
-								QDataStream bufStream(bufArray);
-								for(unsigned int i=0; i < curRead; i+=sizeof(float))
-								{
-									bufStream >> *ptr;
-									++ptr;
-								}
-		
-								// increase our read counter
-								read += curRead;
-							}
-						}
-						break;
-						// SunShort is defined to be a big endian short value. As the QDataStream
-						// is per default big endian, we don't have to set it to another byte order
-						// and just use the QDataStream operators to ensure correct byte swapping
-						case CConcordeMainHeader::SunShort:
-						{
-							QByteArray bufArray(READ_SIZE, 0);
-							quint16* ptr = (quint16*)matrixData;
-							for(unsigned int read=0; read < framesize;)
-							{
-								unsigned int toRead = framesize-read >= READ_SIZE ? READ_SIZE : framesize-read;
-								unsigned int curRead = QFile::read(bufArray.data(), toRead);
-								
-								if(curRead != toRead)
-								{
-									result = false;
-									break;
-								}
-								
-								// check if the curRead value is divide able through our data type 
-								ASSERT(curRead % sizeof(quint16) == 0);
-								
-								QDataStream bufStream(bufArray);
-								for(unsigned int i=0; i < curRead; i+=sizeof(quint16))
-								{
-									bufStream >> *ptr;
-									++ptr;
-								}
-		
-								// increase our read counter
-								read += curRead;
-							}
-						}
-						break;
-						// SunInt is defined to be a big endian 4byte integer value. As the QDataStream
-						// is per default big endian, we don't have to set it to another byte order
-						// and just use the QDataStream operators to ensure correct byte swapping
-						case CConcordeMainHeader::SunInt:
-						{
-							QByteArray bufArray(READ_SIZE, 0);
-							quint32* ptr = (quint32*)matrixData;
-							for(unsigned int read=0; read < framesize;)
-							{
-								unsigned int toRead = framesize-read >= READ_SIZE ? READ_SIZE : framesize-read;
-								unsigned int curRead = QFile::read(bufArray.data(), toRead);
-								
-								if(curRead != toRead)
-								{
-									result = false;
-									break;
-								}
-								
-								// check if the curRead value is divide able through our data type 
-								ASSERT(curRead % sizeof(quint32) == 0);
-								
-								QDataStream bufStream(bufArray);
-								for(unsigned int i=0; i < curRead; i+=sizeof(quint32))
-								{
-									bufStream >> *ptr;
-									++ptr;
-								}
-		
-								// increase our read counter
-								read += curRead;
-							}
-						}
-						break;
-					}
-				}
-				else
-				{
-					E("Error when seeking frame: %d at filepos: %lld", frame, ((qint64)(frame-1))*framesize);
-				}
-			}
+      //matrixData = new QByteArray(framesize, 0);
+      matrixData = new char[framesize];//matrixData->data();
+  
+      
+      //check if desired frame exists
+      int totalframes = head->totalFrames();
+      if(frame > totalframes)
+      {
+        //throw exception if frame out of range
+        result = false;
+      }
+      else
+      {
+        //set readpointer to appropriate frame
+        if((result = seek(((qint64)(frame-1))*framesize)))
+        {
+          //get byte order from header and set it in datastream
+          switch(head->dataType())
+          {
+            case CConcordeMainHeader::UnknownDataType:
+            {
+              W("No or an unknown data type");
+              QFile::read(matrixData, framesize);  
+            }
+            break;
+            case CConcordeMainHeader::Byte:
+            {
+              // we use the RawBytes() method here.
+              QFile::read(matrixData, framesize);
+            }
+            break;
+            // IntelShort is a little endian short value, so we
+            // need to set the stream to little endian, read the data via the
+            // QDataStream operators to ensure correct byte swapping
+            case CConcordeMainHeader::IntelShort:
+            {
+              QByteArray bufArray(READ_SIZE, 0);
+              quint16* ptr = (quint16*)matrixData;
+              for(unsigned int read=0; read < framesize;)
+              {
+                unsigned int toRead = framesize-read >= READ_SIZE ? READ_SIZE : framesize-read;
+                unsigned int curRead = QFile::read(bufArray.data(), toRead);
+                
+                if(curRead != toRead)
+                {
+                  result = false;
+                  break;
+                }
+                
+                // check if the curRead value is divide able through our data type 
+                ASSERT(curRead % sizeof(quint16) == 0);
+                
+                QDataStream bufStream(bufArray);
+                bufStream.setByteOrder(QDataStream::LittleEndian);
+                for(unsigned int i=0; i < curRead; i+=sizeof(quint16))
+                {
+                  bufStream >> *ptr;
+                  ++ptr;
+                }
+                bufStream.setByteOrder(QDataStream::BigEndian);
+    
+                // increase our read counter
+                read += curRead;
+              }  
+            }
+            break;
+            // IntelInt is a little endian 4byte integer value, so we
+            // need to set the stream to little endian, read the data via the
+            // QDataStream operators to ensure correct byte swapping
+            case CConcordeMainHeader::IntelInt:
+            {
+              D("DataType is : little endian integer");
+              D("FrameSize : %d", framesize);
+              QByteArray bufArray(READ_SIZE, 0);
+              quint32* ptr = (quint32*)matrixData;
+              for(unsigned int read=0; read < framesize;)
+              {
+                unsigned int toRead = framesize-read >= READ_SIZE ? READ_SIZE : framesize-read;
+                unsigned int curRead = QFile::read(bufArray.data(), toRead);
+                
+                if(curRead != toRead)
+                {
+                  result = false;
+                  break;
+                }
+                
+                // check if the curRead value is divide able through our data type 
+                ASSERT(curRead % sizeof(quint32) == 0);
+                
+                QDataStream bufStream(bufArray);
+                bufStream.setByteOrder(QDataStream::LittleEndian);
+                for(unsigned int i=0; i < curRead; i+=sizeof(quint32))
+                {
+                  bufStream >> *ptr;
+                  ++ptr;
+                }
+                bufStream.setByteOrder(QDataStream::BigEndian);
+    
+                // increase our read counter
+                read += curRead;
+              }
+            }
+            break;
+            // IntelFloat is a little endian float value, so we
+            // need to set the stream to little endian, read the data via the
+            // QDataStream operators to ensure correct byte swapping      
+            case CConcordeMainHeader::IntelFloat:
+            {
+              D("DataType is : little endian float");
+              D("FrameSize : %d", framesize);
+              QByteArray bufArray(READ_SIZE, 0);
+              float* ptr = (float*)matrixData;
+              for(unsigned int read=0; read < framesize;)
+              {
+                unsigned int toRead = framesize-read >= READ_SIZE ? READ_SIZE : framesize-read;
+                unsigned int curRead = QFile::read(bufArray.data(), toRead);
+                
+                if(curRead != toRead)
+                {
+                  result = false;
+                  break;
+                }
+                
+                // check if the curRead value is divide able through our data type 
+                ASSERT(curRead % sizeof(float) == 0);
+                
+                QDataStream bufStream(bufArray);
+                bufStream.setByteOrder(QDataStream::LittleEndian);
+                for(unsigned int i=0; i < curRead; i+=sizeof(float))
+                {
+                  bufStream >> *ptr;
+                  ++ptr;
+                }
+                bufStream.setByteOrder(QDataStream::BigEndian);
+    
+                // increase our read counter
+                read += curRead;
+              }
+            }
+            break;
+            // IEEEFloat is defined to be a big endian float value. As the QDataStream
+            // is per default big endian, we don't have to set it to another byte order
+            // and just use the QDataStream operators to ensure correct byte swapping
+            case CConcordeMainHeader::IEEEFloat:
+            {
+              QByteArray bufArray(READ_SIZE, 0);
+              float* ptr = (float*)matrixData;
+              for(unsigned int read=0; read < framesize;)
+              {
+                unsigned int toRead = framesize-read >= READ_SIZE ? READ_SIZE : framesize-read;
+                unsigned int curRead = QFile::read(bufArray.data(), toRead);
+                
+                if(curRead != toRead)
+                {
+                  result = false;
+                  break;
+                }
+                
+                // check if the curRead value is divide able through our data type 
+                ASSERT(curRead % sizeof(float) == 0);
+                
+                QDataStream bufStream(bufArray);
+                for(unsigned int i=0; i < curRead; i+=sizeof(float))
+                {
+                  bufStream >> *ptr;
+                  ++ptr;
+                }
+    
+                // increase our read counter
+                read += curRead;
+              }
+            }
+            break;
+            // SunShort is defined to be a big endian short value. As the QDataStream
+            // is per default big endian, we don't have to set it to another byte order
+            // and just use the QDataStream operators to ensure correct byte swapping
+            case CConcordeMainHeader::SunShort:
+            {
+              QByteArray bufArray(READ_SIZE, 0);
+              quint16* ptr = (quint16*)matrixData;
+              for(unsigned int read=0; read < framesize;)
+              {
+                unsigned int toRead = framesize-read >= READ_SIZE ? READ_SIZE : framesize-read;
+                unsigned int curRead = QFile::read(bufArray.data(), toRead);
+                
+                if(curRead != toRead)
+                {
+                  result = false;
+                  break;
+                }
+                
+                // check if the curRead value is divide able through our data type 
+                ASSERT(curRead % sizeof(quint16) == 0);
+                
+                QDataStream bufStream(bufArray);
+                for(unsigned int i=0; i < curRead; i+=sizeof(quint16))
+                {
+                  bufStream >> *ptr;
+                  ++ptr;
+                }
+    
+                // increase our read counter
+                read += curRead;
+              }
+            }
+            break;
+            // SunInt is defined to be a big endian 4byte integer value. As the QDataStream
+            // is per default big endian, we don't have to set it to another byte order
+            // and just use the QDataStream operators to ensure correct byte swapping
+            case CConcordeMainHeader::SunInt:
+            {
+              QByteArray bufArray(READ_SIZE, 0);
+              quint32* ptr = (quint32*)matrixData;
+              for(unsigned int read=0; read < framesize;)
+              {
+                unsigned int toRead = framesize-read >= READ_SIZE ? READ_SIZE : framesize-read;
+                unsigned int curRead = QFile::read(bufArray.data(), toRead);
+                
+                if(curRead != toRead)
+                {
+                  result = false;
+                  break;
+                }
+                
+                // check if the curRead value is divide able through our data type 
+                ASSERT(curRead % sizeof(quint32) == 0);
+                
+                QDataStream bufStream(bufArray);
+                for(unsigned int i=0; i < curRead; i+=sizeof(quint32))
+                {
+                  bufStream >> *ptr;
+                  ++ptr;
+                }
+    
+                // increase our read counter
+                read += curRead;
+              }
+            }
+            break;
+          }
+        }
+        else
+        {
+          E("Error when seeking frame: %d at filepos: %lld", frame, ((qint64)(frame-1))*framesize);
+        }
+      }
 
-			if(!result)
-			{
-				delete matrixData;
-				matrixData = NULL;
-			}
-			//else
-			//{
-			//	matrixData = new QByteArray();
-			//	matrixData->setRawData(data, framesize);
-			//}
-		}
-	}
-	RETURN(result);
-	return result;
+      if(!result)
+      {
+        delete matrixData;
+        matrixData = NULL;
+      }
+      //else
+      //{
+      //  matrixData = new QByteArray();
+      //  matrixData->setRawData(data, framesize);
+      //}
+    }
+  }
+  RETURN(result);
+  return result;
 }

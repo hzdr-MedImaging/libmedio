@@ -1,7 +1,7 @@
-/* vim:set ts=2 nowrap: ****************************************************
+/* vim:set ts=2 sw=2 expandtab: ********************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -27,41 +27,41 @@
 #include <rtdebug.h>
 
 CECATSubHeader::CECATSubHeader(CMedIOData* ecatFile,
-															 CECATDirectoryItem* dItem)
-	: CMedIOHeader(ecatFile),
-		m_pDirItem(dItem)
+                               CECATDirectoryItem* dItem)
+  : CMedIOHeader(ecatFile),
+    m_pDirItem(dItem)
 {
-	ENTER();
+  ENTER();
 
-	LEAVE();
+  LEAVE();
 }
 
 CECATSubHeader::CECATSubHeader(const CECATSubHeader& src)
-	: CMedIOHeader(src)
+  : CMedIOHeader(src)
 {
-	ENTER();
+  ENTER();
 
-	// do nothing
+  // do nothing
 
-	LEAVE();
+  LEAVE();
 }
 
 CECATSubHeader& CECATSubHeader::operator=(const CECATSubHeader& src)
 {
-	ENTER();
+  ENTER();
 
-	convertFrom(&src);
-	
-	LEAVE();
-	return *this;
+  convertFrom(&src);
+  
+  LEAVE();
+  return *this;
 }
 
 CMedIOHeader::Format CECATSubHeader::headerFormat() const
 { 
-	return CMedIOHeader::ECATSubHeader;
+  return CMedIOHeader::ECATSubHeader;
 }
 
 void CECATSubHeader::setDirectoryItem(CECATDirectoryItem* dItem)
 { 
-	m_pDirItem = dItem;
+  m_pDirItem = dItem;
 }

@@ -1,7 +1,7 @@
-/* vim:set ts=2 nowrap: ****************************************************
+/* vim:set ts=2 sw=2 expandtab: ********************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -37,66 +37,66 @@ class CECATDirectoryItem;
 
 class CECATSubHeader : public CMedIOHeader
 {
-	public:
-		enum Type	{ Unknown=0, 
-								ECAT7_AttenCorr, 
-								ECAT7_Image, 
-								ECAT7_Norm,
-								ECAT7_Norm3D, 
-								ECAT7_PolarMap, 
-								ECAT7_Scan,
-								ECAT7_Scan3D
-							};
+  public:
+    enum Type  { Unknown=0, 
+                ECAT7_AttenCorr, 
+                ECAT7_Image, 
+                ECAT7_Norm,
+                ECAT7_Norm3D, 
+                ECAT7_PolarMap, 
+                ECAT7_Scan,
+                ECAT7_Scan3D
+              };
 
-		enum Data_Type	{	UnknownDataType	=	0,
-											ByteData				=	1, // 1: char
-											VAX_Ix2					=	2, // 2: short - little endian
-											VAX_Ix4					=	3, // 4: long  - little endian
-											VAX_Rx4					=	4, // 4: float - little endian
-										  IEEEFloat				=	5, // 4: float - big endian
-											SunShort				=	6, // 2: short - big endian
-											SunLong					=	7  // 4: long  - big endian
-										};	
+    enum Data_Type  {  UnknownDataType  =  0,
+                      ByteData        =  1, // 1: char
+                      VAX_Ix2          =  2, // 2: short - little endian
+                      VAX_Ix4          =  3, // 4: long  - little endian
+                      VAX_Rx4          =  4, // 4: float - little endian
+                      IEEEFloat        =  5, // 4: float - big endian
+                      SunShort        =  6, // 2: short - big endian
+                      SunLong          =  7  // 4: long  - big endian
+                    };  
 
-		// constructor
-		CECATSubHeader(CMedIOData* ecatFile,
-									 CECATDirectoryItem* dItem = NULL);
-		
-		// copy constructur and default assignment operator
-		CECATSubHeader(const CECATSubHeader& src);		
-		CECATSubHeader& operator=(const CECATSubHeader& src);
+    // constructor
+    CECATSubHeader(CMedIOData* ecatFile,
+                   CECATDirectoryItem* dItem = NULL);
+    
+    // copy constructur and default assignment operator
+    CECATSubHeader(const CECATSubHeader& src);    
+    CECATSubHeader& operator=(const CECATSubHeader& src);
 
-		// header clear method
-		virtual void clear() = 0;
+    // header clear method
+    virtual void clear() = 0;
 
-		// our virtual load/save I/O routines
-		virtual bool load(void) = 0;
-		virtual bool save(void) const = 0;
+    // our virtual load/save I/O routines
+    virtual bool load(void) = 0;
+    virtual bool save(void) const = 0;
 
-		// size information in bytes of specific raw subheader structure
-		virtual int rawDataSize() const = 0;
+    // size information in bytes of specific raw subheader structure
+    virtual int rawDataSize() const = 0;
 
-		// some must have accessor methods
-		virtual Data_Type data_Type(void) const = 0;
-		virtual void setData_Type(const Data_Type dType) = 0;
+    // some must have accessor methods
+    virtual Data_Type data_Type(void) const = 0;
+    virtual void setData_Type(const Data_Type dType) = 0;
 
-		// runtime type information methods
-		CMedIOHeader::Format headerFormat() const;
-		virtual CECATSubHeader::Type subHeaderType(void) const = 0;
+    // runtime type information methods
+    CMedIOHeader::Format headerFormat() const;
+    virtual CECATSubHeader::Type subHeaderType(void) const = 0;
 
-		// internal method to set the directory Item of a subHeader
-		void setDirectoryItem(CECATDirectoryItem* dItem);
+    // internal method to set the directory Item of a subHeader
+    void setDirectoryItem(CECATDirectoryItem* dItem);
 
-		// try to convert the given medio header in this header type
-		virtual bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL) = 0;
-		
-		// create a new medio header of the same type as pSrc and
-		// copy all meta information
-		virtual CMedIOHeader* clone() const = 0;
+    // try to convert the given medio header in this header type
+    virtual bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL) = 0;
+    
+    // create a new medio header of the same type as pSrc and
+    // copy all meta information
+    virtual CMedIOHeader* clone() const = 0;
 
-	protected:
-		CECATDirectoryItem* m_pDirItem; // the directory item to which this
-																		// subHeader belongs
+  protected:
+    CECATDirectoryItem* m_pDirItem; // the directory item to which this
+                                    // subHeader belongs
 };
 
 #endif // CECATSUBHEADER_H

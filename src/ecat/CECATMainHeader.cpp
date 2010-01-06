@@ -1,7 +1,7 @@
-/* vim:set ts=2 nowrap: ****************************************************
+/* vim:set ts=2 sw=2 expandtab: ********************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -26,34 +26,34 @@
 #include <rtdebug.h>
 
 CECATMainHeader::CECATMainHeader(CMedIOData* ecatFile)
-	: CMedIOHeader(ecatFile)
+  : CMedIOHeader(ecatFile)
 {
-	ENTER();
+  ENTER();
 
-	LEAVE();
+  LEAVE();
 }
 
 CECATMainHeader::CECATMainHeader(const CECATMainHeader& src)
-	: CMedIOHeader(src)
+  : CMedIOHeader(src)
 {
-	ENTER();
+  ENTER();
 
-	// do nothing
+  // do nothing
 
-	LEAVE();
+  LEAVE();
 }
 
 CECATMainHeader& CECATMainHeader::operator=(const CECATMainHeader& src)
 {
-	ENTER();
+  ENTER();
 
-	convertFrom(&src);
-	
-	LEAVE();
-	return *this;
+  convertFrom(&src);
+  
+  LEAVE();
+  return *this;
 }
 
 CMedIOHeader::Format CECATMainHeader::headerFormat() const
 { 
-	return CMedIOHeader::ECATMainHeader;
+  return CMedIOHeader::ECATMainHeader;
 }

@@ -1,7 +1,7 @@
-/* vim:set ts=2 nowrap: ****************************************************
+/* vim:set ts=2 sw=2 expandtab: ********************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -27,17 +27,17 @@
 #include <rtdebug.h>
 
 CConcordeMainHeaderImage::CConcordeMainHeaderImage(const QString& fileName)
-	: CConcordeMainHeader(fileName)
+  : CConcordeMainHeader(fileName)
 {
-	ENTER();
-	LEAVE();
+  ENTER();
+  LEAVE();
 }
 
 CConcordeMainHeaderImage::CConcordeMainHeaderImage(CConcordeFile* file)
-	: CConcordeMainHeader(file)
+  : CConcordeMainHeader(file)
 {
-	ENTER();
-	LEAVE();
+  ENTER();
+  LEAVE();
 }
 
 
@@ -47,49 +47,49 @@ CConcordeMainHeaderImage::CConcordeMainHeaderImage(CConcordeFile* file)
 //! @return framesize of a imagevolume in bytes
 ////////////////////////////////////////////////////////////////////////////////
 unsigned int CConcordeMainHeaderImage::frameSize()
-{	
-	ENTER();
-	
-	unsigned int framesize = 0;
-	unsigned int typesize = 0;
+{  
+  ENTER();
+  
+  unsigned int framesize = 0;
+  unsigned int typesize = 0;
 
-	//calculate the imageframe size: 
-	//framesize = x_dimension*y_dimension*z_dimension*data_type_size
-	
-	switch(dataType())
-	{
-		case CConcordeMainHeader::IntelShort:
-		case CConcordeMainHeader::SunShort:
-		{
-			typesize = 2;
-		}
-		break;
+  //calculate the imageframe size: 
+  //framesize = x_dimension*y_dimension*z_dimension*data_type_size
+  
+  switch(dataType())
+  {
+    case CConcordeMainHeader::IntelShort:
+    case CConcordeMainHeader::SunShort:
+    {
+      typesize = 2;
+    }
+    break;
 
-		case CConcordeMainHeader::IntelInt:
-		case CConcordeMainHeader::IntelFloat:
-		case CConcordeMainHeader::IEEEFloat:
-		case CConcordeMainHeader::SunInt:
-		{
-			typesize = 4;
-		}
-		break;
+    case CConcordeMainHeader::IntelInt:
+    case CConcordeMainHeader::IntelFloat:
+    case CConcordeMainHeader::IEEEFloat:
+    case CConcordeMainHeader::SunInt:
+    {
+      typesize = 4;
+    }
+    break;
 
-		case CConcordeMainHeader::Byte:
-		case CConcordeMainHeader::UnknownDataType:
-		{
-			typesize = 1;
-		}
-		break;
-	}
-	
-	framesize = xDimension()*yDimension()*zDimension()*typesize;
+    case CConcordeMainHeader::Byte:
+    case CConcordeMainHeader::UnknownDataType:
+    {
+      typesize = 1;
+    }
+    break;
+  }
+  
+  framesize = xDimension()*yDimension()*zDimension()*typesize;
 
-	RETURN(framesize);
-	return framesize;
+  RETURN(framesize);
+  return framesize;
 }
 
 CMedIOHeader* CConcordeMainHeaderImage::clone() const
 {
-	CConcordeMainHeaderImage* pTmp = new CConcordeMainHeaderImage(*this);
-	return pTmp;
+  CConcordeMainHeaderImage* pTmp = new CConcordeMainHeaderImage(*this);
+  return pTmp;
 }

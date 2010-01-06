@@ -1,7 +1,7 @@
-/* vim:set ts=2 nowrap: ****************************************************
+/* vim:set ts=2 sw=2 expandtab: ********************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -37,19 +37,19 @@
 
 CMedIOData::Format CMedIODataFactory::identify(const QString& fileName)
 {
-	ENTER();
+  ENTER();
 
-	CMedIOData::Format result;
+  CMedIOData::Format result;
 
-//	if(CConcordeFile::isOfType(fileName))
-//		result = CMedIOData::ConcordeMicropet;
-	if(CECATFile::isOfType(fileName))
-		result = CMedIOData::ECAT;
-	else
-		result = CMedIOData::Unknown;	
+//  if(CConcordeFile::isOfType(fileName))
+//    result = CMedIOData::ConcordeMicropet;
+  if(CECATFile::isOfType(fileName))
+    result = CMedIOData::ECAT;
+  else
+    result = CMedIOData::Unknown;  
 
-	RETURN(result);
-	return result;
+  RETURN(result);
+  return result;
 }
 
 //  Class: CMedIODataFactory
@@ -63,20 +63,20 @@ CMedIOData::Format CMedIODataFactory::identify(const QString& fileName)
 ////////////////////////////////////////////////////////////////////////////////
 CMedIOData* CMedIODataFactory::create(const QString& fileName)
 {
-	ENTER();
-	CMedIOData* mData;
+  ENTER();
+  CMedIOData* mData;
 
-	// here we check for our different main data formats 
-	if((mData = CECATFile::createFromFile(fileName)))
-		D("ECAT format found");
-	else if((mData = CConcordeFile::createFromFile(fileName)))
-		D("Concorde microPET format found");
-	else
-	{
-		E("Can not identify file format");
-		mData = NULL;
-	}
-	
-	RETURN(mData);
-	return mData;
+  // here we check for our different main data formats 
+  if((mData = CECATFile::createFromFile(fileName)))
+    D("ECAT format found");
+  else if((mData = CConcordeFile::createFromFile(fileName)))
+    D("Concorde microPET format found");
+  else
+  {
+    E("Can not identify file format");
+    mData = NULL;
+  }
+  
+  RETURN(mData);
+  return mData;
 }

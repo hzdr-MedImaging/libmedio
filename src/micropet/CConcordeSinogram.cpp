@@ -1,7 +1,7 @@
-/* vim:set ts=2 nowrap: ****************************************************
+/* vim:set ts=2 sw=2 expandtab: ********************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -42,10 +42,10 @@
 //!
 ////////////////////////////////////////////////////////////////////////////////
 CConcordeSinogram::CConcordeSinogram(const QString& fileName)
-	: CConcordeFile(fileName)
+  : CConcordeFile(fileName)
 {
-	ENTER();
-	LEAVE();
+  ENTER();
+  LEAVE();
 }
 
 //  Class: CConcordeSinogram
@@ -56,8 +56,8 @@ CConcordeSinogram::CConcordeSinogram(const QString& fileName)
 ////////////////////////////////////////////////////////////////////////////////
 CConcordeSinogram::~CConcordeSinogram()
 {
-	ENTER();
-	LEAVE();
+  ENTER();
+  LEAVE();
 }
 
 //  Class: CConcordeSinogram
@@ -69,31 +69,31 @@ CConcordeSinogram::~CConcordeSinogram()
 ////////////////////////////////////////////////////////////////////////////////
 bool CConcordeSinogram::open(QIODevice::OpenModeFlag mode)
 {
-	ENTER();
-	bool result = false;
+  ENTER();
+  bool result = false;
 
-	if(isOpen())
-	{
-		W("File is already opened");
-		result = false;
-	}
-	else
-	{
-		//initalise and load header
-		D("Creating headerobject");
-		m_pCachedMainHeader = new CConcordeMainHeaderSinogram(this);
-		D("Loading header information");
-		result = m_pCachedMainHeader->load();
+  if(isOpen())
+  {
+    W("File is already opened");
+    result = false;
+  }
+  else
+  {
+    //initalise and load header
+    D("Creating headerobject");
+    m_pCachedMainHeader = new CConcordeMainHeaderSinogram(this);
+    D("Loading header information");
+    result = m_pCachedMainHeader->load();
 
-		if(result)
-			if((result = QFile::open(mode)) == false)
-				QFile::close();
-	}
-	RETURN(result);
-	return result;
+    if(result)
+      if((result = QFile::open(mode)) == false)
+        QFile::close();
+  }
+  RETURN(result);
+  return result;
 }
 
 int CConcordeSinogram::fileType() const
 { 
-	return CConcordeFile::ConcordeMicropet_Sinogram;
+  return CConcordeFile::ConcordeMicropet_Sinogram;
 }

@@ -1,7 +1,7 @@
-/* vim:set ts=2 nowrap: ****************************************************
+/* vim:set ts=2 sw=2 expandtab: ********************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -27,67 +27,67 @@
 #include <rtdebug.h>
 
 CConcordeMainHeaderSinogram::CConcordeMainHeaderSinogram(const QString& fileName)
-	: CConcordeMainHeader(fileName)
+  : CConcordeMainHeader(fileName)
 {
-	ENTER();
-	LEAVE();
+  ENTER();
+  LEAVE();
 }
 
 CConcordeMainHeaderSinogram::CConcordeMainHeaderSinogram(CConcordeFile* file)
-	: CConcordeMainHeader(file)
+  : CConcordeMainHeader(file)
 {
-	ENTER();
-	LEAVE();
+  ENTER();
+  LEAVE();
 }
 
 unsigned int CConcordeMainHeaderSinogram::frameSize()
-{	
-	ENTER();
-	
-	unsigned int framesize = 0;
-	unsigned int typesize = 0;
-	
-	//calculate the frame size: 
-	//frame_size = number_of_sinograms*x_dimension*y_dimension*data_type_size
-	//number_of_dimensions = sum(sinograms) over all delta_elements
+{  
+  ENTER();
+  
+  unsigned int framesize = 0;
+  unsigned int typesize = 0;
+  
+  //calculate the frame size: 
+  //frame_size = number_of_sinograms*x_dimension*y_dimension*data_type_size
+  //number_of_dimensions = sum(sinograms) over all delta_elements
 
-	switch(dataType())
-	{
-		case CConcordeMainHeader::IntelShort:
-		case CConcordeMainHeader::SunShort:
-		{
-			typesize = 2;
-		}
-		break;
+  switch(dataType())
+  {
+    case CConcordeMainHeader::IntelShort:
+    case CConcordeMainHeader::SunShort:
+    {
+      typesize = 2;
+    }
+    break;
 
-		case CConcordeMainHeader::IntelInt:
-		case CConcordeMainHeader::IntelFloat:
-		case CConcordeMainHeader::IEEEFloat:
-		case CConcordeMainHeader::SunInt:
-		{
-			typesize = 4;
-		}
-		break;
+    case CConcordeMainHeader::IntelInt:
+    case CConcordeMainHeader::IntelFloat:
+    case CConcordeMainHeader::IEEEFloat:
+    case CConcordeMainHeader::SunInt:
+    {
+      typesize = 4;
+    }
+    break;
 
-		case CConcordeMainHeader::Byte:
-		case CConcordeMainHeader::UnknownDataType:
-		{
-			typesize = 1;
-		}
-		break;
-	}
-	
-	for(unsigned int i = 0; i < 11; i++)
-		framesize += deltaElements(i);
-	
-	framesize = framesize*xDimension()*yDimension()*typesize;
+    case CConcordeMainHeader::Byte:
+    case CConcordeMainHeader::UnknownDataType:
+    {
+      typesize = 1;
+    }
+    break;
+  }
+  
+  for(unsigned int i = 0; i < 11; i++)
+    framesize += deltaElements(i);
+  
+  framesize = framesize*xDimension()*yDimension()*typesize;
 
-	RETURN(framesize);
-	return framesize;
+  RETURN(framesize);
+  return framesize;
 }
 
 CMedIOHeader* CConcordeMainHeaderSinogram::clone() const
 {
-	CConcordeMainHeaderSinogram* pTmp = new CConcordeMainHeaderSinogram(*this);
-	return pTmp;
+  CConcordeMainHeaderSinogram* pTmp = new CConcordeMainHeaderSinogram(*this);
+  return pTmp;
 }

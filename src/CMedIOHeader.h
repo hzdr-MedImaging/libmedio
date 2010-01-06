@@ -1,7 +1,7 @@
-/* vim:set ts=2 nowrap: ****************************************************
+/* vim:set ts=2 sw=2 expandtab: ********************************************
 
  libmedio - Medical Data C++ I/O Library
- Copyright (C) 2004-2007 by Jens Langner <Jens.Langner@light-speed.de>
+ Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -43,61 +43,61 @@ class CMedIOData;
 //! as a baseclass.
 class CMedIOHeader
 {
-	public:
-		enum Format 
-		{	
-			Unknown = 0,
-			ConcordeMicroPetMainHeader,	//!< main header of concorde microPET scanner
-			ConcordeMicroPetFrameHeader,	//!< frame header of concorde microPET scanner
-			ECATMainHeader,			//!< main header of ECAT6/7 PET scanners
-			ECATSubHeader			//!< sub header of ECAT6/7 PET scanners
-		};
+  public:
+    enum Format 
+    {  
+      Unknown = 0,
+      ConcordeMicroPetMainHeader,  //!< main header of concorde microPET scanner
+      ConcordeMicroPetFrameHeader,  //!< frame header of concorde microPET scanner
+      ECATMainHeader,      //!< main header of ECAT6/7 PET scanners
+      ECATSubHeader      //!< sub header of ECAT6/7 PET scanners
+    };
 
-		// constructors
-		CMedIOHeader(CMedIOData* data=NULL);
-		virtual ~CMedIOHeader();
+    // constructors
+    CMedIOHeader(CMedIOData* data=NULL);
+    virtual ~CMedIOHeader();
 
-		// copy constructor
-		CMedIOHeader(const CMedIOHeader& src);
+    // copy constructor
+    CMedIOHeader(const CMedIOHeader& src);
 
-		//! @brief default assignment operator which enforces that m_pMedIOData
-		//!        is NOT copied as well.
-		CMedIOHeader& operator=(const CMedIOHeader& src);
-		
-		//! @brief set the header to a defined state
-		virtual void clear() = 0;
+    //! @brief default assignment operator which enforces that m_pMedIOData
+    //!        is NOT copied as well.
+    CMedIOHeader& operator=(const CMedIOHeader& src);
+    
+    //! @brief set the header to a defined state
+    virtual void clear() = 0;
 
-		//! @brief loads a given file 
-		//! @return true if loading is succesful otherwise false
-		virtual bool load() = 0;
-		
-		//! @brief saves the data  
-		//! @return true if saving is succesful otherwise false
-		virtual bool save() const = 0;
+    //! @brief loads a given file 
+    //! @return true if loading is succesful otherwise false
+    virtual bool load() = 0;
+    
+    //! @brief saves the data  
+    //! @return true if saving is succesful otherwise false
+    virtual bool save() const = 0;
 
-		//! @brief run time typeinformation  
-		//! @return specific header format at runtime
-		virtual CMedIOHeader::Format headerFormat() const = 0;
+    //! @brief run time typeinformation  
+    //! @return specific header format at runtime
+    virtual CMedIOHeader::Format headerFormat() const = 0;
 
-		//! @brief try to convert the given medio header in this header type
-		//! @return true for success; false for failure
-		virtual bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL) = 0;
+    //! @brief try to convert the given medio header in this header type
+    //! @return true for success; false for failure
+    virtual bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL) = 0;
 
-		//! @brief user defined rtti
-		//! @return user defined rtti if defined else -1
-		virtual int userRtti() const;
-		
-		//! @brief create a new medio header of the same type as pSrc and
-		//!				 copy all meta information
-		//! @return the new created CMedIOHeader object
-		virtual CMedIOHeader* clone() const = 0;
+    //! @brief user defined rtti
+    //! @return user defined rtti if defined else -1
+    virtual int userRtti() const;
+    
+    //! @brief create a new medio header of the same type as pSrc and
+    //!         copy all meta information
+    //! @return the new created CMedIOHeader object
+    virtual CMedIOHeader* clone() const = 0;
 
-		//! @brief provid a facility to set the MedIOData object
-		//!        which is in fact used by some subHeader implementation
-		virtual void setMedIOData(CMedIOData* data);
+    //! @brief provid a facility to set the MedIOData object
+    //!        which is in fact used by some subHeader implementation
+    virtual void setMedIOData(CMedIOData* data);
 
-	protected:
-		CMedIOData* m_pMedIOData; //!< the associated MedIOData this header belongs to
+  protected:
+    CMedIOData* m_pMedIOData; //!< the associated MedIOData this header belongs to
 };
 
 #endif
