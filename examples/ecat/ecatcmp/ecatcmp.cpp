@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
   // Read  http://gcc.gnu.org/onlinedocs/libstdc++/27_io/howto.html#8 for an explanation.
   ios::sync_with_stdio(false);
 
-  cout << "ecatcmp 1.7 - a libmedio ECAT6/7 file/data compare tool" << endl
+  cout << "ecatcmp 1.8 - a libmedio ECAT6/7 file/data compare tool" << endl
        << "(" __DATE__ ")  Copyright (C) 2006-2010 by Jens Langner / www.fzd.de" << endl << endl;
 
   // put all arguments in a temporary MultiHash
@@ -523,7 +523,7 @@ int main(int argc, char* argv[])
 
                     // compare the raw data
                     cout << "     comparing raw data... " << flush;
-                    if(compareRawData == true || matrixData1 != *matrixData2)
+                    if(compareRawData == true || *matrixData1 != *matrixData2)
                     {
                       cout << "ERROR: matrix is not equal!";
 
