@@ -1,26 +1,26 @@
-dnl/* vim:set ts=2 sw=2 expandtab: ********************************************
-dnl
-dnl acinclude.m4 - Common configure macros especially for Qt3/Qt4
-dnl Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
-dnl
-dnl This library is free software; you can redistribute it and/or
-dnl modify it under the terms of the GNU Lesser General Public
-dnl License as published by the Free Software Foundation; either
-dnl version 2.1 of the License, or (at your option) any later version.
-dnl
-dnl This library is distributed in the hope that it will be useful,
-dnl but WITHOUT ANY WARRANTY; without even the implied warranty of
-dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-dnl Lesser General Public License for more details.
-dnl
-dnl You should have received a copy of the GNU Lesser General Public
-dnl License along with this library; if not, write to the Free Software
-dnl Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-dnl
-dnl $Id$
-dnl
-dnl****************************************************************************
-dnl# -*- mode: m4 -*-
+dnl/* -*- mode: m4; tab-width: 2; c-basic-offset: 2; indent-tabs-mode: nil; -*-
+dnl * vim:set ts=2 sw=2 expandtab: *********************************************
+dnl *
+dnl * acinclude.m4 - Common configure macros especially for Qt3/Qt4
+dnl * Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
+dnl *
+dnl * This library is free software; you can redistribute it and/or
+dnl * modify it under the terms of the GNU Lesser General Public
+dnl * License as published by the Free Software Foundation; either
+dnl * version 2.1 of the License, or (at your option) any later version.
+dnl *
+dnl * This library is distributed in the hope that it will be useful,
+dnl * but WITHOUT ANY WARRANTY; without even the implied warranty of
+dnl * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+dnl * Lesser General Public License for more details.
+dnl *
+dnl * You should have received a copy of the GNU Lesser General Public
+dnl * License along with this library; if not, write to the Free Software
+dnl * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+dnl *
+dnl * $Id$
+dnl *
+dnl **************************************************************************/
 
 dnl
 dnl AC_CXX_NAMESPACES: checks for proper C++ namespaces compatibility
@@ -81,7 +81,7 @@ AC_DEFUN([AC_ANSI_COLOR],
 
   if test "$test_on_ansi_color" = "yes"; then
     ANSI_COLOR="ansi_color" 
-    AC_DEFINE(WITH_ANSI_COLOR)     
+    AC_DEFINE(WITH_ANSI_COLOR)    
     AC_MSG_RESULT(yes)
   else  
     AC_MSG_RESULT(no)
@@ -100,8 +100,8 @@ AC_DEFUN([AC_ENABLE_DEBUG],
   AC_ARG_ENABLE(debug,
                 [AC_HELP_STRING([--enable-debug], [turn on debugging mode [default=no]])],
                 [case "${enableval}" in
-                  yes) test_on_enable_debug=yes  ;;
-                  no)   test_on_enable_debug=no  ;;
+                  yes) test_on_enable_debug=yes ;;
+                  no)  test_on_enable_debug=no  ;;
                   *)   AC_MSG_ERROR(bad value ${enableval} for --enable-debug) ;;
                 esac],
                 [test_on_enable_debug=no])
@@ -118,6 +118,94 @@ AC_DEFUN([AC_ENABLE_DEBUG],
 ])
 
 dnl
+dnl AC_ENABLE_STATIC_LIB: if the project is a library this macro can be used to control
+dnl if the library should be build as a shared or static library
+dnl
+AC_DEFUN([AC_ENABLE_STATIC_LIB],
+[
+  AC_MSG_CHECKING(whether to link as a static library)
+  AC_ARG_ENABLE(static-lib,
+                [AC_HELP_STRING([--enable-static-lib], [turn on static linkage [default=no]])],
+                [case "${enableval}" in
+                  yes) test_on_enable_static_lib=yes  ;;
+                  no)  test_on_enable_static_lib=no ;;
+                  *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-lib) ;;
+                esac],
+                [test_on_enable_static_lib=no])
+
+  if test "$test_on_enable_static_lib" = "yes" -o "$ac_static_build" = "yes"; then
+    QTLINK_LEVEL="${QTLINK_LEVEL} staticlib"
+    AC_MSG_RESULT(yes)
+  else
+    QTLINK_LEVEL="${QTLINK_LEVEL}"
+    AC_MSG_RESULT(no)
+  fi
+
+  AC_SUBST(QTLINK_LEVEL) 
+])
+
+dnl
+dnl AC_ENABLE_SHARED_LIB: if the project is a library this macro can be used to control
+dnl if the library should be build as a shared or static library
+dnl
+AC_DEFUN([AC_ENABLE_SHARED_LIB],
+[
+  AC_MSG_CHECKING(whether to link as a shared library)
+  AC_ARG_ENABLE(shared-lib,
+                [AC_HELP_STRING([--enable-shared-lib], [turn on shared linkage [default=no]])],
+                [case "${enableval}" in
+                  yes) test_on_enable_shared_lib=yes  ;;
+                  no)  test_on_enable_shared_lib=no ;;
+                  *)   AC_MSG_ERROR(bad value ${enableval} for --enable-shared-lib) ;;
+                esac],
+                [test_on_enable_shared_lib=no])
+
+  if test "$test_on_enable_shared_lib" = "yes" -a "$ac_static_build" = "no"; then
+    QTLINK_LEVEL="${QTLINK_LEVEL}"
+    AC_MSG_RESULT(yes)
+  else
+    QTLINK_LEVEL="${QTLINK_LEVEL} staticlib"
+    AC_MSG_RESULT(no)
+  fi
+
+  AC_SUBST(QTLINK_LEVEL) 
+])
+
+dnl
+dnl AC_ENABLE_STATIC_BUILD: enables complete static linkage of all components
+dnl
+AC_DEFUN([AC_ENABLE_STATIC_BUILD],
+[
+  AC_MSG_CHECKING(whether to link all components statically)
+  AC_ARG_ENABLE(static-build,
+                [AC_HELP_STRING([--enable-static-build], [turn on static linkage of all components [default=no]])],
+                [case "${enableval}" in
+                  yes) test_on_enable_static_build=yes  ;;
+                  no)  test_on_enable_static_build=no ;;
+                  *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-build) ;;
+                esac],
+                [test_on_enable_static_build=no])
+
+  if test "$test_on_enable_static_build" = "yes"; then
+    QTLINK_LEVEL="${QTLINK_LEVEL} staticbuild"
+
+    dnl go and put a link into the "lib" dir for the various
+    dnl libraries we have to force to be linked statically
+    rm -f lib/libstdc++.a
+    ln -s `$CXX -print-file-name=libstdc++.a` lib/libstdc++.a
+    
+    AC_MSG_RESULT(yes)
+    ac_static_build="yes"
+  else
+    QTLINK_LEVELL="${QTLINK_LEVEL}"
+    AC_MSG_RESULT(no)
+    ac_static_build="no"
+  fi
+
+  AC_SUBST(QTLINK_LEVEL)
+])
+
+dnl
 dnl AC_ENABLE_STATIC_QT: provides a switch to control the link level (static/shared)
 dnl of a linked Qt library.
 dnl
@@ -125,7 +213,7 @@ AC_DEFUN([AC_ENABLE_STATIC_QT],
 [
   AC_MSG_CHECKING(whether to link the Qt library static)
   AC_ARG_ENABLE(static-qt,
-                [AC_HELP_STRING([--enable-static-qt], [turn on static linking of Qt libs [default=no]])],
+                [AC_HELP_STRING([--enable-static-qt], [turn on static linkage of Qt libs [default=no]])],
                 [case "${enableval}" in
                   yes) test_on_enable_static_qt=yes ;;
                   no)  test_on_enable_static_qt=no   ;;
@@ -133,7 +221,7 @@ AC_DEFUN([AC_ENABLE_STATIC_QT],
                 esac],
                 [test_on_enable_static_qt=no])
 
-  if test "$test_on_enable_static_qt" = "yes"; then
+  if test "$test_on_enable_static_qt" = "yes" -o "$ac_static_build" = "yes"; then
     QTLINK_LEVEL="${QTLINK_LEVEL} staticconfig"
     AC_MSG_RESULT(yes)
     ac_qt_link_level="static"
@@ -154,19 +242,19 @@ AC_DEFUN([AC_ENABLE_STATIC_RTDEBUG],
 [
   AC_MSG_CHECKING(whether to link rtdebug library static)
   AC_ARG_ENABLE(static-rtdebug,
-                [AC_HELP_STRING([--enable-static-rtdebug], [turn on static linking of rtdebug lib [default=no]])],
+                [AC_HELP_STRING([--enable-static-rtdebug], [turn on static linkage of rtdebug lib [default=no]])],
                 [case "${enableval}" in
                   yes) test_on_enable_static_rtdebug=yes  ;;
-                  no)   test_on_enable_static_rtdebug=no  ;;
+                  no)  test_on_enable_static_rtdebug=no ;;
                   *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-rtdebug) ;;
                 esac],
                 [test_on_enable_static_rtdebug=no])
 
   if test "$COMPILE_LEVEL" = "release"; then
-    AC_MSG_RESULT([skipping, debug disabled])  
+    AC_MSG_RESULT([skipping, debug disabled]) 
   elif test "have_rtdebug_lib" = "no"; then
     AC_MSG_RESULT([skipping, no rtdebug library found])
-  elif test "$test_on_enable_static_rtdebug" = "yes"; then
+  elif test "$test_on_enable_static_rtdebug" = "yes" -o "$ac_static_build" = "yes"; then
     QTLINK_LEVEL="${QTLINK_LEVEL} staticrtdebug"
     AC_MSG_RESULT(yes)
     ac_rtdebug_link_level="static"
@@ -187,15 +275,15 @@ AC_DEFUN([AC_ENABLE_STATIC_MEDIO],
 [
   AC_MSG_CHECKING(whether to link the medio library static)
   AC_ARG_ENABLE(static-medio,
-                [AC_HELP_STRING([--enable-static-medio], [turn on static linking of medio libs [default=no]])],
+                [AC_HELP_STRING([--enable-static-medio], [turn on static linkage of medio libs [default=no]])],
                 [case "${enableval}" in
                   yes) test_on_enable_static_medio=yes  ;;
-                  no)   test_on_enable_static_medio=no  ;;
+                  no)  test_on_enable_static_medio=no ;;
                   *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-medio) ;;
                 esac],
                 [test_on_enable_static_medio=no])
 
-  if test "$test_on_enable_static_medio" = "yes"; then
+  if test "$test_on_enable_static_medio" = "yes" -o "$ac_static_build" = "yes"; then
     QTLINK_LEVEL="${QTLINK_LEVEL} staticmedio"
     AC_MSG_RESULT(yes)
     ac_medio_link_level="static"
@@ -216,15 +304,15 @@ AC_DEFUN([AC_ENABLE_STATIC_GSL],
 [
   AC_MSG_CHECKING(whether to link the gsl library static)
   AC_ARG_ENABLE(static-gsl,
-                [AC_HELP_STRING([--enable-static-gsl], [turn on static linking of gsl libs [default=no]])],
+                [AC_HELP_STRING([--enable-static-gsl], [turn on static linkage of gsl libs [default=no]])],
                 [case "${enableval}" in
                   yes) test_on_enable_static_gsl=yes  ;;
-                  no)   test_on_enable_static_gsl=no  ;;
+                  no)  test_on_enable_static_gsl=no ;;
                   *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-gsl) ;;
                 esac],
                 [test_on_enable_static_gsl=no])
 
-  if test "$test_on_enable_static_gsl" = "yes"; then
+  if test "$test_on_enable_static_gsl" = "yes" -o "$ac_static_build" = "yes"; then
     QTLINK_LEVEL="${QTLINK_LEVEL} staticgsl"
     AC_MSG_RESULT(yes)
     ac_gsl_link_level="static"
@@ -238,6 +326,35 @@ AC_DEFUN([AC_ENABLE_STATIC_GSL],
 ])
 
 dnl
+dnl AC_ENABLE_STATIC_NCURSES: provides a switch to control the link level (static/shared)
+dnl of a linked ncurses library
+dnl
+AC_DEFUN([AC_ENABLE_STATIC_NCURSES],
+[
+  AC_MSG_CHECKING(whether to link the ncurses library static)
+  AC_ARG_ENABLE(static-ncurses,
+                [AC_HELP_STRING([--enable-static-ncurses], [turn on static linkage of ncurses lib [default=no]])],
+                [case "${enableval}" in
+                  yes) test_on_enable_static_ncurses=yes  ;;
+                  no)  test_on_enable_static_ncurses=no ;;
+                  *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-ncurses) ;;
+                esac],
+                [test_on_enable_static_ncurses=no])
+
+  if test "$test_on_enable_static_ncurses" = "yes" -o "$ac_static_build" = "yes"; then
+    QTLINK_LEVEL="${QTLINK_LEVEL} staticncurses"
+    AC_MSG_RESULT(yes)
+    ac_ncurses_link_level="static"
+  else
+    QTLINK_LEVEL="${QTLINK_LEVEL}"
+    AC_MSG_RESULT(no)
+    ac_ncurses_link_level="shared"
+  fi
+
+  AC_SUBST(QTLINK_LEVEL) 
+])
+
+dnl
 dnl AC_ENABLE_STATIC_LIBMEDLM: provides a switch to control the link level (static/shared)
 dnl of a linked libmedlm library
 dnl
@@ -245,15 +362,15 @@ AC_DEFUN([AC_ENABLE_STATIC_MEDLM],
 [
   AC_MSG_CHECKING(whether to link the medlm library static)
   AC_ARG_ENABLE(static-medlm,
-                [AC_HELP_STRING([--enable-static-medlm], [turn on static linking of medlm lib [default=no]])],
+                [AC_HELP_STRING([--enable-static-medlm], [turn on static linkage of medlm lib [default=no]])],
                 [case "${enableval}" in
                   yes) test_on_enable_static_medlm=yes  ;;
-                  no)   test_on_enable_static_medlm=no  ;;
+                  no)  test_on_enable_static_medlm=no ;;
                   *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-medlm) ;;
                 esac],
                 [test_on_enable_static_medlm=no])
 
-  if test "$test_on_enable_static_medlm" = "yes"; then
+  if test "$test_on_enable_static_medlm" = "yes" -o "$ac_static_build" = "yes"; then
     QTLINK_LEVEL="${QTLINK_LEVEL} staticmedlm"
     AC_MSG_RESULT(yes)
     ac_medlm_link_level="static"
@@ -274,15 +391,15 @@ AC_DEFUN([AC_ENABLE_STATIC_MTRACK],
 [
   AC_MSG_CHECKING(whether to link the mtrack library static)
   AC_ARG_ENABLE(static-mtrack,
-                [AC_HELP_STRING([--enable-static-mtrack], [turn on static linking of mtrack lib [default=no]])],
+                [AC_HELP_STRING([--enable-static-mtrack], [turn on static linkage of mtrack lib [default=no]])],
                 [case "${enableval}" in
-                  yes) test_on_enable_static_mtrack=yes  ;;
-                  no)   test_on_enable_static_mtrack=no  ;;
+                  yes) test_on_enable_static_mtrack=yes ;;
+                  no)  test_on_enable_static_mtrack=no  ;;
                   *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-mtrack) ;;
                 esac],
                 [test_on_enable_static_mtrack=no])
 
-  if test "$test_on_enable_static_mtrack" = "yes"; then
+  if test "$test_on_enable_static_mtrack" = "yes" -o "$ac_static_build" = "yes"; then
     QTLINK_LEVEL="${QTLINK_LEVEL} staticmtrack"
     AC_MSG_RESULT(yes)
     ac_mtrack_link_level="static"
@@ -295,32 +412,6 @@ AC_DEFUN([AC_ENABLE_STATIC_MTRACK],
   AC_SUBST(QTLINK_LEVEL) 
 ])
 
-dnl
-dnl AC_ENABLE_STATIC_LIB: if the project is a library this macro can be used to control
-dnl if the library should be build as a shared or static library
-dnl
-AC_DEFUN([AC_ENABLE_STATIC_LIB],
-[
-  AC_MSG_CHECKING(whether to link as a static library)
-  AC_ARG_ENABLE(static-lib,
-                [AC_HELP_STRING([--enable-static-lib], [turn on static linking [default=no]])],
-                [case "${enableval}" in
-                  yes) test_on_enable_static_lib=yes  ;;
-                  no)  test_on_enable_static_lib=no  ;;
-                  *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-lib) ;;
-                esac],
-                [test_on_enable_static_lib=no])
-
-  if test "$test_on_enable_static_lib" = "yes"; then
-    QTLINK_LEVEL="${QTLINK_LEVEL} staticlib"
-    AC_MSG_RESULT(yes)
-  else
-    QTLINK_LEVEL="${QTLINK_LEVEL}"
-    AC_MSG_RESULT(no)
-  fi
-
-  AC_SUBST(QTLINK_LEVEL) 
-])
 
 dnl
 dnl AC_PROG_GCC_VERSION: finds out if the used gcc version is a supported one
@@ -330,11 +421,11 @@ AC_DEFUN([AC_PROG_GCC_VERSION],
 [
  AC_MSG_CHECKING([for gcc version])
 
- dnl check if $CC exists or not
- if eval $CC -v 2>/dev/null >/dev/null; then
+ dnl check if $CXX exists or not
+ if eval $CXX -v 2>/dev/null >/dev/null; then
    dnl Check if version of gcc is sufficient
-   cc_name=`( $CC -v ) 2>&1 | tail -n 1 | cut -d ' ' -f 1`
-   cc_version=`( $CC -dumpversion ) 2>&1`
+   cc_name=`( $CXX -v ) 2>&1 | tail -n 1 | cut -d ' ' -f 1`
+   cc_version=`( $CXX -dumpversion ) 2>&1`
    if test "$?" -gt 0; then
      cc_version="not found"
    fi
@@ -365,12 +456,12 @@ AC_DEFUN([AC_PROG_GCC_VERSION],
      AC_MSG_RESULT([$cc_version])
      AC_MSG_ERROR([gcc version check failed])
    else
-      AC_MSG_RESULT([$cc_version])
+     AC_MSG_RESULT([$cc_version])
      GCC_VERSION=$_cc_major
    fi
  else
    AC_MSG_RESULT(FAILED)
-   AC_MSG_ERROR([gcc was not found '$CC'])
+   AC_MSG_ERROR([gcc was not found '$CXX'])
  fi
 
  AC_SUBST(GCC_VERSION)
@@ -410,7 +501,7 @@ AC_DEFUN([AC_PATH_RTDEBUG_LIB],
                           $RTDEBUGDIR/rtdebug \
                           $RTDEBUGDIR \
                           /usr/local/petlib/lib \
-                          /usr/local/petlib/lib/rtdebug \  
+                          /usr/local/petlib/lib/rtdebug \ 
                           /usr/local/lib \
                           /usr/local/lib/rtdebug \
                           /usr/lib \
@@ -455,7 +546,7 @@ AC_DEFUN([AC_PATH_RTDEBUG_LIB],
   dnl Define a shell variable for later checks
   if test "$COMPILE_LEVEL" = "release"; then
     have_rtdebug_lib="no"
-     AC_MSG_RESULT([skipping, debug disabled])  
+    AC_MSG_RESULT([skipping, debug disabled]) 
   elif test -z "$ac_rtdebug_libdir"; then
     have_rtdebug_lib="no"
     AC_MSG_RESULT([no])
@@ -499,7 +590,7 @@ AC_DEFUN([AC_PATH_RTDEBUG_INC],
         $RTDEBUGDIR/include/rtdebug \
         $RTDEBUGDIR \
         /usr/local/petlib/include \
-        /usr/local/petlib/include/rtdebug \    
+        /usr/local/petlib/include/rtdebug \   
         /usr/local/rtdebug/include \
         /usr/include/rtdebug \
         /usr/lib/rtdebug/include \
@@ -568,7 +659,7 @@ AC_DEFUN([AC_PATH_MEDIO_LIB],
                         $MEDIODIR/medio \
                         $MEDIODIR \
                         /usr/local/petlib/lib \
-                        /usr/local/petlib/lib/medio \  
+                        /usr/local/petlib/lib/medio \ 
                         /usr/local/lib \
                         /usr/local/lib/medio \
                         /usr/lib \
@@ -650,9 +741,9 @@ AC_DEFUN([AC_PATH_MEDIO_INC],
       medio_include_dirs="\
         $MEDIODIR/include \
         $MEDIODIR/include/rtdebug \
-        $MEDIODIR \      
+        $MEDIODIR \     
         /usr/local/petlib/include \
-        /usr/local/petlib/include/medio \          
+        /usr/local/petlib/include/medio \         
         /usr/local/include \
         /usr/local/include/medio \
         /usr/include/medio \
@@ -801,7 +892,7 @@ AC_DEFUN([AC_PATH_GSL_INC],
       dnl If you need to add extra directories to check, add them here.
       gsl_include_dirs="\
         $GSLDIR/include \
-        $GSLDIR \            
+        $GSLDIR \           
         /usr/local/gsl/include \
         /usr/include/ \
         /usr/lib/gsl/include \
@@ -836,6 +927,153 @@ Try --with-gsl-inc to specify the path, manually.])
   AC_SUBST(GSL_INCLUDES)
   AC_SUBST(GSL_INCDIR)
 ])
+
+dnl
+dnl AC_PATH_NCURSES: allows to override the default library search path for
+dnl searching for the ncurses library.
+dnl
+AC_DEFUN([AC_PATH_NCURSES],
+[
+  AC_ARG_WITH(ncurses, [AC_HELP_STRING([--with-ncurses], [where the ncurses environment is located.])],
+                       [NCURSESDIR="$withval" ])
+])
+
+dnl
+dnl AC_PATH_NCURSES_LIB: checks for the existance of the ncurses library in the
+dnl default pathes and allows to override them as well
+dnl
+AC_DEFUN([AC_PATH_NCURSES_LIB],
+[
+  AC_REQUIRE_CPP()
+  AC_ARG_WITH(ncurses-lib,
+              [AC_HELP_STRING([--with-ncurses-lib], [where the ncurses library is located.])],
+              [ac_ncurses_libraries="$withval"], ac_ncurses_libraries="")
+
+  AC_MSG_CHECKING(for ncurses library)
+
+  AC_CACHE_VAL(ac_cv_lib_ncurseslib, [
+
+  ncurses_libdir=
+
+  dnl No they didnt, so lets look for them...
+  dnl If you need to add extra directories to check, add them here.
+  if test -z "$ac_ncurses_libraries"; then
+    ncurses_library_dirs="$NCURSESDIR/lib \
+                      $NCURSESDIR/ncurses \
+                      $NCURSESDIR \
+                      /usr/local/lib \
+                      /usr/lib \
+                      /Developer/ncurses/lib"
+  else
+    ncurses_library_dirs="$ac_ncurses_libraries"
+  fi
+
+  dnl for simplicity we simply go and check if
+  dnl we can find the ncurses library in one of
+  dnl our search pathes
+  ac_ncurses_libdir=""
+  if test "$ac_ncurses_link_level" = "static"; then
+    ac_ncurses_libname="libncurses.a"
+    LIB_NCURSES="$ac_ncurses_libname"
+  else
+    if test "$HOST_OS" = "Darwin"; then
+      ac_ncurses_libname="libncurses.dylib"
+    else
+      ac_ncurses_libname="libncurses.so"
+    fi
+    LIB_NCURSES="-lncurses"
+  fi
+
+  for ncurses_dir in $ncurses_library_dirs; do
+    if test -r "$ncurses_dir/$ac_ncurses_libname"; then
+      ac_ncurses_libdir="$ncurses_dir"
+      break;
+    else
+      echo "tried $ncurses_dir" >&AC_FD_CC 
+    fi
+  done
+
+  ac_cv_lib_ncurseslib="ac_ncurses_libname=\"$ac_ncurses_libname\" ac_ncurses_libdir=\"$ac_ncurses_libdir\""
+  ])
+
+  eval "$ac_cv_lib_ncurseslib"
+
+  dnl Define a shell variable for later checks
+  if test -z "$ac_ncurses_libdir"; then
+    have_ncurses_lib="no"
+    AC_MSG_RESULT([no])
+    AC_MSG_ERROR([Cannot find required $ac_ncurses_link_level ncurses library in linker path.
+Try --with-ncurses-lib to specify the path, manually.])
+  else
+    have_ncurses_lib="yes"
+    AC_MSG_RESULT([yes, $ac_ncurses_libname in $ac_ncurses_libdir found.])
+  fi
+
+  NCURSES_LDFLAGS="-L$ac_ncurses_libdir"
+  NCURSES_LIBDIR="$ac_ncurses_libdir"
+  AC_SUBST(NCURSES_LDFLAGS)
+  AC_SUBST(NCURSES_LIBDIR)
+  AC_SUBST(LIB_NCURSES)
+])
+
+dnl
+dnl AC_PATH_NCURSES_INC: checks the existance of the includes files for successfully
+dnl compiling support for the ncurses library and also allows to override the default
+dnl path to that includes.
+dnl
+AC_DEFUN([AC_PATH_NCURSES_INC],
+[
+  AC_REQUIRE_CPP()
+  AC_MSG_CHECKING(for libncurses includes)
+
+  AC_ARG_WITH(ncurses-inc,
+              [AC_HELP_STRING([--with-ncurses-inc], [where the libncurses headers are located.])],
+              [ncurses_include_dirs="$withval"], ncurses_include_dirs="")
+
+  AC_CACHE_VAL(ac_cv_header_ncursesinc, [
+
+    dnl Did the user give --with-ncurses-includes?
+    if test -z "$ncurses_include_dirs"; then
+
+      dnl No they didn't, so lets look for them...
+      dnl If you need to add extra directories to check, add them here.
+      ncurses_include_dirs="\
+        $NCURSESDIR/include/ncurses \
+        $NCURSESDIR/ncurses \           
+        /usr/local/include/ncurses \
+        /usr/local/include \
+        /usr/include/ncurses \
+        /usr/include \
+        /usr/lib/ncurses/include"
+    fi
+
+    for ncurses_dir in $ncurses_include_dirs; do
+      if test -r "$ncurses_dir/ncurses.h"; then
+        ac_ncurses_includes=$ncurses_dir
+        break;
+      fi
+    done
+
+    ac_cv_header_ncursesinc=$ac_ncurses_includes
+
+  ])
+
+  if test -z "$ac_cv_header_ncursesinc"; then
+    have_ncurses_inc="no"
+    AC_MSG_RESULT([no])
+    AC_MSG_WARN([libncurses include directory not found, you may run into problems.
+Try --with-ncurses-inc to specify the path, manually.])
+  else
+    have_ncurses_inc="yes"
+    AC_MSG_RESULT([yes, in $ac_cv_header_ncursesinc])
+  fi
+
+  NCURSES_INCLUDES="-I$ac_cv_header_ncursesinc"
+  NCURSES_INCDIR="$ac_cv_header_ncursesinc"
+  AC_SUBST(NCURSES_INCLUDES)
+  AC_SUBST(NCURSES_INCDIR)
+])
+
 
 dnl
 dnl AC_PATH_MEDLM: allows to override the default library search path for
@@ -953,9 +1191,9 @@ AC_DEFUN([AC_PATH_MEDLM_INC],
       medlm_include_dirs="\
         $MEDLMDIR/include \
         $MEDLMDIR/include/medlm \
-        $MEDLMDIR \      
+        $MEDLMDIR \     
         /usr/local/petlib/include \
-        /usr/local/petlib/include/medlm \          
+        /usr/local/petlib/include/medlm \         
         /usr/local/include \
         /usr/local/include/medlm \
         /usr/include/medlm \
@@ -1025,7 +1263,7 @@ AC_DEFUN([AC_PATH_MTRACK_LIB],
                          $MTRACKDIR/mtrack \
                          $MTRACKDIR \
                          /usr/local/petlib/lib \
-                         /usr/local/petlib/lib/mtrack \  
+                         /usr/local/petlib/lib/mtrack \ 
                          /usr/local/lib \
                          /usr/local/lib/mtrack \
                          /usr/lib \
