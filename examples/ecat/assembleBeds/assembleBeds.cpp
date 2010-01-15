@@ -208,7 +208,7 @@ void showVersionInformation()
 void showHelp(int& argc, char** argv)
 {
   cout << endl;
-  cout << "libmedio ECAT6/7 assembleBeds utility v1.0" << endl;
+  cout << "libmedio ECAT6/7 assembleBeds utility v1.1" << endl;
   cout << "----------------------------------" << endl;
   if(argc > 0)
   {
