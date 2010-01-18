@@ -14,9 +14,6 @@
 #include <iostream>
 #include <iomanip>
 
-#define INFEED_3D 116.40
-#define INFEED_2D 135.80
-
 using namespace std;
 
 // global data
@@ -30,7 +27,6 @@ QString g_sValue = 0;
 QString g_sPosition = 0;
 QString g_sDestMatrix = 0;
 
-float g_fInfeed = INFEED_3D;
 QMultiHash<QString, QString> g_args;
 enum g_eCommand {Get, Set, Copy, Join, Delete, New};
 g_eCommand g_commando;
