@@ -149,6 +149,11 @@ bool CECAT7SubHeaderNorm::load(void)
   // out of the buffer instead of the raw file (> speed)
   QDataStream stream(buffer);
 
+  // we have to set the QDataStream version to the Qt4.5 version
+  // because with Qt4.6 the floating point precision changed and
+  // otherwise causes our streaming to fail
+  stream.setVersion(QDataStream::Qt_4_5);
+  
   // lets read in each single data element of our
   // data structure to maintain the correct endianess of the
   // data
@@ -220,6 +225,11 @@ bool CECAT7SubHeaderNorm::save(void) const
   QByteArray buffer(rawDataSize(), 0);
   QDataStream stream(&buffer, QIODevice::WriteOnly);
 
+  // we have to set the QDataStream version to the Qt4.5 version
+  // because with Qt4.6 the floating point precision changed and
+  // otherwise causes our streaming to fail
+  stream.setVersion(QDataStream::Qt_4_5);
+  
   // lets write out each single data element of our
   // data structure to maintain the correct endianess of the
   // data

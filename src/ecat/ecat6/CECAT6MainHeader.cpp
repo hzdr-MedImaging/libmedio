@@ -193,6 +193,11 @@ bool CECAT6MainHeader::load(void)
   // out of the buffer instead of the raw file (> speed)
   QDataStream stream(buffer);
   
+  // we have to set the QDataStream version to the Qt4.5 version
+  // because with Qt4.6 the floating point precision changed and
+  // otherwise causes our streaming to fail
+  stream.setVersion(QDataStream::Qt_4_5);
+
   // we read in the MainHeader data with one read
   // operation
   stream.readRawData(&m_pData->header.Original_File_Name[0], 20);    //   0: Original_File_Name
@@ -352,6 +357,11 @@ bool CECAT6MainHeader::save(void) const
   QByteArray buffer(rawDataSize(), 0);
   QDataStream stream(&buffer, QIODevice::WriteOnly);
 
+  // we have to set the QDataStream version to the Qt4.5 version
+  // because with Qt4.6 the floating point precision changed and
+  // otherwise causes our streaming to fail
+  stream.setVersion(QDataStream::Qt_4_5);
+ 
   // we read in the MainHeader data with one read
   // operation
   stream.writeRawData(&m_pData->header.Original_File_Name[0], 20);  //   0: Original_File_Name

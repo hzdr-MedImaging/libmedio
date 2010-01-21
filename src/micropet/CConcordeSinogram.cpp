@@ -33,7 +33,6 @@
 #include "CMedIOData.h"
 
 #include <rtdebug.h>
-#include <QDataStream>
 #include <QFile>
 
 //  Class: CConcordeSinogram

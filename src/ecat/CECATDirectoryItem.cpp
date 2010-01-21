@@ -542,6 +542,12 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
           // out the values from it for making sure our data is correctly
           // converted regarding to little/big endianess
           QDataStream bufStream(bufArray);
+ 
+          // we have to set the QDataStream version to the Qt4.5 version
+          // because with Qt4.6 the floating point precision changed and
+          // otherwise causes our streaming to fail
+          bufStream.setVersion(QDataStream::Qt_4_5);
+          
           bufStream.setByteOrder(QDataStream::LittleEndian);
           for(unsigned int i=0; i < curRead; i+=sizeof(float))
           {
@@ -583,6 +589,12 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
           // out the values from it for making sure our data is correctly
           // converted regarding to little/big endianess
           QDataStream bufStream(bufArray);
+
+          // we have to set the QDataStream version to the Qt4.5 version
+          // because with Qt4.6 the floating point precision changed and
+          // otherwise causes our streaming to fail
+          bufStream.setVersion(QDataStream::Qt_4_5);
+          
           for(unsigned int i=0; i < curRead; i+=sizeof(float))
           {
             bufStream >> *ptr;
@@ -1138,6 +1150,12 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
         // in the values to it for making sure our data is correctly
         // converted regarding to little/big endianess
         QDataStream bufStream(&bufArray, QIODevice::WriteOnly);
+
+        // we have to set the QDataStream version to the Qt4.5 version
+        // because with Qt4.6 the floating point precision changed and
+        // otherwise causes our streaming to fail
+        bufStream.setVersion(QDataStream::Qt_4_5);
+        
         bufStream.setByteOrder(QDataStream::LittleEndian);
         for(unsigned int i=0; i < toWrite; i+=sizeof(float))
         {
@@ -1180,6 +1198,12 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
         // in the values to it for making sure our data is correctly
         // converted regarding to little/big endianess
         QDataStream bufStream(&bufArray, QIODevice::WriteOnly);
+
+        // we have to set the QDataStream version to the Qt4.5 version
+        // because with Qt4.6 the floating point precision changed and
+        // otherwise causes our streaming to fail
+        bufStream.setVersion(QDataStream::Qt_4_5);
+        
         for(unsigned int i=0; i < toWrite; i+=sizeof(float))
         {
           bufStream << *ptr;

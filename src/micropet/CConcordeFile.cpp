@@ -513,6 +513,12 @@ bool CConcordeFile::readMatrix(char*& matrixData, unsigned int& length, short fr
                 ASSERT(curRead % sizeof(float) == 0);
                 
                 QDataStream bufStream(bufArray);
+
+                // we have to set the QDataStream version to the Qt4.5 version
+                // because with Qt4.6 the floating point precision changed and
+                // otherwise causes our streaming to fail
+                bufStream.setVersion(QDataStream::Qt_4_5);
+                
                 bufStream.setByteOrder(QDataStream::LittleEndian);
                 for(unsigned int i=0; i < curRead; i+=sizeof(float))
                 {
@@ -548,6 +554,12 @@ bool CConcordeFile::readMatrix(char*& matrixData, unsigned int& length, short fr
                 ASSERT(curRead % sizeof(float) == 0);
                 
                 QDataStream bufStream(bufArray);
+
+                // we have to set the QDataStream version to the Qt4.5 version
+                // because with Qt4.6 the floating point precision changed and
+                // otherwise causes our streaming to fail
+                bufStream.setVersion(QDataStream::Qt_4_5);
+              
                 for(unsigned int i=0; i < curRead; i+=sizeof(float))
                 {
                   bufStream >> *ptr;
