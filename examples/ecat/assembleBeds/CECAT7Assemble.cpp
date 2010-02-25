@@ -648,6 +648,26 @@ bool CECAT7Assemble::assembleImage(short iGate)
         pDestSubHeader = NULL;
       }
     }
+
+    if(bResult)
+    {
+      CECATMainHeader* pECATMainHeader = NULL;
+      if(m_pOutputECAT7File->readMainHeader(pECATMainHeader))
+      {
+        CECAT7MainHeader* pECAT7MainHeader = static_cast<CECAT7MainHeader*>(pECATMainHeader);
+        if(pECAT7MainHeader)
+        {
+          pECAT7MainHeader->setNum_Planes(iNewZDim);
+          m_pOutputECAT7File->writeMainHeader(*pECATMainHeader);
+        }
+
+        if(pECATMainHeader)
+        {
+          delete pECATMainHeader;
+          pECATMainHeader = NULL;
+        }
+      }
+    }
   }
 
   if(pAssembleMatrix)
