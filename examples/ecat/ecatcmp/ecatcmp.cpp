@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
   // Read  http://gcc.gnu.org/onlinedocs/libstdc++/27_io/howto.html#8 for an explanation.
   ios::sync_with_stdio(false);
 
-  cout << "ecatcmp 1.8 - a libmedio ECAT6/7 file/data compare tool" << endl
+  cout << "ecatcmp 1.9 - a libmedio ECAT6/7 file/data compare tool" << endl
        << "(" __DATE__ ")  Copyright (C) 2006-2010 by Jens Langner / www.fzd.de" << endl << endl;
 
   // put all arguments in a temporary MultiHash
@@ -1295,7 +1295,7 @@ static void compareECAT7ImageSubHeaders(CECATSubHeader* subHeader1, CECATSubHead
     cout << "     FILTER_SCATTER_FRACTION.: '" << sh1->filter_Scatter_Fraction() << "' != '" << sh2->filter_Scatter_Fraction() << "'" << endl;
   if(sh1->filter_Scatter_Slope() != sh2->filter_Scatter_Slope())
     cout << "     FILTER_SCATTER_SLOPE....: '" << sh1->filter_Scatter_Slope() << "' != '" << sh2->filter_Scatter_Slope() << "'" << endl;
-  if(sh1->annotation() != sh2->annotation())
+  if(strcmp(sh1->annotation(), sh2->annotation()) != 0)
     cout << "     ANNOTATION..............: '" << sh1->annotation() << "' != '" << sh2->annotation() << "'" << endl;
   if(sh1->mt_1_1() != sh2->mt_1_1())
     cout << "     MT_1_1..................: '" << sh1->mt_1_1() << "' != '" << sh2->mt_1_1() << "'" << endl;
