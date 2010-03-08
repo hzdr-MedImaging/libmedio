@@ -25,7 +25,7 @@ TEMPLATE = app
 QT = core
 DEPENDPATH += .
 INCLUDEPATH += . /usr/local/petlib/include/medio
-LIBS *= /usr/local/petlib/lib/libmedio.so.2
+LIBS *= ../../../lib/libmedio.a
 
 # Input
 SOURCES += anonymize.cpp
