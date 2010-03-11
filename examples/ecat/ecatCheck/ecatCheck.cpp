@@ -47,6 +47,7 @@ using namespace std;
 // local prototypes
 static bool checkBedPositionOffsets(CECATMainHeader* header, bool fix);
 static bool checkBedPositionNumber(CECATMainHeader* header, CECATFile* file, bool fix);
+static bool checkFramesNumber(CECATMainHeader* header, CECATFile* file, bool fix);
 
 //  Function:    main
 //! 
@@ -69,7 +70,7 @@ int main(int argc, char* argv[])
   // Read  http://gcc.gnu.org/onlinedocs/libstdc++/27_io/howto.html#8 for an explanation.
   ios::sync_with_stdio(false);
 
-  cout << "ecatCheck 1.0 - checks & fixes an ECAT file for consistency" << endl
+  cout << "ecatCheck 1.1 - checks & fixes an ECAT file for consistency" << endl
        << "(" __DATE__ ")  Copyright (C) 2006-2010 by Jens Langner / www.fzd.de" << endl << endl;
 
   // put all arguments in a temporary MultiHash
@@ -125,6 +126,7 @@ int main(int argc, char* argv[])
         // call the different functions which are trying to check/fix certain things
         // in the main header
         processed |= checkBedPositionOffsets(header, fixMode);
+        processed |= checkFramesNumber(header, &file, fixMode);
 
         // if we are in "fixMode" we go and save back the main header
         if(fixMode && processed)
@@ -196,6 +198,110 @@ static bool checkBedPositionNumber(CECATMainHeader* header, CECATFile* file, boo
   if(file->numBedPos() != eh->num_Bed_Pos())
   {
     cout << " inconsistent number of bedpos matrices in ECAT file and main header" << endl;
+  }
+
+  return processed;
+}
+
+static bool checkFramesNumber(CECATMainHeader* header, CECATFile* file, bool fix)
+{
+  bool processed = false;
+
+  CECAT7MainHeader* eh = static_cast<CECAT7MainHeader*>(header);
+
+  if(file->directory()->count() != eh->num_Frames())
+  {
+    cout << " inconsistent number of frames in ECAT file (" << file->directory()->count()
+         << ") and main header (" << eh->num_Frames() << ")" << endl;
+
+    if(fix)
+    {
+      CECATSubHeader* subHeader = NULL;
+      CECATSubHeader* lastSubHeader = NULL;
+
+      // find out which frame is missing
+      for(int i=1; i < eh->num_Frames(); i++)
+      {
+        if(file->readSubHeader(subHeader, i) == false)
+        {
+          int reuseFrame = 0;
+
+          cout << "  frame " << i << " missing" << endl;
+
+          // read the next subheader
+          if(file->readSubHeader(subHeader, i+1) == true)
+          {
+            switch(subHeader->subHeaderType())
+            {
+              case CECATSubHeader::ECAT7_Image:
+              {
+                CECAT7SubHeaderImage* sh = static_cast<CECAT7SubHeaderImage*>(subHeader);
+                sh->setFrame_Start_Time(sh->frame_Start_Time()-sh->frame_Duration());
+                sh->setScale_Factor(1.0);
+                sh->setImage_Min(0);
+              }
+              break;
+
+              default:
+                subHeader = NULL;
+              break;
+            }
+
+            reuseFrame = i+1;
+          }
+          else if(file->readSubHeader(subHeader, i-1) == true)
+          {
+            switch(subHeader->subHeaderType())
+            {
+              case CECATSubHeader::ECAT7_Image:
+              {
+                CECAT7SubHeaderImage* sh = static_cast<CECAT7SubHeaderImage*>(subHeader);
+                sh->setFrame_Start_Time(sh->frame_Start_Time()+sh->frame_Duration());
+                sh->setScale_Factor(1.0);
+                sh->setImage_Min(0);
+              }
+              break;
+
+              default:
+                subHeader = NULL;
+              break;
+            }
+
+            reuseFrame = i-1;
+          }
+          else
+          {
+            cout << "ERROR: there is no other frame subheader we can reuse to create the new one" << endl;
+            subHeader = NULL;
+          }
+
+          if(subHeader != NULL)
+          {
+            char* data = NULL;
+            unsigned int len = 0;
+
+            // load the matrix data of the reused Frame so that we can create a new one
+            if(file->readMatrix(data, len, reuseFrame) == true)
+            {
+              // clear the dataset to reuse it immediately
+              memset(data, 0, len);
+
+              // finally write the new empty frame to the file
+              if(file->writeMatrix(data, len, *subHeader, i) == true)
+              {
+                cout << "   copying empty clone from frame " << reuseFrame << " as new frame " << i << endl;
+              }
+              else
+                cout << "ERROR: error while trying to write new frame " << i << endl;
+            }
+            else
+              cout << "ERROR: couldn't load data of frame " << reuseFrame << endl;
+          }
+        }
+
+        lastSubHeader = subHeader;
+      }
+    }
   }
 
   return processed;
