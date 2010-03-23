@@ -42,6 +42,8 @@
 
 #include "config.h" // for big/little endianness check
 
+#define VERSION "1.10"
+
 using namespace std;
 
 // local prototypes
@@ -70,7 +72,7 @@ int main(int argc, char* argv[])
   // Read  http://gcc.gnu.org/onlinedocs/libstdc++/27_io/howto.html#8 for an explanation.
   ios::sync_with_stdio(false);
 
-  cout << "ecatcmp 1.9 - a libmedio ECAT6/7 file/data compare tool" << endl
+  cout << "ecatcmp " << VERSION << " - a libmedio ECAT6/7 file/data compare tool" << endl
        << "(" __DATE__ ")  Copyright (C) 2006-2010 by Jens Langner / www.fzd.de" << endl << endl;
 
   // put all arguments in a temporary MultiHash
@@ -927,9 +929,9 @@ static void compareECAT7MainHeader(CECATMainHeader* header1, CECATMainHeader* he
   if(strcmp(eh1->patient_Name(), eh2->patient_Name()))
     cout << "     PATIENT_NAME............: '" << eh1->patient_Name() << "' != '" << eh2->patient_Name() << "'" << endl;
   if(eh1->patient_Sex() != eh2->patient_Sex())
-    cout << "     PATIENT_SEX.............: '" << eh1->patient_Sex() << "' != '" << eh2->patient_Sex() << "'" << endl;
+    cout << "     PATIENT_SEX.............: '" << (char)eh1->patient_Sex() << "' != '" << (char)eh2->patient_Sex() << "'" << endl;
   if(eh1->patient_Dexterity() != eh2->patient_Dexterity())
-    cout << "     PATIENT_DEXTERITY.......: '" << eh1->patient_Dexterity() << "' != '" << eh2->patient_Dexterity() << "'" << endl;
+    cout << "     PATIENT_DEXTERITY.......: '" << (char)eh1->patient_Dexterity() << "' != '" << (char)eh2->patient_Dexterity() << "'" << endl;
   if(eh1->patient_Age() != eh2->patient_Age())
     cout << "     PATIENT_AGE.............: '" << eh1->patient_Age() << "' != '" << eh2->patient_Age() << "'" << endl;
   if(eh1->patient_Height() != eh2->patient_Height())
