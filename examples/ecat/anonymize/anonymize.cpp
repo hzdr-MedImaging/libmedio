@@ -29,6 +29,7 @@
 
 #include <QFileInfo>
 #include <QHash>
+#include <QRegExp>
 #include <QString>
 
 #include <iostream>
@@ -43,6 +44,8 @@ QString replaceString;
 bool forceOperation = false;
 bool anonymizeAll = false;
 bool anonymizeMore = false;
+
+#define VERSION "1.3"
 
 //  Function:    main
 //! 
@@ -96,7 +99,7 @@ int main(int argc, char* argv[])
       // try to load the configData from the predefined config file
       if(outputFileName.isEmpty())
       {
-        cout << "ERROR: The specified output file is invalid or already exists." << endl;
+        cout << "ERROR: The specified output file is invalid." << endl;
         returnCode = 2;
       }
     }
@@ -152,53 +155,49 @@ int main(int argc, char* argv[])
   {
     if(outputFileName.isEmpty())
     {
+      QRegExp rx("(.+)(\\..+)$");
+      if(rx.indexIn(inputFileName) != -1)
+        outputFileName = rx.cap(1) + "_anon" + rx.cap(2);
+      else
+        outputFileName = inputFileName + "_anon";
+    }
+
+    if(QFileInfo(outputFileName).exists())
+    {
       if(forceOperation)
-        outputFileName = inputFileName;
+      {
+        if(QFile::remove(outputFileName) == false)
+        {
+          cout << "ERROR: couldn't remove the already existing output file prior to the anonymize operation." << endl;
+          returnCode = 2;
+        }
+      }
       else
       {
-        cout << "ERROR: no outputfile specified. won't overwrite input file." << endl;
+        cout << "ERROR: output file already exists. Use force or specify other filename." << endl;
         returnCode = 2;
       }
     }
-    else 
-    {
-      if(QFileInfo(outputFileName).exists())
-      {
-        if(forceOperation)
-        {
-          if(QFile::remove(outputFileName) == false)
-          {
-            cout << "ERROR: couldn't remove the already existing output file prior to the anonymize operation." << endl;
-            returnCode = 2;
-          }
-        }
-        else
-        {
-          cout << "ERROR: output file already exists." << endl;
-          returnCode = 2;
-        }
-      }
           
-      // we have to generate a copy of the input file first
-      if(returnCode == 0)
+    // we have to generate a copy of the input file first
+    if(returnCode == 0)
+    {
+      if(QFile::copy(inputFileName, outputFileName) == false)
       {
-        if(QFile::copy(inputFileName, outputFileName) == false)
-        {
-          cout << "ERROR: couldn't copy the input file to specified output filename." << endl;
-          returnCode = 2;
-        }
+        cout << "ERROR: couldn't copy the input file to specified output filename." << endl;
+        returnCode = 2;
       }
     }
   }
 
   if(returnCode > 0)
   {
-    cout << endl
-         << "libmedio ECAT6/7 file anonymizer v1.2" << endl
-         << "-------------------------------------" << endl
+    cout << "ECAT file anonymizer " << VERSION << " (" __DATE__ ")" << endl
+         << "Copyright (C) 2006-2010 by Jens Langner / www.fzd.de" << endl << endl
          << "Usage: " << argv[0] << " <options> file" << endl
          << "Options:" << endl
          << "  -o <file>    : write the anonymized file to <file>" << endl
+         << "                 (default: <ORIGINAL>_anon.<ext>)" << endl
          << "  -r <string>  : replace all stripped data with string <string>" << endl
          << "  -m           : strip more patient data:" << endl
          << "                   PATIENT_ID" << endl
@@ -211,7 +210,8 @@ int main(int argc, char* argv[])
          << "                   DOSE_START_TIME" << endl
          << "                   DOSAGE" << endl << endl
          << "  -f           : force overwrite operation" << endl
-         << "  -h           : this help page" << endl << endl
+         << "  -h           : this help page" << endl
+         << endl
          << "Default stripped main header data:" << endl
          << "  ORIGINAL_FILE_NAME " << endl
          << "  STUDY_TYPE" << endl
