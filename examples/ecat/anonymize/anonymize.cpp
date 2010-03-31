@@ -45,7 +45,7 @@ bool forceOperation = false;
 bool anonymizeAll = false;
 bool anonymizeMore = false;
 
-#define VERSION "1.3"
+#define VERSION "1.4"
 
 //  Function:    main
 //! 
@@ -230,8 +230,7 @@ int main(int argc, char* argv[])
 
     // open the first file
     CECATFile file(outputFileName);
-    if(file.open(QIODevice::ReadWrite) && 
-       file.format() != CECATFile::Undefined)
+    if(file.open(QIODevice::ReadWrite) == true)
     {
       if(file.format() == CECATFile::ECAT7)
       {
@@ -277,7 +276,9 @@ int main(int argc, char* argv[])
             cout << "ERROR: error while trying to write back anonymized header." << endl;
             returnCode = 2;
           }
-          
+          else
+            cout << "successfully anonymized file." << endl;
+
           delete mHeader;
         }
         else
@@ -293,6 +294,11 @@ int main(int argc, char* argv[])
       }
 
       file.close();
+    }
+    else
+    {
+      cout << "ERROR: error while trying to open input file." << endl;
+      returnCode = 2;
     }
   }  
 
