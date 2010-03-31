@@ -217,7 +217,8 @@ int main(int argc, char* argv[])
          << "Usage: " << argv[0] << " <options> file" << endl
          << "Options:" << endl
          << "  -o <file>    : write the anonymized file to <file>" << endl
-         << "                 (default: <ORIGINAL>_anon.<ext>)" << endl
+         << "                 (default: <ORIGINAL>_anon.<ext> or in case -r" << endl
+         << "                  option is used <string>.<ext>)" << endl
          << "  -r <string>  : replace all stripped data with string <string>" << endl
          << "  -m           : strip more patient data:" << endl
          << "                   PATIENT_ID" << endl
