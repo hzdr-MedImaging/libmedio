@@ -45,7 +45,7 @@ bool forceOperation = false;
 bool anonymizeAll = false;
 bool anonymizeMore = false;
 
-#define VERSION "1.4"
+#define VERSION "1.5"
 
 //  Function:    main
 //! 
@@ -157,9 +157,19 @@ int main(int argc, char* argv[])
     {
       QRegExp rx("(.+)(\\..+)$");
       if(rx.indexIn(inputFileName) != -1)
-        outputFileName = rx.cap(1) + "_anon" + rx.cap(2);
+      {
+        if(replaceString.isEmpty() == false)
+          outputFileName = replaceString.replace(' ', "_") + rx.cap(2);
+        else
+          outputFileName = rx.cap(1) + "_anon" + rx.cap(2);
+      }
       else
-        outputFileName = inputFileName + "_anon";
+      {
+        if(replaceString.isEmpty() == false)
+          outputFileName = replaceString.replace(' ', "_");
+        else
+          outputFileName = inputFileName + "_anon";
+      }
     }
 
     if(QFileInfo(outputFileName).exists())
@@ -193,7 +203,17 @@ int main(int argc, char* argv[])
   if(returnCode > 0)
   {
     cout << "ECAT file anonymizer " << VERSION << " (" __DATE__ ")" << endl
-         << "Copyright (C) 2006-2010 by Jens Langner / www.fzd.de" << endl << endl
+         << "Copyright (C) 2006-2010 by Jens Langner / www.fzd.de" << endl
+         << endl
+         << "Default stripped main header data:" << endl
+         << "  ORIGINAL_FILE_NAME " << endl
+         << "  STUDY_TYPE" << endl
+         << "  PATIENT_NAME" << endl
+         << "  PATIENT_BIRTH_DATE" << endl
+         << "  PHYSICIAN_NAME" << endl
+         << "  OPERATOR_NAME" << endl
+         << "  STUDY_DESCRIPTION" << endl
+         << endl
          << "Usage: " << argv[0] << " <options> file" << endl
          << "Options:" << endl
          << "  -o <file>    : write the anonymized file to <file>" << endl
@@ -201,27 +221,19 @@ int main(int argc, char* argv[])
          << "  -r <string>  : replace all stripped data with string <string>" << endl
          << "  -m           : strip more patient data:" << endl
          << "                   PATIENT_ID" << endl
+         << "                   PATIENT_AGE" << endl
          << "                   PATIENT_SEX" << endl
          << "                   PATIENT_DEXTERITY" << endl
          << "                   PATIENT_HEIGHT" << endl
-         << "                   PATIENT_WEIGHT" << endl << endl
+         << "                   PATIENT_WEIGHT" << endl
          << "  -a           : anonymize as much as possible including scan data:" << endl
+         << "                   FACILITY_NAME" << endl
          << "                   SCAN_START_TIME" << endl
          << "                   DOSE_START_TIME" << endl
-         << "                   DOSAGE" << endl << endl
+         << "                   DOSAGE" << endl
          << "  -f           : force overwrite operation" << endl
          << "  -h           : this help page" << endl
-         << endl
-         << "Default stripped main header data:" << endl
-         << "  ORIGINAL_FILE_NAME " << endl
-         << "  STUDY_TYPE" << endl
-         << "  PATIENT_NAME" << endl
-         << "  PATIENT_AGE" << endl
-         << "  PATIENT_BIRTH_DATE" << endl
-         << "  PHYSICIAN_NAME" << endl
-         << "  OPERATOR_NAME" << endl
-         << "  STUDY_DESCRIPTION" << endl
-         << "  FACILITY_NAME" << endl << endl;
+         << endl;
   }
   else
   {
@@ -244,29 +256,29 @@ int main(int argc, char* argv[])
           mHeader->setOriginal_File_Name(replaceString.toAscii());
           mHeader->setStudy_Type(replaceString.toAscii());
           mHeader->setPatient_Name(replaceString.toAscii());
-          mHeader->setPatient_Age(0);
           mHeader->setPatient_Birth_Date(0);
           mHeader->setPhysician_Name(replaceString.toAscii());
           mHeader->setOperator_Name(replaceString.toAscii());
           mHeader->setStudy_Description(replaceString.toAscii());
-          mHeader->setFacility_Name(replaceString.toAscii());
 
           // anonymize more data
           if(anonymizeMore == true || anonymizeAll == true)
           {
             mHeader->setPatient_ID(replaceString.toAscii());
+            mHeader->setPatient_Age(0);
             mHeader->setPatient_Sex(CECAT7MainHeader::Sex_Unknown);
             mHeader->setPatient_Dexterity(CECAT7MainHeader::Dext_Unknown);
-            mHeader->setPatient_Height(0);
-            mHeader->setPatient_Weight(0);            
+            mHeader->setPatient_Height(0.0f);
+            mHeader->setPatient_Weight(0.0f);            
 
             // and if the option "-a" is also given we also
             // strip of as much study/patient relevant data as possible
             if(anonymizeAll == true)
             {
+              mHeader->setFacility_Name(replaceString.toAscii());
               mHeader->setScan_Start_Time(0);
               mHeader->setDose_Start_Time(0);
-              mHeader->setDosage(0);
+              mHeader->setDosage(0.0f);
             }
           }
 
@@ -277,7 +289,8 @@ int main(int argc, char* argv[])
             returnCode = 2;
           }
           else
-            cout << "successfully anonymized file." << endl;
+            cout << "successfully anonymized file '" << inputFileName.toAscii().constData() << "' to '" << 
+                                                        outputFileName.toAscii().constData() << "'" << endl;
 
           delete mHeader;
         }
