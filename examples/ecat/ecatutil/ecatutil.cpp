@@ -343,6 +343,8 @@ bool processCommando_Get()
               case ECAT_CALIBRATION_FACTOR: cout << pECAT7MainHeader->calibration_Factor() << endl; break;
               case CALIBRATION_UNITS: cout << pECAT7MainHeader->calibration_Units() << endl; break;
               case PATIENT_BIRTH_DATE: cout << pECAT7MainHeader->patient_Birth_Date_Qt().toString("dd MMM yyyy").toAscii().data() << endl; break;
+              case PATIENT_NAME: cout << pECAT7MainHeader->patient_Name() << endl; break;
+
               default:
               {
                 cout << "ERROR: main header entry not supported." << endl;
@@ -652,6 +654,13 @@ bool processCommando_Set()
                 }
               }
               break;
+
+              case PATIENT_NAME:
+              {
+                pECAT7MainHeader->setPatient_Name(g_sValue.toAscii().constData());
+              }
+              break;
+
               case CALIBRATION_UNITS:
               {
                 bool bSuccess = false;
@@ -2020,25 +2029,11 @@ void showVersionInformation()
        #warning unknown compiler suite
        << "unknown compiler "
        #endif
-       #if #cpu(sparc)
-       << "[sparc]"
-       #elif #cpu(sparc64)
-       << "[sparc64]"
-       #elif #cpu(powerpc)
-       << "[ppc]"
-       #elif #cpu(i386)
-       << "[x86]"
-       #elif #cpu(amd64)
-       << "[amd64]"
-       #else
-       #warning Unknown CPU model
-       << "[Unknown]"
-       #endif
        << endl << endl
-
+ 
        // Qt version information
-       << "  Qt " << qVersion() << endl
-                  << "  Copyright (c) 2006-2007 Trolltech Inc." << endl << endl
+       << "  Qt " << CMedIO::qtVersion().toAscii().constData() << " (" << qVersion() << ")" << endl
+                  << "  Copyright (C) 2006-2010 Nokia Corporation" << endl << endl       
 
        << "  libmedio " << CMedIO::version().toAscii().constData() <<  " ("
                         << CMedIO::buildDate().toAscii().constData() << ")" << endl
@@ -2048,7 +2043,7 @@ void showVersionInformation()
 void showHelp(int& argc, char** argv)
 {
   cout << endl;
-  cout << "libmedio ECAT6/7 file utility v2.7" << endl;
+  cout << "libmedio ECAT6/7 file utility v2.8" << endl;
   cout << "----------------------------------" << endl;
   cout << "Usage: " << argv[0] << " <options> ecatfile" << endl;
   cout << "Options:" << endl;
@@ -2149,6 +2144,7 @@ bool initHeaderMaps()
   ecat7MainHeaderMap.insert("calibrationfactor", ECAT_CALIBRATION_FACTOR);
   ecat7MainHeaderMap.insert("calibrationunits", CALIBRATION_UNITS);
   ecat7MainHeaderMap.insert("patientbirthdate", PATIENT_BIRTH_DATE);
+  ecat7MainHeaderMap.insert("patientname", PATIENT_NAME);
 
   ecat7ImageHeaderMap.insert("filtercode", FILTER_CODE);
   ecat7ImageHeaderMap.insert("rfiltercode", RFILTER_CODE);
