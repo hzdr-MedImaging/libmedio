@@ -208,21 +208,25 @@ staticconfig {
 # set the general compiler optimizations
 QMAKE_CFLAGS_RELEASE = -O3 -fomit-frame-pointer -funroll-loops
 QMAKE_CXXFLAGS_RELEASE = -O3 -fomit-frame-pointer -funroll-loops
-contains(HOST_MACHINE, x86_64) {
-  QMAKE_CFLAGS_RELEASE *= -mtune=native
-  QMAKE_CXXFLAGS_RELEASE *= -mtune=native
-}
-contains(HOST_MACHINE, i[63]86) {
-  QMAKE_CFLAGS_RELEASE *= -mtune=native
-  QMAKE_CXXFLAGS_RELEASE *= -mtune=native
-}
-contains(HOST_MACHINE, sun4u) {
-  QMAKE_CFLAGS_RELEASE *= -mcpu=ultrasparc3
-  QMAKE_CXXFLAGS_RELEASE *= -mcpu=ultrasparc3
-}
-contains(HOST_MACHINE, Power.+) {
-  QMAKE_CFLAGS_RELEASE *= -mcpu=powerpc
-  QMAKE_CXXFLAGS_RELEASE *= -mcpu=powerpc
+
+# tune the optimization a bit for each architecture
+!mac {
+  contains(HOST_MACHINE, x86_64) {
+    QMAKE_CFLAGS_RELEASE *= -mtune=native
+    QMAKE_CXXFLAGS_RELEASE *= -mtune=native
+  }
+  contains(HOST_MACHINE, i[63]86) {
+    QMAKE_CFLAGS_RELEASE *= -mtune=native
+    QMAKE_CXXFLAGS_RELEASE *= -mtune=native
+  }
+  contains(HOST_MACHINE, sun4u) {
+    QMAKE_CFLAGS_RELEASE *= -mcpu=ultrasparc3
+    QMAKE_CXXFLAGS_RELEASE *= -mcpu=ultrasparc3
+  }
+  contains(HOST_MACHINE, Power.+) {
+    QMAKE_CFLAGS_RELEASE *= -mcpu=powerpc
+    QMAKE_CXXFLAGS_RELEASE *= -mcpu=powerpc
+  }
 }
 
 # override the compile output
