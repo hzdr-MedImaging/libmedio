@@ -344,6 +344,7 @@ bool processCommando_Get()
               case CALIBRATION_UNITS: cout << pECAT7MainHeader->calibration_Units() << endl; break;
               case PATIENT_BIRTH_DATE: cout << pECAT7MainHeader->patient_Birth_Date_Qt().toString("dd MMM yyyy").toAscii().data() << endl; break;
               case PATIENT_NAME: cout << pECAT7MainHeader->patient_Name() << endl; break;
+              case DOSAGE: cout << pECAT7MainHeader->dosage() << endl; break;
 
               default:
               {
@@ -658,6 +659,21 @@ bool processCommando_Set()
               case PATIENT_NAME:
               {
                 pECAT7MainHeader->setPatient_Name(g_sValue.toAscii().constData());
+              }
+              break;
+
+              case DOSAGE:
+              {
+                bool bSuccess = false;
+                float fDosage = g_sValue.toFloat(&bSuccess);
+                
+                if(bSuccess)
+                  pECAT7MainHeader->setDosage(fDosage);
+                else
+                {
+                  cout << "ERROR: invalid dosage specified" << endl;
+                  bResult = false;
+                }
               }
               break;
 
@@ -2043,7 +2059,7 @@ void showVersionInformation()
 void showHelp(int& argc, char** argv)
 {
   cout << endl;
-  cout << "libmedio ECAT6/7 file utility v2.8" << endl;
+  cout << "libmedio ECAT6/7 file utility v2.9" << endl;
   cout << "----------------------------------" << endl;
   cout << "Usage: " << argv[0] << " <options> ecatfile" << endl;
   cout << "Options:" << endl;
@@ -2145,6 +2161,7 @@ bool initHeaderMaps()
   ecat7MainHeaderMap.insert("calibrationunits", CALIBRATION_UNITS);
   ecat7MainHeaderMap.insert("patientbirthdate", PATIENT_BIRTH_DATE);
   ecat7MainHeaderMap.insert("patientname", PATIENT_NAME);
+  ecat7MainHeaderMap.insert("dosage", DOSAGE);
 
   ecat7ImageHeaderMap.insert("filtercode", FILTER_CODE);
   ecat7ImageHeaderMap.insert("rfiltercode", RFILTER_CODE);
