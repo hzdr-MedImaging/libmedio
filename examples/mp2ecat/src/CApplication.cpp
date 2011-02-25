@@ -45,54 +45,70 @@ bool CApplication::parseCmdLine(int argc, char* argv[])
 {
 	ENTER();
 	bool bResult = false;
-	// put all arguments in a temporary MultiHash
-	QMultiHash<QString, QString> args;
 
-	// and all potential input filenames into a QStringList
-	// note if there are more than one input file
-	// processing will be aborted
-	QStringList inputFileNames;
+  SHOWVALUE(argc);
 
-	// if the user has specified some commandline options
-	// lets process and parse them.
-	D("Mapping all console parameters in a map");
-	for(int i=1; i < argc; i++)
-	{
-		QString option(argv[i]);
+  // put all arguments in a temporary Hash
+  QHash<QString, QString> args;
 
-		if(option[0] == '-')
-		{
-			if(i+1 < argc && argv[i+1][0] != '-')
-			{
-				args.insert(option, argv[i+1]);
-				// since we already processed next option we skip it
-				// in next cycle by incrementing our counter variable
-				i++;
-			}
-			else
-				args.insert(option, "");
-		}
-		else
-			inputFileNames << argv[i];
-	}
+  // and all potential input filenames into a QStringList
+  QStringList inputFileNames;
 
-	// now we check/process the different options according to their
-	// priority
-	if(!args.contains("-h") && !args.contains("-v"))
-	{
+  // if the user has specified some commandline options
+  // lets process and parse them.
+  for(int i=1; i < argc; i++)
+  {
+    QString option(argv[i]);
+
+    if(option[0] == '-')
+    {
+      QString nextOption(argv[i+1]);
+
+      if(i+1 < argc && (nextOption[0] != '-' || nextOption[0].isLetter() == false))
+        args.insert(option, nextOption);
+      else
+        args.insert(option, "");
+    }
+    else
+      inputFileNames << argv[i];
+  }
+
+  // now we check/process the different options according to their
+  // priority
+  if(inputFileNames.isEmpty() == false &&
+     args.contains("-h") == false &&
+     args.contains("-v") == false)
+  {
 		bResult = true;
-		// we first check if there is one and only one input file available
+
+		if(args.contains("-f"))
+		{
+			m_bOverWrite = true;
+		}
+
+		if(args.contains("-o"))
+		{
+			bResult = checkOutputFile(args.value("-o"));
+      inputFileNames.removeAll(args.value("-o"));
+		}
+
+		if(args.contains("-n"))
+	  {
+		  m_sPatientName = args.value("-n");
+      inputFileNames.removeAll(args.value("-n"));
+		}
+
+		// we check if there is one and only one input file available
 		// we do not support processing of multiple concorde micropet image files
-		D("Checking input files");
 		if(inputFileNames.isEmpty())
 		{
 			bResult = false;
-			cout << endl << "Error: no concorde micropet image file provided" << endl << endl;
+			cout << "ERROR: no concorde micropet image file provided" << endl;
 		}
 		else if(inputFileNames.count() > 1)
 		{
 			bResult = false;
-			cout << endl << "Error: multiple concorde micropet image files found - not supported" << endl << endl;
+			cout << "ERROR: multiple concorde micropet image files found - not supported" << endl;
 		}
 		else
 		{
@@ -108,34 +124,18 @@ bool CApplication::parseCmdLine(int argc, char* argv[])
 				else
 				{
 					bResult = false;
-					cout << endl << "Error: image file \"" << inputFileNames.first().toAscii().data() << "\" is not existing|a file|readable" << endl << endl;
+					cout << "ERROR: image file \"" << inputFileNames.first().toAscii().data() << "\" is not existing|a file|readable" << endl;
 				}
 			}
 			else
 			{
 				bResult = false;
-				cout << endl << "Error: no concorde micropet image file provided" << endl << endl;
-			}
-
-			if(args.contains("-f"))
-			{
-				m_bOverWrite = true;
-			}
-
-			if(args.contains("-o"))
-			{
-				bResult = checkOutputFile(args.value("-o"));
-			}
-			else
-			{
-				D("generating new outputfilename");
-				bResult = checkOutputFile(m_sInputFileName + QString(".v"));
-			}
-			if(args.contains("-n"))
-			{
-				m_sPatientName = args.value("-n");
+				cout << "ERROR: no concorde micropet image file provided" << endl;
 			}
 		}
+
+    if(bResult && args.contains("-o") == false)
+      bResult = checkOutputFile(m_sInputFileName + QString(".v"));
 	}
 
 	if(bResult == false)
@@ -160,7 +160,7 @@ bool CApplication::checkOutputFile(QString sFileName)
 		if(fileInfo.exists())
 		{
 			bResult = false;
-			cout << endl << "Error: outputfile already exists" << endl << endl;
+			cout << "ERROR: output file already exists" << endl;
 		}
 	}
 	else
@@ -168,7 +168,7 @@ bool CApplication::checkOutputFile(QString sFileName)
 		if(fileInfo.exists() && !fileInfo.isFile() && !fileInfo.isWritable())
 		{
 			bResult = false;
-			cout << endl << "Error: can not overwrite non-file" << endl << endl;
+			cout << "ERROR: can not overwrite non-file" << endl;
 		}
 	}
 
@@ -180,7 +180,7 @@ bool CApplication::checkOutputFile(QString sFileName)
 		if(m_sOutputFileName == m_sInputFileName)
 		{
 			bResult = false;
-			cout << endl << "Error: will not overwrite input file" << endl << endl;
+			cout << "ERROR: will not overwrite input file" << endl;
 		}
 	}
 
@@ -200,7 +200,7 @@ bool CApplication::checkOutputDir(QString sDirectory)
 	QFileInfo destinationDir(sDirectory);
 	if(!destinationDir.isWritable())
 	{
-		cout << "Error: Could not write to outputfile - check permissions of directory or file!." << endl;
+		cout << "ERROR: Could not write to outputfile - check permissions of directory or file!." << endl;
 		bResult = false;
 	}
 	RETURN(bResult);
@@ -285,7 +285,7 @@ bool CApplication::convertFile()
 	pSrcImageVolume = CMedIODataFactory::create(m_sInputFileName);
 	if(pSrcImageVolume == NULL)
 	{
-		cout << "Error: Image source file format is unknown." << endl;
+		cout << "ERROR: Image source file format is unknown." << endl;
 		bResult = false;
 	}
 
@@ -294,7 +294,7 @@ bool CApplication::convertFile()
 		bool bOpenSource = pSrcImageVolume->open(QIODevice::ReadOnly);
 		if(!bOpenSource || !(pSrcImageVolume->rtti() == CMedIOData::ConcordeMicropet))
 		{
-			cout << "Error: When opening file or file is not from concorde microPET." << endl;
+			cout << "ERROR: When opening file or file is not from concorde microPET." << endl;
 			bResult = false;
 		}
 	}
@@ -305,7 +305,7 @@ bool CApplication::convertFile()
 		if(!bReadMainHeader ||
 				!(((CConcordeFile*)pSrcImageVolume)->fileType() == CConcordeFile::ConcordeMicropet_Image))
 		{
-			cout << "Error: When reading the mainheader or file is not an concorde microPET image." << endl;
+			cout << "ERROR: When reading the mainheader or file is not an concorde microPET image." << endl;
 			bResult = false;
 		}
 	}
@@ -314,7 +314,7 @@ bool CApplication::convertFile()
 	{
 		if(pSrcImageHeader->dataType() == CConcordeMainHeader::UnknownDataType)
 		{
-			cout << "Error: Unknown datatype in concorde microPET image." << endl;
+			cout << "ERROR: Unknown datatype in concorde microPET image." << endl;
 			bResult = false;
 		}
 	}
@@ -325,7 +325,7 @@ bool CApplication::convertFile()
 		ecat7Image = new CECATFile(m_sOutputFileName, CECATMainHeader::ECAT7_Volume16);
 		if(!ecat7Image->open(QIODevice::WriteOnly))
 		{
-			cout << "Error: Could not write to outputfile - check permissions of directory or file!." << endl;
+			cout << "ERROR: Could not write to outputfile - check permissions of directory or file!." << endl;
 			bResult = false;
 		}
 	}
@@ -359,7 +359,7 @@ bool CApplication::convertFile()
 			bool bReadMatrix = ((CConcordeFile*)pSrcImageVolume)->readMatrix(pImgData, i+1);
 			if(!bReadSubHeader || !bReadMatrix)
 			{
-				cout << "Error: When loading subheader or reading data." << endl;
+				cout << "ERROR: When loading subheader or reading data." << endl;
 				bResult = false;
 				if(pImgData)
 					delete pImgData;
@@ -456,7 +456,7 @@ bool CApplication::convertFile()
 				break;
 				default:
 				{
-					cout << "Error: Could not handle datatype of micropet image." << endl;
+					cout << "ERROR: Could not handle datatype of micropet image." << endl;
 					bUnknownDataType = true;
 				}
 				break;
@@ -492,6 +492,9 @@ bool CApplication::convertFile()
 					pEcat7ImgSubHeader->setImage_Max(qRound(1.0f/imgScaleFactor*imgMaxValue));
 					pEcat7ImgSubHeader->setImage_Min(SHRT_MIN);
 				}
+
+        // put in an annotation about being converted by mp2ecat
+        pEcat7ImgSubHeader->setAnnotation("converted by " PACKAGE_NAME " " PACKAGE_VERSION);
 
 				ecat7Image->writeSubHeader(*pEcat7ImgSubHeader, i+1);
 				ecat7Image->writeMatrix(*pImgData,i+1);
