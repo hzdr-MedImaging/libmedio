@@ -854,7 +854,7 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
       clear();
       // now set the old filetype again
       setFile_Type(ft);
-      setOriginal_File_Name(head->fileName().toAscii());
+      setOriginal_File_Name(QFileInfo(head->fileName()).fileName().toAscii());
       setSystem_Type(static_cast<short>(head->model()));
       setScan_Start_Time(head->scanTime());
       setIsotope_Name(head->isotope().toAscii());
