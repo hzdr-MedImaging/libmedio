@@ -12,18 +12,16 @@ template<class T> class CDataArray : public QVarLengthArray<T>
 		CDataArray(QByteArray* pArray, int iNumElements);
 		T minValue();
 		T maxValue();
-		T valueRange();
+		T maxDistance();
 
 	protected:
 		T m_minValue;
 		T m_maxValue;
-		T m_valueRange;
+		T m_maxDistance;
 };
 
 #include <rtdebug.h>
 #include <QByteArray>
-
-#define ABS(a)	a<0?-a:a
 
 template<class T> CDataArray<T>::CDataArray(QByteArray* pArray, int iNumElements)
 	: QVarLengthArray<T>(iNumElements)
@@ -39,8 +37,15 @@ template<class T> CDataArray<T>::CDataArray(QByteArray* pArray, int iNumElements
 		if(m_minValue > *pData)
 			m_minValue = *pData;
 	}
-	m_valueRange = ((ABS(m_maxValue)) > (ABS(m_minValue)))?ABS(m_maxValue):ABS(m_minValue);
-	D("minValue: %f, maxValue: %f, valueRange: %f", (float)m_minValue, (float)m_maxValue, (float)m_valueRange);
+
+  // calculate the value range between min<>max
+  if(fabs(m_maxValue) > fabs(m_minValue))
+    m_maxDistance = fabs(m_maxValue);
+  else
+    m_maxDistance = fabs(m_minValue);
+
+	D("minValue: %g, maxValue: %g, maxDistance: %g", (float)m_minValue, (float)m_maxValue, (float)m_maxDistance);
+
 	LEAVE();
 }
 
@@ -54,9 +59,9 @@ template<class T> T CDataArray<T>::maxValue()
 	return m_maxValue;
 }
 
-template<class T> T CDataArray<T>::valueRange()
+template<class T> T CDataArray<T>::maxDistance()
 {
-	return m_valueRange;
+	return m_maxDistance;
 }
 
 #endif // CARRAY_H //

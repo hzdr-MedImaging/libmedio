@@ -19,6 +19,11 @@ INCLUDEPATH	+= . includes
 QMAKE_CXXFLAGS_RELEASE = @CXXFLAGS@
 QMAKE_CXXFLAGS_DEBUG	 = @CXXFLAGS@
 
+# find out the host os/cpu
+HOST_OS=@HOST_OS@
+HOST_CPU=@HOST_CPU@
+HOST_MACHINE=@HOST_MACHINE@
+
 # set the config to either release or debug
 COMPILE_LEVEL = @COMPILE_LEVEL@
 contains(COMPILE_LEVEL, debug) {
@@ -69,36 +74,50 @@ else {
 	LIBS *= @MEDIO_LIBDIR@/@LIB_MEDIO@
 }
 
-# find out the GCC version
-# and define some gcc v3+ options only.
-GCC_VERSION = @GCC_VERSION@
-contains(GCC_VERSION, 3) {
-	QMAKE_CXXFLAGS *= -fmessage-length=0
+# set defines so that we can identify the processor type later on
+contains(HOST_MACHINE, x86_64) {
+  DEFINES *= __X86_64__
+}
+contains(HOST_MACHINE, i[63]86) {
+  DEFINES *= __i386__
+}
+contains(HOST_MACHINE, sun4u) {
+  DEFINES *= __SPARC__
+}
+contains(HOST_MACHINE, Power.+) {
+  DEFINES *= __POWERPC__
 }
 
-# find out the system
-HOST_OS=@HOST_OS@
-HOST_CPU=@HOST_CPU@
-contains(HOST_CPU, sparc) {
-	QMAKE_CXXFLAGS *= -mcpu=v9 -mtune=ultrasparc3
-}
-else {
-	contains(HOST_CPU, [pP]ower[pP]c) {
-      QMAKE_CXXFLAGS *= -Acpu=powerpc -mcpu=G4
+!mac {
+  contains(HOST_MACHINE, x86_64) {
+    QMAKE_CFLAGS_RELEASE *= -mtune=native
+    QMAKE_CXXFLAGS_RELEASE *= -mtune=native
   }
-  else {
-		contains(HOST_CPU, [oO]pteron.+) {			
-			QMAKE_CXXFLAGS *= -Acpu=amd64 -march=opteron
-		}
-	}
+  contains(HOST_MACHINE, i[63]86) {
+    QMAKE_CFLAGS_RELEASE *= -mtune=native
+    QMAKE_CXXFLAGS_RELEASE *= -mtune=native
+  }
+  contains(HOST_MACHINE, sun4u) {
+    QMAKE_CFLAGS_RELEASE *= -mcpu=ultrasparc3
+    QMAKE_CXXFLAGS_RELEASE *= -mcpu=ultrasparc3
+  }
+  contains(HOST_MACHINE, Power.+) {
+    QMAKE_CFLAGS_RELEASE *= -mcpu=powerpc
+    QMAKE_CXXFLAGS_RELEASE *= -mcpu=powerpc
+  }
 }
+
+# override the compile output
+QMAKE_CXX  = @echo \'  CC   $<\'; $$QMAKE_CXX
+QMAKE_LINK = @echo \'  LD   $@\'; $$QMAKE_LINK
+QMAKE_MOC  = @echo \'  MOC  $@\'; $$QMAKE_MOC
 
 # use ANSI colors if it was specified on configure time
 ansi_color {
-	QMAKE_CXX = @printf \'\033[32mCompiling $<\033[0m\n\'; $$QMAKE_CXX
-	QMAKE_LINK = @printf \'\033[32mLinking \033[1m$@\033[0m\n\'; $$QMAKE_LINK
-	QMAKE_MOC = @printf \'\033[33mGenerating $@\033[0m\n\'; $$QMAKE_MOC	
-	DEFINES *= ANSI_COLOR
+  DEFINES *= ANSI_COLOR
+}
+else {
+  DEFINES -= ANSI_COLOR
 }
 
 # Input

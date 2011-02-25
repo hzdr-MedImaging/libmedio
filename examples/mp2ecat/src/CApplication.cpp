@@ -14,6 +14,7 @@
 #include <CMedIO>
 
 #include <math.h>
+#include <limits.h>
 #include <iostream>
 #include <rtdebug.h>
 
@@ -206,11 +207,11 @@ bool CApplication::checkOutputDir(QString sDirectory)
 	return bResult;
 }
 
-void CApplication::showUsage(int argc, char* argv[])
+void CApplication::showUsage(int, char* argv[])
 {
 	ENTER();
 	// output usage information on the console.
-	cout << "Usage: " << argv[0] << " <options> <microPET image (*.img)>" << endl
+	cout << "Usage: " << argv[0] << " <options> <file.img>" << endl
 			 << "Options:" << endl
 			 << "  -o <file>    : ECAT image (*.v) to which microPET image is converted" << endl
 			 << "  -n <string>  : name of patient in ECAT file" << endl
@@ -224,8 +225,8 @@ void CApplication::showAppInfo()
 	ENTER();
 	// output some general program information
 	cout << endl
-			 << PACKAGE_STRING << " - A Qt4-based program for retrieving gating information" << endl
-			 << "(" __DATE__ ") Copyright (c) 2006-2007 by Hagen Moelle / FZ-Rossendorf" << endl << endl;
+			 << PACKAGE_STRING << " - converts microPET image file to ECAT file" << endl
+			 << "(" __DATE__ ") Copyright (c) 2006-2010 by Hagen Moelle, Jens Langner / www.hzdr.de" << endl << endl;
 	LEAVE();
 	return;
 }
@@ -235,30 +236,28 @@ void CApplication::showVersion()
 	ENTER();
 	cout << "Detailed compilation information:" << endl << endl
 
-			 // Compiler information
-			 << "  "
-			 #if defined(__GNUC__)
-			 << "GCC " << __GNUC__ << "." << __GNUC_MINOR__ <<  "." << __GNUC_PATCHLEVEL__ << " "
-			 #else
-			 #warning unknown compiler suite
-			 << "unknown compiler "
-			 #endif
-			 #if #cpu(sparc)
-			 << "[sparc]"
-			 #elif #cpu(sparc64)
-			 << "[sparc64]"
-			 #elif #cpu(powerpc)
-			 << "[ppc]"
-			 #elif #cpu(i386)
-			 << "[x86]"
-			 #elif #cpu(amd64)
-			 << "[amd64]"
-			 #else
-			 #warning Unknown CPU model
-			 << "[Unknown]"
-			 #endif
-			 << endl << endl
-
+       // Compiler information
+       << "  "
+       #if defined(__GNUC__)
+       << "GCC " << __GNUC__ << "." << __GNUC_MINOR__ <<  "." << __GNUC_PATCHLEVEL__ << " "
+       #else
+       #warning unknown compiler suite
+       << "unknown compiler "
+       #endif
+       #if defined(__SPARC__)
+       << "[sparc]"
+       #elif defined(__POWERPC__)
+       << "[ppc]"
+       #elif defined(__i386__)
+       << "[x86]"
+       #elif defined(__X86_64__)
+       << "[x86_64]"
+       #else
+       #warning Unknown CPU model
+       << "[Unknown]"
+       #endif
+       << endl << endl
+  
 			 // Qt version information
 			 << "  Qt " << qVersion() << endl
 									<< "  Copyright (c) 2006-2007 Trolltech Inc." << endl << endl
@@ -373,7 +372,6 @@ bool CApplication::convertFile()
 			char* pDestData = NULL;
 			float imgMaxValue = 0.0F;
 			float imgMinValue = 10000.0F;
-			float imgRange = 0.0F;
 			float imgScaleFactor = 0.0F;
 
 			switch(pSrcImageHeader->dataType())
@@ -381,6 +379,8 @@ bool CApplication::convertFile()
 				case CConcordeMainHeader::IntelShort:
 				case CConcordeMainHeader::SunShort:
 				{
+          D("found short source data");
+
 					#warning "not tested - could not find short image"
 					STARTCLOCK("converting data");
 					int iNumElements = iFramesize/sizeof(short);
@@ -388,14 +388,14 @@ bool CApplication::convertFile()
 					pDestData = new char[iNumElements*sizeof(short)];
 					imgMaxValue = dataArray.maxValue();
 					imgMinValue = dataArray.minValue();
-					imgRange = dataArray.valueRange();
-					imgScaleFactor = imgRange/32767.0;
+					imgScaleFactor = dataArray.maxDistance()/float(SHRT_MAX);
 					short* pDestDataElement = (short*)pDestData;
-					double dInvScaleFactor = 32767.0/dataArray.valueRange();
+
 					for(int i = 0; i < iNumElements; i++, pDestDataElement++)
 					{
-						*pDestDataElement = (short)floor(dataArray[i]*dInvScaleFactor);
+						*pDestDataElement = qRound(1.0f/imgScaleFactor*dataArray[i]);
 					}
+
 					D("Scalefactor: %f, Scale factor in header: %f", imgScaleFactor, pSrcImgSubHeader->scaleFactor());
 					delete pImgData;
 					pImgData = new QByteArray(pDestData,iNumElements*sizeof(short));
@@ -403,9 +403,12 @@ bool CApplication::convertFile()
 					STOPCLOCK("converting data");
 				}
 				break;
+
 				case CConcordeMainHeader::IntelInt:
 				case CConcordeMainHeader::SunInt:
 				{
+          D("found integer source data");
+
 					#warning "not tested - could not find integer image"
 					STARTCLOCK("converting data");
 					int iNumElements = iFramesize/sizeof(qint32);
@@ -413,13 +416,11 @@ bool CApplication::convertFile()
 					pDestData = new char[iNumElements*sizeof(short)];
 					imgMaxValue = dataArray.maxValue();
 					imgMinValue = dataArray.minValue();
-					imgRange = dataArray.valueRange();
-					imgScaleFactor = imgRange/32767.0;
+					imgScaleFactor = dataArray.maxDistance()/float(SHRT_MAX);
 					short* pDestDataElement = (short*)pDestData;
-					double dInvScaleFactor = 32767.0/dataArray.valueRange();
 					for(int i = 0; i < iNumElements; i++, pDestDataElement++)
 					{
-						*pDestDataElement = (short)floor(dataArray[i]*dInvScaleFactor);
+						*pDestDataElement = qRound(1.0f/imgScaleFactor*dataArray[i]);
 					}
 					D("Scalefactor: %f, Scale factor in header: %f", imgScaleFactor, pSrcImgSubHeader->scaleFactor());
 					delete pImgData;
@@ -428,22 +429,23 @@ bool CApplication::convertFile()
 					STOPCLOCK("converting data");
 				}
 				break;
+
 				case CConcordeMainHeader::IntelFloat:
 				case CConcordeMainHeader::IEEEFloat:
 				{
+          D("found float source data");
+
 					STARTCLOCK("converting data");
 					int iNumElements = iFramesize/sizeof(float);
 					CDataArray<float> dataArray(pImgData, iNumElements);
 					pDestData = new char[iNumElements*sizeof(short)];
 					imgMaxValue = dataArray.maxValue();
 					imgMinValue = dataArray.minValue();
-					imgRange = dataArray.valueRange();
-					imgScaleFactor = imgRange/32767.0;
+					imgScaleFactor = dataArray.maxDistance()/float(SHRT_MAX);
 					short* pDestDataElement = (short*)pDestData;
-					double dInvScaleFactor = 32767.0/dataArray.valueRange();
 					for(int i = 0; i < iNumElements; i++, pDestDataElement++)
 					{
-						*pDestDataElement = (short)floor(dataArray[i]*dInvScaleFactor);
+						*pDestDataElement = qRound(1.0f/imgScaleFactor*dataArray[i]);
 					}
 					D("Scalefactor: %f, Scale factor in header: %f", imgScaleFactor, pSrcImgSubHeader->scaleFactor());
 					delete pImgData;
@@ -459,6 +461,7 @@ bool CApplication::convertFile()
 				}
 				break;
 			}
+
 			if(!bUnknownDataType)
 			{
 				CECAT7SubHeaderImage* pEcat7ImgSubHeader;
@@ -466,28 +469,44 @@ bool CApplication::convertFile()
 				pEcat7ImgSubHeader->setData_Type(CECATSubHeader::SunShort);
 				pEcat7ImgSubHeader->convertFrom(pSrcImgSubHeader, pSrcImageHeader);
 
-				pEcat7ImgSubHeader->setScale_Factor(pSrcImgSubHeader->scaleFactor()*imgScaleFactor);
+        // we have to recalculate the scale factor for the ECAT format. Important to note is that within
+        // the concorde format the isotope branching fraction is NOT included contrary to what is done
+        // in the ECAT format. Thus, we have to calculate the ECAT scale factor as followed:
+        //
+        // S = mS * iS / bf
+        //
+        // where S denotes the new ECAT scale factor, mS the original scale factor of the mpet file,
+        // iS the integer scale factor we used to scale the float image to integer/short values and bf
+        // the isotope branching fraction.
+				pEcat7ImgSubHeader->setScale_Factor(pSrcImgSubHeader->scaleFactor()*imgScaleFactor/pSrcImageHeader->isotopeBranchingFraction());
+
+        D("imgMax: %g (%g,%g), imgMin: %g (%g,%g)", imgMaxValue, imgMaxValue*imgScaleFactor, 1.0f/imgScaleFactor*imgMaxValue, imgMinValue, imgMinValue*imgScaleFactor, 1.0f/imgScaleFactor*imgMinValue);
+
 				if(fabs(imgMaxValue) > fabs(imgMinValue))
 				{
-					pEcat7ImgSubHeader->setImage_Min((short)floor(imgMinValue*imgScaleFactor));
-					pEcat7ImgSubHeader->setImage_Max(32767);
+					pEcat7ImgSubHeader->setImage_Min(qRound(1.0f/imgScaleFactor*imgMinValue));
+					pEcat7ImgSubHeader->setImage_Max(SHRT_MAX);
 				}
 				else
 				{
-					pEcat7ImgSubHeader->setImage_Max((short)ceil(imgMaxValue*imgScaleFactor));
-					pEcat7ImgSubHeader->setImage_Min(-32768);
+					pEcat7ImgSubHeader->setImage_Max(qRound(1.0f/imgScaleFactor*imgMaxValue));
+					pEcat7ImgSubHeader->setImage_Min(SHRT_MIN);
 				}
+
 				ecat7Image->writeSubHeader(*pEcat7ImgSubHeader, i+1);
 				ecat7Image->writeMatrix(*pImgData,i+1);
 				delete pEcat7ImgSubHeader;
 			}
 			delete pImgData;
 			delete pSrcImgSubHeader;
+
 			if(bUnknownDataType)
 				break;
 		}
+
 		if(!bUnknownDataType)
 		{
+      cout << "Writing main header and finalizing file" << endl;
 			ecat7Image->writeMainHeader(*pEcat7ImgHeader);
 			bResult = true;
 		}

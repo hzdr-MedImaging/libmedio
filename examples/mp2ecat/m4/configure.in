@@ -1,5 +1,5 @@
 AC_PREREQ(2.57)
-AC_INIT(MicroPETtoECAT, 0.3, h.moelle@fz-rossendorf.de)
+AC_INIT(mp2ecat, 0.4, h.moelle@fz-rossendorf.de)
 AC_COPYRIGHT(Copyright (c) 2004 by Hagen Mölle <h.moelle@fz-rossendorf.de>)
 AC_REVISION($Revision$)
 AC_CONFIG_SRCDIR([src/mp2ecat.cpp])
@@ -9,6 +9,11 @@ AC_CONFIG_HEADER([src/includes/config.h])
 AC_MSG_CHECKING(for host operating system)
 AC_SUBST(HOST_OS, `uname -s`)
 AC_MSG_RESULT(${HOST_OS})
+
+# Checks for host machine type
+AC_MSG_CHECKING(for host system machine type)
+AC_SUBST(HOST_MACHINE, `uname -m`)
+AC_MSG_RESULT(${HOST_MACHINE})
 
 # Checks for host processor type
 AC_MSG_CHECKING(for host system processor type)
