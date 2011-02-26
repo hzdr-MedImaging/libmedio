@@ -30,7 +30,7 @@ using namespace std;
 
 CApplication::CApplication()
  : m_bOverWrite(false),
-   m_bConvertToShort(false)
+   m_bPreserveDataType(false)
 {
   ENTER();
   LEAVE();
@@ -93,9 +93,9 @@ bool CApplication::parseCmdLine(int argc, char* argv[])
       inputFileNames.removeAll(args.value("-n"));
     }
 
-    if(args.contains("-c"))
+    if(args.contains("-p"))
     {
-      m_bConvertToShort = true;
+      m_bPreserveDataType = true;
     }
 
     // we check if there is one and only one input file available
@@ -215,8 +215,8 @@ void CApplication::showUsage(int, char* argv[])
        << "Options:" << endl
        << "  -o <file>    : ECAT image (*.v) to which microPET image is converted" << endl
        << "  -n <string>  : override patient name in ECAT output file" << endl
-       << "  -c           : convert float mpet data to short integer values in ECAT" << endl
-       << "                 (this implies a slight precision loss)" << endl
+       << "  -p           : preserve data type as is and do not convert to short values" << endl
+       << "                 (this will give you the highest precision on cost of space)" << endl
        << "  -f           : force overwriting of existing files" << endl;
   LEAVE();
   return;
@@ -408,7 +408,7 @@ bool CApplication::convertFile()
 
           STARTCLOCK("converting data");
 
-          if(m_bConvertToShort)
+          if(m_bPreserveDataType == false)
           {
             cout << " (long->short)" << endl;
 
@@ -455,7 +455,7 @@ bool CApplication::convertFile()
 
           STARTCLOCK("converting data");
 
-          if(m_bConvertToShort)
+          if(m_bPreserveDataType == false)
           {
             cout << " (float->short)" << endl;
 

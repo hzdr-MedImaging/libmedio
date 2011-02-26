@@ -27,7 +27,7 @@ class CApplication
     QString m_sOutputFileName;
     QString m_sPatientName;
     bool    m_bOverWrite;
-    bool    m_bConvertToShort;
+    bool    m_bPreserveDataType;
 };
 
 #endif // CAPPLICATION_H
