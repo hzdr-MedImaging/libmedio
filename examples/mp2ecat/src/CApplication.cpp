@@ -335,9 +335,13 @@ bool CApplication::convertFile()
   if(bResult)
   {
     pEcat7ImgHeader = static_cast<CECAT7MainHeader*>(ecat7Image->createEmptyMainHeader());
-    
     pEcat7ImgHeader->convertFrom(pSrcImageHeader);
-    pEcat7ImgHeader->setPatient_Name(m_sPatientName.toAscii().data());
+
+    if(m_sPatientName.isEmpty() == false)
+      pEcat7ImgHeader->setPatient_Name(m_sPatientName.toAscii().constData());
+
+    if(QString(pEcat7ImgHeader->study_Description()).trimmed().isEmpty())
+      pEcat7ImgHeader->setStudy_Description(QFileInfo(m_sInputFileName).fileName().toAscii().constData());
     
     int iNrFrames = pSrcImageHeader->totalFrames();
     if(iNrFrames > NUMFRAMESLIMIT)
