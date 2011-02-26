@@ -29,13 +29,8 @@
 using namespace std;
 
 CApplication::CApplication()
-{
-	ENTER();
-	m_bOverWrite = false;
-	LEAVE();
-}
-
-CApplication::~CApplication()
+ : m_bOverWrite(false),
+   m_bConvertToShort(false)
 {
 	ENTER();
 	LEAVE();
@@ -97,6 +92,11 @@ bool CApplication::parseCmdLine(int argc, char* argv[])
 		  m_sPatientName = args.value("-n");
       inputFileNames.removeAll(args.value("-n"));
 		}
+
+    if(args.contains("-c"))
+    {
+      m_bConvertToShort = true;
+    }
 
 		// we check if there is one and only one input file available
 		// we do not support processing of multiple concorde micropet image files
@@ -214,7 +214,9 @@ void CApplication::showUsage(int, char* argv[])
 	cout << "Usage: " << argv[0] << " <options> <file.img>" << endl
 			 << "Options:" << endl
 			 << "  -o <file>    : ECAT image (*.v) to which microPET image is converted" << endl
-			 << "  -n <string>  : name of patient in ECAT file" << endl
+			 << "  -n <string>  : override patient name in ECAT output file" << endl
+       << "  -c           : convert float mpet data to short integer values in ECAT" << endl
+       << "                 (this implies a slight precision loss)" << endl
 			 << "  -f           : force overwriting of existing files" << endl;
 	LEAVE();
 	return;
@@ -226,7 +228,7 @@ void CApplication::showAppInfo()
 	// output some general program information
 	cout << endl
 			 << PACKAGE_STRING << " - converts microPET image file to ECAT file" << endl
-			 << "(" __DATE__ ") Copyright (c) 2006-2010 by Hagen Moelle, Jens Langner / www.hzdr.de" << endl << endl;
+			 << "(" __DATE__ ") Copyright (c) 2006-2011 by Hagen Moelle, Jens Langner / www.hzdr.de" << endl << endl;
 	LEAVE();
 	return;
 }
@@ -361,18 +363,18 @@ bool CApplication::convertFile()
 			{
 				cout << "ERROR: When loading subheader or reading data." << endl;
 				bResult = false;
-				if(pImgData)
-					delete pImgData;
-				if(pSrcImgSubHeader)
-					delete pSrcImgSubHeader;
+			  delete pImgData;
+				delete pSrcImgSubHeader;
+
 				break;
 			}
 			
-			cout << "Converting Frame: " << (i+1) << " of " << iNrFrames << endl;
+			cout << "Converting Frame: " << (i+1) << " of " << iNrFrames;
 			char* pDestData = NULL;
 			float imgMaxValue = 0.0F;
 			float imgMinValue = 10000.0F;
 			float imgScaleFactor = 0.0F;
+      CECATSubHeader::Data_Type outputDataType = CECATSubHeader::UnknownDataType;
 
 			switch(pSrcImageHeader->dataType())
 			{
@@ -381,26 +383,21 @@ bool CApplication::convertFile()
 				{
           D("found short source data");
 
-					#warning "not tested - could not find short image"
+			    cout << " (short->short)" << endl;
+
 					STARTCLOCK("converting data");
-					int iNumElements = iFramesize/sizeof(short);
+					int iNumElements = iFramesize/sizeof(qint16);
 					CDataArray<qint32> dataArray(pImgData, iNumElements);
-					pDestData = new char[iNumElements*sizeof(short)];
 					imgMaxValue = dataArray.maxValue();
 					imgMinValue = dataArray.minValue();
-					imgScaleFactor = dataArray.maxDistance()/float(SHRT_MAX);
-					short* pDestDataElement = (short*)pDestData;
 
-					for(int i = 0; i < iNumElements; i++, pDestDataElement++)
-					{
-						*pDestDataElement = qRound(1.0f/imgScaleFactor*dataArray[i]);
-					}
+          // as we don't have to rescale any data we simply use the same scale factor
+          // and thus we don't need to calculate an own one here or rescale any data
+          imgScaleFactor = 1.0f;
 
-					D("Scalefactor: %f, Scale factor in header: %f", imgScaleFactor, pSrcImgSubHeader->scaleFactor());
-					delete pImgData;
-					pImgData = new QByteArray(pDestData,iNumElements*sizeof(short));
-					delete [] pDestData;
 					STOPCLOCK("converting data");
+
+          outputDataType = CECATSubHeader::SunShort;
 				}
 				break;
 
@@ -409,24 +406,45 @@ bool CApplication::convertFile()
 				{
           D("found integer source data");
 
-					#warning "not tested - could not find integer image"
 					STARTCLOCK("converting data");
-					int iNumElements = iFramesize/sizeof(qint32);
-					CDataArray<qint32> dataArray(pImgData, iNumElements);
-					pDestData = new char[iNumElements*sizeof(short)];
-					imgMaxValue = dataArray.maxValue();
-					imgMinValue = dataArray.minValue();
-					imgScaleFactor = dataArray.maxDistance()/float(SHRT_MAX);
-					short* pDestDataElement = (short*)pDestData;
-					for(int i = 0; i < iNumElements; i++, pDestDataElement++)
-					{
-						*pDestDataElement = qRound(1.0f/imgScaleFactor*dataArray[i]);
+
+          if(m_bConvertToShort)
+          {
+			      cout << " (long->short)" << endl;
+
+					  int iNumElements = iFramesize/sizeof(qint32);
+					  CDataArray<qint32> dataArray(pImgData, iNumElements);
+					  pDestData = new char[iNumElements*sizeof(qint16)];
+					  imgMaxValue = dataArray.maxValue();
+					  imgMinValue = dataArray.minValue();
+					  imgScaleFactor = dataArray.maxDistance()/float(SHRT_MAX);
+					  qint16* pDestDataElement = (qint16*)pDestData;
+
+					  for(int i = 0; i < iNumElements; i++, pDestDataElement++)
+						  *pDestDataElement = qRound(1.0f/imgScaleFactor*dataArray[i]);
+
+					  D("Scalefactor: %f, Scale factor in header: %f", imgScaleFactor, pSrcImgSubHeader->scaleFactor());
+					  delete pImgData;
+					  pImgData = new QByteArray(pDestData,iNumElements*sizeof(short));
+					  delete [] pDestData;
+
+            outputDataType = CECATSubHeader::SunShort;
 					}
-					D("Scalefactor: %f, Scale factor in header: %f", imgScaleFactor, pSrcImgSubHeader->scaleFactor());
-					delete pImgData;
-					pImgData = new QByteArray(pDestData,iNumElements*sizeof(short));
-					delete [] pDestData;
-					STOPCLOCK("converting data");
+          else
+          {
+			      cout << " (long->long)" << endl;
+
+            // if we keep the same precision we don't have to convert something at all,
+            // we just have to set our own rescaling factor to 1 and the min/max values
+            // right
+            imgScaleFactor = 1.0f;
+            imgMinValue = -32767;
+            imgMaxValue = 32767;
+
+            outputDataType = CECATSubHeader::SunLong;
+          }
+
+          STOPCLOCK("converting data");
 				}
 				break;
 
@@ -436,24 +454,46 @@ bool CApplication::convertFile()
           D("found float source data");
 
 					STARTCLOCK("converting data");
-					int iNumElements = iFramesize/sizeof(float);
-					CDataArray<float> dataArray(pImgData, iNumElements);
-					pDestData = new char[iNumElements*sizeof(short)];
-					imgMaxValue = dataArray.maxValue();
-					imgMinValue = dataArray.minValue();
-					imgScaleFactor = dataArray.maxDistance()/float(SHRT_MAX);
-					short* pDestDataElement = (short*)pDestData;
-					for(int i = 0; i < iNumElements; i++, pDestDataElement++)
-					{
-						*pDestDataElement = qRound(1.0f/imgScaleFactor*dataArray[i]);
-					}
-					D("Scalefactor: %f, Scale factor in header: %f", imgScaleFactor, pSrcImgSubHeader->scaleFactor());
-					delete pImgData;
-					pImgData = new QByteArray(pDestData,iNumElements*sizeof(short));
-					delete [] pDestData;
+
+          if(m_bConvertToShort)
+          {
+			      cout << " (float->short)" << endl;
+
+					  int iNumElements = iFramesize/sizeof(float);
+	  			  CDataArray<float> dataArray(pImgData, iNumElements);
+		  		  pDestData = new char[iNumElements*sizeof(qint16)];
+			  	  imgMaxValue = dataArray.maxValue();
+				    imgMinValue = dataArray.minValue();
+					  imgScaleFactor = dataArray.maxDistance()/float(SHRT_MAX);
+					  qint16* pDestDataElement = (qint16*)pDestData;
+
+					  for(int i = 0; i < iNumElements; i++, pDestDataElement++)
+						  *pDestDataElement = qRound(1.0f/imgScaleFactor*dataArray[i]);
+
+					  D("Scalefactor: %f, Scale factor in header: %f", imgScaleFactor, pSrcImgSubHeader->scaleFactor());
+					  delete pImgData;
+					  pImgData = new QByteArray(pDestData,iNumElements*sizeof(qint16));
+					  delete [] pDestData;
+
+            outputDataType = CECATSubHeader::SunShort;
+          }
+          else
+          {
+			      cout << " (float->float)" << endl;
+
+            // if we keep the same precision we don't have to convert something at all,
+            // we simply have to modify the scale factor to include the branching fraction
+            imgScaleFactor = 1.0f;
+            imgMinValue = -32767;
+            imgMaxValue = 32767;
+
+            outputDataType = CECATSubHeader::IEEEFloat;
+          } 
+
 					STOPCLOCK("converting data");
 				}
 				break;
+
 				default:
 				{
 					cout << "ERROR: Could not handle datatype of micropet image." << endl;
@@ -466,8 +506,8 @@ bool CApplication::convertFile()
 			{
 				CECAT7SubHeaderImage* pEcat7ImgSubHeader;
 				pEcat7ImgSubHeader = static_cast<CECAT7SubHeaderImage*>(ecat7Image->createEmptySubHeader());
-				pEcat7ImgSubHeader->setData_Type(CECATSubHeader::SunShort);
 				pEcat7ImgSubHeader->convertFrom(pSrcImgSubHeader, pSrcImageHeader);
+				pEcat7ImgSubHeader->setData_Type(outputDataType);
 
         // we have to recalculate the scale factor for the ECAT format. Important to note is that within
         // the concorde format the isotope branching fraction is NOT included contrary to what is done

@@ -9,9 +9,6 @@ class CApplication
 		//constructors
 		CApplication();
 
-		//destructor
-		~CApplication();
-
 		//methods
 		bool parseCmdLine(int argc, char* argv[]);
 		bool convertFile();
@@ -26,10 +23,11 @@ class CApplication
 		bool checkOutputDir(QString sDirectory);
 
 		// members
-		QString		m_sInputFileName;
-		QString		m_sOutputFileName;
-		QString		m_sPatientName;
-		bool			m_bOverWrite;
+		QString m_sInputFileName;
+		QString m_sOutputFileName;
+		QString m_sPatientName;
+		bool		m_bOverWrite;
+    bool    m_bConvertToShort;
 };
 
 #endif // CAPPLICATION_H
