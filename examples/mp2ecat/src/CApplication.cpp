@@ -30,7 +30,8 @@ using namespace std;
 
 CApplication::CApplication()
  : m_bOverWrite(false),
-   m_bPreserveDataType(false)
+   m_bPreserveDataType(false),
+   m_bRecursive(false)
 {
   ENTER();
   LEAVE();
