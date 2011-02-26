@@ -24,15 +24,15 @@ int main(int argc, char* argv[])
   ENTER();
 
   // instantiate the sorter application
-	CApplication mp2Ecat;
-	bool bResult = mp2Ecat.parseCmdLine(argc, argv);
-	if(bResult)
-		bResult = mp2Ecat.convertFile();
+  CApplication mp2Ecat;
+  bool bResult = mp2Ecat.parseCmdLine(argc, argv);
+  if(bResult)
+    bResult = mp2Ecat.convertFile();
 
-	if(bResult)
+  if(bResult)
     returnCode = EXIT_SUCCESS;
-	else
-	  returnCode = EXIT_FAILURE;
+  else
+    returnCode = EXIT_FAILURE;
 
   #if defined(DEBUG)
   CRTDebug::destroy();

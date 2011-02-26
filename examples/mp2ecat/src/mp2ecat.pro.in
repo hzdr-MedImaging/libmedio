@@ -1,23 +1,23 @@
-TEMPLATE		= app
-CONFIG			*= qt thread warn_on @ANSI_COLOR@ @QTLINK_LEVEL@
-QT					+= core
+TEMPLATE    = app
+CONFIG      *= qt thread warn_on @ANSI_COLOR@ @QTLINK_LEVEL@
+QT          += core
 QMAKE_QMAKE = @QMAKE_PATH@
-TARGET			= mp2ecat
-VERSION			= @PACKAGE_VERSION@
-DESTDIR			= ../
-DEFINES			*=
+TARGET      = mp2ecat
+VERSION     = @PACKAGE_VERSION@
+DESTDIR     = ../
+DEFINES     *=
 
 # directory specification
 OBJECTS_DIR = .obj
-MOC_DIR			= .moc
-UI_DIR			= .ui
+MOC_DIR     = .moc
+UI_DIR      = .ui
 
-DEPENDPATH	+= . includes
-INCLUDEPATH	+= . includes
+DEPENDPATH  += . includes
+INCLUDEPATH += . includes
 
 # own QMAKE Flags definitions
 QMAKE_CXXFLAGS_RELEASE = @CXXFLAGS@
-QMAKE_CXXFLAGS_DEBUG	 = @CXXFLAGS@
+QMAKE_CXXFLAGS_DEBUG   = @CXXFLAGS@
 
 # find out the host os/cpu
 HOST_OS=@HOST_OS@
@@ -27,27 +27,27 @@ HOST_MACHINE=@HOST_MACHINE@
 # set the config to either release or debug
 COMPILE_LEVEL = @COMPILE_LEVEL@
 contains(COMPILE_LEVEL, debug) {
-	CONFIG -= release
-	CONFIG *= debug
-	QMAKE_CXXFLAGS_DEBUG += -ggdb -O0
-	DEFINES *= DEBUG
+  CONFIG -= release
+  CONFIG *= debug
+  QMAKE_CXXFLAGS_DEBUG += -ggdb -O0
+  DEFINES *= DEBUG
 }
 else {
-	CONFIG -= debug
-	CONFIG *= release
-	QMAKE_CXXFLAGS_RELEASE += -O3 -funroll-loops
-	QMAKE_LINK *= -s # this is for stripping the executable while linking
-	DEFINES -= DEBUG
+  CONFIG -= debug
+  CONFIG *= release
+  QMAKE_CXXFLAGS_RELEASE += -O3 -funroll-loops
+  QMAKE_LINK *= -s # this is for stripping the executable while linking
+  DEFINES -= DEBUG
 }
 
 ### QT LIB ################################################################
 # if "staticqt" is specificed in the CONFIG variable (by configure)
 # we link with the static QT library instead
 staticqt {
-	QMAKE_LIBS_QT =
-	QMAKE_LIBS_QT_THREAD =
-	!macx:LIBS *= $(QTDIR)/lib/libqt-mt.a
-	macx:LIBS *= $(QTDIR)/lib/libqt-mt.a -lz -framework Carbon
+  QMAKE_LIBS_QT =
+  QMAKE_LIBS_QT_THREAD =
+  !macx:LIBS *= $(QTDIR)/lib/libqt-mt.a
+  macx:LIBS *= $(QTDIR)/lib/libqt-mt.a -lz -framework Carbon
 }
 
 ### LIBRTDEBUG ############################################################
@@ -55,12 +55,12 @@ staticqt {
 # we link wih the static variant of librtdebug instead
 INCLUDEPATH *= @RTDEBUG_INCDIR@
 contains(DEFINES, DEBUG) {
-	staticmedio {
-		LIBS *= @RTDEBUG_LIBDIR@/librtdebug.a
-	}
-	else {
-		LIBS *= -L@RTDEBUG_LIBDIR@ @LIB_RTDEBUG@
-	}
+  staticmedio {
+    LIBS *= @RTDEBUG_LIBDIR@/librtdebug.a
+  }
+  else {
+    LIBS *= -L@RTDEBUG_LIBDIR@ @LIB_RTDEBUG@
+  }
 }
 
 ### LIBMEDIO ##############################################################
@@ -68,10 +68,10 @@ contains(DEFINES, DEBUG) {
 # we link wih the static variant of libmedio instead
 INCLUDEPATH *= @MEDIO_INCDIR@
 staticmedio {
-	LIBS *= @MEDIO_LIBDIR@/libmedio.a
+  LIBS *= @MEDIO_LIBDIR@/libmedio.a
 }
 else {
-	LIBS *= @MEDIO_LIBDIR@/@LIB_MEDIO@
+  LIBS *= @MEDIO_LIBDIR@/@LIB_MEDIO@
 }
 
 # set defines so that we can identify the processor type later on
@@ -121,8 +121,8 @@ else {
 }
 
 # Input
-HEADERS +=	CDataArray.h \
-						CApplication.h
+HEADERS +=  CDataArray.h \
+            CApplication.h
 
-SOURCES +=	CApplication.cpp \
-						mp2ecat.cpp
+SOURCES +=  CApplication.cpp \
+            mp2ecat.cpp
