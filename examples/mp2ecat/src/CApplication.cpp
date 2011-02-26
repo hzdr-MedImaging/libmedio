@@ -83,7 +83,7 @@ bool CApplication::parseCmdLine(int argc, char* argv[])
 
     if(args.contains("-o"))
     {
-      bResult = checkOutputFile(args.value("-o"));
+      m_sPreferedOutputFile = args.value("-o");
       inputFileNames.removeAll(args.value("-o"));
     }
 
@@ -98,6 +98,11 @@ bool CApplication::parseCmdLine(int argc, char* argv[])
       m_bPreserveDataType = true;
     }
 
+    if(args.contains("-r"))
+    {
+      m_bRecursive = true;
+    }
+
     // we check if there is one and only one input file available
     // we do not support processing of multiple concorde micropet image files
     if(inputFileNames.isEmpty())
@@ -105,37 +110,8 @@ bool CApplication::parseCmdLine(int argc, char* argv[])
       bResult = false;
       cout << "ERROR: no concorde micropet image file provided" << endl;
     }
-    else if(inputFileNames.count() > 1)
-    {
-      bResult = false;
-      cout << "ERROR: multiple concorde micropet image files found - not supported" << endl;
-    }
     else
-    {
-      // check if concorde micropet image file is available
-      if(!inputFileNames.first().isEmpty())
-      {
-        QFileInfo fileInfo(inputFileNames.first());
-        if(fileInfo.exists() && fileInfo.isFile() && fileInfo.isReadable())
-        {
-          fileInfo.makeAbsolute();
-          m_sInputFileName = fileInfo.filePath();
-        }
-        else
-        {
-          bResult = false;
-          cout << "ERROR: image file \"" << inputFileNames.first().toAscii().data() << "\" is not existing|a file|readable" << endl;
-        }
-      }
-      else
-      {
-        bResult = false;
-        cout << "ERROR: no concorde micropet image file provided" << endl;
-      }
-    }
-
-    if(bResult && args.contains("-o") == false)
-      bResult = checkOutputFile(m_sInputFileName + QString(".v"));
+      m_sInputFileNames = inputFileNames;
   }
 
   if(bResult == false)
@@ -150,22 +126,29 @@ bool CApplication::parseCmdLine(int argc, char* argv[])
   return bResult;
 }
 
-bool CApplication::checkOutputFile(QString sFileName)
+bool CApplication::checkOutputFile(const QFileInfo& inputFile)
 {
   ENTER();
   bool bResult = true;
-  QFileInfo fileInfo(sFileName);
-  if(!m_bOverWrite)
+  QFileInfo outputFile;
+
+  if(m_sPreferedOutputFile.isEmpty() == true)
+    outputFile = QFileInfo(inputFile.filePath() + ".v");
+  else
+    outputFile = QFileInfo(m_sPreferedOutputFile);
+    
+  if(m_bOverWrite == false)
   {
-    if(fileInfo.exists())
+    if(outputFile.exists())
     {
       bResult = false;
-      cout << "ERROR: output file already exists" << endl;
+      cout << "ERROR: can't convert '" << inputFile.fileName().toAscii().constData() 
+           << "' as output file '" << outputFile.fileName().toAscii().constData() << "' already exists" << endl;
     }
   }
   else
   {
-    if(fileInfo.exists() && !fileInfo.isFile() && !fileInfo.isWritable())
+    if(outputFile.exists() && outputFile.isFile() == false && outputFile.isWritable() == false)
     {
       bResult = false;
       cout << "ERROR: can not overwrite non-file" << endl;
@@ -175,9 +158,7 @@ bool CApplication::checkOutputFile(QString sFileName)
   if(bResult)
   {
     // check if input file equals output file
-    fileInfo.makeAbsolute();
-    m_sOutputFileName = fileInfo.filePath();
-    if(m_sOutputFileName == m_sInputFileName)
+    if(outputFile.absoluteFilePath() == inputFile.absoluteFilePath())
     {
       bResult = false;
       cout << "ERROR: will not overwrite input file" << endl;
@@ -185,24 +166,8 @@ bool CApplication::checkOutputFile(QString sFileName)
   }
 
   if(bResult)
-  {
-    bResult = checkOutputDir(fileInfo.dir().canonicalPath());
-  }
+    m_sOutputFileName = outputFile.absoluteFilePath();
 
-  RETURN(bResult);
-  return bResult;
-}
-
-bool CApplication::checkOutputDir(QString sDirectory)
-{
-  ENTER();
-  bool bResult = true;
-  QFileInfo destinationDir(sDirectory);
-  if(!destinationDir.isWritable())
-  {
-    cout << "ERROR: Could not write to outputfile - check permissions of directory or file!." << endl;
-    bResult = false;
-  }
   RETURN(bResult);
   return bResult;
 }
@@ -211,12 +176,14 @@ void CApplication::showUsage(int, char* argv[])
 {
   ENTER();
   // output usage information on the console.
-  cout << "Usage: " << argv[0] << " <options> <file.img>" << endl
+  cout << "Usage: " << argv[0] << " <options> <file.img|directory>" << endl
        << "Options:" << endl
        << "  -o <file>    : ECAT image (*.v) to which microPET image is converted" << endl
        << "  -n <string>  : override patient name in ECAT output file" << endl
        << "  -p           : preserve data type as is and do not convert to short values" << endl
        << "                 (this will give you the highest precision on cost of space)" << endl
+       << "  -r           : walk the specified directory recursively and convert all *.img" << endl
+       << "                 file in it in one run." << endl
        << "  -f           : force overwriting of existing files" << endl;
   LEAVE();
   return;
@@ -273,7 +240,40 @@ void CApplication::showVersion()
   return;
 }
 
-bool CApplication::convertFile()
+bool CApplication::process()
+{
+  ENTER();
+  bool result = false;
+
+  // now we check out options and either convert bunch of files or a whole directory tree
+  if(m_bRecursive == false)
+  {
+    QString fileName;
+    foreach(fileName, m_sInputFileNames)
+    {
+      if(convertFile(QFileInfo(fileName)) == false)
+      {
+        result = false;
+        break;
+      }
+    }
+  }
+  else
+  {
+    // lets walk the specified directory
+    if(m_sInputFileNames.count() > 1)
+    {
+      cout << "ERROR: only one directory can be specified." << endl;
+    }
+    else
+      result = walkDirectory(QDir(m_sInputFileNames[0]));
+  }
+
+  RETURN(result);
+  return result;
+}
+
+bool CApplication::convertFile(const QFileInfo& inputFile)
 {
   ENTER();
   bool bResult = true;
@@ -283,12 +283,19 @@ bool CApplication::convertFile()
   CECATFile* ecat7Image = NULL;
   CECAT7MainHeader* pEcat7ImgHeader = NULL;
 
-  //create new CMedIOData object from file
-  pSrcImageVolume = CMedIODataFactory::create(m_sInputFileName);
-  if(pSrcImageVolume == NULL)
-  {
-    cout << "ERROR: Image source file format is unknown." << endl;
+  // check if we can create the output file
+  if(checkOutputFile(inputFile) == false)
     bResult = false;
+
+  //create new CMedIOData object from file
+  if(bResult)
+  {
+    pSrcImageVolume = CMedIODataFactory::create(inputFile.filePath());
+    if(pSrcImageVolume == NULL)
+    {
+      cout << "ERROR: Image source file format is unknown." << endl;
+      bResult = false;
+    }
   }
 
   if(bResult)
@@ -323,7 +330,7 @@ bool CApplication::convertFile()
 
   if(bResult)
   {
-    D("Creating empty ecat image: %s", m_sOutputFileName.toAscii().data());
+    D("Creating empty ecat image: '%s'", m_sOutputFileName.toAscii().data());
     ecat7Image = new CECATFile(m_sOutputFileName, CECATMainHeader::ECAT7_Volume16);
     if(!ecat7Image->open(QIODevice::WriteOnly))
     {
@@ -334,6 +341,9 @@ bool CApplication::convertFile()
 
   if(bResult)
   {
+    cout << "Converting: " << inputFile.absoluteFilePath().toAscii().constData() << endl;
+    cout << "OutputFile: " << QFileInfo(m_sOutputFileName).absoluteFilePath().toAscii().constData() << endl;
+
     pEcat7ImgHeader = static_cast<CECAT7MainHeader*>(ecat7Image->createEmptyMainHeader());
     pEcat7ImgHeader->convertFrom(pSrcImageHeader);
 
@@ -341,7 +351,7 @@ bool CApplication::convertFile()
       pEcat7ImgHeader->setPatient_Name(m_sPatientName.toAscii().constData());
 
     if(QString(pEcat7ImgHeader->study_Description()).trimmed().isEmpty())
-      pEcat7ImgHeader->setStudy_Description(QFileInfo(m_sInputFileName).fileName().toAscii().constData());
+      pEcat7ImgHeader->setStudy_Description(inputFile.fileName().toAscii().constData());
     
     int iNrFrames = pSrcImageHeader->totalFrames();
     if(iNrFrames > NUMFRAMESLIMIT)
@@ -567,5 +577,36 @@ bool CApplication::convertFile()
     pSrcImageVolume->close();
   delete pSrcImageVolume;
 
+  RETURN(bResult);
   return bResult;
+}
+
+bool CApplication::walkDirectory(const QDir& dir)
+{
+  ENTER();
+  bool result = true;
+
+  // this function will recursively walk through a directory and process all *.img files in it
+  QFileInfoList dirEntries = dir.entryInfoList(QStringList("*.img"), QDir::Files | QDir::NoSymLinks | QDir::AllDirs | QDir::NoDotAndDotDot);
+
+  QFileInfo dirEntry;
+  foreach(dirEntry, dirEntries)
+  {
+    if(dirEntry.isDir())
+    {
+      result = walkDirectory(QDir(dirEntry.absoluteFilePath()));
+    }
+    else
+    {
+      // check if we found a filename with a *.img suffix
+      if(dirEntry.suffix().toLower() == "img")
+        convertFile(dirEntry);
+    }
+
+    if(result == false)
+      break;
+  }
+
+  RETURN(result);
+  return result;
 }

@@ -2,6 +2,8 @@
 #define CAPPLICATION_H
 
 #include <QString>
+#include <QStringList>
+#include <QDir>
 
 class CApplication
 {
@@ -11,23 +13,28 @@ class CApplication
 
     //methods
     bool parseCmdLine(int argc, char* argv[]);
-    bool convertFile();
+    bool process();
+
+  protected:
+    bool convertFile(const QFileInfo& inputFile);
+    bool walkDirectory(const QDir& dir);
 
   private:
     // methods
     void showUsage(int argc, char* argv[]);
     void showAppInfo();
     void showVersion();
-    bool convIntArrayToShort();
-    bool checkOutputFile(QString sFileName);
-    bool checkOutputDir(QString sDirectory);
+    bool checkOutputFile(const QFileInfo& inputFile);
 
     // members
-    QString m_sInputFileName;
-    QString m_sOutputFileName;
-    QString m_sPatientName;
-    bool    m_bOverWrite;
-    bool    m_bPreserveDataType;
+    QStringList m_sInputFileNames;
+    QString     m_sOutputFileName;
+    QString     m_sPreferedOutputFile;
+    QString     m_sPatientName;
+    QString     m_sStartDirectory;
+    bool        m_bOverWrite;
+    bool        m_bPreserveDataType;
+    bool        m_bRecursive;
 };
 
 #endif // CAPPLICATION_H

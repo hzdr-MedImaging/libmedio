@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
   CApplication mp2Ecat;
   bool bResult = mp2Ecat.parseCmdLine(argc, argv);
   if(bResult)
-    bResult = mp2Ecat.convertFile();
+    bResult = mp2Ecat.process();
 
   if(bResult)
     returnCode = EXIT_SUCCESS;
