@@ -373,14 +373,20 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
       QByteArray* pImgData = NULL;
       CConcordeFrameHeader* pSrcImgSubHeader = NULL;
       bool bReadSubHeader = ((CConcordeFile*)pSrcImageVolume)->readSubHeader(pSrcImgSubHeader, i+1);
-      bool bReadMatrix = ((CConcordeFile*)pSrcImageVolume)->readMatrix(pImgData, i+1);
-      if(!bReadSubHeader || !bReadMatrix)
+      if(!bReadSubHeader)
       {
-        cout << "ERROR: When loading subheader or reading data." << endl;
+        cout << "ERROR: When loading image subheader" << endl;
+        bResult = false;
+        delete pSrcImgSubHeader;
+        break;
+      }
+
+      bool bReadMatrix = ((CConcordeFile*)pSrcImageVolume)->readMatrix(pImgData, i+1);
+      if(!bReadMatrix)
+      {
+        cout << "ERROR: When loading image data" << endl;
         bResult = false;
         delete pImgData;
-        delete pSrcImgSubHeader;
-
         break;
       }
       
