@@ -346,6 +346,7 @@ bool processCommando_Get()
               case PATIENT_NAME: cout << pECAT7MainHeader->patient_Name() << endl; break;
               case DOSAGE: cout << pECAT7MainHeader->dosage() << endl; break;
               case BRANCHING_FRACTION: cout << pECAT7MainHeader->branching_Fraction() << endl; break;
+              case NUM_FRAMES: cout << pECAT7MainHeader->num_Frames() << endl; break;
 
               default:
               {
@@ -789,6 +790,19 @@ bool processCommando_Set()
                 else
                 { 
                   cout << "ERROR: can not convert branching fraction to float value." << endl;
+                  bResult = false;
+                }
+              }
+              break;
+              case NUM_FRAMES:
+              {
+                bool success = false;
+                int iNumFrames = g_sValue.toUInt(&success);
+                if(success)
+                  pECAT7MainHeader->setNum_Frames(iNumFrames);
+                else
+                { 
+                  cout << "ERROR: can not convert number of frames to unsigned int value." << endl;
                   bResult = false;
                 }
               }
@@ -2197,6 +2211,7 @@ bool initHeaderMaps()
   ecat7MainHeaderMap.insert("patientname", PATIENT_NAME);
   ecat7MainHeaderMap.insert("dosage", DOSAGE);
   ecat7MainHeaderMap.insert("branchingfraction", BRANCHING_FRACTION);
+  ecat7MainHeaderMap.insert("numframes", NUM_FRAMES);
 
   ecat7ImageHeaderMap.insert("filtercode", FILTER_CODE);
   ecat7ImageHeaderMap.insert("rfiltercode", RFILTER_CODE);
