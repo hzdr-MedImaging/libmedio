@@ -372,10 +372,13 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
     {
       QByteArray* pImgData = NULL;
       CConcordeFrameHeader* pSrcImgSubHeader = NULL;
+
+      cout << "Converting Frame: " << (i+1) << " of " << iNrFrames;
+
       bool bReadSubHeader = ((CConcordeFile*)pSrcImageVolume)->readSubHeader(pSrcImgSubHeader, i+1);
       if(!bReadSubHeader)
       {
-        cout << "ERROR: When loading image subheader" << endl;
+        cout << "ERROR: When loading image subheader of frame " << i+1 << endl;
         bResult = false;
         delete pSrcImgSubHeader;
         break;
@@ -384,13 +387,12 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
       bool bReadMatrix = ((CConcordeFile*)pSrcImageVolume)->readMatrix(pImgData, i+1);
       if(!bReadMatrix)
       {
-        cout << "ERROR: When loading image data" << endl;
+        cout << "ERROR: When loading image data of frame " << i+1 << endl;
         bResult = false;
         delete pImgData;
         break;
       }
       
-      cout << "Converting Frame: " << (i+1) << " of " << iNrFrames;
       char* pDestData = NULL;
       float imgMaxValue = 0.0F;
       float imgMinValue = 10000.0F;
