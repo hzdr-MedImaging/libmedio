@@ -505,6 +505,7 @@ bool CConcordeFile::readMatrix(char*& matrixData, unsigned int& length, short fr
                 
                 if(curRead != toRead)
                 {
+                  E("read operation failed: %d != %d (%d)", curRead, toRead, read);
                   result = false;
                   break;
                 }
