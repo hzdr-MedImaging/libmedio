@@ -345,6 +345,7 @@ bool processCommando_Get()
               case PATIENT_BIRTH_DATE: cout << pECAT7MainHeader->patient_Birth_Date_Qt().toString("dd MMM yyyy").toAscii().data() << endl; break;
               case PATIENT_NAME: cout << pECAT7MainHeader->patient_Name() << endl; break;
               case DOSAGE: cout << pECAT7MainHeader->dosage() << endl; break;
+              case BRANCHING_FRACTION: cout << pECAT7MainHeader->branching_Fraction() << endl; break;
 
               default:
               {
@@ -383,6 +384,8 @@ bool processCommando_Get()
                   case X_PIXEL_SIZE: cout << pECAT7ImageSubHeader->x_Pixel_Size() << endl; break;
                   case Y_PIXEL_SIZE: cout << pECAT7ImageSubHeader->y_Pixel_Size() << endl; break;
                   case Z_PIXEL_SIZE: cout << pECAT7ImageSubHeader->z_Pixel_Size() << endl; break;
+                  case SCALE_FACTOR_IMAGE: cout << pECAT7ImageSubHeader->scale_Factor() << endl; break;
+                  case ANNOTATION: cout << pECAT7ImageSubHeader->annotation() << endl; break;
                   default:
                   {
                     cout << "ERROR: sub header entry not supported." << endl;
@@ -777,6 +780,19 @@ bool processCommando_Set()
                 }
               }
               break;
+              case BRANCHING_FRACTION:
+              {
+                bool success = false;
+                float fBranchingFraction = g_sValue.toFloat(&success);
+                if(success)
+                  pECAT7MainHeader->setBranching_Fraction(fBranchingFraction);
+                else
+                { 
+                  cout << "ERROR: can not convert branching fraction to float value." << endl;
+                  bResult = false;
+                }
+              }
+              break;
               case BED_POSITION:
               {
                 // this option needs an index position so we check
@@ -908,6 +924,24 @@ bool processCommando_Set()
                       cout << "ERROR: can not convert z-pixel size to float value." << endl;
                       bResult = false;
                     }
+                  }
+                  break;
+                  case SCALE_FACTOR_IMAGE:
+                  {
+                    bool success = false;
+                    float fScaleFactor = g_sValue.toFloat(&success);
+                    if(success)
+                      pECAT7ImageSubHeader->setScale_Factor(fScaleFactor);
+                    else
+                    {
+                      cout << "ERROR: can not convert scale factor to float value." << endl;
+                      bResult = false;
+                    }
+                  }
+                  break;
+                  case ANNOTATION:
+                  {
+                    pECAT7ImageSubHeader->setAnnotation(g_sValue.toAscii().data());
                   }
                   break;
                   case FILTER_CODE:
@@ -2059,8 +2093,8 @@ void showVersionInformation()
 void showHelp(int& argc, char** argv)
 {
   cout << endl;
-  cout << "libmedio ECAT6/7 file utility v2.9" << endl;
-  cout << "----------------------------------" << endl;
+  cout << "libmedio ECAT6/7 file utility v2.10" << endl;
+  cout << "-----------------------------------" << endl;
   cout << "Usage: " << argv[0] << " <options> ecatfile" << endl;
   cout << "Options:" << endl;
   cout << "  -g            : get any header entry of an ecatfile." << endl;
@@ -2162,6 +2196,7 @@ bool initHeaderMaps()
   ecat7MainHeaderMap.insert("patientbirthdate", PATIENT_BIRTH_DATE);
   ecat7MainHeaderMap.insert("patientname", PATIENT_NAME);
   ecat7MainHeaderMap.insert("dosage", DOSAGE);
+  ecat7MainHeaderMap.insert("branchingfraction", BRANCHING_FRACTION);
 
   ecat7ImageHeaderMap.insert("filtercode", FILTER_CODE);
   ecat7ImageHeaderMap.insert("rfiltercode", RFILTER_CODE);
@@ -2175,6 +2210,8 @@ bool initHeaderMaps()
   ecat7ImageHeaderMap.insert("xpixelsize",X_PIXEL_SIZE);
   ecat7ImageHeaderMap.insert("ypixelsize",Y_PIXEL_SIZE);
   ecat7ImageHeaderMap.insert("zpixelsize",Z_PIXEL_SIZE);
+  ecat7ImageHeaderMap.insert("scalefactor",SCALE_FACTOR_IMAGE);
+  ecat7ImageHeaderMap.insert("annotation",ANNOTATION);
 
   ecat7Scan3DHeaderMap.insert("framestarttime", FRAME_START_TIME_SCAN3D);
   ecat7Scan3DHeaderMap.insert("frameduration", FRAME_DURATION_SCAN3D);
