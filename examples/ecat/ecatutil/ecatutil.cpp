@@ -1782,8 +1782,24 @@ bool processCommando_New()
               if(srcEcatFile.readMatrix(pSrcMatrixData, iFrame, iPlane, iGate, iBed, iData))
               {
                 CECATMainHeader* pDestMainHeader = NULL;
+
+                // create a copy of the src main header
                 pDestMainHeader = ecatFile.createEmptyMainHeader();
                 *pDestMainHeader = *pSrcMainHeader;
+
+                // now we have to slightly modify the main header
+                CECAT7MainHeader* pE7SrcMainHeader = static_cast<CECAT7MainHeader*>(pSrcMainHeader);
+                CECAT7MainHeader* pE7DestMainHeader = static_cast<CECAT7MainHeader*>(pDestMainHeader);
+
+                // clear the bed positions entries
+                for(int i=0; i < pE7SrcMainHeader->num_Bed_Pos(); i++)
+                  pE7DestMainHeader->setBed_Offset(i, 0.0f);
+                
+                // if we copy from a bed position > 0 we are going to recalculate the
+                // initial bed position
+                if(iBed > 0)
+                  pE7DestMainHeader->setInit_Bed_Position(pE7SrcMainHeader->init_Bed_Position()+pE7SrcMainHeader->bed_Offset(iBed-1));
+
                 if(ecatFile.writeMainHeader(*pDestMainHeader))
                 {
                   CECATSubHeader* pDestSubHeader = NULL;
