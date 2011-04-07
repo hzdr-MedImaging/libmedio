@@ -412,6 +412,34 @@ AC_DEFUN([AC_ENABLE_STATIC_MTRACK],
   AC_SUBST(QTLINK_LEVEL) 
 ])
 
+dnl
+dnl AC_ENABLE_STATIC_RCPP: provides a switch to control the link level (static/shared)
+dnl of a linked Rcpp library
+dnl
+AC_DEFUN([AC_ENABLE_STATIC_RCPP],
+[
+  AC_MSG_CHECKING(whether to link the rcpp library static)
+  AC_ARG_ENABLE(static-rcpp,
+                [AC_HELP_STRING([--enable-static-rcpp], [turn on static linkage of rcpp libs [default=no]])],
+                [case "${enableval}" in
+                  yes) test_on_enable_static_rcpp=yes  ;;
+                  no)  test_on_enable_static_rcpp=no ;;
+                  *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-rcpp) ;;
+                esac],
+                [test_on_enable_static_rcpp=no])
+
+  if test "$test_on_enable_static_rcpp" = "yes" -o "$ac_static_build" = "yes"; then
+    QTLINK_LEVEL="${QTLINK_LEVEL} staticrcpp"
+    AC_MSG_RESULT(yes)
+    ac_rcpp_link_level="static"
+  else
+    QTLINK_LEVEL="${QTLINK_LEVEL}"
+    AC_MSG_RESULT(no)
+    ac_rcpp_link_level="shared"
+  fi
+
+  AC_SUBST(QTLINK_LEVEL) 
+])
 
 dnl
 dnl AC_PROG_GCC_VERSION: finds out if the used gcc version is a supported one
@@ -1869,4 +1897,151 @@ AC_DEFUN([AC_PATH_QT4_QMAKE],
   fi
 
   AC_SUBST(QMAKE_PATH)
+])
+
+
+dnl
+dnl AC_PATH_RCPP: allows to override the default library search path for
+dnl searching for the Rcpp library.
+dnl
+AC_DEFUN([AC_PATH_RCPP],
+[
+  AC_ARG_WITH(rcpp,
+              [AC_HELP_STRING([--with-rcpp], [where the rcpp environment is located.])],
+              [RCPPDIR="$withval"], [RCPPDIR=""])
+])
+
+AC_DEFUN([AC_PATH_RCPP_LIB],
+[
+  AC_REQUIRE_CPP()
+  AC_ARG_WITH(rcpp-lib,
+               [AC_HELP_STRING([--with-rcpp-lib], [where the Rcpp library is located.])],
+               [ac_rcpp_libraries="$withval"], ac_rcpp_libraries="")
+
+  AC_MSG_CHECKING(for Rcpp library)
+
+  
+  AC_CACHE_VAL(ac_cv_lib_rcpplib, [
+
+  rcpp_libdir=
+
+  dnl No they didnt, so lets look for them...
+  dnl If you need to add extra directories to check, add them here.
+  if test -z "$ac_rcpp_libraries"; then
+    rcpp_library_dirs="$RCPPDIR/lib \
+                          $RCPPDIR/lib/Rcpp \
+                          $RCPPDIR \
+                          $HOME/R/library/Rcpp/lib \
+                          /usr/lib/R/site-library/Rcpp/lib"
+  else
+    rcpp_library_dirs="$ac_rcpp_libraries"
+  fi
+
+  dnl for simplicity we simply go and check if
+  dnl we can find the rcpp library in one of
+  dnl our search pathes
+  ac_rcpp_libdir=""
+  if test "$ac_rcpp_link_level" = "static"; then
+    ac_rcpp_libname="libRcpp.a"
+    LIB_RCPP="$ac_rcpp_libname"
+  else
+    if test "$HOST_OS" = "Darwin"; then
+      ac_rcpp_libname="libRcpp.dylib"
+    else
+      ac_rcpp_libname="libRcpp.so"
+    fi
+    LIB_RCPP="-lRcpp"
+  fi
+
+  for rcpp_dir in $rcpp_library_dirs; do
+    if test -r "$rcpp_dir/$ac_rcpp_libname"; then
+      ac_rcpp_libdir="$rcpp_dir"
+      break;
+    else
+      echo "tried $rcpp_dir" >&AC_FD_CC 
+    fi
+  done
+
+  ac_cv_lib_rcpplib="ac_rcpp_libname=$ac_rcpp_libname ac_rcpp_libdir=$ac_rcpp_libdir"
+  
+  ])
+
+  eval "$ac_cv_lib_rcpplib"
+
+  # dnl Define a shell variable for later checks
+  # if test "$COMPILE_LEVEL" = "release"; then
+  #   have_rcpp_lib="no"
+  #   AC_MSG_RESULT([skipping, debug disabled]) 
+  # el
+  if test -z "$ac_rcpp_libdir"; then
+    have_rcpp_lib="no"
+    AC_MSG_RESULT([no])
+    AC_MSG_ERROR([Cannot find required $ac_rcpp_link_level rcpp library in linker path.
+Try --with-rcpp-lib to specify the path, manually.])
+  else
+    have_rcpp_lib="yes"
+    AC_MSG_RESULT([yes, $ac_rcpp_libname in $ac_rcpp_libdir found.])
+  fi
+
+  RCPP_LDFLAGS="-L$ac_rcpp_libdir"
+  RCPP_LIBDIR="$ac_rcpp_libdir"
+  AC_SUBST(RCPP_LDFLAGS)
+  AC_SUBST(RCPP_LIBDIR)
+  AC_SUBST(LIB_RCPP)
+])
+
+dnl
+dnl AC_PATH_RCPP_INC: checks the existance of the includes files for successfully
+dnl compiling support for the rcpp library and also allows to override the default
+dnl path to that includes.
+dnl
+AC_DEFUN([AC_PATH_RCPP_INC],
+[
+  AC_REQUIRE_CPP()
+  AC_MSG_CHECKING(for Rcpp includes)
+
+  AC_ARG_WITH(rcpp-inc,
+              [AC_HELP_STRING([--with-rcpp-inc], [where the Rcpp includes are located.])],
+              [rcpp_include_dirs="$withval"], ac_rcpp_includes="")
+
+  AC_CACHE_VAL(ac_cv_header_rcppinc, [
+
+    dnl Did the user give --with-rcpp-includes?
+    if test -z "$rcpp_include_dirs"; then
+
+      dnl No they didn't, so lets look for them...
+      dnl If you need to add extra directores to check, add them here.
+      rcpp_include_dirs="\
+        $RCPPDIR/include \
+        $RCPPDIR/include/Rcpp \
+        $RCPPDIR/include/Rcpp/include \
+        $RCPPDIR \
+        $HOME/R/library/Rcpp/include \
+        /usr/lib/R/site-library/Rcpp/include"
+    fi
+
+    for rcpp_dir in $rcpp_include_dirs; do
+      if test -r "$rcpp_dir/Rcpp.h"; then
+        ac_rcpp_includes=$rcpp_dir
+        break;
+      fi
+    done
+
+    ac_cv_header_rcppinc=$ac_rcpp_includes
+  ])
+
+  if test -z "$ac_cv_header_rcppinc"; then
+    have_rcpp_inc="no"
+    AC_MSG_RESULT([no])
+    AC_MSG_WARN([Rcpp.h include not found, you may run into problems.
+Try --with-rcpp-inc to specify the path, manually.])
+  else
+    have_rcpp_inc="yes"
+    AC_MSG_RESULT([yes, in $ac_cv_header_rcppinc])
+  fi
+
+  RCPP_INCLUDES="-I$ac_cv_header_rcppinc"
+  RCPP_INCDIR="$ac_cv_header_rcppinc"
+  AC_SUBST(RCPP_INCLUDES)
+  AC_SUBST(RCPP_INCDIR)
 ])

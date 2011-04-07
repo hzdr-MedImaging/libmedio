@@ -74,7 +74,8 @@ PUB_HEADER =  CMedIO.h \
               micropet/CConcordeFile.h \
               micropet/CConcordeSinogram.h \
               micropet/CConcordeImage.h \
-              helpers/MedIOUnits.h
+              helpers/MedIOUnits.h \
+              rcpp/CRInterface.h
 
 
 HEADERS  = $$PUB_HEADER \
@@ -113,7 +114,8 @@ SOURCES  = CMedIO.cpp \
            micropet/CConcordeFrameHeader.cpp \
            micropet/CConcordeFile.cpp \
            micropet/CConcordeSinogram.cpp \
-           micropet/CConcordeImage.cpp
+           micropet/CConcordeImage.cpp \
+           rcpp/CRInterface.cpp
 
 DEPENDPATH   = . ecat ecat/ecat6 ecat/ecat7 micropet
 INCLUDEPATH  = . include ecat ecat/ecat6 ecat/ecat7 micropet helpers
@@ -196,6 +198,23 @@ contains(DEFINES, DEBUG) {
     LIBS *= -L@RTDEBUG_LIBDIR@ @LIB_RTDEBUG@
   }
 }
+
+### Rcpp ##################################################################
+INCLUDEPATH *= @RCPP_INCDIR@
+#LIBS *= -L/home/sd5200/R/library/Rcpp/lib -lRcpp -Wl,-rpath,/home/sd5200/R/library/Rcpp/lib
+
+staticrcpp {
+  LIBS *= @RCPP_LIBDIR@/@LIB_RCPP@
+}
+  else {
+    LIBS *= -L@RCPP_LIBDIR@ @LIB_RCPP@
+}
+
+
+### R ####################################################################
+INCLUDEPATH *= /usr/share/R/include
+LIBS *= -Wl,-rpath,/home/sd5200/R/library/Rcpp/lib
+
 
 # for static compilation we define the following so that we
 # can define "staticconfig" in CONFIG if we want static linking.
