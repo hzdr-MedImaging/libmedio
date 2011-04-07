@@ -205,7 +205,7 @@ staticrcpp {
   LIBS *= @RCPP_LIBDIR@/@LIB_RCPP@
 }
   else {
-    LIBS *= -L@RCPP_LIBDIR@ @LIB_RCPP@
+    LIBS *= -L@RCPP_LIBDIR@ @LIB_RCPP@ -Wl,-rpath,@RCPP_LIBDIR@
 }
 
 ### R ####################################################################
