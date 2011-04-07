@@ -201,8 +201,6 @@ contains(DEFINES, DEBUG) {
 
 ### Rcpp ##################################################################
 INCLUDEPATH *= @RCPP_INCDIR@
-#LIBS *= -L/home/sd5200/R/library/Rcpp/lib -lRcpp -Wl,-rpath,/home/sd5200/R/library/Rcpp/lib
-
 staticrcpp {
   LIBS *= @RCPP_LIBDIR@/@LIB_RCPP@
 }
@@ -210,11 +208,8 @@ staticrcpp {
     LIBS *= -L@RCPP_LIBDIR@ @LIB_RCPP@
 }
 
-
 ### R ####################################################################
 INCLUDEPATH *= /usr/share/R/include
-LIBS *= -Wl,-rpath,/home/sd5200/R/library/Rcpp/lib
-
 
 # for static compilation we define the following so that we
 # can define "staticconfig" in CONFIG if we want static linking.
