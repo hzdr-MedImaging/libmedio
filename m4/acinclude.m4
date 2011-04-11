@@ -1,4 +1,4 @@
-nl/* -*- mode: m4; tab-width: 2; c-basic-offset: 2; indent-tabs-mode: nil; -*-
+dnl/* -*- mode: m4; tab-width: 2; c-basic-offset: 2; indent-tabs-mode: nil; -*-
 dnl * vim:set ts=2 sw=2 expandtab: *********************************************
 dnl *
 dnl * acinclude.m4 - Common configure macros especially for Qt3/Qt4
