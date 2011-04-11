@@ -2074,3 +2074,56 @@ Try --with-rcpp-inc to specify the path, manually.])
   AC_SUBST(RCPP_INCLUDES)
   AC_SUBST(RCPP_INCDIR)
 ])
+
+dnl
+dnl AC_PATH_R_INC: checks the existance of the includes files for successfully
+dnl compiling support for the r library and also allows to override the default
+dnl path to that includes.
+dnl
+AC_DEFUN([AC_PATH_R_INC],
+[
+  AC_REQUIRE_CPP()
+  AC_MSG_CHECKING(for R includes)
+
+  AC_ARG_WITH(r-inc,
+              [AC_HELP_STRING([--with-r-inc], [where the R includes are located.])],
+              [r_include_dirs="$withval"], ac_r_includes="")
+
+  AC_CACHE_VAL(ac_cv_header_rinc, [
+
+    dnl Did the user give --with-r-includes?
+    if test -z "$r_include_dirs"; then
+
+      dnl No they didn't, so lets look for them...
+      dnl If you need to add extra directores to check, add them here.
+      r_include_dirs="\
+        $RDIR/include \
+        $RDIR \
+        /usr/share/R/include"
+    fi
+
+    for r_dir in $r_include_dirs; do
+      if test -r "$r_dir/R.h"; then
+        ac_r_includes=$r_dir
+        break;
+      fi
+    done
+
+    ac_cv_header_rinc=$ac_r_includes
+  ])
+
+  if test -z "$ac_cv_header_rinc"; then
+    have_r_inc="no"
+    AC_MSG_RESULT([no])
+    AC_MSG_WARN([R.h include not found, you may run into problems.
+Try --with-r-inc to specify the path, manually.])
+  else
+    have_r_inc="yes"
+    AC_MSG_RESULT([yes, in $ac_cv_header_rinc])
+  fi
+
+  R_INCLUDES="-I$ac_cv_header_rinc"
+  R_INCDIR="$ac_cv_header_rinc"
+  AC_SUBST(R_INCLUDES)
+  AC_SUBST(R_INCDIR)
+])

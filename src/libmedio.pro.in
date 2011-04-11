@@ -223,7 +223,7 @@ contains(DEFINES, WITH_R_INTERFACE) {
 
 ### R ####################################################################
 contains(DEFINES, WITH_R_INTERFACE) {
-  INCLUDEPATH *= /usr/share/R/include
+  INCLUDEPATH *= @R_INCDIR@
 }
 
 # for static compilation we define the following so that we
