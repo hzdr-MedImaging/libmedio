@@ -613,6 +613,7 @@ RCPP_INCLUDES
 LIB_RCPP
 RCPP_LIBDIR
 RCPP_LDFLAGS
+R_INTERFACE
 RTDEBUG_INCDIR
 RTDEBUG_INCLUDES
 LIB_RTDEBUG
@@ -696,6 +697,7 @@ enable_static_rtdebug
 with_rtdebug
 with_rtdebug_lib
 with_rtdebug_inc
+enable_rinterface
 enable_static_rcpp
 with_rcpp
 with_rcpp_lib
@@ -1329,6 +1331,7 @@ Optional Features:
   --enable-static-lib     turn on static linkage [default=no]
   --enable-debug          turn on debugging mode [default=no]
   --enable-static-rtdebug turn on static linkage of rtdebug lib [default=no]
+  --enable-rinterface     turn on the rinterface [default=no]
   --enable-static-rcpp    turn on static linkage of rcpp libs [default=no]
 
 Optional Packages:
@@ -4174,6 +4177,33 @@ $as_echo "yes, in $ac_cv_header_rtdebuginc" >&6; }
 
 # Check for the rcpp library
 
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to build with rinterface" >&5
+$as_echo_n "checking whether to build with rinterface... " >&6; }
+  # Check whether --enable-rinterface was given.
+if test "${enable_rinterface+set}" = set; then :
+  enableval=$enable_rinterface; case "${enableval}" in
+                  yes) test_on_enable_rinterface=yes ;;
+                  no)  test_on_enable_rinterface=no  ;;
+                  *)   as_fn_error $? "bad value ${enableval} for --enable-rinterface" "$LINENO" 5  ;;
+                esac
+else
+  test_on_enable_rinterface=no
+fi
+
+
+  if test "$test_on_enable_rinterface" = "yes"; then
+    R_INTERFACE="enabled"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+  else
+    R_INTERFACE="disabled"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+  fi
+
+
+
+
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to link the rcpp library static" >&5
 $as_echo_n "checking whether to link the rcpp library static... " >&6; }
   # Check whether --enable-static-rcpp was given.
@@ -4188,7 +4218,11 @@ else
 fi
 
 
-  if test "$test_on_enable_static_rcpp" = "yes" -o "$ac_static_build" = "yes"; then
+
+  if test "$R_INTERFACE" = "disabled"; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: skipping, rinterface disabled" >&5
+$as_echo "skipping, rinterface disabled" >&6; }
+  elif test "$test_on_enable_static_rcpp" = "yes" -o "$ac_static_build" = "yes"; then
     QTLINK_LEVEL="${QTLINK_LEVEL} staticrcpp"
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
@@ -4274,12 +4308,11 @@ fi
 
   eval "$ac_cv_lib_rcpplib"
 
-  # dnl Define a shell variable for later checks
-  # if test "$COMPILE_LEVEL" = "release"; then
-  #   have_rcpp_lib="no"
-  #   AC_MSG_RESULT([skipping, debug disabled])
-  # el
-  if test -z "$ac_rcpp_libdir"; then
+    if test "$R_INTERFACE" = "disabled"; then
+    have_rcpp_lib="no"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: skipping, R interface disabled" >&5
+$as_echo "skipping, R interface disabled" >&6; }
+  elif test -z "$ac_rcpp_libdir"; then
     have_rcpp_lib="no"
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }

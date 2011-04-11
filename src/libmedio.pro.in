@@ -75,8 +75,6 @@ PUB_HEADER =  CMedIO.h \
               micropet/CConcordeSinogram.h \
               micropet/CConcordeImage.h \
               helpers/MedIOUnits.h \
-              rcpp/CRInterface.h
-
 
 HEADERS  = $$PUB_HEADER \
            helpers/CKeyType.h \
@@ -114,8 +112,7 @@ SOURCES  = CMedIO.cpp \
            micropet/CConcordeFrameHeader.cpp \
            micropet/CConcordeFile.cpp \
            micropet/CConcordeSinogram.cpp \
-           micropet/CConcordeImage.cpp \
-           rcpp/CRInterface.cpp
+           micropet/CConcordeImage.cpp
 
 DEPENDPATH   = . ecat ecat/ecat6 ecat/ecat7 micropet
 INCLUDEPATH  = . include ecat ecat/ecat6 ecat/ecat7 micropet helpers
@@ -143,6 +140,20 @@ QMAKE_EXTRA_VARIABLES = DEBUG
 MAKE_CXXFLAGS *= $(EXPORT_DEBUG)
 QMAKE_CFLAGS *= $(EXPORT_DEBUG)
 QMAKE_CXXFLAGS *= $(EXPORT_DEBUG)
+
+# find out if the R interface should be included
+# and set the source files of the interface
+R_INTERFACE = @R_INTERFACE@
+contains(R_INTERFACE, enabled) {
+
+  PUB_HEADER += rcpp/CRInterface.h
+
+  HEADER += rcpp/CRInterface.h
+
+  SOURCES += rcpp/CRInterface.cpp
+
+  DEFINES *= WITH_R_INTERFACE
+}
 
 # UNIX based target platforms installation defines
 # on unix we use configure to define everything like install path
@@ -201,15 +212,19 @@ contains(DEFINES, DEBUG) {
 
 ### Rcpp ##################################################################
 INCLUDEPATH *= @RCPP_INCDIR@
-staticrcpp {
-  LIBS *= @RCPP_LIBDIR@/@LIB_RCPP@
-}
+contains(DEFINES, WITH_R_INTERFACE) {
+  staticrcpp {
+    LIBS *= @RCPP_LIBDIR@/@LIB_RCPP@
+  }
   else {
     LIBS *= -L@RCPP_LIBDIR@ @LIB_RCPP@ -Wl,-rpath,@RCPP_LIBDIR@
+  }
 }
 
 ### R ####################################################################
-INCLUDEPATH *= /usr/share/R/include
+contains(DEFINES, WITH_R_INTERFACE) {
+  INCLUDEPATH *= /usr/share/R/include
+}
 
 # for static compilation we define the following so that we
 # can define "staticconfig" in CONFIG if we want static linking.

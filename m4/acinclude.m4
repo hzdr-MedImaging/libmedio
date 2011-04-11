@@ -1,4 +1,4 @@
-dnl/* -*- mode: m4; tab-width: 2; c-basic-offset: 2; indent-tabs-mode: nil; -*-
+nl/* -*- mode: m4; tab-width: 2; c-basic-offset: 2; indent-tabs-mode: nil; -*-
 dnl * vim:set ts=2 sw=2 expandtab: *********************************************
 dnl *
 dnl * acinclude.m4 - Common configure macros especially for Qt3/Qt4
@@ -115,6 +115,33 @@ AC_DEFUN([AC_ENABLE_DEBUG],
   fi
 
   AC_SUBST(COMPILE_LEVEL) 
+])
+
+
+dnl
+dnl AC_ENABLE_DEBUG: provides a switch to enable/disable rinterface
+dnl
+AC_DEFUN([AC_ENABLE_RINTERFACE],
+[
+  AC_MSG_CHECKING(whether to build with rinterface)
+  AC_ARG_ENABLE(rinterface,
+                [AC_HELP_STRING([--enable-rinterface], [turn on the rinterface [default=no]])],
+                [case "${enableval}" in
+                  yes) test_on_enable_rinterface=yes ;;
+                  no)  test_on_enable_rinterface=no  ;;
+                  *)   AC_MSG_ERROR(bad value ${enableval} for --enable-rinterface) ;;
+                esac],
+                [test_on_enable_rinterface=no])
+
+  if test "$test_on_enable_rinterface" = "yes"; then
+    R_INTERFACE="enabled"
+    AC_MSG_RESULT(yes)
+  else
+    R_INTERFACE="disabled"
+    AC_MSG_RESULT(no)
+  fi
+
+  AC_SUBST(R_INTERFACE)
 ])
 
 dnl
@@ -428,7 +455,10 @@ AC_DEFUN([AC_ENABLE_STATIC_RCPP],
                 esac],
                 [test_on_enable_static_rcpp=no])
 
-  if test "$test_on_enable_static_rcpp" = "yes" -o "$ac_static_build" = "yes"; then
+
+  if test "$R_INTERFACE" = "disabled"; then
+    AC_MSG_RESULT([skipping, rinterface disabled]) 
+  elif test "$test_on_enable_static_rcpp" = "yes" -o "$ac_static_build" = "yes"; then
     QTLINK_LEVEL="${QTLINK_LEVEL} staticrcpp"
     AC_MSG_RESULT(yes)
     ac_rcpp_link_level="static"
@@ -1968,12 +1998,11 @@ AC_DEFUN([AC_PATH_RCPP_LIB],
 
   eval "$ac_cv_lib_rcpplib"
 
-  # dnl Define a shell variable for later checks
-  # if test "$COMPILE_LEVEL" = "release"; then
-  #   have_rcpp_lib="no"
-  #   AC_MSG_RESULT([skipping, debug disabled]) 
-  # el
-  if test -z "$ac_rcpp_libdir"; then
+  dnl Define a shell variable for later checks
+  if test "$R_INTERFACE" = "disabled"; then
+    have_rcpp_lib="no"
+    AC_MSG_RESULT([skipping, R interface disabled]) 
+  elif test -z "$ac_rcpp_libdir"; then
     have_rcpp_lib="no"
     AC_MSG_RESULT([no])
     AC_MSG_ERROR([Cannot find required $ac_rcpp_link_level rcpp library in linker path.
