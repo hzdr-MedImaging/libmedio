@@ -1,4 +1,4 @@
-#include "CRInterface.h"
+#include "CRECATFile.h"
 
 #include <iostream>
 #include <Rcpp.h>
@@ -41,7 +41,7 @@ RcppExport SEXP readEcat(SEXP vfile,
 
     cout << "nv.size() = " << nv.size() << endl;
 
-    CRInterface inputFile(filename);
+    CRECATFile inputFile(filename);
 
     if(inputFile.open(QIODevice::ReadOnly) &&
        (inputFile.format() != CECATFile::Undefined) )
@@ -126,12 +126,12 @@ RcppExport SEXP readEcat(SEXP vfile,
   return rList;
 }
 
-CRInterface::CRInterface(const QString& filename, CECATMainHeader::Type fileType )
+CRECATFile::CRECATFile(const QString& filename, CECATMainHeader::Type fileType )
   : CECATFile(filename, fileType)
 {
 }
 
-bool CRInterface::readMainHeader(Rcpp::List& mainHeader)
+bool CRECATFile::readMainHeader(Rcpp::List& mainHeader)
 {
   bool bResult = true;
 
@@ -178,7 +178,7 @@ bool CRInterface::readMainHeader(Rcpp::List& mainHeader)
   return bResult;
 }
 
-bool CRInterface::readMatrix(Rcpp::NumericVector*& matrixData, Rcpp::List& subHeader,
+bool CRECATFile::readMatrix(Rcpp::NumericVector*& matrixData, Rcpp::List& subHeader,
                             short frame, short plane, short gate, short bed, short data)
 {
   bool bResult = true;

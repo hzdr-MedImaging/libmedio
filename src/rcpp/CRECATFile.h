@@ -1,5 +1,5 @@
-#ifndef RMDEDIO_H
-#define RMDEDIO_H
+#ifndef CRECATFile_H
+#define CRECATFile_H
 
 #include <Rcpp.h>
 
@@ -14,10 +14,10 @@ RcppExport SEXP readEcat(SEXP vfile,
                          SEXP numberOfCols = NULL,
                          SEXP numberOfPlanes = NULL);
 
-class CRInterface : public CECATFile
+class CRECATFile : public CECATFile
 {
 public:
-  CRInterface(const QString& filename,
+  CRECATFile(const QString& filename,
              CECATMainHeader::Type fileType = CECATMainHeader::Unknown);
 
   operator SEXP();

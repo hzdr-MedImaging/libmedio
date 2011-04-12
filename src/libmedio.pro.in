@@ -146,11 +146,11 @@ QMAKE_CXXFLAGS *= $(EXPORT_DEBUG)
 R_INTERFACE = @R_INTERFACE@
 contains(R_INTERFACE, enabled) {
 
-  PUB_HEADER += rcpp/CRInterface.h
+  PUB_HEADER += rcpp/CRECATFile.h
 
-  HEADER += rcpp/CRInterface.h
+  HEADER += rcpp/CRECATFile.h
 
-  SOURCES += rcpp/CRInterface.cpp
+  SOURCES += rcpp/CRECATFile.cpp
 
   DEFINES *= WITH_R_INTERFACE
 }
