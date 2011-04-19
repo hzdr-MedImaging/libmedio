@@ -56,7 +56,7 @@ RcppExport SEXP readEcat(SEXP vfile,
       int num_frames = static_cast<int>(mhead("num_frames"));
       int num_gates = static_cast<int>(mhead("num_gates"));
       int num_bed_pos = static_cast<int>(mhead("num_bed_pos"));
-      float ecat_calibration_factor = static_cast<int>(mhead("ecat_calibration_factor"));
+      float ecat_calibration_factor = static_cast<float>(mhead("ecat_calibration_factor"));
 
       enum use_as_volume
       {
@@ -130,26 +130,26 @@ RcppExport SEXP readEcat(SEXP vfile,
           }
           case GATES:
           {
-            gate  = *it;
+            gate = *it;
             break;
           }
           case BEDS:
           {
-            bed  = *it;
+            bed = *it;
             break;
           }
         }
 
         if(inputFile.readSubHeader_Rcpp(subHeader, frame, 1, gate, bed, 0) == true)
         {
-          int data_type = subHeader("data_type");
-          short x_dimension = subHeader("x_dimension");
-          short y_dimension = subHeader("y_dimension");
-          short z_dimension = subHeader("z_dimension");
-          float scale_factor = subHeader("scale_factor");
-          float x_pixelsize = subHeader("x_pixelsize");
-          float y_pixelsize = subHeader("y_pixelsize");
-          float z_pixelsize = subHeader("z_pixelsize");
+          int data_type = static_cast<int>(subHeader("data_type"));
+          short x_dimension = static_cast<short>(subHeader("x_dimension"));
+          short y_dimension = static_cast<short>(subHeader("y_dimension"));
+          short z_dimension = static_cast<short>(subHeader("z_dimension"));
+          float scale_factor = static_cast<float>(subHeader("scale_factor"));
+          float x_pixelsize = static_cast<float>(subHeader("x_pixelsize"));
+          float y_pixelsize = static_cast<float>(subHeader("y_pixelsize"));
+          float z_pixelsize = static_cast<float>(subHeader("z_pixelsize"));
 
           // check if rows, cols and/or planes index arrays are given
           // if not take all of them
@@ -240,6 +240,8 @@ RcppExport SEXP readEcat(SEXP vfile,
     }
     else
       cerr << "ERROR: can't read main header" << endl;
+
+    inputFile.close();
   }
   else
     cerr << "cannot open file '" << filename.toAscii().constData()
