@@ -9,4 +9,5 @@ RcppExport SEXP readEcat(SEXP vfile,
                          SEXP numberOfRows = NULL,
                          SEXP numberOfCols = NULL,
                          SEXP numberOfPlanes = NULL);
+
 #endif

@@ -14,12 +14,12 @@ CRECATFile::CRECATFile(const QString& filename, CECATMainHeader::Type fileType )
 {
 }
 
-bool CRECATFile::readMainHeader(Rcpp::List& mainHeader)
+bool CRECATFile::readMainHeader_Rcpp(Rcpp::List& mainHeader)
 {
-  bool bResult = true;
+  bool result = false;
 
   CECATMainHeader* cppMainHeader = NULL;
-  if(CECATFile::readMainHeader(cppMainHeader) == true)
+  if(readMainHeader(cppMainHeader) == true)
   {
     if(format() == CECATFile::ECAT7)
     {
@@ -44,31 +44,24 @@ bool CRECATFile::readMainHeader(Rcpp::List& mainHeader)
                                       Rcpp::Named("num_gates") = num_gates,
                                       Rcpp::Named("num_bed_pos") = num_bed_pos,
                                       Rcpp::Named("data_units") = data_units);
+      result = true;
     }
     else
-    {
       cerr << "ERROR: provided input file is not an EACAT7 file." << endl;
-      bResult = false;
-    }
 
     delete cppMainHeader;
   }
-  else
-  {
-    bResult = false;
-  }
 
-  return bResult;
+  return result;
 }
 
-
-bool CRECATFile::readSubHeader(Rcpp::List& subHeader,
-                               short frame, short plane, short gate, short bed, short data)
+bool CRECATFile::readSubHeader_Rcpp(Rcpp::List& subHeader,
+                                    short frame, short plane, short gate, short bed, short data)
 {
   bool result = false;
   CECATSubHeader* sHead = NULL;
 
-  if(CECATFile::readSubHeader(sHead, frame, plane, gate, bed, data) == true)
+  if(readSubHeader(sHead, frame, plane, gate, bed, data) == true)
   {
     if(format() == CECATFile::ECAT7)
     {
@@ -98,109 +91,10 @@ bool CRECATFile::readSubHeader(Rcpp::List& subHeader,
       result = true;
     }
     else
-    {
       cerr << "ERROR: provided input file is not an EACAT7 file." << endl;
-      result = false;
-    }
 
     delete sHead;
   }
-
-  return result;
-}
-
-bool CRECATFile::readMatrix(Rcpp::NumericVector*& matrixData, Rcpp::List& subHeader,
-                            short frame, short plane, short gate, short bed, short data)
-{
-  bool result = false;
-  QByteArray* byteData = NULL;
-
-  if(CECATFile::readMatrix(byteData, frame, plane, gate, bed, data) == true)
-  {
-    if(readSubHeader(subHeader, frame, plane, gate, bed, data) == true)
-    {
-      int t = subHeader("data_type");
-
-      cout << "data_type: " << t << endl;
-
-      int data_type = subHeader("data_type");
-      short x_dimension = subHeader("x_dimension");
-      short y_dimension = subHeader("y_dimension");
-      short z_dimension = subHeader("z_dimension");
-      float scale_factor = subHeader("scale_factor");
-      float x_pixelsize = subHeader("x_pixelsize");
-      float y_pixelsize = subHeader("y_pixelsize");
-      float z_pixelsize = subHeader("z_pixelsize");
-
-      short minRow = 1;
-      short maxRow = y_dimension;
-      short minCol = 1;
-      short maxCol = x_dimension;
-      short minPlane = 1;
-      short maxPlane = z_dimension;
-
-      short rowCount = maxRow - minRow + 1;
-      short colCount = maxCol - minCol + 1;
-      short planeCount = maxPlane - minPlane + 1;
-
-      Rcpp::IntegerVector rows(rowCount);
-      Rcpp::IntegerVector cols(colCount);
-      Rcpp::IntegerVector planes(planeCount);
-
-      // create the index vectors
-      for(int i = minRow; i <= maxRow; i++)
-        rows[i-minRow] = i;
-
-      for(int i = minCol; i <= maxCol; i++)
-        cols[i-minCol] = i;
-
-      for(int i = minPlane; i <= maxPlane; i++)
-        planes[i-minPlane] = i;
-
-      Rcpp::Dimension dim(y_dimension, x_dimension, z_dimension);
-
-      matrixData = new Rcpp::NumericVector(dim);
-
-      matrixData->attr("class") = Rcpp::StringVector::create("Volume", "array");
-      matrixData->attr("shead") = subHeader;
-      matrixData->attr("voxsiz") = Rcpp::NumericVector::create(y_pixelsize,
-                                                               x_pixelsize,
-                                                               z_pixelsize);
-
-      matrixData->attr("vgrid") = Rcpp::List::create(Rcpp::Named("rows") = rows,
-                                                     Rcpp::Named("cols") = cols,
-                                                     Rcpp::Named("planes") = planes);
-
-      QDataStream stream(byteData, QIODevice::ReadOnly);
-
-#if !defined(WORDS_BIGENDIAN)
-      stream.setByteOrder(QDataStream::LittleEndian);
-#endif
-
-      int planeSize = rowCount*colCount;
-
-      if (data_type == CECATSubHeader::SunShort)
-      {
-        for(int z = 0; z < planeCount; z++)
-          for(int y = 0; y < rowCount; y++)
-            for(int x = 0; x < colCount; x++)
-            {
-              long index = x * colCount + y + planeSize * z;
-              qint16 v;
-              stream >> v;
-
-              matrixData->operator[](index) = static_cast<double>(v)*scale_factor;
-            }
-
-        result = true;
-      }
-      else
-        cerr << "ERROR: currently only data_type 6 (SunShort) supported" << endl;
-    }
-  }
-
-  if(byteData != NULL)
-    delete byteData;
 
   return result;
 }
