@@ -112,13 +112,6 @@ RcppExport SEXP readEcat(SEXP vfile,
           volumes.push_back(i);
       }
 
-      switch(which_to_use)
-      {
-        case FRAMES: cout << "FRAMES" << endl; break;
-        case GATES:  cout << "GATES" << endl; break;
-        case BEDS:   cout << "BEDS" << endl; break;        
-      }
-
       Rcpp::NumericVector frame_midpoint;
       Rcpp::StringVector volume_tags;
 
@@ -204,7 +197,6 @@ RcppExport SEXP readEcat(SEXP vfile,
               int planeSize = x_dimension * y_dimension;
 
               for(int z = 0; z < z_dimension; z++)
-              {
                 for(int y = 0; y < y_dimension; y++)
                   for(int x = 0; x < x_dimension; x++)
                   {
@@ -214,8 +206,6 @@ RcppExport SEXP readEcat(SEXP vfile,
                     double voxel = static_cast<double>(v) * scale_factor * ecat_calibration_factor;
                     matrixData[index] = voxel;
                   }
-                cout << "plane: " << z << endl;
-              }
             }
             else
               cerr << "ERROR: currently only data_type 6 (SunShort) supported" << endl;
