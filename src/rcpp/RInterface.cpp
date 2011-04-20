@@ -111,6 +111,20 @@ RcppExport SEXP readEcat(SEXP vfile,
         for(int i = 1; i <= num_volumes; ++i)
           volumes.push_back(i);
       }
+      else
+      {
+        // we have to check if the index vector exceeds the boundaries
+        vector<short>::iterator it;
+        for(it = volumes.begin(); it < volumes.end(); ++it)
+        {
+          if( (*it < 1) || (*it > num_volumes))
+          {
+            cerr << "ERROR: index in volumes vector is exceeding boundaries "
+                 << "there are " << num_volumes << " volumes in this file." << endl;
+            return rList;
+          }
+        }
+      }
 
       Rcpp::NumericVector frame_midpoint;
       Rcpp::StringVector volume_tags;
@@ -153,16 +167,45 @@ RcppExport SEXP readEcat(SEXP vfile,
 
           // check if rows, cols and/or planes index arrays are given
           // if not take all of them
+          bool exceeding_boundaries = false;
           if(rows.size() == 0)
           {
             for(int i = 1; i <= y_dimension; i++)
               rows.push_back(i);
           }
-
+          else
+          {
+            // we have to check if the index vector exceeds the boundaries
+            vector<short>::iterator it;
+            for(it = rows.begin(); it < rows.end(); ++it)
+            {
+              if( (*it < 1) || (*it > y_dimension))
+              {
+                cerr << "ERROR: index in rows vector is out of bounds "
+                     << "there are " << y_dimension << " rows in this file." << endl;
+                exceeding_boundaries = true;
+              }
+            }
+          }
+ 
           if(cols.size() == 0)
           {
             for(int i = 1; i <= x_dimension; i++)
               cols.push_back(i);
+          }
+          else
+          {
+            // we have to check if the index vector exceeds the boundaries
+            vector<short>::iterator it;
+            for(it = cols.begin(); it < cols.end(); ++it)
+            {
+              if( (*it < 1) || (*it > x_dimension))
+              {
+                cerr << "ERROR: index in cols vector is out of bounds "
+                     << "there are " << x_dimension << " cols in this file." << endl;
+                exceeding_boundaries = true;
+              }
+            }
           }
 
           if(planes.size() == 0)
@@ -170,10 +213,28 @@ RcppExport SEXP readEcat(SEXP vfile,
             for(int i = 1; i <= z_dimension; i++)
               planes.push_back(i);
           }
+          else
+          {
+            // we have to check if the index vector exceeds the boundaries
+            vector<short>::iterator it;
+            for(it = planes.begin(); it < planes.end(); ++it)
+            {
+              if( (*it < 1) || (*it > z_dimension))
+              {
+                cerr << "ERROR: index in planes vector is out of bounds "
+                     << "there are " << z_dimension << " planes in this file." << endl;
+                exceeding_boundaries = true;
+              }
+            }
+          }
+
+          if(exceeding_boundaries == true)
+            break;
+
 
           if(inputFile.readMatrix(byteData, frame, 1, gate, bed, 0) == true)
           {
-            Rcpp::Dimension dim(y_dimension, x_dimension, z_dimension);
+            Rcpp::Dimension dim(rows.size(), cols.size(), planes.size());
             Rcpp::NumericVector matrixData(dim);
 
             matrixData.attr("class") = Rcpp::StringVector::create("Volume", "array");
@@ -194,18 +255,51 @@ RcppExport SEXP readEcat(SEXP vfile,
 
             if (data_type == CECATSubHeader::SunShort)
             {
-              int planeSize = x_dimension * y_dimension;
+              int plane_size = x_dimension * y_dimension;
 
-              for(int z = 0; z < z_dimension; z++)
-                for(int y = 0; y < y_dimension; y++)
-                  for(int x = 0; x < x_dimension; x++)
+              // in cases were we only want some slices of the data
+              // our destination matrix is smaller (equivalent to the length
+              // of the index vectors)
+              // and we have to flip x and y
+              int destination_plane_size = cols.size() * rows.size();
+              int destination_x_dimension = rows.size();
+
+              // iterate through our index vectors
+              // and copy only the relevant data
+              unsigned int row_offset = 0;
+
+              vector<short>::iterator itPlane = planes.begin();
+              for(int z = 0; itPlane < planes.end(); ++itPlane, ++z)
+              {
+                if(z != (*itPlane-1))
+                  stream.device()->seek( (*itPlane-1) * plane_size * sizeof(qint16) );
+
+                vector<short>::iterator itRow = rows.begin();
+                for(int y = 0; itRow < rows.end(); ++itRow, ++y)
+                {
+                  if(y != (*itRow-1))
+                    stream.device()->seek( ((*itPlane-1) * plane_size +
+                                            (*itRow-1) * y_dimension) * sizeof(qint16) );
+
+                  vector<short>::iterator itColumn = cols.begin();
+                  for(int x = 0; itColumn < cols.end(); ++itColumn, ++x)
                   {
-                    int index = x * x_dimension + y + planeSize * z;
+                    if(x != (*itColumn-1))
+                      stream.device()->seek( ((*itPlane-1) * plane_size + (*itRow-1) * y_dimension +
+                                              (*itColumn-1)) * sizeof(qint16) );
+
                     qint16 v;
                     stream >> v;
+
                     double voxel = static_cast<double>(v) * scale_factor * ecat_calibration_factor;
+
+                    // calculate the index in the matrix data (excange x and y)
+                    int index = x * destination_x_dimension + y + destination_plane_size * z;
                     matrixData[index] = voxel;
                   }
+                }
+              }
+
             }
             else
               cerr << "ERROR: currently only data_type 6 (SunShort) supported" << endl;
@@ -225,7 +319,7 @@ RcppExport SEXP readEcat(SEXP vfile,
             cerr << "ERROR: can't read matrix data" << endl;
         }
         else
-            cerr << "ERROR: can't read the sub header" << endl;
+          cerr << "ERROR: can't read the sub header" << endl;
 
         delete byteData;
       }
