@@ -269,8 +269,6 @@ RcppExport SEXP readEcat(SEXP vfile,
 
               // iterate through our index vectors
               // and copy only the relevant data
-              unsigned int row_offset = 0;
-
               vector<short>::iterator itPlane = planes.begin();
               for(int z = 0; itPlane < planes.end(); ++itPlane, ++z)
               {
