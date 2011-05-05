@@ -1,7 +1,10 @@
 #include "RInterface.h"
 
 #include <iostream>
+#include <QFileInfo>
 #include <Rcpp.h>
+
+#include "CECAT7MainHeader.h"
 
 #include "CRECATFile.h"
 
@@ -343,4 +346,151 @@ RcppExport SEXP readEcat(SEXP vfile,
 
 
   return rList;
+}
+
+RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
+{
+  bool result = true;
+  Rcpp::List RcppEcatFile;
+  QString outputFileName;
+
+  try
+  {
+    if(Rcpp::RObject(vfile).isNULL())
+    {
+      cerr << "ERROR: no output file name given." << endl;
+      result = false;
+    }
+    else
+    {
+      outputFileName = Rcpp::as<string>(vfile).c_str();
+    }
+
+    if(Rcpp::RObject(ecat).isNULL())
+    {
+      cerr << "ERROR: no ecat data given." << endl;
+      result = false;
+    }
+    else
+    {
+      RcppEcatFile = Rcpp::as<Rcpp::List>(ecat);
+    }
+  }
+  catch(Rcpp::not_compatible e)
+  {
+    forward_exception_to_r(e);
+    result = false;
+  }
+
+  if(result == true)
+  {
+    if(QFileInfo(outputFileName).exists())
+    {
+      cout << "ERROR: output file already exists." << endl;
+      result = false;
+    }
+  }
+
+  if(result == true)
+  {
+    CRECATFile outputFile(outputFileName, CECATMainHeader::ECAT7_Volume16);
+
+    if(outputFile.open(QIODevice::ReadWrite) && outputFile.format() != CECATFile::Undefined)
+    {
+      CECATMainHeader* mainHeader = NULL;
+      mainHeader = outputFile.createEmptyMainHeader();
+      if(mainHeader == NULL)
+      {
+        cerr << "ERROR: could not create new main header in destination file." << endl;
+        result = false;
+      }
+      else
+      {
+        Rcpp::List RcppMainHeader = RcppEcatFile.attr("mhead");
+
+        r_mainheader_to_medio_mainheader(RcppMainHeader, mainHeader);
+
+        if(outputFile.writeMainHeader(*mainHeader) == false)
+        {
+          cerr << "ERROR: could not write destination main header." << endl;
+          result = false;
+        }
+
+        delete mainHeader;
+        mainHeader = NULL;
+      }
+
+      outputFile.close();
+    }
+    else
+    {
+      cerr << "ERROR: could not open destination file." << endl;
+      result = false;
+    }
+  }
+
+  return Rcpp::wrap(result);
+}
+
+void r_mainheader_to_medio_mainheader(Rcpp::List& rMainHeader, CECATMainHeader*& mainHeader)
+{
+  CECAT7MainHeader *outputMainHeader = static_cast<CECAT7MainHeader*>(mainHeader);
+
+  // first we get the names of the rtype main header entries
+  Rcpp::StringVector names = rMainHeader.names();
+  
+  // now we cycle through the names an copy them into the output main header
+  Rcpp::StringVector::iterator entry = names.begin();
+  for(; entry != names.end(); ++entry)
+  {
+    if(*entry == "magic_number")
+    {
+      QString magic_number = Rcpp::as<string>(rMainHeader("magic_number")).c_str();
+      outputMainHeader->setMagic_Number(magic_number.toAscii().constData());
+    }
+    else if(*entry == "file_type")
+    {
+      int file_type = Rcpp::as<int>(rMainHeader("file_type"));
+      outputMainHeader->setFile_Type(static_cast<CECAT7MainHeader::File_Type>(file_type));
+    }
+    else if(*entry == "scan_start_time")
+    {
+      time_t scan_start_time = Rcpp::as<time_t>(rMainHeader("scan_start_time"));
+      outputMainHeader->setScan_Start_Time(scan_start_time);
+    }
+    else if(*entry == "ecat_calibration_factor")
+    {
+      float ecat_calibration_factor = Rcpp::as<float>(rMainHeader("ecat_calibration_factor"));
+      outputMainHeader->setCalibration_Factor(ecat_calibration_factor);
+    }
+    else if(*entry == "calibration_units")
+    {
+      int calibration_units = Rcpp::as<int>(rMainHeader("calibration_units"));
+      outputMainHeader->setCalibration_Units(static_cast<CECAT7MainHeader::Calibration_Units>(calibration_units));
+    }
+    else if(*entry == "num_frames")
+    {
+      int num_frames = Rcpp::as<int>(rMainHeader("num_frames"));
+      outputMainHeader->setNum_Frames(num_frames);
+    }
+    else if(*entry == "num_gates")
+    {
+      int num_gates = Rcpp::as<int>(rMainHeader("num_gates"));
+      outputMainHeader->setNum_Gates(num_gates);
+    }
+    else if(*entry == "num_bed_pos")
+    {
+      int num_bed_pos = Rcpp::as<int>(rMainHeader("num_bed_pos"));
+      outputMainHeader->setNum_Bed_Pos(num_bed_pos);
+    }
+    else if(*entry == "data_units")
+    {
+      string data_units = Rcpp::as<string>(rMainHeader("data_units"));
+      outputMainHeader->setData_Units(data_units.c_str());
+    }
+    else
+    {
+      cout << "WARNING: can not handle main header entry: \"" << *entry << "\"." << endl;
+    }
+  }
 }
