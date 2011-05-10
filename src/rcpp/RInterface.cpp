@@ -311,8 +311,8 @@ RcppExport SEXP readEcat(SEXP vfile,
             rList.push_back(matrixData, tag.toAscii().constData());
 
             // calculate the frame midpoint of this volume
-            unsigned int frame_duration = static_cast<unsigned int>(subHeader("frame_duration"));
-            unsigned int frame_start = static_cast<unsigned int>(subHeader("frame_start"));
+            unsigned int frame_duration = static_cast<unsigned int>(subHeader("frame_duration")) / 1000; // [s]
+            unsigned int frame_start = static_cast<unsigned int>(subHeader("frame_start")) / 1000; // [s]
             double fm = frame_start + frame_duration / 2;
             frame_midpoint.push_back(fm);
           }

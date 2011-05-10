@@ -175,26 +175,126 @@ bool CRECATFile::readSubHeader_Rcpp(Rcpp::List& subHeader,
     {
       CECAT7SubHeaderImage* sHeadImage = static_cast<CECAT7SubHeaderImage*>(sHead);
       int data_type = sHeadImage->data_Type();
+      short num_dimensions = sHeadImage->num_Dimensions();
       short x_dimension = sHeadImage->x_Dimension();
       short y_dimension = sHeadImage->y_Dimension();
       short z_dimension = sHeadImage->z_Dimension();
+      float x_offset = sHeadImage->x_Offset();
+      float y_offset = sHeadImage->y_Offset();
+      float z_offset = sHeadImage->z_Offset();
+      float recon_zoom = sHeadImage->recon_Zoom();
       float scale_factor = sHeadImage->scale_Factor();
+      short image_min = sHeadImage->image_Min();
+      short image_max = sHeadImage->image_Max();
       float x_pixelsize = sHeadImage->x_Pixel_Size();
       float y_pixelsize = sHeadImage->y_Pixel_Size();
       float z_pixelsize = sHeadImage->z_Pixel_Size();
-      unsigned int frame_duration = sHeadImage->frame_Duration() / 1000; // [s]
-      unsigned int frame_start = sHeadImage->frame_Start_Time() / 1000;  // [s]
+      unsigned int frame_duration = sHeadImage->frame_Duration();
+      unsigned int frame_start = sHeadImage->frame_Start_Time();
 
-      subHeader = Rcpp::List::create(Rcpp::Named("data_type") = data_type,
-                                     Rcpp::Named("x_dimension") = x_dimension,
-                                     Rcpp::Named("y_dimension") = y_dimension,
-                                     Rcpp::Named("z_dimension") = z_dimension,
-                                     Rcpp::Named("scale_factor") = scale_factor,
-                                     Rcpp::Named("x_pixelsize") = x_pixelsize,
-                                     Rcpp::Named("y_pixelsize") = y_pixelsize,
-                                     Rcpp::Named("z_pixelsize") = z_pixelsize,
-                                     Rcpp::Named("frame_duration") = frame_duration,
-                                     Rcpp::Named("frame_start") = frame_start);
+      int filter_code = sHeadImage->filter_Code();
+      float x_resolution = sHeadImage->x_Resolution();
+      float y_resolution = sHeadImage->y_Resolution();
+      float z_resolution = sHeadImage->z_Resolution();
+      float num_r_elements = sHeadImage->num_R_Elements();
+      float num_angles = sHeadImage->num_Angles();
+      float z_rotation_angle = sHeadImage->z_Rotation_Angle();
+      float decay_corr_fctr = sHeadImage->decay_Corr_Fctr();
+      unsigned int processing_code = sHeadImage->processing_Code();
+      unsigned int gate_duration = sHeadImage->gate_Duration();
+      unsigned int r_wave_offset = sHeadImage->r_Wave_Offset();
+      unsigned int num_accepted_beats = sHeadImage->num_Accepted_Beats();
+      float filter_cutoff_frequency = sHeadImage->filter_Cutoff_Frequency();
+      float filter_resolution = sHeadImage->filter_Resolution();
+      float filter_ramp_slope = sHeadImage->filter_Ramp_Slope();
+      short filter_order = sHeadImage->filter_Order();
+      float filter_scatter_fraction = sHeadImage->filter_Scatter_Fraction();
+      float filter_scatter_slope = sHeadImage->filter_Scatter_Slope();
+      string annotation = sHeadImage->annotation();
+      float mt_1_1 = sHeadImage->mt_1_1();
+      float mt_1_2 = sHeadImage->mt_1_2();
+      float mt_1_3 = sHeadImage->mt_1_3();
+      float mt_2_1 = sHeadImage->mt_2_1();
+      float mt_2_2 = sHeadImage->mt_2_2();
+      float mt_2_3 = sHeadImage->mt_2_3();
+      float mt_3_1 = sHeadImage->mt_3_1();
+      float mt_3_2 = sHeadImage->mt_3_2();
+      float mt_3_3 = sHeadImage->mt_3_3();
+      float rfilter_cutoff = sHeadImage->rfilter_Cutoff();
+      float rfilter_resolution = sHeadImage->rfilter_Resolution();
+      int rfilter_code = sHeadImage->rfilter_Code();
+      short rfilter_order = sHeadImage->rfilter_Order();
+      float zfilter_cutoff = sHeadImage->zfilter_Cutoff();
+      float zfilter_resolution = sHeadImage->zfilter_Resolution();
+      int zfilter_code = sHeadImage->zfilter_Code();
+      short zfilter_order = sHeadImage->zfilter_Order();
+      float mt_1_4 = sHeadImage->mt_1_4();
+      float mt_2_4 = sHeadImage->mt_2_4();
+      float mt_3_4 = sHeadImage->mt_3_4();
+      int scatter_type = sHeadImage->scatter_Type();
+      int recon_type = sHeadImage->recon_Type();
+      short recon_views = sHeadImage->recon_Views();
+
+      subHeader.push_back(data_type, "data_type");
+      subHeader.push_back(num_dimensions, "num_dimensions");
+      subHeader.push_back(x_dimension, "x_dimension");
+      subHeader.push_back(y_dimension, "y_dimension");
+      subHeader.push_back(z_dimension, "z_dimension");
+      subHeader.push_back(x_offset, "x_offset");
+      subHeader.push_back(y_offset, "y_offset");
+      subHeader.push_back(z_offset, "z_offset");
+      subHeader.push_back(recon_zoom, "recon_zoom");
+      subHeader.push_back(scale_factor, "scale_factor");
+      subHeader.push_back(image_min, "image_min");
+      subHeader.push_back(image_max, "image_max");
+      subHeader.push_back(x_pixelsize, "x_pixelsize");
+      subHeader.push_back(y_pixelsize, "y_pixelsize");
+      subHeader.push_back(z_pixelsize, "z_pixelsize");
+      subHeader.push_back(frame_duration, "frame_duration");
+      subHeader.push_back(frame_start, "frame_start");
+
+      subHeader.push_back(filter_code, "filter_code");
+      subHeader.push_back(x_resolution, "x_resolution");
+      subHeader.push_back(y_resolution, "y_resolution");
+      subHeader.push_back(z_resolution, "z_resolution");
+      subHeader.push_back(num_r_elements, "num_r_elements");
+      subHeader.push_back(num_angles, "num_angles");
+      subHeader.push_back(z_rotation_angle, "z_rotation_angle");
+      subHeader.push_back(decay_corr_fctr, "decay_corr_fctr");
+      subHeader.push_back(processing_code, "processing_code");
+      subHeader.push_back(gate_duration, "gate_duration");
+      subHeader.push_back(r_wave_offset, "r_wave_offset");
+      subHeader.push_back(num_accepted_beats, "num_accepted_beats");
+      subHeader.push_back(filter_cutoff_frequency, "filter_cutoff_frequency");
+      subHeader.push_back(filter_resolution, "filter_resolution");
+      subHeader.push_back(filter_ramp_slope, "filter_ramp_slope");
+      subHeader.push_back(filter_order, "filter_order");
+      subHeader.push_back(filter_scatter_fraction, "filter_scatter_fraction");
+      subHeader.push_back(filter_scatter_slope, "filter_scatter_slope");
+      subHeader.push_back(annotation, "annotation");
+      subHeader.push_back(mt_1_1, "mt_1_1");
+      subHeader.push_back(mt_1_2, "mt_1_2");
+      subHeader.push_back(mt_1_3, "mt_1_3");
+      subHeader.push_back(mt_2_1, "mt_2_1");
+      subHeader.push_back(mt_2_2, "mt_2_2");
+      subHeader.push_back(mt_2_3, "mt_2_3");
+      subHeader.push_back(mt_3_1, "mt_3_1");
+      subHeader.push_back(mt_3_2, "mt_3_2");
+      subHeader.push_back(mt_3_3, "mt_3_3");
+      subHeader.push_back(rfilter_cutoff, "rfilter_cutoff");
+      subHeader.push_back(rfilter_resolution, "rfilter_resolution");
+      subHeader.push_back(rfilter_code, "rfilter_code");
+      subHeader.push_back(rfilter_order, "rfilter_order");
+      subHeader.push_back(zfilter_cutoff, "zfilter_cutoff");
+      subHeader.push_back(zfilter_resolution, "zfilter_resolution");
+      subHeader.push_back(zfilter_code, "zfilter_code");
+      subHeader.push_back(zfilter_order, "zfilter_order");
+      subHeader.push_back(mt_1_4, "mt_1_4");
+      subHeader.push_back(mt_2_4, "mt_2_4");
+      subHeader.push_back(mt_3_4, "mt_3_4");
+      subHeader.push_back(scatter_type, "scatter_type");
+      subHeader.push_back(recon_type, "recon_type");
+      subHeader.push_back(recon_views, "recon_views");
 
       result = true;
     }
