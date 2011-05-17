@@ -1,11 +1,9 @@
 #include "CRECATFile.h"
-
 #include <iostream>
 #include <Rcpp.h>
-
-#include <CECATFile.h>
-#include <CECAT7MainHeader.h>
-#include <CECAT7SubHeaderImage.h>
+#include "CECATFile.h"
+#include "CECAT7MainHeader.h"
+#include "CECAT7SubHeaderImage.h"
 
 using namespace std;
 
@@ -86,8 +84,8 @@ bool CRECATFile::readMainHeader_Rcpp(Rcpp::List& mainHeader)
       float bin_size = mHeader->bin_Size();
       float branching_fraction = mHeader->branching_Fraction();
       Rcpp::Datetime dose_start_time = Rcpp::Datetime(mHeader->dose_Start_Time());
-      float  dosage = mHeader->dosage();
-      float  well_counter_corr_factor = mHeader->well_Counter_Corr_Factor();
+      float dosage = mHeader->dosage();
+      float well_counter_corr_factor = mHeader->well_Counter_Corr_Factor();
       string data_units = mHeader->data_Units();
       int septa_state = mHeader->septa_State();
       // short cti_reserved = mHeader->cti_Reserved(const short i) const;
@@ -147,8 +145,8 @@ bool CRECATFile::readMainHeader_Rcpp(Rcpp::List& mainHeader)
       mainHeader.push_back(bin_size, "bin_size");
       mainHeader.push_back(branching_fraction, "branching_fraction");
       mainHeader.push_back(dose_start_time, "dose_start_time");
-      mainHeader.push_back( dosage, "dosage");
-      mainHeader.push_back( well_counter_corr_factor, "well_counter_corr_factor");
+      mainHeader.push_back(dosage, "dosage");
+      mainHeader.push_back(well_counter_corr_factor, "well_counter_corr_factor");
       mainHeader.push_back(data_units, "data_units");
       mainHeader.push_back(septa_state, "septa_state");
 
@@ -305,4 +303,196 @@ bool CRECATFile::readSubHeader_Rcpp(Rcpp::List& subHeader,
   }
 
   return result;
+}
+
+bool CRECATFile::writeMainHeader_Rcpp(Rcpp::List& mainHeader)
+{
+  bool result = false;
+
+  // first we have to create a new ecat main header
+  CECATMainHeader* mHeader = NULL;
+  mHeader = createMainHeaderFromRcppMainHeader(mainHeader);
+  if(mHeader == NULL)
+  {
+    cerr << "ERROR: could not create new main header in destination file." << endl;
+    result = false;
+  }
+  else
+  {
+    result = writeMainHeader(*mHeader);
+    delete mHeader;
+  }
+
+  return result;
+}
+
+CECATMainHeader* CRECATFile::createMainHeaderFromRcppMainHeader(Rcpp::List& rMainHeader)
+{
+  CECATMainHeader* pMainHeader = NULL;
+
+  if(isOpen())
+  {
+    switch(format())
+    {
+      case CECATFile::ECAT7:
+      {
+        pMainHeader = createEmptyMainHeader();
+        CECAT7MainHeader *ecat7MainHeader = static_cast<CECAT7MainHeader*>(pMainHeader);
+  
+      try
+      { 
+        string magic_number = Rcpp::as<string>(rMainHeader("magic_number"));
+        string original_file_name = Rcpp::as<string>(rMainHeader("original_file_name"));
+        short sw_version = Rcpp::as<short>(rMainHeader("sw_version"));
+        short system_type = Rcpp::as<short>(rMainHeader("system_type"));
+        int file_type = Rcpp::as<int>(rMainHeader("file_type"));
+        string serial_number = Rcpp::as<string>(rMainHeader("serial_number"));
+        time_t scan_start_time = Rcpp::as<time_t>(rMainHeader("scan_start_time"));
+        string isotope_name = Rcpp::as<string>(rMainHeader("isotope_name"));
+        float isotope_halflife = Rcpp::as<float>(rMainHeader("isotope_halflife"));
+        string radiopharmaceutical = Rcpp::as<string>(rMainHeader("radiopharmaceutical"));
+        float gantry_tilt = Rcpp::as<float>(rMainHeader("gantry_tilt"));
+        float gantry_rotation = Rcpp::as<float>(rMainHeader("gantry_rotation"));
+        float bed_elevation = Rcpp::as<float>(rMainHeader("bed_elevation"));
+        float intrinsic_tilt = Rcpp::as<float>(rMainHeader("intrinsic_tilt"));
+        short wobble_speed = Rcpp::as<short>(rMainHeader("wobble_speed"));
+        int transm_source_type = Rcpp::as<int>(rMainHeader("transm_source_type"));
+        float distance_scanned = Rcpp::as<float>(rMainHeader("distance_scanned"));
+        float transaxial_fov = Rcpp::as<float>(rMainHeader("transaxial_fov"));
+        int angular_compression = Rcpp::as<int>(rMainHeader("angular_compression"));
+        int coin_samp_mode = Rcpp::as<int>(rMainHeader("coin_samp_mode"));
+        int axial_samp_mode = Rcpp::as<int>(rMainHeader("axial_samp_mode"));
+        float ecat_calibration_factor = Rcpp::as<float>(rMainHeader("ecat_calibration_factor"));
+        int calibration_units = Rcpp::as<int>(rMainHeader("calibration_units"));
+        int calibration_units_label = Rcpp::as<int>(rMainHeader("calibration_units_label"));
+        int compression_code = Rcpp::as<int>(rMainHeader("compression_code"));
+        string study_type = Rcpp::as<string>(rMainHeader("study_type"));
+        string patient_id = Rcpp::as<string>(rMainHeader("patient_id"));
+        string patient_name = Rcpp::as<string>(rMainHeader("patient_name"));
+
+        string sex = Rcpp::as<string>(rMainHeader("patient_sex"));
+        CECAT7MainHeader::Patient_Sex patient_sex;
+        switch(sex[0])
+        {
+          case 'M': patient_sex = CECAT7MainHeader::Sex_Male; break;
+          case 'F': patient_sex = CECAT7MainHeader::Sex_Female; break;
+          case 'U':
+          default: patient_sex = CECAT7MainHeader::Sex_Unknown; break;
+        }
+        
+        string dexterity = Rcpp::as<string>(rMainHeader("patient_dexterity"));
+        CECAT7MainHeader::Patient_Dexterity patient_dexterity;
+        switch(dexterity[0])
+        {
+          case 'R': patient_dexterity = CECAT7MainHeader::Dext_RT; break;
+          case 'L': patient_dexterity = CECAT7MainHeader::Dext_LF; break;
+          case 'U':
+          default: patient_dexterity = CECAT7MainHeader::Dext_Unknown; break;
+        }
+
+        float patient_age = Rcpp::as<float>(rMainHeader("patient_age"));
+        float patient_height = Rcpp::as<float>(rMainHeader("patient_height"));
+        float patient_weight = Rcpp::as<float>(rMainHeader("patient_weight"));
+        time_t patient_birth_datetime = Rcpp::as<time_t>(rMainHeader("patient_birth_date"));
+        string physician_name = Rcpp::as<string>(rMainHeader("physician_name"));
+        string operator_name = Rcpp::as<string>(rMainHeader("operator_name"));
+        string study_description = Rcpp::as<string>(rMainHeader("study_description"));
+        int acquisition_type = Rcpp::as<int>(rMainHeader("acquisition_type"));
+        int patient_orientation = Rcpp::as<int>(rMainHeader("patient_orientation"));
+        string facility_name = Rcpp::as<string>(rMainHeader("facility_name"));
+        short num_planes = Rcpp::as<short>(rMainHeader("num_planes"));
+        int num_frames = Rcpp::as<int>(rMainHeader("num_frames"));
+        int num_gates = Rcpp::as<int>(rMainHeader("num_gates"));
+        int num_bed_pos = Rcpp::as<int>(rMainHeader("num_bed_pos"));
+        float init_bed_position = Rcpp::as<float>(rMainHeader("init_bed_position"));
+        // float bed_offset = mHeader->bed_Offset();
+        float plane_separation = Rcpp::as<float>(rMainHeader("plane_separation"));
+        short lwr_sctr_thres = Rcpp::as<short>(rMainHeader("lwr_sctr_thres"));
+        short lwr_true_thres = Rcpp::as<short>(rMainHeader("lwr_true_thres"));
+        short upr_true_thres = Rcpp::as<short>(rMainHeader("upr_true_thres"));
+        string user_process_code = Rcpp::as<string>(rMainHeader("user_process_code"));
+        int acquisition_mode = Rcpp::as<int>(rMainHeader("acquisition_mode"));
+        float bin_size = Rcpp::as<float>(rMainHeader("bin_size"));
+        float branching_fraction = Rcpp::as<float>(rMainHeader("branching_fraction"));
+        time_t dose_start_time = Rcpp::as<time_t>(rMainHeader("dose_start_time"));
+        float dosage = Rcpp::as<float>(rMainHeader("dosage"));
+        float well_counter_corr_factor = Rcpp::as<float>(rMainHeader("well_counter_corr_factor"));
+        string data_units = Rcpp::as<string>(rMainHeader("data_units"));
+        int septa_state = Rcpp::as<int>(rMainHeader("septa_state"));
+        // short cti_reserved = mHeader->cti_Reserved(const short i) const;
+
+        ecat7MainHeader->setMagic_Number(magic_number.c_str());
+        ecat7MainHeader->setOriginal_File_Name(original_file_name.c_str());
+        ecat7MainHeader->setSW_Version(sw_version);
+        ecat7MainHeader->setSystem_Type(system_type);
+        ecat7MainHeader->setFile_Type(static_cast<CECAT7MainHeader::File_Type>(file_type));
+        ecat7MainHeader->setSerial_Number(serial_number.c_str());
+        ecat7MainHeader->setScan_Start_Time(scan_start_time);
+        ecat7MainHeader->setIsotope_Name(isotope_name.c_str());
+        ecat7MainHeader->setIsotope_Halflife(isotope_halflife);
+        ecat7MainHeader->setRadiopharmaceutical(radiopharmaceutical.c_str());
+        ecat7MainHeader->setGantry_Tilt(gantry_tilt);
+        ecat7MainHeader->setGantry_Rotation(gantry_rotation);
+        ecat7MainHeader->setBed_Elevation(bed_elevation);
+        ecat7MainHeader->setIntrinsic_Tilt(intrinsic_tilt);
+        ecat7MainHeader->setWobble_Speed(wobble_speed);
+        ecat7MainHeader->setTransm_Source_Type(static_cast<CECAT7MainHeader::Transm_Source_Type>(transm_source_type));
+        ecat7MainHeader->setDistance_Scanned(distance_scanned);
+        ecat7MainHeader->setTransaxial_FOV(transaxial_fov);
+        ecat7MainHeader->setAngular_Compression(static_cast<CECAT7MainHeader::Angular_Compression>(angular_compression));
+        ecat7MainHeader->setCoin_Samp_Mode(static_cast<CECAT7MainHeader::Coin_Samp_Mode>(coin_samp_mode));
+        ecat7MainHeader->setAxial_Samp_Mode(static_cast<CECAT7MainHeader::Axial_Samp_Mode>(axial_samp_mode));
+        ecat7MainHeader->setCalibration_Factor(ecat_calibration_factor);
+        ecat7MainHeader->setCalibration_Units(static_cast<CECAT7MainHeader::Calibration_Units>(calibration_units));
+        ecat7MainHeader->setCalibration_Units_Label(static_cast<CECAT7MainHeader::Calibration_Units_Label>(calibration_units_label));
+        ecat7MainHeader->setCompression_Code(static_cast<CECAT7MainHeader::Compression_Code>(compression_code));
+        ecat7MainHeader->setStudy_Type(study_type.c_str());
+        ecat7MainHeader->setPatient_ID(patient_id.c_str());
+        ecat7MainHeader->setPatient_Name(patient_name.c_str());
+        ecat7MainHeader->setPatient_Sex(patient_sex);
+        ecat7MainHeader->setPatient_Dexterity(patient_dexterity);
+        ecat7MainHeader->setPatient_Age(patient_age);
+        ecat7MainHeader->setPatient_Height(patient_height);
+        ecat7MainHeader->setPatient_Weight(patient_weight);
+        ecat7MainHeader->setPatient_Birth_Date(patient_birth_datetime);
+        ecat7MainHeader->setPhysician_Name(physician_name.c_str());
+        ecat7MainHeader->setOperator_Name(operator_name.c_str());
+        ecat7MainHeader->setStudy_Description(study_description.c_str());
+        ecat7MainHeader->setAcquisition_Type(static_cast<CECAT7MainHeader::Acquisition_Type>(acquisition_type));
+        ecat7MainHeader->setPatient_Orientation(static_cast<CECAT7MainHeader::Patient_Orientation>(patient_orientation));
+        ecat7MainHeader->setFacility_Name(facility_name.c_str());
+        ecat7MainHeader->setNum_Planes(num_planes);
+        ecat7MainHeader->setNum_Frames(num_frames);
+        ecat7MainHeader->setNum_Gates(num_gates);
+        ecat7MainHeader->setNum_Bed_Pos(num_bed_pos);
+        ecat7MainHeader->setInit_Bed_Position(init_bed_position);
+        // float bed_offset = mHeader->bed_Offset();
+        ecat7MainHeader->setPlane_Separation(plane_separation);
+        ecat7MainHeader->setLwr_Sctr_Thres(lwr_sctr_thres);
+        ecat7MainHeader->setLwr_True_Thres(lwr_true_thres);
+        ecat7MainHeader->setUpr_True_Thres(upr_true_thres);
+        ecat7MainHeader->setUser_Process_Code(user_process_code.c_str());
+        ecat7MainHeader->setAcquisition_Mode(static_cast<CECAT7MainHeader::Acquisition_Mode>(acquisition_mode));
+        ecat7MainHeader->setBin_Size(bin_size);
+        ecat7MainHeader->setBranching_Fraction(branching_fraction);
+        ecat7MainHeader->setDose_Start_Time(dose_start_time);
+        ecat7MainHeader->setDosage(dosage);
+        ecat7MainHeader->setWell_Counter_Corr_Factor(well_counter_corr_factor);
+        ecat7MainHeader->setData_Units(data_units.c_str());
+        ecat7MainHeader->setSepta_State(static_cast<CECAT7MainHeader::Septa_State>(septa_state));
+        // short cti_reserved = mHeader->cti_Reserved(const short i) const;
+      }
+      catch(Rcpp::index_out_of_bounds e)
+      {
+        // there is something wrong with the header entries
+        cerr << "ERROR: there is something wrong with the header entries" << endl;
+        delete pMainHeader;
+        pMainHeader = NULL;
+      }
+      }
+    }
+  
+  }
+
+  return pMainHeader;
 }

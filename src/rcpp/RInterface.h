@@ -13,6 +13,4 @@ RcppExport SEXP readEcat(SEXP vfile,
 
 RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat);
 
-void r_mainheader_to_medio_mainheader(Rcpp::List& rMainHeader, CECATMainHeader*& mainHeader);
-
 #endif
