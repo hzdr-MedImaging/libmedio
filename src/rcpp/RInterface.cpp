@@ -373,8 +373,8 @@ RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
   }
   catch(Rcpp::not_compatible e)
   {
+    // this call exits the function and returns to R
     forward_exception_to_r(e);
-    result = false;
   }
 
   if(result == true)
@@ -397,6 +397,7 @@ RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
       if(outputFile.writeMainHeader_Rcpp(RcppMainHeader) == false)
       {
         cerr << "ERROR: could not write destination main header." << endl;
+        outputFile.remove();
         result = false;
       }
       outputFile.close();
