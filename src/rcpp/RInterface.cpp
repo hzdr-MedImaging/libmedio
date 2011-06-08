@@ -13,36 +13,28 @@ RcppExport SEXP readEcat(SEXP vfile,
                          SEXP indicesOfCols,
                          SEXP indicesOfPlanes)
 {
+  BEGIN_RCPP
+  
   Rcpp::List rList;
-
   QString filename;
   vector<short> volumes;
   vector<short> rows;
   vector<short> cols;
   vector<short> planes;
 
-  try
-  {
-    filename = Rcpp::as<string>(vfile).c_str();
+  filename = Rcpp::as<string>(vfile).c_str();
 
-    if(Rcpp::RObject(indicesOfVolumes).isNULL() == false)
-      volumes = Rcpp::as<vector<short> >(indicesOfVolumes);
+  if(Rcpp::RObject(indicesOfVolumes).isNULL() == false)
+    volumes = Rcpp::as<vector<short> >(indicesOfVolumes);
 
-    if(Rcpp::RObject(indicesOfRows).isNULL() == false)
-      rows = Rcpp::as<vector<short> >(indicesOfRows);
+  if(Rcpp::RObject(indicesOfRows).isNULL() == false)
+    rows = Rcpp::as<vector<short> >(indicesOfRows);
 
-    if(Rcpp::RObject(indicesOfCols).isNULL() == false)
-      cols = Rcpp::as<vector<short> >(indicesOfCols);
+  if(Rcpp::RObject(indicesOfCols).isNULL() == false)
+    cols = Rcpp::as<vector<short> >(indicesOfCols);
 
-    if(Rcpp::RObject(indicesOfPlanes).isNULL() == false)
-      planes = Rcpp::as<vector<short> >(indicesOfPlanes);
-  }
-  catch(Rcpp::not_compatible e)
-  {
-    forward_exception_to_r(e);
-    // return the empty list
-    return rList;
-  }
+  if(Rcpp::RObject(indicesOfPlanes).isNULL() == false)
+    planes = Rcpp::as<vector<short> >(indicesOfPlanes);
 
   CRECATFile inputFile(filename);
 
@@ -341,40 +333,36 @@ RcppExport SEXP readEcat(SEXP vfile,
 
 
   return rList;
+
+  END_RCPP
 }
 
 RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
 {
+  BEGIN_RCPP
+
   bool result = true;
   Rcpp::List RcppEcatFile;
   QString outputFileName;
 
-  try
+  if(Rcpp::RObject(vfile).isNULL())
   {
-    if(Rcpp::RObject(vfile).isNULL())
-    {
-      cerr << "ERROR: no output file name given." << endl;
-      result = false;
-    }
-    else
-    {
-      outputFileName = Rcpp::as<string>(vfile).c_str();
-    }
-
-    if(Rcpp::RObject(ecat).isNULL())
-    {
-      cerr << "ERROR: no ecat data given." << endl;
-      result = false;
-    }
-    else
-    {
-      RcppEcatFile = Rcpp::as<Rcpp::List>(ecat);
-    }
+    cerr << "ERROR: no output file name given." << endl;
+    result = false;
   }
-  catch(Rcpp::not_compatible e)
+  else
   {
-    // this call exits the function and returns to R
-    forward_exception_to_r(e);
+    outputFileName = Rcpp::as<string>(vfile).c_str();
+  }
+
+  if(Rcpp::RObject(ecat).isNULL())
+  {
+    cerr << "ERROR: no ecat data given." << endl;
+    result = false;
+  }
+  else
+  {
+    RcppEcatFile = Rcpp::as<Rcpp::List>(ecat);
   }
 
   if(result == true)
@@ -410,4 +398,6 @@ RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
   }
 
   return Rcpp::wrap(result);
+
+  END_RCPP
 }
