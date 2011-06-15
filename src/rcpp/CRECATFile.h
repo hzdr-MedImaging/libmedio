@@ -17,6 +17,9 @@ public:
   bool readSubHeader_Rcpp(Rcpp::List& subHeader,
                           short frame, short plane=1, short gate=1, short bed=0, short data=0);
 
+  bool writeSubHeader_Rcpp(Rcpp::List& subHeader,
+                           short frame, short plane=1, short gate=1, short bed=0, short data=0);
+
   bool writeMainHeader_Rcpp(Rcpp::List& mainHeader);
 
   CECATMainHeader* createMainHeaderFromRcppMainHeader(Rcpp::List& rMainHeader);

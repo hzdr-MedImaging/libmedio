@@ -326,6 +326,150 @@ bool CRECATFile::writeMainHeader_Rcpp(Rcpp::List& mainHeader)
   return result;
 }
 
+bool CRECATFile::writeSubHeader_Rcpp(Rcpp::List& subHeader,
+                         short frame, short plane, short gate, short bed, short data)
+{
+  bool result = false;
+
+  if(format() == CECATFile::ECAT7)
+  {
+    int data_type = Rcpp::as<int>(subHeader("data_type"));
+    short num_dimensions = Rcpp::as<short>(subHeader("num_dimensions"));
+    short x_dimension = Rcpp::as<short>(subHeader("x_dimension"));
+    short y_dimension = Rcpp::as<short>(subHeader("y_dimension"));
+    short z_dimension = Rcpp::as<short>(subHeader("z_dimension"));
+    float scale_factor = Rcpp::as<float>(subHeader("scale_factor"));
+    float x_pixelsize = Rcpp::as<float>(subHeader("x_pixelsize"));
+    float y_pixelsize = Rcpp::as<float>(subHeader("y_pixelsize"));
+    float z_pixelsize = Rcpp::as<float>(subHeader("z_pixelsize"));
+
+    float x_offset = Rcpp::as<float>(subHeader("x_offset"));
+    float y_offset = Rcpp::as<float>(subHeader("y_offset"));
+    float z_offset = Rcpp::as<float>(subHeader("z_offset"));
+    float recon_zoom = Rcpp::as<float>(subHeader("recon_zoom"));
+    
+    short image_min = Rcpp::as<short>(subHeader("image_min"));
+    short image_max = Rcpp::as<short>(subHeader("image_max"));
+
+    unsigned int frame_duration = Rcpp::as<unsigned int>(subHeader("frame_duration"));
+    unsigned int frame_start = Rcpp::as<unsigned int>(subHeader("frame_start"));
+
+    int filter_code = Rcpp::as<int>(subHeader("filter_code"));
+    float x_resolution = Rcpp::as<float>(subHeader("x_resolution"));
+    float y_resolution = Rcpp::as<float>(subHeader("y_resolution"));
+    float z_resolution = Rcpp::as<float>(subHeader("z_resolution"));
+    float num_r_elements = Rcpp::as<float>(subHeader("num_r_elements"));
+    float num_angles = Rcpp::as<float>(subHeader("num_angles"));
+    float z_rotation_angle = Rcpp::as<float>(subHeader("z_rotation_angle"));
+    float decay_corr_fctr = Rcpp::as<float>(subHeader("decay_corr_fctr"));
+
+    unsigned int processing_code = Rcpp::as<unsigned int>(subHeader("processing_code"));
+    unsigned int gate_duration = Rcpp::as<unsigned int>(subHeader("gate_duration"));
+    unsigned int r_wave_offset = Rcpp::as<unsigned int>(subHeader("r_wave_offset"));
+    unsigned int num_accepted_beats = Rcpp::as<unsigned int>(subHeader("num_accepted_beats"));
+
+    float filter_cutoff_frequency = Rcpp::as<float>(subHeader("filter_cutoff_frequency"));
+    float filter_resolution = Rcpp::as<float>(subHeader("filter_resolution"));
+    float filter_ramp_slope = Rcpp::as<float>(subHeader("filter_ramp_slope"));
+    short filter_order = Rcpp::as<short>(subHeader("filter_order"));
+    float filter_scatter_fraction = Rcpp::as<float>(subHeader("filter_scatter_fraction"));
+    float filter_scatter_slope = Rcpp::as<float>(subHeader("filter_scatter_slope"));
+    string annotation = Rcpp::as<string>(subHeader("annotation"));
+    float mt_1_1 = Rcpp::as<float>(subHeader("mt_1_1"));
+    float mt_1_2 = Rcpp::as<float>(subHeader("mt_1_2"));
+    float mt_1_3 = Rcpp::as<float>(subHeader("mt_1_3"));
+    float mt_2_1 = Rcpp::as<float>(subHeader("mt_2_1"));
+    float mt_2_2 = Rcpp::as<float>(subHeader("mt_2_2"));
+    float mt_2_3 = Rcpp::as<float>(subHeader("mt_2_3"));
+    float mt_3_1 = Rcpp::as<float>(subHeader("mt_3_1"));
+    float mt_3_2 = Rcpp::as<float>(subHeader("mt_3_2"));
+    float mt_3_3 = Rcpp::as<float>(subHeader("mt_3_3"));
+    float rfilter_cutoff = Rcpp::as<float>(subHeader("rfilter_cutoff"));
+    float rfilter_resolution = Rcpp::as<float>(subHeader("rfilter_resolution"));
+    int rfilter_code = Rcpp::as<int>(subHeader("rfilter_code"));
+    short rfilter_order = Rcpp::as<short>(subHeader("rfilter_order"));
+    float zfilter_cutoff = Rcpp::as<float>(subHeader("zfilter_cutoff"));
+    float zfilter_resolution = Rcpp::as<float>(subHeader("zfilter_resolution"));
+    int zfilter_code = Rcpp::as<int>(subHeader("zfilter_code"));
+    short zfilter_order = Rcpp::as<short>(subHeader("zfilter_order"));
+    float mt_1_4 = Rcpp::as<float>(subHeader("mt_1_4"));
+    float mt_2_4 = Rcpp::as<float>(subHeader("mt_2_4"));
+    float mt_3_4 = Rcpp::as<float>(subHeader("mt_3_4"));
+    int scatter_type = Rcpp::as<int>(subHeader("scatter_type"));
+    int recon_type = Rcpp::as<int>(subHeader("recon_type"));
+    short recon_views = Rcpp::as<short>(subHeader("recon_views"));
+
+    CECAT7SubHeaderImage imageSubHeader;
+    imageSubHeader.setData_Type(static_cast<CECATSubHeader::Data_Type>(data_type));
+    imageSubHeader.setNum_Dimensions(num_dimensions);
+    imageSubHeader.setX_Dimension(x_dimension);
+    imageSubHeader.setY_Dimension(y_dimension);
+    imageSubHeader.setZ_Dimension(z_dimension);
+    imageSubHeader.setScale_Factor(scale_factor);
+    imageSubHeader.setX_Pixel_Size(x_pixelsize);
+    imageSubHeader.setY_Pixel_Size(y_pixelsize);
+    imageSubHeader.setZ_Pixel_Size(z_pixelsize);
+    imageSubHeader.setX_Offset(x_offset);
+    imageSubHeader.setY_Offset(y_offset);
+    imageSubHeader.setZ_Offset(z_offset);
+    imageSubHeader.setRecon_Zoom(recon_zoom);
+    imageSubHeader.setScale_Factor(scale_factor);
+    imageSubHeader.setImage_Min(image_min);
+    imageSubHeader.setImage_Max(image_max);
+    imageSubHeader.setFrame_Duration(frame_duration);
+    imageSubHeader.setFrame_Start_Time(frame_start);
+    imageSubHeader.setFilter_Code(static_cast<CECAT7SubHeaderImage::Filter_Code>(filter_code));
+    imageSubHeader.setX_Resolution(x_resolution);
+    imageSubHeader.setY_Resolution(y_resolution);
+    imageSubHeader.setZ_Resolution(z_resolution);
+    imageSubHeader.setNum_R_Elements(num_r_elements);
+    imageSubHeader.setNum_Angles(num_angles);
+    imageSubHeader.setZ_Rotation_Angle(z_rotation_angle);
+    imageSubHeader.setDecay_Corr_Fctr(decay_corr_fctr);
+    imageSubHeader.setProcessing_Code(processing_code);
+    imageSubHeader.setGate_Duration(gate_duration);
+    imageSubHeader.setR_Wave_Offset(r_wave_offset);
+    imageSubHeader.setNum_Accepted_Beats(num_accepted_beats);
+    imageSubHeader.setFilter_Cutoff_Frequency(filter_cutoff_frequency);
+    imageSubHeader.setFilter_Resolution(filter_resolution);
+    imageSubHeader.setFilter_Ramp_Slope(filter_ramp_slope);
+    imageSubHeader.setFilter_Order(filter_order);
+    imageSubHeader.setFilter_Scatter_Fraction(filter_scatter_fraction);
+    imageSubHeader.setFilter_Scatter_Slope(filter_scatter_slope);
+    imageSubHeader.setAnnotation(annotation.c_str());
+    imageSubHeader.setMT_1_1(mt_1_1);
+    imageSubHeader.setMT_1_2(mt_1_2);
+    imageSubHeader.setMT_1_3(mt_1_3);
+    imageSubHeader.setMT_2_1(mt_2_1);
+    imageSubHeader.setMT_2_2(mt_2_2);
+    imageSubHeader.setMT_2_3(mt_2_3);
+    imageSubHeader.setMT_3_1(mt_3_1);
+    imageSubHeader.setMT_3_2(mt_3_2);
+    imageSubHeader.setMT_3_3(mt_3_3);
+    imageSubHeader.setRFilter_Cutoff(rfilter_cutoff);
+    imageSubHeader.setRFilter_Resolution(rfilter_resolution);
+    imageSubHeader.setRFilter_Code(static_cast<CECAT7SubHeaderImage::Filter_Code>(rfilter_code));
+    imageSubHeader.setRFilter_Order(rfilter_order);
+    imageSubHeader.setZFilter_Cutoff(zfilter_cutoff);
+    imageSubHeader.setZFilter_Resolution(zfilter_resolution);
+    imageSubHeader.setZFilter_Code(static_cast<CECAT7SubHeaderImage::Filter_Code>(zfilter_code));
+    imageSubHeader.setZFilter_Order(zfilter_order);
+    imageSubHeader.setMT_1_4(mt_1_4);
+    imageSubHeader.setMT_2_4(mt_2_4);
+    imageSubHeader.setMT_3_4(mt_3_4);
+    imageSubHeader.setScatter_Type(static_cast<CECAT7SubHeaderImage::Scatter_Type>(scatter_type));
+    imageSubHeader.setRecon_Type(static_cast<CECAT7SubHeaderImage::Recon_Type>(recon_type));
+    imageSubHeader.setRecon_Views(recon_views);
+
+    result = writeSubHeader(imageSubHeader, frame, plane, gate, bed, data);
+  }
+  else
+    cerr << "ERROR: provided input file is not an EACAT7 file." << endl;
+
+  return result;
+}
+
+
 CECATMainHeader* CRECATFile::createMainHeaderFromRcppMainHeader(Rcpp::List& rMainHeader)
 {
   CECATMainHeader* pMainHeader = NULL;

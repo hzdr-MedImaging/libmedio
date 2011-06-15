@@ -3,6 +3,7 @@
 #include <QFileInfo>
 #include <Rcpp.h>
 #include "CECAT7MainHeader.h"
+#include "CECAT7SubHeaderImage.h"
 #include "CRECATFile.h"
 
 using namespace std;
@@ -49,13 +50,8 @@ RcppExport SEXP readEcat(SEXP vfile,
       int num_gates = static_cast<int>(mhead("num_gates"));
       int num_bed_pos = static_cast<int>(mhead("num_bed_pos"));
       float ecat_calibration_factor = static_cast<float>(mhead("ecat_calibration_factor"));
-
-      enum use_as_volume
-      {
-        FRAMES = 'f',
-        GATES = 'g',
-        BEDS = 'b'
-      } which_to_use;
+      
+      as_volume which_to_use;
 
       short frame = 1;
       short gate = 1;
@@ -254,7 +250,7 @@ RcppExport SEXP readEcat(SEXP vfile,
               // of the index vectors)
               // and we have to flip x and y
               int destination_plane_size = cols.size() * rows.size();
-              int destination_x_dimension = rows.size();
+              int destination_x_dimension= rows.size();
 
               // iterate through our index vectors
               // and copy only the relevant data
@@ -381,6 +377,7 @@ RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
     if(outputFile.open(QIODevice::ReadWrite) && outputFile.format() != CECATFile::Undefined)
     {
       Rcpp::List RcppMainHeader = RcppEcatFile.attr("mhead");
+      int file_type = Rcpp::as<int>(RcppMainHeader("file_type"));
 
       if(outputFile.writeMainHeader_Rcpp(RcppMainHeader) == false)
       {
@@ -388,6 +385,56 @@ RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
         outputFile.remove();
         result = false;
       }
+
+      // now we write the matrix data to the file
+      // therefor we need to read out the names of the volumes
+      // and check the first char of the name to know if frames, gates or beds
+      // are used as volumes in the R ecat data structure ('f', 'g' or 'b')
+      vector<string> names = Rcpp::as<vector<string> >(RcppEcatFile.names());
+      int numberOfVolumes = names.size();
+      short frame = 1;
+      short gate = 1;
+      short bed = 0;
+      
+      if(numberOfVolumes > 0)
+      {
+        char firstChar = names[0][0];
+
+        for(int volume = 1; volume <= numberOfVolumes; ++volume)
+        {
+          Rcpp::NumericVector volumeVector = RcppEcatFile[volume-1];
+          Rcpp::List rSubHeader = volumeVector.attr("shead");
+
+          // now set frame, gate or bed correct
+          switch(firstChar)
+          {
+            case 'f':
+              frame = volume;
+              break;
+
+            case 'g':
+              gate = volume;
+              break;
+
+            case 'b':
+              bed = volume;
+              break;
+
+            default:
+              result = false;
+              cerr << "ERROR: there is something wrong with the volume names." << endl;
+          }
+
+          result = outputFile.writeSubHeader_Rcpp(rSubHeader, frame, 1, gate, bed);
+        }
+      }
+      else
+      {
+        cerr << "ERROR: there is no volume data in the ecat data." << endl;
+        outputFile.remove();
+        result = false;
+      }
+
       outputFile.close();
     }
     else
