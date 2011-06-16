@@ -15,7 +15,7 @@ RcppExport SEXP readEcat(SEXP vfile,
                          SEXP indicesOfPlanes)
 {
   BEGIN_RCPP
-  
+
   Rcpp::List rList;
   QString filename;
   vector<short> volumes;
@@ -50,7 +50,7 @@ RcppExport SEXP readEcat(SEXP vfile,
       int num_gates = static_cast<int>(mhead("num_gates"));
       int num_bed_pos = static_cast<int>(mhead("num_bed_pos"));
       float ecat_calibration_factor = static_cast<float>(mhead("ecat_calibration_factor"));
-      
+
       as_volume which_to_use;
 
       short frame = 1;
@@ -122,24 +122,12 @@ RcppExport SEXP readEcat(SEXP vfile,
       {
         QByteArray* byteData = NULL;
         Rcpp::List subHeader;
-       
+
         switch(which_to_use)
         {
-          case FRAMES:
-          {
-            frame = *it;
-            break;
-          }
-          case GATES:
-          {
-            gate = *it;
-            break;
-          }
-          case BEDS:
-          {
-            bed = *it;
-            break;
-          }
+          case FRAMES: frame = *it; break;
+          case GATES: gate = *it; break;
+          case BEDS: bed = *it; break;
         }
 
         if(inputFile.readSubHeader_Rcpp(subHeader, frame, 1, gate, bed, 0) == true)
@@ -175,7 +163,7 @@ RcppExport SEXP readEcat(SEXP vfile,
               }
             }
           }
- 
+
           if(cols.size() == 0)
           {
             for(int i = 1; i <= x_dimension; i++)
@@ -219,7 +207,6 @@ RcppExport SEXP readEcat(SEXP vfile,
           if(exceeding_boundaries == true)
             break;
 
-
           if(inputFile.readMatrix(byteData, frame, 1, gate, bed, 0) == true)
           {
             Rcpp::Dimension dim(rows.size(), cols.size(), planes.size());
@@ -241,7 +228,7 @@ RcppExport SEXP readEcat(SEXP vfile,
             stream.setByteOrder(QDataStream::LittleEndian);
             #endif
 
-            if (data_type == CECATSubHeader::SunShort)
+            if(data_type == CECATSubHeader::SunShort)
             {
               int plane_size = x_dimension * y_dimension;
 
@@ -285,7 +272,6 @@ RcppExport SEXP readEcat(SEXP vfile,
                   }
                 }
               }
-
             }
             else
               cerr << "ERROR: currently only data_type 6 (SunShort) supported" << endl;
@@ -326,7 +312,6 @@ RcppExport SEXP readEcat(SEXP vfile,
   else
     cerr << "cannot open file '" << filename.toAscii().constData()
          << "': there is no such ecat file" << endl;
-
 
   return rList;
 
@@ -395,7 +380,7 @@ RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
       short frame = 1;
       short gate = 1;
       short bed = 0;
-      
+
       if(numberOfVolumes > 0)
       {
         char firstChar = names[0][0];
@@ -408,62 +393,62 @@ RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
           // now set frame, gate or bed correct
           switch(firstChar)
           {
-            case 'f':
-              frame = volume;
-              break;
-
-            case 'g':
-              gate = volume;
-              break;
-
-            case 'b':
-              bed = volume;
-              break;
-
+            case 'f': frame = volume; break;
+            case 'g': gate = volume; break;
+            case 'b': bed = volume; break;
             default:
               result = false;
               cerr << "ERROR: there is something wrong with the volume names." << endl;
           }
 
-          result = outputFile.writeSubHeader_Rcpp(rSubHeader, frame, 1, gate, bed);
-
-          short x_dimension = Rcpp::as<short>(rSubHeader("x_dimension"));
-          short y_dimension = Rcpp::as<short>(rSubHeader("y_dimension"));
-          short z_dimension = Rcpp::as<short>(rSubHeader("z_dimension"));
-          float scale_factor = Rcpp::as<float>(rSubHeader("scale_factor"));
-          float ecat_calibration_factor = Rcpp::as<float>(RcppMainHeader("ecat_calibration_factor"));
-
-          // check if the dimensions are correct
-          int plane_size = x_dimension * y_dimension;
-          int dataSize = plane_size * z_dimension;
-          
-          QByteArray* matrixData = new QByteArray(dataSize * sizeof(qint16), 0);
-
-          QDataStream stream(matrixData, QIODevice::WriteOnly);
-
-          #if !defined(WORDS_BIGENDIAN)
-          stream.setByteOrder(QDataStream::LittleEndian);
-          #endif
-
-          if(dataSize == volumeVector.size())
+          if(outputFile.writeSubHeader_Rcpp(rSubHeader, frame, 1, gate, bed))
           {
-            for(int z = 0; z < z_dimension; ++z)
-              for(int y = 0; y < y_dimension; ++y)
-                for(int x = 0; x < x_dimension; ++x)
-                {
-                  int index = x * x_dimension + y + plane_size * z;
-                  float voxel = volumeVector[index] / (scale_factor * ecat_calibration_factor);
-                  qint16 voxelInt16 = static_cast<qint16>(voxel);
-                  stream << voxelInt16;
-                }
+            short x_dimension = Rcpp::as<short>(rSubHeader("x_dimension"));
+            short y_dimension = Rcpp::as<short>(rSubHeader("y_dimension"));
+            short z_dimension = Rcpp::as<short>(rSubHeader("z_dimension"));
+            float scale_factor = Rcpp::as<float>(rSubHeader("scale_factor"));
+            float ecat_calibration_factor = Rcpp::as<float>(RcppMainHeader("ecat_calibration_factor"));
+
+            int plane_size = x_dimension * y_dimension;
+            int dataSize = plane_size * z_dimension;
+
+            QDataStream stream(matrixData, QIODevice::WriteOnly);
+
+            #if !defined(WORDS_BIGENDIAN)
+            stream.setByteOrder(QDataStream::LittleEndian);
+            #endif
+
+            // check if the dimensions are correct
+            if(dataSize == volumeVector.size())
+            {
+              QByteArray* matrixData = new QByteArray(dataSize * sizeof(qint16), 0);
+
+              for(int z = 0; z < z_dimension; ++z)
+                for(int y = 0; y < y_dimension; ++y)
+                  for(int x = 0; x < x_dimension; ++x)
+                  {
+                    int index = x * x_dimension + y + plane_size * z;
+                    float voxel = volumeVector[index] / (scale_factor * ecat_calibration_factor);
+                    qint16 voxelInt16 = static_cast<qint16>(voxel);
+                    stream << voxelInt16;
+                  }
+
+              outputFile.writeMatrix(*matrixData, frame, 1, gate, bed);
+              delete matrixData;
+            }
+            else
+            {
+              cerr << "Error in volume " << volume << ": the dimensions are not correct" << endl;
+              outputFile.remove();
+              break;
+            }
           }
           else
-            cerr << "Error in volume " << volume << ": the dimensions are not correct" << endl;
-
-          cout << matrixData->size() << " ";
-
-          outputFile.writeMatrix(*matrixData, frame, 1, gate, bed);
-          delete matrixData;
+          {
+            cerr << "Error: writing subheader of volume " << volume << " failed." << endl;
+            outputFile.remove();
+            break;
+          }
         }
       }
       else
