@@ -412,16 +412,15 @@ RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
             int plane_size = x_dimension * y_dimension;
             int dataSize = plane_size * z_dimension;
 
-            QDataStream stream(matrixData, QIODevice::WriteOnly);
-
-            #if !defined(WORDS_BIGENDIAN)
-            stream.setByteOrder(QDataStream::LittleEndian);
-            #endif
-
             // check if the dimensions are correct
             if(dataSize == volumeVector.size())
             {
               QByteArray* matrixData = new QByteArray(dataSize * sizeof(qint16), 0);
+
+              QDataStream stream(matrixData, QIODevice::WriteOnly);
+              #if !defined(WORDS_BIGENDIAN)
+              stream.setByteOrder(QDataStream::LittleEndian);
+              #endif
 
               for(int z = 0; z < z_dimension; ++z)
                 for(int y = 0; y < y_dimension; ++y)
