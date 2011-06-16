@@ -277,7 +277,7 @@ RcppExport SEXP readEcat(SEXP vfile,
                     qint16 v;
                     stream >> v;
 
-                    double voxel = static_cast<double>(v) * scale_factor * ecat_calibration_factor;
+                    float voxel = static_cast<float>(v) * scale_factor * ecat_calibration_factor;
 
                     // calculate the index in the matrix data (excange x and y)
                     int index = x * destination_x_dimension + y + destination_plane_size * z;
@@ -426,6 +426,44 @@ RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
           }
 
           result = outputFile.writeSubHeader_Rcpp(rSubHeader, frame, 1, gate, bed);
+
+          short x_dimension = Rcpp::as<short>(rSubHeader("x_dimension"));
+          short y_dimension = Rcpp::as<short>(rSubHeader("y_dimension"));
+          short z_dimension = Rcpp::as<short>(rSubHeader("z_dimension"));
+          float scale_factor = Rcpp::as<float>(rSubHeader("scale_factor"));
+          float ecat_calibration_factor = Rcpp::as<float>(RcppMainHeader("ecat_calibration_factor"));
+
+          // check if the dimensions are correct
+          int plane_size = x_dimension * y_dimension;
+          int dataSize = plane_size * z_dimension;
+          
+          QByteArray* matrixData = new QByteArray(dataSize * sizeof(qint16), 0);
+
+          QDataStream stream(matrixData, QIODevice::WriteOnly);
+
+          #if !defined(WORDS_BIGENDIAN)
+          stream.setByteOrder(QDataStream::LittleEndian);
+          #endif
+
+          if(dataSize == volumeVector.size())
+          {
+            for(int z = 0; z < z_dimension; ++z)
+              for(int y = 0; y < y_dimension; ++y)
+                for(int x = 0; x < x_dimension; ++x)
+                {
+                  int index = x * x_dimension + y + plane_size * z;
+                  float voxel = volumeVector[index] / (scale_factor * ecat_calibration_factor);
+                  qint16 voxelInt16 = static_cast<qint16>(voxel);
+                  stream << voxelInt16;
+                }
+          }
+          else
+            cerr << "Error in volume " << volume << ": the dimensions are not correct" << endl;
+
+          cout << matrixData->size() << " ";
+
+          outputFile.writeMatrix(*matrixData, frame, 1, gate, bed);
+          delete matrixData;
         }
       }
       else
