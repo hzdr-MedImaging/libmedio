@@ -1476,7 +1476,7 @@ bool processCommando_Join()
   QFileInfo fileInfo(g_sECATFileName);
   if(fileInfo.exists())
   {
-    cout << "ERROR: ecatfile already existing'" << g_sECATFileName.toAscii().constData() << "'." << endl;
+    cout << "ERROR: ecatfile already exists '" << g_sECATFileName.toAscii().constData() << "'." << endl;
     bResult = false;
   }
 
@@ -1703,7 +1703,7 @@ bool processCommando_New()
   QFileInfo fileInfo(g_sECATFileName);
   if(fileInfo.exists())
   {
-    cout << "ERROR: ecatfile already existing'" << g_sECATFileName.toAscii().constData() << "'." << endl;
+    cout << "ERROR: ecatfile already exists '" << g_sECATFileName.toAscii().constData() << "'." << endl;
     bResult = false;
   }
 
@@ -1729,14 +1729,17 @@ bool processCommando_New()
   int iData = 0;
   int iBed = 0;
 
-  if(g_sMatrix.isEmpty())
+  if(bResult)
   {
-    cout << "ERROR: no matrixID provided."<< endl;
-    bResult = false;
-  }
-  else
-  {
-    bResult = retrieveMatrixIDValues(g_sMatrix, iFrame, iPlane, iGate, iData, iBed);
+    if(g_sMatrix.isEmpty())
+    {
+      cout << "ERROR: no matrixID provided."<< endl;
+      bResult = false;
+    }
+    else
+    {
+      bResult = retrieveMatrixIDValues(g_sMatrix, iFrame, iPlane, iGate, iData, iBed);
+    }
   }
 
   if(bResult)
