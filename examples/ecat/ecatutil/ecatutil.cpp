@@ -1798,7 +1798,27 @@ bool processCommando_New()
                 // if we copy from a bed position > 0 we are going to recalculate the
                 // initial bed position
                 if(iBed > 0)
-                  pE7DestMainHeader->setInit_Bed_Position(pE7SrcMainHeader->init_Bed_Position()+pE7SrcMainHeader->bed_Offset(iBed-1));
+                {
+                  // check if the bed offset of that bed position is > 0 and if so use it,
+                  // if not we output a warning and set the bed plus fixed offsets
+                  float bed_offset = pE7SrcMainHeader->bed_Offset(iBed-1);
+
+                  if(bed_offset == 0)
+                  {
+                    cout << "WARNING: bed offset of bed " << iBed << " is zero, using fixed offset value." << endl;
+
+                    // check for 2D/3D
+                    if(pE7SrcMainHeader->septa_State() == CECAT7MainHeader::Extended &&
+                       pE7SrcMainHeader->file_Type() != CECAT7MainHeader::AttenuationCorr)
+                    {
+                      bed_offset = iBed * 13.58f;
+                    }
+                    else
+                      bed_offset = iBed * 11.64f;
+                  }
+              
+                  pE7DestMainHeader->setInit_Bed_Position(pE7SrcMainHeader->init_Bed_Position()+bed_offset);
+                }
 
                 if(ecatFile.writeMainHeader(*pDestMainHeader))
                 {
@@ -2113,7 +2133,7 @@ void showVersionInformation()
  
        // Qt version information
        << "  Qt " << CMedIO::qtVersion().toAscii().constData() << " (" << qVersion() << ")" << endl
-                  << "  Copyright (C) 2006-2010 Nokia Corporation" << endl << endl       
+                  << "  Copyright (C) 2006-2011 Nokia Corporation" << endl << endl       
 
        << "  libmedio " << CMedIO::version().toAscii().constData() <<  " ("
                         << CMedIO::buildDate().toAscii().constData() << ")" << endl
@@ -2123,7 +2143,7 @@ void showVersionInformation()
 void showHelp(int& argc, char** argv)
 {
   cout << endl;
-  cout << "libmedio ECAT6/7 file utility v2.10" << endl;
+  cout << "libmedio ECAT6/7 file utility v2.11" << endl;
   cout << "-----------------------------------" << endl;
   cout << "Usage: " << argv[0] << " <options> ecatfile" << endl;
   cout << "Options:" << endl;
