@@ -2,6 +2,10 @@
 #include <iostream>
 #include <QFileInfo>
 #include <Rcpp.h>
+
+#include <float.h>
+#include <limits.h>
+
 #include "CECAT7MainHeader.h"
 #include "CECAT7SubHeaderImage.h"
 #include "CRECATFile.h"
@@ -401,50 +405,80 @@ RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
               cerr << "ERROR: there is something wrong with the volume names." << endl;
           }
 
-          if(outputFile.writeSubHeader_Rcpp(rSubHeader, frame, 1, gate, bed))
+          short x_dimension = Rcpp::as<short>(rSubHeader("x_dimension"));
+          short y_dimension = Rcpp::as<short>(rSubHeader("y_dimension"));
+          short z_dimension = Rcpp::as<short>(rSubHeader("z_dimension"));
+
+          float ecat_calibration_factor = Rcpp::as<float>(RcppMainHeader("ecat_calibration_factor"));
+
+          int plane_size = x_dimension * y_dimension;
+          int dataSize = plane_size * z_dimension;
+
+          // check if the dimensions are correct
+          if(dataSize == volumeVector.size())
           {
-            short x_dimension = Rcpp::as<short>(rSubHeader("x_dimension"));
-            short y_dimension = Rcpp::as<short>(rSubHeader("y_dimension"));
-            short z_dimension = Rcpp::as<short>(rSubHeader("z_dimension"));
-            float scale_factor = Rcpp::as<float>(rSubHeader("scale_factor"));
-            float ecat_calibration_factor = Rcpp::as<float>(RcppMainHeader("ecat_calibration_factor"));
+            QByteArray* matrixData = new QByteArray(dataSize * sizeof(qint16), 0);
 
-            int plane_size = x_dimension * y_dimension;
-            int dataSize = plane_size * z_dimension;
+            QDataStream stream(matrixData, QIODevice::WriteOnly);
+            #if !defined(WORDS_BIGENDIAN)
+            stream.setByteOrder(QDataStream::LittleEndian);
+            #endif
 
-            // check if the dimensions are correct
-            if(dataSize == volumeVector.size())
+            double newMin = FLT_MAX;
+            double newMax = -FLT_MAX;
+
+            // search for the new min and max values
+            for(int index = 0; index < dataSize; ++index)
             {
-              QByteArray* matrixData = new QByteArray(dataSize * sizeof(qint16), 0);
+              volumeVector[index] /= ecat_calibration_factor;
+              double voxel = volumeVector[index];
 
-              QDataStream stream(matrixData, QIODevice::WriteOnly);
-              #if !defined(WORDS_BIGENDIAN)
-              stream.setByteOrder(QDataStream::LittleEndian);
-              #endif
+              newMin = qMin(newMin, voxel);
+              newMax = qMax(newMax, voxel);
+            }
+          
+            // calculate the scale factor
+            float maxValue = qMax(qAbs(newMax), qAbs(newMin));
+            float newScaleFactor = maxValue / static_cast<float>(SHRT_MAX);
 
-              for(int z = 0; z < z_dimension; ++z)
-                for(int y = 0; y < y_dimension; ++y)
-                  for(int x = 0; x < x_dimension; ++x)
-                  {
-                    int index = x * x_dimension + y + plane_size * z;
-                    float voxel = volumeVector[index] / (scale_factor * ecat_calibration_factor);
-                    qint16 voxelInt16 = static_cast<qint16>(voxel);
-                    stream << voxelInt16;
-                  }
+            // now we scale and copy the image data   
+            for(int z = 0; z < z_dimension; ++z)
+            {
+              for(int y = 0; y < y_dimension; ++y)
+              {
+                for(int x = 0; x < x_dimension; ++x)
+                {
+                  int index = x * x_dimension + y + plane_size * z;
+                  double voxel = volumeVector[index] / newScaleFactor;
 
-              outputFile.writeMatrix(*matrixData, frame, 1, gate, bed);
-              delete matrixData;
+                  qint16 voxelInt16 = static_cast<qint16>(voxel);
+                  stream << voxelInt16;
+                }
+              }
+            }            
+
+            rSubHeader("scale_factor") = newScaleFactor;
+            rSubHeader("image_min") = static_cast<short>(newMin / newScaleFactor);
+            rSubHeader("image_max") = static_cast<short>(newMax / newScaleFactor);
+
+            if(outputFile.writeSubHeader_Rcpp(rSubHeader, frame, 1, gate, bed))
+            {
+              if(outputFile.writeMatrix(*matrixData, frame, 1, gate, bed) == false)
+                cerr << "Error: writing matrix data failed for volume " << volume << endl;
             }
             else
             {
-              cerr << "Error in volume " << volume << ": the dimensions are not correct" << endl;
+              cerr << "Error: writing subheader of volume " << volume << " failed." << endl;
+              delete matrixData;
               outputFile.remove();
               break;
             }
+
+            delete matrixData;
           }
           else
           {
-            cerr << "Error: writing subheader of volume " << volume << " failed." << endl;
+            cerr << "Error in volume " << volume << ": the dimensions are not correct" << endl;
             outputFile.remove();
             break;
           }
