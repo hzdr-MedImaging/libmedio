@@ -424,14 +424,14 @@ RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
             stream.setByteOrder(QDataStream::LittleEndian);
             #endif
 
-            double newMin = FLT_MAX;
-            double newMax = -FLT_MAX;
+            float newMin = FLT_MAX;
+            float newMax = -FLT_MAX;
 
             // search for the new min and max values
             for(int index = 0; index < dataSize; ++index)
             {
               volumeVector[index] /= ecat_calibration_factor;
-              double voxel = volumeVector[index];
+              float voxel = volumeVector[index];
 
               newMin = qMin(newMin, voxel);
               newMax = qMax(newMax, voxel);
@@ -449,7 +449,7 @@ RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
                 for(int x = 0; x < x_dimension; ++x)
                 {
                   int index = x * x_dimension + y + plane_size * z;
-                  double voxel = volumeVector[index] / newScaleFactor;
+                  float voxel = volumeVector[index] / newScaleFactor;
 
                   qint16 voxelInt16 = static_cast<qint16>(voxel);
                   stream << voxelInt16;
