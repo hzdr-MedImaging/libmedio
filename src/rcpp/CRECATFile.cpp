@@ -74,7 +74,13 @@ bool CRECATFile::readMainHeader_Rcpp(Rcpp::List& mainHeader)
       int num_gates = mHeader->num_Gates();
       int num_bed_pos = mHeader->num_Bed_Pos();
       float init_bed_position = mHeader->init_Bed_Position();
-      // float bed_offset = mHeader->bed_Offset();
+      vector<float> bed_offset(15);
+      
+      for(short i = 0; i < 15; ++i)
+      {
+        bed_offset[i] = mHeader->bed_Offset(i);
+      }
+
       float plane_separation = mHeader->plane_Separation();
       short lwr_sctr_thres = mHeader->lwr_Sctr_Thres();
       short lwr_true_thres = mHeader->lwr_True_Thres();
@@ -88,7 +94,12 @@ bool CRECATFile::readMainHeader_Rcpp(Rcpp::List& mainHeader)
       float well_counter_corr_factor = mHeader->well_Counter_Corr_Factor();
       string data_units = mHeader->data_Units();
       int septa_state = mHeader->septa_State();
-      // short cti_reserved = mHeader->cti_Reserved(const short i) const;
+      vector<short> cti_reserved(6);
+
+      for(short i = 0; i < 6; ++i)
+      {
+        cti_reserved[i] = mHeader->cti_Reserved(i);
+      }
 
       mainHeader.push_back(magic_number, "magic_number");
       mainHeader.push_back(original_file_name, "original_file_name");
@@ -135,7 +146,7 @@ bool CRECATFile::readMainHeader_Rcpp(Rcpp::List& mainHeader)
       mainHeader.push_back(num_gates, "num_gates");
       mainHeader.push_back(num_bed_pos, "num_bed_pos");
       mainHeader.push_back(init_bed_position, "init_bed_position");
-      // float bed_offset = mHeader->bed_Offset();
+      mainHeader.push_back(bed_offset, "bed_offset");
       mainHeader.push_back(plane_separation, "plane_separation");
       mainHeader.push_back(lwr_sctr_thres, "lwr_sctr_thres");
       mainHeader.push_back(lwr_true_thres, "lwr_true_thres");
@@ -149,7 +160,7 @@ bool CRECATFile::readMainHeader_Rcpp(Rcpp::List& mainHeader)
       mainHeader.push_back(well_counter_corr_factor, "well_counter_corr_factor");
       mainHeader.push_back(data_units, "data_units");
       mainHeader.push_back(septa_state, "septa_state");
-
+      mainHeader.push_back(cti_reserved, "cti_reserved");
       result = true;
     }
     else
@@ -549,7 +560,7 @@ CECATMainHeader* CRECATFile::createMainHeaderFromRcppMainHeader(Rcpp::List& rMai
         int num_gates = Rcpp::as<int>(rMainHeader("num_gates"));
         int num_bed_pos = Rcpp::as<int>(rMainHeader("num_bed_pos"));
         float init_bed_position = Rcpp::as<float>(rMainHeader("init_bed_position"));
-        // float bed_offset = mHeader->bed_Offset();
+        vector<float> bed_offset = Rcpp::as<vector<float> >(rMainHeader("bed_offset"));
         float plane_separation = Rcpp::as<float>(rMainHeader("plane_separation"));
         short lwr_sctr_thres = Rcpp::as<short>(rMainHeader("lwr_sctr_thres"));
         short lwr_true_thres = Rcpp::as<short>(rMainHeader("lwr_true_thres"));
@@ -563,7 +574,7 @@ CECATMainHeader* CRECATFile::createMainHeaderFromRcppMainHeader(Rcpp::List& rMai
         float well_counter_corr_factor = Rcpp::as<float>(rMainHeader("well_counter_corr_factor"));
         string data_units = Rcpp::as<string>(rMainHeader("data_units"));
         int septa_state = Rcpp::as<int>(rMainHeader("septa_state"));
-        // short cti_reserved = mHeader->cti_Reserved(const short i) const;
+        vector<short> cti_reserved = Rcpp::as<vector<short> >(rMainHeader("cti_reserved"));
 
         ecat7MainHeader->setMagic_Number(magic_number.c_str());
         ecat7MainHeader->setOriginal_File_Name(original_file_name.c_str());
@@ -610,7 +621,12 @@ CECATMainHeader* CRECATFile::createMainHeaderFromRcppMainHeader(Rcpp::List& rMai
         ecat7MainHeader->setNum_Gates(num_gates);
         ecat7MainHeader->setNum_Bed_Pos(num_bed_pos);
         ecat7MainHeader->setInit_Bed_Position(init_bed_position);
-        // float bed_offset = mHeader->bed_Offset();
+
+        for(short i = 0; i < 15; ++i)
+        {
+          ecat7MainHeader->setBed_Offset(i, bed_offset[i]);
+        }
+
         ecat7MainHeader->setPlane_Separation(plane_separation);
         ecat7MainHeader->setLwr_Sctr_Thres(lwr_sctr_thres);
         ecat7MainHeader->setLwr_True_Thres(lwr_true_thres);
@@ -624,7 +640,11 @@ CECATMainHeader* CRECATFile::createMainHeaderFromRcppMainHeader(Rcpp::List& rMai
         ecat7MainHeader->setWell_Counter_Corr_Factor(well_counter_corr_factor);
         ecat7MainHeader->setData_Units(data_units.c_str());
         ecat7MainHeader->setSepta_State(static_cast<CECAT7MainHeader::Septa_State>(septa_state));
-        // short cti_reserved = mHeader->cti_Reserved(const short i) const;
+
+        for(short i = 0; i < 6; ++i)
+        {
+          ecat7MainHeader->setCTI_Reserved(i, cti_reserved[i]);
+        }
       }
       catch(Rcpp::index_out_of_bounds e)
       {
