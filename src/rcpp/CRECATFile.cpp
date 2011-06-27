@@ -243,6 +243,19 @@ bool CRECATFile::readSubHeader_Rcpp(Rcpp::List& subHeader,
       int scatter_type = sHeadImage->scatter_Type();
       int recon_type = sHeadImage->recon_Type();
       short recon_views = sHeadImage->recon_Views();
+      vector<short> cti_reserved(87);
+
+      for(short i = 0; i < 87; ++i)
+      {
+        cti_reserved[i] = sHeadImage->cti_Reserved(i);
+      }
+
+      vector<short> user_reserved(48);
+
+      for(short i = 0; i < 48; ++i)
+      {
+        user_reserved[i] = sHeadImage->user_Reserved(i);
+      }
 
       subHeader.push_back(data_type, "data_type");
       subHeader.push_back(num_dimensions, "num_dimensions");
@@ -304,6 +317,9 @@ bool CRECATFile::readSubHeader_Rcpp(Rcpp::List& subHeader,
       subHeader.push_back(scatter_type, "scatter_type");
       subHeader.push_back(recon_type, "recon_type");
       subHeader.push_back(recon_views, "recon_views");
+
+      subHeader.push_back(cti_reserved, "cti_reserved");
+      subHeader.push_back(user_reserved, "user_reserved");
 
       result = true;
     }
@@ -409,6 +425,8 @@ bool CRECATFile::writeSubHeader_Rcpp(Rcpp::List& subHeader,
     int scatter_type = Rcpp::as<int>(subHeader("scatter_type"));
     int recon_type = Rcpp::as<int>(subHeader("recon_type"));
     short recon_views = Rcpp::as<short>(subHeader("recon_views"));
+    vector<short> cti_reserved = Rcpp::as<vector<short> >(subHeader("cti_reserved"));
+    vector<short> user_reserved = Rcpp::as<vector<short> >(subHeader("user_reserved"));
 
     CECAT7SubHeaderImage imageSubHeader;
     imageSubHeader.setData_Type(static_cast<CECATSubHeader::Data_Type>(data_type));
@@ -471,6 +489,16 @@ bool CRECATFile::writeSubHeader_Rcpp(Rcpp::List& subHeader,
     imageSubHeader.setScatter_Type(static_cast<CECAT7SubHeaderImage::Scatter_Type>(scatter_type));
     imageSubHeader.setRecon_Type(static_cast<CECAT7SubHeaderImage::Recon_Type>(recon_type));
     imageSubHeader.setRecon_Views(recon_views);
+
+    for(short i = 0; i < 87; ++i)
+    {
+      imageSubHeader.setCTI_Reserved(i, cti_reserved[i]);
+    }
+
+    for(short i = 0; i < 48; ++i)
+    {
+      imageSubHeader.setUser_Reserved(i, user_reserved[i]);
+    }
 
     result = writeSubHeader(imageSubHeader, frame, plane, gate, bed, data);
   }
