@@ -451,15 +451,15 @@ RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
                   int index = x * x_dimension + y + plane_size * z;
                   float voxel = volumeVector[index] / newScaleFactor;
 
-                  qint16 voxelInt16 = static_cast<qint16>(voxel);
+                  qint16 voxelInt16 = static_cast<qint16>(qRound(voxel));
                   stream << voxelInt16;
                 }
               }
             }            
 
             rSubHeader("scale_factor") = newScaleFactor;
-            rSubHeader("image_min") = static_cast<short>(newMin / newScaleFactor);
-            rSubHeader("image_max") = static_cast<short>(newMax / newScaleFactor);
+            rSubHeader("image_min") = static_cast<short>(qRound(newMin / newScaleFactor));
+            rSubHeader("image_max") = static_cast<short>(qRound(newMax / newScaleFactor));
 
             if(outputFile.writeSubHeader_Rcpp(rSubHeader, frame, 1, gate, bed))
             {
