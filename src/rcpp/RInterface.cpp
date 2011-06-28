@@ -79,7 +79,7 @@ RcppExport SEXP readEcat(SEXP vfile,
       {
         // use beds
         which_to_use = BEDS;
-        num_volumes = num_bed_pos;
+        num_volumes = num_bed_pos + 1;
       }
       else if( (num_frames <= 1) && (num_gates <=1) && ((num_bed_pos+1) <= 1) )
       {
@@ -131,7 +131,7 @@ RcppExport SEXP readEcat(SEXP vfile,
         {
           case FRAMES: frame = *it; break;
           case GATES: gate = *it; break;
-          case BEDS: bed = *it; break;
+          case BEDS: bed = *it - 1; break; // numbering of beds starts at 0
         }
 
         if(inputFile.readSubHeader_Rcpp(subHeader, frame, 1, gate, bed, 0) == true)
@@ -381,6 +381,9 @@ RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
       // are used as volumes in the R ecat data structure ('f', 'g' or 'b')
       vector<string> names = Rcpp::as<vector<string> >(RcppEcatFile.names());
       int numberOfVolumes = names.size();
+
+      cout << "number of volumes: " << numberOfVolumes << endl;
+
       short frame = 1;
       short gate = 1;
       short bed = 0;
@@ -399,7 +402,7 @@ RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
           {
             case 'f': frame = volume; break;
             case 'g': gate = volume; break;
-            case 'b': bed = volume; break;
+            case 'b': bed = volume - 1; break; // numbering of beds starts at 0
             default:
               result = false;
               cerr << "ERROR: there is something wrong with the volume names." << endl;
@@ -464,13 +467,25 @@ RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
             if(outputFile.writeSubHeader_Rcpp(rSubHeader, frame, 1, gate, bed))
             {
               if(outputFile.writeMatrix(*matrixData, frame, 1, gate, bed) == false)
+              {
                 cerr << "Error: writing matrix data failed for volume " << volume << endl;
+                delete matrixData;
+                outputFile.remove();
+                result = false;
+                break;
+              }
+              else
+              {
+                cout << "volume no. " << volume << endl;
+                cout << "bed no.    " << bed << endl;
+              }
             }
             else
             {
               cerr << "Error: writing subheader of volume " << volume << " failed." << endl;
               delete matrixData;
               outputFile.remove();
+              result = false;
               break;
             }
 
@@ -480,6 +495,7 @@ RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
           {
             cerr << "Error in volume " << volume << ": the dimensions are not correct" << endl;
             outputFile.remove();
+            result = false;
             break;
           }
         }
