@@ -490,12 +490,12 @@ bool CRECATFile::writeSubHeader_Rcpp(Rcpp::List& subHeader,
     imageSubHeader.setRecon_Type(static_cast<CECAT7SubHeaderImage::Recon_Type>(recon_type));
     imageSubHeader.setRecon_Views(recon_views);
 
-    for(short i = 0; i < 87; ++i)
+    for(short i = 0; (i < 87) && (i < cti_reserved.size()); ++i)
     {
       imageSubHeader.setCTI_Reserved(i, cti_reserved[i]);
     }
 
-    for(short i = 0; i < 48; ++i)
+    for(short i = 0; (i < 48) && (i < user_reserved.size()); ++i)
     {
       imageSubHeader.setUser_Reserved(i, user_reserved[i]);
     }
@@ -669,7 +669,7 @@ CECATMainHeader* CRECATFile::createMainHeaderFromRcppMainHeader(Rcpp::List& rMai
           ecat7MainHeader->setData_Units(data_units.c_str());
           ecat7MainHeader->setSepta_State(static_cast<CECAT7MainHeader::Septa_State>(septa_state));
 
-          for(short i = 0; i < 6; ++i)
+          for(short i = 0; (i < 6) && (i < cti_reserved.size()); ++i)
           {
             ecat7MainHeader->setCTI_Reserved(i, cti_reserved[i]);
           }
