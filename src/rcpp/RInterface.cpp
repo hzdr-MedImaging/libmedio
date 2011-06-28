@@ -382,8 +382,6 @@ RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
       vector<string> names = Rcpp::as<vector<string> >(RcppEcatFile.names());
       int numberOfVolumes = names.size();
 
-      cout << "number of volumes: " << numberOfVolumes << endl;
-
       short frame = 1;
       short gate = 1;
       short bed = 0;
@@ -473,11 +471,6 @@ RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
                 outputFile.remove();
                 result = false;
                 break;
-              }
-              else
-              {
-                cout << "volume no. " << volume << endl;
-                cout << "bed no.    " << bed << endl;
               }
             }
             else

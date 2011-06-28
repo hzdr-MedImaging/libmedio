@@ -650,7 +650,7 @@ CECATMainHeader* CRECATFile::createMainHeaderFromRcppMainHeader(Rcpp::List& rMai
           ecat7MainHeader->setNum_Bed_Pos(num_bed_pos);
           ecat7MainHeader->setInit_Bed_Position(init_bed_position);
 
-          for(short i = 0; i < 15; ++i)
+          for(short i = 0; (i < 15) && (i < bed_offset.size()); ++i)
           {
             ecat7MainHeader->setBed_Offset(i, bed_offset[i]);
           }
