@@ -76,6 +76,7 @@ PUB_HEADER =  CMedIO.h \
               micropet/CConcordeImage.h \
               philips/CPhilipsFile.h \
               philips/CPhilipsMainHeader.h \
+              philips/CPhilipsDirectory.h \
               helpers/MedIOUnits.h \
 
 HEADERS  = $$PUB_HEADER \
@@ -116,7 +117,8 @@ SOURCES  = CMedIO.cpp \
            micropet/CConcordeSinogram.cpp \
            micropet/CConcordeImage.cpp \
            philips/CPhilipsFile.cpp \
-           philips/CPhilipsMainHeader.cpp
+           philips/CPhilipsMainHeader.cpp \
+           philips/CPhilipsDirectory.cpp
 
 DEPENDPATH   = . ecat ecat/ecat6 ecat/ecat7 micropet philips
 INCLUDEPATH  = . include ecat ecat/ecat6 ecat/ecat7 micropet philips helpers
