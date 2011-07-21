@@ -31,15 +31,21 @@
 
 using namespace std;
 
-int main()
+int main(int argc, char** argv)
 {
   int returnCode = 2; // return an error on default
 
+  // if no filename given
+  if(argc != 2)
+  {
+    cout << "usage: " << argv[0] << " <filename>" << endl;
+    return returnCode;
+  }
   // You want this, unless you mix couts output with C output.
   // Read  http://gcc.gnu.org/onlinedocs/libstdc++/27_io/howto.html#8 for an explanation.
   ios::sync_with_stdio(false);
 
-  CPhilipsFile file("../../../philipstestfile.img");
+  CPhilipsFile file(argv[1]);
   if(file.open(QIODevice::ReadOnly))
   {
     CPhilipsMainHeader* mainHeader = NULL;
