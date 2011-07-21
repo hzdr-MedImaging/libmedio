@@ -74,6 +74,8 @@ PUB_HEADER =  CMedIO.h \
               micropet/CConcordeFile.h \
               micropet/CConcordeSinogram.h \
               micropet/CConcordeImage.h \
+              philips/CPhilipsFile.h \
+              philips/CPhilipsMainHeader.h \
               helpers/MedIOUnits.h \
 
 HEADERS  = $$PUB_HEADER \
@@ -112,10 +114,12 @@ SOURCES  = CMedIO.cpp \
            micropet/CConcordeFrameHeader.cpp \
            micropet/CConcordeFile.cpp \
            micropet/CConcordeSinogram.cpp \
-           micropet/CConcordeImage.cpp
+           micropet/CConcordeImage.cpp \
+           philips/CPhilipsFile.cpp \
+           philips/CPhilipsMainHeader.cpp
 
-DEPENDPATH   = . ecat ecat/ecat6 ecat/ecat7 micropet
-INCLUDEPATH  = . include ecat ecat/ecat6 ecat/ecat7 micropet helpers
+DEPENDPATH   = . ecat ecat/ecat6 ecat/ecat7 micropet philips
+INCLUDEPATH  = . include ecat ecat/ecat6 ecat/ecat7 micropet philips helpers
 
 # find out the host os/cpu
 HOST_OS=@HOST_OS@
