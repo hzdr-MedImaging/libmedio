@@ -21,6 +21,8 @@
  * $Id$
  *
  **************************************************************************/
+#include <QDataStream>
+
 #include "CPhilipsFile.h"
 #include "CPhilipsMainHeader.h"
 
@@ -32,9 +34,43 @@
 class CPhilipsFilePrivate
 {
   public:
+    bool isPhilipsFile(CMedIOData* file);
+
     CPhilipsMainHeader::File_Type fileType;
     CPhilipsMainHeader* cachedMainHeader; // for speed reasons we cache the loaded main header
 };
+
+bool CPhilipsFilePrivate::isPhilipsFile(CMedIOData* file)
+{
+  bool isValidPhilipsFile = false;
+
+  if(file->isReadable())
+  {
+    QDataStream stream(file);
+    
+    // we check the first 6 bytes of the file
+    // the bytes should be 0x01 0x00 0x00 0x00 0x00 0x16
+    // then it is a philips file
+    char firstBytes[6];
+    if(stream.readRawData(firstBytes, 6) == 6)
+    {
+      if((firstBytes[0] == 0x01) &&
+         (firstBytes[1] == 0x00) &&
+         (firstBytes[2] == 0x00) &&
+         (firstBytes[3] == 0x00) &&
+         (firstBytes[4] == 0x00) &&
+         (firstBytes[5] == 0x16))
+      {
+        isValidPhilipsFile = true;
+      }
+      else
+        W("this is no philips file");
+    }
+  }
+
+  RETURN(isValidPhilipsFile);
+  return isValidPhilipsFile;
+}
 
 CPhilipsFile::CPhilipsFile(const QString& filename)
   : CMedIOData(filename)
@@ -81,15 +117,18 @@ bool CPhilipsFile::open(QIODevice::OpenModeFlag mode)
      exists()) // and file exists
   {
     // we open the file and read in the
-    // main header and directory list of the ecat file
+    // main header and directory list of the philips file
     if(QFile::open(QIODevice::ReadOnly))
     {
-      m_pData->cachedMainHeader = new CPhilipsMainHeader(this);
-      if(m_pData->cachedMainHeader->load())
+      if(m_pData->isPhilipsFile(this))
       {
-        // load the directory
+        m_pData->cachedMainHeader = new CPhilipsMainHeader(this);
+        if(m_pData->cachedMainHeader->load())
+        {
+          // load the directory
 #warning TODO: load the directory
-        result = true;
+          result = true;
+        }
       }
 
       // close the file
