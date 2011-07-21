@@ -74,6 +74,8 @@ class CPhilipsMainHeader : public CMedIOHeader
     virtual bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL);
     virtual CMedIOHeader* clone() const;
 
+    bool isPETMR() const;
+
     short file_Format() const;
     short scanner_Geometry() const;
     short hardware_Config() const;

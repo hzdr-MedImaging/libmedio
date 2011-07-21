@@ -52,6 +52,7 @@ int main(int argc, char** argv)
     if(file.readMainHeader(mainHeader) == true)
     {
       SHOWVALUE(mainHeader->file_Format());
+      SHOWVALUE(mainHeader->isPETMR());
       delete mainHeader;
     }
     else

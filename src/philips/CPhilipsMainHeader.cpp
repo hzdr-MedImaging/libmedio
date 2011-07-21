@@ -36,7 +36,25 @@
 // public headers
 class CPhilipsMainHeaderPrivate
 {
-  public:
+public:
+  // enums for hw_config bit fields
+  enum HW_Flags
+  {
+    MCT    = (1 <<  0),
+    PAC    = (1 <<  1),
+    PPU    = (1 <<  2),
+    MCS    = (1 <<  3),
+    PPU3   = (1 <<  4),
+    CRB    = (1 <<  5),
+    TFE    = (1 <<  6),
+    DP_RAM = (1 <<  7),
+    MCC    = (1 <<  8),
+    SRC    = (1 <<  9),
+    PETCT  = (1 << 10),
+    PHYSIO = (1 << 11),
+    PETMR  = (1 << 12)
+  };
+
     // MainHeader structure (should be 512 bytes)
     struct HeaderData
     {
@@ -142,6 +160,8 @@ bool CPhilipsMainHeader::load()
   stream.setVersion(QDataStream::Qt_4_5);
 
   // we now read out the header information stepwise
+  // because there are some gaps between the header entries
+  // we have to skip some bytes
   stream.skipRawData(6);                      // 0: skip the first 6 bytes
   stream >> m_pData->header.File_Format;      // 6: File_Format
   stream >> m_pData->header.Scanner_Geometry; // 8: Scanner_Geometry
@@ -204,6 +224,11 @@ CMedIOHeader* CPhilipsMainHeader::clone() const
 
   RETURN(pNewHeader);
   return pNewHeader;
+}
+
+bool CPhilipsMainHeader::isPETMR() const
+{
+  return m_pData->header.Hardware_Config & CPhilipsMainHeaderPrivate::PETMR;
 }
 
 short CPhilipsMainHeader::file_Format() const

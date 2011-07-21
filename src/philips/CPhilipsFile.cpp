@@ -80,16 +80,13 @@ bool CPhilipsFile::open(QIODevice::OpenModeFlag mode)
       ((mode & QIODevice::ReadOnly) == QIODevice::ReadOnly))  && // or ReadOnly mode requested
      exists()) // and file exists
   {
-    D("blaa3");
     // we open the file and read in the
     // main header and directory list of the ecat file
     if(QFile::open(QIODevice::ReadOnly))
     {
       m_pData->cachedMainHeader = new CPhilipsMainHeader(this);
-      D("blaa2");
       if(m_pData->cachedMainHeader->load())
       {
-        D("blaa");
         // load the directory
 #warning TODO: load the directory
         result = true;
