@@ -33,8 +33,6 @@
 #include <CMedIOHeader.h>
 #endif
 
-#define PHILIPS_BLOCKSIZE 512 // length of one record in bytes
-
 // forward declarations
 class CPhilipsMainHeaderPrivate;
 class CPhilipsFile;
@@ -81,6 +79,9 @@ class CPhilipsMainHeader : public CMedIOHeader
     short hardware_Config() const;
     short edit_Flag() const;
     short file_Type() const;
+    short num_Frames() const;
+    short num_Slices() const;
+    short num_Tilts() const;
 
     void setFile_Format(const short format);
     void setScanner_Geometry(const short geometry);

@@ -32,6 +32,7 @@
 // #endif
 
 // forward declarations
+class CPhilipsDirectoryPrivate;
 class CPhilipsFile;
 
 class CPhilipsDirectory
@@ -51,6 +52,18 @@ class CPhilipsDirectory
 
     // accessor methods
     bool isEmpty() const;
+    unsigned int count() const;
+
+    // methods to calculate the real amount
+    // of frame/plane/gate numbers carried in the directory.
+    short maxFrame(void) const;
+    short minFrame(void) const;
+    short maxSlice(void) const;
+    short minSlice(void) const;
+    short numTilts(void) const;
+
+  private:
+    CPhilipsDirectoryPrivate* m_pData;
 };
 
 #endif // CPHILIPSDIRECTORY_H

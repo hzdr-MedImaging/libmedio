@@ -26,6 +26,7 @@
 
 #include "CPhilipsMainHeader.h"
 #include "CPhilipsFile.h"
+#include "CPhilipsDirectoryItem.h"
 #include "CMedIOHeader.h"
 #include "CMedIOData.h"
 
@@ -63,6 +64,9 @@ public:
       qint16 Hardware_Config;   // encoding of hardware used in acquisition
       qint16 Edit_Flag;         // 1 to indicat that the user has modified mainheader
       qint16 File_Type;         // file type
+      qint16 Num_Frames;        // number of frames
+      qint16 Num_Slices;        // number of slices per frame
+      qint16 Num_Tilts;         // number of tilts per frame
     } header;
 };
 

@@ -55,6 +55,14 @@ class CPhilipsFile : public CMedIOData
     bool open(QIODevice::OpenModeFlag mode);
     void close(void);
 
+    // methods to calculate the real amount
+    // of frame/plane/gate numbers carried in the directory.
+    short maxFrame(void) const;
+    short minFrame(void) const;
+    short maxSlice(void) const;
+    short minSlice(void) const;
+    short numTilts(void) const;
+
     // interface methods to read out specific data from the ECAT files
     bool readMainHeader(CPhilipsMainHeader*& mainHeader);
 

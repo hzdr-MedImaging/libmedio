@@ -48,6 +48,12 @@ int main(int argc, char** argv)
   CPhilipsFile file(argv[1]);
   if(file.open(QIODevice::ReadOnly))
   {
+    cout << "file.maxFrame() : " << file.maxFrame() << endl;
+    cout << "file.minFrame() : " << file.minFrame() << endl;
+    cout << "file.maxSlice() : " << file.maxSlice() << endl;
+    cout << "file.minSlice() : " << file.minSlice() << endl;
+    cout << "file.numTilts() : " << file.numTilts() << endl;
+
     CPhilipsMainHeader* mainHeader = NULL;
     if(file.readMainHeader(mainHeader) == true)
     {

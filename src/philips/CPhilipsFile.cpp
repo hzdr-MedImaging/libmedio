@@ -21,11 +21,12 @@
  * $Id$
  *
  **************************************************************************/
-#include <QDataStream>
 
 #include "CPhilipsFile.h"
 #include "CPhilipsMainHeader.h"
+#include "CPhilipsDirectory.h"
 
+#include <QDataStream>
 #include <rtdebug.h>
 
 // we define the private inline class of that one so that we
@@ -37,6 +38,7 @@ class CPhilipsFilePrivate
     bool isPhilipsFile(CMedIOData* file);
 
     CPhilipsMainHeader::File_Type fileType;
+    CPhilipsDirectory* directory;
     CPhilipsMainHeader* cachedMainHeader; // for speed reasons we cache the loaded main header
 };
 
@@ -79,6 +81,8 @@ CPhilipsFile::CPhilipsFile(const QString& filename)
 
   // allocate data from our private instance class
   m_pData = new CPhilipsFilePrivate();
+  m_pData->fileType = CPhilipsMainHeader::Unknown;
+  m_pData->cachedMainHeader = NULL;
   m_pData->cachedMainHeader = NULL;
 
   LEAVE();
@@ -88,6 +92,7 @@ CPhilipsFile::~CPhilipsFile()
 {
   ENTER();
 
+  delete m_pData->directory;
   delete m_pData->cachedMainHeader;
   delete m_pData;
 
@@ -99,6 +104,31 @@ int CPhilipsFile::rtti() const
   return CMedIOData::Philips;
 }
 
+short CPhilipsFile::maxFrame(void) const
+{
+  return m_pData->directory->maxFrame();
+}
+
+short CPhilipsFile::minFrame(void) const
+{
+  return m_pData->directory->minFrame();
+}
+
+short CPhilipsFile::maxSlice(void) const
+{
+  return m_pData->directory->maxSlice();
+}
+
+short CPhilipsFile::minSlice(void) const
+{
+  return m_pData->directory->minSlice();
+}
+
+short CPhilipsFile::numTilts(void) const
+{
+  return m_pData->directory->numTilts();
+}
+
 bool CPhilipsFile::open(QIODevice::OpenModeFlag mode)
 {
   ENTER();
@@ -107,6 +137,8 @@ bool CPhilipsFile::open(QIODevice::OpenModeFlag mode)
 
   // first we check if we already have some valid MainHeader/MainDirectory
   // combination and if so we need to delete it first.
+  delete m_pData->directory;
+  m_pData->directory = NULL;
   delete m_pData->cachedMainHeader;
   m_pData->cachedMainHeader = NULL;
 
@@ -123,11 +155,19 @@ bool CPhilipsFile::open(QIODevice::OpenModeFlag mode)
       if(m_pData->isPhilipsFile(this))
       {
         m_pData->cachedMainHeader = new CPhilipsMainHeader(this);
+
+        // now that we have created our proper MainHeader we try
+        // to load the header information and then load the
+        // Philips DirectoryList out of the PhilipsFile.
         if(m_pData->cachedMainHeader->load())
         {
-          // load the directory
-#warning TODO: load the directory
-          result = true;
+          m_pData->directory = new CPhilipsDirectory(this);
+          if(m_pData->directory->load())
+          {
+            // only if the directory loading also suceeded we
+            // finally loaded the philips file
+            result = true;
+          }
         }
       }
 
@@ -158,20 +198,20 @@ bool CPhilipsFile::open(QIODevice::OpenModeFlag mode)
   if(result == false)
   {
     // otherwise we go and delete our main directory again
-    // if(m_pData->directory)
-    // {
-    //   delete m_pData->directory;
-    //   m_pData->directory = NULL;
-    // }
-
     if(m_pData->cachedMainHeader)
     {
       delete m_pData->cachedMainHeader;
       m_pData->cachedMainHeader = NULL;
     }    
+
+    if(m_pData->cachedMainHeader)
+    {
+      delete m_pData->cachedMainHeader;
+      m_pData->cachedMainHeader = NULL;
+    }
   }
 
-//  SHOWPOINTER(m_pData->directory);
+  SHOWPOINTER(m_pData->directory);
   SHOWPOINTER(m_pData->cachedMainHeader);
 
   RETURN(result);
@@ -185,11 +225,11 @@ void CPhilipsFile::close()
   // close the opened file and clean everything up
   QFile::close();
 
-  // if(m_pData->directory)
-  // {
-  //   delete m_pData->directory;
-  //   m_pData->directory = NULL;
-  // }
+  if(m_pData->directory)
+  {
+    delete m_pData->directory;
+    m_pData->directory = NULL;
+  }
 
   if(m_pData->cachedMainHeader)
   {
