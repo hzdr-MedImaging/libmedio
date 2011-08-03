@@ -63,7 +63,36 @@ public:
       qint16 Scanner_Geometry;  // encoding of the scanner geometry
       qint16 Hardware_Config;   // encoding of hardware used in acquisition
       qint16 Edit_Flag;         // 1 to indicat that the user has modified mainheader
-      qint16 File_Type;         // file type
+      qint16 File_Type;
+      qint16 Day_Created;
+      qint16 Month_Created;
+      qint16 Year_Created;
+      qint16 Hour_Created;
+      qint16 Minute_Created;
+      qint16 Second_Created;
+      qint16 Scan_Duration;     // duration of scan in seconds
+      qint16 Subheader_Type;    // ImageIO subheader (1) or old subheader format (0)
+      qint16 Singles_PreScale_Old; // singles prescale, superceded by Singles_Prescale (float)
+      // qint16 Singles_Acquisition_Option; // 0=transmission only, 1=trans-ec, 2=ec only (obsoleted)
+      float Singles_PreScale;      // amount by which the actual singles events is scaled down
+      float Detector_Radius;       // inscribed scanner radius (from middle of opening to
+                                   // detector face) in mm
+      qint16 Virtual_Crystals; /* whether virtual crystals were used in the acquisition
+                                  to simulate a larger detector */
+      qint16 Phi_Mashing;       /* whether events from crystal phi values are combined
+                                   6 Undefined/Unknown (assumption is no mashing)
+                                   7 No mashing
+                                   8 Events from pairs of consecutive angles have been added together */
+      qint16 Polygon_Sides;    /* Number of "sides" in the scanner opening
+                                  (may refer to detectors or PMT modules */
+      qint16 Crystals_Per_Side; // Number of detectors per opening (polygon) side
+      qint16 Crystal_Rows;      // Number of crystal rows in the axial (Z) direction
+      float Crystal_Thickness;  // Detetctor crystal thickness in mm
+      float X_CrystalPitch;     // X crystal pitch in mm
+      float Z_CrystalPitch;     // Z crystal pitch in mm
+      float Axial_FOV;          // in mm
+      qint16 RPhi_Type;         // 0 Real, 1 Crystal
+
       qint16 Num_Frames;        // number of frames
       qint16 Num_Slices;        // number of slices per frame
       qint16 Num_Tilts;         // number of tilts per frame
@@ -172,6 +201,33 @@ bool CPhilipsMainHeader::load()
   stream >> m_pData->header.Hardware_Config;  // 10: Hardware_Config
   stream.skipRawData(4);                      // 12: skip the next 4 bytes
   stream >> m_pData->header.Edit_Flag;        // 16: Edit_Flag
+  stream.skipRawData(34);                     // 18: skip the next 34 bytes
+  stream >> m_pData->header.File_Type;        // 52: File_Type
+  stream.skipRawData(12);                     // 54: skip the next 12 bytes
+  stream >> m_pData->header.Day_Created;      // 66: Day_Created
+  stream >> m_pData->header.Month_Created;    // 68: Month_Created
+  stream >> m_pData->header.Year_Created;     // 70: Year_Created
+  stream >> m_pData->header.Hour_Created;     // 72: Hour_Created
+  stream >> m_pData->header.Minute_Created;   // 74: Minute_Created
+  stream >> m_pData->header.Second_Created;   // 76: Second_Created
+  stream >> m_pData->header.Scan_Duration;    // 78: Scan_Duration
+  stream >> m_pData->header.Subheader_Type;   // 80: Subheader_Type
+  stream >> m_pData->header.Singles_PreScale_Old; // 82: Singles_Prescale_Old
+  // stream >> m_pData->header.Singles_Acquisition_Option; // 84: Singles_Acquisition_Option
+  stream.skipRawData(2);                      // 84: skip singopt (obsoleted)
+  stream >> m_pData->header.Singles_PreScale; // 86: Singles_Prescale
+  stream >> m_pData->header.Detector_Radius;  // 90: Detector_Radius
+  stream >> m_pData->header.Virtual_Crystals; // 94: Virtual_Crystals
+  stream >> m_pData->header.Phi_Mashing;      // 96: Phi_Mashing
+  stream >> m_pData->header.Polygon_Sides;    // 98: Polygon_Sides
+  stream >> m_pData->header.Crystals_Per_Side; // 100: Crystals_Per_Side
+  stream >> m_pData->header.Crystal_Rows;      // 102: Crystal_Rows
+  stream >> m_pData->header.Crystal_Thickness; // 104: Crystal_Thickness
+  stream >> m_pData->header.X_CrystalPitch;    // 108: X_CrystalPitch
+  stream >> m_pData->header.Z_CrystalPitch;    // 112: Z_CrystalPitch
+  stream >> m_pData->header.Axial_FOV;         // 116: Axial_FOV
+  stream >> m_pData->header.RPhi_Type;         // 120: RPhi_Type
+
 
 #if defined(DEBUG)
   D("philips Main Header loaded:");
@@ -180,6 +236,28 @@ bool CPhilipsMainHeader::load()
   D("Scanner_Geometry          : %d", m_pData->header.Scanner_Geometry);
   D("Hardware_Config           : %d", m_pData->header.Hardware_Config);
   D("Edit_Flag                 : %d", m_pData->header.Edit_Flag);
+  D("File_Type                 : %d", m_pData->header.File_Type);
+  D("Day_Created               : %d", m_pData->header.Day_Created);
+  D("Month_Created             : %d", m_pData->header.Month_Created);
+  D("Year_Created              : %d", m_pData->header.Year_Created);
+  D("Hour_Created              : %d", m_pData->header.Hour_Created);
+  D("Minute_Created            : %d", m_pData->header.Minute_Created);
+  D("Second_Created            : %d", m_pData->header.Second_Created);
+  D("Scan_Duration             : %d", m_pData->header.Scan_Duration);
+  D("Subheader_Type            : %d", m_pData->header.Subheader_Type);
+  D("Singles_PreScale_Old      : %d", m_pData->header.Singles_PreScale_Old);
+  D("Singles_PreScale          : %f", m_pData->header.Singles_PreScale);
+  D("Detector_Radius           : %f", m_pData->header.Detector_Radius);
+  D("Virtual_Crystals          : %d", m_pData->header.Virtual_Crystals);
+  D("Phi_Mashing               : %d", m_pData->header.Phi_Mashing);
+  D("Polygon_Sides             : %d", m_pData->header.Polygon_Sides);
+  D("Crystals_Per_Side         : %d", m_pData->header.Crystals_Per_Side);
+  D("Crystal_Rows              : %d", m_pData->header.Crystal_Rows);
+  D("Crystal_Thickness         : %f", m_pData->header.Crystal_Thickness);
+  D("X_CrystalPitch            : %f", m_pData->header.X_CrystalPitch);
+  D("Z_CrystalPitch            : %f", m_pData->header.Z_CrystalPitch);
+  D("Axial_FOV                 : %f", m_pData->header.Axial_FOV);
+  D("RPhi_Type                 : %d", m_pData->header.RPhi_Type);
 #endif
 
   RETURN(true);
@@ -192,13 +270,6 @@ bool CPhilipsMainHeader::save(void) const
 #warning TODO: implement CPhilipsMainHEader::save()
   RETURN(false);
   return false;
-}
-
-void CPhilipsMainHeader::setFile_Type(const File_Type fType)
-{
-  ENTER();
-  m_pData->header.File_Type = fType;
-  LEAVE();
 }
 
 int CPhilipsMainHeader::rawDataSize() const
@@ -255,11 +326,130 @@ short CPhilipsMainHeader::edit_Flag() const
   return m_pData->header.Edit_Flag;
 }
 
-short CPhilipsMainHeader::file_Type() const
+CPhilipsMainHeader::File_Type CPhilipsMainHeader::file_Type() const
 {
-  return m_pData->header.File_Type;
+  return static_cast<File_Type>(m_pData->header.File_Type);
 }
 
+short CPhilipsMainHeader::day_Created() const
+{
+  return m_pData->header.Day_Created;
+}
+
+short CPhilipsMainHeader::month_Created() const
+{
+  return m_pData->header.Month_Created;
+}
+
+short CPhilipsMainHeader::year_Created() const
+{
+  return m_pData->header.Year_Created;
+}
+
+short CPhilipsMainHeader::hour_Created() const
+{
+  return m_pData->header.Hour_Created;
+}
+
+short CPhilipsMainHeader::minute_Created() const
+{
+  return m_pData->header.Minute_Created;
+}
+
+short CPhilipsMainHeader::second_Created() const
+{
+  return m_pData->header.Second_Created;
+}
+
+short CPhilipsMainHeader::scan_Duration() const
+{
+  return m_pData->header.Scan_Duration;
+}
+
+CPhilipsMainHeader::Subheader_Type CPhilipsMainHeader::subheader_Type() const
+{
+  return static_cast<Subheader_Type>(m_pData->header.Subheader_Type);
+}
+
+short CPhilipsMainHeader::singles_PreScale_Old() const
+{
+  return m_pData->header.Singles_PreScale_Old;
+}
+
+float CPhilipsMainHeader::singles_PreScale() const
+{
+  return m_pData->header.Singles_PreScale;
+}
+
+float CPhilipsMainHeader::detector_Radius() const
+{
+  return m_pData->header.Detector_Radius;
+}
+
+bool CPhilipsMainHeader::virtual_Crystals() const
+{
+  return (m_pData->header.Virtual_Crystals == 1);
+}
+
+short CPhilipsMainHeader::phi_Mashing() const
+{
+  return m_pData->header.Phi_Mashing;
+}
+
+short CPhilipsMainHeader::polygon_Sides() const
+{
+  return m_pData->header.Polygon_Sides;
+}
+
+short CPhilipsMainHeader::crystals_Per_Side() const
+{
+  return m_pData->header.Crystals_Per_Side;
+}
+
+short CPhilipsMainHeader::crystal_Rows() const
+{
+  return m_pData->header.Crystal_Rows;
+}
+
+float CPhilipsMainHeader::crystal_Thickness() const
+{
+  return m_pData->header.Crystal_Thickness;
+}
+
+float CPhilipsMainHeader::x_CrystalPitch() const
+{
+  return m_pData->header.X_CrystalPitch;
+}
+
+float CPhilipsMainHeader::z_CrystalPitch() const
+{
+  return m_pData->header.Z_CrystalPitch;
+}
+
+float CPhilipsMainHeader::axial_FOV() const
+{
+  return m_pData->header.Axial_FOV;
+}
+
+CPhilipsMainHeader::RPhi_Type CPhilipsMainHeader::rPhi_Type() const
+{
+  return static_cast<RPhi_Type>(m_pData->header.RPhi_Type);
+}
+
+short CPhilipsMainHeader::num_Frames() const
+{
+  return m_pData->header.Num_Frames;
+}
+
+short CPhilipsMainHeader::num_Slices() const
+{
+  return m_pData->header.Num_Slices;
+}
+
+short CPhilipsMainHeader::num_Tilts() const
+{
+  return m_pData->header.Num_Tilts;
+}
 
 void CPhilipsMainHeader::setFile_Format(const short format)
 {
@@ -281,7 +471,111 @@ void CPhilipsMainHeader::setEdit_Flag(const short eFlag)
   m_pData->header.Edit_Flag = eFlag;
 }
 
-void CPhilipsMainHeader::setFile_Type(const short fType)
+void CPhilipsMainHeader::setFile_Type(const File_Type fType)
 {
   m_pData->header.File_Type = fType;
+}
+
+void CPhilipsMainHeader::setDay_Created(const short day)
+{
+  m_pData->header.Day_Created = day;
+}
+
+void CPhilipsMainHeader::setMonth_Created(const short month)
+{
+  m_pData->header.Month_Created = month;
+}
+
+void CPhilipsMainHeader::setYear_Created(const short year)
+{
+  m_pData->header.Year_Created = year;
+}
+
+void CPhilipsMainHeader::setHour_Created(const short hour)
+{
+  m_pData->header.Hour_Created = hour;
+}
+
+void CPhilipsMainHeader::setMinute_Created(const short minute)
+{
+  m_pData->header.Minute_Created = minute;
+}
+
+void CPhilipsMainHeader::setSecond_Created(const short second)
+{
+  m_pData->header.Second_Created = second;
+}
+
+void CPhilipsMainHeader::setScan_Duration(const short seconds)
+{
+  m_pData->header.Scan_Duration = seconds;
+}
+
+void CPhilipsMainHeader::setSubheader_Type(const Subheader_Type sType)
+{
+  m_pData->header.Subheader_Type = sType;
+}
+
+void CPhilipsMainHeader::setSingles_PreScale_Old(const short preScale)
+{
+  m_pData->header.Singles_PreScale_Old = preScale;
+}
+
+void CPhilipsMainHeader::setSingles_PreScale(const float preScale)
+{
+  m_pData->header.Singles_PreScale = preScale;
+}
+
+void CPhilipsMainHeader::setDetector_Radius(const float radius)
+{
+  m_pData->header.Detector_Radius = radius;
+}
+
+void CPhilipsMainHeader::setVirtual_Crystals(const bool virtualCrystals)
+{
+  m_pData->header.Virtual_Crystals = virtualCrystals;
+}
+void CPhilipsMainHeader::setPhi_Mashing(const short phiMashing)
+{
+  m_pData->header.Phi_Mashing = phiMashing;
+}
+
+void CPhilipsMainHeader::setPolygon_Sides(const short polygonSides)
+{
+  m_pData->header.Polygon_Sides = polygonSides;
+}
+
+void CPhilipsMainHeader::setCrystals_Per_Side(const short crystalsPerSide)
+{
+  m_pData->header.Crystals_Per_Side = crystalsPerSide;
+}
+
+void CPhilipsMainHeader::setCrystal_Rows(const short crystalRows)
+{
+  m_pData->header.Crystal_Rows = crystalRows;
+}
+
+void CPhilipsMainHeader::setCrystal_Thickness(const float crystalThickness)
+{
+  m_pData->header.Crystal_Thickness = crystalThickness;
+}
+
+void CPhilipsMainHeader::setX_CrystalPitch(const float pitch)
+{
+  m_pData->header.X_CrystalPitch = pitch;
+}
+
+void CPhilipsMainHeader::setZ_CrystalPitch(const float pitch)
+{
+  m_pData->header.Z_CrystalPitch = pitch;
+}
+
+void CPhilipsMainHeader::setAxial_FOV(const float axialFOV)
+{
+  m_pData->header.Axial_FOV = axialFOV;
+}
+
+void CPhilipsMainHeader::setRPhi_Type(const RPhi_Type rType)
+{
+  m_pData->header.RPhi_Type = rType;
 }

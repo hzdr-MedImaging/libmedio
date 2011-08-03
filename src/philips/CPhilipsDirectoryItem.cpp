@@ -173,7 +173,8 @@ QDataStream& operator>>(QDataStream& stream, CPhilipsDirectoryItem& dItem)
   dItem.m_pData->contentFlag = static_cast<CPhilipsDirectoryItem::ContentFlag>(contentFlag);
 
   // output some debug information.
-  #if defined(DEBUG)
+#if 0
+#if defined(DEBUG)
   if(dItem.isExtendedHeader())
   {
     D("DItem.Matrix_ID       : %08x (extended header)", matrixID);
@@ -193,7 +194,7 @@ QDataStream& operator>>(QDataStream& stream, CPhilipsDirectoryItem& dItem)
     D("DItem.contentFlag     : %04x", dItem.m_pData->contentFlag);
   }
   #endif
-
+#endif
   LEAVE();
   return stream;
 }

@@ -43,6 +43,9 @@ class CPhilipsMainHeader : public CMedIOHeader
     // possible Philips file types
     enum File_Type {Unknown = 0, Sinogram, Image, VID, OTHER, Syntegra, Listmode, Rawmode};
 
+    enum Subheader_Type {UCLA_CTI = 0, UGM};
+    enum RPhi_Type {Real = 0, Crystal};
+
     // constructors
     CPhilipsMainHeader(CPhilipsFile* file,
                        CPhilipsMainHeader::File_Type = CPhilipsMainHeader::Unknown);
@@ -62,10 +65,6 @@ class CPhilipsMainHeader : public CMedIOHeader
     // the number of bytes the data of that header requires on disk
     int rawDataSize() const;
 
-    void setFile_Type(const File_Type fType);
-
-    // runtime type information methods
-    int rtti() const;
     CMedIOHeader::Format headerFormat() const;
 
     // clone methods
@@ -78,7 +77,29 @@ class CPhilipsMainHeader : public CMedIOHeader
     short scanner_Geometry() const;
     short hardware_Config() const;
     short edit_Flag() const;
-    short file_Type() const;
+    File_Type file_Type() const;
+    short day_Created() const;
+    short month_Created() const;
+    short year_Created() const;
+    short hour_Created() const;
+    short minute_Created() const;
+    short second_Created() const;
+    short scan_Duration() const;
+    Subheader_Type subheader_Type() const;
+    short singles_PreScale_Old() const;
+    float singles_PreScale() const;
+    float detector_Radius() const;
+    bool virtual_Crystals() const;
+    short phi_Mashing() const;
+    short polygon_Sides() const;
+    short crystals_Per_Side() const;
+    short crystal_Rows() const;
+    float crystal_Thickness() const;
+    float x_CrystalPitch() const;
+    float z_CrystalPitch() const;
+    float axial_FOV() const;
+    RPhi_Type rPhi_Type() const;
+
     short num_Frames() const;
     short num_Slices() const;
     short num_Tilts() const;
@@ -87,7 +108,28 @@ class CPhilipsMainHeader : public CMedIOHeader
     void setScanner_Geometry(const short geometry);
     void setHardware_Config(const short conifg);
     void setEdit_Flag(const short eFlag);
-    void setFile_Type(const short fType);
+    void setFile_Type(const File_Type fType);
+    void setDay_Created(const short day);
+    void setMonth_Created(const short month);
+    void setYear_Created(const short year);
+    void setHour_Created(const short hour);
+    void setMinute_Created(const short minute);
+    void setSecond_Created(const short second);
+    void setScan_Duration(const short seconds);
+    void setSubheader_Type(const Subheader_Type sType);
+    void setSingles_PreScale_Old(const short preScale);
+    void setSingles_PreScale(const float preScale);
+    void setDetector_Radius(const float radius);
+    void setVirtual_Crystals(const bool virtualCrystals);
+    void setPhi_Mashing(const short phiMashing);
+    void setPolygon_Sides(const short polygonSides);
+    void setCrystals_Per_Side(const short crystalsPerSide);
+    void setCrystal_Rows(const short crystalRows);
+    void setCrystal_Thickness(const float crystalThickness);
+    void setX_CrystalPitch(const float pitch);
+    void setZ_CrystalPitch(const float pitch);
+    void setAxial_FOV(const float axialFOV);
+    void setRPhi_Type(const RPhi_Type rType);
 
   private:
     CPhilipsMainHeaderPrivate* m_pData;
