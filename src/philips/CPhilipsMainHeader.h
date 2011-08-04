@@ -41,10 +41,19 @@ class CPhilipsMainHeader : public CMedIOHeader
 {
   public:
     // possible Philips file types
-    enum File_Type {Unknown = 0, Sinogram, Image, VID, OTHER, Syntegra, Listmode, Rawmode};
+    enum File_Type {Unknown = 0, Sinogram, Image, VID, OtherFile, Syntegra, Listmode, Rawmode};
 
     enum Subheader_Type {UCLA_CTI = 0, UGM};
-    enum RPhi_Type {Real = 0, Crystal};
+    enum RPhi_Type {Real = 0, Crystal, CrystalProjection};
+    enum Slice_Type {Milimeters = 0, CrystalSum, Encoded, ZA_Transmission, SNGANG_Transmission};
+    enum Delay_Type {None = 0, Rebin, Substact, SubstactSmoothed};
+    enum Scan_Type {Test = 0, Patient};
+    enum Acquisition_Type {UndefinedAcq = 0, Blank, Transmission, Emission, Normalization,
+                           Brain_ObliqueReslicing, Cardiac3D_BullsEye, Cardiac_ObliqueReslicing,
+                           IR, Singles_EC, IRC, CT, CT_IR, MR, MR_IR, SAGI, CORO};
+    enum Isotop {UndefinedIsotop = 0, F18, O15, C11, GA68, N13, RB82, CU62, CS137,
+                 GE68, OtherIsotop, UnknownIsotop, CU64, BR76, NA22, O14, Y86, ZN62,
+                 CU60, CU61, GA66, BR75, BR77, I124, K38, MN52, TC94M, TI45 };
 
     // constructors
     CPhilipsMainHeader(CPhilipsFile* file,
@@ -99,9 +108,24 @@ class CPhilipsMainHeader : public CMedIOHeader
     float z_CrystalPitch() const;
     float axial_FOV() const;
     RPhi_Type rPhi_Type() const;
-
-    short num_Frames() const;
+    Slice_Type slice_Type() const;
+    Delay_Type delay_Type() const;
+    Scan_Type scan_Type() const;
+    Acquisition_Type acquisition_Type() const;
+    short num_Ray() const;
+    short num_Ang() const;
+    short slice_Thickness() const;
+    Isotop isotop() const;
+    float slope() const;
+    float calibration_Intercept() const;
+    short injection_Time() const;
+    float polygon_VertexAt0Deg() const;
     short num_Slices() const;
+    short num_Frames() const;
+    short birthdate_Day() const;
+    short birthdate_Month() const;
+    short birthdate_Year() const;
+    const char* short_Patient_ID() const;
     short num_Tilts() const;
 
     void setFile_Format(const short format);
@@ -130,6 +154,25 @@ class CPhilipsMainHeader : public CMedIOHeader
     void setZ_CrystalPitch(const float pitch);
     void setAxial_FOV(const float axialFOV);
     void setRPhi_Type(const RPhi_Type rType);
+    void setSlice_Type(const Slice_Type sType);
+    void setDelay_Type(const Delay_Type dType);
+    void setScan_Type(const Scan_Type sType);
+    void setAcquisition_Type(const Acquisition_Type aType);
+    void setNum_Ray(const short num);
+    void setNum_Ang(const short num);
+    void setSlice_Thickness(const short thickness);
+    void setIsotop(const Isotop isotop);
+    void setSlope(const float slope);
+    void setCalibration_Intercept(const float intercept);
+    void setInjection_Time(const short seconds);
+    void setPolygon_VertexAt0Deg(const float vertex);
+    void setNum_Slices(const short num);
+    void setNum_Frames(const short num);
+    void setBirthdate_Day(const short day);
+    void setBirthdate_Month(const short month);
+    void setBirthdate_Year(const short year);
+    void setShort_Patient_ID(const char* id);
+    void setNum_Tilts(const short num);
 
   private:
     CPhilipsMainHeaderPrivate* m_pData;

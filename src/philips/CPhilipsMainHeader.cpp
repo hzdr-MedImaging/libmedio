@@ -59,43 +59,89 @@ public:
     // MainHeader structure (should be 512 bytes)
     struct HeaderData
     {
-      qint16 File_Format;       // file format (mainheader) version number
-      qint16 Scanner_Geometry;  // encoding of the scanner geometry
-      qint16 Hardware_Config;   // encoding of hardware used in acquisition
-      qint16 Edit_Flag;         // 1 to indicat that the user has modified mainheader
-      qint16 File_Type;
-      qint16 Day_Created;
-      qint16 Month_Created;
-      qint16 Year_Created;
-      qint16 Hour_Created;
-      qint16 Minute_Created;
-      qint16 Second_Created;
-      qint16 Scan_Duration;     // duration of scan in seconds
-      qint16 Subheader_Type;    // ImageIO subheader (1) or old subheader format (0)
-      qint16 Singles_PreScale_Old; // singles prescale, superceded by Singles_Prescale (float)
-      // qint16 Singles_Acquisition_Option; // 0=transmission only, 1=trans-ec, 2=ec only (obsoleted)
-      float Singles_PreScale;      // amount by which the actual singles events is scaled down
-      float Detector_Radius;       // inscribed scanner radius (from middle of opening to
-                                   // detector face) in mm
-      qint16 Virtual_Crystals; /* whether virtual crystals were used in the acquisition
+      qint16 file_fmt;       // file format (mainheader) version number
+      qint16 scan_geom;  // encoding of the scanner geometry
+      qint16 hw_config;   // encoding of hardware used in acquisition
+      qint16 edit_flag;         // 1 to indicat that the user has modified mainheader
+      qint16 filtyp;
+      qint16 dep_daycre;
+      qint16 dep_mocre;
+      qint16 dep_yrcre;
+      qint16 dep_hrcre;
+      qint16 dep_mincre;
+      qint16 dep_seccre;
+      qint16 duratn;     // duration of scan in seconds
+      qint16 shdtyp;    // ImageIO subheader (1) or old subheader format (0)
+      qint16 sngpscl; // singles prescale, superceded by pscale
+
+      qint16 singopt; // 0=transmission only, 1=trans-ec, 2=ec only (obsoleted)
+
+      float pscale;      // amount by which the actual singles events is scaled down
+      float detectorRadius;       /* inscribed scanner radius (from middle of opening to
+                                      detector face) in mm */
+      qint16 virtualXtal; /* whether virtual crystals were used in the acquisition
                                   to simulate a larger detector */
-      qint16 Phi_Mashing;       /* whether events from crystal phi values are combined
+      qint16 phiMashing;       /* whether events from crystal phi values are combined
                                    6 Undefined/Unknown (assumption is no mashing)
                                    7 No mashing
                                    8 Events from pairs of consecutive angles have been added together */
-      qint16 Polygon_Sides;    /* Number of "sides" in the scanner opening
+      qint16 polygonSides;    /* Number of "sides" in the scanner opening
                                   (may refer to detectors or PMT modules */
-      qint16 Crystals_Per_Side; // Number of detectors per opening (polygon) side
-      qint16 Crystal_Rows;      // Number of crystal rows in the axial (Z) direction
-      float Crystal_Thickness;  // Detetctor crystal thickness in mm
-      float X_CrystalPitch;     // X crystal pitch in mm
-      float Z_CrystalPitch;     // Z crystal pitch in mm
-      float Axial_FOV;          // in mm
-      qint16 RPhi_Type;         // 0 Real, 1 Crystal
+      qint16 xtalsPerSide; // Number of detectors per opening (polygon) side
+      qint16 nXtalRows;      // Number of crystal rows in the axial (Z) direction
+      float crystalThickness;  // Detetctor crystal thickness in mm
+      float xXtalPitch;     // X crystal pitch in mm
+      float zXtalPitch;     // Z crystal pitch in mm
+      float axialFOV;          // in mm
+      qint16 rphiType;         // 0 Real, 1 Crystal
+      qint16 sliceType;
+      qint16 delayType;
+      qint16 pattyp;
+      qint16 scntyp;
+      qint16 numray;
+      qint16 numang;
+      qint16 slcthk;
+      qint16 isotop;
+      float slope;                 // Rescale slope. (Not used)
+      float intcpt; // Offset value to data. (Not used)
+      qint16 injtim;
+      float polygonVertAt0deg;
+      qint16 nslice;        // number of slices per frame
+      qint16 nframe;        // number of frames
+      qint16 bthday;
+      qint16 bthmo;
+      qint16 bthyr;
+      char ssn[10]; // suberceded by Dicom_Patient_ID
+      qint16 ntilt;         // number of tilts per frame
 
-      qint16 Num_Frames;        // number of frames
-      qint16 Num_Slices;        // number of slices per frame
-      qint16 Num_Tilts;         // number of tilts per frame
+      qint16 petnum;
+      // skip 4 bytes 0x00,0x21,0xff,0xff
+      float activity;           // in MBq
+      float weight;
+      qint16 hrinj;
+      qint16 mininj;
+      float srcRadius;
+      float srcZpos;
+      float halfLife;           // in minutes
+      float concfac;
+      float concfac_bgsub;
+      float dmax;
+      float dline;
+      float angmax;
+      float x0;
+      float y0;
+      float z0;
+      float nevent;
+      float nsino;
+      qint16 eglob_low;
+      qint16 eglob_up;
+      qint16 eloc_low;
+      qint16 eloc_up;
+
+      qint16 orient_hf;
+      char scan_swrel;
+
+
     } header;
 };
 
@@ -196,68 +242,152 @@ bool CPhilipsMainHeader::load()
   // because there are some gaps between the header entries
   // we have to skip some bytes
   stream.skipRawData(6);                      // 0: skip the first 6 bytes
-  stream >> m_pData->header.File_Format;      // 6: File_Format
-  stream >> m_pData->header.Scanner_Geometry; // 8: Scanner_Geometry
-  stream >> m_pData->header.Hardware_Config;  // 10: Hardware_Config
+  stream >> m_pData->header.file_fmt;      // 6: file_fmt
+  stream >> m_pData->header.scan_geom; // 8: scan_geom
+  stream >> m_pData->header.hw_config;  // 10: hw_config
   stream.skipRawData(4);                      // 12: skip the next 4 bytes
-  stream >> m_pData->header.Edit_Flag;        // 16: Edit_Flag
+  stream >> m_pData->header.edit_flag;        // 16: edit_flag
   stream.skipRawData(34);                     // 18: skip the next 34 bytes
-  stream >> m_pData->header.File_Type;        // 52: File_Type
+  stream >> m_pData->header.filtyp;        // 52: filtyp
   stream.skipRawData(12);                     // 54: skip the next 12 bytes
-  stream >> m_pData->header.Day_Created;      // 66: Day_Created
-  stream >> m_pData->header.Month_Created;    // 68: Month_Created
-  stream >> m_pData->header.Year_Created;     // 70: Year_Created
-  stream >> m_pData->header.Hour_Created;     // 72: Hour_Created
-  stream >> m_pData->header.Minute_Created;   // 74: Minute_Created
-  stream >> m_pData->header.Second_Created;   // 76: Second_Created
-  stream >> m_pData->header.Scan_Duration;    // 78: Scan_Duration
-  stream >> m_pData->header.Subheader_Type;   // 80: Subheader_Type
-  stream >> m_pData->header.Singles_PreScale_Old; // 82: Singles_Prescale_Old
-  // stream >> m_pData->header.Singles_Acquisition_Option; // 84: Singles_Acquisition_Option
-  stream.skipRawData(2);                      // 84: skip singopt (obsoleted)
-  stream >> m_pData->header.Singles_PreScale; // 86: Singles_Prescale
-  stream >> m_pData->header.Detector_Radius;  // 90: Detector_Radius
-  stream >> m_pData->header.Virtual_Crystals; // 94: Virtual_Crystals
-  stream >> m_pData->header.Phi_Mashing;      // 96: Phi_Mashing
-  stream >> m_pData->header.Polygon_Sides;    // 98: Polygon_Sides
-  stream >> m_pData->header.Crystals_Per_Side; // 100: Crystals_Per_Side
-  stream >> m_pData->header.Crystal_Rows;      // 102: Crystal_Rows
-  stream >> m_pData->header.Crystal_Thickness; // 104: Crystal_Thickness
-  stream >> m_pData->header.X_CrystalPitch;    // 108: X_CrystalPitch
-  stream >> m_pData->header.Z_CrystalPitch;    // 112: Z_CrystalPitch
-  stream >> m_pData->header.Axial_FOV;         // 116: Axial_FOV
-  stream >> m_pData->header.RPhi_Type;         // 120: RPhi_Type
+  stream >> m_pData->header.dep_daycre;      // 66: dep_daycre
+  stream >> m_pData->header.dep_mocre;    // 68: dep_mocre
+  stream >> m_pData->header.dep_yrcre;     // 70: dep_yrcre
+  stream >> m_pData->header.dep_hrcre;     // 72: dep_hrcre
+  stream >> m_pData->header.dep_mincre;   // 74: dep_mincre
+  stream >> m_pData->header.dep_seccre;   // 76: dep_seccre
+  stream >> m_pData->header.duratn;    // 78: duratn
+  stream >> m_pData->header.shdtyp;   // 80: shdtyp
+  stream >> m_pData->header.sngpscl; // 82: sngpscl
 
+  stream >> m_pData->header.singopt; // 84: singopt
+
+  stream >> m_pData->header.pscale; // 86: Singles_Prescale
+  stream >> m_pData->header.detectorRadius;  // 90: detectorRadius
+  stream >> m_pData->header.virtualXtal; // 94: virtualXtal
+  stream >> m_pData->header.phiMashing;      // 96: phiMashing
+  stream >> m_pData->header.polygonSides;    // 98: polygonSides
+  stream >> m_pData->header.xtalsPerSide; // 100: xtalsPerSide
+  stream >> m_pData->header.nXtalRows;      // 102: nXtalRows
+  stream >> m_pData->header.crystalThickness; // 104: crystalThickness
+  stream >> m_pData->header.xXtalPitch;    // 108: xXtalPitch
+  stream >> m_pData->header.zXtalPitch;    // 112: zXtalPitch
+  stream >> m_pData->header.axialFOV;         // 116: axialFOV
+  stream >> m_pData->header.rphiType;         // 120: rphiType
+  stream >> m_pData->header.sliceType;        // 122: sliceType
+  stream >> m_pData->header.delayType;        // 124: delayType
+  stream.skipRawData(4);                       // 126: skip the next 4 bytes
+  stream >> m_pData->header.pattyp;         // 130: pattyp
+  stream >> m_pData->header.scntyp;  // 132: scntyp
+  stream >> m_pData->header.numray;           // 134: numray
+  stream >> m_pData->header.numang;           // 136: numang
+  stream >> m_pData->header.slcthk;   // 138: slcthk
+  stream >> m_pData->header.isotop;            // 140: isotop
+  stream >> m_pData->header.slope;             // 142: slope
+  stream >> m_pData->header.intcpt; // 146: intcpt
+  stream >> m_pData->header.injtim;        // 150: injtim
+  stream >> m_pData->header.polygonVertAt0deg;  // 152: polygonVertAt0deg
+  stream >> m_pData->header.nslice;            // 156: nslice
+  stream >> m_pData->header.nframe;            // 158: nframe
+  stream >> m_pData->header.bthday;         // 160: bthday
+  stream >> m_pData->header.bthmo;       // 162: bthmo
+  stream >> m_pData->header.bthyr;        // 164: bthyr
+  stream.readRawData(&m_pData->header.ssn[0], 10); // 166: ssn
+  stream >> m_pData->header.ntilt;                         // 176: ntilt
+  stream >> m_pData->header.petnum; // 178: petnum
+  stream.skipRawData(4);      // 180: skip 4 bytes 0x00,0x21,0xff,0xff
+  stream >> m_pData->header.activity;      // 184: activity 
+  stream >> m_pData->header.weight;        // 188: weight
+  stream >> m_pData->header.hrinj;         // 192: hrinj
+  stream >> m_pData->header.mininj;        // 194: mininj
+  stream >> m_pData->header.srcRadius;     // 196: srcRadius
+  stream >> m_pData->header.srcZpos;       // 200: srcZpos
+  stream >> m_pData->header.halfLife;                     // 204: halfLife
+  stream >> m_pData->header.concfac;                      // 208: concfac
+  stream >> m_pData->header.concfac_bgsub;                // 212: concfac_bgsub
+  stream >> m_pData->header.dmax;                         // 216: dmax
+  stream >> m_pData->header.dline;                        // 220: dline
+  stream >> m_pData->header.angmax;                       // 224: angmax
+  stream >> m_pData->header.x0;                           // 228: x0
+  stream >> m_pData->header.y0;                           // 232: y0
+  stream >> m_pData->header.z0;                           // 236: z0
+  stream >> m_pData->header.nevent;                       // 240: nevent
+  stream >> m_pData->header.nsino;                        // 244: nsino
+  stream >> m_pData->header.eglob_low;                   // 248: eglob_low
+  stream >> m_pData->header.eglob_up;                    // 250: eglob_up
+  stream >> m_pData->header.eloc_low;                    // 252: eloc_low
+  stream >> m_pData->header.eloc_up;                     // 254: eloc_up
 
 #if defined(DEBUG)
   D("philips Main Header loaded:");
   D("--------------------------");
-  D("File_Format:              : %d", m_pData->header.File_Format);
-  D("Scanner_Geometry          : %d", m_pData->header.Scanner_Geometry);
-  D("Hardware_Config           : %d", m_pData->header.Hardware_Config);
-  D("Edit_Flag                 : %d", m_pData->header.Edit_Flag);
-  D("File_Type                 : %d", m_pData->header.File_Type);
-  D("Day_Created               : %d", m_pData->header.Day_Created);
-  D("Month_Created             : %d", m_pData->header.Month_Created);
-  D("Year_Created              : %d", m_pData->header.Year_Created);
-  D("Hour_Created              : %d", m_pData->header.Hour_Created);
-  D("Minute_Created            : %d", m_pData->header.Minute_Created);
-  D("Second_Created            : %d", m_pData->header.Second_Created);
-  D("Scan_Duration             : %d", m_pData->header.Scan_Duration);
-  D("Subheader_Type            : %d", m_pData->header.Subheader_Type);
-  D("Singles_PreScale_Old      : %d", m_pData->header.Singles_PreScale_Old);
-  D("Singles_PreScale          : %f", m_pData->header.Singles_PreScale);
-  D("Detector_Radius           : %f", m_pData->header.Detector_Radius);
-  D("Virtual_Crystals          : %d", m_pData->header.Virtual_Crystals);
-  D("Phi_Mashing               : %d", m_pData->header.Phi_Mashing);
-  D("Polygon_Sides             : %d", m_pData->header.Polygon_Sides);
-  D("Crystals_Per_Side         : %d", m_pData->header.Crystals_Per_Side);
-  D("Crystal_Rows              : %d", m_pData->header.Crystal_Rows);
-  D("Crystal_Thickness         : %f", m_pData->header.Crystal_Thickness);
-  D("X_CrystalPitch            : %f", m_pData->header.X_CrystalPitch);
-  D("Z_CrystalPitch            : %f", m_pData->header.Z_CrystalPitch);
-  D("Axial_FOV                 : %f", m_pData->header.Axial_FOV);
-  D("RPhi_Type                 : %d", m_pData->header.RPhi_Type);
+  D("file_fmt:        : %d", m_pData->header.file_fmt);
+  D("scan_geom        : %d", m_pData->header.scan_geom);
+  D("hw_config        : %d", m_pData->header.hw_config);
+  D("edit_flag        : %d", m_pData->header.edit_flag);
+  D("filtyp           : %d", m_pData->header.filtyp);
+  D("dep_daycre       : %d", m_pData->header.dep_daycre);
+  D("dep_mocre        : %d", m_pData->header.dep_mocre);
+  D("dep_yrcre        : %d", m_pData->header.dep_yrcre);
+  D("dep_hrcre        : %d", m_pData->header.dep_hrcre);
+  D("dep_mincre       : %d", m_pData->header.dep_mincre);
+  D("dep_seccre       : %d", m_pData->header.dep_seccre);
+  D("duratn           : %d", m_pData->header.duratn);
+  D("shdtyp           : %d", m_pData->header.shdtyp);
+  D("sngpscl          : %d", m_pData->header.sngpscl);
+  D("pscale           : %f", m_pData->header.pscale);
+  D("detectorRadius   : %f", m_pData->header.detectorRadius);
+  D("virtualXtal      : %d", m_pData->header.virtualXtal);
+  D("phiMashing       : %d", m_pData->header.phiMashing);
+  D("polygonSides     : %d", m_pData->header.polygonSides);
+  D("xtalsPerSide     : %d", m_pData->header.xtalsPerSide);
+  D("nXtalRows        : %d", m_pData->header.nXtalRows);
+  D("crystalThickness : %f", m_pData->header.crystalThickness);
+  D("xXtalPitch       : %f", m_pData->header.xXtalPitch);
+  D("zXtalPitch       : %f", m_pData->header.zXtalPitch);
+  D("axialFOV         : %f", m_pData->header.axialFOV);
+  D("rphiType         : %d", m_pData->header.rphiType);
+  D("sliceType        : %d", m_pData->header.sliceType);
+  D("delayType        : %d", m_pData->header.delayType);
+  D("pattyp           : %d", m_pData->header.pattyp);
+  D("scntyp           : %d", m_pData->header.scntyp);
+  D("numray           : %d", m_pData->header.numray);
+  D("numang           : %d", m_pData->header.numang);
+  D("slcthk           : %d", m_pData->header.slcthk);
+  D("isotop           : %d", m_pData->header.isotop);
+  D("slope            : %f", m_pData->header.slope);
+  D("intcpt           : %f", m_pData->header.intcpt);
+  D("injtim           : %d", m_pData->header.injtim);
+  D("polygonVertAt0deg: %f", m_pData->header.polygonVertAt0deg);
+  D("nslice           : %d", m_pData->header.nslice);
+  D("nframe           : %d", m_pData->header.nframe);
+  D("bthday           : %d", m_pData->header.bthday);
+  D("bthmo            : %d", m_pData->header.bthmo);
+  D("bthyr            : %d", m_pData->header.bthyr);
+  D("ssn              : %s", m_pData->header.ssn);
+  D("ntilt            : %d", m_pData->header.ntilt);
+  D("petnum           : %d", m_pData->header.petnum);
+  D("activity         : %f", m_pData->header.activity);
+  D("weight           : %f", m_pData->header.weight);
+  D("hrinj            : %d", m_pData->header.hrinj);
+  D("mininj           : %d", m_pData->header.mininj);
+  D("srcRadius        : %f", m_pData->header.srcRadius);
+  D("srcZpos          : %f", m_pData->header.srcZpos);
+  D("halfLife         : %f", m_pData->header.halfLife);
+  D("concfac          : %f", m_pData->header.concfac);
+  D("concfac_bgsub    : %f", m_pData->header.concfac_bgsub);
+  D("dmax             : %f", m_pData->header.dmax);
+  D("dline            : %f", m_pData->header.dline);
+  D("angmax           : %f", m_pData->header.angmax);
+  D("x0               : %f", m_pData->header.x0);
+  D("y0               : %f", m_pData->header.y0);
+  D("z0               : %f", m_pData->header.z0);
+  D("nevent           : %f", m_pData->header.nevent);
+  D("nsino            : %f", m_pData->header.nsino);
+  D("eglob_low        : %d", m_pData->header.eglob_low);
+  D("eglob_up         : %d", m_pData->header.eglob_up);
+  D("eloc_low         : %d", m_pData->header.eloc_low);
+  D("eloc_up          : %d", m_pData->header.eloc_up);
 #endif
 
   RETURN(true);
@@ -303,279 +433,454 @@ CMedIOHeader* CPhilipsMainHeader::clone() const
 
 bool CPhilipsMainHeader::isPETMR() const
 {
-  return m_pData->header.Hardware_Config & CPhilipsMainHeaderPrivate::PETMR;
+  return m_pData->header.hw_config & CPhilipsMainHeaderPrivate::PETMR;
 }
 
 short CPhilipsMainHeader::file_Format() const
 {
-  return m_pData->header.File_Format;
+  return m_pData->header.file_fmt;
 }
 
 short CPhilipsMainHeader::scanner_Geometry() const
 {
-  return m_pData->header.Scanner_Geometry;
+  return m_pData->header.scan_geom;
 }
 
 short CPhilipsMainHeader::hardware_Config() const
 {
-  return m_pData->header.Hardware_Config;
+  return m_pData->header.hw_config;
 }
 
 short CPhilipsMainHeader::edit_Flag() const
 {
-  return m_pData->header.Edit_Flag;
+  return m_pData->header.edit_flag;
 }
 
 CPhilipsMainHeader::File_Type CPhilipsMainHeader::file_Type() const
 {
-  return static_cast<File_Type>(m_pData->header.File_Type);
+  return static_cast<File_Type>(m_pData->header.filtyp);
 }
 
 short CPhilipsMainHeader::day_Created() const
 {
-  return m_pData->header.Day_Created;
+  return m_pData->header.dep_daycre;
 }
 
 short CPhilipsMainHeader::month_Created() const
 {
-  return m_pData->header.Month_Created;
+  return m_pData->header.dep_mocre;
 }
 
 short CPhilipsMainHeader::year_Created() const
 {
-  return m_pData->header.Year_Created;
+  return m_pData->header.dep_yrcre;
 }
 
 short CPhilipsMainHeader::hour_Created() const
 {
-  return m_pData->header.Hour_Created;
+  return m_pData->header.dep_hrcre;
 }
 
 short CPhilipsMainHeader::minute_Created() const
 {
-  return m_pData->header.Minute_Created;
+  return m_pData->header.dep_mincre;
 }
 
 short CPhilipsMainHeader::second_Created() const
 {
-  return m_pData->header.Second_Created;
+  return m_pData->header.dep_seccre;
 }
 
 short CPhilipsMainHeader::scan_Duration() const
 {
-  return m_pData->header.Scan_Duration;
+  return m_pData->header.duratn;
 }
 
 CPhilipsMainHeader::Subheader_Type CPhilipsMainHeader::subheader_Type() const
 {
-  return static_cast<Subheader_Type>(m_pData->header.Subheader_Type);
+  return static_cast<Subheader_Type>(m_pData->header.shdtyp);
 }
 
 short CPhilipsMainHeader::singles_PreScale_Old() const
 {
-  return m_pData->header.Singles_PreScale_Old;
+  return m_pData->header.sngpscl;
 }
 
 float CPhilipsMainHeader::singles_PreScale() const
 {
-  return m_pData->header.Singles_PreScale;
+  return m_pData->header.pscale;
 }
 
 float CPhilipsMainHeader::detector_Radius() const
 {
-  return m_pData->header.Detector_Radius;
+  return m_pData->header.detectorRadius;
 }
 
 bool CPhilipsMainHeader::virtual_Crystals() const
 {
-  return (m_pData->header.Virtual_Crystals == 1);
+  return (m_pData->header.virtualXtal == 1);
 }
 
 short CPhilipsMainHeader::phi_Mashing() const
 {
-  return m_pData->header.Phi_Mashing;
+  return m_pData->header.phiMashing;
 }
 
 short CPhilipsMainHeader::polygon_Sides() const
 {
-  return m_pData->header.Polygon_Sides;
+  return m_pData->header.polygonSides;
 }
 
 short CPhilipsMainHeader::crystals_Per_Side() const
 {
-  return m_pData->header.Crystals_Per_Side;
+  return m_pData->header.xtalsPerSide;
 }
 
 short CPhilipsMainHeader::crystal_Rows() const
 {
-  return m_pData->header.Crystal_Rows;
+  return m_pData->header.nXtalRows;
 }
 
 float CPhilipsMainHeader::crystal_Thickness() const
 {
-  return m_pData->header.Crystal_Thickness;
+  return m_pData->header.crystalThickness;
 }
 
 float CPhilipsMainHeader::x_CrystalPitch() const
 {
-  return m_pData->header.X_CrystalPitch;
+  return m_pData->header.xXtalPitch;
 }
 
 float CPhilipsMainHeader::z_CrystalPitch() const
 {
-  return m_pData->header.Z_CrystalPitch;
+  return m_pData->header.zXtalPitch;
 }
 
 float CPhilipsMainHeader::axial_FOV() const
 {
-  return m_pData->header.Axial_FOV;
+  return m_pData->header.axialFOV;
 }
 
 CPhilipsMainHeader::RPhi_Type CPhilipsMainHeader::rPhi_Type() const
 {
-  return static_cast<RPhi_Type>(m_pData->header.RPhi_Type);
+  return static_cast<RPhi_Type>(m_pData->header.rphiType);
 }
 
-short CPhilipsMainHeader::num_Frames() const
+CPhilipsMainHeader::Slice_Type CPhilipsMainHeader::slice_Type() const
 {
-  return m_pData->header.Num_Frames;
+  return static_cast<Slice_Type>(m_pData->header.sliceType);
+}
+
+CPhilipsMainHeader::Delay_Type CPhilipsMainHeader::delay_Type() const
+{
+  return static_cast<Delay_Type>(m_pData->header.delayType);
+}
+
+CPhilipsMainHeader::Scan_Type CPhilipsMainHeader::scan_Type() const
+{
+  return static_cast<Scan_Type>(m_pData->header.pattyp);
+}
+
+CPhilipsMainHeader::Acquisition_Type CPhilipsMainHeader::acquisition_Type() const
+{
+  return static_cast<Acquisition_Type>(m_pData->header.scntyp);
+}
+
+short CPhilipsMainHeader::num_Ray() const
+{
+  return m_pData->header.numray;
+}
+
+short CPhilipsMainHeader::num_Ang() const
+{
+  return m_pData->header.numang;
+}
+
+short CPhilipsMainHeader::slice_Thickness() const
+{
+  return m_pData->header.slcthk;
+}
+
+CPhilipsMainHeader::Isotop CPhilipsMainHeader::isotop() const
+{
+  return static_cast<Isotop>(m_pData->header.isotop);
+}
+
+float CPhilipsMainHeader::slope() const
+{
+  return m_pData->header.slope;
+}
+
+float CPhilipsMainHeader::calibration_Intercept() const
+{
+  return m_pData->header.intcpt;
+}
+
+short CPhilipsMainHeader::injection_Time() const
+{
+  return m_pData->header.injtim;
+}
+
+float CPhilipsMainHeader::polygon_VertexAt0Deg() const
+{
+  return m_pData->header.polygonVertAt0deg;
 }
 
 short CPhilipsMainHeader::num_Slices() const
 {
-  return m_pData->header.Num_Slices;
+  return m_pData->header.nslice;
+}
+
+short CPhilipsMainHeader::num_Frames() const
+{
+  return m_pData->header.nframe;
+}
+
+short CPhilipsMainHeader::birthdate_Day() const
+{
+  return m_pData->header.bthday;
+}
+
+short CPhilipsMainHeader::birthdate_Month() const
+{
+  return m_pData->header.bthmo;
+}
+
+short CPhilipsMainHeader::birthdate_Year() const
+{
+  return m_pData->header.bthyr;
+}
+
+const char* CPhilipsMainHeader::short_Patient_ID() const
+{
+  return m_pData->header.ssn;
 }
 
 short CPhilipsMainHeader::num_Tilts() const
 {
-  return m_pData->header.Num_Tilts;
+  return m_pData->header.ntilt;
 }
 
 void CPhilipsMainHeader::setFile_Format(const short format)
 {
-  m_pData->header.File_Format = format;
+  m_pData->header.file_fmt = format;
 }
 
 void CPhilipsMainHeader::setScanner_Geometry(const short geometry)
 {
-  m_pData->header.Scanner_Geometry = geometry;
+  m_pData->header.scan_geom = geometry;
 }
 
 void CPhilipsMainHeader::setHardware_Config(const short conifg)
 {
-  m_pData->header.Hardware_Config = conifg;
+  m_pData->header.hw_config = conifg;
 }
 
 void CPhilipsMainHeader::setEdit_Flag(const short eFlag)
 {
-  m_pData->header.Edit_Flag = eFlag;
+  m_pData->header.edit_flag = eFlag;
 }
 
 void CPhilipsMainHeader::setFile_Type(const File_Type fType)
 {
-  m_pData->header.File_Type = fType;
+  m_pData->header.filtyp = fType;
 }
 
 void CPhilipsMainHeader::setDay_Created(const short day)
 {
-  m_pData->header.Day_Created = day;
+  m_pData->header.dep_daycre = day;
 }
 
 void CPhilipsMainHeader::setMonth_Created(const short month)
 {
-  m_pData->header.Month_Created = month;
+  m_pData->header.dep_mocre = month;
 }
 
 void CPhilipsMainHeader::setYear_Created(const short year)
 {
-  m_pData->header.Year_Created = year;
+  m_pData->header.dep_yrcre = year;
 }
 
 void CPhilipsMainHeader::setHour_Created(const short hour)
 {
-  m_pData->header.Hour_Created = hour;
+  m_pData->header.dep_hrcre = hour;
 }
 
 void CPhilipsMainHeader::setMinute_Created(const short minute)
 {
-  m_pData->header.Minute_Created = minute;
+  m_pData->header.dep_mincre = minute;
 }
 
 void CPhilipsMainHeader::setSecond_Created(const short second)
 {
-  m_pData->header.Second_Created = second;
+  m_pData->header.dep_seccre = second;
 }
 
 void CPhilipsMainHeader::setScan_Duration(const short seconds)
 {
-  m_pData->header.Scan_Duration = seconds;
+  m_pData->header.duratn = seconds;
 }
 
 void CPhilipsMainHeader::setSubheader_Type(const Subheader_Type sType)
 {
-  m_pData->header.Subheader_Type = sType;
+  m_pData->header.shdtyp = sType;
 }
 
 void CPhilipsMainHeader::setSingles_PreScale_Old(const short preScale)
 {
-  m_pData->header.Singles_PreScale_Old = preScale;
+  m_pData->header.sngpscl = preScale;
 }
 
 void CPhilipsMainHeader::setSingles_PreScale(const float preScale)
 {
-  m_pData->header.Singles_PreScale = preScale;
+  m_pData->header.pscale = preScale;
 }
 
 void CPhilipsMainHeader::setDetector_Radius(const float radius)
 {
-  m_pData->header.Detector_Radius = radius;
+  m_pData->header.detectorRadius = radius;
 }
 
 void CPhilipsMainHeader::setVirtual_Crystals(const bool virtualCrystals)
 {
-  m_pData->header.Virtual_Crystals = virtualCrystals;
+  m_pData->header.virtualXtal = virtualCrystals;
 }
 void CPhilipsMainHeader::setPhi_Mashing(const short phiMashing)
 {
-  m_pData->header.Phi_Mashing = phiMashing;
+  m_pData->header.phiMashing = phiMashing;
 }
 
 void CPhilipsMainHeader::setPolygon_Sides(const short polygonSides)
 {
-  m_pData->header.Polygon_Sides = polygonSides;
+  m_pData->header.polygonSides = polygonSides;
 }
 
 void CPhilipsMainHeader::setCrystals_Per_Side(const short crystalsPerSide)
 {
-  m_pData->header.Crystals_Per_Side = crystalsPerSide;
+  m_pData->header.xtalsPerSide = crystalsPerSide;
 }
 
 void CPhilipsMainHeader::setCrystal_Rows(const short crystalRows)
 {
-  m_pData->header.Crystal_Rows = crystalRows;
+  m_pData->header.nXtalRows = crystalRows;
 }
 
 void CPhilipsMainHeader::setCrystal_Thickness(const float crystalThickness)
 {
-  m_pData->header.Crystal_Thickness = crystalThickness;
+  m_pData->header.crystalThickness = crystalThickness;
 }
 
 void CPhilipsMainHeader::setX_CrystalPitch(const float pitch)
 {
-  m_pData->header.X_CrystalPitch = pitch;
+  m_pData->header.xXtalPitch = pitch;
 }
 
 void CPhilipsMainHeader::setZ_CrystalPitch(const float pitch)
 {
-  m_pData->header.Z_CrystalPitch = pitch;
+  m_pData->header.zXtalPitch = pitch;
 }
 
 void CPhilipsMainHeader::setAxial_FOV(const float axialFOV)
 {
-  m_pData->header.Axial_FOV = axialFOV;
+  m_pData->header.axialFOV = axialFOV;
 }
 
 void CPhilipsMainHeader::setRPhi_Type(const RPhi_Type rType)
 {
-  m_pData->header.RPhi_Type = rType;
+  m_pData->header.rphiType = rType;
+}
+
+void CPhilipsMainHeader::setSlice_Type(const Slice_Type sType)
+{
+  m_pData->header.sliceType = sType;
+}
+
+void CPhilipsMainHeader::setDelay_Type(const Delay_Type dType)
+{
+  m_pData->header.delayType = dType;
+}
+
+void CPhilipsMainHeader::setScan_Type(const Scan_Type sType)
+{
+  m_pData->header.pattyp = sType;
+}
+
+void CPhilipsMainHeader::setAcquisition_Type(const Acquisition_Type aType)
+{
+  m_pData->header.scntyp = aType;
+}
+
+void CPhilipsMainHeader::setNum_Ray(const short num)
+{
+  m_pData->header.numray = num;
+}
+
+void CPhilipsMainHeader::setNum_Ang(const short num)
+{
+  m_pData->header.numang = num;
+}
+
+void CPhilipsMainHeader::setSlice_Thickness(const short thickness)
+{
+  m_pData->header.slcthk = thickness;
+}
+
+void CPhilipsMainHeader::setIsotop(const Isotop isotop)
+{
+  m_pData->header.isotop = isotop;
+}
+
+void CPhilipsMainHeader::setSlope(const float slope)
+{
+  m_pData->header.slope = slope;
+}
+
+void CPhilipsMainHeader::setCalibration_Intercept(const float intercept)
+{
+  m_pData->header.intcpt = intercept;
+}
+
+void CPhilipsMainHeader::setInjection_Time(const short seconds)
+{
+  m_pData->header.injtim = seconds;
+}
+
+void CPhilipsMainHeader::setPolygon_VertexAt0Deg(const float vertex)
+{
+  m_pData->header.polygonVertAt0deg = vertex;
+}
+
+void CPhilipsMainHeader::setNum_Slices(const short num)
+{
+  m_pData->header.nslice = num;
+}
+
+void CPhilipsMainHeader::setNum_Frames(const short num)
+{
+  m_pData->header.nframe = num;
+}
+
+void CPhilipsMainHeader::setBirthdate_Day(const short day)
+{
+  m_pData->header.bthday = day;
+}
+
+void CPhilipsMainHeader::setBirthdate_Month(const short month)
+{
+  m_pData->header.bthmo = month;
+}
+
+void CPhilipsMainHeader::setBirthdate_Year(const short year)
+{
+  m_pData->header.bthyr = year;
+}
+
+void CPhilipsMainHeader::setShort_Patient_ID(const char* id)
+{
+  strncpy(m_pData->header.ssn, id, 10);
+}
+
+void CPhilipsMainHeader::setNum_Tilts(const short num)
+{
+  m_pData->header.ntilt = num;
 }
