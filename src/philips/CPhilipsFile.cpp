@@ -74,14 +74,14 @@ bool CPhilipsFilePrivate::isPhilipsFile(CMedIOData* file)
   return isValidPhilipsFile;
 }
 
-CPhilipsFile::CPhilipsFile(const QString& filename)
+CPhilipsFile::CPhilipsFile(const QString& filename, CPhilipsMainHeader::File_Type fileType)
   : CMedIOData(filename)
 {
   ENTER();
 
   // allocate data from our private instance class
   m_pData = new CPhilipsFilePrivate();
-  m_pData->fileType = CPhilipsMainHeader::Unknown;
+  m_pData->fileType = fileType;
   m_pData->cachedMainHeader = NULL;
   m_pData->cachedMainHeader = NULL;
 
@@ -174,12 +174,21 @@ bool CPhilipsFile::open(QIODevice::OpenModeFlag mode)
       // close the file
       QFile::close();
     }
-    else if((mode & QIODevice::WriteOnly) == QIODevice::WriteOnly) // mode contains WriteOnly flag
-    {
-#warning TODO: writeonly mode
-    }
   }
+  else if((mode & QIODevice::WriteOnly) == QIODevice::WriteOnly) // mode contains WriteOnly flag
+  {
+    // the file doesn't exist and therefore we do not have any
+    // main header or directory list. so lets create some empty ones
+    m_pData->directory = new CPhilipsDirectory(this);
+    m_pData->cachedMainHeader = new CPhilipsMainHeader(this, m_pData->fileType);
 
+    // make sure the file is removed upon opening it
+    // we don't do a plain QFile::remove() here because otherwise
+    // QFile will close and free our data.
+    QFile::remove(fileName());
+    result = true;
+  }
+  
   // only if we succeeded with our mainheader/dirlisting loading
   // we can assume everything worked out fine and reopen the file
   // with the user settings.
@@ -288,4 +297,17 @@ bool CPhilipsFile::readMainHeader(CPhilipsMainHeader*& mainHeader)
 
   RETURN(result);
   return result;
+}
+
+CPhilipsMainHeader* CPhilipsFile::createEmptyMainHeader()
+{
+  ENTER();
+  CPhilipsMainHeader* pEmptyMainHaeder = NULL;
+  if(isOpen())
+  {
+    pEmptyMainHaeder = new CPhilipsMainHeader(this);
+  }
+
+  RETURN(pEmptyMainHaeder);
+  return pEmptyMainHaeder;
 }

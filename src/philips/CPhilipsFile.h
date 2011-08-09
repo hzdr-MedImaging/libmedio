@@ -45,7 +45,8 @@ class CPhilipsFile : public CMedIOData
 {
   public:
     // constructors
-    CPhilipsFile(const QString& filename);
+    CPhilipsFile(const QString& filename,
+                 CPhilipsMainHeader::File_Type fileType = CPhilipsMainHeader::Unknown);
     ~CPhilipsFile();
 
     // runtime type information
@@ -65,6 +66,9 @@ class CPhilipsFile : public CMedIOData
 
     // interface methods to read out specific data from the ECAT files
     bool readMainHeader(CPhilipsMainHeader*& mainHeader);
+
+    // methods to generate some objects just for convienence
+    CPhilipsMainHeader* createEmptyMainHeader();
 
   private:
     CPhilipsFilePrivate* m_pData;
