@@ -40,7 +40,7 @@ class CPhilipsDirectoryItemPrivate
     
     CPhilipsDirectoryItem* dirItem; // pointer to the directory Item
     CPhilipsFile* file;             // pointer to the PhilipsFile
-    // CPhilipsSubHeader* cachedSubHeader;  // pointer to a cached SubHeader object
+    CPhilipsSubHeader* cachedSubHeader;  // pointer to a cached SubHeader object
 
     // META information about the directory Item
     short frame;                // information normally
@@ -62,7 +62,7 @@ CPhilipsDirectoryItem::CPhilipsDirectoryItem(CPhilipsFile* pFile,
   m_pData = new CPhilipsDirectoryItemPrivate();
   m_pData->dirItem = this;
   m_pData->file = pFile;
-  // m_pData->cachedSubHeader = NULL;
+  m_pData->cachedSubHeader = NULL;
   m_pData->dataBlock_Start = 0;
   m_pData->dataBlock_End = 0;
   m_pData->compressionFlag = Uncompressed;
@@ -90,7 +90,7 @@ CPhilipsDirectoryItem::~CPhilipsDirectoryItem()
 {
   ENTER();
 
-  // delete m_pData->cachedSubHeader;
+  delete m_pData->cachedSubHeader;
   delete m_pData;
 
   LEAVE();
@@ -142,6 +142,43 @@ short CPhilipsDirectoryItem::slice() const
 short CPhilipsDirectoryItem::tilt() const
 { 
   return m_pData->tilt;
+}
+
+bool CPhilipsDirectoryItem::readSubHeader(CPhilipsSubHeader*& subHeader)
+{
+  ENTER();
+  bool result = false;
+
+  // if(m_pData->file && m_pData->file->isReadable())
+  // {
+  //   // check if we have a cached sub header ready already so that
+  //   // we can take that one instead of loading the sub header once
+  //   // more from scratch
+  //   if(m_pData->cachedSubHeader)
+  //   {
+  //     switch(m_pData->file->subHeaderType())
+  //     {
+  //       case CPhilipsSubHeader::Image:
+
+  //       break;
+
+  //       case CPhilipsSubHeader::Sinogram:
+
+  //       break;          
+
+  //       default:
+  //         E("philips type isn't specified or not supported yet.");
+        
+  //     }
+  //   }
+  //   else
+  //   {
+
+  //   }
+  // }
+
+  RETURN(result);
+  return result;
 }
 
 QDataStream& operator>>(QDataStream& stream, CPhilipsDirectoryItem& dItem)

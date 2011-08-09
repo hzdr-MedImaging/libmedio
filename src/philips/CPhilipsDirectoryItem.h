@@ -28,9 +28,9 @@
 #include <QDataStream>
 
 #ifndef __MEDIO_PRIVATE__
-//#include <CPhilipsSubHeader>
+#include <CPhilipsSubHeader>
 #else
-//#include <CPhilipsSubHeader.h>
+#include <CPhilipsSubHeader.h>
 // some useful defines on the Philips file format
 // especially for PhilipsBlock calculation as Philips Files
 // are seperated in 512 byte blocks and positions within
@@ -104,8 +104,8 @@ class CPhilipsDirectoryItem
     // void setBed(const short b);
     // void setData(const short d);
       
-    // // read i/o methods
-    // bool readSubHeader(CPhilipsSubHeader*& subHeader);
+    // read i/o methods
+    bool readSubHeader(CPhilipsSubHeader*& subHeader);
     // bool readMatrix(QByteArray*& data);
     // bool readMatrix(char*& data, unsigned int& len);
     // bool readMatrix(QByteArray*& data, CPhilipsSubHeader*& subHeader);

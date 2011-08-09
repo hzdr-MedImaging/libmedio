@@ -299,6 +299,23 @@ bool CPhilipsFile::readMainHeader(CPhilipsMainHeader*& mainHeader)
   return result;
 }
 
+bool CPhilipsFile::readSubHeader(CPhilipsSubHeader*& subHeader, short slice,
+                                 short frame, short tilt)
+{
+  ENTER();
+  bool result = false;
+
+  ASSERT(m_pData->directory);
+
+  // before we are going to read the SubHeader from the philips file we
+  // have to check wheter the file is correctly open in Read mode.
+  if(isReadable() && m_pData->directory)
+    result = m_pData->directory->readSubHeader(subHeader, slice, frame, tilt);
+  
+  RETURN(result);
+  return result;
+}
+
 CPhilipsMainHeader* CPhilipsFile::createEmptyMainHeader()
 {
   ENTER();

@@ -63,14 +63,14 @@ struct Philips_DirList // should be 512 bytes
 
 // macro for quickly checking if the frame/plane/gate/bed/data
 // matrix parameters are between bounds or not
-#define matrixParamsValid(f, s, t) ((f) >= 0 && (f) < 100  && \
-                                    (p) >= 0 && (p) < 4095 && \
-                                    (g) >= 0 && (g) < 15)
+#define matrixParamsValid(s, f, t) ((s) >= 0 && (s) < 4095 && \
+                                    (f) >= 0 && (f) < 100 && \
+                                    (t) >= 0 && (t) < 15)
 
 class CPhilipsDirectoryPrivate
 {
   public:
-    CPhilipsFile* file;            // ptr to our associated ECATFile
+    CPhilipsFile* file;            // ptr to our associated philipsFile
     QMap<quint32, CPhilipsDirectoryItem*> dirItems; // value map of dirItems
     QVector<qint64> filePositions; // for each DirList we
                                    // may have different file
@@ -408,4 +408,23 @@ short CPhilipsDirectory::numTilts() const
   
   RETURN(tiltsNum);
   return tiltsNum;
+}
+
+bool CPhilipsDirectory::readSubHeader(CPhilipsSubHeader*& subHeader, short slice, short frame,
+                                   short tilt)
+{
+  ENTER();
+  bool result = false;
+
+  if(matrixParamsValid(slice, frame, tilt))
+  {
+    // get the directoryItem so that we can query the matrix from it
+    CPhilipsDirectoryItem* pDirItem = m_pData->dirItems.value(convertToMatrixID(slice, frame, tilt));
+
+    if(pDirItem)
+      result = pDirItem->readSubHeader(subHeader);
+  }
+  
+  RETURN(result);
+  return result;
 }

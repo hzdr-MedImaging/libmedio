@@ -51,7 +51,9 @@ class CMedIOHeader
       ConcordeMicroPetMainHeader,  //!< main header of concorde microPET scanner
       ConcordeMicroPetFrameHeader,  //!< frame header of concorde microPET scanner
       ECATMainHeader,      //!< main header of ECAT6/7 PET scanners
-      ECATSubHeader      //!< sub header of ECAT6/7 PET scanners
+      ECATSubHeader,      //!< sub header of ECAT6/7 PET scanners
+      PhilipsMainHeader,  //!< main header of philips scanners
+      PhilipsSubHeader    //!< sub header of philips scanners
     };
 
     // constructors

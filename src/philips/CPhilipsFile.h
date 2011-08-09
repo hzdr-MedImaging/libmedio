@@ -31,11 +31,11 @@
 #ifndef __MEDIO_PRIVATE__
 #include <CMedIOData>
 #include <CPhilipsMainHeader>
-//#include <CPhilipsSubHeader>
+#include <CPhilipsSubHeader>
 #else
 #include <CMedIOData.h>
 #include <CPhilipsMainHeader.h>
-//#include <CPhilipsSubHeader.h>
+#include <CPhilipsSubHeader.h>
 #endif
 
 // forward declarations
@@ -64,8 +64,9 @@ class CPhilipsFile : public CMedIOData
     short minSlice(void) const;
     short numTilts(void) const;
 
-    // interface methods to read out specific data from the ECAT files
+    // interface methods to read out specific data from the philips files
     bool readMainHeader(CPhilipsMainHeader*& mainHeader);
+    bool readSubHeader(CPhilipsSubHeader*& subHeader, short slice, short frame=1, short tilt=0);
 
     // methods to generate some objects just for convienence
     CPhilipsMainHeader* createEmptyMainHeader();

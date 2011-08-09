@@ -25,11 +25,11 @@
 #ifndef CPHILIPSDIRECTORY_H
 #define CPHILIPSDIRECTORY_H
 
-// #ifndef __MEDIO_PRIVATE__
-// #include <CPhilipsDirectoryItem>
-// #else
-// #include <CPhilipsDirectoryItem.h>
-// #endif
+#ifndef __MEDIO_PRIVATE__
+#include <CPhilipsDirectoryItem>
+#else
+#include <CPhilipsDirectoryItem.h>
+#endif
 
 // forward declarations
 class CPhilipsDirectoryPrivate;
@@ -61,6 +61,10 @@ class CPhilipsDirectory
     short maxSlice(void) const;
     short minSlice(void) const;
     short numTilts(void) const;
+
+    // read methods
+    bool readSubHeader(CPhilipsSubHeader*& subHeader,
+                       short slice, short frame=1, short tilt=0);
 
   private:
     CPhilipsDirectoryPrivate* m_pData;

@@ -409,7 +409,7 @@ int CPhilipsMainHeader::rawDataSize() const
 
 CMedIOHeader::Format CPhilipsMainHeader::headerFormat() const
 { 
-  return CMedIOHeader::ECATMainHeader;
+  return CMedIOHeader::PhilipsMainHeader;
 }
 
 bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2) 
