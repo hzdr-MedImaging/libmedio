@@ -49,7 +49,7 @@ class CPhilipsSubHeader : public CMedIOHeader
                    };
 
     // constructor
-    CPhilipsSubHeader(CMedIOData* ecatFile,
+    CPhilipsSubHeader(CMedIOData* philipsFile,
                    CPhilipsDirectoryItem* dItem = NULL);
     
     // copy constructur and default assignment operator

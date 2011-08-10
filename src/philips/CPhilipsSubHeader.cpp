@@ -27,9 +27,9 @@
 
 #include <rtdebug.h>
 
-CPhilipsSubHeader::CPhilipsSubHeader(CMedIOData* ecatFile,
+CPhilipsSubHeader::CPhilipsSubHeader(CMedIOData* philipsFile,
                                      CPhilipsDirectoryItem* dItem)
-  : CMedIOHeader(ecatFile),
+  : CMedIOHeader(philipsFile),
     m_pDirItem(dItem)
 {
   ENTER();

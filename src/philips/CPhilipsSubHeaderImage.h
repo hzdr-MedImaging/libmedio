@@ -42,8 +42,7 @@ class CPhilipsSubHeaderImage : public CPhilipsSubHeader
     enum Randoms_Type { UndefinedRandomsType = 0,
                         NoneRandoms,
                         Delayed,
-                        Singles,
-                        Types
+                        Singles
                       };
 
     enum Decay_Type { UndefinedDecayType = 0,

@@ -150,9 +150,9 @@ class CPhilipsSubHeaderImagePrivate
   } header;
 };
 
-CPhilipsSubHeaderImage::CPhilipsSubHeaderImage(CPhilipsFile* ecatFile,
+CPhilipsSubHeaderImage::CPhilipsSubHeaderImage(CPhilipsFile* philipsFile,
                                                CPhilipsDirectoryItem* pDirItem)
-  : CPhilipsSubHeader(ecatFile, pDirItem)
+  : CPhilipsSubHeader(philipsFile, pDirItem)
 {
   ENTER();
 
@@ -206,10 +206,8 @@ void CPhilipsSubHeaderImage::clear()
   // clear our header structure first
   memset(&m_pData->header, 0, sizeof(struct CPhilipsSubHeaderImagePrivate::HeaderData));
   
-  // setData_Type(CECATSubHeader::UnknownDataType);
-  // setFilter_Code(NoFilter);
-  // setScatter_Type(None);
-  // setRecon_Type(FilteredBackProjection);
+  // set some default values
+  m_pData->header.magfac = 1.0; // Not used. always set to 1.0
 
   LEAVE();
 }
@@ -325,7 +323,7 @@ bool CPhilipsSubHeaderImage::load(void)
 
  // some more debug output
 #if defined(DEBUG)
-  D("ECAT7 Image SubHeader loaded:");
+  D("Philips Image SubHeader loaded:");
   D("----------------------------");
   D("version                 : %d",        m_pData->header.version);
   D("atten_corr : %s", m_pData->header.atten_corr);
@@ -366,17 +364,17 @@ bool CPhilipsSubHeaderImage::load(void)
   D("suvscl : %f", m_pData->header.suvscl);
   D("kvp : %f", m_pData->header.kvp);
   D("Dslice_loc : %f", m_pData->header.Dslice_loc);
-  D("magfac : %f", m_pData->header.magfac); // Not used. always set to 1.0
+  D("magfac : %f", m_pData->header.magfac);
   D("imgscl : %f", m_pData->header.imgscl);
   D("imgmin : %d", m_pData->header.imgmin);
   D("imgmax : %d", m_pData->header.imgmax);
   D("decay_corr : %d", m_pData->header.decay_corr);
-  D("scnscl : %f", m_pData->header.scnscl); // Sinogram only
+  D("scnscl : %f", m_pData->header.scnscl);
   D("strhr : %d", m_pData->header.strhr);
   D("strmin : %d", m_pData->header.strmin);
   D("strsec : %d", m_pData->header.strsec);
-  D("scnmin : %d", m_pData->header.scnmin); // Sinogram only
-  D("scnmax : %d", m_pData->header.scnmax); // Sinogram only
+  D("scnmin : %d", m_pData->header.scnmin);
+  D("scnmax : %d", m_pData->header.scnmax);
   D("endhr : %d", m_pData->header.endhr);
   D("endmin : %d", m_pData->header.endmin);
   D("endsec : %d", m_pData->header.endsec);
