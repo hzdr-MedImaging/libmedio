@@ -26,6 +26,6 @@ win32 {
   UI_DIR      = _ui
 }
 # Input
-HEADERS += testCPhilipsFile.h
-SOURCES += testCPhilipsFile.cpp testPhilipsFormat.cpp
+HEADERS += testCPhilipsFile.h testCPhilipsSubHeaderImage.h
+SOURCES += testCPhilipsFile.cpp testPhilipsFormat.cpp testCPhilipsSubHeaderImage.cpp
 

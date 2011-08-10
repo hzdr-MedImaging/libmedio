@@ -25,9 +25,22 @@ void TestCPhilipsFile::testReadMainHeader()
   delete mainHeader;
 }
 
-void TestCPhilipsFile::testWriteMainHeader()
+void TestCPhilipsFile::testGetFileType()
 {
+  CPhilipsMainHeader::File_Type fileType = CPhilipsMainHeader::Unknown;
 
+  fileType = m_pInputFile->fileType();
+
+  QCOMPARE(fileType, CPhilipsMainHeader::Image);
+}
+
+void TestCPhilipsFile::testGetSubHeaderType()
+{
+  CPhilipsSubHeader::Type subHeaderType = CPhilipsSubHeader::Unknown;
+
+  subHeaderType = m_pInputFile->subHeaderType();
+
+  QCOMPARE(subHeaderType, CPhilipsSubHeader::Image);
 }
 
 void TestCPhilipsFile::testCreateEmptyMainHeader()

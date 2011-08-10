@@ -45,7 +45,7 @@
 #endif
 
 // special macros to convert the MatrixID to their respect
-// frame/plane/gate/bed and data representation
+// slice/frame and tilt representation
 #define matrixID2Frame(x)  ( (x) & 0x0000FFFF)
 #define matrixID2Slice(x)  (((x) & 0x0FFF0000) >> 16)
 #define matrixID2Tilt(x)   (((x) & 0xF0000000) >> 28)
@@ -54,8 +54,8 @@
 #define slice2MatrixID(x)  (((x) & 0x00000FFF) << 16)
 #define tilt2MatrixID(x)   (((x) & 0x0000000F) << 28)
 
-#define convertToMatrixID(f, s, t) (frame2MatrixID(f) | \
-                                    slice2MatrixID(s) | \
+#define convertToMatrixID(s, f, t) (slice2MatrixID(s) | \
+                                    frame2MatrixID(f) | \
                                     tilt2MatrixID(t) )
 // forward declarations
 class CPhilipsDirectoryItemPrivate;

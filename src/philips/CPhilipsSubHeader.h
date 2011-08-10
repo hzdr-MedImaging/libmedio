@@ -38,8 +38,15 @@ class CPhilipsSubHeader : public CMedIOHeader
 {
   public:
     enum Type { Unknown = 0,
-              Image,
-              Sinogram};
+                Image,
+                Sinogram
+              };
+
+    enum Data_Type { ByteData = 1,      // 1: char
+                     SignedShort = 2,   // 2: short
+                     UnsignedShort = 3, // 2: unsigned short
+                     Float = 4          // 4: float
+                   };
 
     // constructor
     CPhilipsSubHeader(CMedIOData* ecatFile,
@@ -65,13 +72,6 @@ class CPhilipsSubHeader : public CMedIOHeader
 
     // internal method to set the directory Item of a subHeader
     void setDirectoryItem(CPhilipsDirectoryItem* dItem);
-
-    // try to convert the given medio header in this header type
-    virtual bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL) = 0;
-    
-    // create a new medio header of the same type as pSrc and
-    // copy all meta information
-    virtual CMedIOHeader* clone() const = 0;
 
   protected:
     CPhilipsDirectoryItem* m_pDirItem; // the directory item to which this

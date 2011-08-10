@@ -56,6 +56,9 @@ class CPhilipsFile : public CMedIOData
     bool open(QIODevice::OpenModeFlag mode);
     void close(void);
 
+    CPhilipsMainHeader::File_Type fileType();
+    CPhilipsSubHeader::Type subHeaderType();
+
     // methods to calculate the real amount
     // of frame/plane/gate numbers carried in the directory.
     short maxFrame(void) const;

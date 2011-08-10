@@ -248,6 +248,64 @@ void CPhilipsFile::close()
   LEAVE();
 }
 
+CPhilipsMainHeader::File_Type CPhilipsFile::fileType()
+{
+  ENTER();
+  CPhilipsMainHeader::File_Type type = CPhilipsMainHeader::Unknown;
+
+  if(isOpen())
+  {
+    bool cachedMainHeaderUsed = true;
+    CPhilipsMainHeader* mainHeader = m_pData->cachedMainHeader;
+    SHOWPOINTER(mainHeader);
+    if(mainHeader == NULL)
+    {
+      cachedMainHeaderUsed = false;
+      if(readMainHeader(mainHeader) == false)
+      {
+        delete mainHeader;
+
+        RETURN(CPhilipsMainHeader::Unknown);
+        return CPhilipsMainHeader::Unknown;
+      }
+    }
+
+    type = mainHeader->file_Type();
+
+    if(cachedMainHeaderUsed == false)
+      delete mainHeader;
+  }
+
+  RETURN(type);
+  return type;
+}
+
+CPhilipsSubHeader::Type CPhilipsFile::subHeaderType()
+{
+  ENTER();
+  CPhilipsSubHeader::Type type = CPhilipsSubHeader::Unknown;
+
+  // we use the file type from the main header
+  switch(fileType())
+  {
+    case CPhilipsMainHeader::Image:
+      type = CPhilipsSubHeader::Image;
+    break;
+
+    case CPhilipsMainHeader::Sinogram:
+      type = CPhilipsSubHeader::Sinogram;
+    break;
+
+    default:
+    {
+      W("Philips fileType couldn't be identified.");
+    }
+  }
+
+  RETURN(type);
+  return type;
+}
+
 bool CPhilipsFile::readMainHeader(CPhilipsMainHeader*& mainHeader)
 {
   ENTER();
@@ -304,7 +362,7 @@ bool CPhilipsFile::readSubHeader(CPhilipsSubHeader*& subHeader, short slice,
 {
   ENTER();
   bool result = false;
-
+  D("IN philips file readSubHeader");
   ASSERT(m_pData->directory);
 
   // before we are going to read the SubHeader from the philips file we

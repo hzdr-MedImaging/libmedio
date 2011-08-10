@@ -2,16 +2,13 @@
 
 class CPhilipsFile;
 
-class TestCPhilipsFile : public QObject
+class TestCPhilipsSubHeaderImage : public QObject
 {
   Q_OBJECT
 
   private slots:
     void initTestCase();
-    void testReadMainHeader();
-    void testGetFileType();
-    void testGetSubHeaderType();
-    void testCreateEmptyMainHeader();
+    void testLoad();
     void cleanupTestCase();
 
   private:

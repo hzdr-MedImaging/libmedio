@@ -25,7 +25,8 @@
 #include "CPhilipsDirectoryItem.h"
 #include "CPhilipsFile.h"
 
-//#include "CPhilipsSubHeader.h"
+#include "CPhilipsSubHeader.h"
+#include "CPhilipsSubHeaderImage.h"
 
 #include <QDataStream>
 #include <rtdebug.h>
@@ -98,8 +99,8 @@ CPhilipsDirectoryItem::~CPhilipsDirectoryItem()
 
 quint32 CPhilipsDirectoryItem::matrixID() const
 { 
-  return convertToMatrixID(m_pData->frame, 
-                           m_pData->slice, 
+  return convertToMatrixID(m_pData->slice, 
+                           m_pData->frame, 
                            m_pData->tilt);
 }
 
@@ -148,34 +149,60 @@ bool CPhilipsDirectoryItem::readSubHeader(CPhilipsSubHeader*& subHeader)
 {
   ENTER();
   bool result = false;
+  D("IN dir item readSubHeader");
 
-  // if(m_pData->file && m_pData->file->isReadable())
-  // {
-  //   // check if we have a cached sub header ready already so that
-  //   // we can take that one instead of loading the sub header once
-  //   // more from scratch
-  //   if(m_pData->cachedSubHeader)
-  //   {
-  //     switch(m_pData->file->subHeaderType())
-  //     {
-  //       case CPhilipsSubHeader::Image:
+  if(m_pData->file && m_pData->file->isReadable())
+  {
+    // check if we have a cached sub header ready already so that
+    // we can take that one instead of loading the sub header once
+    // more from scratch
+    if(m_pData->cachedSubHeader)
+    {
+      switch(m_pData->file->subHeaderType())
+      {
+        case CPhilipsSubHeader::Image:
 
-  //       break;
+        break;
 
-  //       case CPhilipsSubHeader::Sinogram:
+        case CPhilipsSubHeader::Sinogram:
 
-  //       break;          
+        break;          
 
-  //       default:
-  //         E("philips type isn't specified or not supported yet.");
+        default:
+          E("philips type isn't specified or not supported yet.");
         
-  //     }
-  //   }
-  //   else
-  //   {
+      }
+    }
+    else
+    {
+      // lets prepare the SubHeader depending on the type of the
+      // PhilipsFile
+      switch(m_pData->file->subHeaderType())
+      {
+        case CPhilipsSubHeader::Image:
+          subHeader = new CPhilipsSubHeaderImage(m_pData->file, this);
+        break;
 
-  //   }
-  // }
+        case CPhilipsSubHeader::Sinogram:
+          W("CPHilipsSubHeaderSinogram not supported yet.");
+        break;
+
+        default:
+          E("Philips type isn't specified or not supported yet.");
+      }
+    }
+
+    if(subHeader)
+    {
+      if(subHeader->load() == false)
+      {
+        delete subHeader;
+        subHeader = NULL;
+      }
+      else
+        result = true;
+    }
+  }
 
   RETURN(result);
   return result;

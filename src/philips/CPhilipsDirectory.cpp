@@ -411,16 +411,17 @@ short CPhilipsDirectory::numTilts() const
 }
 
 bool CPhilipsDirectory::readSubHeader(CPhilipsSubHeader*& subHeader, short slice, short frame,
-                                   short tilt)
+                                      short tilt)
 {
   ENTER();
   bool result = false;
-
+  D("IN directory readSubHeader");
+  
   if(matrixParamsValid(slice, frame, tilt))
   {
     // get the directoryItem so that we can query the matrix from it
     CPhilipsDirectoryItem* pDirItem = m_pData->dirItems.value(convertToMatrixID(slice, frame, tilt));
-
+    SHOWVALUE(pDirItem);
     if(pDirItem)
       result = pDirItem->readSubHeader(subHeader);
   }
