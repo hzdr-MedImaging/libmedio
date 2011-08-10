@@ -50,9 +50,9 @@ class CPhilipsSubHeaderImagePrivate
                           * 1). Used in analyze anz2u.c in imagio.c
                           * Convert UCLA to Analyze Format */
     float imgscl;        /* Image scale factor (nominally 1.) */
-    int imgmin;          /* Minimum value in image; scaled to short by 
+    qint16 imgmin;          /* Minimum value in image; scaled to short by 
                           * wrshdr() */
-    int imgmax;          /* Maximum value in image; scaled to short
+    qint16 imgmax;          /* Maximum value in image; scaled to short
                           * by wrshdr() */
     float suvscl;        /* SUV scale factor (non-zero only after
                           * running suv program) */
@@ -65,9 +65,9 @@ class CPhilipsSubHeaderImagePrivate
     qint16 start_date_time_msec; /* Fraction of a second (in msec) to be added to start_date_time ... */
                                 /*  to give a more accurate start time. Use access functions to read/write.*/
 
-    int scnmin;          /* Minimum value in sinogram; scaled to
+    qint16 scnmin;          /* Minimum value in sinogram; scaled to
                           * short by wrshdr() */
-    int scnmax;          /* Maximum value in sinogram; scaled to
+    qint16 scnmax;          /* Maximum value in sinogram; scaled to
                           * short by wrshdr() */
     qint16 endhr;     /* (Deprecated - use end_date_time) Ending time of this frame: hour. */
     qint16 endmin;    /* (Deprecated - use end_date_time) Ending time of this frame: minute. */
@@ -133,20 +133,20 @@ class CPhilipsSubHeaderImagePrivate
     /*  resp cycles in which this image occurs. */
     char scatter_corr[16];  /* Scatter corr used */
 
-    short deadtime_corr;  /* Whether deadtime corr was used (bool)*/
+    qint16 deadtime_corr;  /* Whether deadtime corr was used (bool)*/
 
-    /*Randoms_Type*/short randoms_corr;  /* Type of randoms correction */
+    /*Randoms_Type*/qint16 randoms_corr;  /* Type of randoms correction */
 
-    short det_norm;   /* Whether the detector was normalized (bool)*/
-    short nu_radsamp_corr;  /* Whether non-unif radial samp corr was used (bool)*/
-    short pat_mot_corr;   /* Whether patient motion corr was used (bool)*/
-    short cntloss_corr;   /* Whether count loss corr was applied (bool)*/
+    qint16 det_norm;   /* Whether the detector was normalized (bool)*/
+    qint16 nu_radsamp_corr;  /* Whether non-unif radial samp corr was used (bool)*/
+    qint16 pat_mot_corr;   /* Whether patient motion corr was used (bool)*/
+    qint16 cntloss_corr;   /* Whether count loss corr was applied (bool)*/
 
-    /*Decay_Type*/short decay_corr; /* Type of decay correction */
+    /*Decay_Type*/qint16 decay_corr; /* Type of decay correction */
     char recon_method[16];  /* Recon algorithm used */
-    /* Laterality_Type */short laterality; /* Description of the laterality of */
+    /* Laterality_Type */qint16 laterality; /* Description of the laterality of */
                                 /*  (possibly paired) body parts.   */
-    /*Anatomy_Type*/short anatomy;   /* Identifies the anatomic region of interest */
+    /*Anatomy_Type*/qint16 anatomy;   /* Identifies the anatomic region of interest */
   } header;
 };
 
@@ -354,48 +354,48 @@ bool CPhilipsSubHeaderImage::load(void)
   D("datype : %d", m_pData->header.datype);
 
 
-  // D("xdim : %", m_pData->header.xdim);
-  // D("ydim : %", m_pData->header.ydim);
-  // D("slcnum : %", m_pData->header.slcnum);
-  // D("tiltnum : %", m_pData->header.tiltnum);
-  // D("gatint : %", m_pData->header.gatint);
-  // D("cntloss_corr : %", m_pData->header.cntloss_corr);
-  // D("pix_spacing[0] : %", m_pData->header.pix_spacing[0]);
-  // D("pix_spacing[1] : %", m_pData->header.pix_spacing[1]);
-  // D("xray_current : %", m_pData->header.xray_current);
-  // D("suvscl : %", m_pData->header.suvscl);
-  // D("kvp : %", m_pData->header.kvp);
-  // D("Dslice_loc : %", m_pData->header.Dslice_loc);
-  // D("magfac : %", m_pData->header.magfac);
-  // D("imgscl : %", m_pData->header.imgscl);
-  // D("imgmin : %", m_pData->header.imgmin);
-  // D("imgmax : %", m_pData->header.imgmax);
-  // D("decay_corr : %", m_pData->header.decay_corr);
-  // D("scnscl : %", m_pData->header.scnscl);
-  // D("strhr : %", m_pData->header.strhr);
-  // D("strmin : %", m_pData->header.strmin);
-  // D("strsec : %", m_pData->header.strsec);
-  // D("scnmin : %", m_pData->header.scnmin);
-  // D("scnmax : %", m_pData->header.scnmax);
-  // D("endhr : %", m_pData->header.endhr);
-  // D("endmin : %", m_pData->header.endmin);
-  // D("endsec : %", m_pData->header.endsec);
-  // D("midtim : %", m_pData->header.midtim);
-  // D("mseclen : %", m_pData->header.mseclen);
-  // D("scnlen : %", m_pData->header.scnlen);
-  // D("imgsum : %", m_pData->header.imgsum);
-  // D("scnsum : %", m_pData->header.scnsum);
-  // D("bgdelrt : %", m_pData->header.bgdelrt);
-  // D("enddelrt : %", m_pData->header.enddelrt);
-  // D("bgsngrt : %", m_pData->header.bgsngrt);
-  // D("bgcoincrt : %", m_pData->header.bgcoincrt);
-  // D("endsngrt : %", m_pData->header.endsngrt);
-  // D("endcoincrt : %", m_pData->header.endcoincrt);
-  // D("deadtimefac : %", m_pData->header.deadtimefac);
-  // D("bedpos : %", m_pData->header.bedpos);
-  // D("deadtime_bgsub : %", m_pData->header.deadtime_bgsub);
-  // D("sop_uid: %s", m_pData->header.sop_uid);
-  // D("recon_method: %s", m_pData->header.recon_method);
+  D("xdim : %d", m_pData->header.xdim);
+  D("ydim : %d", m_pData->header.ydim);
+  D("slcnum : %d", m_pData->header.slcnum);
+  D("tiltnum : %d", m_pData->header.tiltnum);
+  D("gatint : %d", m_pData->header.gatint);
+  D("cntloss_corr : %d", m_pData->header.cntloss_corr);
+  D("pix_spacing[0] : %f", m_pData->header.pix_spacing[0]);
+  D("pix_spacing[1] : %f", m_pData->header.pix_spacing[1]);
+  D("xray_current : %f", m_pData->header.xray_current);
+  D("suvscl : %f", m_pData->header.suvscl);
+  D("kvp : %f", m_pData->header.kvp);
+  D("Dslice_loc : %f", m_pData->header.Dslice_loc);
+  D("magfac : %f", m_pData->header.magfac); // Not used. always set to 1.0
+  D("imgscl : %f", m_pData->header.imgscl);
+  D("imgmin : %d", m_pData->header.imgmin);
+  D("imgmax : %d", m_pData->header.imgmax);
+  D("decay_corr : %d", m_pData->header.decay_corr);
+  D("scnscl : %f", m_pData->header.scnscl); // Sinogram only
+  D("strhr : %d", m_pData->header.strhr);
+  D("strmin : %d", m_pData->header.strmin);
+  D("strsec : %d", m_pData->header.strsec);
+  D("scnmin : %d", m_pData->header.scnmin); // Sinogram only
+  D("scnmax : %d", m_pData->header.scnmax); // Sinogram only
+  D("endhr : %d", m_pData->header.endhr);
+  D("endmin : %d", m_pData->header.endmin);
+  D("endsec : %d", m_pData->header.endsec);
+  D("midtim : %d", m_pData->header.midtim);
+  D("mseclen : %d", m_pData->header.mseclen);
+  D("scnlen : %d sec", m_pData->header.scnlen);
+  D("imgsum : %f", m_pData->header.imgsum);
+  D("scnsum : %f", m_pData->header.scnsum);
+  D("bgdelrt : %f", m_pData->header.bgdelrt);
+  D("enddelrt : %f", m_pData->header.enddelrt);
+  D("bgsngrt : %f", m_pData->header.bgsngrt);
+  D("bgcoincrt : %f", m_pData->header.bgcoincrt);
+  D("endsngrt : %f", m_pData->header.endsngrt);
+  D("endcoincrt : %f", m_pData->header.endcoincrt);
+  D("deadtimefac : %f", m_pData->header.deadtimefac);
+  D("bedpos : %d", m_pData->header.bedpos);
+  D("deadtime_bgsub : %f", m_pData->header.deadtime_bgsub);
+  D("sop_uid: %s", m_pData->header.sop_uid);
+  D("recon_method: %s", m_pData->header.recon_method);
 #endif
 
   RETURN(true);
