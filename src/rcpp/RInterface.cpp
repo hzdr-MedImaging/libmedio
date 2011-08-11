@@ -50,10 +50,10 @@ RcppExport SEXP readEcat(SEXP vfile,
 
     if(inputFile.readMainHeader_Rcpp(mhead) == true)
     {
-      int num_frames = static_cast<int>(mhead("num_frames"));
-      int num_gates = static_cast<int>(mhead("num_gates"));
-      int num_bed_pos = static_cast<int>(mhead("num_bed_pos"));
-      float ecat_calibration_factor = static_cast<float>(mhead("ecat_calibration_factor"));
+      int num_frames = Rcpp::as<int>(mhead["num_frames"]);
+      int num_gates = Rcpp::as<int>(mhead["num_gates"]);
+      int num_bed_pos = Rcpp::as<int>(mhead["num_bed_pos"]);
+      float ecat_calibration_factor = Rcpp::as<float>(mhead["ecat_calibration_factor"]);
 
       as_volume which_to_use;
 
@@ -136,14 +136,14 @@ RcppExport SEXP readEcat(SEXP vfile,
 
         if(inputFile.readSubHeader_Rcpp(subHeader, frame, 1, gate, bed, 0) == true)
         {
-          int data_type = static_cast<int>(subHeader("data_type"));
-          short x_dimension = static_cast<short>(subHeader("x_dimension"));
-          short y_dimension = static_cast<short>(subHeader("y_dimension"));
-          short z_dimension = static_cast<short>(subHeader("z_dimension"));
-          float scale_factor = static_cast<float>(subHeader("scale_factor"));
-          float x_pixelsize = static_cast<float>(subHeader("x_pixelsize"));
-          float y_pixelsize = static_cast<float>(subHeader("y_pixelsize"));
-          float z_pixelsize = static_cast<float>(subHeader("z_pixelsize"));
+          int data_type = Rcpp::as<int>(subHeader["data_type"]);
+          short x_dimension = Rcpp::as<short>(subHeader["x_dimension"]);
+          short y_dimension = Rcpp::as<short>(subHeader["y_dimension"]);
+          short z_dimension = Rcpp::as<short>(subHeader["z_dimension"]);
+          float scale_factor = Rcpp::as<float>(subHeader["scale_factor"]);
+          float x_pixelsize = Rcpp::as<float>(subHeader["x_pixelsize"]);
+          float y_pixelsize = Rcpp::as<float>(subHeader["y_pixelsize"]);
+          float z_pixelsize = Rcpp::as<float>(subHeader["z_pixelsize"]);
 
           // check if rows, cols and/or planes index arrays are given
           // if not take all of them
@@ -286,8 +286,8 @@ RcppExport SEXP readEcat(SEXP vfile,
             rList.push_back(matrixData, tag.toAscii().constData());
 
             // calculate the frame midpoint of this volume
-            unsigned int frame_duration = static_cast<unsigned int>(subHeader("frame_duration")) / 1000; // [s]
-            unsigned int frame_start = static_cast<unsigned int>(subHeader("frame_start")) / 1000; // [s]
+            unsigned int frame_duration = Rcpp::as<unsigned int>(subHeader["frame_duration"]) / 1000; // [s]
+            unsigned int frame_start = Rcpp::as<unsigned int>(subHeader["frame_start"]) / 1000; // [s]
             double fm = frame_start + frame_duration / 2;
             frame_midpoint.push_back(fm);
           }
@@ -322,7 +322,7 @@ RcppExport SEXP readEcat(SEXP vfile,
   END_RCPP
 }
 
-RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
+RcppExport SEXP writeEcat(SEXP ecat, SEXP vfilename)
 {
   BEGIN_RCPP
 
@@ -330,15 +330,13 @@ RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
   Rcpp::List RcppEcatFile;
   QString outputFileName;
 
-  if(Rcpp::RObject(vfile).isNULL())
+  if(Rcpp::RObject(vfilename).isNULL())
   {
     cerr << "ERROR: no output file name given." << endl;
     result = false;
   }
   else
-  {
-    outputFileName = Rcpp::as<string>(vfile).c_str();
-  }
+    outputFileName = Rcpp::as<string>(vfilename).c_str();
 
   if(Rcpp::RObject(ecat).isNULL())
   {
@@ -366,7 +364,7 @@ RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
     if(outputFile.open(QIODevice::ReadWrite) && outputFile.format() != CECATFile::Undefined)
     {
       Rcpp::List RcppMainHeader = RcppEcatFile.attr("mhead");
-      int file_type = Rcpp::as<int>(RcppMainHeader("file_type"));
+      //int file_type = Rcpp::as<int>(RcppMainHeader("file_type"));
 
       if(outputFile.writeMainHeader_Rcpp(RcppMainHeader) == false)
       {
@@ -406,11 +404,11 @@ RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
               cerr << "ERROR: there is something wrong with the volume names." << endl;
           }
 
-          short x_dimension = Rcpp::as<short>(rSubHeader("x_dimension"));
-          short y_dimension = Rcpp::as<short>(rSubHeader("y_dimension"));
-          short z_dimension = Rcpp::as<short>(rSubHeader("z_dimension"));
+          short x_dimension = Rcpp::as<short>(rSubHeader["x_dimension"]);
+          short y_dimension = Rcpp::as<short>(rSubHeader["y_dimension"]);
+          short z_dimension = Rcpp::as<short>(rSubHeader["z_dimension"]);
 
-          float ecat_calibration_factor = Rcpp::as<float>(RcppMainHeader("ecat_calibration_factor"));
+          float ecat_calibration_factor = Rcpp::as<float>(RcppMainHeader["ecat_calibration_factor"]);
 
           int plane_size = x_dimension * y_dimension;
           int dataSize = plane_size * z_dimension;
@@ -458,9 +456,9 @@ RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat)
               }
             }            
 
-            rSubHeader("scale_factor") = newScaleFactor;
-            rSubHeader("image_min") = static_cast<short>(qRound(newMin / newScaleFactor));
-            rSubHeader("image_max") = static_cast<short>(qRound(newMax / newScaleFactor));
+            rSubHeader["scale_factor"] = newScaleFactor;
+            rSubHeader["image_min"] = static_cast<short>(qRound(newMin / newScaleFactor));
+            rSubHeader["image_max"] = static_cast<short>(qRound(newMax / newScaleFactor));
 
             if(outputFile.writeSubHeader_Rcpp(rSubHeader, frame, 1, gate, bed))
             {

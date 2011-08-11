@@ -1,6 +1,9 @@
 #include "CRECATFile.h"
+
 #include <iostream>
+
 #include <Rcpp.h>
+
 #include "CECATFile.h"
 #include "CECAT7MainHeader.h"
 #include "CECAT7SubHeaderImage.h"
@@ -74,12 +77,10 @@ bool CRECATFile::readMainHeader_Rcpp(Rcpp::List& mainHeader)
       int num_gates = mHeader->num_Gates();
       int num_bed_pos = mHeader->num_Bed_Pos();
       float init_bed_position = mHeader->init_Bed_Position();
+
       vector<float> bed_offset(15);
-      
-      for(short i = 0; i < 15; ++i)
-      {
+      for(unsigned short i=0; i < bed_offset.size(); ++i)
         bed_offset[i] = mHeader->bed_Offset(i);
-      }
 
       float plane_separation = mHeader->plane_Separation();
       short lwr_sctr_thres = mHeader->lwr_Sctr_Thres();
@@ -94,12 +95,10 @@ bool CRECATFile::readMainHeader_Rcpp(Rcpp::List& mainHeader)
       float well_counter_corr_factor = mHeader->well_Counter_Corr_Factor();
       string data_units = mHeader->data_Units();
       int septa_state = mHeader->septa_State();
-      vector<short> cti_reserved(6);
 
-      for(short i = 0; i < 6; ++i)
-      {
+      vector<short> cti_reserved(6);
+      for(unsigned short i=0; i < cti_reserved.size(); ++i)
         cti_reserved[i] = mHeader->cti_Reserved(i);
-      }
 
       mainHeader.push_back(magic_number, "magic_number");
       mainHeader.push_back(original_file_name, "original_file_name");
@@ -183,7 +182,7 @@ bool CRECATFile::readSubHeader_Rcpp(Rcpp::List& subHeader,
     if(format() == CECATFile::ECAT7)
     {
       CECAT7SubHeaderImage* sHeadImage = static_cast<CECAT7SubHeaderImage*>(sHead);
-      int data_type = sHeadImage->data_Type();
+      int data_type = static_cast<int>(sHeadImage->data_Type());
       short num_dimensions = sHeadImage->num_Dimensions();
       short x_dimension = sHeadImage->x_Dimension();
       short y_dimension = sHeadImage->y_Dimension();
@@ -243,19 +242,14 @@ bool CRECATFile::readSubHeader_Rcpp(Rcpp::List& subHeader,
       int scatter_type = sHeadImage->scatter_Type();
       int recon_type = sHeadImage->recon_Type();
       short recon_views = sHeadImage->recon_Views();
-      vector<short> cti_reserved(87);
 
-      for(short i = 0; i < 87; ++i)
-      {
+      vector<short> cti_reserved(87);
+      for(unsigned short i=0; i < cti_reserved.size(); ++i)
         cti_reserved[i] = sHeadImage->cti_Reserved(i);
-      }
 
       vector<short> user_reserved(48);
-
-      for(short i = 0; i < 48; ++i)
-      {
+      for(unsigned short i=0; i < user_reserved.size(); ++i)
         user_reserved[i] = sHeadImage->user_Reserved(i);
-      }
 
       subHeader.push_back(data_type, "data_type");
       subHeader.push_back(num_dimensions, "num_dimensions");
@@ -360,73 +354,73 @@ bool CRECATFile::writeSubHeader_Rcpp(Rcpp::List& subHeader,
 
   if(format() == CECATFile::ECAT7)
   {
-    int data_type = Rcpp::as<int>(subHeader("data_type"));
-    short num_dimensions = Rcpp::as<short>(subHeader("num_dimensions"));
-    short x_dimension = Rcpp::as<short>(subHeader("x_dimension"));
-    short y_dimension = Rcpp::as<short>(subHeader("y_dimension"));
-    short z_dimension = Rcpp::as<short>(subHeader("z_dimension"));
-    float scale_factor = Rcpp::as<float>(subHeader("scale_factor"));
-    float x_pixelsize = Rcpp::as<float>(subHeader("x_pixelsize"));
-    float y_pixelsize = Rcpp::as<float>(subHeader("y_pixelsize"));
-    float z_pixelsize = Rcpp::as<float>(subHeader("z_pixelsize"));
+    int data_type = Rcpp::as<int>(subHeader["data_type"]);
+    short num_dimensions = Rcpp::as<short>(subHeader["num_dimensions"]);
+    short x_dimension = Rcpp::as<short>(subHeader["x_dimension"]);
+    short y_dimension = Rcpp::as<short>(subHeader["y_dimension"]);
+    short z_dimension = Rcpp::as<short>(subHeader["z_dimension"]);
+    float scale_factor = Rcpp::as<float>(subHeader["scale_factor"]);
+    float x_pixelsize = Rcpp::as<float>(subHeader["x_pixelsize"]);
+    float y_pixelsize = Rcpp::as<float>(subHeader["y_pixelsize"]);
+    float z_pixelsize = Rcpp::as<float>(subHeader["z_pixelsize"]);
 
-    float x_offset = Rcpp::as<float>(subHeader("x_offset"));
-    float y_offset = Rcpp::as<float>(subHeader("y_offset"));
-    float z_offset = Rcpp::as<float>(subHeader("z_offset"));
-    float recon_zoom = Rcpp::as<float>(subHeader("recon_zoom"));
+    float x_offset = Rcpp::as<float>(subHeader["x_offset"]);
+    float y_offset = Rcpp::as<float>(subHeader["y_offset"]);
+    float z_offset = Rcpp::as<float>(subHeader["z_offset"]);
+    float recon_zoom = Rcpp::as<float>(subHeader["recon_zoom"]);
     
-    short image_min = Rcpp::as<short>(subHeader("image_min"));
-    short image_max = Rcpp::as<short>(subHeader("image_max"));
+    short image_min = Rcpp::as<short>(subHeader["image_min"]);
+    short image_max = Rcpp::as<short>(subHeader["image_max"]);
 
-    unsigned int frame_duration = Rcpp::as<unsigned int>(subHeader("frame_duration"));
-    unsigned int frame_start = Rcpp::as<unsigned int>(subHeader("frame_start"));
+    unsigned int frame_duration = Rcpp::as<unsigned int>(subHeader["frame_duration"]);
+    unsigned int frame_start = Rcpp::as<unsigned int>(subHeader["frame_start"]);
 
-    int filter_code = Rcpp::as<int>(subHeader("filter_code"));
-    float x_resolution = Rcpp::as<float>(subHeader("x_resolution"));
-    float y_resolution = Rcpp::as<float>(subHeader("y_resolution"));
-    float z_resolution = Rcpp::as<float>(subHeader("z_resolution"));
-    float num_r_elements = Rcpp::as<float>(subHeader("num_r_elements"));
-    float num_angles = Rcpp::as<float>(subHeader("num_angles"));
-    float z_rotation_angle = Rcpp::as<float>(subHeader("z_rotation_angle"));
-    float decay_corr_fctr = Rcpp::as<float>(subHeader("decay_corr_fctr"));
+    int filter_code = Rcpp::as<int>(subHeader["filter_code"]);
+    float x_resolution = Rcpp::as<float>(subHeader["x_resolution"]);
+    float y_resolution = Rcpp::as<float>(subHeader["y_resolution"]);
+    float z_resolution = Rcpp::as<float>(subHeader["z_resolution"]);
+    float num_r_elements = Rcpp::as<float>(subHeader["num_r_elements"]);
+    float num_angles = Rcpp::as<float>(subHeader["num_angles"]);
+    float z_rotation_angle = Rcpp::as<float>(subHeader["z_rotation_angle"]);
+    float decay_corr_fctr = Rcpp::as<float>(subHeader["decay_corr_fctr"]);
 
-    unsigned int processing_code = Rcpp::as<unsigned int>(subHeader("processing_code"));
-    unsigned int gate_duration = Rcpp::as<unsigned int>(subHeader("gate_duration"));
-    unsigned int r_wave_offset = Rcpp::as<unsigned int>(subHeader("r_wave_offset"));
-    unsigned int num_accepted_beats = Rcpp::as<unsigned int>(subHeader("num_accepted_beats"));
+    unsigned int processing_code = Rcpp::as<unsigned int>(subHeader["processing_code"]);
+    unsigned int gate_duration = Rcpp::as<unsigned int>(subHeader["gate_duration"]);
+    unsigned int r_wave_offset = Rcpp::as<unsigned int>(subHeader["r_wave_offset"]);
+    unsigned int num_accepted_beats = Rcpp::as<unsigned int>(subHeader["num_accepted_beats"]);
 
-    float filter_cutoff_frequency = Rcpp::as<float>(subHeader("filter_cutoff_frequency"));
-    float filter_resolution = Rcpp::as<float>(subHeader("filter_resolution"));
-    float filter_ramp_slope = Rcpp::as<float>(subHeader("filter_ramp_slope"));
-    short filter_order = Rcpp::as<short>(subHeader("filter_order"));
-    float filter_scatter_fraction = Rcpp::as<float>(subHeader("filter_scatter_fraction"));
-    float filter_scatter_slope = Rcpp::as<float>(subHeader("filter_scatter_slope"));
-    string annotation = Rcpp::as<string>(subHeader("annotation"));
-    float mt_1_1 = Rcpp::as<float>(subHeader("mt_1_1"));
-    float mt_1_2 = Rcpp::as<float>(subHeader("mt_1_2"));
-    float mt_1_3 = Rcpp::as<float>(subHeader("mt_1_3"));
-    float mt_2_1 = Rcpp::as<float>(subHeader("mt_2_1"));
-    float mt_2_2 = Rcpp::as<float>(subHeader("mt_2_2"));
-    float mt_2_3 = Rcpp::as<float>(subHeader("mt_2_3"));
-    float mt_3_1 = Rcpp::as<float>(subHeader("mt_3_1"));
-    float mt_3_2 = Rcpp::as<float>(subHeader("mt_3_2"));
-    float mt_3_3 = Rcpp::as<float>(subHeader("mt_3_3"));
-    float rfilter_cutoff = Rcpp::as<float>(subHeader("rfilter_cutoff"));
-    float rfilter_resolution = Rcpp::as<float>(subHeader("rfilter_resolution"));
-    int rfilter_code = Rcpp::as<int>(subHeader("rfilter_code"));
-    short rfilter_order = Rcpp::as<short>(subHeader("rfilter_order"));
-    float zfilter_cutoff = Rcpp::as<float>(subHeader("zfilter_cutoff"));
-    float zfilter_resolution = Rcpp::as<float>(subHeader("zfilter_resolution"));
-    int zfilter_code = Rcpp::as<int>(subHeader("zfilter_code"));
-    short zfilter_order = Rcpp::as<short>(subHeader("zfilter_order"));
-    float mt_1_4 = Rcpp::as<float>(subHeader("mt_1_4"));
-    float mt_2_4 = Rcpp::as<float>(subHeader("mt_2_4"));
-    float mt_3_4 = Rcpp::as<float>(subHeader("mt_3_4"));
-    int scatter_type = Rcpp::as<int>(subHeader("scatter_type"));
-    int recon_type = Rcpp::as<int>(subHeader("recon_type"));
-    short recon_views = Rcpp::as<short>(subHeader("recon_views"));
-    vector<short> cti_reserved = Rcpp::as<vector<short> >(subHeader("cti_reserved"));
-    vector<short> user_reserved = Rcpp::as<vector<short> >(subHeader("user_reserved"));
+    float filter_cutoff_frequency = Rcpp::as<float>(subHeader["filter_cutoff_frequency"]);
+    float filter_resolution = Rcpp::as<float>(subHeader["filter_resolution"]);
+    float filter_ramp_slope = Rcpp::as<float>(subHeader["filter_ramp_slope"]);
+    short filter_order = Rcpp::as<short>(subHeader["filter_order"]);
+    float filter_scatter_fraction = Rcpp::as<float>(subHeader["filter_scatter_fraction"]);
+    float filter_scatter_slope = Rcpp::as<float>(subHeader["filter_scatter_slope"]);
+    string annotation = Rcpp::as<string>(subHeader["annotation"]);
+    float mt_1_1 = Rcpp::as<float>(subHeader["mt_1_1"]);
+    float mt_1_2 = Rcpp::as<float>(subHeader["mt_1_2"]);
+    float mt_1_3 = Rcpp::as<float>(subHeader["mt_1_3"]);
+    float mt_2_1 = Rcpp::as<float>(subHeader["mt_2_1"]);
+    float mt_2_2 = Rcpp::as<float>(subHeader["mt_2_2"]);
+    float mt_2_3 = Rcpp::as<float>(subHeader["mt_2_3"]);
+    float mt_3_1 = Rcpp::as<float>(subHeader["mt_3_1"]);
+    float mt_3_2 = Rcpp::as<float>(subHeader["mt_3_2"]);
+    float mt_3_3 = Rcpp::as<float>(subHeader["mt_3_3"]);
+    float rfilter_cutoff = Rcpp::as<float>(subHeader["rfilter_cutoff"]);
+    float rfilter_resolution = Rcpp::as<float>(subHeader["rfilter_resolution"]);
+    int rfilter_code = Rcpp::as<int>(subHeader["rfilter_code"]);
+    short rfilter_order = Rcpp::as<short>(subHeader["rfilter_order"]);
+    float zfilter_cutoff = Rcpp::as<float>(subHeader["zfilter_cutoff"]);
+    float zfilter_resolution = Rcpp::as<float>(subHeader["zfilter_resolution"]);
+    int zfilter_code = Rcpp::as<int>(subHeader["zfilter_code"]);
+    short zfilter_order = Rcpp::as<short>(subHeader["zfilter_order"]);
+    float mt_1_4 = Rcpp::as<float>(subHeader["mt_1_4"]);
+    float mt_2_4 = Rcpp::as<float>(subHeader["mt_2_4"]);
+    float mt_3_4 = Rcpp::as<float>(subHeader["mt_3_4"]);
+    int scatter_type = Rcpp::as<int>(subHeader["scatter_type"]);
+    int recon_type = Rcpp::as<int>(subHeader["recon_type"]);
+    short recon_views = Rcpp::as<short>(subHeader["recon_views"]);
+    vector<short> cti_reserved = Rcpp::as<vector<short> >(subHeader["cti_reserved"]);
+    vector<short> user_reserved = Rcpp::as<vector<short> >(subHeader["user_reserved"]);
 
     CECAT7SubHeaderImage imageSubHeader;
     imageSubHeader.setData_Type(static_cast<CECATSubHeader::Data_Type>(data_type));
@@ -490,15 +484,11 @@ bool CRECATFile::writeSubHeader_Rcpp(Rcpp::List& subHeader,
     imageSubHeader.setRecon_Type(static_cast<CECAT7SubHeaderImage::Recon_Type>(recon_type));
     imageSubHeader.setRecon_Views(recon_views);
 
-    for(short i = 0; (i < 87) && (i < cti_reserved.size()); ++i)
-    {
+    for(unsigned int i=0; i < cti_reserved.size(); ++i)
       imageSubHeader.setCTI_Reserved(i, cti_reserved[i]);
-    }
 
-    for(short i = 0; (i < 48) && (i < user_reserved.size()); ++i)
-    {
+    for(unsigned int i=0; i < user_reserved.size(); ++i)
       imageSubHeader.setUser_Reserved(i, user_reserved[i]);
-    }
 
     result = writeSubHeader(imageSubHeader, frame, plane, gate, bed, data);
   }
@@ -524,36 +514,36 @@ CECATMainHeader* CRECATFile::createMainHeaderFromRcppMainHeader(Rcpp::List& rMai
 
         try
         { 
-          string magic_number = Rcpp::as<string>(rMainHeader("magic_number"));
-          string original_file_name = Rcpp::as<string>(rMainHeader("original_file_name"));
-          short sw_version = Rcpp::as<short>(rMainHeader("sw_version"));
-          short system_type = Rcpp::as<short>(rMainHeader("system_type"));
-          int file_type = Rcpp::as<int>(rMainHeader("file_type"));
-          string serial_number = Rcpp::as<string>(rMainHeader("serial_number"));
-          time_t scan_start_time = Rcpp::as<time_t>(rMainHeader("scan_start_time"));
-          string isotope_name = Rcpp::as<string>(rMainHeader("isotope_name"));
-          float isotope_halflife = Rcpp::as<float>(rMainHeader("isotope_halflife"));
-          string radiopharmaceutical = Rcpp::as<string>(rMainHeader("radiopharmaceutical"));
-          float gantry_tilt = Rcpp::as<float>(rMainHeader("gantry_tilt"));
-          float gantry_rotation = Rcpp::as<float>(rMainHeader("gantry_rotation"));
-          float bed_elevation = Rcpp::as<float>(rMainHeader("bed_elevation"));
-          float intrinsic_tilt = Rcpp::as<float>(rMainHeader("intrinsic_tilt"));
-          short wobble_speed = Rcpp::as<short>(rMainHeader("wobble_speed"));
-          int transm_source_type = Rcpp::as<int>(rMainHeader("transm_source_type"));
-          float distance_scanned = Rcpp::as<float>(rMainHeader("distance_scanned"));
-          float transaxial_fov = Rcpp::as<float>(rMainHeader("transaxial_fov"));
-          int angular_compression = Rcpp::as<int>(rMainHeader("angular_compression"));
-          int coin_samp_mode = Rcpp::as<int>(rMainHeader("coin_samp_mode"));
-          int axial_samp_mode = Rcpp::as<int>(rMainHeader("axial_samp_mode"));
-          float ecat_calibration_factor = Rcpp::as<float>(rMainHeader("ecat_calibration_factor"));
-          int calibration_units = Rcpp::as<int>(rMainHeader("calibration_units"));
-          int calibration_units_label = Rcpp::as<int>(rMainHeader("calibration_units_label"));
-          int compression_code = Rcpp::as<int>(rMainHeader("compression_code"));
-          string study_type = Rcpp::as<string>(rMainHeader("study_type"));
-          string patient_id = Rcpp::as<string>(rMainHeader("patient_id"));
-          string patient_name = Rcpp::as<string>(rMainHeader("patient_name"));
+          string magic_number = Rcpp::as<string>(rMainHeader["magic_number"]);
+          string original_file_name = Rcpp::as<string>(rMainHeader["original_file_name"]);
+          short sw_version = Rcpp::as<short>(rMainHeader["sw_version"]);
+          short system_type = Rcpp::as<short>(rMainHeader["system_type"]);
+          int file_type = Rcpp::as<int>(rMainHeader["file_type"]);
+          string serial_number = Rcpp::as<string>(rMainHeader["serial_number"]);
+          time_t scan_start_time = Rcpp::as<time_t>(rMainHeader["scan_start_time"]);
+          string isotope_name = Rcpp::as<string>(rMainHeader["isotope_name"]);
+          float isotope_halflife = Rcpp::as<float>(rMainHeader["isotope_halflife"]);
+          string radiopharmaceutical = Rcpp::as<string>(rMainHeader["radiopharmaceutical"]);
+          float gantry_tilt = Rcpp::as<float>(rMainHeader["gantry_tilt"]);
+          float gantry_rotation = Rcpp::as<float>(rMainHeader["gantry_rotation"]);
+          float bed_elevation = Rcpp::as<float>(rMainHeader["bed_elevation"]);
+          float intrinsic_tilt = Rcpp::as<float>(rMainHeader["intrinsic_tilt"]);
+          short wobble_speed = Rcpp::as<short>(rMainHeader["wobble_speed"]);
+          int transm_source_type = Rcpp::as<int>(rMainHeader["transm_source_type"]);
+          float distance_scanned = Rcpp::as<float>(rMainHeader["distance_scanned"]);
+          float transaxial_fov = Rcpp::as<float>(rMainHeader["transaxial_fov"]);
+          int angular_compression = Rcpp::as<int>(rMainHeader["angular_compression"]);
+          int coin_samp_mode = Rcpp::as<int>(rMainHeader["coin_samp_mode"]);
+          int axial_samp_mode = Rcpp::as<int>(rMainHeader["axial_samp_mode"]);
+          float ecat_calibration_factor = Rcpp::as<float>(rMainHeader["ecat_calibration_factor"]);
+          int calibration_units = Rcpp::as<int>(rMainHeader["calibration_units"]);
+          int calibration_units_label = Rcpp::as<int>(rMainHeader["calibration_units_label"]);
+          int compression_code = Rcpp::as<int>(rMainHeader["compression_code"]);
+          string study_type = Rcpp::as<string>(rMainHeader["study_type"]);
+          string patient_id = Rcpp::as<string>(rMainHeader["patient_id"]);
+          string patient_name = Rcpp::as<string>(rMainHeader["patient_name"]);
 
-          string sex = Rcpp::as<string>(rMainHeader("patient_sex"));
+          string sex = Rcpp::as<string>(rMainHeader["patient_sex"]);
           CECAT7MainHeader::Patient_Sex patient_sex;
           switch(sex[0])
           {
@@ -563,7 +553,7 @@ CECATMainHeader* CRECATFile::createMainHeaderFromRcppMainHeader(Rcpp::List& rMai
             default: patient_sex = CECAT7MainHeader::Sex_Unknown; break;
           }
 
-          string dexterity = Rcpp::as<string>(rMainHeader("patient_dexterity"));
+          string dexterity = Rcpp::as<string>(rMainHeader["patient_dexterity"]);
           CECAT7MainHeader::Patient_Dexterity patient_dexterity;
           switch(dexterity[0])
           {
@@ -573,36 +563,36 @@ CECATMainHeader* CRECATFile::createMainHeaderFromRcppMainHeader(Rcpp::List& rMai
             default: patient_dexterity = CECAT7MainHeader::Dext_Unknown; break;
           }
 
-          float patient_age = Rcpp::as<float>(rMainHeader("patient_age"));
-          float patient_height = Rcpp::as<float>(rMainHeader("patient_height"));
-          float patient_weight = Rcpp::as<float>(rMainHeader("patient_weight"));
-          time_t patient_birth_datetime = Rcpp::as<time_t>(rMainHeader("patient_birth_date"));
-          string physician_name = Rcpp::as<string>(rMainHeader("physician_name"));
-          string operator_name = Rcpp::as<string>(rMainHeader("operator_name"));
-          string study_description = Rcpp::as<string>(rMainHeader("study_description"));
-          int acquisition_type = Rcpp::as<int>(rMainHeader("acquisition_type"));
-          int patient_orientation = Rcpp::as<int>(rMainHeader("patient_orientation"));
-          string facility_name = Rcpp::as<string>(rMainHeader("facility_name"));
-          short num_planes = Rcpp::as<short>(rMainHeader("num_planes"));
-          int num_frames = Rcpp::as<int>(rMainHeader("num_frames"));
-          int num_gates = Rcpp::as<int>(rMainHeader("num_gates"));
-          int num_bed_pos = Rcpp::as<int>(rMainHeader("num_bed_pos"));
-          float init_bed_position = Rcpp::as<float>(rMainHeader("init_bed_position"));
-          vector<float> bed_offset = Rcpp::as<vector<float> >(rMainHeader("bed_offset"));
-          float plane_separation = Rcpp::as<float>(rMainHeader("plane_separation"));
-          short lwr_sctr_thres = Rcpp::as<short>(rMainHeader("lwr_sctr_thres"));
-          short lwr_true_thres = Rcpp::as<short>(rMainHeader("lwr_true_thres"));
-          short upr_true_thres = Rcpp::as<short>(rMainHeader("upr_true_thres"));
-          string user_process_code = Rcpp::as<string>(rMainHeader("user_process_code"));
-          int acquisition_mode = Rcpp::as<int>(rMainHeader("acquisition_mode"));
-          float bin_size = Rcpp::as<float>(rMainHeader("bin_size"));
-          float branching_fraction = Rcpp::as<float>(rMainHeader("branching_fraction"));
-          time_t dose_start_time = Rcpp::as<time_t>(rMainHeader("dose_start_time"));
-          float dosage = Rcpp::as<float>(rMainHeader("dosage"));
-          float well_counter_corr_factor = Rcpp::as<float>(rMainHeader("well_counter_corr_factor"));
-          string data_units = Rcpp::as<string>(rMainHeader("data_units"));
-          int septa_state = Rcpp::as<int>(rMainHeader("septa_state"));
-          vector<short> cti_reserved = Rcpp::as<vector<short> >(rMainHeader("cti_reserved"));
+          float patient_age = Rcpp::as<float>(rMainHeader["patient_age"]);
+          float patient_height = Rcpp::as<float>(rMainHeader["patient_height"]);
+          float patient_weight = Rcpp::as<float>(rMainHeader["patient_weight"]);
+          time_t patient_birth_datetime = Rcpp::as<time_t>(rMainHeader["patient_birth_date"]);
+          string physician_name = Rcpp::as<string>(rMainHeader["physician_name"]);
+          string operator_name = Rcpp::as<string>(rMainHeader["operator_name"]);
+          string study_description = Rcpp::as<string>(rMainHeader["study_description"]);
+          int acquisition_type = Rcpp::as<int>(rMainHeader["acquisition_type"]);
+          int patient_orientation = Rcpp::as<int>(rMainHeader["patient_orientation"]);
+          string facility_name = Rcpp::as<string>(rMainHeader["facility_name"]);
+          short num_planes = Rcpp::as<short>(rMainHeader["num_planes"]);
+          int num_frames = Rcpp::as<int>(rMainHeader["num_frames"]);
+          int num_gates = Rcpp::as<int>(rMainHeader["num_gates"]);
+          int num_bed_pos = Rcpp::as<int>(rMainHeader["num_bed_pos"]);
+          float init_bed_position = Rcpp::as<float>(rMainHeader["init_bed_position"]);
+          vector<float> bed_offset = Rcpp::as<vector<float> >(rMainHeader["bed_offset"]);
+          float plane_separation = Rcpp::as<float>(rMainHeader["plane_separation"]);
+          short lwr_sctr_thres = Rcpp::as<short>(rMainHeader["lwr_sctr_thres"]);
+          short lwr_true_thres = Rcpp::as<short>(rMainHeader["lwr_true_thres"]);
+          short upr_true_thres = Rcpp::as<short>(rMainHeader["upr_true_thres"]);
+          string user_process_code = Rcpp::as<string>(rMainHeader["user_process_code"]);
+          int acquisition_mode = Rcpp::as<int>(rMainHeader["acquisition_mode"]);
+          float bin_size = Rcpp::as<float>(rMainHeader["bin_size"]);
+          float branching_fraction = Rcpp::as<float>(rMainHeader["branching_fraction"]);
+          time_t dose_start_time = Rcpp::as<time_t>(rMainHeader["dose_start_time"]);
+          float dosage = Rcpp::as<float>(rMainHeader["dosage"]);
+          float well_counter_corr_factor = Rcpp::as<float>(rMainHeader["well_counter_corr_factor"]);
+          string data_units = Rcpp::as<string>(rMainHeader["data_units"]);
+          int septa_state = Rcpp::as<int>(rMainHeader["septa_state"]);
+          vector<short> cti_reserved = Rcpp::as<vector<short> >(rMainHeader["cti_reserved"]);
 
           ecat7MainHeader->setMagic_Number(magic_number.c_str());
           ecat7MainHeader->setOriginal_File_Name(original_file_name.c_str());
@@ -650,10 +640,8 @@ CECATMainHeader* CRECATFile::createMainHeaderFromRcppMainHeader(Rcpp::List& rMai
           ecat7MainHeader->setNum_Bed_Pos(num_bed_pos);
           ecat7MainHeader->setInit_Bed_Position(init_bed_position);
 
-          for(short i = 0; (i < 15) && (i < bed_offset.size()); ++i)
-          {
+          for(unsigned int i=0; i < bed_offset.size(); ++i)
             ecat7MainHeader->setBed_Offset(i, bed_offset[i]);
-          }
 
           ecat7MainHeader->setPlane_Separation(plane_separation);
           ecat7MainHeader->setLwr_Sctr_Thres(lwr_sctr_thres);
@@ -669,10 +657,8 @@ CECATMainHeader* CRECATFile::createMainHeaderFromRcppMainHeader(Rcpp::List& rMai
           ecat7MainHeader->setData_Units(data_units.c_str());
           ecat7MainHeader->setSepta_State(static_cast<CECAT7MainHeader::Septa_State>(septa_state));
 
-          for(short i = 0; (i < 6) && (i < cti_reserved.size()); ++i)
-          {
+          for(unsigned int i=0; i < cti_reserved.size(); ++i)
             ecat7MainHeader->setCTI_Reserved(i, cti_reserved[i]);
-          }
         }
         catch(Rcpp::index_out_of_bounds e)
         {

@@ -20,6 +20,6 @@ RcppExport SEXP readEcat(SEXP vfile,
                          SEXP numberOfCols = NULL,
                          SEXP numberOfPlanes = NULL);
 
-RcppExport SEXP saveEcat(SEXP vfile, SEXP ecat);
+RcppExport SEXP writeEcat(SEXP ecat, SEXP vfilename);
 
 #endif
