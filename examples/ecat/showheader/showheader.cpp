@@ -28,6 +28,8 @@
 
 #include <iostream>
 
+#include <stdlib.h>
+
 using namespace std;
 
 //  Function:    main
@@ -96,7 +98,7 @@ int main(int argc, char* argv[])
         cout << "SYSTEM_TYPE.............: "  << mHeader->system_Type()                << endl;
         cout << "FILE_TYPE...............: "  << mHeader->file_Type()                  << endl;
         cout << "SERIAL_NUMBER...........: "  << mHeader->serial_Number()              << endl;
-        cout << "SCAN_START_TIME.........: "  << mHeader->scan_Start_Time()            << endl;
+        cout << "SCAN_START_TIME.........: "  << mHeader->scan_Start_Time_Qt().toString().toAscii().constData()            << endl;
         cout << "ISOTOPE_NAME............: "  << mHeader->isotope_Name()              << endl;
         cout << "ISOTOPE_HALFLIFE........: "  << mHeader->isotope_Halflife()          << endl;
         cout << "RADIOPHARMACEUTICAL.....: "  << mHeader->radiopharmaceutical()        << endl;
