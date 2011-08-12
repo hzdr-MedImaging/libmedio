@@ -29,3 +29,7 @@ win32 {
 HEADERS += testCPhilipsFile.h testCPhilipsSubHeaderImage.h
 SOURCES += testCPhilipsFile.cpp testPhilipsFormat.cpp testCPhilipsSubHeaderImage.cpp
 
+# override the compile output
+QMAKE_CXX  = @echo \'  CC   $<\'; $$QMAKE_CXX
+QMAKE_LINK = @echo \'  LD   $@\'; $$QMAKE_LINK
+QMAKE_MOC  = @echo \'  MOC  $@\'; $$QMAKE_MOC
