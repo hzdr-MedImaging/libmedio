@@ -144,7 +144,6 @@ class CPhilipsSubHeaderImagePrivate
   } header;
 
   static const short currentSubHeaderVersion = 1;
-
 };
 
 CPhilipsSubHeaderImage::CPhilipsSubHeaderImage(CPhilipsFile* philipsFile,

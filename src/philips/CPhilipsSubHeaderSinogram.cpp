@@ -140,6 +140,8 @@ class CPhilipsSubHeaderSinogramPrivate
                                 /*  (possibly paired) body parts.   */
     /*Anatomy_Type*/qint16 anatomy;   /* Identifies the anatomic region of interest */
   } header;
+
+  static const short currentSubHeaderVersion = 1;
 };
 
 CPhilipsSubHeaderSinogram::CPhilipsSubHeaderSinogram(CPhilipsFile* philipsFile,
@@ -199,6 +201,7 @@ void CPhilipsSubHeaderSinogram::clear()
   memset(&m_pData->header, 0, sizeof(struct CPhilipsSubHeaderSinogramPrivate::HeaderData));
   
   // set some default values
+  m_pData->header.version = CPhilipsSubHeaderSinogramPrivate::currentSubHeaderVersion;
   m_pData->header.magfac = 1.0; // Not used. always set to 1.0
 
   LEAVE();
