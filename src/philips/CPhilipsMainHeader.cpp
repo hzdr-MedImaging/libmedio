@@ -143,6 +143,8 @@ public:
 
 
     } header;
+
+  static const short currentMainHeaderFormat = 13;
 };
 
 CPhilipsMainHeader::CPhilipsMainHeader(CPhilipsFile* file,
@@ -203,6 +205,7 @@ void CPhilipsMainHeader::clear()
   memset(&m_pData->header, 0, sizeof(struct CPhilipsMainHeaderPrivate::HeaderData));
 
   // set some default values for the new Main Header
+  m_pData->header.file_fmt = CPhilipsMainHeaderPrivate::currentMainHeaderFormat;
 
   LEAVE();
 }

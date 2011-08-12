@@ -143,7 +143,7 @@ class CPhilipsSubHeaderSinogramPrivate
 };
 
 CPhilipsSubHeaderSinogram::CPhilipsSubHeaderSinogram(CPhilipsFile* philipsFile,
-                                               CPhilipsDirectoryItem* pDirItem)
+                                                     CPhilipsDirectoryItem* pDirItem)
   : CPhilipsSubHeader(philipsFile, pDirItem)
 {
   ENTER();
@@ -316,7 +316,7 @@ bool CPhilipsSubHeaderSinogram::load(void)
 #if defined(DEBUG)
   D("Philips Image SubHeader loaded:");
   D("----------------------------");
-  D("version        : %d",        m_pData->header.version);
+  D("version        : %d", m_pData->header.version);
   D("atten_corr     : %s", m_pData->header.atten_corr);
   D("actual_bedpos  : %f", m_pData->header.actual_bedpos);
   D("orientation[0] : %f", m_pData->header.orientation[0]);

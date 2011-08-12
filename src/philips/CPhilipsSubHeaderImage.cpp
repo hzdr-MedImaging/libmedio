@@ -142,6 +142,9 @@ class CPhilipsSubHeaderImagePrivate
                                 /*  (possibly paired) body parts.   */
     /*Anatomy_Type*/qint16 anatomy;   /* Identifies the anatomic region of interest */
   } header;
+
+  static const short currentSubHeaderVersion = 1;
+
 };
 
 CPhilipsSubHeaderImage::CPhilipsSubHeaderImage(CPhilipsFile* philipsFile,
@@ -201,6 +204,7 @@ void CPhilipsSubHeaderImage::clear()
   memset(&m_pData->header, 0, sizeof(struct CPhilipsSubHeaderImagePrivate::HeaderData));
   
   // set some default values
+  m_pData->header.version = CPhilipsSubHeaderImagePrivate::currentSubHeaderVersion;
   m_pData->header.magfac = 1.0; // Not used. always set to 1.0
 
   LEAVE();
@@ -318,7 +322,7 @@ bool CPhilipsSubHeaderImage::load(void)
 #if defined(DEBUG)
   D("Philips Image SubHeader loaded:");
   D("----------------------------");
-  D("version                 : %d",        m_pData->header.version);
+  D("version        : %d", m_pData->header.version);
   D("atten_corr     : %s", m_pData->header.atten_corr);
   D("actual_bedpos  : %f", m_pData->header.actual_bedpos);
   D("orientation[0] : %f", m_pData->header.orientation[0]);
