@@ -22,7 +22,7 @@
  *
  **************************************************************************/
 
-#include "CPhilipsSubHeaderImage.h"
+#include "CPhilipsSubHeaderSinogram.h"
 #include "CPhilipsDirectoryItem.h"
 #include "CPhilipsFile.h"
 
@@ -30,7 +30,7 @@
 
 #include <rtdebug.h>
 
-class CPhilipsSubHeaderImagePrivate
+class CPhilipsSubHeaderSinogramPrivate
 {
   public:
   struct HeaderData
@@ -49,13 +49,7 @@ class CPhilipsSubHeaderImagePrivate
     float magfac;        /* Reconstruction magnification (nominally
                           * 1). Used in analyze anz2u.c in imagio.c
                           * Convert UCLA to Analyze Format */
-    float imgscl;        /* Image scale factor (nominally 1.) */
-    qint16 imgmin;          /* Minimum value in image; scaled to short by 
-                          * wrshdr() */
-    qint16 imgmax;          /* Maximum value in image; scaled to short
-                          * by wrshdr() */
-    float suvscl;        /* SUV scale factor (non-zero only after
-                          * running suv program) */
+    float scnscl;        /* Sinogram scale factor */
     qint16 strhr;     /* (Deprecated - use start_date_time) Starting time of this frame: hour. */
     qint16 strmin;    /* (Deprecated - use start_date_time) Starting time of this frame: minute. */
     qint16 strsec;    /* (Deprecated - use start_date_time) Starting time of this frame: second. */
@@ -64,6 +58,10 @@ class CPhilipsSubHeaderImagePrivate
     qint16 start_date_time_msec; /* Fraction of a second (in msec) to be added to start_date_time ... */
                                 /*  to give a more accurate start time. Use access functions to read/write.*/
 
+    qint16 scnmin;          /* Minimum value in sinogram; scaled to
+                          * short by wrshdr() */
+    qint16 scnmax;          /* Maximum value in sinogram; scaled to
+                          * short by wrshdr() */
     qint16 endhr;     /* (Deprecated - use end_date_time) Ending time of this frame: hour. */
     qint16 endmin;    /* (Deprecated - use end_date_time) Ending time of this frame: minute. */
     qint16 endsec;    /* (Deprecated - use end_date_time) Ending time of this frame: second. */
@@ -82,7 +80,7 @@ class CPhilipsSubHeaderImagePrivate
     /* midtim used by cmrglu.c */
     qint16 mseclen;       /* Duration in millesecs (used for EC scan, e.g. */
     qint16 scnlen;        /* Scan duration in seconds. */
-    float imgsum;        /* Total number of events in image. */
+    float scnsum;        /* Total number of events in sinogram. */
 
     /* additional parameters to add to the subheader: */
     /* Space available from words 113 - 256 */
@@ -144,21 +142,21 @@ class CPhilipsSubHeaderImagePrivate
   } header;
 };
 
-CPhilipsSubHeaderImage::CPhilipsSubHeaderImage(CPhilipsFile* philipsFile,
+CPhilipsSubHeaderSinogram::CPhilipsSubHeaderSinogram(CPhilipsFile* philipsFile,
                                                CPhilipsDirectoryItem* pDirItem)
   : CPhilipsSubHeader(philipsFile, pDirItem)
 {
   ENTER();
 
   // allocate data from our private instance class
-  m_pData = new CPhilipsSubHeaderImagePrivate();
+  m_pData = new CPhilipsSubHeaderSinogramPrivate();
   
   clear();
 
   LEAVE();
 }
 
-CPhilipsSubHeaderImage::~CPhilipsSubHeaderImage()
+CPhilipsSubHeaderSinogram::~CPhilipsSubHeaderSinogram()
 {
   ENTER();
 
@@ -167,18 +165,18 @@ CPhilipsSubHeaderImage::~CPhilipsSubHeaderImage()
   LEAVE();
 }
 
-CPhilipsSubHeaderImage::CPhilipsSubHeaderImage(const CPhilipsSubHeaderImage& src)
+CPhilipsSubHeaderSinogram::CPhilipsSubHeaderSinogram(const CPhilipsSubHeaderSinogram& src)
   : CPhilipsSubHeader(src)
 {
   ENTER();
 
   // allocate data from our private instance class
-  m_pData = new CPhilipsSubHeaderImagePrivate(*(src.m_pData));
+  m_pData = new CPhilipsSubHeaderSinogramPrivate(*(src.m_pData));
 
   LEAVE();
 }
 
-CPhilipsSubHeaderImage& CPhilipsSubHeaderImage::operator=(const CPhilipsSubHeaderImage& src)
+CPhilipsSubHeaderSinogram& CPhilipsSubHeaderSinogram::operator=(const CPhilipsSubHeaderSinogram& src)
 {
   ENTER();
 
@@ -186,19 +184,19 @@ CPhilipsSubHeaderImage& CPhilipsSubHeaderImage::operator=(const CPhilipsSubHeade
   {
     memcpy(&m_pData->header, 
            &src.m_pData->header, 
-           sizeof(struct CPhilipsSubHeaderImagePrivate::HeaderData));
+           sizeof(struct CPhilipsSubHeaderSinogramPrivate::HeaderData));
   }
 
   LEAVE();
   return *this;
 }
 
-void CPhilipsSubHeaderImage::clear()
+void CPhilipsSubHeaderSinogram::clear()
 {
   ENTER();
 
   // clear our header structure first
-  memset(&m_pData->header, 0, sizeof(struct CPhilipsSubHeaderImagePrivate::HeaderData));
+  memset(&m_pData->header, 0, sizeof(struct CPhilipsSubHeaderSinogramPrivate::HeaderData));
   
   // set some default values
   m_pData->header.magfac = 1.0; // Not used. always set to 1.0
@@ -206,7 +204,7 @@ void CPhilipsSubHeaderImage::clear()
   LEAVE();
 }
 
-bool CPhilipsSubHeaderImage::load(void)
+bool CPhilipsSubHeaderSinogram::load(void)
 {
   ENTER();
 
@@ -279,19 +277,19 @@ bool CPhilipsSubHeaderImage::load(void)
   stream >> m_pData->header.pix_spacing[0];             // 124: pix_spacing[0]
   stream >> m_pData->header.pix_spacing[1];             // 128: pix_spacing[1]
   stream >> m_pData->header.xray_current;               // 132: xray_current
-  stream >> m_pData->header.suvscl;                     // 136: suvscl
+  stream.skipRawData(4);                                // 136: skip: suvscl (Image only)
   stream >> m_pData->header.kvp;                        // 140: kvp
   stream >> m_pData->header.Dslice_loc;                 // 144: Dslice_loc
   stream >> m_pData->header.magfac;                     // 148: magfac
-  stream >> m_pData->header.imgscl;                     // 152: imgscl
-  stream >> m_pData->header.imgmin;                     // 156: imgmin
-  stream >> m_pData->header.imgmax;                     // 158: imgmax
+  stream.skipRawData(8);                                // 152: skip: imgscl, imgmin
+                                                        //      and imgmax (Image only)
   stream >> m_pData->header.decay_corr;                 // 160: decay_corr
-  stream.skipRawData(4);                                // 162: skip: scnscl (Sinogram only)
+  stream >> m_pData->header.scnscl;                     // 162: scnscl
   stream >> m_pData->header.strhr;                      // 166: strhr
   stream >> m_pData->header.strmin;                     // 168: strmin
   stream >> m_pData->header.strsec;                     // 170: strsec
-  stream.skipRawData(4);                                // 172: skip: scnmin and scnmax (Sinogram only)
+  stream >> m_pData->header.scnmin;                     // 172: scnmin
+  stream >> m_pData->header.scnmax;                     // 174: scnmax
   stream >> m_pData->header.endhr;                      // 176: endhr
   stream >> m_pData->header.endmin;                     // 178: endmin
   stream >> m_pData->header.endsec;                     // 180: endsec
@@ -299,8 +297,8 @@ bool CPhilipsSubHeaderImage::load(void)
   stream.skipRawData(2);                                // 186: skip 2 bytes
   stream >> m_pData->header.mseclen;                    // 188: mseclen
   stream >> m_pData->header.scnlen;                     // 190: scnlen
-  stream >> m_pData->header.imgsum;                     // 192: imgsum
-  stream.skipRawData(4);                                // 196: skip: scnsum (Sinogram only)
+  stream.skipRawData(4);                                // 192: skip: imgsum (Image only)
+  stream >> m_pData->header.scnsum;                     // 196: scnsum
   stream >> m_pData->header.bgdelrt;                    // 200: bgdelrt
   stream >> m_pData->header.enddelrt;                   // 204: enddelrt
   stream >> m_pData->header.bgsngrt;                    // 208: bgsngrt
@@ -318,7 +316,7 @@ bool CPhilipsSubHeaderImage::load(void)
 #if defined(DEBUG)
   D("Philips Image SubHeader loaded:");
   D("----------------------------");
-  D("version                 : %d",        m_pData->header.version);
+  D("version        : %d",        m_pData->header.version);
   D("atten_corr     : %s", m_pData->header.atten_corr);
   D("actual_bedpos  : %f", m_pData->header.actual_bedpos);
   D("orientation[0] : %f", m_pData->header.orientation[0]);
@@ -352,24 +350,23 @@ bool CPhilipsSubHeaderImage::load(void)
   D("pix_spacing[0] : %f", m_pData->header.pix_spacing[0]);
   D("pix_spacing[1] : %f", m_pData->header.pix_spacing[1]);
   D("xray_current   : %f", m_pData->header.xray_current);
-  D("suvscl         : %f", m_pData->header.suvscl);
   D("kvp            : %f", m_pData->header.kvp);
   D("Dslice_loc     : %f", m_pData->header.Dslice_loc);
   D("magfac         : %f", m_pData->header.magfac);
-  D("imgscl         : %f", m_pData->header.imgscl);
-  D("imgmin         : %d", m_pData->header.imgmin);
-  D("imgmax         : %d", m_pData->header.imgmax);
   D("decay_corr     : %d", m_pData->header.decay_corr);
+  D("scnscl         : %f", m_pData->header.scnscl);
   D("strhr          : %d", m_pData->header.strhr);
   D("strmin         : %d", m_pData->header.strmin);
   D("strsec         : %d", m_pData->header.strsec);
+  D("scnmin         : %d", m_pData->header.scnmin);
+  D("scnmax         : %d", m_pData->header.scnmax);
   D("endhr          : %d", m_pData->header.endhr);
   D("endmin         : %d", m_pData->header.endmin);
   D("endsec         : %d", m_pData->header.endsec);
   D("midtim         : %d", m_pData->header.midtim);
   D("mseclen        : %d", m_pData->header.mseclen);
   D("scnlen         : %d sec", m_pData->header.scnlen);
-  D("imgsum         : %f", m_pData->header.imgsum);
+  D("scnsum         : %f", m_pData->header.scnsum);
   D("bgdelrt        : %f", m_pData->header.bgdelrt);
   D("enddelrt       : %f", m_pData->header.enddelrt);
   D("bgsngrt        : %f", m_pData->header.bgsngrt);
@@ -387,38 +384,38 @@ bool CPhilipsSubHeaderImage::load(void)
   return true;
 }
 
-bool CPhilipsSubHeaderImage::save(void) const
+bool CPhilipsSubHeaderSinogram::save(void) const
 {
   ENTER();
-#warning TODO: implement CPhilipsSubHeaderImage::save()
+#warning TODO: implement CPhilipsSubHeaderSinogram::save()
   RETURN(false);
   return false;
 }
 
-int CPhilipsSubHeaderImage::rawDataSize() const
+int CPhilipsSubHeaderSinogram::rawDataSize() const
 {
   return 1*PHILIPS_BLOCKSIZE;
 }
 
-CPhilipsSubHeader::Type CPhilipsSubHeaderImage::subHeaderType(void) const
+CPhilipsSubHeader::Type CPhilipsSubHeaderSinogram::subHeaderType(void) const
 {
-  return CPhilipsSubHeader::Image;
+  return CPhilipsSubHeader::Sinogram;
 }
 
-bool CPhilipsSubHeaderImage::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2) 
+bool CPhilipsSubHeaderSinogram::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2) 
 {
   ENTER();
   bool bResult = false;
-#warning TODO: implement CPhilipsSubHeaderImage::convertFrom()
+#warning TODO: implement CPhilipsSubHeaderSinogram::convertFrom()
   RETURN(bResult);
   return bResult;
 }
 
-CMedIOHeader* CPhilipsSubHeaderImage::clone() const
+CMedIOHeader* CPhilipsSubHeaderSinogram::clone() const
 {
   ENTER();
 
-  CPhilipsSubHeaderImage* pNewHead = new CPhilipsSubHeaderImage();
+  CPhilipsSubHeaderSinogram* pNewHead = new CPhilipsSubHeaderSinogram();
   pNewHead->convertFrom(this);
   
   RETURN(pNewHead);

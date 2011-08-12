@@ -80,6 +80,7 @@ PUB_HEADER =  CMedIO.h \
               philips/CPhilipsDirectoryItem.h \
               philips/CPhilipsSubHeader.h \
               philips/CPhilipsSubHeaderImage.h \
+              philips/CPhilipsSubHeaderSinogram.h \
               helpers/MedIOUnits.h \
 
 HEADERS  = $$PUB_HEADER \
@@ -124,7 +125,8 @@ SOURCES  = CMedIO.cpp \
            philips/CPhilipsDirectory.cpp \
            philips/CPhilipsDirectoryItem.cpp \
            philips/CPhilipsSubHeader.cpp \
-           philips/CPhilipsSubHeaderImage.cpp
+           philips/CPhilipsSubHeaderImage.cpp \
+           philips/CPhilipsSubHeaderSinogram.cpp
 
 DEPENDPATH   = . ecat ecat/ecat6 ecat/ecat7 micropet philips
 INCLUDEPATH  = . include ecat ecat/ecat6 ecat/ecat7 micropet philips helpers

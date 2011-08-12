@@ -27,6 +27,7 @@
 
 #include "CPhilipsSubHeader.h"
 #include "CPhilipsSubHeaderImage.h"
+#include "CPhilipsSubHeaderSinogram.h"
 
 #include <QDataStream>
 #include <rtdebug.h>
@@ -184,7 +185,7 @@ bool CPhilipsDirectoryItem::readSubHeader(CPhilipsSubHeader*& subHeader)
         break;
 
         case CPhilipsSubHeader::Sinogram:
-          W("CPHilipsSubHeaderSinogram not supported yet.");
+          subHeader = new CPhilipsSubHeaderSinogram(m_pData->file, this);
         break;
 
         default:

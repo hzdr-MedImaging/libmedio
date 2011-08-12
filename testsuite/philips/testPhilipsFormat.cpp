@@ -2,6 +2,7 @@
 
 #include "testCPhilipsFile.h"
 #include "testCPhilipsSubHeaderImage.h"
+#include "testCPhilipsSubHeaderSinogram.h"
 
 int main(int argc, char** argv)
 {
@@ -12,6 +13,9 @@ int main(int argc, char** argv)
 
   TestCPhilipsSubHeaderImage testCPhilipsSubHeaderImage;
   QTest::qExec(&testCPhilipsSubHeaderImage);
+
+  TestCPhilipsSubHeaderSinogram testCPhilipsSubHeaderSinogram;
+  QTest::qExec(&testCPhilipsSubHeaderSinogram);
 
   return 0;
 }

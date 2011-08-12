@@ -16,5 +16,5 @@ class TestCPhilipsFile : public QObject
 
   private:
     CPhilipsFile* m_pInputFile;
-    CPhilipsFile* m_pOutputFile;
+    // CPhilipsFile* m_pOutputFile;
 };

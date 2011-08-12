@@ -2,7 +2,7 @@
 
 class CPhilipsFile;
 
-class TestCPhilipsSubHeaderImage : public QObject
+class TestCPhilipsSubHeaderSinogram : public QObject
 {
   Q_OBJECT
 

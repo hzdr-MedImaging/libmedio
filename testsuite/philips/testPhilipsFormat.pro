@@ -26,8 +26,8 @@ win32 {
   UI_DIR      = _ui
 }
 # Input
-HEADERS += testCPhilipsFile.h testCPhilipsSubHeaderImage.h
-SOURCES += testCPhilipsFile.cpp testPhilipsFormat.cpp testCPhilipsSubHeaderImage.cpp
+HEADERS += testCPhilipsFile.h testCPhilipsSubHeaderImage.h testCPhilipsSubHeaderSinogram.h
+SOURCES += testCPhilipsFile.cpp testPhilipsFormat.cpp testCPhilipsSubHeaderImage.cpp testCPhilipsSubHeaderSinogram.cpp
 
 # override the compile output
 QMAKE_CXX  = @echo \'  CC   $<\'; $$QMAKE_CXX

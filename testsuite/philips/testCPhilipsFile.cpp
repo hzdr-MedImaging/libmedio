@@ -7,10 +7,10 @@
 void TestCPhilipsFile::initTestCase()
 {
   m_pInputFile = new CPhilipsFile("../../../philipstestfile.img");
-  m_pOutputFile = new CPhilipsFile("output.img");
+  // m_pOutputFile = new CPhilipsFile("output.img");
 
   QCOMPARE(m_pInputFile->open(QIODevice::ReadOnly), true);
-  QCOMPARE(m_pOutputFile->open(QIODevice::WriteOnly), true);
+  // QCOMPARE(m_pOutputFile->open(QIODevice::WriteOnly), true);
 }
 
 void TestCPhilipsFile::testReadMainHeader()
@@ -60,6 +60,6 @@ void TestCPhilipsFile::cleanupTestCase()
   m_pInputFile->close();
   delete m_pInputFile;
 
-  m_pOutputFile->close();
-  delete m_pOutputFile;
+  // m_pOutputFile->close();
+  // delete m_pOutputFile;
 }
