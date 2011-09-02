@@ -374,6 +374,80 @@ bool CPhilipsFile::readSubHeader(CPhilipsSubHeader*& subHeader, short slice,
   return result;
 }
 
+bool CPhilipsFile::readMatrix(QByteArray*& matrixData,
+                              short slice, short frame, short tilt)
+{
+  ENTER();
+  bool result = false;
+  ASSERT(m_pData->directory);
+  
+  // we have to perform a search within the whole DirectoryList
+  // to get the MatrixData but we just need to query the
+  // Main directory here as it will forward the query to it's sub
+  // directories
+  if(isReadable() && m_pData->directory)
+    result = m_pData->directory->readMatrix(matrixData, slice, frame, tilt);
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsFile::readMatrix(char*& matrixData, unsigned int& len,
+                              short slice, short frame, short tilt)
+{
+  ENTER();
+  bool result = false;
+
+  ASSERT(m_pData->directory);
+
+  // we have to perform a search within the whole DirectoryList
+  // to get the MatrixData but we just need to query the
+  // Main directory here as it will forward the query to it's sub
+  // directories
+  if(isReadable() && m_pData->directory)
+    result = m_pData->directory->readMatrix(matrixData, len, slice, frame, tilt);
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsFile::readMatrix(QByteArray*& matrixData, CPhilipsSubHeader*& subHeader,
+                              short slice, short frame, short tilt)
+{
+  ENTER();
+  bool result = false;
+  ASSERT(m_pData->directory);
+  
+  // we have to perform a search within the whole DirectoryList
+  // to get the MatrixData but we just need to query the
+  // Main directory here as it will forward the query to it's sub
+  // directories
+  if(isReadable() && m_pData->directory)
+    result = m_pData->directory->readMatrix(matrixData, subHeader, slice, frame, tilt);
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsFile::readMatrix(char*& matrixData, unsigned int& len, CPhilipsSubHeader*& subHeader,
+                              short slice, short frame, short tilt)
+{
+  ENTER();
+  bool result = false;
+
+  ASSERT(m_pData->directory);
+
+  // we have to perform a search within the whole DirectoryList
+  // to get the MatrixData but we just need to query the
+  // Main directory here as it will forward the query to it's sub
+  // directories
+  if(isReadable() && m_pData->directory)
+    result = m_pData->directory->readMatrix(matrixData, len, subHeader, slice, frame, tilt);
+
+  RETURN(result);
+  return result;
+}
+
 CPhilipsMainHeader* CPhilipsFile::createEmptyMainHeader()
 {
   ENTER();

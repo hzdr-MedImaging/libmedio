@@ -106,10 +106,10 @@ class CPhilipsDirectoryItem
       
     // read i/o methods
     bool readSubHeader(CPhilipsSubHeader*& subHeader);
-    // bool readMatrix(QByteArray*& data);
-    // bool readMatrix(char*& data, unsigned int& len);
-    // bool readMatrix(QByteArray*& data, CPhilipsSubHeader*& subHeader);
-    // bool readMatrix(char*& data, unsigned int& len, CPhilipsSubHeader*& subHeader);
+    bool readMatrix(QByteArray*& data);
+    bool readMatrix(char*& data, unsigned int& len);
+    bool readMatrix(QByteArray*& data, CPhilipsSubHeader*& subHeader);
+    bool readMatrix(char*& data, unsigned int& len, CPhilipsSubHeader*& subHeader);
 
     // // write i/o methods
     // bool writeSubHeader(const CPhilipsSubHeader& subHeader);

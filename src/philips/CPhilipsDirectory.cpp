@@ -429,3 +429,79 @@ bool CPhilipsDirectory::readSubHeader(CPhilipsSubHeader*& subHeader, short slice
   RETURN(result);
   return result;
 }
+
+bool CPhilipsDirectory::readMatrix(QByteArray*& matrixData,
+                                   short slice, short frame, short tilt)
+{
+  ENTER();
+  bool result = false;
+
+  if(matrixParamsValid(slice, frame, tilt))
+  {
+    // get the directoryItem so that we can query the matrix from it
+    CPhilipsDirectoryItem* pDirItem = m_pData->dirItems.value(convertToMatrixID(slice, frame, tilt));
+
+    if(pDirItem)
+      result = pDirItem->readMatrix(matrixData);
+  }
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsDirectory::readMatrix(char*& matrixData, unsigned int& len,
+                                   short slice, short frame, short tilt)
+{
+  ENTER();
+  bool result = false;
+
+  if(matrixParamsValid(slice, frame, tilt))
+  {
+    // get the directoryItem so that we can query the matrix from it
+    CPhilipsDirectoryItem* pDirItem = m_pData->dirItems.value(convertToMatrixID(slice, frame, tilt));
+
+    if(pDirItem)
+      result = pDirItem->readMatrix(matrixData, len);
+  }
+  
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsDirectory::readMatrix(QByteArray*& matrixData, CPhilipsSubHeader*& subHeader,
+                                   short slice, short frame, short tilt)
+{
+  ENTER();
+  bool result = false;
+
+  if(matrixParamsValid(slice, frame, tilt))
+  {
+    // get the directoryItem so that we can query the matrix from it
+    CPhilipsDirectoryItem* pDirItem = m_pData->dirItems.value(convertToMatrixID(slice, frame, tilt));
+
+    if(pDirItem)
+      result = pDirItem->readMatrix(matrixData, subHeader);
+  }
+  
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsDirectory::readMatrix(char*& matrixData, unsigned int& len, CPhilipsSubHeader*& subHeader,
+                                   short slice, short frame, short tilt)
+{
+  ENTER();
+  bool result = false;
+
+  if(matrixParamsValid(slice, frame, tilt))
+  {
+    // get the directoryItem so that we can query the matrix from it
+    CPhilipsDirectoryItem* pDirItem = m_pData->dirItems.value(convertToMatrixID(slice, frame, tilt));
+
+    if(pDirItem)
+      result = pDirItem->readMatrix(matrixData, len, subHeader);
+  }
+  
+  RETURN(result);
+  return result;
+}

@@ -75,7 +75,6 @@ CPhilipsDirectoryItem::CPhilipsDirectoryItem(CPhilipsFile* pFile,
     m_pData->frame = matrixID2Frame(matrixID);
     m_pData->slice = matrixID2Slice(matrixID);
     m_pData->tilt  = matrixID2Tilt(matrixID);
-
     D("created new DirItem (%d/%d/%d)", m_pData->frame, m_pData->slice, m_pData->tilt);
   }
   else
@@ -159,20 +158,28 @@ bool CPhilipsDirectoryItem::readSubHeader(CPhilipsSubHeader*& subHeader)
     // more from scratch
     if(m_pData->cachedSubHeader)
     {
+      // lets prepare the SubHeader depending on the type of the
+      // PhilipsFile
       switch(m_pData->file->subHeaderType())
       {
         case CPhilipsSubHeader::Image:
-
+          subHeader = new CPhilipsSubHeaderImage(*static_cast<CPhilipsSubHeaderImage*>(m_pData->cachedSubHeader));
+          result = true;
         break;
 
         case CPhilipsSubHeader::Sinogram:
-
+          // subHeader = new CPhilipsSubHeaderSinogram(*static_cast<CPhilipsSubHeaderImage*>(m_pData->cachedSubHeader));
+          // result = true;
         break;          
 
         default:
           E("philips type isn't specified or not supported yet.");
         
       }
+
+      // set the mediodata object for the newly created subheader
+      subHeader->setMedIOData(m_pData->file);
+      subHeader->setDirectoryItem(this);
     }
     else
     {
@@ -191,18 +198,164 @@ bool CPhilipsDirectoryItem::readSubHeader(CPhilipsSubHeader*& subHeader)
         default:
           E("Philips type isn't specified or not supported yet.");
       }
+
+      if(subHeader)
+      {
+        if(subHeader->load() == false)
+        {
+          delete subHeader;
+          subHeader = NULL;
+        }
+        else
+          result = true;
+      }
+    }
+  }
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsDirectoryItem::readMatrix(QByteArray*& matrixData)
+{
+  ENTER();
+  bool result = false;
+  char* data = NULL;
+  unsigned int dataLen = 0;
+
+  // we use our method operating on a raw char pointer
+  if(readMatrix(data, dataLen) && dataLen > 0)
+  {
+    matrixData = new QByteArray(data, dataLen);
+    delete [] data;
+    result = true;
+  }
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
+{
+  ENTER();
+  bool result = true;
+
+  // check if the file associated with this item is readable or
+  // not
+  if(m_pData->file && (m_pData->file->isReadable() == false))
+  {
+    RETURN(false);
+    return false;
+  }
+
+  // we load the MatrixData out of the Philipsfile manually but only
+  // if the content flag  of this item is set to "used"
+  if(m_pData->contentFlag == Used)
+  {
+    // we need to read in the subheader to get the raw data size
+    // but the raw data in the matrix
+    // is always written as 2-byte (signed short) values
+    // (see LUMINARY TOOLKIT MANUAL on page 2-5)
+    CPhilipsSubHeader* subHeader = NULL;
+    if((readSubHeader(subHeader) == false) || subHeader == NULL)
+    {
+      RETURN(false);
+      return false;
     }
 
-    if(subHeader)
+    // the next step is to set the file handle to the matrix start.
+    // This data is stored directly after the subheader
+    if(m_pData->file->seek(m_pData->dataBlock_Start + subHeader->rawDataSize()) == false)
     {
-      if(subHeader->load() == false)
-      {
-        delete subHeader;
-        subHeader = NULL;
-      }
-      else
-        result = true;
+      RETURN(false);
+      return false;
     }
+
+    SHOWVALUE(m_pData->file->pos());
+
+    // then we allocate some memory for loading the matrixdata
+    // because dataBlock_End points to the last data block of the
+    // record, we need to add the lenght of one data block to get
+    // the size of the matrix
+    matrixSize = m_pData->dataBlock_End - m_pData->dataBlock_Start - subHeader->rawDataSize() + PHILIPS_BLOCKSIZE;
+    matrixData = new char[matrixSize];
+
+    // now we delete the subHeader we loaded temporarly
+    // because we don't need it any longer
+    delete subHeader;
+
+    // then we process the matrix data that is associated with
+    // this directoryitem. According to the LUMINARY TOOLKIT MANUAL
+    // all data is stored using big endian byte ordering. As the QDataStream
+    // is per default big endian, we don't have to set it to another byte order
+    // and just use the QDataStream operators to ensure correct byte swapping
+    QByteArray bufArray(8192, 0); // read 8KB chunks
+    quint16* ptr = (quint16*)matrixData;
+    for(unsigned int read=0; read < matrixSize;)
+    {
+      unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
+      unsigned int curRead = m_pData->file->read(bufArray.data(), toRead);
+      if(curRead != toRead)
+      {
+        result = false;
+        break;
+      }
+
+      // check if the curRead value is divide able through our data type 
+      ASSERT(curRead % sizeof(quint16) == 0);
+
+      // now that we have our chunk we use a bufferStream to stream
+      // out the values from it for making sure our data is correctly
+      // converted regarding to little/big endianess
+      QDataStream bufStream(bufArray);
+      bufStream.setByteOrder(QDataStream::BigEndian);
+      for(unsigned int i=0; i < curRead; i+=sizeof(quint16))
+      {
+        bufStream >> *ptr;
+        ++ptr;
+      }
+
+      // increase our read counter
+      read += curRead;
+    }
+  }
+  else
+    result = false;
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsDirectoryItem::readMatrix(QByteArray*& matrixData, CPhilipsSubHeader*& subHeader)
+{
+  ENTER();
+  bool result = false;
+  char* data = NULL;
+  unsigned int dataLen = 0;
+
+  // we use our method operating on a raw char pointer
+  if(readMatrix(data, dataLen, subHeader) && dataLen > 0)
+  {
+    matrixData = new QByteArray(data, dataLen);
+    delete [] data;
+    result = true;
+  }
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsDirectoryItem::readMatrix(char*& data, unsigned int& len, CPhilipsSubHeader*& subHeader)
+{
+  ENTER();
+  bool result = false;
+
+  // read out the subHeader first
+  if(readSubHeader(subHeader))
+  {
+    // we use our method operating on a raw char pointer
+    if(readMatrix(data, len) && len > 0)
+      result = true;
   }
 
   RETURN(result);
@@ -238,7 +391,6 @@ QDataStream& operator>>(QDataStream& stream, CPhilipsDirectoryItem& dItem)
   dItem.m_pData->contentFlag = static_cast<CPhilipsDirectoryItem::ContentFlag>(contentFlag);
 
   // output some debug information.
-#if 0
 #if defined(DEBUG)
   if(dItem.isExtendedHeader())
   {
@@ -258,7 +410,6 @@ QDataStream& operator>>(QDataStream& stream, CPhilipsDirectoryItem& dItem)
     D("DItem.compressionFlag : %04x", dItem.m_pData->compressionFlag);
     D("DItem.contentFlag     : %04x", dItem.m_pData->contentFlag);
   }
-  #endif
 #endif
   LEAVE();
   return stream;

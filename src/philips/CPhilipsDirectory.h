@@ -66,6 +66,14 @@ class CPhilipsDirectory
     bool readSubHeader(CPhilipsSubHeader*& subHeader,
                        short slice, short frame=1, short tilt=0);
 
+    bool readMatrix(QByteArray*& matrixData,
+                    short slice, short frame=1, short tilt=0);
+    bool readMatrix(char*& matrixData, unsigned int& len,
+                    short slice, short frame=1, short tilt=0);
+    bool readMatrix(QByteArray*& matrixData, CPhilipsSubHeader*& subHeader,
+                    short slice, short frame=1, short tilt=0);
+    bool readMatrix(char*& matrixData, unsigned int& len, CPhilipsSubHeader*& subHeader,
+                    short slice, short frame=1, short tilt=0);
   private:
     CPhilipsDirectoryPrivate* m_pData;
 };
