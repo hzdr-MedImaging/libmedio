@@ -168,8 +168,8 @@ bool CPhilipsDirectoryItem::readSubHeader(CPhilipsSubHeader*& subHeader)
         break;
 
         case CPhilipsSubHeader::Sinogram:
-          // subHeader = new CPhilipsSubHeaderSinogram(*static_cast<CPhilipsSubHeaderImage*>(m_pData->cachedSubHeader));
-          // result = true;
+          subHeader = new CPhilipsSubHeaderSinogram(*static_cast<CPhilipsSubHeaderSinogram*>(m_pData->cachedSubHeader));
+          result = true;
         break;          
 
         default:
