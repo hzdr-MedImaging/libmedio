@@ -427,3 +427,584 @@ CMedIOHeader* CPhilipsSubHeaderImage::clone() const
   RETURN(pNewHead);
   return pNewHead;
 }
+
+// data acess methods
+short CPhilipsSubHeaderImage::version() const
+{
+  return m_pData->header.version;
+}
+
+const char* CPhilipsSubHeaderImage::atten_corr() const
+{
+  return m_pData->header.atten_corr;
+}
+
+float CPhilipsSubHeaderImage::actual_bedpos() const
+{
+  return m_pData->header.actual_bedpos;
+}
+
+float CPhilipsSubHeaderImage::orientation(const short i) const
+{
+  if((i >= 0) || (i <= 6))
+    return m_pData->header.orientation[i];
+  else
+    return 0.0f;
+}
+
+long CPhilipsSubHeaderImage::card_fr_time() const
+{
+  return m_pData->header.card_fr_time;
+}
+
+long CPhilipsSubHeaderImage::card_high_rr() const
+{
+  return m_pData->header.card_high_rr;
+}
+
+long CPhilipsSubHeaderImage::card_low_rr() const
+{
+  return m_pData->header.card_low_rr;
+}
+
+long CPhilipsSubHeaderImage::card_tr_time() const
+{
+  return m_pData->header.card_tr_time;
+}
+
+const char* CPhilipsSubHeaderImage::scatter_corr() const
+{
+  return m_pData->header.scatter_corr;
+}
+
+short CPhilipsSubHeaderImage::deadtime_corr() const
+{
+  return m_pData->header.deadtime_corr;
+}
+
+CPhilipsSubHeaderImage::Randoms_Type CPhilipsSubHeaderImage::randoms_corr() const
+{
+  return static_cast<CPhilipsSubHeaderImage::Randoms_Type>(m_pData->header.randoms_corr);
+}
+
+short CPhilipsSubHeaderImage::det_norm() const
+{
+  return m_pData->header.det_norm;
+}
+
+short CPhilipsSubHeaderImage::nu_radsamp_corr() const
+{
+  return m_pData->header.nu_radsamp_corr;
+}
+
+short CPhilipsSubHeaderImage::pat_mot_corr() const
+{
+  return m_pData->header.pat_mot_corr;
+}
+
+float  CPhilipsSubHeaderImage::echo_time() const
+{
+  return m_pData->header.echo_time;
+}
+
+float CPhilipsSubHeaderImage::exposure_time() const
+{
+  return m_pData->header.exposure_time;
+}
+
+float CPhilipsSubHeaderImage::img_pos_x() const
+{
+
+  return m_pData->header.img_pos[0];
+}
+
+float CPhilipsSubHeaderImage::img_pos_y() const
+{
+  return m_pData->header.img_pos[1];
+}
+
+float CPhilipsSubHeaderImage::img_pos_z() const
+{
+  return m_pData->header.img_pos[2];
+}
+
+short CPhilipsSubHeaderImage::datype() const
+{
+  return m_pData->header.datype;
+}
+
+short CPhilipsSubHeaderImage::xdim() const
+{
+  return m_pData->header.xdim;
+}
+
+short CPhilipsSubHeaderImage::ydim() const
+{
+  return m_pData->header.ydim;
+}
+
+short CPhilipsSubHeaderImage::slcnum() const
+{
+  return m_pData->header.slcnum;
+}
+
+short CPhilipsSubHeaderImage::tiltnum() const
+{
+  return m_pData->header.tiltnum;
+}
+
+short CPhilipsSubHeaderImage::gatint() const
+{
+  return m_pData->header.gatint;
+}
+
+short CPhilipsSubHeaderImage::cntloss_corr() const
+{
+  return m_pData->header.cntloss_corr;
+}
+
+float CPhilipsSubHeaderImage::pix_spacing(const short i) const
+{
+  if((i >= 0) || (i <= 2))
+    return m_pData->header.pix_spacing[i];
+  else
+    return 0.0;
+}
+
+float CPhilipsSubHeaderImage::xray_current() const
+{
+  return m_pData->header.xray_current;
+}
+
+float CPhilipsSubHeaderImage::suvscl() const
+{
+  return m_pData->header.suvscl;
+}
+
+float CPhilipsSubHeaderImage::kvp() const
+{
+  return m_pData->header.kvp;
+}
+
+float CPhilipsSubHeaderImage::Dslice_loc() const
+{
+  return m_pData->header.Dslice_loc;
+}
+
+float CPhilipsSubHeaderImage::magfac() const
+{
+  return m_pData->header.magfac;
+}
+
+float CPhilipsSubHeaderImage::imgscl() const
+{
+  return m_pData->header.imgscl;
+}
+
+short CPhilipsSubHeaderImage::imgmin() const
+{
+  return m_pData->header.imgmin;
+}
+
+short CPhilipsSubHeaderImage::imgmax() const
+{
+  return m_pData->header.imgmax;
+}
+
+CPhilipsSubHeaderImage::Decay_Type CPhilipsSubHeaderImage::decay_corr() const
+{
+  return static_cast<CPhilipsSubHeaderImage::Decay_Type>(m_pData->header.decay_corr);
+}
+short CPhilipsSubHeaderImage::strhr() const
+{
+  return m_pData->header.strhr;
+}
+
+short CPhilipsSubHeaderImage::strmin() const
+{
+  return m_pData->header.strmin;
+}
+
+short CPhilipsSubHeaderImage::strsec() const
+{
+  return m_pData->header.strsec;
+}
+
+short CPhilipsSubHeaderImage::endhr() const
+{
+  return m_pData->header.endhr;
+}
+
+short CPhilipsSubHeaderImage::endmin() const
+{
+  return m_pData->header.endmin;
+}
+
+short CPhilipsSubHeaderImage::endsec() const
+{
+  return m_pData->header.endsec;
+}
+
+long CPhilipsSubHeaderImage::midtim() const
+{
+  return m_pData->header.midtim;
+}
+
+short CPhilipsSubHeaderImage::mseclen() const
+{
+  return m_pData->header.mseclen;
+}
+
+short CPhilipsSubHeaderImage::scnlen() const
+{
+  return m_pData->header.scnlen;
+}
+
+float CPhilipsSubHeaderImage::imgsum() const
+{
+  return m_pData->header.imgsum;
+}
+
+float CPhilipsSubHeaderImage::bgdelrt() const
+{
+  return m_pData->header.bgdelrt;
+}
+
+float CPhilipsSubHeaderImage::enddelrt() const
+{
+  return m_pData->header.enddelrt;
+}
+
+float CPhilipsSubHeaderImage::bgsngrt() const
+{
+  return m_pData->header.bgsngrt;
+}
+
+float CPhilipsSubHeaderImage::bgcoincrt() const
+{
+  return m_pData->header.bgcoincrt;
+}
+
+float CPhilipsSubHeaderImage::endsngrt() const
+{
+  return m_pData->header.endsngrt;
+}
+
+float CPhilipsSubHeaderImage::endcoincrt() const
+{
+  return m_pData->header.endcoincrt;
+}
+
+float CPhilipsSubHeaderImage::deadtimefac() const
+{
+  return m_pData->header.deadtimefac;
+}
+
+short CPhilipsSubHeaderImage::bedpos() const
+{
+  return m_pData->header.bedpos;
+}
+
+float CPhilipsSubHeaderImage::deadtime_bgsub() const
+{
+  return m_pData->header.deadtime_bgsub;
+}
+
+const char* CPhilipsSubHeaderImage::sop_uid() const
+{
+  return m_pData->header.sop_uid;
+}
+
+const char* CPhilipsSubHeaderImage::recon_method() const
+{
+  return m_pData->header.recon_method;
+}
+
+// methods to modify elements of the SubHeader  
+void CPhilipsSubHeaderImage::setVersion(const short version)
+{
+  m_pData->header.version = version;
+}
+
+void CPhilipsSubHeaderImage::setAtten_corr(const char* str)
+{
+  strncpy(m_pData->header.atten_corr, str, 16);
+}
+
+void CPhilipsSubHeaderImage::setActual_bedpos(const float bedpos)
+{
+  m_pData->header.bedpos = bedpos;
+}
+
+void CPhilipsSubHeaderImage::setOrientation(const short i, const float orientation)
+{
+  if((i >= 0) || (i <= 6))
+    m_pData->header.orientation[i] = orientation;
+}
+
+void CPhilipsSubHeaderImage::setCard_fr_time(const long card_fr_time)
+{
+  m_pData->header.card_fr_time = card_fr_time;
+}
+
+void CPhilipsSubHeaderImage::setCard_high_rr(const long card_high_rr)
+{
+  m_pData->header.card_high_rr = card_high_rr;
+}
+
+void CPhilipsSubHeaderImage::setCard_low_rr(const long card_low_rr)
+{
+  m_pData->header.card_low_rr = card_low_rr;
+}
+
+void CPhilipsSubHeaderImage::setCard_tr_time(const long card_high_rr)
+{
+  m_pData->header.card_high_rr = card_high_rr;
+}
+
+void CPhilipsSubHeaderImage::setScatter_corr(const char* str)
+{
+  strncpy(m_pData->header.scatter_corr, str, 16);
+}
+
+void CPhilipsSubHeaderImage::setDeadtime_corr(const short deadtime_corr)
+{
+  m_pData->header.deadtime_corr = deadtime_corr;
+}
+
+void CPhilipsSubHeaderImage::setRandoms_corr(const CPhilipsSubHeaderImage::Randoms_Type randoms_corr)
+{
+  m_pData->header.randoms_corr = static_cast<qint16>(randoms_corr);
+}
+
+void CPhilipsSubHeaderImage::setDet_norm(const short det_norm)
+{
+  m_pData->header.det_norm = det_norm;
+}
+
+void CPhilipsSubHeaderImage::setNu_radsamp_corr(const short nu_radsamp_corr)
+{
+  m_pData->header.nu_radsamp_corr = nu_radsamp_corr;
+}
+
+void CPhilipsSubHeaderImage::setPat_mot_corr(const short pat_mot_corr)
+{
+  m_pData->header.pat_mot_corr = pat_mot_corr;
+}
+
+void CPhilipsSubHeaderImage::setEcho_time(const float  echo_time)
+{
+  m_pData->header.echo_time = echo_time;
+}
+
+void CPhilipsSubHeaderImage::setExposure_time(const float exposure_time)
+{
+  m_pData->header.exposure_time = exposure_time;
+}
+
+void CPhilipsSubHeaderImage::setImg_pos_x(const float img_pos_x)
+{
+  m_pData->header.img_pos[0] = img_pos_x;
+}
+
+void CPhilipsSubHeaderImage::setImg_pos_y(const float img_pos_y)
+{
+  m_pData->header.img_pos[1] = img_pos_y;
+}
+
+void CPhilipsSubHeaderImage::setImg_pos_z(const float img_pos_z)
+{
+  m_pData->header.img_pos[2] = img_pos_z;
+}
+
+void CPhilipsSubHeaderImage::setDatype(const short datype)
+{
+  m_pData->header.datype = datype;
+}
+
+void CPhilipsSubHeaderImage::setXdim(const short xdim)
+{
+  m_pData->header.xdim = xdim;
+}
+
+void CPhilipsSubHeaderImage::setYdim(const short ydim)
+{
+  m_pData->header.ydim = ydim;
+}
+
+void CPhilipsSubHeaderImage::setSlcnum(const short slcnum)
+{
+  m_pData->header.slcnum = slcnum;
+}
+
+void CPhilipsSubHeaderImage::setTiltnum(const short tiltnum)
+{
+  m_pData->header.tiltnum = tiltnum;
+}
+
+void CPhilipsSubHeaderImage::setGatint(const short gatint)
+{
+  m_pData->header.gatint = gatint;
+}
+
+void CPhilipsSubHeaderImage::setCntloss_corr(const short cntloss_corr)
+{
+  m_pData->header.cntloss_corr = cntloss_corr;
+}
+
+void CPhilipsSubHeaderImage::setPix_spacing(const short i, const float pix_spacing)
+{
+  if((i >= 0) || (i <= 2))
+    m_pData->header.pix_spacing[i] = pix_spacing;
+}
+
+void CPhilipsSubHeaderImage::setXray_current(const float xray_current)
+{
+  m_pData->header.xray_current = xray_current;
+}
+
+void CPhilipsSubHeaderImage::setSuvscl(const float suvscl)
+{
+  m_pData->header.suvscl = suvscl;
+}
+
+void CPhilipsSubHeaderImage::setKvp(const float kvp)
+{
+  m_pData->header.kvp = kvp;
+}
+
+void CPhilipsSubHeaderImage::setDslice_loc(const float Dslice_loc)
+{
+  m_pData->header.Dslice_loc = Dslice_loc;
+}
+
+void CPhilipsSubHeaderImage::setMagfac(const float magfac)
+{
+  m_pData->header.magfac = magfac;
+}
+
+void CPhilipsSubHeaderImage::setImgscl(const float imgscl)
+{
+  m_pData->header.imgscl = imgscl;
+}
+
+void CPhilipsSubHeaderImage::setImgmin(const short imgmin)
+{
+  m_pData->header.imgmin = imgmin;
+}
+
+void CPhilipsSubHeaderImage::setImgmax(const short imgmax)
+{
+  m_pData->header.imgmax = imgmax;
+}
+
+void CPhilipsSubHeaderImage::setDecay_corr(const CPhilipsSubHeaderImage::Decay_Type decay_corr)
+{
+  m_pData->header.decay_corr = static_cast<qint16>(decay_corr);
+}
+
+void CPhilipsSubHeaderImage::setStrhr(const short strhr)
+{
+  m_pData->header.strhr = strhr;
+}
+
+void CPhilipsSubHeaderImage::setStrmin(const short strmin)
+{
+  m_pData->header.strmin = strmin;
+}
+
+void CPhilipsSubHeaderImage::setStrsec(const short strsec)
+{
+  m_pData->header.strsec = strsec;
+}
+
+void CPhilipsSubHeaderImage::setEndhr(const short endhr)
+{
+  m_pData->header.endhr = endhr;
+}
+
+void CPhilipsSubHeaderImage::setEndmin(const short endmin)
+{
+  m_pData->header.endmin = endmin;
+}
+
+void CPhilipsSubHeaderImage::setEndsec(const short endsec)
+{
+  m_pData->header.endsec = endsec;
+}
+
+void CPhilipsSubHeaderImage::setMidtim(const long midtim)
+{
+  m_pData->header.midtim = midtim;
+}
+
+void CPhilipsSubHeaderImage::setMseclen(const short mseclen)
+{
+  m_pData->header.mseclen = mseclen;
+}
+
+void CPhilipsSubHeaderImage::setScnlen(const short scnlen)
+{
+  m_pData->header.scnlen = scnlen;
+}
+
+void CPhilipsSubHeaderImage::setImgsum(const float imgsum)
+{
+  m_pData->header.imgsum = imgsum;
+}
+
+void CPhilipsSubHeaderImage::setBgdelrt(const float bgdelrt)
+{
+  m_pData->header.bgdelrt = bgdelrt;
+}
+
+void CPhilipsSubHeaderImage::setEnddelrt(const float enddelrt)
+{
+  m_pData->header.enddelrt = enddelrt;
+}
+
+void CPhilipsSubHeaderImage::setBgsngrt(const float bgsngrt)
+{
+  m_pData->header.bgsngrt = bgsngrt;
+}
+
+void CPhilipsSubHeaderImage::setBgcoincrt(const float bgcoincrt)
+{
+  m_pData->header.bgcoincrt = bgcoincrt;
+}
+
+void CPhilipsSubHeaderImage::setEndsngrt(const float endsngrt)
+{
+  m_pData->header.endsngrt = endsngrt;
+}
+
+void CPhilipsSubHeaderImage::setEndcoincrt(const float endcoincrt)
+{
+  m_pData->header.endcoincrt = endcoincrt;
+}
+
+void CPhilipsSubHeaderImage::setDeadtimefac(const float deadtimefac)
+{
+  m_pData->header.deadtimefac = deadtimefac;
+}
+
+void CPhilipsSubHeaderImage::setBedpos(const short bedpos)
+{
+  m_pData->header.bedpos = bedpos;
+}
+
+void CPhilipsSubHeaderImage::setDeadtime_bgsub(const float deadtime_bgsub)
+{
+  m_pData->header.deadtime_bgsub = deadtime_bgsub;
+}
+
+void CPhilipsSubHeaderImage::setSop_uid(const char* str)
+{
+  strncpy(m_pData->header.sop_uid, str, 64);
+}
+
+void CPhilipsSubHeaderImage::setRecon_method(const char* str)
+{
+  strncpy(m_pData->header.recon_method, str, 16);
+}
+

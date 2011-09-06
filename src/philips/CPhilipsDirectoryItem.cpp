@@ -31,7 +31,7 @@
 
 #include <QDataStream>
 #include <rtdebug.h>
-
+#include <iostream>
 // we define the private inline class of that one so that we
 // are able to hide the private methods & data of that class in the
 // public headers
@@ -272,6 +272,7 @@ bool CPhilipsDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSi
     }
 
     SHOWVALUE(m_pData->file->pos());
+    std::cout << "file->pos: " << m_pData->file->pos() << std::endl;
 
     // then we allocate some memory for loading the matrixdata
     // because dataBlock_End points to the last data block of the

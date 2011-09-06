@@ -52,7 +52,6 @@ bool CPhilipsFilePrivate::isPhilipsFile(CMedIOData* file)
     
     // we check the first 6 bytes of the file
     // the bytes should be 0x01 0x00 0x00 0x00 0x00 0x16
-    // then it is a philips file
     char firstBytes[6];
     if(stream.readRawData(firstBytes, 6) == 6)
     {
