@@ -56,93 +56,135 @@ public:
     PETMR  = (1 << 12)
   };
 
-    // MainHeader structure (should be 512 bytes)
-    struct HeaderData
-    {
-      qint16 file_fmt;       // file format (mainheader) version number
-      qint16 scan_geom;  // encoding of the scanner geometry
-      qint16 hw_config;   // encoding of hardware used in acquisition
-      qint16 edit_flag;         // 1 to indicat that the user has modified mainheader
-      qint16 filtyp;
-      qint16 dep_daycre;
-      qint16 dep_mocre;
-      qint16 dep_yrcre;
-      qint16 dep_hrcre;
-      qint16 dep_mincre;
-      qint16 dep_seccre;
-      qint16 duratn;     // duration of scan in seconds
-      qint16 shdtyp;    // ImageIO subheader (1) or old subheader format (0)
-      qint16 sngpscl; // singles prescale, superceded by pscale
+  // MainHeader structure (should be 512 bytes)
+  struct HeaderData
+  {
+    qint16 file_fmt;       // file format (mainheader) version number
+    qint16 scan_geom;  // encoding of the scanner geometry
+    qint16 hw_config;   // encoding of hardware used in acquisition
+    qint16 edit_flag;         // 1 to indicat that the user has modified mainheader
+    qint16 filtyp;
+    qint16 dep_daycre;
+    qint16 dep_mocre;
+    qint16 dep_yrcre;
+    qint16 dep_hrcre;
+    qint16 dep_mincre;
+    qint16 dep_seccre;
+    qint16 duratn;     // duration of scan in seconds
+    qint16 shdtyp;    // ImageIO subheader (1) or old subheader format (0)
+    qint16 sngpscl; // singles prescale, superceded by pscale
 
-      qint16 singopt; // 0=transmission only, 1=trans-ec, 2=ec only (obsoleted)
+    qint16 singopt; // 0=transmission only, 1=trans-ec, 2=ec only (obsoleted)
 
-      float pscale;      // amount by which the actual singles events is scaled down
-      float detectorRadius;       /* inscribed scanner radius (from middle of opening to
-                                      detector face) in mm */
-      qint16 virtualXtal; /* whether virtual crystals were used in the acquisition
-                                  to simulate a larger detector */
-      qint16 phiMashing;       /* whether events from crystal phi values are combined
-                                   6 Undefined/Unknown (assumption is no mashing)
-                                   7 No mashing
-                                   8 Events from pairs of consecutive angles have been added together */
-      qint16 polygonSides;    /* Number of "sides" in the scanner opening
-                                  (may refer to detectors or PMT modules */
-      qint16 xtalsPerSide; // Number of detectors per opening (polygon) side
-      qint16 nXtalRows;      // Number of crystal rows in the axial (Z) direction
-      float crystalThickness;  // Detetctor crystal thickness in mm
-      float xXtalPitch;     // X crystal pitch in mm
-      float zXtalPitch;     // Z crystal pitch in mm
-      float axialFOV;          // in mm
-      qint16 rphiType;         // 0 Real, 1 Crystal
-      qint16 sliceType;
-      qint16 delayType;
-      qint16 pattyp;
-      qint16 scntyp;
-      qint16 numray;
-      qint16 numang;
-      qint16 slcthk;
-      qint16 isotop;
-      float slope;                 // Rescale slope. (Not used)
-      float intcpt; // Offset value to data. (Not used)
-      qint16 injtim;
-      float polygonVertAt0deg;
-      qint16 nslice;        // number of slices per frame
-      qint16 nframe;        // number of frames
-      qint16 bthday;
-      qint16 bthmo;
-      qint16 bthyr;
-      char ssn[10]; // suberceded by Dicom_Patient_ID
-      qint16 ntilt;         // number of tilts per frame
+    float pscale;      // amount by which the actual singles events is scaled down
+    float detectorRadius;       /* inscribed scanner radius (from middle of opening to
+                                   detector face) in mm */
+    qint16 virtualXtal; /* whether virtual crystals were used in the acquisition
+                           to simulate a larger detector */
+    qint16 phiMashing;       /* whether events from crystal phi values are combined
+                                6 Undefined/Unknown (assumption is no mashing)
+                                7 No mashing
+                                8 Events from pairs of consecutive angles have been added together */
+    qint16 polygonSides;    /* Number of "sides" in the scanner opening
+                               (may refer to detectors or PMT modules */
+    qint16 xtalsPerSide; // Number of detectors per opening (polygon) side
+    qint16 nXtalRows;      // Number of crystal rows in the axial (Z) direction
+    float crystalThickness;  // Detetctor crystal thickness in mm
+    float xXtalPitch;     // X crystal pitch in mm
+    float zXtalPitch;     // Z crystal pitch in mm
+    float axialFOV;          // in mm
+    qint16 rphiType;         // 0 Real, 1 Crystal
+    qint16 sliceType;
+    qint16 delayType;
+    qint16 pattyp;
+    qint16 scntyp;
+    qint16 numray;
+    qint16 numang;
+    qint16 slcthk;
+    qint16 isotop;
+    float slope;                 // Rescale slope. (Not used)
+    float intcpt; // Offset value to data. (Not used)
+    qint16 injtim;
+    float polygonVertAt0deg;
+    qint16 nslice;        // number of slices per frame
+    qint16 nframe;        // number of frames
+    qint16 bthday;
+    qint16 bthmo;
+    qint16 bthyr;
+    char ssn[10]; // suberceded by Dicom_Patient_ID
+    qint16 ntilt;         // number of tilts per frame
 
-      qint16 petnum;
-      // skip 4 bytes 0x00,0x21,0xff,0xff
-      float activity;           // in MBq
-      float weight;
-      qint16 hrinj;
-      qint16 mininj;
-      float srcRadius;
-      float srcZpos;
-      float halfLife;           // in minutes
-      float concfac;
-      float concfac_bgsub;
-      float dmax;
-      float dline;
-      float angmax;
-      float x0;
-      float y0;
-      float z0;
-      float nevent;
-      float nsino;
-      qint16 eglob_low;
-      qint16 eglob_up;
-      qint16 eloc_low;
-      qint16 eloc_up;
+    qint16 petnum;
 
-      qint16 orient_hf;
-      char scan_swrel;
+    float activity;           // in MBq
+    float weight;
+    qint16 hrinj;
+    qint16 mininj;
+    float srcRadius;
+    float srcZpos;
+    float halfLife;           // in minutes
+    float concfac;
+    float concfac_bgsub;
+    float dmax;
+    float dline;
+    float angmax;
+    float x0;
+    float y0;
+    float z0;
+    float nevent;
+    float nsino;
+    qint16 eglob_low;
+    qint16 eglob_up;
+    qint16 eloc_low;
+    qint16 eloc_up;
+    /* Patient_Orientation_hf */ qint16 orient_hf;
+    char scan_swrel[6];
+    /* Table_Direction */ short tbl_direction;
+    /* Patient_Orientation_ps */ qint16 orient_ps;
+    float frontLeadDiameter;
+    float backLeadDiameter;
+    float leadSeparation;
+    float ndelays;
+    float slcsep;
+    /* Valid_Header_Struct */ short petct_valid;
 
+    char fctrfil[20];        /* Factor file name. (PMT gains). was 16 */
+    /* syn - (0008,1090) manufacturer's model name*/
+    char baselin[20];        /* Baseline file name. (DC offsets). was 16 */
+    char dstpkfl[20];        /* Distortion peak file name. */
+    char aqprotocol_name[20];/* acquisition protocol name */
+    /* Acquisition_Protocol_Type */ short aqprotocol_type;   /* 1=Emiss-Static, 2=Emiss-Dynamic,
+                                                              * 3=Trans-Static, 4=Gated Cardiac,
+                                                              * 5=Emiss-Whole-Body, 6=Trans-Whole-Body 
+                                                              * 7=Singles Trans, 8=Singles-Whole-Body */
+    char patient_name[30];   /* patient name */
+    float reslice_ang1;      /* Reslicing (OBL) angle 1 */
+    float reslice_ang2;      /* Reslicing (OBL) angle 2 */
+    float reslice_ang3;      /* Reslicing (OBL) angle 3 */
+    short minslc;            /* Minimum Slice number */
+    /* syn - set to 1		*/
+    short maxslc;            /* Maximum Slice number */
+    /* syn - set to number of slices */
+    short minfrm;            /* Minimum Frame number */
+    short maxfrm;            /* Maximum Frame number */
+    short scanner_maxslice;  /* Maximum Slice number for a static frame
+                              * based on the useful axial extent of the
+                              * scanner. (unitless) */
+    short rebin_type;         /* multi-slice or single slice or LOR */
 
-    } header;
+    char scnOrigin[16];       /* indicates origin of scan data = scanner number
+                               * (a000) - $SITENAME (10 chars) plus null */
+    char accNum[16]; /* Accession number. Will eventually be used with 
+                                 DICOM query retrieve. Initially used to support
+                                 dicom-send to PACS. */
+    short movementCoinc;      /* table movement between emission frames in mm */
+    short movementSing;   /* table movement between transmission frames in mm */
+    short crbTstampPeriod;    /* Period between CRB timestamps in msec */
+    short trailexists;       /* 1= trailer exists, 0 = no trailer */
+    quint32 trailbeg;           /* unsigned 32 bit number = # of bytes from
+                              * file beginning indicating where the
+                              * trailer begins */
+  } header;
 
   static const short currentMainHeaderFormat = 13;
 };
@@ -262,9 +304,7 @@ bool CPhilipsMainHeader::load()
   stream >> m_pData->header.duratn;    // 78: duratn
   stream >> m_pData->header.shdtyp;   // 80: shdtyp
   stream >> m_pData->header.sngpscl; // 82: sngpscl
-
   stream >> m_pData->header.singopt; // 84: singopt
-
   stream >> m_pData->header.pscale; // 86: Singles_Prescale
   stream >> m_pData->header.detectorRadius;  // 90: detectorRadius
   stream >> m_pData->header.virtualXtal; // 94: virtualXtal
@@ -320,6 +360,42 @@ bool CPhilipsMainHeader::load()
   stream >> m_pData->header.eglob_up;                    // 250: eglob_up
   stream >> m_pData->header.eloc_low;                    // 252: eloc_low
   stream >> m_pData->header.eloc_up;                     // 254: eloc_up
+  stream >> m_pData->header.orient_hf; // 256: orient_hf
+  stream.readRawData(&m_pData->header.scan_swrel[0], 6); // 258: scan_swrel
+  stream.skipRawData(8);        // skip some petct entries
+  stream >> m_pData->header.tbl_direction; // 272: tbl_direction
+  stream >> m_pData->header.orient_ps;     // 274: orient_ps
+  stream.skipRawData(20);        // skip some petct entries
+  stream >> m_pData->header.frontLeadDiameter; // 296: frontLeadDiameter
+  stream >> m_pData->header.backLeadDiameter;  // 300: backLeadDiameter
+  stream >> m_pData->header.leadSeparation;    // 304: leadSeparation
+  stream >> m_pData->header.ndelays;           // 308: ndelays
+  stream >> m_pData->header.slcsep;            // 312: slcsep
+  stream >> m_pData->header.petct_valid;       // 316: petct_valid
+  stream.readRawData(&m_pData->header.fctrfil[0], 20); // 318: fctrfil
+  stream.readRawData(&m_pData->header.baselin[0], 20); // 338: baselin
+  stream.readRawData(&m_pData->header.dstpkfl[0], 20); // 358: dstpkfl
+  stream.readRawData(&m_pData->header.aqprotocol_name[0], 20); // 378: aqprotocol_name
+  /* Acquisition_Protocol_Type */  stream >> m_pData->header.aqprotocol_type;                   // 398: aqprotocol_type
+  stream.readRawData(&m_pData->header.patient_name[0], 30); // 400: patient_name
+  stream >> m_pData->header.reslice_ang1;       // 430: reslice_ang1
+  stream >> m_pData->header.reslice_ang2;       // 434: reslice_ang2
+  stream >> m_pData->header.reslice_ang3;       // 438: reslice_ang3
+  stream >> m_pData->header.minslc;            // 442: minslc
+  stream >> m_pData->header.maxslc;            // 444: maxslc
+  stream >> m_pData->header.minfrm;            // 448: minfrm
+  stream >> m_pData->header.maxfrm;            // 450: maxfrm
+  stream >> m_pData->header.scanner_maxslice;  // 452: scanner_maxslice
+  stream.skipRawData(2);                       // 454: skip the next 2 bytes
+  /* Rebin_Type */ stream >> m_pData->header.rebin_type; // 456: rebin_type
+  stream.readRawData(&m_pData->header.scnOrigin[0], 16); // 458: patient_name
+  stream.readRawData(&m_pData->header.accNum[0], 16); // 474: accNum
+  stream >> m_pData->header.movementCoinc;            // 490: movementCoinc
+  stream >> m_pData->header.movementSing;            // 492: movementSing
+  stream >> m_pData->header.crbTstampPeriod;            // 494: crbTstampPeriod
+  stream.skipRawData(10);                            // 496: skip the next 10 bytes
+  stream >> m_pData->header.trailexists;            // 506: trailexists
+  stream >> m_pData->header.trailbeg;               // 508: trailbeg
 
 #if defined(DEBUG)
   D("philips Main Header loaded:");
@@ -391,6 +467,38 @@ bool CPhilipsMainHeader::load()
   D("eglob_up         : %d", m_pData->header.eglob_up);
   D("eloc_low         : %d", m_pData->header.eloc_low);
   D("eloc_up          : %d", m_pData->header.eloc_up);
+  D("orient_hf        : %d", m_pData->header.orient_hf);
+  D("scan_swrel       : %s", m_pData->header.scan_swrel);
+  D("tbl_direction    : %d", m_pData->header.tbl_direction);
+  D("orient_ps        : %d", m_pData->header.orient_ps);
+  D("frontLeadDiameter: %f", m_pData->header.frontLeadDiameter);
+  D("backLeadDiameter : %f", m_pData->header.backLeadDiameter);
+  D("leadSeparation   : %f", m_pData->header.leadSeparation);
+  D("ndelays          : %f", m_pData->header.ndelays);
+  D("slcsep           : %f", m_pData->header.slcsep);
+  D("petct_valid      : %d", m_pData->header.petct_valid);
+  D("fctrfil          : %s", m_pData->header.fctrfil);
+  D("baselin          : %s", m_pData->header.baselin);
+  D("dstpkfl          : %s", m_pData->header.dstpkfl);
+  D("aqprotocol_name  : %s", m_pData->header.aqprotocol_name);
+  D("aqprotocol_type  : %d", m_pData->header.aqprotocol_type);
+  D("patient_name     : %s", m_pData->header.patient_name);
+  D("reslice_ang1     : %f", m_pData->header.reslice_ang1);
+  D("reslice_ang2     : %f", m_pData->header.reslice_ang2);
+  D("reslice_ang3     : %f", m_pData->header.reslice_ang3);
+  D("minslc           : %d", m_pData->header.minslc);
+  D("maxslc           : %d", m_pData->header.maxslc);
+  D("minfrm           : %d", m_pData->header.minfrm);
+  D("maxfrm           : %d", m_pData->header.maxfrm);
+  D("scanner_maxslice : %d", m_pData->header.scanner_maxslice);
+  D("rebin_type       : %d", m_pData->header.rebin_type);
+  D("scnOrigin        : %s", m_pData->header.scnOrigin);
+  D("accNum           : %s", m_pData->header.accNum);
+  D("movementCoinc    : %d", m_pData->header.movementCoinc);
+  D("movementSing     : %d", m_pData->header.movementSing);
+  D("crbTstampPeriod  : %d", m_pData->header.crbTstampPeriod);
+  D("trailexists      : %d", m_pData->header.trailexists);
+  D("trailbeg         : %ld", m_pData->header.trailbeg);
 #endif
 
   RETURN(true);

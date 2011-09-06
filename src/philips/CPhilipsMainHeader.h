@@ -55,6 +55,63 @@ class CPhilipsMainHeader : public CMedIOHeader
                  GE68, OtherIsotop, UnknownIsotop, CU64, BR76, NA22, O14, Y86, ZN62,
                  CU60, CU61, GA66, BR75, BR77, I124, K38, MN52, TC94M, TI45 };
 
+    enum Patient_Orientation_hf
+    {
+      UndefinedOrientation_hf,
+      Head_First,       /* Top of patient head is closest to scanner
+                         * slice #0 while torso os along direction of
+                         * increasing scanner slice # */
+ 
+      Feet_First        /* Top of patient head is closest to scanner
+                         * slice #128 while torso is along direction of
+                         * decreasing scanner slice # */
+    };
+  
+    enum Patient_Orientation_ps
+    {
+      Undefined_Orientation_ps,
+      Prone,            /* patient is face down */
+      Supine,           /* patient is on back */
+      Left,             /* patient is on lying on his left side */
+      Right             /* patient is on lying on his right side */
+    };
+  
+    enum Table_Direction
+    {
+      UnknownDirection,
+      In, // Table moving in (from the front to the back of the scanner)
+      Out // Table moving out (from the back to the front of the scanner) 
+    };
+
+    enum Valid_Header_Struct
+    {
+      Header_Struct_Invalid = 0,
+      Header_Struct_Valid = 1,
+      Header_Struct_Unknown = 2,
+      Header_Struct_Realigned
+    };
+
+    enum Acquisition_Protocol_Type
+    {
+      Undefined_Acquisition_Protocol = 0,
+      Static_Emission,
+      Dynamic_Emission,
+      Static_Transmission_Only,
+      Gated_Cardiac,
+      Whole_Body_Emission,
+      Whole_Body_Transmission_only,
+      Not_Used,
+      Singles
+    };
+
+    enum Rebin_Type
+    {
+      Single_Slice = 0,  /* single slice     */
+      Multi_Slice,       /* multi slice      */
+      Multi_Tilt_4D,     /* 4-D (multi-tilt) */
+      Fourier            /* Fourier rebin    */
+    };
+
     // constructors
     CPhilipsMainHeader(CPhilipsFile* file,
                        CPhilipsMainHeader::File_Type = CPhilipsMainHeader::Unknown);
