@@ -65,6 +65,10 @@ class CPhilipsSubHeader : public CMedIOHeader
 
     // size information in bytes of specific raw subheader structure
     virtual int rawDataSize() const = 0;
+ 
+    // some must have accessor methods
+    virtual Data_Type datype(void) const = 0;
+    virtual void setDatype(const Data_Type dType) = 0;
 
     // runtime type information methods
     CMedIOHeader::Format headerFormat() const;

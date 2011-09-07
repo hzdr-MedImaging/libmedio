@@ -122,7 +122,7 @@ class CPhilipsSubHeaderImage : public CPhilipsSubHeader
     float img_pos_x() const;
     float img_pos_y() const;
     float img_pos_z() const;
-    short datype() const;
+    CPhilipsSubHeader::Data_Type datype() const;
     short xdim() const;
     short ydim() const;
     short slcnum() const;
@@ -181,7 +181,7 @@ class CPhilipsSubHeaderImage : public CPhilipsSubHeader
     void setImg_pos_x(const float img_pos_x);
     void setImg_pos_y(const float img_pos_y);
     void setImg_pos_z(const float img_pos_z);
-    void setDatype(const short datype);
+    void setDatype(const CPhilipsSubHeader::Data_Type datype);
     void setXdim(const short xdim);
     void setYdim(const short ydim);
     void setSlcnum(const short slcnum);

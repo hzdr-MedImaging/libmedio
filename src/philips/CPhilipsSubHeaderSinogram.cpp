@@ -424,3 +424,13 @@ CMedIOHeader* CPhilipsSubHeaderSinogram::clone() const
   RETURN(pNewHead);
   return pNewHead;
 }
+
+CPhilipsSubHeader::Data_Type CPhilipsSubHeaderSinogram::datype() const
+{
+  return static_cast<CPhilipsSubHeader::Data_Type>(m_pData->header.datype);
+}
+
+void CPhilipsSubHeaderSinogram::setDatype(const CPhilipsSubHeader::Data_Type datype)
+{
+  m_pData->header.datype = static_cast<qint16>(datype);
+}

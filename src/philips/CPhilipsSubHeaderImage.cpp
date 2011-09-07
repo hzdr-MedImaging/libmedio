@@ -528,9 +528,9 @@ float CPhilipsSubHeaderImage::img_pos_z() const
   return m_pData->header.img_pos[2];
 }
 
-short CPhilipsSubHeaderImage::datype() const
+CPhilipsSubHeader::Data_Type CPhilipsSubHeaderImage::datype() const
 {
-  return m_pData->header.datype;
+  return static_cast<CPhilipsSubHeader::Data_Type>(m_pData->header.datype);
 }
 
 short CPhilipsSubHeaderImage::xdim() const
@@ -817,9 +817,9 @@ void CPhilipsSubHeaderImage::setImg_pos_z(const float img_pos_z)
   m_pData->header.img_pos[2] = img_pos_z;
 }
 
-void CPhilipsSubHeaderImage::setDatype(const short datype)
+void CPhilipsSubHeaderImage::setDatype(const CPhilipsSubHeader::Data_Type datype)
 {
-  m_pData->header.datype = datype;
+  m_pData->header.datype = static_cast<qint16>(datype);
 }
 
 void CPhilipsSubHeaderImage::setXdim(const short xdim)

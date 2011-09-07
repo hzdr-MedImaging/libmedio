@@ -102,6 +102,12 @@ class CPhilipsSubHeaderSinogram : public CPhilipsSubHeader
     bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL);
     CMedIOHeader* clone() const;
 
+    // data acess methods
+    CPhilipsSubHeader::Data_Type datype() const;
+
+    // methods to modify elements of the SubHeader  
+    void setDatype(const CPhilipsSubHeader::Data_Type datype);
+
   private:
     CPhilipsSubHeaderSinogramPrivate* m_pData;
 };
