@@ -322,13 +322,14 @@ RcppExport SEXP readEcat(SEXP vfile,
   END_RCPP
 }
 
-RcppExport SEXP writeEcat(SEXP ecat, SEXP vfilename)
+RcppExport SEXP writeEcat(SEXP ecat, SEXP vfilename, SEXP overwrite)
 {
   BEGIN_RCPP
 
   bool result = true;
   Rcpp::List RcppEcatFile;
   QString outputFileName;
+  bool overwriteFile;
 
   if(Rcpp::RObject(vfilename).isNULL())
   {
@@ -348,9 +349,20 @@ RcppExport SEXP writeEcat(SEXP ecat, SEXP vfilename)
     RcppEcatFile = Rcpp::as<Rcpp::List>(ecat);
   }
 
+  if(Rcpp::RObject(overwrite).isNULL())
+  {
+    // we do not overwrite an existing file
+    // on default
+    overwriteFile = false;
+  }
+  else
+  {
+    overwriteFile = Rcpp::as<bool>(overwrite);
+  }
+
   if(result == true)
   {
-    if(QFileInfo(outputFileName).exists())
+    if((overwriteFile == false) && QFileInfo(outputFileName).exists())
     {
       cerr << "ERROR: output file already exists." << endl;
       result = false;
