@@ -329,6 +329,28 @@ short CPhilipsDirectory::minFrame() const
   return framesMin;
 }
 
+short CPhilipsDirectory::numFrames() const
+{
+  ENTER();
+  short framesNum = 0;
+
+  // we iterate through our dictionary looking for the highest available
+  // frame number
+  QMapIterator<quint32, CPhilipsDirectoryItem*> i(m_pData->dirItems);
+  while(i.hasNext())
+  {
+    i.next();
+    if(i.value()->frame() > framesNum)
+    {
+      framesNum = i.value()->frame();
+      ASSERT(framesNum > 0 && framesNum <= 100);
+    }
+  }
+  
+  RETURN(framesNum);
+  return framesNum;
+}
+
 short CPhilipsDirectory::maxSlice() const
 {
   ENTER();
@@ -381,6 +403,26 @@ short CPhilipsDirectory::minSlice() const
   
   RETURN(slicesMin);
   return slicesMin;
+}
+
+short CPhilipsDirectory::numSlices(void) const
+{
+  short slicesNum = 0;
+
+  // we iterate through our dictionary looking for the highest available
+  // slice number
+  QMapIterator<quint32, CPhilipsDirectoryItem*> i(m_pData->dirItems);
+  while(i.hasNext())
+  {
+    i.next();
+    if(i.value()->slice() > slicesNum)
+    {
+      slicesNum = i.value()->slice();
+      ASSERT(slicesNum > 0 && slicesNum <= 256);
+    }
+  }
+  
+  return slicesNum;
 }
 
 short CPhilipsDirectory::numTilts() const

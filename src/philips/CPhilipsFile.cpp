@@ -113,6 +113,11 @@ short CPhilipsFile::minFrame(void) const
   return m_pData->directory->minFrame();
 }
 
+short CPhilipsFile::numFrames(void) const
+{
+  return m_pData->directory->numFrames();
+}
+
 short CPhilipsFile::maxSlice(void) const
 {
   return m_pData->directory->maxSlice();
@@ -121,6 +126,11 @@ short CPhilipsFile::maxSlice(void) const
 short CPhilipsFile::minSlice(void) const
 {
   return m_pData->directory->minSlice();
+}
+
+short CPhilipsFile::numSlices(void) const
+{
+  return m_pData->directory->numSlices();
 }
 
 short CPhilipsFile::numTilts(void) const
@@ -447,6 +457,19 @@ bool CPhilipsFile::readMatrix(char*& matrixData, unsigned int& len, CPhilipsSubH
   return result;
 }
 
+bool CPhilipsFile::writeMainHeader(CPhilipsMainHeader& mainHeader)
+{
+  ENTER();
+  bool result;
+
+  // we forward the write request to the main Header's own save
+  // routines.
+  result = mainHeader.save();
+  
+  RETURN(result);
+  return result;
+}
+
 CPhilipsMainHeader* CPhilipsFile::createEmptyMainHeader()
 {
   ENTER();
@@ -458,4 +481,34 @@ CPhilipsMainHeader* CPhilipsFile::createEmptyMainHeader()
 
   RETURN(pEmptyMainHaeder);
   return pEmptyMainHaeder;
+}
+
+void CPhilipsFile::mainHeaderWritten(const CPhilipsMainHeader& mainHeader)
+{
+  ENTER();
+
+  // now that a new main Header has been written we have to
+  // update our cached copy accordingly.
+  if(m_pData->cachedMainHeader)
+    *m_pData->cachedMainHeader = *(&mainHeader);
+  else
+    m_pData->cachedMainHeader = new CPhilipsMainHeader(mainHeader);
+
+  // in addition to that we have to place the correct slices/frames/tilts
+  // stuff in the cached header to be totally correct.
+  if(m_pData->cachedMainHeader)
+  {
+    // Please note that we do not specify any PLANES here as in Philips the
+    // planes are normally integrated in one matrix file. So we have to
+    // allow the user to specify the planes himself.
+    m_pData->cachedMainHeader->setNframe(numFrames());
+    m_pData->cachedMainHeader->setNslice(numSlices());
+    m_pData->cachedMainHeader->setNtilt(numTilts());
+    
+    // set the CPhilipsFile object as the MedIOData object
+    // of the cached header
+    m_pData->cachedMainHeader->setMedIOData(this);
+  }
+
+  LEAVE();
 }

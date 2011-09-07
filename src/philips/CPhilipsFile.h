@@ -63,8 +63,10 @@ class CPhilipsFile : public CMedIOData
     // of frame/plane/gate numbers carried in the directory.
     short maxFrame(void) const;
     short minFrame(void) const;
+    short numFrames(void) const;
     short maxSlice(void) const;
     short minSlice(void) const;
+    short numSlices(void) const;
     short numTilts(void) const;
 
     // interface methods to read out specific data from the philips files
@@ -80,8 +82,14 @@ class CPhilipsFile : public CMedIOData
     bool readMatrix(char*& matrixData, unsigned int& len, CPhilipsSubHeader*& subHeader,
                     short slice, short frame = 1, short tilt = 0);
 
+    // methods to write out headers/data to the file.
+    bool writeMainHeader(CPhilipsMainHeader& mainHeader);
+
     // methods to generate some objects just for convienence
     CPhilipsMainHeader* createEmptyMainHeader();
+
+    // internal methods to sync specific data with our headers
+    void mainHeaderWritten(const CPhilipsMainHeader& mainHeader);
 
   private:
     CPhilipsFilePrivate* m_pData;

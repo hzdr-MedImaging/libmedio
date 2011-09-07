@@ -33,6 +33,8 @@
 #include <CMedIOHeader.h>
 #endif
 
+#include <time.h>
+
 // forward declarations
 class CPhilipsMainHeaderPrivate;
 class CPhilipsFile;
@@ -214,7 +216,6 @@ class CPhilipsMainHeader : public CMedIOHeader
     float leadSeparation() const;
     float ndelays() const;
     float slcsep() const;
-    Valid_Header_Struct petct_Valid() const;
     const char* fctrfil() const;
     const char* baselin() const;
     const char* dstpkfl() const;
@@ -237,6 +238,23 @@ class CPhilipsMainHeader : public CMedIOHeader
     short crbTstampPeriod() const;
     short trailexists() const;
     long trailbeg() const;
+
+    Valid_Header_Struct petct_Valid() const;
+    short petct_separation() const;
+    short petct_landmark() const;
+    time_t petct_alignment_timestamp() const;
+    short petct_alignment_zOffset() const;
+    short petct_alignment_xShift() const;
+    short petct_alignment_yShift() const;
+    short petct_alignment_zShift() const;
+    short petct_alignment_acFlags() const;
+    short petct_alignment_xOffset() const;
+    short petct_alignment_yOffset() const;
+    short petct_alignment_axialRotation() const;
+    short petct_alignment_horizRotation() const;
+    short petct_alignment_vertRotation() const;
+
+
 
     // methods to modify elements of the MainHeader  
     void setFile_Fmt(const short format);
@@ -314,7 +332,6 @@ class CPhilipsMainHeader : public CMedIOHeader
     void setLeadSeparation(const float leadSeparation);
     void setNdelays(const float ndelays);
     void setSlcsep(const float slcsep);
-    void setPetct_Valid(const Valid_Header_Struct petct_valid);
     void setFctrfil(const char* str);
     void setBaselin(const char* str);
     void setDstpkfl(const char* str);
@@ -337,6 +354,21 @@ class CPhilipsMainHeader : public CMedIOHeader
     void setCrbTstampPeriod(const short crbTstampPeriod);
     void setTrailexists(const short trailexists);
     void setTrailbeg(const long trailbeg);
+
+    void setPetct_Valid(const Valid_Header_Struct petct_valid);
+    void setPetct_separation(const short separation);
+    void setPetct_landmark(const short landmark);
+    void setPetct_alignment_timestamp(const time_t timestamp);
+    void setPetct_alignment_zOffset(const short zOffset);
+    void setPetct_alignment_xShift(const short xShift);
+    void setPetct_alignment_yShift(const short yShift);
+    void setPetct_alignment_zShift(const short zShift);
+    void setPetct_alignment_acFlags(const short acFlags);
+    void setPetct_alignment_xOffset(const short xOffset);
+    void setPetct_alignment_yOffset(const short yOffset);
+    void setPetct_alignment_axialRotation(const short axialRotation);
+    void setPetct_alignment_horizRotation(const short horizRotation);
+    void setPetct_alignment_vertRotation(const short vertRotation);
 
   private:
     CPhilipsMainHeaderPrivate* m_pData;

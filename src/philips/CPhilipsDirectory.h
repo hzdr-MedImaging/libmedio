@@ -58,8 +58,10 @@ class CPhilipsDirectory
     // of frame/plane/gate numbers carried in the directory.
     short maxFrame(void) const;
     short minFrame(void) const;
+    short numFrames(void) const;
     short maxSlice(void) const;
     short minSlice(void) const;
+    short numSlices(void) const;
     short numTilts(void) const;
 
     // read methods

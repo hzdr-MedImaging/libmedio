@@ -20,6 +20,25 @@ void TestCPhilipsFile::testReadMainHeader()
 
   m_pInputFile->readMainHeader(mainHeader);
   
+  CPhilipsFile o("new.img");
+  if(o.open(QIODevice::WriteOnly))
+  {
+    CPhilipsMainHeader* newHeader = o.createEmptyMainHeader();
+    if(!newHeader)
+    {
+      std::cout << "can't create new main header in destination file" << std::endl;
+    }
+    else
+    {
+      *newHeader = *mainHeader;
+      if(o.writeMainHeader(*newHeader) == false)
+        std::cout << "Can't write main header" << std::endl;
+    }
+    o.close();
+  }
+  else
+     std::cout << "Can't open file" << std::endl;
+
   QVERIFY(mainHeader != NULL);
   QCOMPARE(mainHeader->filtyp(), CPhilipsMainHeader::Image);
   
@@ -72,43 +91,43 @@ void TestCPhilipsFile::testReadMatrixDataChar()
   bool ok =m_pInputFile->readMatrix(matrixData, matrixSize, 1000, 1);
   std::cout << "matrixSize: " << matrixSize << std::endl;
   
-  QFile o("output.bin");
-  if(o.open(QIODevice::WriteOnly))
-  {
+  // QFile o("output.bin");
+  // if(o.open(QIODevice::WriteOnly))
+  // {
 
-    QByteArray bufArray(8192, 0); // write in 8KB chunks
-    quint16* ptr = (quint16*)matrixData;
-    for(unsigned int written=0; written < matrixSize;)
-    {
-      unsigned int toWrite = matrixSize-written >= 8192 ? 8192 : matrixSize-written;
+  //   QByteArray bufArray(8192, 0); // write in 8KB chunks
+  //   quint16* ptr = (quint16*)matrixData;
+  //   for(unsigned int written=0; written < matrixSize;)
+  //   {
+  //     unsigned int toWrite = matrixSize-written >= 8192 ? 8192 : matrixSize-written;
 
-      // check if the curRead value is divide able through our data type 
-      // ASSERT(toWrite % sizeof(quint16) == 0);
+  //     // check if the curRead value is divide able through our data type 
+  //     // ASSERT(toWrite % sizeof(quint16) == 0);
 
-      // now that we have our chunk we use a bufferStream to stream
-      // in the values to it for making sure our data is correctly
-      // converted regarding to little/big endianess
-      QDataStream bufStream(&bufArray, QIODevice::WriteOnly);
-      for(unsigned int i=0; i < toWrite; i+=sizeof(quint16))
-      {
-        bufStream << *ptr;
-        ++ptr;
-      }
+  //     // now that we have our chunk we use a bufferStream to stream
+  //     // in the values to it for making sure our data is correctly
+  //     // converted regarding to little/big endianess
+  //     QDataStream bufStream(&bufArray, QIODevice::WriteOnly);
+  //     for(unsigned int i=0; i < toWrite; i+=sizeof(quint16))
+  //     {
+  //       bufStream << *ptr;
+  //       ++ptr;
+  //     }
 
-      // write out the data from our buffer to the file
-      if(o.write(bufArray.data(), toWrite) != (qint64)toWrite)
-      {
-        break;
-      }
+  //     // write out the data from our buffer to the file
+  //     if(o.write(bufArray.data(), toWrite) != (qint64)toWrite)
+  //     {
+  //       break;
+  //     }
         
-      // increase our read counter
-      written += toWrite;
-    }
+  //     // increase our read counter
+  //     written += toWrite;
+  //   }
 
 
-  }
-  else
-    std::cout << "Can't open file" << std::endl;
+  // }
+  // else
+  //   std::cout << "Can't open file" << std::endl;
 
   QVERIFY(ok != false);
   QVERIFY(matrixData != NULL);

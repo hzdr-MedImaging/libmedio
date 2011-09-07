@@ -32,6 +32,8 @@
 
 #include <rtdebug.h>
 
+#include <iostream>
+
 // we define the private inline class of that one so that we
 // are able to hide the private methods & data of that class in the
 // public headers
@@ -146,8 +148,6 @@ public:
     float leadSeparation;
     float ndelays;
     float slcsep;
-    /* Valid_Header_Struct */ short petct_valid;
-
     char fctrfil[20];        /* Factor file name. (PMT gains). was 16 */
     /* syn - (0008,1090) manufacturer's model name*/
     char baselin[20];        /* Baseline file name. (DC offsets). was 16 */
@@ -184,6 +184,62 @@ public:
     quint32 trailbeg;           /* unsigned 32 bit number = # of bytes from
                               * file beginning indicating where the
                               * trailer begins */
+
+    struct 
+    {
+      qint16 valid;   /* Whether the file has a valid petct struct */
+      short separation;       /* PET separation distance at acq time (1/10mm) */
+      short landmark;         /* Landmark position at acq time (1/10mm) */
+      struct
+      {
+
+#define PETCT_LM_SCALE        10.0
+#define PETCT_OFFSET_SCALE    100.0
+#define PETCT_SHIFT_SCALE     1000.0
+#define PETCT_ANGLE_SCALE     10000.0
+#define PETCT_REALIGN_ANGLE_SCALE 1000.0
+
+        qint32 timestamp;  /* Date/Time of alignment calibration 
+                                (seconds since Jan 1, 1970 [UNIX]) */
+        short zOffset;       /* Not used at this time.  */
+        short xShift;        /* shift in x from align-cal in 1/1000mm */
+        short yShift;        /* shift in y from align-cal in 1/1000mm */
+        short zShift;        /* shift in z from align-cal in 1/1000mm */
+        short acFlags;       /* Not used at this time. */
+        short xOffset;	      /* syn - (0020,0032) Image position x pos */
+                              /* shift in x of the center of the CT FOV
+                                 with respect to the PET FOV in 1/100mm */
+        short yOffset;	      /* syn - (0020,0032) Image position y pos */
+                              /* shift in y of the center of the CT FOV
+                                 with respect to the PET FOV in 1/100mm */
+        short axialRotation; /* rotation about z axis in 1/10,000 deg  */
+        short horizRotation; /* rotation about x axis in 1/10,000 deg  */
+        short vertRotation;  /* rotation about y axis in 1/10,000 deg  */
+        short unused[2];     /* Not used at this time. */
+      } alignment;
+      // struct
+      // {
+      //   short xOffset;       /* For cardiac realignment. Additional    */
+      //   /*  horizontal (x) shift of center of CT  */
+      //   /*  FOV w.r.t. PET (in 1/100mm).          */
+      //   short yOffset;       /* For cardiac realignment. Additional    */
+      //   /*  vertical (y) shift of center of CT    */
+      //   /*  FOV w.r.t. PET (in 1/100mm).          */
+      //   short zOffset;       /* For cardiac realignment. Additional    */
+      //   /*  (z)  shift of center of CT            */
+      //   /*  FOV w.r.t. PET (in 1/100mm).          */
+      //   short axialRotation; /* For cardiac realignment. Additional    */
+      //   /*  rotation about the axial (Z) axis     */
+      //   /*  (in 1/1,000 degree).                  */
+      //   short horizRotation; /* For cardiac realignment. Additional    */
+      //   /*  rotation about the horizontal (X) axis*/
+      //   /*  (in 1/1,000 degree).                  */
+      //   short vertRotation;  /* For cardiac realignment. Additional    */
+      //   /*  rotation about the vertical (Y) axis  */
+      //   /*  (in 1/1,000 degree).                  */
+      // } realignment;
+    } petCt;
+
   } header;
 
   static const short currentMainHeaderFormat = 13;
@@ -223,8 +279,8 @@ CPhilipsMainHeader& CPhilipsMainHeader::operator=(const CPhilipsMainHeader& src)
 
   if(m_pData != src.m_pData)
   {
-    memcpy(&m_pData->header, 
-           &src.m_pData->header, 
+    memcpy(&m_pData->header,
+           &src.m_pData->header,
            sizeof(struct CPhilipsMainHeaderPrivate::HeaderData));
   }
 
@@ -362,16 +418,31 @@ bool CPhilipsMainHeader::load()
   stream >> m_pData->header.eloc_up;                     // 254: eloc_up
   stream >> m_pData->header.orient_hf; // 256: orient_hf
   stream.readRawData(&m_pData->header.scan_swrel[0], 6); // 258: scan_swrel
-  stream.skipRawData(8);        // skip some petct entries
+
+  stream >> m_pData->header.petCt.separation;
+  stream >> m_pData->header.petCt.landmark;
+  stream >> m_pData->header.petCt.alignment.timestamp;
+
   stream >> m_pData->header.tbl_direction; // 272: tbl_direction
   stream >> m_pData->header.orient_ps;     // 274: orient_ps
-  stream.skipRawData(20);        // skip some petct entries
+
+  stream >> m_pData->header.petCt.alignment.zOffset;
+  stream >> m_pData->header.petCt.alignment.xShift;
+  stream >> m_pData->header.petCt.alignment.yShift;
+  stream >> m_pData->header.petCt.alignment.zShift;
+  stream >> m_pData->header.petCt.alignment.acFlags;
+  stream >> m_pData->header.petCt.alignment.xOffset;
+  stream >> m_pData->header.petCt.alignment.yOffset;
+  stream >> m_pData->header.petCt.alignment.axialRotation;
+  stream >> m_pData->header.petCt.alignment.horizRotation;
+  stream >> m_pData->header.petCt.alignment.vertRotation;
+
   stream >> m_pData->header.frontLeadDiameter; // 296: frontLeadDiameter
   stream >> m_pData->header.backLeadDiameter;  // 300: backLeadDiameter
   stream >> m_pData->header.leadSeparation;    // 304: leadSeparation
   stream >> m_pData->header.ndelays;           // 308: ndelays
   stream >> m_pData->header.slcsep;            // 312: slcsep
-  stream >> m_pData->header.petct_valid;       // 316: petct_valid
+  stream >> m_pData->header.petCt.valid;       // 316: petct_valid
   stream.readRawData(&m_pData->header.fctrfil[0], 20); // 318: fctrfil
   stream.readRawData(&m_pData->header.baselin[0], 20); // 338: baselin
   stream.readRawData(&m_pData->header.dstpkfl[0], 20); // 358: dstpkfl
@@ -476,7 +547,6 @@ bool CPhilipsMainHeader::load()
   D("leadSeparation   : %f", m_pData->header.leadSeparation);
   D("ndelays          : %f", m_pData->header.ndelays);
   D("slcsep           : %f", m_pData->header.slcsep);
-  D("petct_valid      : %d", m_pData->header.petct_valid);
   D("fctrfil          : %s", m_pData->header.fctrfil);
   D("baselin          : %s", m_pData->header.baselin);
   D("dstpkfl          : %s", m_pData->header.dstpkfl);
@@ -499,6 +569,21 @@ bool CPhilipsMainHeader::load()
   D("crbTstampPeriod  : %d", m_pData->header.crbTstampPeriod);
   D("trailexists      : %d", m_pData->header.trailexists);
   D("trailbeg         : %ld", m_pData->header.trailbeg);
+  D("--PETCT--");
+  D("petct_valid                  : %d", m_pData->header.petCt.valid);
+  D("petct_separation             : %d", m_pData->header.petCt.separation);
+  D("petct_landmark               : %d", m_pData->header.petCt.landmark);
+  D("petct_alignment_timestamp    : %d", m_pData->header.petCt.alignment.timestamp);
+  D("petct_alignment_zOffset      : %d", m_pData->header.petCt.alignment.zOffset);
+  D("petct_alignment_xShift       : %d", m_pData->header.petCt.alignment.xShift);
+  D("petct_alignment_yShift       : %d", m_pData->header.petCt.alignment.yShift);
+  D("petct_alignment_zShift       : %d", m_pData->header.petCt.alignment.zShift);
+  D("petct_alignment_acFlags      : %d", m_pData->header.petCt.alignment.acFlags);
+  D("petct_alignment_xOffset      : %d", m_pData->header.petCt.alignment.xOffset);
+  D("petct_alignment_yOffset      : %d", m_pData->header.petCt.alignment.yOffset);
+  D("petct_alignment_axialRotation: %d", m_pData->header.petCt.alignment.axialRotation);
+  D("petct_alignment_horizRotation: %d", m_pData->header.petCt.alignment.horizRotation);
+  D("petct_alignment_vertRotation : %d", m_pData->header.petCt.alignment.vertRotation);
 #endif
 
   RETURN(true);
@@ -508,7 +593,233 @@ bool CPhilipsMainHeader::load()
 bool CPhilipsMainHeader::save(void) const
 {
   ENTER();
-#warning TODO: implement CPhilipsMainHEader::save()
+
+  SHOWPOINTER(m_pMedIOData);
+
+  // only go on if the device is writeable at all
+  if(m_pMedIOData == NULL ||
+     m_pMedIOData->isWritable() == false ||
+     m_pMedIOData->seek(0) == false)
+  {
+    RETURN(false);
+    return false;
+  }
+
+  // before we can start reading out some data we have to collect some
+  // out data beforehand which we use instead of the data stored in our
+  // data structure (such as frames/slices/tilts etc.)
+  CPhilipsFile* philipsFile = static_cast<CPhilipsFile*>(m_pMedIOData);
+
+  quint16 minFrame = philipsFile->minFrame();
+  quint16 maxFrame = philipsFile->maxFrame();
+  quint16 numFrames = philipsFile->numFrames();
+  quint16 minSlice = philipsFile->minSlice();
+  quint16 maxSlice = philipsFile->maxSlice();
+  quint16 numSlices  = philipsFile->numSlices();
+  quint16 numTilts = philipsFile->numTilts();
+  
+  // we write to a buffer first and write out later directly to the file
+  QByteArray buffer(rawDataSize(), 0);
+  QDataStream stream(&buffer, QIODevice::WriteOnly);
+
+  // we have to set the QDataStream version to the Qt4.5 version
+  // because with Qt4.6 the floating point precision changed and
+  // otherwise causes our streaming to fail
+  stream.setVersion(QDataStream::Qt_4_5);
+
+  // we now read out the header information stepwise
+  // as we have to care about big/little endianess, which
+  // is automatically done by the QT framework
+
+  // to write out the fill bytes
+  // we need a buffer
+  char byte[50];
+
+  byte[0]= 0x01;
+  byte[1]= 0x00;
+  byte[2]= 0x00;
+  byte[3]= 0x00;
+  byte[4]= 0x00;
+  byte[5]= 0x16;
+  stream.writeRawData(byte, 6); // 0: write the "file header"
+
+
+  stream << m_pData->header.file_fmt;      // 6: file_fmt
+  stream << m_pData->header.scan_geom; // 8: scan_geom
+  stream << m_pData->header.hw_config;  // 10: hw_config
+
+  byte[0]= 0x00;
+  byte[1]= 0x40;
+  byte[2]= 0x00;
+  byte[3]= 0x5B;
+  stream.writeRawData(byte, 4); // 12: write the next 4 bytes
+
+  stream << m_pData->header.edit_flag;        // 16: edit_flag
+
+  memset(byte, 0, 30);
+  stream.writeRawData(byte, 30);                     // 18: write the next 34 bytes
+  byte[0]= 0x00;
+  byte[1]= 0x07;
+  byte[2]= 0xFF;
+  byte[3]= 0xFF;
+  stream.writeRawData(byte, 4);
+
+  stream << m_pData->header.filtyp;        // 52: filtyp
+
+  memset(byte, 0, 8);
+  stream.writeRawData(byte, 8); // 54: write the next 12 bytes
+  byte[0]= 0x00;
+  byte[1]= 0x20;
+  byte[2]= 0xFF;
+  byte[3]= 0xFF;  
+  stream.writeRawData(byte, 4);
+
+  stream << m_pData->header.dep_daycre;      // 66: dep_daycre
+  stream << m_pData->header.dep_mocre;    // 68: dep_mocre
+  stream << m_pData->header.dep_yrcre;     // 70: dep_yrcre
+  stream << m_pData->header.dep_hrcre;     // 72: dep_hrcre
+  stream << m_pData->header.dep_mincre;   // 74: dep_mincre
+  stream << m_pData->header.dep_seccre;   // 76: dep_seccre
+  stream << m_pData->header.duratn;    // 78: duratn
+  stream << m_pData->header.shdtyp;   // 80: shdtyp
+  stream << m_pData->header.sngpscl; // 82: sngpscl
+  stream << m_pData->header.singopt; // 84: singopt
+  stream << m_pData->header.pscale; // 86: Singles_Prescale
+  stream << m_pData->header.detectorRadius;  // 90: detectorRadius
+  stream << m_pData->header.virtualXtal; // 94: virtualXtal
+  stream << m_pData->header.phiMashing;      // 96: phiMashing
+  stream << m_pData->header.polygonSides;    // 98: polygonSides
+  stream << m_pData->header.xtalsPerSide; // 100: xtalsPerSide
+  stream << m_pData->header.nXtalRows;      // 102: nXtalRows
+  stream << m_pData->header.crystalThickness; // 104: crystalThickness
+  stream << m_pData->header.xXtalPitch;    // 108: xXtalPitch
+  stream << m_pData->header.zXtalPitch;    // 112: zXtalPitch
+  stream << m_pData->header.axialFOV;         // 116: axialFOV
+  stream << m_pData->header.rphiType;         // 120: rphiType
+  stream << m_pData->header.sliceType;        // 122: sliceType
+  stream << m_pData->header.delayType;        // 124: delayType
+
+  byte[0]= 0x00;
+  byte[1]= 0x1B;
+  byte[2]= 0xFF;
+  byte[3]= 0xFF;  
+  stream.writeRawData(byte, 4);
+
+  stream << m_pData->header.pattyp;         // 130: pattyp
+  stream << m_pData->header.scntyp;  // 132: scntyp
+  stream << m_pData->header.numray;           // 134: numray
+  stream << m_pData->header.numang;           // 136: numang
+  stream << m_pData->header.slcthk;   // 138: slcthk
+  stream << m_pData->header.isotop;            // 140: isotop
+  stream << m_pData->header.slope;             // 142: slope
+  stream << m_pData->header.intcpt; // 146: intcpt
+  stream << m_pData->header.injtim;        // 150: injtim
+  stream << m_pData->header.polygonVertAt0deg;  // 152: polygonVertAt0deg
+  stream << numSlices;            // 156: nslice
+  stream << numFrames;            // 158: nframe
+  stream << m_pData->header.bthday;         // 160: bthday
+  stream << m_pData->header.bthmo;       // 162: bthmo
+  stream << m_pData->header.bthyr;        // 164: bthyr
+  stream.writeRawData(&m_pData->header.ssn[0], 10); // 166: ssn
+  stream << numTilts;                         // 176: ntilt
+  stream << m_pData->header.petnum; // 178: petnum
+
+  byte[0]= 0x00;
+  byte[1]= 0x21;
+  byte[2]= 0xFF;
+  byte[3]= 0xFF;  
+  stream.writeRawData(byte, 4);
+
+  stream << m_pData->header.activity;      // 184: activity 
+  stream << m_pData->header.weight;        // 188: weight
+  stream << m_pData->header.hrinj;         // 192: hrinj
+  stream << m_pData->header.mininj;        // 194: mininj
+  stream << m_pData->header.srcRadius;     // 196: srcRadius
+  stream << m_pData->header.srcZpos;       // 200: srcZpos
+  stream << m_pData->header.halfLife;                     // 204: halfLife
+  stream << m_pData->header.concfac;                      // 208: concfac
+  stream << m_pData->header.concfac_bgsub;                // 212: concfac_bgsub
+  stream << m_pData->header.dmax;                         // 216: dmax
+  stream << m_pData->header.dline;                        // 220: dline
+  stream << m_pData->header.angmax;                       // 224: angmax
+  stream << m_pData->header.x0;                           // 228: x0
+  stream << m_pData->header.y0;                           // 232: y0
+  stream << m_pData->header.z0;                           // 236: z0
+  stream << m_pData->header.nevent;                       // 240: nevent
+  stream << m_pData->header.nsino;                        // 244: nsino
+  stream << m_pData->header.eglob_low;                   // 248: eglob_low
+  stream << m_pData->header.eglob_up;                    // 250: eglob_up
+  stream << m_pData->header.eloc_low;                    // 252: eloc_low
+  stream << m_pData->header.eloc_up;                     // 254: eloc_up
+  stream << m_pData->header.orient_hf; // 256: orient_hf
+  stream.writeRawData(&m_pData->header.scan_swrel[0], 6); // 258: scan_swrel
+
+  stream << m_pData->header.petCt.separation;
+  stream << m_pData->header.petCt.landmark;
+  stream << m_pData->header.petCt.alignment.timestamp;
+
+  stream << m_pData->header.tbl_direction; // 272: tbl_direction
+  stream << m_pData->header.orient_ps;     // 274: orient_ps
+
+  stream << m_pData->header.petCt.alignment.zOffset;
+  stream << m_pData->header.petCt.alignment.xShift;
+  stream << m_pData->header.petCt.alignment.yShift;
+  stream << m_pData->header.petCt.alignment.zShift;
+  stream << m_pData->header.petCt.alignment.acFlags;
+  stream << m_pData->header.petCt.alignment.xOffset;
+  stream << m_pData->header.petCt.alignment.yOffset;
+  stream << m_pData->header.petCt.alignment.axialRotation;
+  stream << m_pData->header.petCt.alignment.horizRotation;
+  stream << m_pData->header.petCt.alignment.vertRotation;
+
+  stream << m_pData->header.frontLeadDiameter; // 296: frontLeadDiameter
+  stream << m_pData->header.backLeadDiameter;  // 300: backLeadDiameter
+  stream << m_pData->header.leadSeparation;    // 304: leadSeparation
+  stream << m_pData->header.ndelays;           // 308: ndelays
+  stream << m_pData->header.slcsep;            // 312: slcsep
+  stream << m_pData->header.petCt.valid;       // 316: petct_valid
+  stream.writeRawData(&m_pData->header.fctrfil[0], 20); // 318: fctrfil
+  stream.writeRawData(&m_pData->header.baselin[0], 20); // 338: baselin
+  stream.writeRawData(&m_pData->header.dstpkfl[0], 20); // 358: dstpkfl
+  stream.writeRawData(&m_pData->header.aqprotocol_name[0], 20); // 378: aqprotocol_name
+  stream << m_pData->header.aqprotocol_type;                   // 398: aqprotocol_type
+  stream.writeRawData(&m_pData->header.patient_name[0], 30); // 400: patient_name
+  stream << m_pData->header.reslice_ang1;       // 430: reslice_ang1
+  stream << m_pData->header.reslice_ang2;       // 434: reslice_ang2
+  stream << m_pData->header.reslice_ang3;       // 438: reslice_ang3
+  stream << minSlice;            // 442: minslc
+  stream << maxSlice;            // 444: maxslc
+  stream << minFrame;            // 448: minfrm
+  stream << maxFrame;            // 450: maxfrm
+  stream << m_pData->header.scanner_maxslice;  // 452: scanner_maxslice
+
+  memset(byte, 0, 2);
+  stream.writeRawData(byte, 2);                       // 454: write the next 2 bytes
+
+  stream << m_pData->header.rebin_type; // 456: rebin_type
+  stream.readRawData(&m_pData->header.scnOrigin[0], 16); // 458: scnOrigin
+  stream.readRawData(&m_pData->header.accNum[0], 16); // 474: accNum
+  stream << m_pData->header.movementCoinc;            // 490: movementCoinc
+  stream << m_pData->header.movementSing;            // 492: movementSing
+  stream << m_pData->header.crbTstampPeriod;            // 494: crbTstampPeriod
+
+  memset(byte, 0, 10);         // 496: write the next 10 bytes
+  stream.writeRawData(byte, 10); 
+
+  stream << m_pData->header.trailexists;            // 506: trailexists
+  stream << m_pData->header.trailbeg;               // 508: trailbeg
+
+  byte[0] = 0x00;
+  stream.writeRawData(byte, 1);
+
+  // now write out to our outStream
+  bool result = false;
+  if(m_pMedIOData->write(buffer) != -1)
+  {
+    philipsFile->mainHeaderWritten(*this);
+    result = true;
+  }
+
   RETURN(false);
   return false;
 }
@@ -922,11 +1233,6 @@ float CPhilipsMainHeader::slcsep() const
   return m_pData->header.slcsep;
 }
 
-CPhilipsMainHeader::Valid_Header_Struct CPhilipsMainHeader::petct_Valid() const
-{
-  return static_cast<Valid_Header_Struct>(m_pData->header.petct_valid);
-}
-
 const char* CPhilipsMainHeader::fctrfil() const
 {
   return m_pData->header.fctrfil;
@@ -1035,6 +1341,76 @@ short CPhilipsMainHeader::trailexists() const
 long CPhilipsMainHeader::trailbeg() const
 {
   return m_pData->header.trailbeg;
+}
+
+CPhilipsMainHeader::Valid_Header_Struct CPhilipsMainHeader::petct_Valid() const
+{
+  return static_cast<Valid_Header_Struct>(m_pData->header.petCt.valid);
+}
+
+short CPhilipsMainHeader::petct_separation() const
+{
+  return m_pData->header.petCt.separation;
+}
+
+short CPhilipsMainHeader::petct_landmark() const
+{
+  return m_pData->header.petCt.landmark;
+}
+
+time_t CPhilipsMainHeader::petct_alignment_timestamp() const
+{
+  return m_pData->header.petCt.alignment.timestamp;
+}
+
+short CPhilipsMainHeader::petct_alignment_zOffset() const
+{
+  return m_pData->header.petCt.alignment.zOffset;
+}
+
+short CPhilipsMainHeader::petct_alignment_xShift() const
+{
+  return m_pData->header.petCt.alignment.xShift;
+}
+
+short CPhilipsMainHeader::petct_alignment_yShift() const
+{
+  return m_pData->header.petCt.alignment.yShift;
+}
+
+short CPhilipsMainHeader::petct_alignment_zShift() const
+{
+  return m_pData->header.petCt.alignment.zShift;
+}
+
+short CPhilipsMainHeader::petct_alignment_acFlags() const
+{
+  return m_pData->header.petCt.alignment.acFlags;
+}
+
+short CPhilipsMainHeader::petct_alignment_xOffset() const
+{
+  return m_pData->header.petCt.alignment.xOffset;
+}
+
+short CPhilipsMainHeader::petct_alignment_yOffset() const
+{
+  return m_pData->header.petCt.alignment.yOffset;
+}
+
+short CPhilipsMainHeader::petct_alignment_axialRotation() const
+{
+  return m_pData->header.petCt.alignment.axialRotation;
+}
+
+short CPhilipsMainHeader::petct_alignment_horizRotation() const
+{
+  return m_pData->header.petCt.alignment.horizRotation;
+}
+
+short CPhilipsMainHeader::petct_alignment_vertRotation() const
+{
+  return m_pData->header.petCt.alignment.vertRotation;
 }
 
 void CPhilipsMainHeader::setFile_Fmt(const short format)
@@ -1411,11 +1787,6 @@ void CPhilipsMainHeader::setSlcsep(const float slcsep)
   m_pData->header.slcsep = slcsep;
 }
 
-void CPhilipsMainHeader::setPetct_Valid(const CPhilipsMainHeader::Valid_Header_Struct petct_valid)
-{
-  m_pData->header.petct_valid = static_cast<qint16>(petct_valid);
-}
-
 void CPhilipsMainHeader::setFctrfil(const char* str)
 {
   strncpy(m_pData->header.fctrfil, str, 20);
@@ -1526,3 +1897,72 @@ void CPhilipsMainHeader::setTrailbeg(const long trailbeg)
   m_pData->header.trailbeg = trailbeg;
 }
 
+void CPhilipsMainHeader::setPetct_Valid(const CPhilipsMainHeader::Valid_Header_Struct petct_valid)
+{
+  m_pData->header.petCt.valid = static_cast<qint16>(petct_valid);
+}
+
+void CPhilipsMainHeader::setPetct_separation(const short separation)
+{
+  m_pData->header.petCt.separation = separation;
+}
+
+void CPhilipsMainHeader::setPetct_landmark(const short landmark)
+{
+  m_pData->header.petCt.landmark = landmark;
+}
+
+void CPhilipsMainHeader::setPetct_alignment_timestamp(const time_t timestamp)
+{
+  m_pData->header.petCt.alignment.timestamp = timestamp;
+}
+
+void CPhilipsMainHeader::setPetct_alignment_zOffset(const short zOffset)
+{
+  m_pData->header.petCt.alignment.zOffset = zOffset;
+}
+
+void CPhilipsMainHeader::setPetct_alignment_xShift(const short xShift)
+{
+  m_pData->header.petCt.alignment.xShift = xShift;
+}
+
+void CPhilipsMainHeader::setPetct_alignment_yShift(const short yShift)
+{
+  m_pData->header.petCt.alignment.yShift = yShift;
+}
+
+void CPhilipsMainHeader::setPetct_alignment_zShift(const short zShift)
+{
+  m_pData->header.petCt.alignment.zShift = zShift;
+}
+
+void CPhilipsMainHeader::setPetct_alignment_acFlags(const short acFlags)
+{
+  m_pData->header.petCt.alignment.acFlags = acFlags;
+}
+
+void CPhilipsMainHeader::setPetct_alignment_xOffset(const short xOffset)
+{
+  m_pData->header.petCt.alignment.xOffset = xOffset;
+}
+
+void CPhilipsMainHeader::setPetct_alignment_yOffset(const short yOffset)
+{
+  m_pData->header.petCt.alignment.yOffset = yOffset;
+}
+
+void CPhilipsMainHeader::setPetct_alignment_axialRotation(const short axialRotation)
+{
+  m_pData->header.petCt.alignment.axialRotation = axialRotation;
+}
+
+void CPhilipsMainHeader::setPetct_alignment_horizRotation(const short horizRotation)
+{
+  m_pData->header.petCt.alignment.horizRotation = horizRotation;
+}
+
+void CPhilipsMainHeader::setPetct_alignment_vertRotation(const short vertRotation)
+{
+  m_pData->header.petCt.alignment.vertRotation = vertRotation;
+}
