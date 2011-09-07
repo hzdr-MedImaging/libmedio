@@ -11,6 +11,11 @@ class TestCPhilipsFile : public QObject
     void testReadMainHeader();
     void testGetFileType();
     void testGetSubHeaderType();
+
+    void testReadMatrixDataQByteArray();
+    void testReadMatrixDataChar();
+    void testReadMatrixDataQByteArrayAndSubHeader();
+    void testReadMatrixDataCharAndSubHeader();
     void testCreateEmptyMainHeader();
     void cleanupTestCase();
 

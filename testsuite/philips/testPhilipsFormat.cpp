@@ -14,8 +14,8 @@ int main(int argc, char** argv)
   TestCPhilipsSubHeaderImage testCPhilipsSubHeaderImage;
   QTest::qExec(&testCPhilipsSubHeaderImage);
 
-  TestCPhilipsSubHeaderSinogram testCPhilipsSubHeaderSinogram;
-  QTest::qExec(&testCPhilipsSubHeaderSinogram);
+  // TestCPhilipsSubHeaderSinogram testCPhilipsSubHeaderSinogram;
+  // QTest::qExec(&testCPhilipsSubHeaderSinogram);
 
   return 0;
 }

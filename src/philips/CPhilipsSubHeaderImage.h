@@ -102,7 +102,7 @@ class CPhilipsSubHeaderImage : public CPhilipsSubHeader
     bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL);
     CMedIOHeader* clone() const;
 
-    // data acess method
+    // data acess methods
     short version() const;
     const char* atten_corr() const;
     float actual_bedpos() const;

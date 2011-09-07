@@ -1,6 +1,7 @@
 #include "testCPhilipsFile.h"
 
 #include <CPhilipsFile.h>
+#include <CPhilipsSubHeaderImage.h>
 
 #include <iostream>
 
@@ -43,6 +44,108 @@ void TestCPhilipsFile::testGetSubHeaderType()
   QCOMPARE(subHeaderType, CPhilipsSubHeader::Image);
 }
 
+void TestCPhilipsFile::testReadMatrixDataQByteArray()
+{
+  QByteArray* matrixData = NULL;
+  CPhilipsSubHeader* subHeader = NULL;
+  bool ok = m_pInputFile->readMatrix(matrixData, subHeader, 1000, 1);
+  
+  CPhilipsSubHeaderImage* sHead = static_cast<CPhilipsSubHeaderImage*>(subHeader);
+
+  std::cout << "scale_factor: " << sHead->imgscl();
+
+
+  QVERIFY(ok != false);
+  QVERIFY(matrixData != NULL);
+  QVERIFY(subHeader != NULL);
+  if(matrixData)
+    delete matrixData;
+  if(subHeader)
+    delete subHeader;
+}
+
+void TestCPhilipsFile::testReadMatrixDataChar()
+{
+  char* matrixData = NULL;
+  unsigned int matrixSize;
+  
+  bool ok =m_pInputFile->readMatrix(matrixData, matrixSize, 1000, 1);
+  std::cout << "matrixSize: " << matrixSize << std::endl;
+  
+  QFile o("output.bin");
+  if(o.open(QIODevice::WriteOnly))
+  {
+
+    QByteArray bufArray(8192, 0); // write in 8KB chunks
+    quint16* ptr = (quint16*)matrixData;
+    for(unsigned int written=0; written < matrixSize;)
+    {
+      unsigned int toWrite = matrixSize-written >= 8192 ? 8192 : matrixSize-written;
+
+      // check if the curRead value is divide able through our data type 
+      // ASSERT(toWrite % sizeof(quint16) == 0);
+
+      // now that we have our chunk we use a bufferStream to stream
+      // in the values to it for making sure our data is correctly
+      // converted regarding to little/big endianess
+      QDataStream bufStream(&bufArray, QIODevice::WriteOnly);
+      for(unsigned int i=0; i < toWrite; i+=sizeof(quint16))
+      {
+        bufStream << *ptr;
+        ++ptr;
+      }
+
+      // write out the data from our buffer to the file
+      if(o.write(bufArray.data(), toWrite) != (qint64)toWrite)
+      {
+        break;
+      }
+        
+      // increase our read counter
+      written += toWrite;
+    }
+
+
+  }
+  else
+    std::cout << "Can't open file" << std::endl;
+
+  QVERIFY(ok != false);
+  QVERIFY(matrixData != NULL);
+  if(matrixData)
+    delete [] matrixData;
+}
+
+void TestCPhilipsFile::testReadMatrixDataQByteArrayAndSubHeader()
+{
+  QByteArray* matrixData = NULL;
+  CPhilipsSubHeader* subHeader = NULL;
+  bool ok = m_pInputFile->readMatrix(matrixData, subHeader, 1000, 1);
+  
+  QVERIFY(ok != false);
+  QVERIFY(matrixData != NULL);
+  QVERIFY(subHeader != NULL);
+  if(matrixData)
+    delete matrixData;
+  if(subHeader)
+    delete subHeader;
+}
+
+void TestCPhilipsFile::testReadMatrixDataCharAndSubHeader()
+{
+  char* matrixData = NULL;
+  unsigned int matrixSize;
+  CPhilipsSubHeader* subHeader;
+  
+  bool ok =m_pInputFile->readMatrix(matrixData, matrixSize, subHeader, 1000, 1);
+
+  QVERIFY(ok != false);
+  QVERIFY(matrixData != NULL);
+  QVERIFY(subHeader != NULL);
+  if(matrixData)
+    delete [] matrixData;
+}
+
 void TestCPhilipsFile::testCreateEmptyMainHeader()
 {
   CPhilipsMainHeader* mainHeader = NULL;
@@ -52,7 +155,8 @@ void TestCPhilipsFile::testCreateEmptyMainHeader()
   QVERIFY(mainHeader != NULL);
   QCOMPARE(mainHeader->file_Type(), CPhilipsMainHeader::Unknown);
 
-  delete mainHeader;
+  if(mainHeader)
+    delete mainHeader;
 }
 
 void TestCPhilipsFile::cleanupTestCase()

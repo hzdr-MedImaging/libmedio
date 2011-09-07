@@ -388,7 +388,7 @@ bool CPhilipsMainHeader::load()
   stream >> m_pData->header.scanner_maxslice;  // 452: scanner_maxslice
   stream.skipRawData(2);                       // 454: skip the next 2 bytes
   /* Rebin_Type */ stream >> m_pData->header.rebin_type; // 456: rebin_type
-  stream.readRawData(&m_pData->header.scnOrigin[0], 16); // 458: patient_name
+  stream.readRawData(&m_pData->header.scnOrigin[0], 16); // 458: scnOrigin
   stream.readRawData(&m_pData->header.accNum[0], 16); // 474: accNum
   stream >> m_pData->header.movementCoinc;            // 490: movementCoinc
   stream >> m_pData->header.movementSing;            // 492: movementSing
@@ -772,6 +772,276 @@ short CPhilipsMainHeader::num_Tilts() const
   return m_pData->header.ntilt;
 }
 
+short CPhilipsMainHeader::petnum() const
+{
+  return m_pData->header.petnum;
+}
+
+float CPhilipsMainHeader::activity() const
+{
+  return m_pData->header.activity;
+}
+
+float CPhilipsMainHeader::weight() const
+{
+  return m_pData->header.weight;
+}
+
+short CPhilipsMainHeader::hrinj() const
+{
+  return m_pData->header.hrinj;
+}
+
+short CPhilipsMainHeader::mininj() const
+{
+  return m_pData->header.mininj;
+}
+
+float CPhilipsMainHeader::srcRadius() const
+{
+  return m_pData->header.srcRadius;
+}
+
+float CPhilipsMainHeader::srcZpos() const
+{
+  return m_pData->header.srcZpos;
+}
+
+float CPhilipsMainHeader::halfLife() const
+{
+  return m_pData->header.halfLife;
+}
+
+float CPhilipsMainHeader::concfac() const
+{
+  return m_pData->header.concfac;
+}
+
+float CPhilipsMainHeader::concfac_Bgsub() const
+{
+  return m_pData->header.concfac_bgsub;
+}
+
+float CPhilipsMainHeader::dmax() const
+{
+  return m_pData->header.dmax;
+}
+
+float CPhilipsMainHeader::dline() const
+{
+  return m_pData->header.dline;
+}
+
+float CPhilipsMainHeader::angmax() const
+{
+  return m_pData->header.angmax;
+}
+
+float CPhilipsMainHeader::x0() const
+{
+  return m_pData->header.x0;
+}
+
+float CPhilipsMainHeader::y0() const
+{
+  return m_pData->header.y0;
+}
+
+float CPhilipsMainHeader::z0() const
+{
+  return m_pData->header.z0;
+}
+
+float CPhilipsMainHeader::nevent() const
+{
+  return m_pData->header.nevent;
+}
+
+float CPhilipsMainHeader::nsino() const
+{
+  return m_pData->header.nsino;
+}
+
+short CPhilipsMainHeader::eglob_Low() const
+{
+  return m_pData->header.eglob_low;
+}
+
+short CPhilipsMainHeader::eglob_Up() const
+{
+  return m_pData->header.eglob_up;
+}
+
+short CPhilipsMainHeader::eloc_Low() const
+{
+  return m_pData->header.eloc_low;
+}
+
+short CPhilipsMainHeader::eloc_Up() const
+{
+  return m_pData->header.eloc_up;
+}
+
+CPhilipsMainHeader::Patient_Orientation_hf CPhilipsMainHeader::orient_Hf() const
+{
+  return static_cast<Patient_Orientation_hf>(m_pData->header.orient_hf);
+}
+
+const char* CPhilipsMainHeader::scan_Swrel() const
+{
+  return m_pData->header.scan_swrel;
+}
+
+CPhilipsMainHeader::Table_Direction CPhilipsMainHeader::tbl_Direction() const
+{
+  return static_cast<Table_Direction>(m_pData->header.tbl_direction);
+}
+
+CPhilipsMainHeader::Patient_Orientation_ps CPhilipsMainHeader::orient_Ps() const
+{
+  return static_cast<Patient_Orientation_ps>(m_pData->header.orient_ps);
+}
+
+float CPhilipsMainHeader::frontLeadDiameter() const
+{
+  return m_pData->header.frontLeadDiameter;
+}
+
+float CPhilipsMainHeader::backLeadDiameter() const
+{
+  return m_pData->header.backLeadDiameter;
+}
+
+float CPhilipsMainHeader::leadSeparation() const
+{
+  return m_pData->header.leadSeparation;
+}
+
+float CPhilipsMainHeader::ndelays() const
+{
+  return m_pData->header.ndelays;
+}
+
+float CPhilipsMainHeader::slcsep() const
+{
+  return m_pData->header.slcsep;
+}
+
+CPhilipsMainHeader::Valid_Header_Struct CPhilipsMainHeader::petct_Valid() const
+{
+  return static_cast<Valid_Header_Struct>(m_pData->header.petct_valid);
+}
+
+const char* CPhilipsMainHeader::fctrfil() const
+{
+  return m_pData->header.fctrfil;
+}
+
+const char* CPhilipsMainHeader::baselin() const
+{
+  return m_pData->header.baselin;
+}
+
+const char* CPhilipsMainHeader::dstpkfl() const
+{
+  return m_pData->header.dstpkfl;
+}
+
+const char* CPhilipsMainHeader::aqprotocol_Name() const
+{
+  return m_pData->header.aqprotocol_name;
+}
+
+CPhilipsMainHeader::Acquisition_Protocol_Type CPhilipsMainHeader::aqprotocol_Type() const
+{
+  return static_cast<Acquisition_Protocol_Type>(m_pData->header.aqprotocol_type);
+}
+
+const char* CPhilipsMainHeader::patient_Name() const
+{
+  return m_pData->header.patient_name;
+}
+
+float CPhilipsMainHeader::reslice_Ang1() const
+{
+  return m_pData->header.reslice_ang1;
+}
+
+float CPhilipsMainHeader::reslice_Ang2() const
+{
+  return m_pData->header.reslice_ang2;
+}
+
+float CPhilipsMainHeader::reslice_Ang3() const
+{
+  return m_pData->header.reslice_ang3;
+}
+
+short CPhilipsMainHeader::minslc() const
+{
+  return m_pData->header.minslc;
+}
+
+short CPhilipsMainHeader::maxslc() const
+{
+  return m_pData->header.maxslc;
+}
+
+short CPhilipsMainHeader::minfrm() const
+{
+  return m_pData->header.minfrm;
+}
+
+short CPhilipsMainHeader::maxfrm() const
+{
+  return m_pData->header.maxfrm;
+}
+
+short CPhilipsMainHeader::scanner_Maxslice() const
+{
+  return m_pData->header.scanner_maxslice;
+}
+
+CPhilipsMainHeader::Rebin_Type CPhilipsMainHeader::rebin_Type() const
+{
+  return static_cast<Rebin_Type>(m_pData->header.rebin_type);
+}
+
+const char* CPhilipsMainHeader::scnOrigin() const
+{
+  return m_pData->header.scnOrigin;
+}
+
+const char* CPhilipsMainHeader::accNum() const
+{
+  return m_pData->header.accNum;
+}
+
+short CPhilipsMainHeader::movementCoinc() const
+{
+  return m_pData->header.movementCoinc;
+}
+
+short CPhilipsMainHeader::movementSing() const
+{
+  return m_pData->header.movementSing;
+}
+
+short CPhilipsMainHeader::crbTstampPeriod() const
+{
+  return m_pData->header.crbTstampPeriod;
+}
+
+short CPhilipsMainHeader::trailexists() const
+{
+  return m_pData->header.trailexists;
+}
+
+long CPhilipsMainHeader::trailbeg() const
+{
+  return m_pData->header.trailbeg;
+}
+
 void CPhilipsMainHeader::setFile_Format(const short format)
 {
   m_pData->header.file_fmt = format;
@@ -995,3 +1265,274 @@ void CPhilipsMainHeader::setNum_Tilts(const short num)
 {
   m_pData->header.ntilt = num;
 }
+
+void CPhilipsMainHeader::setPetnum(const short petnum)
+{
+  m_pData->header.petnum = petnum;
+}
+
+void CPhilipsMainHeader::setActivity(const float activity)
+{
+  m_pData->header.activity = activity;
+}
+
+void CPhilipsMainHeader::setWeight(const float weight)
+{
+  m_pData->header.weight = weight;
+}
+
+void CPhilipsMainHeader::setHrinj(const short hrinj)
+{
+  m_pData->header.hrinj = hrinj;
+}
+
+void CPhilipsMainHeader::setMininj(const short mininj)
+{
+  m_pData->header.mininj = mininj;
+}
+
+void CPhilipsMainHeader::setSrcRadius(const float srcRadius)
+{
+  m_pData->header.srcRadius = srcRadius;
+}
+
+void CPhilipsMainHeader::setSrcZpos(const float srcZpos)
+{
+  m_pData->header.srcZpos = srcZpos;
+}
+
+void CPhilipsMainHeader::setHalfLife(const float halfLife)
+{
+  m_pData->header.halfLife = halfLife;
+}
+
+void CPhilipsMainHeader::setConcfac(const float concfac)
+{
+  m_pData->header.concfac = concfac;
+}
+
+void CPhilipsMainHeader::setConcfac_Bgsub(const float concfac_bgsub)
+{
+  m_pData->header.concfac_bgsub = concfac_bgsub;
+}
+
+void CPhilipsMainHeader::setDmax(const float dmax)
+{
+  m_pData->header.dmax = dmax;
+}
+
+void CPhilipsMainHeader::setDline(const float dline)
+{
+  m_pData->header.dline = dline;
+}
+
+void CPhilipsMainHeader::setAngmax(const float angmax)
+{
+  m_pData->header.angmax = angmax;
+}
+
+void CPhilipsMainHeader::setX0(const float x0)
+{
+  m_pData->header.x0 = x0;
+}
+
+void CPhilipsMainHeader::setY0(const float y0)
+{
+  m_pData->header.y0 = y0;
+}
+
+void CPhilipsMainHeader::setZ0(const float z0)
+{
+  m_pData->header.z0 = z0;
+}
+
+void CPhilipsMainHeader::setNevent(const float nevent)
+{
+  m_pData->header.nevent = nevent;
+}
+
+void CPhilipsMainHeader::setNsino(const float nsino)
+{
+  m_pData->header.nsino = nsino;
+}
+
+void CPhilipsMainHeader::setEglob_Low(const short eglob_low)
+{
+  m_pData->header.eglob_low = eglob_low;
+}
+
+void CPhilipsMainHeader::setEglob_Up(const short eglob_up)
+{
+  m_pData->header.eglob_up = eglob_up;
+}
+
+void CPhilipsMainHeader::setEloc_Low(const short eloc_low)
+{
+  m_pData->header.eloc_low = eloc_low;
+}
+
+void CPhilipsMainHeader::setEloc_Up(const short eloc_up)
+{
+  m_pData->header.eloc_up = eloc_up;
+}
+
+void CPhilipsMainHeader::setOrient_Hf(const CPhilipsMainHeader::Patient_Orientation_hf orient_hf)
+{
+  m_pData->header.orient_hf = static_cast<qint16>(orient_hf);
+}
+
+void CPhilipsMainHeader::scan_Swrel(const char* str)
+{
+  strncpy(m_pData->header.scan_swrel, str, 6);
+}
+
+void CPhilipsMainHeader::setTbl_Direction(const CPhilipsMainHeader::Table_Direction tbl_direction)
+{
+  m_pData->header.tbl_direction = static_cast<qint16>(tbl_direction);
+}
+
+void CPhilipsMainHeader::setOrient_Ps(const CPhilipsMainHeader::Patient_Orientation_ps orient_ps)
+{
+  m_pData->header.orient_ps = static_cast<qint16>(orient_ps);
+}
+
+void CPhilipsMainHeader::setFrontLeadDiameter(const float frontLeadDiameter)
+{
+  m_pData->header.frontLeadDiameter = frontLeadDiameter;
+}
+
+void CPhilipsMainHeader::setBackLeadDiameter(const float backLeadDiameter)
+{
+  m_pData->header.backLeadDiameter = backLeadDiameter;
+}
+
+void CPhilipsMainHeader::setLeadSeparation(const float leadSeparation)
+{
+  m_pData->header.leadSeparation = leadSeparation;
+}
+
+void CPhilipsMainHeader::setNdelays(const float ndelays)
+{
+  m_pData->header.ndelays = ndelays;
+}
+
+void CPhilipsMainHeader::setSlcsep(const float slcsep)
+{
+  m_pData->header.slcsep = slcsep;
+}
+
+void CPhilipsMainHeader::setPetct_Valid(const CPhilipsMainHeader::Valid_Header_Struct petct_valid)
+{
+  m_pData->header.petct_valid = static_cast<qint16>(petct_valid);
+}
+
+void CPhilipsMainHeader::setFctrfil(const char* str)
+{
+  strncpy(m_pData->header.fctrfil, str, 20);
+}
+
+void CPhilipsMainHeader::setBaselin(const char* str)
+{
+  strncpy(m_pData->header.baselin, str, 20);
+}
+
+void CPhilipsMainHeader::setDstpkfl(const char* str)
+{
+  strncpy(m_pData->header.dstpkfl, str, 20);
+}
+
+void CPhilipsMainHeader::setAqprotocol_Name(const char* str)
+{
+  strncpy(m_pData->header.aqprotocol_name, str, 20);
+}
+
+void CPhilipsMainHeader::setAqprotocol_Type(const CPhilipsMainHeader::Acquisition_Protocol_Type aqprotocol_type)
+{
+  m_pData->header.aqprotocol_type =  static_cast<qint16>(aqprotocol_type);
+}
+
+void CPhilipsMainHeader::setPatient_Name(const char* str)
+{
+  strncpy(m_pData->header.patient_name, str, 30);
+}
+
+void CPhilipsMainHeader::setReslice_Ang1(const float reslice_ang1)
+{
+  m_pData->header.reslice_ang1 = reslice_ang1;
+}
+
+void CPhilipsMainHeader::setReslice_Ang2(const float reslice_ang2)
+{
+  m_pData->header.reslice_ang2 = reslice_ang2;
+}
+
+void CPhilipsMainHeader::setReslice_Ang3(const float reslice_ang3)
+{
+  m_pData->header.reslice_ang3 = reslice_ang3;
+}
+
+void CPhilipsMainHeader::setMinslc(const short minslc)
+{
+  m_pData->header.minslc = minslc;
+}
+
+void CPhilipsMainHeader::setMaxslc(const short maxslc)
+{
+  m_pData->header.maxslc = maxslc;
+}
+
+void CPhilipsMainHeader::setMinfrm(const short minfrm)
+{
+  m_pData->header.minfrm = minfrm;
+}
+
+void CPhilipsMainHeader::setMaxfrm(const short maxfrm)
+{
+  m_pData->header.maxfrm = maxfrm;
+}
+
+void CPhilipsMainHeader::setScanner_Maxslice(const short scanner_maxslice)
+{
+  m_pData->header.scanner_maxslice = scanner_maxslice;
+}
+
+void CPhilipsMainHeader::setRebin_Type(const Rebin_Type rebin_type)
+{
+  m_pData->header.rebin_type = rebin_type;
+}
+
+void CPhilipsMainHeader::setScnOrigin(const char *str)
+{
+  strncpy(m_pData->header.scnOrigin, str, 16);
+}
+
+void CPhilipsMainHeader::setAccNum(const char *str)
+{
+  strncpy(m_pData->header.accNum, str, 16);
+}
+
+void CPhilipsMainHeader::setMovementCoinc(const short movementCoinc)
+{
+  m_pData->header.movementCoinc = movementCoinc;
+}
+
+void CPhilipsMainHeader::setMovementSing(const short movementSing)
+{
+  m_pData->header.movementSing = movementSing;
+}
+
+void CPhilipsMainHeader::setCrbTstampPeriod(const short crbTstampPeriod)
+{
+  m_pData->header.crbTstampPeriod = crbTstampPeriod;
+}
+
+void CPhilipsMainHeader::setTrailexists(const short trailexists)
+{
+  m_pData->header.trailexists = trailexists;
+}
+
+void CPhilipsMainHeader::setTrailbeg(const long trailbeg)
+{
+  m_pData->header.trailbeg = trailbeg;
+}
+
