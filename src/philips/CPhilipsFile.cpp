@@ -269,7 +269,7 @@ CPhilipsMainHeader::File_Type CPhilipsFile::fileType()
       }
     }
 
-    type = mainHeader->file_Type();
+    type = mainHeader->filtyp();
 
     if(cachedMainHeaderUsed == false)
       delete mainHeader;

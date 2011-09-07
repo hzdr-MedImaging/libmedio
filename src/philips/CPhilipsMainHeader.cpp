@@ -201,7 +201,7 @@ CPhilipsMainHeader::CPhilipsMainHeader(CPhilipsFile* file,
   // with prefilled data that is always the same for a philips main header
   clear();
 
-  setFile_Type(fileType);
+  setFiltyp(fileType);
 
   LEAVE();
 }
@@ -547,17 +547,17 @@ bool CPhilipsMainHeader::isPETMR() const
   return m_pData->header.hw_config & CPhilipsMainHeaderPrivate::PETMR;
 }
 
-short CPhilipsMainHeader::file_Format() const
+short CPhilipsMainHeader::file_Fmt() const
 {
   return m_pData->header.file_fmt;
 }
 
-short CPhilipsMainHeader::scanner_Geometry() const
+short CPhilipsMainHeader::scan_Geom() const
 {
   return m_pData->header.scan_geom;
 }
 
-short CPhilipsMainHeader::hardware_Config() const
+short CPhilipsMainHeader::hw_Config() const
 {
   return m_pData->header.hw_config;
 }
@@ -567,147 +567,142 @@ short CPhilipsMainHeader::edit_Flag() const
   return m_pData->header.edit_flag;
 }
 
-CPhilipsMainHeader::File_Type CPhilipsMainHeader::file_Type() const
+CPhilipsMainHeader::File_Type CPhilipsMainHeader::filtyp() const
 {
   return static_cast<File_Type>(m_pData->header.filtyp);
 }
 
-short CPhilipsMainHeader::day_Created() const
+short CPhilipsMainHeader::daycre() const
 {
   return m_pData->header.dep_daycre;
 }
 
-short CPhilipsMainHeader::month_Created() const
+short CPhilipsMainHeader::mocre() const
 {
   return m_pData->header.dep_mocre;
 }
 
-short CPhilipsMainHeader::year_Created() const
+short CPhilipsMainHeader::yrcre() const
 {
   return m_pData->header.dep_yrcre;
 }
 
-short CPhilipsMainHeader::hour_Created() const
+short CPhilipsMainHeader::hrcre() const
 {
   return m_pData->header.dep_hrcre;
 }
 
-short CPhilipsMainHeader::minute_Created() const
+short CPhilipsMainHeader::mincre() const
 {
   return m_pData->header.dep_mincre;
 }
 
-short CPhilipsMainHeader::second_Created() const
+short CPhilipsMainHeader::seccre() const
 {
   return m_pData->header.dep_seccre;
 }
 
-short CPhilipsMainHeader::scan_Duration() const
+short CPhilipsMainHeader::duratn() const
 {
   return m_pData->header.duratn;
 }
 
-CPhilipsMainHeader::Subheader_Type CPhilipsMainHeader::subheader_Type() const
+CPhilipsMainHeader::Subheader_Type CPhilipsMainHeader::shdtyp() const
 {
   return static_cast<Subheader_Type>(m_pData->header.shdtyp);
 }
 
-short CPhilipsMainHeader::singles_PreScale_Old() const
-{
-  return m_pData->header.sngpscl;
-}
-
-float CPhilipsMainHeader::singles_PreScale() const
+float CPhilipsMainHeader::pscale() const
 {
   return m_pData->header.pscale;
 }
 
-float CPhilipsMainHeader::detector_Radius() const
+float CPhilipsMainHeader::detectorRadius() const
 {
   return m_pData->header.detectorRadius;
 }
 
-bool CPhilipsMainHeader::virtual_Crystals() const
+bool CPhilipsMainHeader::virtualXtal() const
 {
   return (m_pData->header.virtualXtal == 1);
 }
 
-short CPhilipsMainHeader::phi_Mashing() const
+short CPhilipsMainHeader::phiMashing() const
 {
   return m_pData->header.phiMashing;
 }
 
-short CPhilipsMainHeader::polygon_Sides() const
+short CPhilipsMainHeader::polygonSides() const
 {
   return m_pData->header.polygonSides;
 }
 
-short CPhilipsMainHeader::crystals_Per_Side() const
+short CPhilipsMainHeader::xtalsPerSide() const
 {
   return m_pData->header.xtalsPerSide;
 }
 
-short CPhilipsMainHeader::crystal_Rows() const
+short CPhilipsMainHeader::nXtalRows() const
 {
   return m_pData->header.nXtalRows;
 }
 
-float CPhilipsMainHeader::crystal_Thickness() const
+float CPhilipsMainHeader::crystalThickness() const
 {
   return m_pData->header.crystalThickness;
 }
 
-float CPhilipsMainHeader::x_CrystalPitch() const
+float CPhilipsMainHeader::xXtalPitch() const
 {
   return m_pData->header.xXtalPitch;
 }
 
-float CPhilipsMainHeader::z_CrystalPitch() const
+float CPhilipsMainHeader::zXtalPitch() const
 {
   return m_pData->header.zXtalPitch;
 }
 
-float CPhilipsMainHeader::axial_FOV() const
+float CPhilipsMainHeader::axialFOV() const
 {
   return m_pData->header.axialFOV;
 }
 
-CPhilipsMainHeader::RPhi_Type CPhilipsMainHeader::rPhi_Type() const
+CPhilipsMainHeader::RPhi_Type CPhilipsMainHeader::rphiType() const
 {
   return static_cast<RPhi_Type>(m_pData->header.rphiType);
 }
 
-CPhilipsMainHeader::Slice_Type CPhilipsMainHeader::slice_Type() const
+CPhilipsMainHeader::Slice_Type CPhilipsMainHeader::sliceType() const
 {
   return static_cast<Slice_Type>(m_pData->header.sliceType);
 }
 
-CPhilipsMainHeader::Delay_Type CPhilipsMainHeader::delay_Type() const
+CPhilipsMainHeader::Delay_Type CPhilipsMainHeader::delayType() const
 {
   return static_cast<Delay_Type>(m_pData->header.delayType);
 }
 
-CPhilipsMainHeader::Scan_Type CPhilipsMainHeader::scan_Type() const
+CPhilipsMainHeader::Scan_Type CPhilipsMainHeader::pattyp() const
 {
   return static_cast<Scan_Type>(m_pData->header.pattyp);
 }
 
-CPhilipsMainHeader::Acquisition_Type CPhilipsMainHeader::acquisition_Type() const
+CPhilipsMainHeader::Acquisition_Type CPhilipsMainHeader::scntyp() const
 {
   return static_cast<Acquisition_Type>(m_pData->header.scntyp);
 }
 
-short CPhilipsMainHeader::num_Ray() const
+short CPhilipsMainHeader::numray() const
 {
   return m_pData->header.numray;
 }
 
-short CPhilipsMainHeader::num_Ang() const
+short CPhilipsMainHeader::numang() const
 {
   return m_pData->header.numang;
 }
 
-short CPhilipsMainHeader::slice_Thickness() const
+short CPhilipsMainHeader::slcthk() const
 {
   return m_pData->header.slcthk;
 }
@@ -722,52 +717,52 @@ float CPhilipsMainHeader::slope() const
   return m_pData->header.slope;
 }
 
-float CPhilipsMainHeader::calibration_Intercept() const
+float CPhilipsMainHeader::intcpt() const
 {
   return m_pData->header.intcpt;
 }
 
-short CPhilipsMainHeader::injection_Time() const
+short CPhilipsMainHeader::injtim() const
 {
   return m_pData->header.injtim;
 }
 
-float CPhilipsMainHeader::polygon_VertexAt0Deg() const
+float CPhilipsMainHeader::polygonVertAt0deg() const
 {
   return m_pData->header.polygonVertAt0deg;
 }
 
-short CPhilipsMainHeader::num_Slices() const
+short CPhilipsMainHeader::nslice() const
 {
   return m_pData->header.nslice;
 }
 
-short CPhilipsMainHeader::num_Frames() const
+short CPhilipsMainHeader::nframe() const
 {
   return m_pData->header.nframe;
 }
 
-short CPhilipsMainHeader::birthdate_Day() const
+short CPhilipsMainHeader::bthday() const
 {
   return m_pData->header.bthday;
 }
 
-short CPhilipsMainHeader::birthdate_Month() const
+short CPhilipsMainHeader::bthmo() const
 {
   return m_pData->header.bthmo;
 }
 
-short CPhilipsMainHeader::birthdate_Year() const
+short CPhilipsMainHeader::bthyr() const
 {
   return m_pData->header.bthyr;
 }
 
-const char* CPhilipsMainHeader::short_Patient_ID() const
+const char* CPhilipsMainHeader::ssn() const
 {
   return m_pData->header.ssn;
 }
 
-short CPhilipsMainHeader::num_Tilts() const
+short CPhilipsMainHeader::ntilt() const
 {
   return m_pData->header.ntilt;
 }
@@ -1042,17 +1037,17 @@ long CPhilipsMainHeader::trailbeg() const
   return m_pData->header.trailbeg;
 }
 
-void CPhilipsMainHeader::setFile_Format(const short format)
+void CPhilipsMainHeader::setFile_Fmt(const short format)
 {
   m_pData->header.file_fmt = format;
 }
 
-void CPhilipsMainHeader::setScanner_Geometry(const short geometry)
+void CPhilipsMainHeader::setScan_Geom(const short geometry)
 {
   m_pData->header.scan_geom = geometry;
 }
 
-void CPhilipsMainHeader::setHardware_Config(const short conifg)
+void CPhilipsMainHeader::setHw_Config(const short conifg)
 {
   m_pData->header.hw_config = conifg;
 }
@@ -1062,146 +1057,141 @@ void CPhilipsMainHeader::setEdit_Flag(const short eFlag)
   m_pData->header.edit_flag = eFlag;
 }
 
-void CPhilipsMainHeader::setFile_Type(const File_Type fType)
+void CPhilipsMainHeader::setFiltyp(const File_Type fType)
 {
   m_pData->header.filtyp = fType;
 }
 
-void CPhilipsMainHeader::setDay_Created(const short day)
+void CPhilipsMainHeader::setDaycre(const short day)
 {
   m_pData->header.dep_daycre = day;
 }
 
-void CPhilipsMainHeader::setMonth_Created(const short month)
+void CPhilipsMainHeader::setMocre(const short month)
 {
   m_pData->header.dep_mocre = month;
 }
 
-void CPhilipsMainHeader::setYear_Created(const short year)
+void CPhilipsMainHeader::setYrcre(const short year)
 {
   m_pData->header.dep_yrcre = year;
 }
 
-void CPhilipsMainHeader::setHour_Created(const short hour)
+void CPhilipsMainHeader::setHrcre(const short hour)
 {
   m_pData->header.dep_hrcre = hour;
 }
 
-void CPhilipsMainHeader::setMinute_Created(const short minute)
+void CPhilipsMainHeader::setMincre(const short minute)
 {
   m_pData->header.dep_mincre = minute;
 }
 
-void CPhilipsMainHeader::setSecond_Created(const short second)
+void CPhilipsMainHeader::setSeccre(const short second)
 {
   m_pData->header.dep_seccre = second;
 }
 
-void CPhilipsMainHeader::setScan_Duration(const short seconds)
+void CPhilipsMainHeader::setDuratn(const short seconds)
 {
   m_pData->header.duratn = seconds;
 }
 
-void CPhilipsMainHeader::setSubheader_Type(const Subheader_Type sType)
+void CPhilipsMainHeader::setShdtyp(const Subheader_Type sType)
 {
   m_pData->header.shdtyp = sType;
 }
 
-void CPhilipsMainHeader::setSingles_PreScale_Old(const short preScale)
-{
-  m_pData->header.sngpscl = preScale;
-}
-
-void CPhilipsMainHeader::setSingles_PreScale(const float preScale)
+void CPhilipsMainHeader::setPscale(const float preScale)
 {
   m_pData->header.pscale = preScale;
 }
 
-void CPhilipsMainHeader::setDetector_Radius(const float radius)
+void CPhilipsMainHeader::setDetectorRadius(const float radius)
 {
   m_pData->header.detectorRadius = radius;
 }
 
-void CPhilipsMainHeader::setVirtual_Crystals(const bool virtualCrystals)
+void CPhilipsMainHeader::setVirtualXtal(const bool virtualCrystals)
 {
   m_pData->header.virtualXtal = virtualCrystals;
 }
-void CPhilipsMainHeader::setPhi_Mashing(const short phiMashing)
+void CPhilipsMainHeader::setPhiMashing(const short phiMashing)
 {
   m_pData->header.phiMashing = phiMashing;
 }
 
-void CPhilipsMainHeader::setPolygon_Sides(const short polygonSides)
+void CPhilipsMainHeader::setPolygonSides(const short polygonSides)
 {
   m_pData->header.polygonSides = polygonSides;
 }
 
-void CPhilipsMainHeader::setCrystals_Per_Side(const short crystalsPerSide)
+void CPhilipsMainHeader::setXtalsPerSide(const short crystalsPerSide)
 {
   m_pData->header.xtalsPerSide = crystalsPerSide;
 }
 
-void CPhilipsMainHeader::setCrystal_Rows(const short crystalRows)
+void CPhilipsMainHeader::setnXtalRows(const short crystalRows)
 {
   m_pData->header.nXtalRows = crystalRows;
 }
 
-void CPhilipsMainHeader::setCrystal_Thickness(const float crystalThickness)
+void CPhilipsMainHeader::setCrystalThickness(const float crystalThickness)
 {
   m_pData->header.crystalThickness = crystalThickness;
 }
 
-void CPhilipsMainHeader::setX_CrystalPitch(const float pitch)
+void CPhilipsMainHeader::setXXtalPitch(const float pitch)
 {
   m_pData->header.xXtalPitch = pitch;
 }
 
-void CPhilipsMainHeader::setZ_CrystalPitch(const float pitch)
+void CPhilipsMainHeader::setZXtalPitch(const float pitch)
 {
   m_pData->header.zXtalPitch = pitch;
 }
 
-void CPhilipsMainHeader::setAxial_FOV(const float axialFOV)
+void CPhilipsMainHeader::setAxialFOV(const float axialFOV)
 {
   m_pData->header.axialFOV = axialFOV;
 }
 
-void CPhilipsMainHeader::setRPhi_Type(const RPhi_Type rType)
+void CPhilipsMainHeader::setRphiType(const RPhi_Type rType)
 {
   m_pData->header.rphiType = rType;
 }
 
-void CPhilipsMainHeader::setSlice_Type(const Slice_Type sType)
+void CPhilipsMainHeader::setSliceType(const Slice_Type sType)
 {
   m_pData->header.sliceType = sType;
 }
 
-void CPhilipsMainHeader::setDelay_Type(const Delay_Type dType)
+void CPhilipsMainHeader::setDelayType(const Delay_Type dType)
 {
   m_pData->header.delayType = dType;
 }
 
-void CPhilipsMainHeader::setScan_Type(const Scan_Type sType)
+void CPhilipsMainHeader::setPattyp(const Scan_Type sType)
 {
   m_pData->header.pattyp = sType;
 }
 
-void CPhilipsMainHeader::setAcquisition_Type(const Acquisition_Type aType)
+void CPhilipsMainHeader::setScntyp(const CPhilipsMainHeader::Acquisition_Type aType)
 {
   m_pData->header.scntyp = aType;
 }
 
-void CPhilipsMainHeader::setNum_Ray(const short num)
+void CPhilipsMainHeader::setNumray(const short num)
 {
   m_pData->header.numray = num;
 }
 
-void CPhilipsMainHeader::setNum_Ang(const short num)
+void CPhilipsMainHeader::setNumang(const short num)
 {
   m_pData->header.numang = num;
 }
 
-void CPhilipsMainHeader::setSlice_Thickness(const short thickness)
+void CPhilipsMainHeader::setSlcthk(const short thickness)
 {
   m_pData->header.slcthk = thickness;
 }
@@ -1216,52 +1206,52 @@ void CPhilipsMainHeader::setSlope(const float slope)
   m_pData->header.slope = slope;
 }
 
-void CPhilipsMainHeader::setCalibration_Intercept(const float intercept)
+void CPhilipsMainHeader::setIntcpt(const float intercept)
 {
   m_pData->header.intcpt = intercept;
 }
 
-void CPhilipsMainHeader::setInjection_Time(const short seconds)
+void CPhilipsMainHeader::setInjtim(const short seconds)
 {
   m_pData->header.injtim = seconds;
 }
 
-void CPhilipsMainHeader::setPolygon_VertexAt0Deg(const float vertex)
+void CPhilipsMainHeader::setPolygonVertAt0deg(const float vertex)
 {
   m_pData->header.polygonVertAt0deg = vertex;
 }
 
-void CPhilipsMainHeader::setNum_Slices(const short num)
+void CPhilipsMainHeader::setNslice(const short num)
 {
   m_pData->header.nslice = num;
 }
 
-void CPhilipsMainHeader::setNum_Frames(const short num)
+void CPhilipsMainHeader::setNframe(const short num)
 {
   m_pData->header.nframe = num;
 }
 
-void CPhilipsMainHeader::setBirthdate_Day(const short day)
+void CPhilipsMainHeader::setBthday(const short day)
 {
   m_pData->header.bthday = day;
 }
 
-void CPhilipsMainHeader::setBirthdate_Month(const short month)
+void CPhilipsMainHeader::setBthmo(const short month)
 {
   m_pData->header.bthmo = month;
 }
 
-void CPhilipsMainHeader::setBirthdate_Year(const short year)
+void CPhilipsMainHeader::setBthyr(const short year)
 {
   m_pData->header.bthyr = year;
 }
 
-void CPhilipsMainHeader::setShort_Patient_ID(const char* id)
+void CPhilipsMainHeader::setSsn(const char* id)
 {
   strncpy(m_pData->header.ssn, id, 10);
 }
 
-void CPhilipsMainHeader::setNum_Tilts(const short num)
+void CPhilipsMainHeader::setNtilt(const short num)
 {
   m_pData->header.ntilt = num;
 }

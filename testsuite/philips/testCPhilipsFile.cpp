@@ -21,7 +21,7 @@ void TestCPhilipsFile::testReadMainHeader()
   m_pInputFile->readMainHeader(mainHeader);
   
   QVERIFY(mainHeader != NULL);
-  QCOMPARE(mainHeader->file_Type(), CPhilipsMainHeader::Image);
+  QCOMPARE(mainHeader->filtyp(), CPhilipsMainHeader::Image);
   
   delete mainHeader;
 }
@@ -153,7 +153,7 @@ void TestCPhilipsFile::testCreateEmptyMainHeader()
   mainHeader = m_pInputFile->createEmptyMainHeader();
 
   QVERIFY(mainHeader != NULL);
-  QCOMPARE(mainHeader->file_Type(), CPhilipsMainHeader::Unknown);
+  QCOMPARE(mainHeader->filtyp(), CPhilipsMainHeader::Unknown);
 
   if(mainHeader)
     delete mainHeader;
