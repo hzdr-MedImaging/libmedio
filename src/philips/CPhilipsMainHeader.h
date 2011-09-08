@@ -237,8 +237,7 @@ class CPhilipsMainHeader : public CMedIOHeader
     short movementSing() const;
     short crbTstampPeriod() const;
     short trailexists() const;
-    long trailbeg() const;
-
+    unsigned long trailbeg() const;
     Valid_Header_Struct petct_Valid() const;
     short petct_separation() const;
     short petct_landmark() const;
@@ -253,8 +252,6 @@ class CPhilipsMainHeader : public CMedIOHeader
     short petct_alignment_axialRotation() const;
     short petct_alignment_horizRotation() const;
     short petct_alignment_vertRotation() const;
-
-
 
     // methods to modify elements of the MainHeader  
     void setFile_Fmt(const short format);
@@ -353,8 +350,7 @@ class CPhilipsMainHeader : public CMedIOHeader
     void setMovementSing(const short movementSing);
     void setCrbTstampPeriod(const short crbTstampPeriod);
     void setTrailexists(const short trailexists);
-    void setTrailbeg(const long trailbeg);
-
+    void setTrailbeg(const unsignedlong trailbeg);
     void setPetct_Valid(const Valid_Header_Struct petct_valid);
     void setPetct_separation(const short separation);
     void setPetct_landmark(const short landmark);

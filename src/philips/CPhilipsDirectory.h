@@ -55,7 +55,7 @@ class CPhilipsDirectory
     unsigned int count() const;
 
     // methods to calculate the real amount
-    // of frame/plane/gate numbers carried in the directory.
+    // of frame/slice/tilt numbers carried in the directory.
     short maxFrame(void) const;
     short minFrame(void) const;
     short numFrames(void) const;

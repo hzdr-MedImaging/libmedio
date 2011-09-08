@@ -75,9 +75,7 @@ public:
     qint16 duratn;     // duration of scan in seconds
     qint16 shdtyp;    // ImageIO subheader (1) or old subheader format (0)
     qint16 sngpscl; // singles prescale, superceded by pscale
-
     qint16 singopt; // 0=transmission only, 1=trans-ec, 2=ec only (obsoleted)
-
     float pscale;      // amount by which the actual singles events is scaled down
     float detectorRadius;       /* inscribed scanner radius (from middle of opening to
                                    detector face) in mm */
@@ -115,9 +113,7 @@ public:
     qint16 bthyr;
     char ssn[10]; // suberceded by Dicom_Patient_ID
     qint16 ntilt;         // number of tilts per frame
-
     qint16 petnum;
-
     float activity;           // in MBq
     float weight;
     qint16 hrinj;
@@ -139,24 +135,24 @@ public:
     qint16 eglob_up;
     qint16 eloc_low;
     qint16 eloc_up;
-    /* Patient_Orientation_hf */ qint16 orient_hf;
+    qint16 orient_hf;
     char scan_swrel[6];
-    /* Table_Direction */ qint16 tbl_direction;
-    /* Patient_Orientation_ps */ qint16 orient_ps;
+    qint16 tbl_direction;
+    qint16 orient_ps;
     float frontLeadDiameter;
     float backLeadDiameter;
     float leadSeparation;
     float ndelays;
     float slcsep;
-    char fctrfil[20];        /* Factor file name. (PMT gains). was 16 */
-    /* syn - (0008,1090) manufacturer's model name*/
+    char fctrfil[20];           /* Factor file name. (PMT gains). was 16 */
+                                /* syn - (0008,1090) manufacturer's model name*/
     char baselin[20];        /* Baseline file name. (DC offsets). was 16 */
     char dstpkfl[20];        /* Distortion peak file name. */
     char aqprotocol_name[20];/* acquisition protocol name */
-    /* Acquisition_Protocol_Type */ qint16 aqprotocol_type;   /* 1=Emiss-Static, 2=Emiss-Dynamic,
-                                                              * 3=Trans-Static, 4=Gated Cardiac,
-                                                              * 5=Emiss-Whole-Body, 6=Trans-Whole-Body 
-                                                              * 7=Singles Trans, 8=Singles-Whole-Body */
+    qint16 aqprotocol_type;   /* 1=Emiss-Static, 2=Emiss-Dynamic,
+                               * 3=Trans-Static, 4=Gated Cardiac,
+                               * 5=Emiss-Whole-Body, 6=Trans-Whole-Body 
+                               * 7=Singles Trans, 8=Singles-Whole-Body */
     char patient_name[30];   /* patient name */
     float reslice_ang1;      /* Reslicing (OBL) angle 1 */
     float reslice_ang2;      /* Reslicing (OBL) angle 2 */
@@ -171,7 +167,6 @@ public:
                               * based on the useful axial extent of the
                               * scanner. (unitless) */
     qint16 rebin_type;         /* multi-slice or single slice or LOR */
-
     char scnOrigin[16];       /* indicates origin of scan data = scanner number
                                * (a000) - $SITENAME (10 chars) plus null */
     char accNum[16]; /* Accession number. Will eventually be used with 
@@ -184,22 +179,14 @@ public:
     quint32 trailbeg;           /* unsigned 32 bit number = # of bytes from
                               * file beginning indicating where the
                               * trailer begins */
-
     struct 
     {
-      qint16 valid;   /* Whether the file has a valid petct struct */
+      qint16 valid;            /* Whether the file has a valid petct struct */
       qint16 separation;       /* PET separation distance at acq time (1/10mm) */
       qint16 landmark;         /* Landmark position at acq time (1/10mm) */
       struct
       {
-
-#define PETCT_LM_SCALE        10.0
-#define PETCT_OFFSET_SCALE    100.0
-#define PETCT_SHIFT_SCALE     1000.0
-#define PETCT_ANGLE_SCALE     10000.0
-#define PETCT_REALIGN_ANGLE_SCALE 1000.0
-
-        qint32 timestamp;  /* Date/Time of alignment calibration 
+        qint32 timestamp;     /* Date/Time of alignment calibration 
                                 (seconds since Jan 1, 1970 [UNIX]) */
         qint16 zOffset;       /* Not used at this time.  */
         qint16 xShift;        /* shift in x from align-cal in 1/1000mm */
@@ -217,29 +204,7 @@ public:
         qint16 vertRotation;  /* rotation about y axis in 1/10,000 deg  */
         qint16 unused[2];     /* Not used at this time. */
       } alignment;
-      // struct
-      // {
-      //   short xOffset;       /* For cardiac realignment. Additional    */
-      //   /*  horizontal (x) shift of center of CT  */
-      //   /*  FOV w.r.t. PET (in 1/100mm).          */
-      //   short yOffset;       /* For cardiac realignment. Additional    */
-      //   /*  vertical (y) shift of center of CT    */
-      //   /*  FOV w.r.t. PET (in 1/100mm).          */
-      //   short zOffset;       /* For cardiac realignment. Additional    */
-      //   /*  (z)  shift of center of CT            */
-      //   /*  FOV w.r.t. PET (in 1/100mm).          */
-      //   short axialRotation; /* For cardiac realignment. Additional    */
-      //   /*  rotation about the axial (Z) axis     */
-      //   /*  (in 1/1,000 degree).                  */
-      //   short horizRotation; /* For cardiac realignment. Additional    */
-      //   /*  rotation about the horizontal (X) axis*/
-      //   /*  (in 1/1,000 degree).                  */
-      //   short vertRotation;  /* For cardiac realignment. Additional    */
-      //   /*  rotation about the vertical (Y) axis  */
-      //   /*  (in 1/1,000 degree).                  */
-      // } realignment;
     } petCt;
-
   } header;
 
   static const short currentMainHeaderFormat = 13;
@@ -418,14 +383,11 @@ bool CPhilipsMainHeader::load()
   stream >> m_pData->header.eloc_up;                     // 254: eloc_up
   stream >> m_pData->header.orient_hf; // 256: orient_hf
   stream.readRawData(&m_pData->header.scan_swrel[0], 6); // 258: scan_swrel
-
   stream >> m_pData->header.petCt.separation;
   stream >> m_pData->header.petCt.landmark;
   stream >> m_pData->header.petCt.alignment.timestamp;
-
   stream >> m_pData->header.tbl_direction; // 272: tbl_direction
   stream >> m_pData->header.orient_ps;     // 274: orient_ps
-
   stream >> m_pData->header.petCt.alignment.zOffset;
   stream >> m_pData->header.petCt.alignment.xShift;
   stream >> m_pData->header.petCt.alignment.yShift;
@@ -436,7 +398,6 @@ bool CPhilipsMainHeader::load()
   stream >> m_pData->header.petCt.alignment.axialRotation;
   stream >> m_pData->header.petCt.alignment.horizRotation;
   stream >> m_pData->header.petCt.alignment.vertRotation;
-
   stream >> m_pData->header.frontLeadDiameter; // 296: frontLeadDiameter
   stream >> m_pData->header.backLeadDiameter;  // 300: backLeadDiameter
   stream >> m_pData->header.leadSeparation;    // 304: leadSeparation
@@ -447,7 +408,7 @@ bool CPhilipsMainHeader::load()
   stream.readRawData(&m_pData->header.baselin[0], 20); // 338: baselin
   stream.readRawData(&m_pData->header.dstpkfl[0], 20); // 358: dstpkfl
   stream.readRawData(&m_pData->header.aqprotocol_name[0], 20); // 378: aqprotocol_name
-  /* Acquisition_Protocol_Type */  stream >> m_pData->header.aqprotocol_type;                   // 398: aqprotocol_type
+  stream >> m_pData->header.aqprotocol_type;                   // 398: aqprotocol_type
   stream.readRawData(&m_pData->header.patient_name[0], 30); // 400: patient_name
   stream >> m_pData->header.reslice_ang1;       // 430: reslice_ang1
   stream >> m_pData->header.reslice_ang2;       // 434: reslice_ang2
@@ -458,7 +419,7 @@ bool CPhilipsMainHeader::load()
   stream >> m_pData->header.maxfrm;            // 450: maxfrm
   stream >> m_pData->header.scanner_maxslice;  // 452: scanner_maxslice
   stream.skipRawData(2);                       // 454: skip the next 2 bytes
-  /* Rebin_Type */ stream >> m_pData->header.rebin_type; // 456: rebin_type
+  stream >> m_pData->header.rebin_type; // 456: rebin_type
   stream.readRawData(&m_pData->header.scnOrigin[0], 16); // 458: scnOrigin
   stream.readRawData(&m_pData->header.accNum[0], 16); // 474: accNum
   stream >> m_pData->header.movementCoinc;            // 490: movementCoinc
@@ -1338,7 +1299,7 @@ short CPhilipsMainHeader::trailexists() const
   return m_pData->header.trailexists;
 }
 
-long CPhilipsMainHeader::trailbeg() const
+unsigned long CPhilipsMainHeader::trailbeg() const
 {
   return m_pData->header.trailbeg;
 }
@@ -1892,7 +1853,7 @@ void CPhilipsMainHeader::setTrailexists(const short trailexists)
   m_pData->header.trailexists = trailexists;
 }
 
-void CPhilipsMainHeader::setTrailbeg(const long trailbeg)
+void CPhilipsMainHeader::setTrailbeg(const unsigned long trailbeg)
 {
   m_pData->header.trailbeg = trailbeg;
 }
