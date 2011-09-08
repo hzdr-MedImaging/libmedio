@@ -350,7 +350,7 @@ class CPhilipsMainHeader : public CMedIOHeader
     void setMovementSing(const short movementSing);
     void setCrbTstampPeriod(const short crbTstampPeriod);
     void setTrailexists(const short trailexists);
-    void setTrailbeg(const unsignedlong trailbeg);
+    void setTrailbeg(const unsigned long trailbeg);
     void setPetct_Valid(const Valid_Header_Struct petct_valid);
     void setPetct_separation(const short separation);
     void setPetct_landmark(const short landmark);
