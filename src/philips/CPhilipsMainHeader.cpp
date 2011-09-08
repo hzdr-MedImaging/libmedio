@@ -141,7 +141,7 @@ public:
     qint16 eloc_up;
     /* Patient_Orientation_hf */ qint16 orient_hf;
     char scan_swrel[6];
-    /* Table_Direction */ short tbl_direction;
+    /* Table_Direction */ qint16 tbl_direction;
     /* Patient_Orientation_ps */ qint16 orient_ps;
     float frontLeadDiameter;
     float backLeadDiameter;
@@ -153,7 +153,7 @@ public:
     char baselin[20];        /* Baseline file name. (DC offsets). was 16 */
     char dstpkfl[20];        /* Distortion peak file name. */
     char aqprotocol_name[20];/* acquisition protocol name */
-    /* Acquisition_Protocol_Type */ short aqprotocol_type;   /* 1=Emiss-Static, 2=Emiss-Dynamic,
+    /* Acquisition_Protocol_Type */ qint16 aqprotocol_type;   /* 1=Emiss-Static, 2=Emiss-Dynamic,
                                                               * 3=Trans-Static, 4=Gated Cardiac,
                                                               * 5=Emiss-Whole-Body, 6=Trans-Whole-Body 
                                                               * 7=Singles Trans, 8=Singles-Whole-Body */
@@ -161,26 +161,26 @@ public:
     float reslice_ang1;      /* Reslicing (OBL) angle 1 */
     float reslice_ang2;      /* Reslicing (OBL) angle 2 */
     float reslice_ang3;      /* Reslicing (OBL) angle 3 */
-    short minslc;            /* Minimum Slice number */
+    qint16 minslc;            /* Minimum Slice number */
     /* syn - set to 1		*/
-    short maxslc;            /* Maximum Slice number */
+    qint16 maxslc;            /* Maximum Slice number */
     /* syn - set to number of slices */
-    short minfrm;            /* Minimum Frame number */
-    short maxfrm;            /* Maximum Frame number */
-    short scanner_maxslice;  /* Maximum Slice number for a static frame
+    qint16 minfrm;            /* Minimum Frame number */
+    qint16 maxfrm;            /* Maximum Frame number */
+    qint16 scanner_maxslice;  /* Maximum Slice number for a static frame
                               * based on the useful axial extent of the
                               * scanner. (unitless) */
-    short rebin_type;         /* multi-slice or single slice or LOR */
+    qint16 rebin_type;         /* multi-slice or single slice or LOR */
 
     char scnOrigin[16];       /* indicates origin of scan data = scanner number
                                * (a000) - $SITENAME (10 chars) plus null */
     char accNum[16]; /* Accession number. Will eventually be used with 
                                  DICOM query retrieve. Initially used to support
                                  dicom-send to PACS. */
-    short movementCoinc;      /* table movement between emission frames in mm */
-    short movementSing;   /* table movement between transmission frames in mm */
-    short crbTstampPeriod;    /* Period between CRB timestamps in msec */
-    short trailexists;       /* 1= trailer exists, 0 = no trailer */
+    qint16 movementCoinc;      /* table movement between emission frames in mm */
+    qint16 movementSing;   /* table movement between transmission frames in mm */
+    qint16 crbTstampPeriod;    /* Period between CRB timestamps in msec */
+    qint16 trailexists;       /* 1= trailer exists, 0 = no trailer */
     quint32 trailbeg;           /* unsigned 32 bit number = # of bytes from
                               * file beginning indicating where the
                               * trailer begins */
@@ -188,8 +188,8 @@ public:
     struct 
     {
       qint16 valid;   /* Whether the file has a valid petct struct */
-      short separation;       /* PET separation distance at acq time (1/10mm) */
-      short landmark;         /* Landmark position at acq time (1/10mm) */
+      qint16 separation;       /* PET separation distance at acq time (1/10mm) */
+      qint16 landmark;         /* Landmark position at acq time (1/10mm) */
       struct
       {
 
@@ -201,21 +201,21 @@ public:
 
         qint32 timestamp;  /* Date/Time of alignment calibration 
                                 (seconds since Jan 1, 1970 [UNIX]) */
-        short zOffset;       /* Not used at this time.  */
-        short xShift;        /* shift in x from align-cal in 1/1000mm */
-        short yShift;        /* shift in y from align-cal in 1/1000mm */
-        short zShift;        /* shift in z from align-cal in 1/1000mm */
-        short acFlags;       /* Not used at this time. */
-        short xOffset;	      /* syn - (0020,0032) Image position x pos */
+        qint16 zOffset;       /* Not used at this time.  */
+        qint16 xShift;        /* shift in x from align-cal in 1/1000mm */
+        qint16 yShift;        /* shift in y from align-cal in 1/1000mm */
+        qint16 zShift;        /* shift in z from align-cal in 1/1000mm */
+        qint16 acFlags;       /* Not used at this time. */
+        qint16 xOffset;	      /* syn - (0020,0032) Image position x pos */
                               /* shift in x of the center of the CT FOV
                                  with respect to the PET FOV in 1/100mm */
-        short yOffset;	      /* syn - (0020,0032) Image position y pos */
+        qint16 yOffset;	      /* syn - (0020,0032) Image position y pos */
                               /* shift in y of the center of the CT FOV
                                  with respect to the PET FOV in 1/100mm */
-        short axialRotation; /* rotation about z axis in 1/10,000 deg  */
-        short horizRotation; /* rotation about x axis in 1/10,000 deg  */
-        short vertRotation;  /* rotation about y axis in 1/10,000 deg  */
-        short unused[2];     /* Not used at this time. */
+        qint16 axialRotation; /* rotation about z axis in 1/10,000 deg  */
+        qint16 horizRotation; /* rotation about x axis in 1/10,000 deg  */
+        qint16 vertRotation;  /* rotation about y axis in 1/10,000 deg  */
+        qint16 unused[2];     /* Not used at this time. */
       } alignment;
       // struct
       // {
@@ -820,8 +820,8 @@ bool CPhilipsMainHeader::save(void) const
     result = true;
   }
 
-  RETURN(false);
-  return false;
+  RETURN(result);
+  return result;
 }
 
 int CPhilipsMainHeader::rawDataSize() const
