@@ -65,6 +65,7 @@ class CPhilipsDirectory
     short numTilts(void) const;
 
     // read methods
+    bool readExtendedMainHeader(CPhilipsExtendedMainHeader*& extendedMainHeader);
     bool readSubHeader(CPhilipsSubHeader*& subHeader,
                        short slice, short frame=1, short tilt=0);
 

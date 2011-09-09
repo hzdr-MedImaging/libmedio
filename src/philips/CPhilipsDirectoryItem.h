@@ -29,8 +29,10 @@
 
 #ifndef __MEDIO_PRIVATE__
 #include <CPhilipsSubHeader>
+#include <CPhilipsExtendedMainHeader>
 #else
 #include <CPhilipsSubHeader.h>
+#include <CPhilipsExtendedMainHeader.h>
 // some useful defines on the Philips file format
 // especially for PhilipsBlock calculation as Philips Files
 // are seperated in 512 byte blocks and positions within
@@ -82,7 +84,7 @@ class CPhilipsDirectoryItem
     // copy constructur and default assignment operator
     CPhilipsDirectoryItem(const CPhilipsDirectoryItem& src);    
     CPhilipsDirectoryItem& operator=(const CPhilipsDirectoryItem& src);      
-  
+
     // accessor methods
     quint32 matrixID() const;
     bool isExtendedHeader() const;
@@ -103,8 +105,9 @@ class CPhilipsDirectoryItem
     // void setGate(const short g);
     // void setBed(const short b);
     // void setData(const short d);
-      
+
     // read i/o methods
+    bool readExtendedMainHeader(CPhilipsExtendedMainHeader*& extendedMainHeader);
     bool readSubHeader(CPhilipsSubHeader*& subHeader);
     bool readMatrix(QByteArray*& data);
     bool readMatrix(char*& data, unsigned int& len);

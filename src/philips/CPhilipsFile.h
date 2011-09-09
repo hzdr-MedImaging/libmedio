@@ -31,10 +31,12 @@
 #ifndef __MEDIO_PRIVATE__
 #include <CMedIOData>
 #include <CPhilipsMainHeader>
+#include <CPhilipsExtendedMainHeader>
 #include <CPhilipsSubHeader>
 #else
 #include <CMedIOData.h>
 #include <CPhilipsMainHeader.h>
+#include <CPhilipsExtendedMainHeader.h>
 #include <CPhilipsSubHeader.h>
 #endif
 
@@ -71,6 +73,7 @@ class CPhilipsFile : public CMedIOData
 
     // interface methods to read out specific data from the philips files
     bool readMainHeader(CPhilipsMainHeader*& mainHeader);
+    bool readExtendedMainHeader(CPhilipsExtendedMainHeader*& extendedMainHeader);
     bool readSubHeader(CPhilipsSubHeader*& subHeader, short slice, short frame=1, short tilt=0);
 
     bool readMatrix(QByteArray*& matrixData,

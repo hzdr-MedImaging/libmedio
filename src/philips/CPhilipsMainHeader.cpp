@@ -32,8 +32,6 @@
 
 #include <rtdebug.h>
 
-#include <iostream>
-
 // we define the private inline class of that one so that we
 // are able to hide the private methods & data of that class in the
 // public headers

@@ -43,12 +43,13 @@ class CPhilipsDirectoryItemPrivate
     CPhilipsDirectoryItem* dirItem; // pointer to the directory Item
     CPhilipsFile* file;             // pointer to the PhilipsFile
     CPhilipsSubHeader* cachedSubHeader;  // pointer to a cached SubHeader object
+    CPhilipsExtendedMainHeader* cachedExtendedMainHeader;  // pointer to a cached ExtendedMainHeader object
 
     // META information about the directory Item
     short frame;                // information normally
     short slice;                // encoded in
     short tilt;                 // the MatrixID
-    qint64 dataBlock_Start;     // also start of SubHeader
+    qint64 dataBlock_Start;     // also start of SubHeader or extendedMainHeader
     qint64 dataBlock_End;       // end of raw Data area
 
     enum CPhilipsDirectoryItem::CompressionFlag compressionFlag;
@@ -56,7 +57,7 @@ class CPhilipsDirectoryItemPrivate
 };
 
 CPhilipsDirectoryItem::CPhilipsDirectoryItem(CPhilipsFile* pFile,
-                                             quint32 matrixID) 
+                                             quint32 matrixID)
 {
   ENTER();
 
@@ -92,6 +93,7 @@ CPhilipsDirectoryItem::~CPhilipsDirectoryItem()
   ENTER();
 
   delete m_pData->cachedSubHeader;
+  delete m_pData->cachedExtendedMainHeader;
   delete m_pData;
 
   LEAVE();
@@ -145,11 +147,50 @@ short CPhilipsDirectoryItem::tilt() const
   return m_pData->tilt;
 }
 
+bool CPhilipsDirectoryItem::readExtendedMainHeader(CPhilipsExtendedMainHeader*& extendedMainHeader)
+{
+  ENTER();
+  bool result = false;
+
+  if(m_pData->file && m_pData->file->isReadable())
+  {
+    // check if we have a cached extendedMainHeader ready already so that
+    // we can take that one instead of loading the extendedMainHeader once
+    // more from scratch
+    if(m_pData->cachedExtendedMainHeader)
+    {
+      extendedMainHeader = new CPhilipsExtendedMainHeader(*m_pData->cachedExtendedMainHeader);
+      result = true;
+
+      // set the mediodata object for the newly created extendedMainHeader
+      extendedMainHeader->setMedIOData(m_pData->file);
+      extendedMainHeader->setDirectoryItem(this);
+    }
+    else
+    {
+      extendedMainHeader = new CPhilipsExtendedMainHeader(m_pData->file, this);
+
+      if(extendedMainHeader)
+      {
+        if(extendedMainHeader->load() == false)
+        {
+          delete extendedMainHeader;
+          extendedMainHeader = NULL;
+        }
+        else
+          result = true;
+      }
+    }
+  }
+
+  RETURN(result);
+  return result;
+}
+
 bool CPhilipsDirectoryItem::readSubHeader(CPhilipsSubHeader*& subHeader)
 {
   ENTER();
   bool result = false;
-  D("IN dir item readSubHeader");
 
   if(m_pData->file && m_pData->file->isReadable())
   {

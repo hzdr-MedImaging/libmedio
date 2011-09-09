@@ -452,6 +452,32 @@ short CPhilipsDirectory::numTilts() const
   return tiltsNum;
 }
 
+bool CPhilipsDirectory::readExtendedMainHeader(CPhilipsExtendedMainHeader*& extendedMainHeader)
+{
+  ENTER();
+  bool result = false;
+  
+  // we iterate through our dictionary looking for an extendedMainHeader
+  QMapIterator<quint32, CPhilipsDirectoryItem*> i(m_pData->dirItems);
+  while(i.hasNext())
+  {
+    i.next();
+    if(i.value()->isExtendedHeader() == true)
+    {
+      // get the directoryItem so that we can query the extendedMainHeaader from it
+      CPhilipsDirectoryItem* pDirItem = i.value();
+      SHOWVALUE(pDirItem);
+      if(pDirItem)
+        result = pDirItem->readExtendedMainHeader(extendedMainHeader);
+
+      break;
+    }
+  }
+  
+  RETURN(result);
+  return result;
+}
+
 bool CPhilipsDirectory::readSubHeader(CPhilipsSubHeader*& subHeader, short slice, short frame,
                                       short tilt)
 {

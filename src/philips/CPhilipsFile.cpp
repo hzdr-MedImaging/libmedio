@@ -366,12 +366,28 @@ bool CPhilipsFile::readMainHeader(CPhilipsMainHeader*& mainHeader)
   return result;
 }
 
+bool CPhilipsFile::readExtendedMainHeader(CPhilipsExtendedMainHeader*& extendedMainHeader)
+{
+  ENTER();
+  bool result = false;
+
+  ASSERT(m_pData->directory);
+
+  // before we are going to read the extendedMainHeader from the philips file we
+  // have to check wheter the file is correctly open in Read mode.
+  if(isReadable() && m_pData->directory)
+    result = m_pData->directory->readExtendedMainHeader(extendedMainHeader);
+  
+  RETURN(result);
+  return result;
+}
+
 bool CPhilipsFile::readSubHeader(CPhilipsSubHeader*& subHeader, short slice,
                                  short frame, short tilt)
 {
   ENTER();
   bool result = false;
-  D("IN philips file readSubHeader");
+
   ASSERT(m_pData->directory);
 
   // before we are going to read the SubHeader from the philips file we

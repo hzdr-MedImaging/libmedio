@@ -48,12 +48,13 @@ class CMedIOHeader
     enum Format 
     {  
       Unknown = 0,
-      ConcordeMicroPetMainHeader,  //!< main header of concorde microPET scanner
+      ConcordeMicroPetMainHeader,   //!< main header of concorde microPET scanner
       ConcordeMicroPetFrameHeader,  //!< frame header of concorde microPET scanner
-      ECATMainHeader,      //!< main header of ECAT6/7 PET scanners
-      ECATSubHeader,      //!< sub header of ECAT6/7 PET scanners
-      PhilipsMainHeader,  //!< main header of philips scanners
-      PhilipsSubHeader    //!< sub header of philips scanners
+      ECATMainHeader,               //!< main header of ECAT6/7 PET scanners
+      ECATSubHeader,                //!< sub header of ECAT6/7 PET scanners
+      PhilipsMainHeader,            //!< main header of philips scanners
+      PhilipsExtendedMainHeader,    //!< extended main header of philips scanners
+      PhilipsSubHeader              //!< sub header of philips scanners
     };
 
     // constructors
