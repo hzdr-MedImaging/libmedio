@@ -66,8 +66,8 @@ class CPhilipsFile;
 class CPhilipsDirectoryItem
 {
   public:
-    enum CompressionFlag { Uncompressed = 0x0001,
-                           Compressed = 0x0101
+    enum CompressionFlag { Uncompressed = 0,
+                           Compressed = 1
                          };
 
     enum ContentFlag { Used = 1,
