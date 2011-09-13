@@ -91,37 +91,14 @@ class CPhilipsExtendedMainHeaderPrivate
       //                                    /*  so that 1000 is 100% */
       // short height;                      /* Patient height, in mm */
       // long injection_date_time;          /* Date/time of injection (UTC). Use access functions to read/write. */
-
-      // /* acquisition */
-
-
       // long acq_date_time;                /* Date/time data acquired (UTC). Use access functions to read/write. */
 
-      // /* series (ImagIO file) */
-
-
-
-
-
       // char Dserial_number[17];           /* System serial number + null */
-
-
-
-
-
-
-
       // char series_desc[64];   /* Description */
       // char attncor_label[64]; /* Label (UID) identifying related atten. corr. series. */
       // float window_center;               /* Suggested center value to use when displaying this image. */
       // float window_width;                /* Suggested width value to use when displaying this image. */
       // WinUnitsTypes window_units;        /* Units in which window_center and window_width are specified. */
-
-      // /* For DICOM cardiac gated support */
-
-
-
-
       // short card_arrhythmia_rej_tech;    /* Card Arrhythmia rejection techniques employed: */
       //                                    /* Bi mask:   */
       //                                    /*  0 = no rejection */
@@ -135,8 +112,6 @@ class CPhilipsExtendedMainHeaderPrivate
       // char ref_gated_qc_image_inst_uid[64]; /* SOP Instance UID of */
       //                                    /*  Sec. Cap. image containing picture */
       //                                    /*  of cardiac waveform and trigger level.*/
-
-      // /* For respiratory gated support */
       // RespTrigLocTypes resp_trig_loc;    /* Respiratory trigger location. */
       // short resp_trig_threshold;         /* Respiratory trigger threshold in % of chest */
       //                                    /*  expansion relative to last peak. */
@@ -145,9 +120,6 @@ class CPhilipsExtendedMainHeaderPrivate
       // short resp_phase_offset;           /* For respiratory gated, the offset from the trigger */
       //                                    /*  to the beginning of the acquisition, in % */
       //                                    /*  of the respiratory cycle. */
-
-
-
       // ValidHdrStruct mr_valid;     /* Whether the file has a valid petmr struct */
       // unsigned char coil_type[MAX_MR_COILS]; /* MR coils present. */
       // long start_table_pos_abs;    /* Absolute start table position. */
@@ -342,9 +314,7 @@ bool CPhilipsExtendedMainHeader::load()
   D("frame_ref_uid    : %s", m_pData->header.frame_ref_uid);
   D("pps_file         : %s", m_pData->header.pps_file);
   D("worklist_file    : %s", m_pData->header.worklist_file);
-
 #endif
-
 
   RETURN(true);
   return true;
@@ -590,7 +560,7 @@ void CPhilipsExtendedMainHeader::setSeries_uid(const char* str)
 
 void CPhilipsExtendedMainHeader::setView_code(const char* str)
 {
-  strncpy(m_pData->header.view_code, str, 21);
+  strncpy(m_pData->header.view_code, str, 20);
 }
 
 void CPhilipsExtendedMainHeader::setSortproto_name(const char* str)
