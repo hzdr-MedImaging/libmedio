@@ -43,8 +43,6 @@
 
 #include <rtdebug.h>
 
-#include <iostream>
-
 // we define the private inline class of that one so that we
 // are able to hide the private methods & data of that class in the
 // public headers
@@ -926,7 +924,6 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
 
     case CMedIOHeader::PhilipsMainHeader:
     {
-      std::cout << "in philismainheader conversion." << std::endl;
       // we have to save the filetype
       CECAT7MainHeader::File_Type ft = file_Type();
       const CPhilipsMainHeader* head = static_cast<const CPhilipsMainHeader*>(pHead1);

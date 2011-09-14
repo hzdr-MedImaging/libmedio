@@ -423,6 +423,7 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
           pEcat7ImageHeader->setCalibration_Factor(1.0f);
           pEcat7ImageHeader->setData_Units("BQML");
 
+          // now we calculate the new scale factor
           float suvScale = pLastPhilipsSubHeaderImage->suvscl();
           float dosage = pPhilipsMainHeader->activity() * 1000000.0f; // Bq
           float deltaT = static_cast<float>(pPhilipsMainHeader->injtim()); // s
