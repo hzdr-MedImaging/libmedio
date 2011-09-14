@@ -80,7 +80,6 @@ class CPhilipsExtendedMainHeader : public CMedIOHeader
 
     // the number of bytes the data of that header requires on disk
     unsigned int rawDataSize() const;
-    void setRawDataSize(const unsigned int size);
 
     CMedIOHeader::Format headerFormat() const;
 

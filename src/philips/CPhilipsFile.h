@@ -68,7 +68,7 @@ class CPhilipsFile : public CMedIOData
     short numFrames(void) const;
     short maxSlice(void) const;
     short minSlice(void) const;
-    short numSlices(void) const;
+    short numSlices(void);
     short numTilts(void) const;
 
     // interface methods to read out specific data from the philips files

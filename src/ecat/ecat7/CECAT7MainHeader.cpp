@@ -27,6 +27,8 @@
 #include "CECATFile.h"
 #include "CECATDirectoryItem.h"
 #include "CConcordeFrameHeader.h"
+#include "CPhilipsMainHeader.h"
+#include "CPhilipsExtendedMainHeader.h"
 #include "MedIOUnits.h"
 
 #include "config.h"
@@ -40,6 +42,8 @@
 #include <unistd.h>
 
 #include <rtdebug.h>
+
+#include <iostream>
 
 // we define the private inline class of that one so that we
 // are able to hide the private methods & data of that class in the
@@ -57,6 +61,8 @@ class CECAT7MainHeaderPrivate
     float concorde2ECAT7Weight(float w, CConcordeMainHeader::SubjectWeightUnits u) const;
     CECAT7MainHeader::Patient_Sex concorde2ECAT7Sex(const QString& genus) const;
     CECAT7MainHeader::Patient_Orientation concorde2ECAT7Orientation(const CConcordeMainHeader::SubjectOrientation o) const;
+
+    CECAT7MainHeader::Patient_Sex philips2Ecat7Sex(const char& genus) const;
 
     // MainHeader structure (should be 512bytes)
     struct HeaderData
@@ -842,6 +848,7 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
 
     case CMedIOHeader::ECATSubHeader:
     case CMedIOHeader::ConcordeMicroPetFrameHeader:
+    case CMedIOHeader::PhilipsSubHeader:
       // copying a sub header into a main header doesn't make much sense, so we
       // do nothing here
     break;
@@ -909,6 +916,53 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
             
             setInit_Bed_Position(frame->bedOffset());
             setBed_Elevation(frame->verticalBedOffset());
+          };break;
+          default:break;
+        }
+      }
+      bResult = true;
+    }
+    break;
+
+    case CMedIOHeader::PhilipsMainHeader:
+    {
+      std::cout << "in philismainheader conversion." << std::endl;
+      // we have to save the filetype
+      CECAT7MainHeader::File_Type ft = file_Type();
+      const CPhilipsMainHeader* head = static_cast<const CPhilipsMainHeader*>(pHead1);
+      clear();
+      // now set the old filetype again
+      setFile_Type(ft);
+
+      setPatient_Name(head->patient_Name());
+      setPatient_Weight(head->weight() / 1000.0f); // g -> kg
+
+      setNum_Planes(head->nslice());
+      setNum_Frames(head->nframe());
+      setNum_Gates(1);
+      setNum_Bed_Pos(0);
+      setPlane_Separation(head->slcthk() / 10.0f); // mm -> cm
+
+      setIsotope_Halflife(head->halfLife() * 60.0f); // min -> sec
+      setDosage(head->activity() * 1000000.0f);      // MBq -> Bq
+
+      setCalibration_Units(CECAT7MainHeader::Uncalibrated);
+      setCalibration_Factor(1.0f);
+      setData_Units("BQML");
+      
+      //check if additional information is available
+      if(pHead2)
+      {
+        switch(pHead2->headerFormat())
+        {
+          case CMedIOHeader::PhilipsExtendedMainHeader:
+          {
+            D("Setting additional information to ECAT7 main header");
+            const CPhilipsExtendedMainHeader* extHeader = static_cast<const CPhilipsExtendedMainHeader*>(pHead2);
+
+            setPatient_Sex(m_pData->philips2Ecat7Sex(extHeader->sex()));
+            setPatient_ID(extHeader->Dpat_id());
+            
           };break;
           default:break;
         }
@@ -1790,3 +1844,17 @@ CECAT7MainHeader::Patient_Orientation CECAT7MainHeaderPrivate::concorde2ECAT7Ori
   return E7o;
 }
 
+
+CECAT7MainHeader::Patient_Sex CECAT7MainHeaderPrivate::philips2Ecat7Sex(const char& genus) const
+{
+  ENTER();
+  QString qGenus = QString(genus);
+  CECAT7MainHeader::Patient_Sex E7s = CECAT7MainHeader::Sex_Unknown;
+  if(qGenus.startsWith('m', Qt::CaseInsensitive))
+    E7s = CECAT7MainHeader::Sex_Male;
+  else if (qGenus.startsWith('f', Qt::CaseInsensitive))
+    E7s = CECAT7MainHeader::Sex_Female;
+
+  RETURN(E7s);
+  return E7s;
+}

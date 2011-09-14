@@ -349,13 +349,33 @@ CMedIOHeader::Format CPhilipsExtendedMainHeader::headerFormat() const
   return CMedIOHeader::PhilipsExtendedMainHeader;
 }
 
-bool CPhilipsExtendedMainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2) 
+bool CPhilipsExtendedMainHeader::convertFrom(const CMedIOHeader* srcHeader1, const CMedIOHeader* srcHeader2) 
 {
   ENTER();
-  bool bResult = false;
-#warning TODO: implement CPhilipsExtendedMainHeader::convertFrom()
-  RETURN(false);
-  return false;
+  bool result = false;
+
+  switch(srcHeader1->headerFormat())
+  {
+    case CMedIOHeader::PhilipsExtendedMainHeader:
+    {
+      const CPhilipsExtendedMainHeader* head = static_cast<const CPhilipsExtendedMainHeader*>(srcHeader1);
+
+      // use the assignment operator to copy everything
+      *this = *head;
+      result = true;
+    }
+    break;
+
+    default:
+    {
+      E("File format not supported yet");
+      result = false;
+    }
+
+  }
+
+  RETURN(result);
+  return result;
 }
 
 CMedIOHeader* CPhilipsExtendedMainHeader::clone() const

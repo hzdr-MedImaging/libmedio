@@ -113,7 +113,7 @@ public:
     qint16 ntilt;         // number of tilts per frame
     qint16 petnum;
     float activity;           // in MBq
-    float weight;
+    qint32 weight;            // in g
     qint16 hrinj;
     qint16 mininj;
     float srcRadius;
@@ -477,7 +477,7 @@ bool CPhilipsMainHeader::load()
   D("ntilt            : %d", m_pData->header.ntilt);
   D("petnum           : %d", m_pData->header.petnum);
   D("activity         : %f", m_pData->header.activity);
-  D("weight           : %f", m_pData->header.weight);
+  D("weight           : %ld", m_pData->header.weight);
   D("hrinj            : %d", m_pData->header.hrinj);
   D("mininj           : %d", m_pData->header.mininj);
   D("srcRadius        : %f", m_pData->header.srcRadius);
@@ -1047,7 +1047,7 @@ float CPhilipsMainHeader::activity() const
   return m_pData->header.activity;
 }
 
-float CPhilipsMainHeader::weight() const
+long CPhilipsMainHeader::weight() const
 {
   return m_pData->header.weight;
 }
@@ -1601,7 +1601,7 @@ void CPhilipsMainHeader::setActivity(const float activity)
   m_pData->header.activity = activity;
 }
 
-void CPhilipsMainHeader::setWeight(const float weight)
+void CPhilipsMainHeader::setWeight(const long weight)
 {
   m_pData->header.weight = weight;
 }

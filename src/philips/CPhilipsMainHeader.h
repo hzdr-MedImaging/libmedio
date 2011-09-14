@@ -187,7 +187,7 @@ class CPhilipsMainHeader : public CMedIOHeader
     short ntilt() const;
     short petnum() const;
     float activity() const;
-    float weight() const;
+    long weight() const;
     short hrinj() const;
     short mininj() const;
     float srcRadius() const;
@@ -300,7 +300,7 @@ class CPhilipsMainHeader : public CMedIOHeader
     void setNtilt(const short num);
     void setPetnum(const short petnum);
     void setActivity(const float activity);
-    void setWeight(const float weight);
+    void setWeight(const long weight);
     void setHrinj(const short hrinj);
     void setMininj(const short mininj);
     void setSrcRadius(const float srcRadius);

@@ -27,6 +27,8 @@
 #include "CECATFile.h"
 #include "CConcordeMainHeader.h"
 #include "CConcordeFrameHeader.h"
+#include "CPhilipsMainHeader.h"
+#include "CPhilipsSubHeaderImage.h"
 
 #include <QDataStream>
 
@@ -532,6 +534,43 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead1, const CMedIOH
             setNum_R_Elements(mainHeader->yDimension());
             setNum_Angles(mainHeader->xDimension());
           };break;
+          default:break;
+        }
+      }
+      bResult = true;
+    }
+    break;
+
+    case CMedIOHeader::PhilipsSubHeader:
+    {
+      const CPhilipsSubHeaderImage* head = static_cast<const CPhilipsSubHeaderImage*>(pHead1);
+      // first clean up
+      clear();
+      // now convert
+      setData_Type(CECATSubHeader::SunShort);
+      setNum_Dimensions(3);
+      setRecon_Zoom(1.0);
+      setScale_Factor(head->suvscl());
+      setImage_Min(head->imgmin());
+      setImage_Max(head->imgmax());
+      setGate_Duration(0);
+      setX_Dimension(head->xdim());
+      setY_Dimension(head->ydim());
+      setX_Pixel_Size(head->pix_spacing(0) / 10.0); // mm -> cm
+      setY_Pixel_Size(head->pix_spacing(1) / 10.0); // mm -> cm
+ 
+      // check for additional information
+      if(pHead2)
+      {
+        switch(pHead2->headerFormat())
+        {
+          case CMedIOHeader::PhilipsMainHeader:
+          {
+            D("Setting additional information to ECAT 7 sub header");
+            const CPhilipsMainHeader* mainHeader = static_cast<const CPhilipsMainHeader*>(pHead2);
+            setZ_Dimension(mainHeader->nslice());
+            setZ_Pixel_Size(static_cast<float>(mainHeader->slcthk()) / 10.0); // mm -> cm
+          }break;
           default:break;
         }
       }

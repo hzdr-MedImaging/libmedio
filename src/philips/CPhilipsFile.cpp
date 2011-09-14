@@ -128,9 +128,45 @@ short CPhilipsFile::minSlice(void) const
   return m_pData->directory->minSlice();
 }
 
-short CPhilipsFile::numSlices(void) const
+short CPhilipsFile::numSlices(void)
 {
-  return m_pData->directory->numSlices();
+  ENTER();
+  short slicesNum = 0;
+
+  // we need to get the min and max slice
+  // and calculate the number of slices with the slice thickness
+  if(isOpen())
+  {
+    bool cachedMainHeaderUsed = true;
+    CPhilipsMainHeader* mainHeader = m_pData->cachedMainHeader;
+    SHOWPOINTER(mainHeader);
+    if(mainHeader == NULL)
+    {
+      cachedMainHeaderUsed = false;
+      if(readMainHeader(mainHeader) == false)
+      {
+        delete mainHeader;
+
+        RETURN(0);
+        return 0;
+      }
+    }
+
+    short minSlice = this->minSlice();
+    short maxSlice = this->maxSlice();
+
+    short dist = maxSlice - minSlice;
+    if((dist % mainHeader->slcthk()) != 0)
+      W("(maxSlice - minSlice) is no multiple of the slice thickness.");
+
+    slicesNum  = dist / mainHeader->slcthk();
+       
+    if(cachedMainHeaderUsed == false)
+      delete mainHeader;
+  }
+
+  RETURN(slicesNum);
+  return slicesNum;
 }
 
 short CPhilipsFile::numTilts(void) const

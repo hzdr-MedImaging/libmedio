@@ -405,26 +405,6 @@ short CPhilipsDirectory::minSlice() const
   return slicesMin;
 }
 
-short CPhilipsDirectory::numSlices(void) const
-{
-  short slicesNum = 0;
-
-  // we iterate through our dictionary looking for the highest available
-  // slice number
-  QMapIterator<quint32, CPhilipsDirectoryItem*> i(m_pData->dirItems);
-  while(i.hasNext())
-  {
-    i.next();
-    if(i.value()->slice() > slicesNum)
-    {
-      slicesNum = i.value()->slice();
-      ASSERT(slicesNum > 0 && slicesNum <= 256);
-    }
-  }
-  
-  return slicesNum;
-}
-
 short CPhilipsDirectory::numTilts() const
 {
   ENTER();
