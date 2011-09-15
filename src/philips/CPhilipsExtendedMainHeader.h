@@ -39,6 +39,96 @@ class CPhilipsExtendedMainHeader : public CMedIOHeader
 {
   public:
     // public enumeration types
+    enum  Route_Type
+    {
+      UndefinedRoute,
+      Intravenous,
+      Intra_Arterial,
+      Oral,
+      By_Inhalation,
+      Intramuscular,
+      Subcutaneous,
+      Intracutaneous,
+      Intraperitoneal,
+      Intramedullary,
+      Intrathecal,
+      Intra_Articular,
+      Intraepithelial,
+      Topical,
+      Transluminal,
+      Intraluminal,
+      Extraluminal,
+      Per_Rectum,
+      Vaginal_Route,
+      OtherRoute
+    };
+
+    enum Pharm_Type
+    {
+      UndefinedPharm,
+      Acetate_C11,
+      Ammonia_N13,
+      Carbon_Dioxide_015,
+      Carbon_Monoxide_C11,
+      Carbon_Monoxide_015,
+      Carfentanil_C11,
+      Fluorodeoxyglucose_F18,
+      Fluoro_L_Dopa_F18,
+      Germanium_GE68,
+      Glutamate_N13,
+      Methionine_C11,
+      Oxygen_015,
+      Oxygen_Water_015,
+      Palmitate_C11,
+      Raclopride_C11,
+      Rubidium_Chloride_RB82,
+      Sodium_Fluoride_F18,
+      Sodium_NA22,
+      Spiperone_F18,
+      Thymidine_F18,
+      OtherPharm,
+      Atsm_CU64,
+      Butanol_O15,
+      Edta_GA68,
+      Flumazenil_C11,
+      Flumazenil_F18,
+      Fluoroethyltyrosin_F18,
+      Fluoromisonidazole_F18,
+      Fluoromethane_F18,
+      Fluorouracil_F18,
+      Fluorobenzothiazole_F18,
+      Mespiperone_C11,
+      Monoclonal_Antibody_I124,
+      Ptsm_CU62,
+      Sodium_Iodide_I124
+    };
+
+    enum Respiration_Trigger_Location
+    {
+      UnknownRespirationTriggerLocation,
+      Max_Inhalation,
+      Max_Exhalation,
+      User_Defined
+    };
+
+    enum Card_Arrhythmia_Rej_Tech
+    {
+      NoRejection  = 0,
+      RR_Interval  = 0x1,
+      QRS_Loop     = 0x2,
+      PVC_Criteria = 0x4
+    };
+
+    enum Window_Units
+    {
+      UndefinedWindowUnits = 0,
+      Counts,
+      Bqml,
+      Percent_Of_Max,
+      Suv,
+      Hounsfield
+    };
+
     enum Card_Ph_State
     {
       UndefinedCard_Ph_State = 0,
@@ -98,8 +188,33 @@ class CPhilipsExtendedMainHeader : public CMedIOHeader
 
     const char* view_code() const;
     const char* sortproto_name() const;
+    Route_Type route() const;
+    Pharm_Type pharm() const;
     const char* req_phys() const;
     Card_Ph_State card_phstate() const;
+    int assay_date() const;
+    long assay_time() const;
+    const char* series_desc() const;
+    short height() const;
+    short abundance() const;
+    short realignment_xOffset() const;
+    short realignment_yOffset() const;
+    short realignment_horizRotation() const;
+    time_t acq_date_time() const;
+    time_t study_date_time() const;
+    time_t injection_date_time() const;
+    time_t file_create_date_time() const;
+    Respiration_Trigger_Location resp_trig_loc() const;
+    Card_Arrhythmia_Rej_Tech card_arrhythmia_rej_tech() const;
+    float window_center() const;
+    float window_width() const;
+    short realignment_axialRotation() const;
+    short realignment_vertRotation() const;
+    short resp_trig_threshold() const;
+    short resp_phase_duration() const;
+    short resp_phase_offset() const;
+    short realignment_zOffset() const;
+    Window_Units window_units() const;
 
     const char* referring_physician() const;
     const char* study_id() const;
@@ -138,8 +253,33 @@ class CPhilipsExtendedMainHeader : public CMedIOHeader
 
     void setView_code(const char* str);
     void setSortproto_name(const char* str);
+    void setRoute(const Route_Type route);
+    void setPharm(const Pharm_Type pharm);
     void setReq_phys(const char* str);
     void setCard_phstate(const Card_Ph_State state);
+    void setAssay_date(const int assay_date);
+    void setAssay_time(const long assay_time);
+    void setSeries_desc(const char* str);
+    void setHeight(const short height);
+    void setAbundance(const short abundance);
+    void setRealignment_xOffset(const short xOffset);
+    void setRealignment_yOffset(const short yOffset);
+    void setRealignment_horizRotation(const short horizRotation);
+    void setAcq_date_time(const time_t date_time);
+    void setStudy_date_time(const time_t date_time);
+    void setInjection_date_time(const time_t date_time);
+    void setFile_create_date_time(const time_t date_time);
+    void setResp_trig_loc(const Respiration_Trigger_Location location);
+    void setCard_arrhythmia_rej_tech(const Card_Arrhythmia_Rej_Tech rej_tech);
+    void setWindow_center(const float window_center);
+    void setWindow_width(const float window_width);
+    void setRealignment_axialRotation(const short axialRotation);
+    void setRealignment_vertRotation(const short vertRotation);
+    void setResp_trig_threshold(const short resp_trig_threshold);
+    void setResp_phase_duration(const short resp_phase_duration);
+    void setResp_phase_offset(const short resp_phase_offset);
+    void setRealignment_zOffset(const short zOffset);
+    void setWindow_units(const Window_Units window_units);
 
     void setReferring_physician(const char* str);
     void setStudy_id(const char* str);

@@ -45,8 +45,39 @@ class CPhilipsExtendedMainHeaderPrivate
 
       char view_code[20];                 /* Our version of DICOM view code */
       char sortproto_name[20];            /* sorter protocol name */
+      qint16 route;
+      qint16 pharm;
       char req_phys[64];                  /* requesting physician */
       qint16 card_phstate;                /* Physiologic state */
+      qint32 assay_date;                  /* Date of radioactivity measurement */
+      qint32 assay_time;                  /* Time of radioactivity measurement */
+      char series_desc[64];               /* Description */
+      qint16 height;                      /* Patient height, in mm */
+      qint16 abundance;                    /* Positron abundance ratio, in tenths of percent */
+                                          /*  so that 1000 is 100% */
+      qint32 acq_date_time;                /* Date/time data acquired (UTC). Use access functions to read/write. */
+      qint32 study_date_time;              /* Date/time study started (UTC). Use access functions to read/write. */
+      qint32 injection_date_time;          /* Date/time of injection (UTC). Use access functions to read/write. */
+      qint32 file_create_date_time;        /* Replaces daycre, mocre, yrcre, hrcre, mincre and seccre fields. Date and
+                                              time that the acquisition file was created. Filled in by acquisition. */
+      qint16 resp_trig_loc;    /* Respiratory trigger location. */
+      qint16 card_arrhythmia_rej_tech;    /* Card Arrhythmia rejection techniques employed: */
+                                         /* Bi mask:   */
+                                         /*  0 = no rejection */
+                                         /*  1 = Rejection based on deviation from average R-R interval */
+                                         /*  2 = Rejection based on deviation from regular QRS loop.*/
+                                         /*  4 = Rejection based on PVC criteria. */
+      float window_center;               /* Suggested center value to use when displaying this image. */
+      float window_width;                /* Suggested width value to use when displaying this image. */
+
+      qint16 resp_trig_threshold;         /* Respiratory trigger threshold in % of chest */
+                                         /*  expansion relative to last peak. */
+      qint16 resp_phase_duration;         /* Respiratory acquisition duration in % */
+                                         /*  of the respiratory cycle. */
+      qint16 resp_phase_offset;           /* For respiratory gated, the offset from the trigger */
+                                         /*  to the beginning of the acquisition, in % */
+                                         /*  of the respiratory cycle. */
+      qint16 window_units;        /* Units in which window_center and window_width are specified. */
 
       char referring_physician[64];       /* referring physician */
       char study_id[16];                  /* study identifier */
@@ -80,31 +111,37 @@ class CPhilipsExtendedMainHeaderPrivate
       char pps_file[30];                 /* Perform procedure file */
       char worklist_file[30];            /* Worklist file */
 
-      // long assay_date;                   /* Date of radioactivity measurement */
-      // long assay_time;                   /* Time of radioactivity measurement */
+      struct
+      {
+         short xOffset;       /* For cardiac realignment. Additional    */
+                              /*  horizontal (x) shift of center of CT  */
+                              /*  FOV w.r.t. PET (in 1/100mm).          */
+         short yOffset;       /* For cardiac realignment. Additional    */
+                              /*  vertical (y) shift of center of CT    */
+                              /*  FOV w.r.t. PET (in 1/100mm).          */
+         short zOffset;       /* For cardiac realignment. Additional    */
+                              /*  (z)  shift of center of CT            */
+                              /*  FOV w.r.t. PET (in 1/100mm).          */
+         short axialRotation; /* For cardiac realignment. Additional    */
+                              /*  rotation about the axial (Z) axis     */
+                              /*  (in 1/1,000 degree).                  */
+         short horizRotation; /* For cardiac realignment. Additional    */
+                              /*  rotation about the horizontal (X) axis*/
+                              /*  (in 1/1,000 degree).                  */
+         short vertRotation;  /* For cardiac realignment. Additional    */
+                              /*  rotation about the vertical (Y) axis  */
+                              /*  (in 1/1,000 degree).                  */
+      } realignment;
       // RouteTypes route;                  /* How the isotope was delivered */
       // PharmTypes pharm;                  /* Pharmaceutical used in the study */
       // char radiopharm_name[64]; /* Used when pharm == Other, to */
       //                                    /*  specify name of radiopharmaceutical used. */
-      // long study_date_time;              /* Date/time study started (UTC). Use access functions to read/write. */
-      // short abundance;                   /* Positron abundance ratio, in tenths of percent */
-      //                                    /*  so that 1000 is 100% */
-      // short height;                      /* Patient height, in mm */
-      // long injection_date_time;          /* Date/time of injection (UTC). Use access functions to read/write. */
-      // long acq_date_time;                /* Date/time data acquired (UTC). Use access functions to read/write. */
+
 
       // char Dserial_number[17];           /* System serial number + null */
-      // char series_desc[64];   /* Description */
+
       // char attncor_label[64]; /* Label (UID) identifying related atten. corr. series. */
-      // float window_center;               /* Suggested center value to use when displaying this image. */
-      // float window_width;                /* Suggested width value to use when displaying this image. */
-      // WinUnitsTypes window_units;        /* Units in which window_center and window_width are specified. */
-      // short card_arrhythmia_rej_tech;    /* Card Arrhythmia rejection techniques employed: */
-      //                                    /* Bi mask:   */
-      //                                    /*  0 = no rejection */
-      //                                    /*  1 = Rejection based on deviation from average R-R interval */
-      //                                    /*  2 = Rejection based on deviation from regular QRS loop.*/
-      //                                    /*  4 = Rejection based on PVC criteria. */
+
       // short pvc_threshold;               /* When PVC rejection used, the */
       //                                    /*  the % of R-R below which is */
       //                                    /*  considered a PVC.           */
@@ -112,14 +149,7 @@ class CPhilipsExtendedMainHeaderPrivate
       // char ref_gated_qc_image_inst_uid[64]; /* SOP Instance UID of */
       //                                    /*  Sec. Cap. image containing picture */
       //                                    /*  of cardiac waveform and trigger level.*/
-      // RespTrigLocTypes resp_trig_loc;    /* Respiratory trigger location. */
-      // short resp_trig_threshold;         /* Respiratory trigger threshold in % of chest */
-      //                                    /*  expansion relative to last peak. */
-      // short resp_phase_duration;         /* Respiratory acquisition duration in % */
-      //                                    /*  of the respiratory cycle. */
-      // short resp_phase_offset;           /* For respiratory gated, the offset from the trigger */
-      //                                    /*  to the beginning of the acquisition, in % */
-      //                                    /*  of the respiratory cycle. */
+
       // ValidHdrStruct mr_valid;     /* Whether the file has a valid petmr struct */
       // unsigned char coil_type[MAX_MR_COILS]; /* MR coils present. */
       // long start_table_pos_abs;    /* Absolute start table position. */
@@ -225,11 +255,35 @@ bool CPhilipsExtendedMainHeader::load()
 
   stream.readRawData(&m_pData->header.view_code[0], 20);      // 256: view_code
   stream.readRawData(&m_pData->header.sortproto_name[0], 20); // 276: sortproto_name
-  stream.skipRawData(4);                                      // 296: skip the next 4 bytes
+  stream >> m_pData->header.route;                            // 296: route
+  stream >> m_pData->header.pharm;                            // 298: pharm
   stream.readRawData(&m_pData->header.req_phys[0], 64);       // 300: req_phys
   stream >> m_pData->header.card_phstate;                     // 364: card_phstate
-  stream.skipRawData(146);                                    // 368: skip the next 146 bytes
-
+  stream >> m_pData->header.assay_date;                       // 366: assay_date
+  stream >> m_pData->header.assay_time;                       // 370: assay_time
+  stream.readRawData(&m_pData->header.series_desc[0], 64);    // 374: series_desc
+  stream >> m_pData->header.height;                           // 438: height
+  stream >> m_pData->header.abundance;                        // 440: abundance
+  stream >> m_pData->header.realignment.xOffset;              // 442: realignment.xOffset
+  stream >> m_pData->header.realignment.yOffset;              // 444: realignment.yOffset
+  stream >> m_pData->header.realignment.horizRotation;        // 446: realignment.horizRotation
+  stream >> m_pData->header.acq_date_time;                    // 448: acq_date_time
+  stream >> m_pData->header.study_date_time;                  // 452: study_date_time
+  stream >> m_pData->header.injection_date_time;              // 456: injection_date_time
+  stream >> m_pData->header.file_create_date_time;            // 460: file_create_date_time
+  stream >> m_pData->header.resp_trig_loc;                    // 464: resp_trig_loc
+  stream >> m_pData->header.card_arrhythmia_rej_tech;         // 468: card_arrhythmia_rej_tech
+  stream >> m_pData->header.window_center;                    // 470: window_center
+  stream >> m_pData->header.window_width;                     // 474: window_width
+  stream >> m_pData->header.realignment.axialRotation;        // 478: realignment.axialRotation
+  stream >> m_pData->header.realignment.vertRotation;         // 480: realignment.vertRotation
+  stream.skipRawData(8);                                      // 482: skip the next 8 bytes
+  stream >> m_pData->header.resp_trig_threshold;              // 450: resp_trig_threshold
+  stream >> m_pData->header.resp_phase_duration;              // 452: resp_phase_duration
+  stream >> m_pData->header.resp_phase_offset;                // 454: resp_phase_offset
+  stream >> m_pData->header.realignment.zOffset;              // 456: realignment.zOffset
+  stream >> m_pData->header.window_units;                     // 458: window_units
+  stream.skipRawData(14);
 
   stream.readRawData(&m_pData->header.referring_physician[0], 64);
   stream.readRawData(&m_pData->header.study_id[0], 16);
@@ -273,47 +327,73 @@ bool CPhilipsExtendedMainHeader::load()
 #if defined(DEBUG)
   D("Philips extended MainHeader loaded:");
   D("----------------------------");
-  D("Dpat_name                 : %s", m_pData->header.Dpat_name);
-  D("Dpat_id                 : %s", m_pData->header.Dpat_id);
-  D("study_uid                 : %s", m_pData->header.study_uid);
-  D("series_uid                 : %s", m_pData->header.series_uid);
-  D("view_code                 : %s", m_pData->header.view_code);
-  D("sortproto_name                 : %s", m_pData->header.sortproto_name);
+  D("Dpat_name                : %s", m_pData->header.Dpat_name);
+  D("Dpat_id                  : %s", m_pData->header.Dpat_id);
+  D("study_uid                : %s", m_pData->header.study_uid);
+  D("series_uid               : %s", m_pData->header.series_uid);
+                             
+  D("view_code                : %s", m_pData->header.view_code);
+  D("sortproto_name           : %s", m_pData->header.sortproto_name);
+  D("route                    : %d", m_pData->header.route);
+  D("pharm                    : %d", m_pData->header.pharm);
   D("req_phys                 : %s", m_pData->header.req_phys);
   D("card_phstate             : %d", m_pData->header.card_phstate);
+  D("assay_date               : %d", m_pData->header.assay_date);
+  D("assay_time               : %ld", m_pData->header.assay_time);
+  D("series_desc              : %s", m_pData->header.series_desc);
+  D("height                   : %d", m_pData->header.height);
+  D("abundance                : %d", m_pData->header.abundance);
+  D("realignment.xOffset      : %d", m_pData->header.realignment.xOffset);
+  D("realignment.yOffset      : %d", m_pData->header.realignment.yOffset);
+  D("realignment.horizRotation: %d", m_pData->header.realignment.horizRotation);
+  D("acq_date_time            : %ld", m_pData->header.acq_date_time);
+  D("study_date_time          : %ld", m_pData->header.study_date_time);
+  D("injection_date_time      : %ld", m_pData->header.injection_date_time);
+  D("file_create_date_time    : %ld", m_pData->header.file_create_date_time);
+  D("resp_trig_loc            : %d", m_pData->header.resp_trig_loc);
+  D("card_arrhythmia_rej_tech : %d", m_pData->header.card_arrhythmia_rej_tech);
+  D("window_center            : %d", m_pData->header.window_center);
+  D("window_width             : %d", m_pData->header.window_width);
+  D("realignment_axialRotation: %d", m_pData->header.realignment.axialRotation);
+  D("realignment_verRotation  : %d", m_pData->header.realignment.vertRotation);  
+  D("resp_trig_threshold      : %d", m_pData->header.resp_trig_threshold);
+  D("resp_phase_duration      : %d", m_pData->header.resp_phase_duration);
+  D("resp_phase_offset        : %d", m_pData->header.resp_phase_offset);
+  D("realignment.zOffset      : %d", m_pData->header.realignment.zOffset);
+  D("window_units             : %d", m_pData->header.window_units);
 
   D("referring_physician      : %s", m_pData->header.referring_physician);
   D("study_id                 : %s", m_pData->header.study_id);
 
-  D(" Dslice_thick   : %f", m_pData->header.Dslice_thick);
-  D(" sex   : %c", m_pData->header. sex);
-  D(" table_height   : %f", m_pData->header.table_height);
-  D(" card_bt_rej   : %d", m_pData->header.card_bt_rej);
-  D(" card_fr_type   : %d", m_pData->header.card_fr_type);
-  D(" Dmanufacture_model_name   : %s", m_pData->header.Dmanufacture_model_name);
-  D(" Dimage_type   : %s", m_pData->header.Dimage_type);
-  D(" min_bed_pos   : %f", m_pData->header.min_bed_pos);
-  D(" max_bed_pos   : %f", m_pData->header.max_bed_pos);
-  D(" der_filled   : %d", m_pData->header.der_filled);
-  D(" series_number   : %d", m_pData->header.series_number);
-  D(" dep_study_date   : %ld", m_pData->header.dep_study_date);
-  D(" dep_study_time   : %ld", m_pData->header.dep_study_time);
-  D(" dep_acq_time   : %ld", m_pData->header.dep_acq_time);
-  D(" card_slc_dir   : %d", m_pData->header.card_slc_dir);
+  D(" Dslice_thick            : %f", m_pData->header.Dslice_thick);
+  D(" sex                     : %c", m_pData->header. sex);
+  D(" table_height            : %f", m_pData->header.table_height);
+  D(" card_bt_rej             : %d", m_pData->header.card_bt_rej);
+  D(" card_fr_type            : %d", m_pData->header.card_fr_type);
+  D(" Dmanufacture_model_name : %s", m_pData->header.Dmanufacture_model_name);
+  D(" Dimage_type             : %s", m_pData->header.Dimage_type);
+  D(" min_bed_pos             : %f", m_pData->header.min_bed_pos);
+  D(" max_bed_pos             : %f", m_pData->header.max_bed_pos);
+  D(" der_filled              : %d", m_pData->header.der_filled);
+  D(" series_number           : %d", m_pData->header.series_number);
+  D(" dep_study_date          : %ld", m_pData->header.dep_study_date);
+  D(" dep_study_time          : %ld", m_pData->header.dep_study_time);
+  D(" dep_acq_time            : %ld", m_pData->header.dep_acq_time);
+  D(" card_slc_dir            : %d", m_pData->header.card_slc_dir);
 
-  D("card_skip_msec:   : %d", m_pData->header.card_skip_msec);
-  D("card_skip_counts  : %d", m_pData->header.card_skip_counts);
-  D("card_dur_msec  : %d", m_pData->header.card_dur_msec);
-  D("card_dur_counts  : %d", m_pData->header.card_dur_counts);
-  D("card_beats_tot  : %d", m_pData->header.card_beats_tot);
-  D("card_beats_acc  : %d", m_pData->header.card_beats_acc);
-  D("dep_acq_date  : %ld", m_pData->header.dep_acq_date);
+  D("card_skip_msec:          : %d", m_pData->header.card_skip_msec);
+  D("card_skip_counts         : %d", m_pData->header.card_skip_counts);
+  D("card_dur_msec            : %d", m_pData->header.card_dur_msec);
+  D("card_dur_counts          : %d", m_pData->header.card_dur_counts);
+  D("card_beats_tot           : %d", m_pData->header.card_beats_tot);
+  D("card_beats_acc           : %d", m_pData->header.card_beats_acc);
+  D("dep_acq_date             : %ld", m_pData->header.dep_acq_date);
 
-  D("contr_bolus_agent: %s", m_pData->header.contr_bolus_agent);
-  D("sop_uid          : %s", m_pData->header.sop_uid);
-  D("frame_ref_uid    : %s", m_pData->header.frame_ref_uid);
-  D("pps_file         : %s", m_pData->header.pps_file);
-  D("worklist_file    : %s", m_pData->header.worklist_file);
+  D("contr_bolus_agent        : %s", m_pData->header.contr_bolus_agent);
+  D("sop_uid                  : %s", m_pData->header.sop_uid);
+  D("frame_ref_uid            : %s", m_pData->header.frame_ref_uid);
+  D("pps_file                 : %s", m_pData->header.pps_file);
+  D("worklist_file            : %s", m_pData->header.worklist_file);
 #endif
 
   RETURN(true);
@@ -421,6 +501,131 @@ const char* CPhilipsExtendedMainHeader::view_code() const
 const char* CPhilipsExtendedMainHeader::sortproto_name() const
 {
   return m_pData->header.sortproto_name;
+}
+
+CPhilipsExtendedMainHeader::Route_Type CPhilipsExtendedMainHeader::route() const
+{
+  return static_cast<Route_Type>(m_pData->header.route);
+}
+
+CPhilipsExtendedMainHeader::Pharm_Type CPhilipsExtendedMainHeader::pharm() const
+{
+  return static_cast<Pharm_Type>(m_pData->header.pharm);
+}
+
+int CPhilipsExtendedMainHeader::assay_date() const
+{
+  return m_pData->header.assay_date;
+}
+
+long CPhilipsExtendedMainHeader::assay_time() const
+{
+  return m_pData->header.assay_time;
+}
+
+const char* CPhilipsExtendedMainHeader::series_desc() const
+{
+  return m_pData->header.series_desc;
+}
+
+short CPhilipsExtendedMainHeader::height() const
+{
+  return m_pData->header.height;
+}
+
+short CPhilipsExtendedMainHeader::abundance() const
+{
+  return m_pData->header.abundance;
+}
+
+short CPhilipsExtendedMainHeader::realignment_xOffset() const
+{
+  return m_pData->header.realignment.xOffset;
+}
+
+short CPhilipsExtendedMainHeader::realignment_yOffset() const
+{
+  return m_pData->header.realignment.yOffset;
+}
+
+short CPhilipsExtendedMainHeader::realignment_horizRotation() const
+{
+  return m_pData->header.realignment.horizRotation;
+}
+
+time_t CPhilipsExtendedMainHeader::acq_date_time() const
+{
+  return m_pData->header.acq_date_time;
+}
+
+time_t CPhilipsExtendedMainHeader::study_date_time() const
+{
+  return m_pData->header.study_date_time;
+}
+
+time_t CPhilipsExtendedMainHeader::injection_date_time() const
+{
+  return m_pData->header.injection_date_time;
+}
+
+time_t CPhilipsExtendedMainHeader::file_create_date_time() const
+{
+  return m_pData->header.file_create_date_time;
+}
+
+CPhilipsExtendedMainHeader::Respiration_Trigger_Location CPhilipsExtendedMainHeader::resp_trig_loc() const
+{
+  return static_cast<Respiration_Trigger_Location>(m_pData->header.resp_trig_loc);
+}
+
+CPhilipsExtendedMainHeader::Card_Arrhythmia_Rej_Tech CPhilipsExtendedMainHeader::card_arrhythmia_rej_tech() const
+{
+  return static_cast<Card_Arrhythmia_Rej_Tech>(m_pData->header.card_arrhythmia_rej_tech);
+}
+
+float CPhilipsExtendedMainHeader::window_center() const
+{
+  return m_pData->header.window_center;
+}
+
+float CPhilipsExtendedMainHeader::window_width() const
+{
+  return m_pData->header.window_width;
+}
+
+short CPhilipsExtendedMainHeader::realignment_axialRotation() const
+{
+  return m_pData->header.realignment.axialRotation;
+}
+
+short CPhilipsExtendedMainHeader::realignment_vertRotation() const
+{
+  return m_pData->header.realignment.vertRotation;
+}
+
+short CPhilipsExtendedMainHeader::resp_trig_threshold() const
+{
+  return m_pData->header.resp_trig_threshold;
+}
+
+short CPhilipsExtendedMainHeader::resp_phase_duration() const
+{
+  return m_pData->header.resp_phase_duration;
+}
+
+short CPhilipsExtendedMainHeader::resp_phase_offset() const
+{
+  return m_pData->header.resp_phase_offset;
+}
+
+short CPhilipsExtendedMainHeader::realignment_zOffset() const
+{
+  return m_pData->header.realignment.zOffset;
+}
+
+CPhilipsExtendedMainHeader::Window_Units CPhilipsExtendedMainHeader::window_units() const
+{
+  return static_cast<Window_Units>(m_pData->header.window_units);
 }
 
 const char* CPhilipsExtendedMainHeader::req_phys() const
@@ -586,6 +791,131 @@ void CPhilipsExtendedMainHeader::setView_code(const char* str)
 void CPhilipsExtendedMainHeader::setSortproto_name(const char* str)
 {
   strncpy(m_pData->header.sortproto_name, str, 20);
+}
+
+void CPhilipsExtendedMainHeader::setRoute(const Route_Type route)
+{
+  m_pData->header.route = static_cast<qint16>(route);
+}
+
+void CPhilipsExtendedMainHeader::setPharm(const Pharm_Type pharm)
+{
+  m_pData->header.pharm = static_cast<qint16>(pharm);
+}
+
+void CPhilipsExtendedMainHeader::setAssay_date(const int assay_date)
+{
+  m_pData->header.assay_date = assay_date;
+}
+
+void CPhilipsExtendedMainHeader::setAssay_time(const long assay_time)
+{
+  m_pData->header.assay_time = assay_time;
+}
+
+void CPhilipsExtendedMainHeader::setSeries_desc(const char* str)
+{
+  strncpy(m_pData->header.series_desc, str, 64);
+}
+
+void CPhilipsExtendedMainHeader::setHeight(const short height)
+{
+  m_pData->header.height = height;
+}
+
+void CPhilipsExtendedMainHeader::setAbundance(const short abundance)
+{
+  m_pData->header.abundance = abundance;
+}
+
+void CPhilipsExtendedMainHeader::setRealignment_xOffset(const short xOffset)
+{
+  m_pData->header.realignment.xOffset = xOffset;
+}
+
+void CPhilipsExtendedMainHeader::setRealignment_yOffset(const short yOffset)
+{
+  m_pData->header.realignment.yOffset = yOffset;
+}
+
+void CPhilipsExtendedMainHeader::setRealignment_horizRotation(const short horizRotation)
+{
+  m_pData->header.realignment.horizRotation = horizRotation;
+}
+
+void CPhilipsExtendedMainHeader::setAcq_date_time(const time_t date_time)
+{
+  m_pData->header.acq_date_time = date_time;
+}
+
+void CPhilipsExtendedMainHeader::setStudy_date_time(const time_t date_time)
+{
+  m_pData->header.study_date_time = date_time;
+}
+
+void CPhilipsExtendedMainHeader::setInjection_date_time(const time_t date_time)
+{
+  m_pData->header.injection_date_time = date_time;
+}
+
+void CPhilipsExtendedMainHeader::setFile_create_date_time(const time_t date_time)
+{
+  m_pData->header.file_create_date_time = date_time;
+}
+
+void CPhilipsExtendedMainHeader::setResp_trig_loc(const CPhilipsExtendedMainHeader::Respiration_Trigger_Location location)
+{
+   m_pData->header.resp_trig_loc = location;
+}
+
+void CPhilipsExtendedMainHeader::setCard_arrhythmia_rej_tech(const CPhilipsExtendedMainHeader::Card_Arrhythmia_Rej_Tech rej_tech)
+{
+  m_pData->header.card_arrhythmia_rej_tech = rej_tech;
+}
+
+void CPhilipsExtendedMainHeader::setWindow_center(const float window_center)
+{
+  m_pData->header.window_center = window_center;
+}
+
+void CPhilipsExtendedMainHeader::setWindow_width(const float window_width)
+{
+  m_pData->header.window_width = window_width;
+}
+
+void CPhilipsExtendedMainHeader::setRealignment_axialRotation(const short axialRotation)
+{
+  m_pData->header.realignment.axialRotation = axialRotation;
+}
+
+void CPhilipsExtendedMainHeader::setRealignment_vertRotation(const short vertRotation)
+{
+  m_pData->header.realignment.vertRotation = vertRotation;
+}
+
+void CPhilipsExtendedMainHeader::setResp_trig_threshold(const short resp_trig_threshold)
+{
+  m_pData->header.resp_trig_threshold = resp_trig_threshold;
+}
+
+void CPhilipsExtendedMainHeader::setResp_phase_duration(const short resp_phase_duration)
+{
+  m_pData->header.resp_phase_duration = resp_phase_duration;
+}
+
+void CPhilipsExtendedMainHeader::setResp_phase_offset(const short resp_phase_offset)
+{
+  m_pData->header.resp_phase_offset = resp_phase_offset;
+}
+
+void CPhilipsExtendedMainHeader::setRealignment_zOffset(const short zOffset)
+{
+  m_pData->header.realignment.zOffset = zOffset;
+}
+
+void CPhilipsExtendedMainHeader::setWindow_units(const CPhilipsExtendedMainHeader::Window_Units window_units)
+{
+  m_pData->header.window_units = static_cast<qint16>(window_units);
 }
 
 void CPhilipsExtendedMainHeader::setReq_phys(const char* str)
