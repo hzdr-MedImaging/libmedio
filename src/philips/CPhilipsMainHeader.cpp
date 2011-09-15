@@ -64,6 +64,9 @@ public:
     qint16 hw_config;   // encoding of hardware used in acquisition
     qint16 edit_flag;         // 1 to indicat that the user has modified mainheader
     qint16 filtyp;
+    qint32 minTransXtalDiff;    // Minimum zone difference in crystal space during all list-mode collections.
+    float tofTstampScale;      // Time-Of-Flight time stamp scale.
+
     qint16 dep_daycre;
     qint16 dep_mocre;
     qint16 dep_yrcre;
@@ -313,7 +316,9 @@ bool CPhilipsMainHeader::load()
   stream >> m_pData->header.edit_flag;        // 16: edit_flag
   stream.skipRawData(34);                     // 18: skip the next 34 bytes
   stream >> m_pData->header.filtyp;        // 52: filtyp
-  stream.skipRawData(12);                     // 54: skip the next 12 bytes
+  stream >> m_pData->header.minTransXtalDiff; // 54: minTransXtalDiff
+  stream >> m_pData->header.tofTstampScale;   // 58: tofTstampScale
+  stream.skipRawData(4);                     // 62: skip the next 4 bytes
   stream >> m_pData->header.dep_daycre;      // 66: dep_daycre
   stream >> m_pData->header.dep_mocre;    // 68: dep_mocre
   stream >> m_pData->header.dep_yrcre;     // 70: dep_yrcre
@@ -435,6 +440,8 @@ bool CPhilipsMainHeader::load()
   D("hw_config        : %d", m_pData->header.hw_config);
   D("edit_flag        : %d", m_pData->header.edit_flag);
   D("filtyp           : %d", m_pData->header.filtyp);
+  D("minTransXtalDiff : %ld", m_pData->header.minTransXtalDiff);
+  D("tofTstampScale   : %f", m_pData->header.tofTstampScale);
   D("dep_daycre       : %d", m_pData->header.dep_daycre);
   D("dep_mocre        : %d", m_pData->header.dep_mocre);
   D("dep_yrcre        : %d", m_pData->header.dep_yrcre);
@@ -840,6 +847,16 @@ short CPhilipsMainHeader::edit_Flag() const
 CPhilipsMainHeader::File_Type CPhilipsMainHeader::filtyp() const
 {
   return static_cast<File_Type>(m_pData->header.filtyp);
+}
+
+long CPhilipsMainHeader::minTransXtalDiff() const
+{
+  return m_pData->header.minTransXtalDiff;
+}
+
+float CPhilipsMainHeader::tofTstampScale() const
+{
+  return m_pData->header.tofTstampScale;
 }
 
 short CPhilipsMainHeader::daycre() const
@@ -1395,6 +1412,16 @@ void CPhilipsMainHeader::setEdit_Flag(const short eFlag)
 void CPhilipsMainHeader::setFiltyp(const File_Type fType)
 {
   m_pData->header.filtyp = fType;
+}
+
+void CPhilipsMainHeader::setMinTransXtalDiff(const long minTransXtalDiff)
+{
+  m_pData->header.minTransXtalDiff = minTransXtalDiff;
+}
+
+void CPhilipsMainHeader::setTofTstampScale(const float tofTstampScale)
+{
+  m_pData->header.tofTstampScale = tofTstampScale;
 }
 
 void CPhilipsMainHeader::setDaycre(const short day)

@@ -317,7 +317,7 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
         short imgMinValue = SHRT_MAX;
         for(int slice = minSlice; slice <= maxSlice; slice += sliceThickness)
         {
-          cout << "Converting Slice: " << (slice) << endl;
+          //cout << "Converting Slice: " << (slice) << endl;
 
           CPhilipsSubHeader* pPhilipsSubHeader = NULL;
           bool bReadSubHeader = pPhilipsFile->readSubHeader(pPhilipsSubHeader, slice, frame+1);
@@ -362,8 +362,6 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
               CDataArray<qint16> dataArray(buffer, numElements);
               sliceMaxValue = dataArray.maxValue();
               sliceMinValue = dataArray.minValue();
-              // sliceMaxValue = pPhilipsSubHeaderImage->imgmax();
-              // sliceMinValue = pPhilipsSubHeaderImage->imgmin();
 
               D("sliceMin: %d", sliceMinValue);
               D("sliceMax: %d", sliceMaxValue);

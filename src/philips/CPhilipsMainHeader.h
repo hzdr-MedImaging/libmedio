@@ -146,6 +146,8 @@ class CPhilipsMainHeader : public CMedIOHeader
     short hw_Config() const;
     short edit_Flag() const;
     File_Type filtyp() const;
+    long minTransXtalDiff() const;
+    float tofTstampScale() const;
     short daycre() const;
     short mocre() const;
     short yrcre() const;
@@ -259,6 +261,8 @@ class CPhilipsMainHeader : public CMedIOHeader
     void setHw_Config(const short config);
     void setEdit_Flag(const short eFlag);
     void setFiltyp(const File_Type fType);
+    void setMinTransXtalDiff(const long minTransXtalDiff);
+    void setTofTstampScale(const float tofTstampScale);
     void setDaycre(const short day);
     void setMocre(const short month);
     void setYrcre(const short year);
