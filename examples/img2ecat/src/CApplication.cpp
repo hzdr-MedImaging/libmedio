@@ -281,122 +281,185 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
     cout << "OutputFile: " << QFileInfo(m_sOutputFileName).absoluteFilePath().toAscii().constData() << endl;
 
     pEcat7ImageHeader = static_cast<CECAT7MainHeader*>(pEcat7Image->createEmptyMainHeader());
-    pEcat7ImageHeader->convertFrom(pPhilipsMainHeader, pPhilipsExtendedMainHeader);
 
-    int numFrames = pPhilipsFile->numFrames();
-    if(numFrames > NUMFRAMESLIMIT)
+    if(pEcat7ImageHeader != NULL)
     {
-      cout << "Warning: Can not create ECAT7 image file with more than "
-           << NUMFRAMESLIMIT
-           << " frames - will only create "
-           << NUMFRAMESLIMIT
-           << " frames" 
-           << endl;
+      pEcat7ImageHeader->convertFrom(pPhilipsMainHeader, pPhilipsExtendedMainHeader);
 
-      numFrames = NUMFRAMESLIMIT;
-    }
-
-    int minSlice = pPhilipsFile->minSlice();
-    int maxSlice = pPhilipsFile->maxSlice();
-    short sliceThickness = pPhilipsMainHeader->slcthk();
-    for(int frame = 0; frame < numFrames; ++frame)
-    {
-      QByteArray pImageData;
-      cout << "Converting Frame: " << (frame+1) << " of " << numFrames << endl;
-
-      // in philips format every slice has an own subheader, so
-      // we need to hold one sub header of the philips file
-      // to convert it to an ecat7subheader of the whole frame
-      CPhilipsSubHeaderImage* pLastPhilipsSubHeaderImage = NULL;
-      CECATSubHeader::Data_Type outputDataType = CECATSubHeader::UnknownDataType;
-
-      short imgMaxValue = 0;
-      short imgMinValue = SHRT_MAX;
-      for(int slice = minSlice; slice <= maxSlice; slice += sliceThickness)
+      int numFrames = pPhilipsFile->numFrames();
+      if(numFrames > NUMFRAMESLIMIT)
       {
-        cout << "Converting Slice: " << (slice) << endl;
+        cout << "Warning: Can not create ECAT7 image file with more than "
+             << NUMFRAMESLIMIT
+             << " frames - will only create "
+             << NUMFRAMESLIMIT
+             << " frames" 
+             << endl;
 
-        CPhilipsSubHeader* pPhilipsSubHeader = NULL;
-        bool bReadSubHeader = pPhilipsFile->readSubHeader(pPhilipsSubHeader, slice, frame+1);
-        if(bReadSubHeader == false)
+        numFrames = NUMFRAMESLIMIT;
+      }
+
+      int minSlice = pPhilipsFile->minSlice();
+      int maxSlice = pPhilipsFile->maxSlice();
+      short sliceThickness = pPhilipsMainHeader->slcthk();
+      for(int frame = 0; frame < numFrames; ++frame)
+      {
+        QByteArray pImageData;
+        cout << "Converting Frame: " << (frame+1) << " of " << numFrames << endl;
+
+        // in philips format every slice has an own subheader, so
+        // we need to hold one sub header of the philips file
+        // to convert it to an ecat7subheader of the whole frame
+        CPhilipsSubHeaderImage* pLastPhilipsSubHeaderImage = NULL;
+        CECATSubHeader::Data_Type outputDataType = CECATSubHeader::UnknownDataType;
+
+        short imgMaxValue = 0;
+        short imgMinValue = SHRT_MAX;
+        for(int slice = minSlice; slice <= maxSlice; slice += sliceThickness)
         {
-          cout << "ERROR: When loading image subheader of slice " << (slice) << endl;
-          result = false;
-          delete pPhilipsSubHeader;
-          break;
-        }
+          cout << "Converting Slice: " << (slice) << endl;
 
-        CPhilipsSubHeaderImage* pPhilipsSubHeaderImage = static_cast<CPhilipsSubHeaderImage*>(pPhilipsSubHeader);
-
-        QByteArray* buffer;
-        bool bReadMatrix = pPhilipsFile->readMatrix(buffer, slice, frame+1);
-        if(bReadMatrix == false)
-        {
-          cout << "ERROR: When loading image data of  slice " << (slice) << endl;
-          result = false;
-          delete buffer;
-          break;
-        }
-
-        char* pDestData = NULL;
-
-        short sliceMaxValue = 0;
-        short sliceMinValue = SHRT_MAX;
-
-        switch(pPhilipsSubHeaderImage->datype())
-        {
-          case CPhilipsSubHeader::SignedShort:
-          case CPhilipsSubHeader::UnsignedShort:
+          CPhilipsSubHeader* pPhilipsSubHeader = NULL;
+          bool bReadSubHeader = pPhilipsFile->readSubHeader(pPhilipsSubHeader, slice, frame+1);
+          if(bReadSubHeader == false)
           {
-            D("found short source data");
-            STARTCLOCK("converting data");
-            short xdim = pPhilipsSubHeaderImage->xdim();
-            short ydim = pPhilipsSubHeaderImage->ydim();
+            cout << "ERROR: When loading image subheader of slice " << (slice) << endl;
+            result = false;
+            if(pPhilipsSubHeader != NULL)
+              delete pPhilipsSubHeader;
 
-            int numElements =  (xdim * ydim) / sizeof(qint16);
-            CDataArray<qint16> dataArray(buffer, numElements);
-            sliceMaxValue = dataArray.maxValue();
-            sliceMinValue = dataArray.minValue();
-            // sliceMaxValue = pPhilipsSubHeaderImage->imgmax();
-            // sliceMinValue = pPhilipsSubHeaderImage->imgmin();
-
-            D("sliceMin: %d", sliceMinValue);
-            D("sliceMax: %d", sliceMaxValue);
-
-            if(fabs(sliceMaxValue) > fabs(imgMaxValue))
-              imgMaxValue = sliceMaxValue;
-
-            if(fabs(sliceMinValue) < fabs(imgMinValue))
-              imgMinValue = sliceMinValue;
-
-            STOPCLOCK("converting data");
-
-            outputDataType = CECATSubHeader::SunShort;
-
-           }
-           break;
-
-          default:
-          {
-            cout << "ERROR: Could not handle datatype of philips image file." << endl;
-            bUnknownDataType = true;
+            break;
           }
+
+          CPhilipsSubHeaderImage* pPhilipsSubHeaderImage = static_cast<CPhilipsSubHeaderImage*>(pPhilipsSubHeader);
+
+          QByteArray* buffer;
+          bool bReadMatrix = pPhilipsFile->readMatrix(buffer, slice, frame+1);
+          if(bReadMatrix == false)
+          {
+            cout << "ERROR: When loading image data of  slice " << (slice) << endl;
+            result = false;
+            if(buffer != NULL)
+              delete buffer;
+
+            break;
+          }
+
+          short sliceMaxValue = 0;
+          short sliceMinValue = SHRT_MAX;
+
+          switch(pPhilipsSubHeaderImage->datype())
+          {
+            case CPhilipsSubHeader::SignedShort:
+            case CPhilipsSubHeader::UnsignedShort:
+            {
+              D("found short source data");
+              STARTCLOCK("converting data");
+              short xdim = pPhilipsSubHeaderImage->xdim();
+              short ydim = pPhilipsSubHeaderImage->ydim();
+
+              int numElements =  (xdim * ydim) / sizeof(qint16);
+              CDataArray<qint16> dataArray(buffer, numElements);
+              sliceMaxValue = dataArray.maxValue();
+              sliceMinValue = dataArray.minValue();
+              // sliceMaxValue = pPhilipsSubHeaderImage->imgmax();
+              // sliceMinValue = pPhilipsSubHeaderImage->imgmin();
+
+              D("sliceMin: %d", sliceMinValue);
+              D("sliceMax: %d", sliceMaxValue);
+
+              if(fabs(sliceMaxValue) > fabs(imgMaxValue))
+                imgMaxValue = sliceMaxValue;
+
+              if(fabs(sliceMinValue) < fabs(imgMinValue))
+                imgMinValue = sliceMinValue;
+
+              STOPCLOCK("converting data");
+
+              outputDataType = CECATSubHeader::SunShort;
+
+            }
+            break;
+
+            default:
+            {
+              cout << "ERROR: Could not handle datatype of philips image file." << endl;
+              bUnknownDataType = true;
+            }
+          }
+
+          if(bUnknownDataType == false)
+          {
+            pImageData.append(*buffer);
+          }
+
+          delete buffer;
+
+          // in philips format every slice has its own subheader, so
+          // we need to hold one sub header of the philips file (the last one)
+          // to convert it to an ecat7subheader of the whole frame
+          if(slice != maxSlice)
+            delete pPhilipsSubHeaderImage;
+          else
+            pLastPhilipsSubHeaderImage = pPhilipsSubHeaderImage;
+
+          if(bUnknownDataType)
+            break;
         }
 
         if(bUnknownDataType == false)
         {
-          pImageData.append(*buffer);
+          CECAT7SubHeaderImage* pEcat7SubHeaderImage;
+          pEcat7SubHeaderImage = static_cast<CECAT7SubHeaderImage*>(pEcat7Image->createEmptySubHeader());
+          pEcat7SubHeaderImage->convertFrom(pLastPhilipsSubHeaderImage, pPhilipsMainHeader);
+          pEcat7SubHeaderImage->setData_Type(outputDataType);
+
+          D("imgMin: %d", imgMinValue);
+          D("imgMax: %d", imgMaxValue);
+
+          pEcat7SubHeaderImage->setImage_Min(imgMinValue);
+          pEcat7SubHeaderImage->setImage_Max(imgMaxValue);
+
+          D("suvScale     : %f", pLastPhilipsSubHeaderImage->suvscl());
+
+          if(pLastPhilipsSubHeaderImage->suvscl() > 0.0)
+          {
+            pEcat7ImageHeader->setCalibration_Units(CECAT7MainHeader::Calibrated);
+            pEcat7ImageHeader->setCalibration_Factor(1.0f);
+            pEcat7ImageHeader->setData_Units("BQML");
+
+            // now we calculate the new scale factor
+            float suvScale = pLastPhilipsSubHeaderImage->suvscl();
+            float dosage = pPhilipsMainHeader->activity() * 1000000.0f; // Bq
+            float deltaT = static_cast<float>(pPhilipsMainHeader->injtim()); // s
+            float halfLife = pPhilipsMainHeader->halfLife() * 60.0f; // s
+            float patientWeight = static_cast<float>(pPhilipsMainHeader->weight()); // g
+
+            float factor = suvScale * dosage * qExp(-qLn(2) * (deltaT/halfLife)) / patientWeight;
+
+            D("dosage       : %f", dosage);
+            D("deltaT       : %f", deltaT);
+            D("halfLife     : %f", halfLife);
+            D("patientWeight: %f", patientWeight);
+            D("factor       : %f",factor);
+
+            pEcat7SubHeaderImage->setScale_Factor(factor);
+          }
+          else
+          {
+            pEcat7SubHeaderImage->setScale_Factor(pLastPhilipsSubHeaderImage->imgscl());
+          }
+
+          // put in an annotation about being converted by mp2ecat
+          pEcat7SubHeaderImage->setAnnotation("converted by " PACKAGE_NAME " " PACKAGE_VERSION);
+
+          pEcat7Image->writeSubHeader(*pEcat7SubHeaderImage, frame+1);
+          pEcat7Image->writeMatrix(pImageData, frame+1);
+          delete pEcat7SubHeaderImage;
         }
 
-        delete buffer;
-
-        // in philips format every slice has its own subheader, so
-        // we need to hold one sub header of the philips file (the last one)
-        // to convert it to an ecat7subheader of the whole frame
-        if(slice != maxSlice)
-          delete pPhilipsSubHeaderImage;
-        else
-          pLastPhilipsSubHeaderImage = pPhilipsSubHeaderImage;
+        if(pLastPhilipsSubHeaderImage != NULL)
+          delete pLastPhilipsSubHeaderImage;
 
         if(bUnknownDataType)
           break;
@@ -404,78 +467,31 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
 
       if(bUnknownDataType == false)
       {
-        CECAT7SubHeaderImage* pEcat7SubHeaderImage;
-        pEcat7SubHeaderImage = static_cast<CECAT7SubHeaderImage*>(pEcat7Image->createEmptySubHeader());
-        pEcat7SubHeaderImage->convertFrom(pLastPhilipsSubHeaderImage, pPhilipsMainHeader);
-        pEcat7SubHeaderImage->setData_Type(outputDataType);
+        cout << "Writing main header and finalizing file" << endl;
 
-        D("imgMin: %d", imgMinValue);
-        D("imgMax: %d", imgMaxValue);
-
-        pEcat7SubHeaderImage->setImage_Min(imgMinValue);
-        pEcat7SubHeaderImage->setImage_Max(imgMaxValue);
-
-        D("suvScale     : %f", pLastPhilipsSubHeaderImage->suvscl());
-
-        if(pLastPhilipsSubHeaderImage->suvscl() > 0.0)
-        {
-          pEcat7ImageHeader->setCalibration_Units(CECAT7MainHeader::Calibrated);
-          pEcat7ImageHeader->setCalibration_Factor(1.0f);
-          pEcat7ImageHeader->setData_Units("BQML");
-
-          // now we calculate the new scale factor
-          float suvScale = pLastPhilipsSubHeaderImage->suvscl();
-          float dosage = pPhilipsMainHeader->activity() * 1000000.0f; // Bq
-          float deltaT = static_cast<float>(pPhilipsMainHeader->injtim()); // s
-          float halfLife = pPhilipsMainHeader->halfLife() * 60.0f; // s
-          float patientWeight = static_cast<float>(pPhilipsMainHeader->weight()); // g
-
-          float factor = suvScale * dosage * qExp(-qLn(2) * (deltaT/halfLife)) / patientWeight;
-
-          D("dosage       : %f", dosage);
-          D("deltaT       : %f", deltaT);
-          D("halfLife     : %f", halfLife);
-          D("patientWeight: %f", patientWeight);
-          D("factor       : %f",factor);
-
-          pEcat7SubHeaderImage->setScale_Factor(factor);
-        }
-        else
-        {
-          pEcat7SubHeaderImage->setScale_Factor(pLastPhilipsSubHeaderImage->imgscl());
-        }
-
-        // put in an annotation about being converted by mp2ecat
-        pEcat7SubHeaderImage->setAnnotation("converted by " PACKAGE_NAME " " PACKAGE_VERSION);
-
-        pEcat7Image->writeSubHeader(*pEcat7SubHeaderImage, frame+1);
-        pEcat7Image->writeMatrix(pImageData, frame+1);
-        delete pEcat7SubHeaderImage;
+        pEcat7Image->writeMainHeader(*pEcat7ImageHeader);
+        result = true;
       }
 
-      delete pLastPhilipsSubHeaderImage;
-
-      if(bUnknownDataType)
-        break;
+      pEcat7Image->close();
+      delete pEcat7ImageHeader;
     }
-
-    if(bUnknownDataType == false)
-    {
-      cout << "Writing main header and finalizing file" << endl;
-
-      pEcat7Image->writeMainHeader(*pEcat7ImageHeader);
-      result = true;
-    }
-
-    pEcat7Image->close();
-    delete pEcat7ImageHeader;
   }
 
-  delete pEcat7Image;
-  delete pPhilipsMainHeader;
-  if(pPhilipsFile)
+  if(pEcat7Image != NULL)
+    delete pEcat7Image;
+
+  if(pPhilipsMainHeader != NULL)
+    delete pPhilipsMainHeader;
+
+  if(pPhilipsExtendedMainHeader != NULL)
+    delete pPhilipsExtendedMainHeader;
+
+  if(pPhilipsFile != NULL)
+  {
     pPhilipsFile->close();
-  delete pPhilipsFile;
+    delete pPhilipsFile;
+  }
 
   RETURN(result);
   return result;
