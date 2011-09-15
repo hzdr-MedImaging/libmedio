@@ -27,6 +27,8 @@
 #include "CMedIOHeader.h"
 #include "CMedIOData.h"
 
+#include <QDateTime>
+
 #include <rtdebug.h>
 
 class CPhilipsExtendedMainHeaderPrivate
@@ -339,17 +341,17 @@ bool CPhilipsExtendedMainHeader::load()
   D("req_phys                 : %s", m_pData->header.req_phys);
   D("card_phstate             : %d", m_pData->header.card_phstate);
   D("assay_date               : %d", m_pData->header.assay_date);
-  D("assay_time               : %ld", m_pData->header.assay_time);
+  D("assay_time               : %s", QDateTime::fromTime_t(m_pData->header.assay_time).toString().toAscii().constData());
   D("series_desc              : %s", m_pData->header.series_desc);
   D("height                   : %d", m_pData->header.height);
   D("abundance                : %d", m_pData->header.abundance);
   D("realignment.xOffset      : %d", m_pData->header.realignment.xOffset);
   D("realignment.yOffset      : %d", m_pData->header.realignment.yOffset);
   D("realignment.horizRotation: %d", m_pData->header.realignment.horizRotation);
-  D("acq_date_time            : %ld", m_pData->header.acq_date_time);
-  D("study_date_time          : %ld", m_pData->header.study_date_time);
-  D("injection_date_time      : %ld", m_pData->header.injection_date_time);
-  D("file_create_date_time    : %ld", m_pData->header.file_create_date_time);
+  D("acq_date_time            : %s", QDateTime::fromTime_t(m_pData->header.acq_date_time).toString().toAscii().constData());
+  D("study_date_time          : %s", QDateTime::fromTime_t(m_pData->header.study_date_time).toString().toAscii().constData());
+  D("injection_date_time      : %s", QDateTime::fromTime_t(m_pData->header.injection_date_time).toString().toAscii().constData());
+  D("file_create_date_time    : %s", QDateTime::fromTime_t(m_pData->header.file_create_date_time).toString().toAscii().constData());
   D("resp_trig_loc            : %d", m_pData->header.resp_trig_loc);
   D("card_arrhythmia_rej_tech : %d", m_pData->header.card_arrhythmia_rej_tech);
   D("window_center            : %d", m_pData->header.window_center);

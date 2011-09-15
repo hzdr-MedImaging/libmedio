@@ -429,7 +429,7 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
             // now we calculate the new scale factor
             float suvScale = pLastPhilipsSubHeaderImage->suvscl();
             float dosage = pPhilipsMainHeader->activity() * 1000000.0f; // Bq
-            float deltaT = static_cast<float>(pPhilipsMainHeader->injtim()); // s
+            float deltaT = static_cast<float>(pPhilipsExtendedMainHeader->acq_date_time() - pPhilipsExtendedMainHeader->injection_date_time()); // s
             float halfLife = pPhilipsMainHeader->halfLife() * 60.0f; // s
             float patientWeight = static_cast<float>(pPhilipsMainHeader->weight()); // g
 

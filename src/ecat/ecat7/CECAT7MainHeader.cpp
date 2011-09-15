@@ -957,8 +957,15 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
             D("Setting additional information to ECAT7 main header");
             const CPhilipsExtendedMainHeader* extHeader = static_cast<const CPhilipsExtendedMainHeader*>(pHead2);
 
+            QString patientName(extHeader->Dpat_name()); 
+
+            if(patientName.contains("^"))
+              patientName.replace("^", ", ");               
+
+            setPatient_Name(patientName.toAscii().constData());
             setPatient_Sex(m_pData->philips2Ecat7Sex(extHeader->sex()));
             setPatient_ID(extHeader->Dpat_id());
+            setPatient_Height(extHeader->height() / 10); // mm -> cm
             
           };break;
           default:break;
