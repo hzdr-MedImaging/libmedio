@@ -935,6 +935,9 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
       setPatient_Name(head->patient_Name());
       setPatient_Weight(head->weight() / 1000.0f); // g -> kg
 
+      QDate birthdate(head->bthyr(), head->bthmo(), head->bthday());
+      setPatient_Birth_Date_Qt(birthdate);
+
       setNum_Planes(head->nslice());
       setNum_Frames(head->nframe());
       setNum_Gates(1);
@@ -964,10 +967,12 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
             if(patientName.contains("^"))
               patientName.replace("^", ", ");               
 
+            setPatient_Name(patientName.toAscii().constData());
+
+            setStudy_Description(extHeader->series_desc());
             setDose_Start_Time(extHeader->injection_date_time());
             setScan_Start_Time(extHeader->acq_date_time());
             setRadiopharmaceutical(extHeader->radiopharm_name());
-            setPatient_Name(patientName.toAscii().constData());
             setPatient_Sex(m_pData->philips2Ecat7Sex(extHeader->sex()));
             setPatient_ID(extHeader->Dpat_id());
             setPatient_Height(extHeader->height() / 10); // mm -> cm
