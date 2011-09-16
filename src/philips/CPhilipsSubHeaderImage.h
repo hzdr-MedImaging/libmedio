@@ -160,6 +160,16 @@ class CPhilipsSubHeaderImage : public CPhilipsSubHeader
     float deadtime_bgsub() const;
     const char* sop_uid() const;
     const char* recon_method() const;
+    time_t start_date_time() const;
+    time_t end_date_time() const;
+    Laterality_Type laterality() const;
+    Anatomy_Type anatomy() const;
+    time_t frame_ref_date_time() const;
+    long card_rr_time() const;
+    long resp_int_time() const;
+    unsigned short start_date_time_msec() const;
+    unsigned short end_date_time_msec() const;
+    unsigned short frame_ref_date_time_msec() const;
 
     // methods to modify elements of the SubHeader  
     void setVersion(const short version);
@@ -219,7 +229,17 @@ class CPhilipsSubHeaderImage : public CPhilipsSubHeader
     void setDeadtime_bgsub(const float deadtime_bgsub);
     void setSop_uid(const char* str);
     void setRecon_method(const char* str);
-  
+void setStart_date_time(const time_t start_date_time);
+  void setEnd_date_time(const time_t end_date_time);
+  void setLaterality(const Laterality_Type laterality);;
+  void setAnatomy(const Anatomy_Type anatomy);
+  void setFrame_ref_date_time(const time_t frame_ref_date_time);
+  void setCard_rr_time(const long card_rr_time);
+  void setResp_int_time(const long resp_int_time);
+  void setStart_date_time_msec(const unsigned short msec);
+  void setEnd_date_time_msec(const unsigned short msec);
+  void setFrame_ref_date_time_msec(const unsigned short msec);
+
   private:
     CPhilipsSubHeaderImagePrivate* m_pData;
 };
