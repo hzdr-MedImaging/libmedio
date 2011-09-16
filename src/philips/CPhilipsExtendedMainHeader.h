@@ -237,6 +237,11 @@ class CPhilipsExtendedMainHeader : public CMedIOHeader
     int card_dur_counts() const;
     int card_beats_tot() const;
     int card_beats_acc() const;
+    short card_skip_beats() const;
+    short pvc_threshold() const;
+    const char* radiopharm_name() const;
+    const char* Dserial_number() const;
+    const char* attncor_label() const;
 
     const char* contr_bolus_agent();
     const char* sop_uid();
@@ -302,6 +307,12 @@ class CPhilipsExtendedMainHeader : public CMedIOHeader
     void setCard_dur_counts(const int counts);
     void setCard_beats_tot(const int beats);
     void setCard_beats_acc(const int acc);
+    void setCard_skip_beats(const short beats);
+    void setPvc_threshold(const short threshold);
+    void setRadiopharm_name(const char* str);
+    void setDserial_number(const char* str);
+    void setAttncor_label(const char* str);
+
 
     void setContr_bolus_agent(const char* str);
     void setSop_uid(const char* str);

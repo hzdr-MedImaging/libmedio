@@ -39,7 +39,6 @@ class CPhilipsExtendedMainHeaderPrivate
     //  /* flags */
     //   ValidHdrStruct valid;              /* Validity of extended header */
 
-
       char Dpat_name[64];                 /* DICOM patient name */
       char Dpat_id[64];                   /* DICOM patient ID */
       char study_uid[64];                 /* unique study identifier */
@@ -105,7 +104,17 @@ class CPhilipsExtendedMainHeaderPrivate
       qint32 card_dur_counts;		 /* duration of binned data, in counts */
       qint32 card_beats_tot;		 /* beats occurring during movie */
       qint32 card_beats_acc;             /* beats accepted into movie */
+      qint16 card_skip_beats;             /* Num beats skipped after arrhythmia. */
+      qint16 pvc_threshold;               /* When PVC rejection used, the */
+                                         /*  the % of R-R below which is */
+                                         /*  considered a PVC.           */
       qint32 dep_acq_date;               /* (Deprecated - use acq_date_time) Date data acquired (date_2_int()) */
+      char radiopharm_name[64]; /* Used when pharm == Other, to */
+                                         /*  specify name of radiopharmaceutical used. */
+      char Dserial_number[16];           /* System serial number + null */
+      char attncor_label[64]; /* Label (UID) identifying related atten. corr. series. */
+
+
 
       char contr_bolus_agent[64];        /* DICOM contrast bolus agent */
       char sop_uid[64];                  /* SOP UID of incoming images */
@@ -134,20 +143,7 @@ class CPhilipsExtendedMainHeaderPrivate
                               /*  rotation about the vertical (Y) axis  */
                               /*  (in 1/1,000 degree).                  */
       } realignment;
-      // RouteTypes route;                  /* How the isotope was delivered */
-      // PharmTypes pharm;                  /* Pharmaceutical used in the study */
-      // char radiopharm_name[64]; /* Used when pharm == Other, to */
-      //                                    /*  specify name of radiopharmaceutical used. */
 
-
-      // char Dserial_number[17];           /* System serial number + null */
-
-      // char attncor_label[64]; /* Label (UID) identifying related atten. corr. series. */
-
-      // short pvc_threshold;               /* When PVC rejection used, the */
-      //                                    /*  the % of R-R below which is */
-      //                                    /*  considered a PVC.           */
-      // short card_skip_beats;             /* Num beats skipped after arrhythmia. */
       // char ref_gated_qc_image_inst_uid[64]; /* SOP Instance UID of */
       //                                    /*  Sec. Cap. image containing picture */
       //                                    /*  of cardiac waveform and trigger level.*/
@@ -314,9 +310,15 @@ bool CPhilipsExtendedMainHeader::load()
   stream >> m_pData->header.card_dur_counts;
   stream >> m_pData->header.card_beats_tot;
   stream >> m_pData->header.card_beats_acc;
-  stream.skipRawData(16);
+  stream >> m_pData->header.card_skip_beats;
+  stream >> m_pData->header.pvc_threshold;
+  stream.skipRawData(12);
   stream >> m_pData->header.dep_acq_date;
-  stream.skipRawData(212);
+  stream.skipRawData(4);
+  stream.readRawData(&m_pData->header.radiopharm_name[0], 64);
+  stream.readRawData(&m_pData->header.Dserial_number[0], 16);
+  stream.readRawData(&m_pData->header.attncor_label[0], 64);
+  stream.skipRawData(64);
 
   stream.readRawData(m_pData->header.contr_bolus_agent, 64);
   stream.readRawData(m_pData->header.sop_uid, 64);
@@ -367,21 +369,21 @@ bool CPhilipsExtendedMainHeader::load()
   D("referring_physician      : %s", m_pData->header.referring_physician);
   D("study_id                 : %s", m_pData->header.study_id);
 
-  D(" Dslice_thick            : %f", m_pData->header.Dslice_thick);
-  D(" sex                     : %c", m_pData->header. sex);
-  D(" table_height            : %f", m_pData->header.table_height);
-  D(" card_bt_rej             : %d", m_pData->header.card_bt_rej);
-  D(" card_fr_type            : %d", m_pData->header.card_fr_type);
-  D(" Dmanufacture_model_name : %s", m_pData->header.Dmanufacture_model_name);
-  D(" Dimage_type             : %s", m_pData->header.Dimage_type);
-  D(" min_bed_pos             : %f", m_pData->header.min_bed_pos);
-  D(" max_bed_pos             : %f", m_pData->header.max_bed_pos);
-  D(" der_filled              : %d", m_pData->header.der_filled);
-  D(" series_number           : %d", m_pData->header.series_number);
-  D(" dep_study_date          : %ld", m_pData->header.dep_study_date);
-  D(" dep_study_time          : %ld", m_pData->header.dep_study_time);
-  D(" dep_acq_time            : %ld", m_pData->header.dep_acq_time);
-  D(" card_slc_dir            : %d", m_pData->header.card_slc_dir);
+  D("Dslice_thick             : %f", m_pData->header.Dslice_thick);
+  D("sex                      : %c", m_pData->header. sex);
+  D("table_height             : %f", m_pData->header.table_height);
+  D("card_bt_rej              : %d", m_pData->header.card_bt_rej);
+  D("card_fr_type             : %d", m_pData->header.card_fr_type);
+  D("Dmanufacture_model_name  : %s", m_pData->header.Dmanufacture_model_name);
+  D("Dimage_type              : %s", m_pData->header.Dimage_type);
+  D("min_bed_pos              : %f", m_pData->header.min_bed_pos);
+  D("max_bed_pos              : %f", m_pData->header.max_bed_pos);
+  D("der_filled               : %d", m_pData->header.der_filled);
+  D("series_number            : %d", m_pData->header.series_number);
+  D("dep_study_date           : %ld", m_pData->header.dep_study_date);
+  D("dep_study_time           : %ld", m_pData->header.dep_study_time);
+  D("dep_acq_time             : %ld", m_pData->header.dep_acq_time);
+  D("card_slc_dir             : %d", m_pData->header.card_slc_dir);
 
   D("card_skip_msec:          : %d", m_pData->header.card_skip_msec);
   D("card_skip_counts         : %d", m_pData->header.card_skip_counts);
@@ -389,7 +391,12 @@ bool CPhilipsExtendedMainHeader::load()
   D("card_dur_counts          : %d", m_pData->header.card_dur_counts);
   D("card_beats_tot           : %d", m_pData->header.card_beats_tot);
   D("card_beats_acc           : %d", m_pData->header.card_beats_acc);
+  D("card_skip_beats          : %d", m_pData->header.card_skip_beats);
+  D("pvc_threshold            : %d", m_pData->header.pvc_threshold);
   D("dep_acq_date             : %ld", m_pData->header.dep_acq_date);
+  D("radiopharm_name          : %s", m_pData->header.radiopharm_name);
+  D("Dserial_number           : %s", m_pData->header.Dserial_number);
+  D("attncor_label            : %s", m_pData->header.attncor_label);
 
   D("contr_bolus_agent        : %s", m_pData->header.contr_bolus_agent);
   D("sop_uid                  : %s", m_pData->header.sop_uid);
@@ -740,6 +747,31 @@ int CPhilipsExtendedMainHeader::card_beats_acc() const
   return m_pData->header.card_beats_acc;
 }
 
+short CPhilipsExtendedMainHeader::card_skip_beats() const
+{
+  return m_pData->header.card_skip_beats;
+}
+
+short CPhilipsExtendedMainHeader::pvc_threshold() const
+{
+  return m_pData->header.pvc_threshold;
+}
+
+const char* CPhilipsExtendedMainHeader::radiopharm_name() const
+{
+  return m_pData->header.radiopharm_name;
+}
+
+const char* CPhilipsExtendedMainHeader::Dserial_number() const
+{
+  return m_pData->header.Dserial_number;
+}
+
+const char* CPhilipsExtendedMainHeader::attncor_label() const
+{
+  return m_pData->header.attncor_label;
+}
+
 const char* CPhilipsExtendedMainHeader::contr_bolus_agent()
 {
   return m_pData->header.contr_bolus_agent;
@@ -1028,6 +1060,31 @@ void CPhilipsExtendedMainHeader::setCard_beats_tot(const int beats)
 void CPhilipsExtendedMainHeader::setCard_beats_acc(const int acc)
 {
   m_pData->header.card_beats_acc = acc;
+}
+
+void CPhilipsExtendedMainHeader::setCard_skip_beats(const short beats)
+{
+  m_pData->header.card_skip_beats = beats;
+}
+
+void CPhilipsExtendedMainHeader::setPvc_threshold(const short threshold)
+{
+  m_pData->header.pvc_threshold = threshold;
+}
+
+void CPhilipsExtendedMainHeader::setRadiopharm_name(const char* str)
+{
+  strncpy(m_pData->header.radiopharm_name, str, 64);
+}
+
+void CPhilipsExtendedMainHeader::setDserial_number(const char* str)
+{
+  strncpy(m_pData->header.Dserial_number, str, 16);
+}
+
+void CPhilipsExtendedMainHeader::setAttncor_label(const char* str)
+{
+  strncpy(m_pData->header.attncor_label, str, 64);
 }
 
 void CPhilipsExtendedMainHeader::setContr_bolus_agent(const char* str)

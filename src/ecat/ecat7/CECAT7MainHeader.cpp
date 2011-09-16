@@ -61,6 +61,7 @@ class CECAT7MainHeaderPrivate
     CECAT7MainHeader::Patient_Orientation concorde2ECAT7Orientation(const CConcordeMainHeader::SubjectOrientation o) const;
 
     CECAT7MainHeader::Patient_Sex philips2Ecat7Sex(const char& genus) const;
+    QString philips2Ecat7Isotop(const CPhilipsMainHeader::Isotop isotop) const;
 
     // MainHeader structure (should be 512bytes)
     struct HeaderData
@@ -940,6 +941,7 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
       setNum_Bed_Pos(0);
       setPlane_Separation(head->slcthk() / 10.0f); // mm -> cm
 
+      setIsotope_Name(m_pData->philips2Ecat7Isotop(head->isotop()).toAscii().constData());
       setIsotope_Halflife(head->halfLife() * 60.0f); // min -> sec
       setDosage(head->activity() * 1000000.0f);      // MBq -> Bq
 
@@ -962,6 +964,9 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
             if(patientName.contains("^"))
               patientName.replace("^", ", ");               
 
+            setDose_Start_Time(extHeader->injection_date_time());
+            setScan_Start_Time(extHeader->acq_date_time());
+            setRadiopharmaceutical(extHeader->radiopharm_name());
             setPatient_Name(patientName.toAscii().constData());
             setPatient_Sex(m_pData->philips2Ecat7Sex(extHeader->sex()));
             setPatient_ID(extHeader->Dpat_id());
@@ -1861,4 +1866,45 @@ CECAT7MainHeader::Patient_Sex CECAT7MainHeaderPrivate::philips2Ecat7Sex(const ch
 
   RETURN(E7s);
   return E7s;
+}
+
+QString CECAT7MainHeaderPrivate::philips2Ecat7Isotop(const CPhilipsMainHeader::Isotop isotop) const
+{
+  ENTER();
+  QString isotopString;
+
+  switch(isotop)
+  {
+    case CPhilipsMainHeader::UndefinedIsotop: isotopString = "Undefined"; break;
+    case CPhilipsMainHeader::F18: isotopString = "F-18"; break;
+    case CPhilipsMainHeader::O15: isotopString = "O-15"; break;
+    case CPhilipsMainHeader::C11: isotopString = "C-11"; break;
+    case CPhilipsMainHeader::GA68: isotopString = "GA-68"; break;
+    case CPhilipsMainHeader::N13: isotopString = "N-13"; break;
+    case CPhilipsMainHeader::RB82: isotopString = "RB-82"; break;
+    case CPhilipsMainHeader::CU62: isotopString = "CU-62"; break;
+    case CPhilipsMainHeader::CS137: isotopString = "CS-137"; break;
+    case CPhilipsMainHeader::GE68: isotopString = "GE-68"; break;
+    case CPhilipsMainHeader::OtherIsotop: isotopString = "Other"; break;
+    case CPhilipsMainHeader::UnknownIsotop: isotopString = "Unknown"; break;
+    case CPhilipsMainHeader::CU64: isotopString = "CU-64"; break;
+    case CPhilipsMainHeader::BR76: isotopString = "BR-76"; break;
+    case CPhilipsMainHeader::NA22: isotopString = "NA-22"; break;
+    case CPhilipsMainHeader::O14: isotopString = "O-14"; break;
+    case CPhilipsMainHeader::Y86: isotopString = "Y-86"; break;
+    case CPhilipsMainHeader::ZN62: isotopString = "ZN-62"; break;
+    case CPhilipsMainHeader::CU60: isotopString = "CU-60"; break;
+    case CPhilipsMainHeader::CU61: isotopString = "CU-61"; break;
+    case CPhilipsMainHeader::GA66: isotopString = "GA-66"; break;
+    case CPhilipsMainHeader::BR75: isotopString = "BR-75"; break;
+    case CPhilipsMainHeader::BR77: isotopString = "BR-77"; break;
+    case CPhilipsMainHeader::I124: isotopString = "I-124"; break;
+    case CPhilipsMainHeader::K38: isotopString = "K-38"; break;
+    case CPhilipsMainHeader::MN52: isotopString = "MN-52"; break;
+    case CPhilipsMainHeader::TC94M: isotopString = "TC94M"; break;
+    case CPhilipsMainHeader::TI45: isotopString = "TI-45";  break;
+  }
+
+  RETURN(isotopString.toAscii().constData());
+  return isotopString;
 }
