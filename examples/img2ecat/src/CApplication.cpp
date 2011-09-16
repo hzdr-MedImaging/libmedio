@@ -424,7 +424,7 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
           {
             pEcat7ImageHeader->setCalibration_Units(CECAT7MainHeader::Calibrated);
             pEcat7ImageHeader->setCalibration_Factor(1.0f);
-            pEcat7ImageHeader->setData_Units("BQML");
+            pEcat7ImageHeader->setData_Units("Bq/cc");
 
             // now we calculate the new scale factor
             float suvScale = pLastPhilipsSubHeaderImage->suvscl();
