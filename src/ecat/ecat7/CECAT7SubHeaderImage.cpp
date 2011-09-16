@@ -559,6 +559,10 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead1, const CMedIOH
       setX_Pixel_Size(head->pix_spacing(0) / 10.0); // mm -> cm
       setY_Pixel_Size(head->pix_spacing(1) / 10.0); // mm -> cm
  
+      short durationSec = head->scnlen();
+      short durationMsec = head->mseclen();
+      setFrame_Duration(durationSec * 1000 + durationMsec);
+
       // check for additional information
       if(pHead2)
       {
