@@ -576,13 +576,13 @@ bool CPhilipsMainHeader::save(void) const
   // data structure (such as frames/slices/tilts etc.)
   CPhilipsFile* philipsFile = static_cast<CPhilipsFile*>(m_pMedIOData);
 
-  quint16 minFrame = philipsFile->minFrame();
-  quint16 maxFrame = philipsFile->maxFrame();
-  quint16 numFrames = philipsFile->numFrames();
-  quint16 minSlice = philipsFile->minSlice();
-  quint16 maxSlice = philipsFile->maxSlice();
-  quint16 numSlices  = philipsFile->numSlices();
-  quint16 numTilts = philipsFile->numTilts();
+  short minFrame = philipsFile->minFrame();
+  short maxFrame = philipsFile->maxFrame();
+  short numFrames = philipsFile->numFrames();
+  short minSlice = philipsFile->minSlice();
+  short maxSlice = philipsFile->maxSlice();
+  short numSlices  = philipsFile->numSlices();
+  short numTilts = philipsFile->numTilts();
   
   // we write to a buffer first and write out later directly to the file
   QByteArray buffer(rawDataSize(), 0);
@@ -631,9 +631,9 @@ bool CPhilipsMainHeader::save(void) const
   stream.writeRawData(byte, 4);
 
   stream << m_pData->header.filtyp;        // 52: filtyp
+  stream << m_pData->header.minTransXtalDiff; // 54: minTransXtalDiff
+  stream << m_pData->header.tofTstampScale;   // 58: tofTstampScale
 
-  memset(byte, 0, 8);
-  stream.writeRawData(byte, 8); // 54: write the next 12 bytes
   byte[0]= 0x00;
   byte[1]= 0x20;
   byte[2]= 0xFF;
@@ -763,8 +763,8 @@ bool CPhilipsMainHeader::save(void) const
   stream.writeRawData(byte, 2);                       // 454: write the next 2 bytes
 
   stream << m_pData->header.rebin_type; // 456: rebin_type
-  stream.readRawData(&m_pData->header.scnOrigin[0], 16); // 458: scnOrigin
-  stream.readRawData(&m_pData->header.accNum[0], 16); // 474: accNum
+  stream.writeRawData(&m_pData->header.scnOrigin[0], 16); // 458: scnOrigin
+  stream.writeRawData(&m_pData->header.accNum[0], 16); // 474: accNum
   stream << m_pData->header.movementCoinc;            // 490: movementCoinc
   stream << m_pData->header.movementSing;            // 492: movementSing
   stream << m_pData->header.crbTstampPeriod;            // 494: crbTstampPeriod
