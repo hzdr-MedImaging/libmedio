@@ -152,15 +152,25 @@ short CPhilipsFile::numSlices(void)
       }
     }
 
+    // we only calculate the number of slices if
+    // the slice thickness is set, to not divide by zero
     short minSlice = this->minSlice();
     short maxSlice = this->maxSlice();
-
     short dist = maxSlice - minSlice;
-    if((dist % mainHeader->slcthk()) != 0)
-      W("(maxSlice - minSlice) is no multiple of the slice thickness.");
+    short sliceThickness = mainHeader->slcthk();
+    if(sliceThickness != 0)
+    {
+      if((dist % sliceThickness) != 0)
+        W("(maxSlice - minSlice) is no multiple of the slice thickness.");
 
-    slicesNum  = dist / mainHeader->slcthk();
-       
+      slicesNum  = dist / mainHeader->slcthk();
+    }
+    else
+    {
+      D("Slice thickness is not set");
+      slicesNum = 0;
+    }
+
     if(cachedMainHeaderUsed == false)
       delete mainHeader;
   }
@@ -199,6 +209,7 @@ bool CPhilipsFile::open(QIODevice::OpenModeFlag mode)
     {
       if(m_pData->isPhilipsFile(this))
       {
+        D("Found philips format header.");
         m_pData->cachedMainHeader = new CPhilipsMainHeader(this);
 
         // now that we have created our proper MainHeader we try
@@ -214,6 +225,10 @@ bool CPhilipsFile::open(QIODevice::OpenModeFlag mode)
             result = true;
           }
         }
+      }
+      else
+      {
+        D("No philips format header found.");
       }
 
       // close the file
