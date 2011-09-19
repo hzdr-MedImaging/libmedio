@@ -306,7 +306,7 @@ short CPhilipsDirectory::maxFrame() const
 short CPhilipsDirectory::minFrame() const
 {
   ENTER();
-  short framesMin = 100;
+  short framesMin = 101;
 
   // we iterate through our dictionary looking for the lowest available
   // frame number
@@ -324,6 +324,11 @@ short CPhilipsDirectory::minFrame() const
       }
     }
   }
+
+  // if framesMin is still 101, there are no frames in the map
+  // in this case we have to set the min Value to 0
+  if(framesMin == 101)
+    framesMin = 0;
   
   RETURN(framesMin);
   return framesMin;
@@ -381,7 +386,7 @@ short CPhilipsDirectory::maxSlice() const
 short CPhilipsDirectory::minSlice() const
 {
   ENTER();
-  short slicesMin = 4095;
+  short slicesMin = 4096;
 
   // we iterate through our dictionary looking for the lowest
   // available slice number
@@ -400,7 +405,12 @@ short CPhilipsDirectory::minSlice() const
       }
     }
   }
-  
+
+  // if slicesMin is still 4096, there are no slices in the map
+  // in this case we have to set the min Value to 0
+  if(slicesMin == 4096)
+    slicesMin = 0;
+
   RETURN(slicesMin);
   return slicesMin;
 }
