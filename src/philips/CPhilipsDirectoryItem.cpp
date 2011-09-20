@@ -38,6 +38,7 @@
 class CPhilipsDirectoryItemPrivate
 {
   public:
+    void cacheExtendedMainHeader(const CPhilipsExtendedMainHeader& extendedMainHeader);
     // void cacheSubHeader(const CPhilipsSubHeader& subHeader);
     
     CPhilipsDirectoryItem* dirItem; // pointer to the directory Item
@@ -73,10 +74,17 @@ CPhilipsDirectoryItem::CPhilipsDirectoryItem(CPhilipsFile* pFile,
 
   if(matrixID != 0)
   {
-    m_pData->frame = matrixID2Frame(matrixID);
     m_pData->slice = matrixID2Slice(matrixID);
+    m_pData->frame = matrixID2Frame(matrixID);
     m_pData->tilt  = matrixID2Tilt(matrixID);
-    D("created new DirItem (%d/%d/%d)", m_pData->frame, m_pData->slice, m_pData->tilt);
+
+    if(matrixID == PHILIPS_EXTENDED_HEADER)
+    {
+      D("created new DirItem (%08lx) (extended main header)", matrixID);
+      m_pData->contentFlag = Header;
+    }
+    else
+      D("created new DirItem (%d/%d/%d)", m_pData->slice, m_pData->frame, m_pData->tilt);
   }
   else
   {
@@ -97,6 +105,43 @@ CPhilipsDirectoryItem::~CPhilipsDirectoryItem()
   delete m_pData;
 
   LEAVE();
+}
+
+CPhilipsDirectoryItem::CPhilipsDirectoryItem(const CPhilipsDirectoryItem& src)
+{
+  ENTER();
+
+  m_pData = new CPhilipsDirectoryItemPrivate();
+
+  // copy the instance data
+  *this = src;
+
+  m_pData->dirItem = this;
+  m_pData->file = NULL;
+  m_pData->cachedSubHeader = NULL;
+  m_pData->cachedExtendedMainHeader = NULL;
+  
+  LEAVE();
+}
+
+CPhilipsDirectoryItem& CPhilipsDirectoryItem::operator=(const CPhilipsDirectoryItem& src)
+{
+ ENTER();
+
+  if(m_pData != src.m_pData)
+  {
+    m_pData->slice = src.m_pData->slice;
+    m_pData->frame = src.m_pData->frame;
+    m_pData->tilt = src.m_pData->tilt;
+    m_pData->dataBlock_Start = src.m_pData->dataBlock_Start;
+    m_pData->dataBlock_End = src.m_pData->dataBlock_End;
+    m_pData->compressionFlag = src.m_pData->compressionFlag;
+    m_pData->contentFlag = src.m_pData->contentFlag;
+    m_pData->dirItem = this;
+  }
+
+  LEAVE();
+  return *this;
 }
 
 quint32 CPhilipsDirectoryItem::matrixID() const
@@ -145,6 +190,16 @@ short CPhilipsDirectoryItem::slice() const
 short CPhilipsDirectoryItem::tilt() const
 { 
   return m_pData->tilt;
+}
+
+void CPhilipsDirectoryItem::setDataBlock_Start(const qint64 offset)
+{ 
+  m_pData->dataBlock_Start = offset;
+}
+
+void CPhilipsDirectoryItem::setDataBlock_End(const qint64 offset)
+{ 
+  m_pData->dataBlock_End = offset;
 }
 
 bool CPhilipsDirectoryItem::readExtendedMainHeader(CPhilipsExtendedMainHeader*& extendedMainHeader)
@@ -455,6 +510,97 @@ bool CPhilipsDirectoryItem::readMatrix(char*& data, unsigned int& len, CPhilipsS
   return result;
 }
 
+bool CPhilipsDirectoryItem::writeExtendedMainHeader(const CPhilipsExtendedMainHeader& extendedMainHeader)
+{
+  ENTER();
+  bool result = false;
+ 
+  m_pData->cacheExtendedMainHeader(extendedMainHeader);
+
+  if(m_pData->cachedExtendedMainHeader != NULL)
+    result = m_pData->cachedExtendedMainHeader->save();
+
+  // now we calculate the new EndPosition
+  if(result)
+  {
+    m_pData->dataBlock_End = m_pData->dataBlock_Start + extendedMainHeader.rawDataSize() - PHILIPS_BLOCKSIZE;
+    m_pData->contentFlag = Header;
+  }
+
+  RETURN(result);
+  return result;
+}
+
+void CPhilipsDirectoryItemPrivate::cacheExtendedMainHeader(const CPhilipsExtendedMainHeader& extendedMainHeader)
+{
+  ENTER();
+
+  if(cachedExtendedMainHeader)
+    *cachedExtendedMainHeader = extendedMainHeader;
+  else
+    cachedExtendedMainHeader = new CPhilipsExtendedMainHeader(extendedMainHeader);
+
+  if(cachedExtendedMainHeader)
+  {
+    cachedExtendedMainHeader->setMedIOData(file);
+    cachedExtendedMainHeader->setDirectoryItem(dirItem);
+  }
+
+  LEAVE();
+}
+
+void CPhilipsDirectoryItem::extendedMainHeaderWritten(const CPhilipsExtendedMainHeader& extendedMainHeader)
+{
+  ENTER();
+
+  // if the extendedMainHeaderWritten is the same as our cached extendedMainHeader we don't
+  // have to copy it again and can break out immediately
+  if(&extendedMainHeader != m_pData->cachedExtendedMainHeader)
+  {
+    // otherwise we make sure the written extendedMainHeader is cached
+    m_pData->cacheExtendedMainHeader(extendedMainHeader);
+  }
+
+  LEAVE();
+}
+
+QDataStream& operator<<(QDataStream& stream, const CPhilipsDirectoryItem& dItem)
+{
+  ENTER();
+
+  // first convert and write out the matrixID
+  quint32 matrixID = convertToMatrixID(dItem.m_pData->slice,
+                                       dItem.m_pData->frame,
+                                       dItem.m_pData->tilt);
+  stream << matrixID;
+  
+  // then we read out the rest
+  quint32 dataBlock_Start = FilePos2PhilipsBlock(dItem.m_pData->dataBlock_Start);
+  stream << dataBlock_Start;
+
+  quint32 dataBlock_End = FilePos2PhilipsBlock(dItem.m_pData->dataBlock_End);
+  stream << dataBlock_End;
+  
+  qint16 compressionFlag = static_cast<qint16>(dItem.m_pData->compressionFlag);
+  stream << compressionFlag;
+
+  qint16 contentFlag = static_cast<qint16>(dItem.m_pData->contentFlag);
+  stream << contentFlag;
+
+  D("DItem.Matrix_ID       : %08x (%d/%d/%d)", matrixID,
+                                                      dItem.m_pData->slice,
+                                                      dItem.m_pData->frame,
+                                                      dItem.m_pData->tilt);
+
+  D("DItem.DataBlock_Start : %lld (%lld)", FilePos2PhilipsBlock(dItem.m_pData->dataBlock_Start), dItem.m_pData->dataBlock_Start);
+  D("DItem.DataBlock_End   : %lld (%lld)", FilePos2PhilipsBlock(dItem.m_pData->dataBlock_End), dItem.m_pData->dataBlock_End);
+  D("DItem.compressionFlag : %d", dItem.m_pData->compressionFlag);
+  D("DItem.contentFlag     : %d", dItem.m_pData->contentFlag);
+  
+  LEAVE();
+  return stream;
+}
+
 QDataStream& operator>>(QDataStream& stream, CPhilipsDirectoryItem& dItem)
 {
   ENTER();
@@ -488,14 +634,14 @@ QDataStream& operator>>(QDataStream& stream, CPhilipsDirectoryItem& dItem)
   if(dItem.isExtendedHeader())
   {
     D("DItem.Matrix_ID       : %08x (extended header)", matrixID);
-    D("DItem.DataBlock_Start : %d (%ld)", dItem.m_pData->dataBlock_Start, FilePos2PhilipsBlock(dItem.m_pData->dataBlock_Start));
-    D("DItem.DataBlock_End   : %d (%ld)", dItem.m_pData->dataBlock_End, FilePos2PhilipsBlock(dItem.m_pData->dataBlock_End));
+    D("DItem.DataBlock_Start : %lld (%lld)", dItem.m_pData->dataBlock_Start, FilePos2PhilipsBlock(dItem.m_pData->dataBlock_Start));
+    D("DItem.DataBlock_End   : %lld (%lld)", dItem.m_pData->dataBlock_End, FilePos2PhilipsBlock(dItem.m_pData->dataBlock_End));
   }
   else
   {
     D("DItem.Matrix_ID       : %08x (%d/%d/%d)", matrixID,
-                                                  dItem.m_pData->frame,
                                                   dItem.m_pData->slice,
+                                                  dItem.m_pData->frame,
                                                   dItem.m_pData->tilt);
 
     D("DItem.DataBlock_Start : %d (%ld)", dItem.m_pData->dataBlock_Start, FilePos2PhilipsBlock(dItem.m_pData->dataBlock_Start));

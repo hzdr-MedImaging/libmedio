@@ -82,7 +82,6 @@ CPhilipsFile::CPhilipsFile(const QString& filename, CPhilipsMainHeader::File_Typ
   m_pData = new CPhilipsFilePrivate();
   m_pData->fileType = fileType;
   m_pData->cachedMainHeader = NULL;
-  m_pData->cachedMainHeader = NULL;
 
   LEAVE();
 }
@@ -272,12 +271,6 @@ bool CPhilipsFile::open(QIODevice::OpenModeFlag mode)
       delete m_pData->cachedMainHeader;
       m_pData->cachedMainHeader = NULL;
     }    
-
-    if(m_pData->cachedMainHeader)
-    {
-      delete m_pData->cachedMainHeader;
-      m_pData->cachedMainHeader = NULL;
-    }
   }
 
   SHOWPOINTER(m_pData->directory);
@@ -537,6 +530,22 @@ bool CPhilipsFile::writeMainHeader(CPhilipsMainHeader& mainHeader)
   return result;
 }
 
+bool CPhilipsFile::writeExtendedMainHeader(CPhilipsExtendedMainHeader& extendedMainHeader)
+{
+  ENTER();
+  bool result = false;
+
+  ASSERT(m_pData->directory);
+
+  if(m_pData->directory)
+  {
+    result = m_pData->directory->writeExtendedMainHeader(extendedMainHeader);
+  }
+
+  RETURN(result);
+  return result;
+}
+
 CPhilipsMainHeader* CPhilipsFile::createEmptyMainHeader()
 {
   ENTER();
@@ -548,6 +557,19 @@ CPhilipsMainHeader* CPhilipsFile::createEmptyMainHeader()
 
   RETURN(pEmptyMainHaeder);
   return pEmptyMainHaeder;
+}
+
+CPhilipsExtendedMainHeader* CPhilipsFile::createEmptyExtendedMainHeader()
+{
+  ENTER();
+  CPhilipsExtendedMainHeader* pEmptyExtendedMainHeader = NULL;
+  if(isOpen())
+  {
+    pEmptyExtendedMainHeader = new CPhilipsExtendedMainHeader(this);
+  }
+
+  RETURN(pEmptyExtendedMainHeader);
+  return pEmptyExtendedMainHeader;
 }
 
 void CPhilipsFile::mainHeaderWritten(const CPhilipsMainHeader& mainHeader)
@@ -578,4 +600,27 @@ void CPhilipsFile::mainHeaderWritten(const CPhilipsMainHeader& mainHeader)
   }
 
   LEAVE();
+}
+
+bool CPhilipsFile::reWriteMainHeader(void)
+{
+  ENTER();
+  bool result = false;
+
+  if(m_pData->cachedMainHeader)
+    result = m_pData->cachedMainHeader->save();
+  else
+  {
+    CPhilipsMainHeader* mHeader;
+
+    if(readMainHeader(mHeader))
+    {
+      result = mHeader->save();
+
+      delete mHeader;
+    }
+  }
+
+  RETURN(result);
+  return result;
 }

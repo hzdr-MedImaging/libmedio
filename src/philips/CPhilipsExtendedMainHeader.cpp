@@ -190,6 +190,8 @@ CPhilipsExtendedMainHeader& CPhilipsExtendedMainHeader::operator=(const CPhilips
     memcpy(&m_pData->header,
            &src.m_pData->header,
            sizeof(struct CPhilipsExtendedMainHeaderPrivate::HeaderData));
+
+    m_pDirItem = src.m_pDirItem;
   }
 
   LEAVE();
@@ -418,19 +420,130 @@ bool CPhilipsExtendedMainHeader::save(void) const
   // only go on if the device is writeable at all
   if(m_pMedIOData == NULL ||
      m_pMedIOData->isWritable() == false ||
-     m_pMedIOData->seek(0) == false)
+     m_pMedIOData->seek(m_pDirItem->dataBlock_Start()) == false)
   {
     RETURN(false);
     return false;
   }
 
-  RETURN(false);
-  return false;
+  SHOWVALUE(m_pMedIOData->pos());
+
+  // we write to a buffer first and write out later directly to the file
+  QByteArray buffer(rawDataSize(), 0);
+  QDataStream stream(&buffer, QIODevice::WriteOnly);
+
+  // we have to set the QDataStream version to the Qt4.5 version
+  // because with Qt4.6 the floating point precision changed and
+  // otherwise causes our streaming to fail
+  stream.setVersion(QDataStream::Qt_4_5);
+
+  // we now read out the header information stepwise
+  // as we have to care about big/little endianess, which
+  // is automatically done by the QT framework
+
+  // to write out the fill bytes
+  // we need a buffer
+  char byte[50];
+  memset(byte, 0, 50);
+
+  stream.writeRawData(&m_pData->header.Dpat_name[0], 64);      // 0:   Dpat_name
+  stream.writeRawData(&m_pData->header.Dpat_id[0], 64);        // 64:  Dpat_id
+  stream.writeRawData(&m_pData->header.study_uid[0], 64);      // 128: study_uid
+  stream.writeRawData(&m_pData->header.series_uid[0], 64);     // 192: series_uid
+
+  stream.writeRawData(&m_pData->header.view_code[0], 20);      // 256: view_code
+  stream.writeRawData(&m_pData->header.sortproto_name[0], 20); // 276: sortproto_name
+  stream << m_pData->header.route;                            // 296: route
+  stream << m_pData->header.pharm;                            // 298: pharm
+  stream.writeRawData(&m_pData->header.req_phys[0], 64);       // 300: req_phys
+  stream << m_pData->header.card_phstate;                     // 364: card_phstate
+  stream << m_pData->header.assay_date;                       // 366: assay_date
+  stream << m_pData->header.assay_time;                       // 370: assay_time
+  stream.writeRawData(&m_pData->header.series_desc[0], 64);    // 374: series_desc
+  stream << m_pData->header.height;                           // 438: height
+  stream << m_pData->header.abundance;                        // 440: abundance
+  stream << m_pData->header.realignment.xOffset;              // 442: realignment.xOffset
+  stream << m_pData->header.realignment.yOffset;              // 444: realignment.yOffset
+  stream << m_pData->header.realignment.horizRotation;        // 446: realignment.horizRotation
+  stream << m_pData->header.acq_date_time;                    // 448: acq_date_time
+  stream << m_pData->header.study_date_time;                  // 452: study_date_time
+  stream << m_pData->header.injection_date_time;              // 456: injection_date_time
+  stream << m_pData->header.file_create_date_time;            // 460: file_create_date_time
+  stream << m_pData->header.resp_trig_loc;                    // 464: resp_trig_loc
+  stream << m_pData->header.card_arrhythmia_rej_tech;         // 468: card_arrhythmia_rej_tech
+  stream << m_pData->header.window_center;                    // 470: window_center
+  stream << m_pData->header.window_width;                     // 474: window_width
+  stream << m_pData->header.realignment.axialRotation;        // 478: realignment.axialRotation
+  stream << m_pData->header.realignment.vertRotation;         // 480: realignment.vertRotation
+  stream.writeRawData(byte, 8);                                      // 482: skip the next 8 bytes
+  stream << m_pData->header.resp_trig_threshold;              // 450: resp_trig_threshold
+  stream << m_pData->header.resp_phase_duration;              // 452: resp_phase_duration
+  stream << m_pData->header.resp_phase_offset;                // 454: resp_phase_offset
+  stream << m_pData->header.realignment.zOffset;              // 456: realignment.zOffset
+  stream << m_pData->header.window_units;                     // 458: window_units
+  stream.writeRawData(byte, 14);
+
+  stream.writeRawData(&m_pData->header.referring_physician[0], 64);
+  stream.writeRawData(&m_pData->header.study_id[0], 16);
+  stream.writeRawData(byte, 2);
+  stream << m_pData->header.Dslice_thick;
+  stream.writeRawData(&m_pData->header.sex, 1);
+  stream << m_pData->header.table_height;
+  stream.writeRawData(byte, 1);
+  stream << m_pData->header.card_bt_rej;
+  stream << m_pData->header.card_fr_type;
+  stream.writeRawData(&m_pData->header.Dmanufacture_model_name[0], 64);
+  stream.writeRawData(&m_pData->header.Dimage_type[0], 64);
+  stream << m_pData->header.min_bed_pos;
+  stream << m_pData->header.max_bed_pos;
+  stream << m_pData->header.der_filled;
+  stream << m_pData->header.series_number;
+  stream << m_pData->header.dep_study_date;
+  stream << m_pData->header.dep_study_time;
+  stream << m_pData->header.dep_acq_time;
+  stream << m_pData->header.card_slc_dir;
+  stream.writeRawData(byte, 4);
+
+  stream << m_pData->header.card_skip_msec;
+  stream << m_pData->header.card_skip_counts;
+  stream << m_pData->header.card_dur_msec;
+  stream << m_pData->header.card_dur_counts;
+  stream << m_pData->header.card_beats_tot;
+  stream << m_pData->header.card_beats_acc;
+  stream << m_pData->header.card_skip_beats;
+  stream << m_pData->header.pvc_threshold;
+  stream.writeRawData(byte, 12);
+  stream << m_pData->header.dep_acq_date;
+  stream.writeRawData(byte, 4);
+  stream.writeRawData(&m_pData->header.radiopharm_name[0], 64);
+  stream.writeRawData(&m_pData->header.Dserial_number[0], 16);
+  stream.writeRawData(&m_pData->header.attncor_label[0], 64);
+  stream.writeRawData(byte, 64);
+
+  stream.writeRawData(m_pData->header.contr_bolus_agent, 64);
+  stream.writeRawData(m_pData->header.sop_uid, 64);
+  stream.writeRawData(m_pData->header.frame_ref_uid, 64);
+  stream.writeRawData(m_pData->header.pps_file, 30);
+  stream.writeRawData(m_pData->header.worklist_file, 30);
+  stream.writeRawData(byte, 4);
+
+  // now write out to our outStream
+  bool result = false;
+  if(m_pMedIOData->write(buffer) != -1)
+  {
+    m_pDirItem->extendedMainHeaderWritten(*this);
+    result = true;
+  }
+
+  RETURN(result);
+  return result;
 }
 
 unsigned int CPhilipsExtendedMainHeader::rawDataSize() const
 {
-  return m_pDirItem->dataBlock_End()+PHILIPS_BLOCKSIZE - m_pDirItem->dataBlock_Start();
+  // here we assume that the extended main header always has the same size
+  // but it can be smaller.
+  return 4 * PHILIPS_BLOCKSIZE;
 }
 
 CMedIOHeader::Format CPhilipsExtendedMainHeader::headerFormat() const

@@ -153,8 +153,8 @@ class CPhilipsExtendedMainHeader : public CMedIOHeader
       Apex_To_Base
     };
 
-  CPhilipsExtendedMainHeader(CPhilipsFile* file = NULL,
-                             CPhilipsDirectoryItem* pDirItem = NULL);
+    CPhilipsExtendedMainHeader(CPhilipsFile* file = NULL,
+                               CPhilipsDirectoryItem* pDirItem = NULL);
     ~CPhilipsExtendedMainHeader();
 
     // copy constructor and default assignment operator

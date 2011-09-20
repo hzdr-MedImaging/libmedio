@@ -87,12 +87,15 @@ class CPhilipsFile : public CMedIOData
 
     // methods to write out headers/data to the file.
     bool writeMainHeader(CPhilipsMainHeader& mainHeader);
+    bool writeExtendedMainHeader(CPhilipsExtendedMainHeader& extendedMainHeader);
 
     // methods to generate some objects just for convienence
     CPhilipsMainHeader* createEmptyMainHeader();
+    CPhilipsExtendedMainHeader* createEmptyExtendedMainHeader();
 
     // internal methods to sync specific data with our headers
     void mainHeaderWritten(const CPhilipsMainHeader& mainHeader);
+    bool reWriteMainHeader();
 
   private:
     CPhilipsFilePrivate* m_pData;

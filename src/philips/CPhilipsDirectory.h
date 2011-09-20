@@ -53,6 +53,9 @@ class CPhilipsDirectory
     // accessor methods
     bool isEmpty() const;
     unsigned int count() const;
+    CPhilipsDirectoryItem* operator[](unsigned int num) const;
+    CPhilipsDirectoryItem* item(short slice, short frame = 1,
+                                short tilt = 0);
 
     // methods to calculate the real amount
     // of frame/slice/tilt numbers carried in the directory.
@@ -76,6 +79,9 @@ class CPhilipsDirectory
                     short slice, short frame=1, short tilt=0);
     bool readMatrix(char*& matrixData, unsigned int& len, CPhilipsSubHeader*& subHeader,
                     short slice, short frame=1, short tilt=0);
+
+    bool writeExtendedMainHeader(const CPhilipsExtendedMainHeader& extendedMainHeader);
+
   private:
     CPhilipsDirectoryPrivate* m_pData;
 };

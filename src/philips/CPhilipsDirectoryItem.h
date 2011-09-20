@@ -83,7 +83,7 @@ class CPhilipsDirectoryItem
 
     // copy constructur and default assignment operator
     CPhilipsDirectoryItem(const CPhilipsDirectoryItem& src);    
-    CPhilipsDirectoryItem& operator=(const CPhilipsDirectoryItem& src);      
+    CPhilipsDirectoryItem& operator=(const CPhilipsDirectoryItem& src);
 
     // accessor methods
     quint32 matrixID() const;
@@ -97,8 +97,8 @@ class CPhilipsDirectoryItem
     short tilt() const;
 
     // // mutator methods
-    // void setDataBlock_Start(const qint64 offset);
-    // void setDataBlock_End(const qint64 offset);
+    void setDataBlock_Start(const qint64 offset);
+    void setDataBlock_End(const qint64 offset);
     // void setDataBlock_Status(const AccessStatus status);
     // void setFrame(const short f);
     // void setPlane(const short p);
@@ -114,7 +114,8 @@ class CPhilipsDirectoryItem
     bool readMatrix(QByteArray*& data, CPhilipsSubHeader*& subHeader);
     bool readMatrix(char*& data, unsigned int& len, CPhilipsSubHeader*& subHeader);
 
-    // // write i/o methods
+    // write i/o methods
+    bool writeExtendedMainHeader(const CPhilipsExtendedMainHeader& extendedMainHeader);
     // bool writeSubHeader(const CPhilipsSubHeader& subHeader);
     // bool writeMatrix(const QByteArray& data);
     // bool writeMatrix(const char* data, unsigned int len);
@@ -127,7 +128,8 @@ class CPhilipsDirectoryItem
     friend QDataStream& operator<<(QDataStream& stream, const CPhilipsDirectoryItem& item);
     friend QDataStream& operator>>(QDataStream& stream, CPhilipsDirectoryItem& item);
 
-    // // internal methods to sync specific data with our headers
+    // internal methods to sync specific data with our headers
+    void extendedMainHeaderWritten(const CPhilipsExtendedMainHeader& extendedMainHeader);
     // void subHeaderWritten(const CPhilipsSubHeader& subHeader);
 
   private:
