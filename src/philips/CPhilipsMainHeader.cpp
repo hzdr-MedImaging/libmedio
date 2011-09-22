@@ -805,8 +805,8 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHea
   ENTER();
   bool bResult = false;
 #warning TODO: implement CPhilipsMainHeader::convertFrom()
-  RETURN(false);
-  return false;
+  RETURN(bResult);
+  return bResult;
 }
 
 CMedIOHeader* CPhilipsMainHeader::clone() const

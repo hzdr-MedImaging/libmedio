@@ -37,16 +37,18 @@
 class CPhilipsFilePrivate
 {
   public:
-    bool isPhilipsFile(CMedIOData* file);
+    bool isPhilipsFile(CMedIOData* file) const;
 
     CPhilipsMainHeader::File_Type fileType;
     CPhilipsDirectory* directory;
     CPhilipsMainHeader* cachedMainHeader; // for speed reasons we cache the loaded main header
 };
 
-bool CPhilipsFilePrivate::isPhilipsFile(CMedIOData* file)
+bool CPhilipsFilePrivate::isPhilipsFile(CMedIOData* file) const
 {
   bool isValidPhilipsFile = false;
+
+  if(file == NULL) return false;
 
   if(file->isReadable())
   {
@@ -83,6 +85,7 @@ CPhilipsFile::CPhilipsFile(const QString& filename, CPhilipsMainHeader::File_Typ
   // allocate data from our private instance class
   m_pData = new CPhilipsFilePrivate();
   m_pData->fileType = fileType;
+  m_pData->directory = NULL;
   m_pData->cachedMainHeader = NULL;
 
   LEAVE();
@@ -588,8 +591,6 @@ bool CPhilipsFile::writeSubHeader(const CPhilipsSubHeader& subHeader, short slic
   return result;
 }
 
-/* ---------------------------------------------------------- */
-
 bool CPhilipsFile::writeMatrix(const QByteArray& matrixData, 
                                short slice, short frame, short tilt)
 {
@@ -786,7 +787,7 @@ bool CPhilipsFile::writeMatrix(const char* matrixData, unsigned int size, CPhili
   // forward the write request to the MainDirectory which is going to manage
   // everything else for us
   if(m_pData->directory && 
-     m_pData->directory->writeMatrix(matrixData, size, type, slice, frame, tilt));
+     m_pData->directory->writeMatrix(matrixData, size, type, slice, frame, tilt))
   {
     // make sure the frames/planes/gates/bedpos parameters in the mainheader
     // are in sync
@@ -811,9 +812,6 @@ bool CPhilipsFile::writeMatrix(const char* matrixData, unsigned int size, CPhili
   RETURN(result);
   return result;
 }
-
-
-/* ---------------------------------------------------------- */
 
 CPhilipsMainHeader* CPhilipsFile::createEmptyMainHeader()
 {
