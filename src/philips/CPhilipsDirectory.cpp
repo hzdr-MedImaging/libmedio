@@ -877,6 +877,239 @@ bool CPhilipsDirectory::writeExtendedMainHeader(const CPhilipsExtendedMainHeader
   return result;
 }
 
+bool CPhilipsDirectory::writeSubHeader(const CPhilipsSubHeader& subHeader,
+                                       short slice, short frame, short tilt)
+{
+  ENTER();
+  bool result = false;
+
+  if(matrixParamsValid(slice, frame, tilt))
+  {
+    quint32 mID = convertToMatrixID(slice, frame, tilt);
+    D("Generated MatrixID: %08lx", mID);
+
+    // see if we already have an item with the same matrixID in our
+    // dictonary and if so we reuse that one and place a new subheader at
+    // this position
+    CPhilipsDirectoryItem* pNewDItem = m_pData->dirItems.value(mID);
+    if(pNewDItem == NULL)
+    {
+      pNewDItem = m_pData->newDirItem(mID);
+    }
+
+  // then we make sure the subheader is written to the Philips file.
+  result = pNewDItem->writeSubHeader(subHeader);
+  if(result)
+    save();
+  }
+
+  RETURN(result);
+  return result;
+}
+
+/* --------------------------------------------------------- */
+
+bool CPhilipsDirectory::writeMatrix(const QByteArray& matrixData,
+                                    short slice, short frame, short tilt)
+{
+  ENTER();
+  bool result = false;
+
+  if(matrixParamsValid(slice, frame, tilt))
+  {
+    // form the MatrixID from the supplied data and create a new
+    // DirectoryItem (or replace an existing one)
+    quint32 mID = convertToMatrixID(slice, frame, tilt);
+    D("Generated MatrixID: %08lx", mID);
+
+    // see if we already have an item with the same matrixID in our
+    // dictonary and if so we reuse that one and place a new subheader at
+    // this position
+    CPhilipsDirectoryItem* pNewDItem = m_pData->dirItems.value(mID);
+    if(pNewDItem == NULL)
+    {
+      // create a new DirectoryItem which we put in this Directory
+      pNewDItem = m_pData->newDirItem(mID);
+    }
+
+    // then we make sure the subheader is written to the Philips file.
+    result = pNewDItem->writeMatrix(matrixData);
+    if(result)
+      save();
+  }
+  
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsDirectory::writeMatrix(const char* matrixData, unsigned int size,
+                                    short slice, short frame, short tilt)
+{
+  ENTER();
+  bool result = false;
+
+  if(matrixParamsValid(slice, frame, tilt))
+  {  
+    // form the MatrixID from the supplied data and create a new
+    // DirectoryItem (or replace an existing one)
+    quint32 mID = convertToMatrixID(slice, frame, tilt);
+    D("Generated MatrixID: %08lx", mID);
+
+    // see if we already have an item with the same matrixID in our
+    // dictonary and if so we reuse that one and place a new subheader at
+    // this position
+    CPhilipsDirectoryItem* pNewDItem = m_pData->dirItems.value(mID);
+    if(pNewDItem == NULL)
+    {
+      // create a new DirectoryItem which we put in this Directory
+      pNewDItem = m_pData->newDirItem(mID);
+    }
+
+    // then we make sure the subheader is written to the Philips file.
+    result = pNewDItem->writeMatrix(matrixData, size);
+    if(result)
+      save();
+  }
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsDirectory::writeMatrix(const QByteArray& matrixData, CPhilipsSubHeader::Data_Type type,
+                                    short slice, short frame, short tilt)
+{
+  ENTER();
+  bool result = false;
+
+  if(matrixParamsValid(slice, frame, tilt))
+  {
+    // form the MatrixID from the supplied data and create a new
+    // DirectoryItem (or replace an existing one)
+    quint32 mID = convertToMatrixID(slice, frame, tilt);
+    D("Generated MatrixID: %08lx", mID);
+
+    // see if we already have an item with the same matrixID in our
+    // dictonary and if so we reuse that one and place a new subheader at
+    // this position
+    CPhilipsDirectoryItem* pNewDItem = m_pData->dirItems.value(mID);
+    if(pNewDItem == NULL)
+    {
+      // create a new DirectoryItem which we put in this Directory
+      pNewDItem = m_pData->newDirItem(mID);
+    }
+
+    // then we make sure the subheader is written to the Philips file.
+    result = pNewDItem->writeMatrix(matrixData, type);
+    if(result)
+      save();
+  }
+  
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsDirectory::writeMatrix(const char* matrixData, unsigned int size,
+                                    CPhilipsSubHeader::Data_Type type,
+                                    short slice, short frame, short tilt)
+{
+  ENTER();
+  bool result = false;
+
+  if(matrixParamsValid(slice, frame, tilt))
+  {
+    // form the MatrixID from the supplied data and create a new
+    // DirectoryItem (or replace an existing one)
+    quint32 mID = convertToMatrixID(slice, frame, tilt);
+    D("Generated MatrixID: %08lx", mID);
+
+    // see if we already have an item with the same matrixID in our
+    // dictonary and if so we reuse that one and place a new subheader at
+    // this position
+    CPhilipsDirectoryItem* pNewDItem = m_pData->dirItems.value(mID);
+    if(pNewDItem == NULL)
+    {
+      // create a new DirectoryItem which we put in this Directory
+      pNewDItem = m_pData->newDirItem(mID);
+    }
+
+    // then we make sure the subheader is written to the Philips file.
+    result = pNewDItem->writeMatrix(matrixData, size, type);
+    if(result)
+      save();
+  }
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsDirectory::writeMatrix(const QByteArray& matrixData, const CPhilipsSubHeader& subHeader,
+                                    short slice, short frame, short tilt)
+{
+  ENTER();
+  bool result = false;
+
+  if(matrixParamsValid(slice, frame, tilt))
+  {  
+    // form the MatrixID from the supplied data and create a new
+    // DirectoryItem (or replace an existing one)
+    quint32 mID = convertToMatrixID(slice, frame, tilt);
+    D("Generated MatrixID: %08lx", mID);
+
+    // see if we already have an item with the same matrixID in our
+    // dictonary and if so we reuse that one and place a new subheader at
+    // this position
+    CPhilipsDirectoryItem* pNewDItem = m_pData->dirItems.value(mID);
+    if(pNewDItem == NULL)
+    {
+      // create a new DirectoryItem which we put in this Directory
+      pNewDItem = m_pData->newDirItem(mID);
+    }
+
+    // then we make sure the subheader is written to the Philips file.
+    result = pNewDItem->writeMatrix(matrixData, subHeader);
+    if(result)
+      save();
+  }
+  
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsDirectory::writeMatrix(const char* matrixData, unsigned int size, const CPhilipsSubHeader& subHeader,
+                                    short slice, short frame, short tilt)
+{
+  ENTER();
+  bool result = false;
+
+  if(matrixParamsValid(slice, frame, tilt))
+  {  
+    // form the MatrixID from the supplied data and create a new
+    // DirectoryItem (or replace an existing one)
+    quint32 mID = convertToMatrixID(slice, frame, tilt);
+    D("Generated MatrixID: %08lx", mID);
+
+    // see if we already have an item with the same matrixID in our
+    // dictonary and if so we reuse that one and place a new subheader at
+    // this position
+    CPhilipsDirectoryItem* pNewDItem = m_pData->dirItems.value(mID);
+    if(pNewDItem == NULL)
+    {
+      // create a new DirectoryItem which we put in this Directory
+      pNewDItem = m_pData->newDirItem(mID);
+    }
+
+    // then we make sure the subheader is written to the Philips file.
+    result = pNewDItem->writeMatrix(matrixData, size, subHeader);
+    if(result)
+      save();
+  }
+
+  RETURN(result);
+  return result;
+}
+
+/* ---------------------------------- */
+
 CPhilipsDirectoryItem* CPhilipsDirectory::operator[](unsigned int num) const
 {
   ENTER();

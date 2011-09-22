@@ -42,7 +42,8 @@ class CPhilipsSubHeader : public CMedIOHeader
                 Sinogram
               };
 
-    enum Data_Type { ByteData = 1,      // 1: char
+    enum Data_Type { UnknownDataType = 0,
+                     ByteData = 1,      // 1: char
                      SignedShort = 2,   // 2: short
                      UnsignedShort = 3, // 2: unsigned short
                      Float = 4          // 4: float

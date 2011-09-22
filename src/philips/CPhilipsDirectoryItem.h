@@ -116,13 +116,13 @@ class CPhilipsDirectoryItem
 
     // write i/o methods
     bool writeExtendedMainHeader(const CPhilipsExtendedMainHeader& extendedMainHeader);
-    // bool writeSubHeader(const CPhilipsSubHeader& subHeader);
-    // bool writeMatrix(const QByteArray& data);
-    // bool writeMatrix(const char* data, unsigned int len);
-    // bool writeMatrix(const QByteArray& data, CPhilipsSubHeader::Data_Type type);
-    // bool writeMatrix(const char* data, unsigned int len, CPhilipsSubHeader::Data_Type type);
-    // bool writeMatrix(const QByteArray& data, const CPhilipsSubHeader& subHeader);
-    // bool writeMatrix(const char* data, unsigned int len, const CPhilipsSubHeader& subHeader);
+    bool writeSubHeader(const CPhilipsSubHeader& subHeader);
+    bool writeMatrix(const QByteArray& data);
+    bool writeMatrix(const char* data, unsigned int len);
+    bool writeMatrix(const QByteArray& data, CPhilipsSubHeader::Data_Type type);
+    bool writeMatrix(const char* data, unsigned int len, CPhilipsSubHeader::Data_Type type);
+    bool writeMatrix(const QByteArray& data, const CPhilipsSubHeader& subHeader);
+    bool writeMatrix(const char* data, unsigned int len, const CPhilipsSubHeader& subHeader);
 
     // our QDataStream operators
     friend QDataStream& operator<<(QDataStream& stream, const CPhilipsDirectoryItem& item);
@@ -130,7 +130,7 @@ class CPhilipsDirectoryItem
 
     // internal methods to sync specific data with our headers
     void extendedMainHeaderWritten(const CPhilipsExtendedMainHeader& extendedMainHeader);
-    // void subHeaderWritten(const CPhilipsSubHeader& subHeader);
+    void subHeaderWritten(const CPhilipsSubHeader& subHeader);
 
   private:
     CPhilipsDirectoryItemPrivate* m_pData;

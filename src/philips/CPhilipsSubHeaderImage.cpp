@@ -416,9 +416,127 @@ bool CPhilipsSubHeaderImage::load(void)
 bool CPhilipsSubHeaderImage::save(void) const
 {
   ENTER();
-#warning TODO: implement CPhilipsSubHeaderImage::save()
-  RETURN(false);
-  return false;
+
+  // check if this stream is writeable or not
+  if(m_pMedIOData == NULL || m_pMedIOData->isWritable() == false ||
+     m_pDirItem == NULL || m_pDirItem->dataBlock_Start() == 0 ||
+     m_pMedIOData->seek(m_pDirItem->dataBlock_Start()) == false)
+  {
+    RETURN(false);
+    return false;
+  }
+
+  SHOWVALUE(m_pMedIOData->pos());
+
+  // we write to a buffer first and write out later directly to the file
+  QByteArray buffer(rawDataSize(), 0);
+  QDataStream stream(&buffer, QIODevice::WriteOnly);
+  // we have to set the QDataStream version to the Qt4.5 version
+  // because with Qt4.6 the floating point precision changed and
+  // otherwise causes our streaming to fail
+  stream.setVersion(QDataStream::Qt_4_5);
+  
+  // lets write out each single data element of our
+  // data structure to maintain the correct endianess of the
+  // data
+
+  // to write out the fill bytes
+  // we need a buffer
+  char byte[50];
+  memset(byte, 0, 50);
+
+  stream.writeRawData(byte, 14);                               // 0: write 14 bytes
+  stream << m_pData->header.version;                    // 0: version
+  stream.writeRawData(m_pData->header.atten_corr, 16);  // 2: atten_corr
+  stream << m_pData->header.actual_bedpos;              // 18: actual_bedpos
+  stream << m_pData->header.orientation[0];             // 22: orientation[0]
+  stream << m_pData->header.orientation[1];             // 26: orientation[1]
+  stream << m_pData->header.orientation[2];             // 30: orientation[2]
+  stream.writeRawData(byte, 4);                                // 34: write 4 bytes
+  stream << m_pData->header.orientation[3];             // 38: orientation[3]
+  stream << m_pData->header.orientation[4];             // 42: orientation[4]
+  stream << m_pData->header.orientation[5];             // 46: orientation[5]
+  stream << m_pData->header.card_fr_time;               // 50: card_fr_time
+  stream << m_pData->header.card_high_rr;               // 54: card_high_rr
+  stream << m_pData->header.card_low_rr;                // 58 : card_low_rr
+  stream << m_pData->header.card_tr_time;               // 54: card_high_rr
+  stream.writeRawData(m_pData->header.scatter_corr, 16); // 58: scatter_corr
+  stream << m_pData->header.deadtime_corr;              // 74: deadtime_corr
+  stream << m_pData->header.randoms_corr;               // 76: randoms_corr
+  stream << m_pData->header.det_norm;                   // 78: det_norm
+  stream << m_pData->header.nu_radsamp_corr;            // 80: nu_radsamp_corr
+  stream << m_pData->header.pat_mot_corr;               // 82: pat_mot_corr
+  stream << m_pData->header.echo_time;                  // 84: echo_time
+  stream << m_pData->header.exposure_time;              // 88: exposure_time
+  stream << m_pData->header.img_pos[0];                 // 94: img_pos[0]
+  stream << m_pData->header.img_pos[1];                 // 98: img_pos[1]
+  stream.writeRawData(byte, 4);                                // 102: write next 4 bytes
+  stream << m_pData->header.datype;                     // 106: datype
+  stream << m_pData->header.img_pos[2];                 // 108: img_pos[2]
+  stream << m_pData->header.xdim;                       // 112: xdim
+  stream << m_pData->header.ydim;                       // 114: ydim
+  stream << m_pData->header.slcnum;                     // 116: slcnum
+  stream << m_pData->header.tiltnum;                    // 118: tiltnum
+  stream << m_pData->header.gatint;                     // 120: gatint
+  stream << m_pData->header.cntloss_corr;               // 122: cntloss_corr
+  stream << m_pData->header.pix_spacing[0];             // 124: pix_spacing[0]
+  stream << m_pData->header.pix_spacing[1];             // 128: pix_spacing[1]
+  stream << m_pData->header.xray_current;               // 132: xray_current
+  stream << m_pData->header.suvscl;                     // 136: suvscl
+  stream << m_pData->header.kvp;                        // 140: kvp
+  stream << m_pData->header.Dslice_loc;                 // 144: Dslice_loc
+  stream << m_pData->header.magfac;                     // 148: magfac
+  stream << m_pData->header.imgscl;                     // 152: imgscl
+  stream << m_pData->header.imgmin;                     // 156: imgmin
+  stream << m_pData->header.imgmax;                     // 158: imgmax
+  stream << m_pData->header.decay_corr;                 // 160: decay_corr
+  stream.writeRawData(byte, 4);                                // 162: write: scnscl (Sinogram only)
+  stream << m_pData->header.strhr;                      // 166: strhr
+  stream << m_pData->header.strmin;                     // 168: strmin
+  stream << m_pData->header.strsec;                     // 170: strsec
+  stream.writeRawData(byte, 4);                                // 172: write: scnmin and scnmax (Sinogram only)
+  stream << m_pData->header.endhr;                      // 176: endhr
+  stream << m_pData->header.endmin;                     // 178: endmin
+  stream << m_pData->header.endsec;                     // 180: endsec
+  stream << m_pData->header.midtim;                     // 182: midtim
+  stream.writeRawData(byte, 2);                                // 186: write 2 bytes
+  stream << m_pData->header.mseclen;                    // 188: mseclen
+  stream << m_pData->header.scnlen;                     // 190: scnlen
+  stream << m_pData->header.imgsum;                     // 192: imgsum
+  stream.writeRawData(byte, 4);                                // 196: write: scnsum (Sinogram only)
+  stream << m_pData->header.bgdelrt;                    // 200: bgdelrt
+  stream << m_pData->header.enddelrt;                   // 204: enddelrt
+  stream << m_pData->header.bgsngrt;                    // 208: bgsngrt
+  stream << m_pData->header.bgcoincrt;                  // 212: bgcoincrt
+  stream << m_pData->header.endsngrt;                   // 216: endsngrt
+  stream << m_pData->header.endcoincrt;                 // 220: endcoincrt
+  stream << m_pData->header.deadtimefac;                // 224: deadtimefac
+  stream << m_pData->header.bedpos;                     // 230: bedpos
+  stream << m_pData->header.deadtime_bgsub;             // 232: deadtime_bgsub
+  stream.writeRawData(byte, 2);                                // 234: write next 2 bytes
+  stream.writeRawData(&m_pData->header.sop_uid[0], 64);  //
+  stream.writeRawData(&m_pData->header.recon_method[0], 16);  //
+  stream << m_pData->header.start_date_time;
+  stream << m_pData->header.end_date_time;
+  stream << m_pData->header.laterality;
+  stream << m_pData->header.anatomy;
+  stream << m_pData->header.frame_ref_date_time;
+  stream << m_pData->header.card_rr_time;
+  stream << m_pData->header.resp_int_time;
+  stream << m_pData->header.start_date_time_msec;
+  stream << m_pData->header.end_date_time_msec;
+  stream << m_pData->header.frame_ref_date_time_msec;
+
+  // now write out to our outStream
+  bool result = false;
+  if(m_pMedIOData->write(buffer) != -1)
+  {
+    m_pDirItem->subHeaderWritten(*this);
+    result = true;
+  }
+
+  RETURN(result);
+  return result;
 }
 
 int CPhilipsSubHeaderImage::rawDataSize() const

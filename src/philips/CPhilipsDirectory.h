@@ -80,8 +80,22 @@ class CPhilipsDirectory
     bool readMatrix(char*& matrixData, unsigned int& len, CPhilipsSubHeader*& subHeader,
                     short slice, short frame=1, short tilt=0);
 
+    // write methods
     bool writeExtendedMainHeader(const CPhilipsExtendedMainHeader& extendedMainHeader);
-
+    bool writeSubHeader(const CPhilipsSubHeader& subHeader,
+                        short slice, short frame = 1, short tilt = 0);
+    bool writeMatrix(const QByteArray& matrix,
+                     short slice, short frame=1, short tilt=1);
+    bool writeMatrix(const char* matrix, unsigned int size,
+                     short slice, short frame=1, short tilt=1);
+    bool writeMatrix(const QByteArray& matrix, CPhilipsSubHeader::Data_Type type,
+                     short slice, short frame=1, short tilt=1);
+    bool writeMatrix(const char* matrix, unsigned int size, CPhilipsSubHeader::Data_Type type,
+                     short slice, short frame=1, short tilt=1);
+    bool writeMatrix(const QByteArray& matrix, const CPhilipsSubHeader& subHeader,
+                     short slice, short frame=1, short tilt=1);
+    bool writeMatrix(const char* matrix, unsigned int size, const CPhilipsSubHeader& subHeader,
+                     short slice, short frame=1, short tilt=1);
   private:
     CPhilipsDirectoryPrivate* m_pData;
 };

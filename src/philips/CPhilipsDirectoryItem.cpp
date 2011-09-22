@@ -39,7 +39,7 @@ class CPhilipsDirectoryItemPrivate
 {
   public:
     void cacheExtendedMainHeader(const CPhilipsExtendedMainHeader& extendedMainHeader);
-    // void cacheSubHeader(const CPhilipsSubHeader& subHeader);
+    void cacheSubHeader(const CPhilipsSubHeader& subHeader);
     
     CPhilipsDirectoryItem* dirItem; // pointer to the directory Item
     CPhilipsFile* file;             // pointer to the PhilipsFile
@@ -531,6 +531,20 @@ bool CPhilipsDirectoryItem::writeExtendedMainHeader(const CPhilipsExtendedMainHe
   return result;
 }
 
+bool CPhilipsDirectoryItem::writeSubHeader(const CPhilipsSubHeader& subHeaer)
+{
+  ENTER();
+  bool result = false;
+
+  m_pData->cacheSubHeader(subHeaer);
+
+  if(m_pData->cachedSubHeader != NULL)
+     result = m_pData->cachedSubHeader->save();
+
+  RETURN(result);
+  return result;
+}
+
 void CPhilipsDirectoryItemPrivate::cacheExtendedMainHeader(const CPhilipsExtendedMainHeader& extendedMainHeader)
 {
   ENTER();
@@ -544,6 +558,43 @@ void CPhilipsDirectoryItemPrivate::cacheExtendedMainHeader(const CPhilipsExtende
   {
     cachedExtendedMainHeader->setMedIOData(file);
     cachedExtendedMainHeader->setDirectoryItem(dirItem);
+  }
+
+  LEAVE();
+}
+
+void CPhilipsDirectoryItemPrivate::cacheSubHeader(const CPhilipsSubHeader& subHeader)
+{
+  ENTER();
+
+  switch(file->subHeaderType())
+  {
+    case CPhilipsSubHeader::Image:
+    {
+      if(cachedSubHeader)
+        *static_cast<CPhilipsSubHeaderImage*>(cachedSubHeader) = *static_cast<const CPhilipsSubHeaderImage*>(&subHeader);
+      else
+        cachedSubHeader = new CPhilipsSubHeaderImage(*static_cast<const CPhilipsSubHeaderImage*>(&subHeader));
+    }
+    break;
+
+    case CPhilipsSubHeader::Sinogram:
+    {
+      if(cachedSubHeader)
+        *static_cast<CPhilipsSubHeaderSinogram*>(cachedSubHeader) = *static_cast<const CPhilipsSubHeaderSinogram*>(&subHeader);
+      else
+        cachedSubHeader = new CPhilipsSubHeaderSinogram(*static_cast<const CPhilipsSubHeaderSinogram*>(&subHeader));
+    }
+    break;
+
+    default:
+      E("Philips type isn't specified or not supportet yet.");
+  }
+
+  if(cachedSubHeader)
+  {
+    cachedSubHeader->setMedIOData(file);
+    cachedSubHeader->setDirectoryItem(dirItem);
   }
 
   LEAVE();
@@ -563,6 +614,278 @@ void CPhilipsDirectoryItem::extendedMainHeaderWritten(const CPhilipsExtendedMain
 
   LEAVE();
 }
+
+void CPhilipsDirectoryItem::subHeaderWritten(const CPhilipsSubHeader& subHeader)
+{
+  ENTER();
+
+  if(&subHeader != m_pData->cachedSubHeader)
+  {
+    m_pData->cacheSubHeader(subHeader);
+  }
+
+  LEAVE();
+}
+
+
+bool CPhilipsDirectoryItem::writeMatrix(const QByteArray& matrixData)
+{
+  ENTER();
+  bool result;
+
+  result = writeMatrix(matrixData.data(), matrixData.size());
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsDirectoryItem::writeMatrix(const QByteArray& matrixData,
+                                        CPhilipsSubHeader::Data_Type dataType)
+{
+  ENTER();
+  bool result;
+
+  result = writeMatrix(matrixData.data(), matrixData.size(), dataType);
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrixSize)
+{
+  ENTER();
+  bool result;
+
+  result = writeMatrix(matrixData, matrixSize, CPhilipsSubHeader::UnknownDataType); 
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsDirectoryItem::writeMatrix(const QByteArray& matrixData, const CPhilipsSubHeader& subHeader)
+{
+  ENTER();
+  bool result;
+
+  result = writeMatrix(matrixData.data(), matrixData.size(), subHeader);
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrixSize,
+                                        CPhilipsSubHeader::Data_Type dataType)
+{
+  ENTER();
+  bool result = true;
+
+  // check if the file associated with this item is writeable at all
+  if(m_pData->file == NULL ||
+     m_pData->file->isWritable() == false)
+  {
+    RETURN(false);
+    return false;
+  }
+
+  // before we can write out the raw data we need to read in
+  // the Subheader so that we know the data type of our raw
+  // data but before we actually read it out we check the status
+  // of the directory item and eventually generate a new subHeader if
+  // there isn't already one.
+  CPhilipsSubHeader* subHeader = NULL;
+
+  SHOWVALUE(m_pData->contentFlag);
+  SHOWVALUE(m_pData->compressionFlag);
+  SHOWVALUE(m_pData->dataBlock_Start);
+  SHOWVALUE(m_pData->dataBlock_End);
+  SHOWPOINTER(m_pData->cachedSubHeader);
+
+  // try to read the subheader first
+  if(dataType == CPhilipsSubHeader::UnknownDataType ||
+     m_pData->contentFlag != Unused ||
+     m_pData->dataBlock_End != 0)
+  {
+    readSubHeader(subHeader);
+  }
+
+  SHOWPOINTER(subHeader);
+  
+  if(subHeader == NULL &&
+     m_pData->contentFlag == Unused &&
+     m_pData->dataBlock_End == 0)
+  {
+    SHOWVALUE(m_pData->file->subHeaderType());
+
+    switch(m_pData->file->subHeaderType())
+    {
+      case CPhilipsSubHeader::Image: 
+        subHeader = new CPhilipsSubHeaderImage(m_pData->file, this);
+      break;
+
+      case CPhilipsSubHeader::Sinogram:  
+        subHeader = new CPhilipsSubHeaderSinogram(m_pData->file, this);
+      break;
+
+      default:
+        E("Philips type isn't specified or not supported yet.");
+    }
+  }
+
+  if(subHeader == NULL)
+    result = false;
+  else
+  {
+    if(subHeader->datype() != dataType &&
+       dataType != CPhilipsSubHeader::UnknownDataType)
+    {
+      subHeader->setDatype(dataType);
+    }
+
+    result = writeMatrix(matrixData, matrixSize, *subHeader);
+  }
+
+  // make sure to delete the new subHeader
+  delete subHeader;
+  
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrixSize,
+                                        const CPhilipsSubHeader& subHeader)
+{
+  ENTER();
+  bool result = true;
+  
+  // check if the file associated with this item is writeable at all
+  if(m_pData->file == NULL || m_pData->file->isWritable() == false)
+  {
+    RETURN(false);
+    return false;
+  }
+
+  // now that we have the proper subHeader here we make sure to write it to
+  // out file prior to saving the matrixData
+  if(writeSubHeader(subHeader) == false)
+  {
+    RETURN(false);
+    return false;
+  }
+
+  // set the PhilipsFile handle to the correct position of
+  // the matrix start. This should normally be
+  // Matrix_SubHeader_StartPosition+subHeaderSize
+  if(m_pData->file->seek(m_pData->dataBlock_Start+subHeader.rawDataSize()) == false)
+  {
+    RETURN(false);
+    return false;
+  }
+
+  SHOWVALUE(m_pData->file->pos());
+
+  // then we process the matrix data that is associated with
+  // this directoryitem.
+  // here we have to care about the correct endianess, so that
+  // we convert BIG->LITTLE or vise versa depending on the
+  // system we are running.
+  switch(subHeader.datype())
+  {
+    case CPhilipsSubHeader::UnknownDataType:
+    {
+      E("No or an unknown data type was set for the matrix data of dirItem %08lx",
+        convertToMatrixID(m_pData->slice, m_pData->frame, m_pData->tilt));
+      
+      result = false;
+    }
+    break;
+
+    // write out Byte data. (1 byte)
+    case CPhilipsSubHeader::ByteData:
+    {
+      if(m_pData->file->write(matrixData, matrixSize) == (qint64)matrixSize)
+        result = true;
+    }
+    break;
+
+    case CPhilipsSubHeader::SignedShort:
+    {
+      // the endianess conversion takes quite some time, so
+      // what we do is to us a temporarly buffer to which we read
+      // some data from our fileStream and read out to our QByteArray
+      QByteArray bufArray(8192, 0); // write in 8KB chunks
+      quint16* ptr = (quint16*)matrixData;
+      for(unsigned int written=0; written < matrixSize;)
+      {
+        unsigned int toWrite = matrixSize-written >= 8192 ? 8192 : matrixSize-written;
+
+        // check if the curRead value is divide able through our data type 
+        ASSERT(toWrite % sizeof(quint16) == 0);
+
+        // now that we have our chunk we use a bufferStream to stream
+        // in the values to it for making sure our data is correctly
+        // converted regarding to little/big endianess
+        QDataStream bufStream(&bufArray, QIODevice::WriteOnly);
+        for(unsigned int i=0; i < toWrite; i+=sizeof(quint16))
+        {
+          bufStream << *ptr;
+          ++ptr;
+        }
+
+        // write out the data from our buffer to the file
+        if(m_pData->file->write(bufArray.data(), toWrite) != (qint64)toWrite)
+        {
+          result = false;
+          break;
+        }
+        
+        // increase our read counter
+        written += toWrite;
+      }
+
+    }
+    break;
+
+    default:
+      E("Data type not supported yet.");
+  }    
+
+  if(result)
+  {
+    // check if the data we have written is divideable through the PHILIPS_BLOCKSIZE
+    // or we have to add some more NULL bytes until we have 512 byte aligned data
+    // because the Philips standard defines Philips files to be always dividable through
+    // 512 byte blocks.
+    if((matrixSize % PHILIPS_BLOCKSIZE) > 0)
+    {
+      unsigned int fillLen = PHILIPS_BLOCKSIZE - (matrixSize % PHILIPS_BLOCKSIZE);
+      char fillData[fillLen];
+
+      memset(fillData, 0, fillLen*sizeof(char));
+
+      if(m_pData->file->write(fillData, fillLen) != (qint64)fillLen)
+      {
+        result = false;
+        E("Error occurred while trying to write %d NULL bytes.", fillLen);
+      }
+      else
+      {
+        matrixSize += fillLen;
+        W("matrixsize %% Philips_BLOCKSIZE != 0. added %d NULL bytes", fillLen);
+      }
+    }
+
+    if(result)
+    {
+      // at the end of our operation we calculate the new EndPosition
+      m_pData->dataBlock_End = m_pData->dataBlock_Start+subHeader.rawDataSize()+matrixSize-PHILIPS_BLOCKSIZE;
+      m_pData->contentFlag = CPhilipsDirectoryItem::Used;
+    }
+  }
+
+  RETURN(result);
+  return result;
+}
+
 
 QDataStream& operator<<(QDataStream& stream, const CPhilipsDirectoryItem& dItem)
 {

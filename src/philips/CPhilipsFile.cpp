@@ -25,6 +25,8 @@
 #include "CPhilipsFile.h"
 #include "CPhilipsMainHeader.h"
 #include "CPhilipsDirectory.h"
+#include "CPhilipsSubHeaderImage.h"
+#include "CPhilipsSubHeaderSinogram.h"
 
 #include <QDataStream>
 #include <rtdebug.h>
@@ -157,12 +159,16 @@ short CPhilipsFile::numSlices(void)
     short maxSlice = this->maxSlice();
     short dist = maxSlice - minSlice;
     short sliceThickness = mainHeader->slcthk();
-    if(sliceThickness != 0)
+    if((sliceThickness > 0) &&
+       (minSlice > 0) && (maxSlice > 0))
     {
       if((dist % sliceThickness) != 0)
         W("(maxSlice - minSlice) is no multiple of the slice thickness.");
 
-      slicesNum  = dist / mainHeader->slcthk();
+      if(minSlice == maxSlice)
+        slicesNum = 1;
+      else
+        slicesNum  = dist / mainHeader->slcthk() + 1;
     }
     else
     {
@@ -546,6 +552,269 @@ bool CPhilipsFile::writeExtendedMainHeader(CPhilipsExtendedMainHeader& extendedM
   return result;
 }
 
+bool CPhilipsFile::writeSubHeader(const CPhilipsSubHeader& subHeader, short slice, short frame, short tilt)
+{
+  ENTER();
+  bool result = false;
+
+  ASSERT(m_pData->directory);
+
+  // forward the write request to the MainDirectory which is going to manage
+  // everything else for us
+  if(m_pData->directory &&
+     m_pData->directory->writeSubHeader(subHeader, slice, frame, tilt))
+  {
+    // make sure the slice/frame/tilt parameters in the mainheader
+    // are in sync
+    CPhilipsMainHeader* mainHeader = NULL;
+    if(readMainHeader(mainHeader))
+    {
+      if(mainHeader->minfrm() > frame ||
+         mainHeader->maxfrm() < frame ||
+         mainHeader->minslc() > slice ||
+         mainHeader->maxslc() < slice ||
+         mainHeader->ntilt() < tilt)
+      {
+        result = writeMainHeader(*mainHeader);
+      }
+      else
+        result = true;
+
+      delete mainHeader;
+    }
+  }
+
+  RETURN(result);
+  return result;
+}
+
+/* ---------------------------------------------------------- */
+
+bool CPhilipsFile::writeMatrix(const QByteArray& matrixData, 
+                               short slice, short frame, short tilt)
+{
+  ENTER();
+  bool result = false;
+
+  ASSERT(m_pData->directory);
+  
+  // forward the write request to the MainDirectory which is going to manage
+  // everything else for us
+  if(m_pData->directory &&
+     m_pData->directory->writeMatrix(matrixData, slice, frame, tilt))
+  {
+    // make sure the frames/planes/gates/bedpos parameters in the mainheader
+    // are in sync
+    CPhilipsMainHeader* mainHeader = NULL;
+    if(readMainHeader(mainHeader))
+    {
+      if(mainHeader->minfrm() > frame ||
+         mainHeader->maxfrm() < frame ||
+         mainHeader->minslc() > slice ||
+         mainHeader->maxslc() < slice ||
+         mainHeader->ntilt() < tilt)
+      {
+        result = writeMainHeader(*mainHeader);
+      }
+      else
+        result = true;
+
+      delete mainHeader;
+    }
+  }
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsFile::writeMatrix(const char* matrixData, unsigned int size,
+                               short slice, short frame, short tilt)
+{
+  ENTER();
+  bool result = false;
+
+  ASSERT(m_pData->directory);
+  
+  // forward the write request to the MainDirectory which is going to manage
+  // everything else for us
+  if(m_pData->directory && 
+     m_pData->directory->writeMatrix(matrixData, size, slice, frame, tilt))
+  {
+    // make sure the frames/planes/gates/bedpos parameters in the mainheader
+    // are in sync
+    CPhilipsMainHeader* mainHeader = NULL;
+    if(readMainHeader(mainHeader))
+    {
+      if(mainHeader->minfrm() > frame ||
+         mainHeader->maxfrm() < frame ||
+         mainHeader->minslc() > slice ||
+         mainHeader->maxslc() < slice ||
+         mainHeader->ntilt() < tilt)
+      {
+        result = writeMainHeader(*mainHeader);
+      }
+      else
+        result = true;
+
+      delete mainHeader;
+    }
+  }
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsFile::writeMatrix(const QByteArray& matrixData, const CPhilipsSubHeader& subHeader,
+                               short slice, short frame, short tilt)
+{
+  ENTER();
+  bool result = false;
+
+  ASSERT(m_pData->directory);
+  
+  // forward the write request to the MainDirectory which is going to manage
+  // everything else for us
+  if(m_pData->directory &&
+     m_pData->directory->writeMatrix(matrixData, subHeader, slice, frame, tilt))
+  {
+    // make sure the frames/planes/gates/bedpos parameters in the mainheader
+    // are in sync
+    CPhilipsMainHeader* mainHeader = NULL;
+    if(readMainHeader(mainHeader))
+    {
+      if(mainHeader->minfrm() > frame ||
+         mainHeader->maxfrm() < frame ||
+         mainHeader->minslc() > slice ||
+         mainHeader->maxslc() < slice ||
+         mainHeader->ntilt() < tilt)
+      {
+        result = writeMainHeader(*mainHeader);
+      }
+      else
+        result = true;
+
+      delete mainHeader;
+    }
+  }
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsFile::writeMatrix(const char* matrixData, unsigned int size, const CPhilipsSubHeader& subHeader,
+                               short slice, short frame, short tilt)
+{
+  ENTER();
+  bool result = false;
+
+  ASSERT(m_pData->directory);
+  
+  // forward the write request to the MainDirectory which is going to manage
+  // everything else for us
+  if(m_pData->directory && 
+     m_pData->directory->writeMatrix(matrixData, size, subHeader, slice, frame, tilt))
+  {
+    // make sure the frames/planes/gates/bedpos parameters in the mainheader
+    // are in sync
+    CPhilipsMainHeader* mainHeader = NULL;
+    if(readMainHeader(mainHeader))
+    {
+      if(mainHeader->minfrm() > frame ||
+         mainHeader->maxfrm() < frame ||
+         mainHeader->minslc() > slice ||
+         mainHeader->maxslc() < slice ||
+         mainHeader->ntilt() < tilt)
+      {
+        result = writeMainHeader(*mainHeader);
+      }
+      else
+        result = true;
+
+      delete mainHeader;
+    }
+  }
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsFile::writeMatrix(const QByteArray& matrixData, CPhilipsSubHeader::Data_Type type, 
+                               short slice, short frame, short tilt)
+{
+  ENTER();
+  bool result = false;
+
+  ASSERT(m_pData->directory);
+  
+  // forward the write request to the MainDirectory which is going to manage
+  // everything else for us
+  if(m_pData->directory &&
+     m_pData->directory->writeMatrix(matrixData, type, slice, frame, tilt))
+  {
+    // make sure the frames/planes/gates/bedpos parameters in the mainheader
+    // are in sync
+    CPhilipsMainHeader* mainHeader = NULL;
+    if(readMainHeader(mainHeader))
+    {
+      if(mainHeader->minfrm() > frame ||
+         mainHeader->maxfrm() < frame ||
+         mainHeader->minslc() > slice ||
+         mainHeader->maxslc() < slice ||
+         mainHeader->ntilt() < tilt)
+      {
+        result = writeMainHeader(*mainHeader);
+      }
+      else
+        result = true;
+
+      delete mainHeader;
+    }
+  }
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsFile::writeMatrix(const char* matrixData, unsigned int size, CPhilipsSubHeader::Data_Type type,
+                               short slice, short frame, short tilt)
+{
+  ENTER();
+  bool result = false;
+
+  ASSERT(m_pData->directory);
+  
+  // forward the write request to the MainDirectory which is going to manage
+  // everything else for us
+  if(m_pData->directory && 
+     m_pData->directory->writeMatrix(matrixData, size, type, slice, frame, tilt));
+  {
+    // make sure the frames/planes/gates/bedpos parameters in the mainheader
+    // are in sync
+    CPhilipsMainHeader* mainHeader = NULL;
+    if(readMainHeader(mainHeader))
+    {
+      if(mainHeader->minfrm() > frame ||
+         mainHeader->maxfrm() < frame ||
+         mainHeader->minslc() > slice ||
+         mainHeader->maxslc() < slice ||
+         mainHeader->ntilt() < tilt)
+      {
+        result = writeMainHeader(*mainHeader);
+      }
+      else
+        result = true;
+
+      delete mainHeader;
+    }
+  }
+
+  RETURN(result);
+  return result;
+}
+
+
+/* ---------------------------------------------------------- */
+
 CPhilipsMainHeader* CPhilipsFile::createEmptyMainHeader()
 {
   ENTER();
@@ -570,6 +839,35 @@ CPhilipsExtendedMainHeader* CPhilipsFile::createEmptyExtendedMainHeader()
 
   RETURN(pEmptyExtendedMainHeader);
   return pEmptyExtendedMainHeader;
+}
+
+CPhilipsSubHeader* CPhilipsFile::createEmptySubHeader()
+{
+  ENTER();
+  CPhilipsSubHeader* pEmptySubHeader = NULL;
+  if(isOpen())
+  {
+    switch(subHeaderType())
+    {
+      case CPhilipsSubHeader::Image:
+      {
+        pEmptySubHeader = new CPhilipsSubHeaderImage(this);
+      }
+      break;
+
+      case CPhilipsSubHeader::Sinogram:
+      {
+        pEmptySubHeader = new CPhilipsSubHeaderSinogram(this);
+      }
+      break;
+
+      default:
+        E("Philips type isn't specified or not supported yet.");
+    }
+  }
+
+  RETURN(pEmptySubHeader);
+  return pEmptySubHeader;
 }
 
 void CPhilipsFile::mainHeaderWritten(const CPhilipsMainHeader& mainHeader)

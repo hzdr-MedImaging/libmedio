@@ -88,10 +88,26 @@ class CPhilipsFile : public CMedIOData
     // methods to write out headers/data to the file.
     bool writeMainHeader(CPhilipsMainHeader& mainHeader);
     bool writeExtendedMainHeader(CPhilipsExtendedMainHeader& extendedMainHeader);
+    bool writeSubHeader(const CPhilipsSubHeader& subHeader,
+                        short slice, short frame = 1, short tilt = 0);
+    bool writeMatrix(const QByteArray& matrixData,
+                     short slice, short frame=1, short tilt=0);
+    bool writeMatrix(const char* matrixData, unsigned int size,
+                     short slice, short frame=1, short tilt=0);
+    bool writeMatrix(const QByteArray& matrixData, const CPhilipsSubHeader& subHeader,
+                     short slice, short frame=1, short tilt=0);
+    bool writeMatrix(const char* matrixData, unsigned int size, const CPhilipsSubHeader& subHeader,
+                     short slice, short frame=1, short tilt=0);
+    bool writeMatrix(const QByteArray& matrixData, CPhilipsSubHeader::Data_Type type, 
+                     short slice, short frame=1, short tilt=0);
+    bool writeMatrix(const char* matrixData, unsigned int size, CPhilipsSubHeader::Data_Type type,
+                     short slice, short frame=1, short tilt=0);
+
 
     // methods to generate some objects just for convienence
     CPhilipsMainHeader* createEmptyMainHeader();
     CPhilipsExtendedMainHeader* createEmptyExtendedMainHeader();
+    CPhilipsSubHeader* createEmptySubHeader();
 
     // internal methods to sync specific data with our headers
     void mainHeaderWritten(const CPhilipsMainHeader& mainHeader);
