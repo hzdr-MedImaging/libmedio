@@ -137,10 +137,10 @@ short CPhilipsFile::numSlices(void)
   ENTER();
   short slicesNum = 0;
 
-  // we need to get the min and max slice
-  // and calculate the number of slices with the slice thickness
   if(isOpen())
   {
+    // if there is a cachedMainHeader we use it
+    // instead of loading the mainheader
     bool cachedMainHeaderUsed = true;
     CPhilipsMainHeader* mainHeader = m_pData->cachedMainHeader;
     SHOWPOINTER(mainHeader);
@@ -156,29 +156,26 @@ short CPhilipsFile::numSlices(void)
       }
     }
 
-    // we only calculate the number of slices if
-    // the slice thickness is set, to not divide by zero
+    // we need to get the min and max slice
+    // and calculate the number of slices with the slice thickness
     short minSlice = this->minSlice();
     short maxSlice = this->maxSlice();
     short dist = maxSlice - minSlice;
     short sliceThickness = mainHeader->slcthk();
+
+    // we only calculate the number of slices if
+    // the slice thickness is set, to not divide by zero
     if((sliceThickness > 0) &&
        (minSlice > 0) && (maxSlice > 0))
     {
       if((dist % sliceThickness) != 0)
         W("(maxSlice - minSlice) is no multiple of the slice thickness.");
 
-      if(minSlice == maxSlice)
-        slicesNum = 1;
-      else
-        slicesNum  = dist / mainHeader->slcthk() + 1;
-    }
-    else
-    {
-      D("Slice thickness is not set");
-      slicesNum = 0;
+      slicesNum  = dist / mainHeader->slcthk() + 1;
     }
 
+    // we have to delete the mainHeader
+    // if we didn't use the cachedMainHeader
     if(cachedMainHeaderUsed == false)
       delete mainHeader;
   }
