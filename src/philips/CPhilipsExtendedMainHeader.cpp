@@ -443,8 +443,8 @@ bool CPhilipsExtendedMainHeader::save(void) const
 
   // to write out the fill bytes
   // we need a buffer
-  char byte[50];
-  memset(byte, 0, 50);
+  char byte[64];
+  memset(byte, 0, 64);
 
   stream.writeRawData(&m_pData->header.Dpat_name[0], 64);      // 0:   Dpat_name
   stream.writeRawData(&m_pData->header.Dpat_id[0], 64);        // 64:  Dpat_id

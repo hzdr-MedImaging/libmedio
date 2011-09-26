@@ -195,6 +195,12 @@ bool CPhilipsFile::open(QIODevice::OpenModeFlag mode)
 
   bool result = false;
 
+  if(isOpen())
+  {
+    RETURN(false);
+    return false;
+  }
+
   // first we check if we already have some valid MainHeader/MainDirectory
   // combination and if so we need to delete it first.
   delete m_pData->directory;
