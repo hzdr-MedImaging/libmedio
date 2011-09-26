@@ -886,11 +886,12 @@ void CPhilipsFile::mainHeaderWritten(const CPhilipsMainHeader& mainHeader)
   // stuff in the cached header to be totally correct.
   if(m_pData->cachedMainHeader)
   {
-    // Please note that we do not specify any PLANES here as in Philips the
-    // planes are normally integrated in one matrix file. So we have to
-    // allow the user to specify the planes himself.
     m_pData->cachedMainHeader->setNframe(numFrames());
+    m_pData->cachedMainHeader->setMinfrm(minFrame());
+    m_pData->cachedMainHeader->setMaxfrm(maxFrame());
     m_pData->cachedMainHeader->setNslice(numSlices());
+    m_pData->cachedMainHeader->setMinslc(minSlice());
+    m_pData->cachedMainHeader->setMaxslc(maxSlice());
     m_pData->cachedMainHeader->setNtilt(numTilts());
     
     // set the CPhilipsFile object as the MedIOData object
