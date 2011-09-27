@@ -42,6 +42,7 @@
 
 // forward declarations
 class CPhilipsFilePrivate;
+class CPhilipsDirectory;
 
 class CPhilipsFile : public CMedIOData
 {
@@ -103,6 +104,8 @@ class CPhilipsFile : public CMedIOData
     bool writeMatrix(const char* matrixData, unsigned int size, CPhilipsSubHeader::Data_Type type,
                      short slice, short frame=1, short tilt=0);
 
+    // more advanced methods to access the directory list of a philips file
+    CPhilipsDirectory* directory() const;
 
     // methods to generate some objects just for convienence
     CPhilipsMainHeader* createEmptyMainHeader();

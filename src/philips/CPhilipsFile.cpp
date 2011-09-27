@@ -816,6 +816,11 @@ bool CPhilipsFile::writeMatrix(const char* matrixData, unsigned int size, CPhili
   return result;
 }
 
+CPhilipsDirectory* CPhilipsFile::directory() const
+{
+  return m_pData->directory;
+}
+
 CPhilipsMainHeader* CPhilipsFile::createEmptyMainHeader()
 {
   ENTER();
