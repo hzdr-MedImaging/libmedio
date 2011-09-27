@@ -313,8 +313,8 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
         CPhilipsSubHeaderImage* pLastPhilipsSubHeaderImage = NULL;
         CECATSubHeader::Data_Type outputDataType = CECATSubHeader::UnknownDataType;
 
-        short imgMaxValue = 0;
-        short imgMinValue = SHRT_MAX;
+        unsigned short imgMaxValue = 0;
+        unsigned short imgMinValue = SHRT_MAX;
         for(int slice = minSlice; slice <= maxSlice; slice += sliceThickness)
         {
           //cout << "Converting Slice: " << (slice) << endl;
@@ -333,43 +333,49 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
 
           CPhilipsSubHeaderImage* pPhilipsSubHeaderImage = static_cast<CPhilipsSubHeaderImage*>(pPhilipsSubHeader);
 
-          QByteArray* buffer;
+          QByteArray* buffer = NULL;
           bool bReadMatrix = pPhilipsFile->readMatrix(buffer, slice, frame+1);
           if(bReadMatrix == false)
           {
-            cout << "ERROR: When loading image data of  slice " << (slice) << endl;
+            cout << "ERROR: When loading image data of slice " << (slice) << endl;
             result = false;
             if(buffer != NULL)
               delete buffer;
 
+            if(pPhilipsSubHeader != NULL)
+              delete pPhilipsSubHeader;
+
             break;
           }
 
-          short sliceMaxValue = 0;
-          short sliceMinValue = SHRT_MAX;
+          unsigned short sliceMaxValue = 0;
+          unsigned short sliceMinValue = SHRT_MAX;
 
           switch(pPhilipsSubHeaderImage->datype())
           {
             case CPhilipsSubHeader::SignedShort:
-            case CPhilipsSubHeader::UnsignedShort:
             {
-              D("found short source data");
+              D("found signed short source data");
               STARTCLOCK("converting data");
               short xdim = pPhilipsSubHeaderImage->xdim();
               short ydim = pPhilipsSubHeaderImage->ydim();
 
-              int numElements =  (xdim * ydim) / sizeof(qint16);
-              CDataArray<qint16> dataArray(buffer, numElements);
+              int numElements =  (xdim * ydim) / sizeof(quint16);
+
+              CDataArray<quint16> dataArray(buffer, numElements);
               sliceMaxValue = dataArray.maxValue();
               sliceMinValue = dataArray.minValue();
 
+              D("xdim    : %d", xdim);
+              D("ydim    : %d", ydim);
+              D("numElem : %d", numElements);
               D("sliceMin: %d", sliceMinValue);
               D("sliceMax: %d", sliceMaxValue);
 
-              if(fabs(sliceMaxValue) > fabs(imgMaxValue))
+              if(sliceMaxValue > imgMaxValue)
                 imgMaxValue = sliceMaxValue;
 
-              if(fabs(sliceMinValue) < fabs(imgMinValue))
+              if(sliceMinValue < imgMinValue)
                 imgMinValue = sliceMinValue;
 
               STOPCLOCK("converting data");
@@ -405,7 +411,7 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
             break;
         }
 
-        if(bUnknownDataType == false)
+        if((bUnknownDataType == false) && (result != false))
         {
           CECAT7SubHeaderImage* pEcat7SubHeaderImage;
           pEcat7SubHeaderImage = static_cast<CECAT7SubHeaderImage*>(pEcat7Image->createEmptySubHeader());

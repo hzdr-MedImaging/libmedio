@@ -30,6 +30,7 @@ int main(int argc, char* argv[])
   else
     returnCode = EXIT_FAILURE;
 
+  RETURN(returnCode);
   #if defined(DEBUG)
   CRTDebug::destroy();
   #endif

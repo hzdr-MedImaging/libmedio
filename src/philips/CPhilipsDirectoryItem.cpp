@@ -344,6 +344,14 @@ bool CPhilipsDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSi
     return false;
   }
 
+  // as we can't handle compressed data abort
+  if(m_pData->compressionFlag == Compressed)
+  {
+    W("matrix data is compressed. abort reading");
+    RETURN(false);
+    return false;
+  }
+
   // we load the MatrixData out of the Philipsfile manually but only
   // if the content flag  of this item is set to "used"
   if(m_pData->contentFlag == Used)
