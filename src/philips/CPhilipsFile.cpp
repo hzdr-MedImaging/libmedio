@@ -163,6 +163,11 @@ short CPhilipsFile::numSlices(void)
     short dist = maxSlice - minSlice;
     short sliceThickness = mainHeader->slcthk();
 
+    // we have to delete the mainHeader
+    // if we didn't use the cachedMainHeader
+    if(cachedMainHeaderUsed == false)
+      delete mainHeader;
+
     // we only calculate the number of slices if
     // the slice thickness is set, to not divide by zero
     if((sliceThickness > 0) &&
@@ -171,13 +176,8 @@ short CPhilipsFile::numSlices(void)
       if((dist % sliceThickness) != 0)
         W("(maxSlice - minSlice) is no multiple of the slice thickness.");
 
-      slicesNum  = dist / mainHeader->slcthk() + 1;
+      slicesNum  = dist / sliceThickness + 1;
     }
-
-    // we have to delete the mainHeader
-    // if we didn't use the cachedMainHeader
-    if(cachedMainHeaderUsed == false)
-      delete mainHeader;
   }
 
   RETURN(slicesNum);
