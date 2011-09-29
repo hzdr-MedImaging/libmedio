@@ -33,6 +33,7 @@
 #include "CConcordeFile.h"
 #include "CConcordeSinogram.h"
 #include "CConcordeImage.h"
+#include "CPhilipsFile.h"
 
 #include <rtdebug.h>
 
@@ -72,6 +73,8 @@ CMedIOData* CMedIODataFactory::create(const QString& fileName)
     D("ECAT format found");
   else if((mData = CConcordeFile::createFromFile(fileName)))
     D("Concorde microPET format found");
+  else if((mData = CPhilipsFile::createFromFile(fileName)))
+    D("Philips file found");
   else
   {
     E("Can not identify file format");

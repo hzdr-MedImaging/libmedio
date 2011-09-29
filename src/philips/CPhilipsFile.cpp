@@ -102,6 +102,35 @@ CPhilipsFile::~CPhilipsFile()
   LEAVE();
 }
 
+bool CPhilipsFile::isOfType(const QString& filename)
+{
+  ENTER();
+  bool result = false;
+
+  CPhilipsFile file(filename);
+  if(file.open(QIODevice::ReadOnly))
+  {
+    result = true;
+    file.close();
+  }
+
+  RETURN(result);
+  return result;
+}
+
+CMedIOData* CPhilipsFile::createFromFile(const QString& fileName)
+{
+  ENTER();
+
+  CMedIOData* mData = NULL;
+
+  if(isOfType(fileName))
+    mData = new CPhilipsFile(fileName);
+
+  RETURN(mData);
+  return mData;
+}
+
 int CPhilipsFile::rtti() const
 {
   return CMedIOData::Philips;

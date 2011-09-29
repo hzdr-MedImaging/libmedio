@@ -52,6 +52,10 @@ class CPhilipsFile : public CMedIOData
                  CPhilipsMainHeader::File_Type fileType = CPhilipsMainHeader::Unknown);
     ~CPhilipsFile();
 
+    // static methods for the MedIOData Interface
+    static bool isOfType(const QString& filename);
+    static CMedIOData* createFromFile(const QString& fileName);
+
     // runtime type information
     int rtti() const;
 
