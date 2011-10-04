@@ -863,7 +863,10 @@ bool CPhilipsDirectoryItem::writeMatrix(const char* matrixData, unsigned int mat
     break;
 
     default:
+    {
       E("Data type not supported yet.");
+      result = false;
+    }
   }    
 
   if(result)
