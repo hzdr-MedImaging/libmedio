@@ -391,15 +391,16 @@ bool CPhilipsDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSi
     // and just use the QDataStream operators to ensure correct byte swapping
     switch(subHeader->datype())
     {
+#if 0
       case CPhilipsSubHeader::ByteData:
       {
         if(m_pData->file->read(matrixData, matrixSize) > 0)
           result = true;
       }
       break;
-
+#endif
       case CPhilipsSubHeader::SignedShort:
-      case CPhilipsSubHeader::UnsignedShort:
+        //case CPhilipsSubHeader::UnsignedShort:
       {
         QByteArray bufArray(8192, 0); // read 8KB chunks
         quint16* ptr = (quint16*)matrixData;
@@ -432,6 +433,7 @@ bool CPhilipsDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSi
       }
       break;
 
+#if 0
       case CPhilipsSubHeader::Float:
       {
         QByteArray bufArray(8192, 0); // read 8KB chunks
@@ -470,6 +472,13 @@ bool CPhilipsDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSi
         }
       }
       break;
+#endif
+
+      default:
+      {
+        D("Data type is not supported yet.");
+        result = false;
+      }
     }
 
     // now we delete the subHeader we loaded temporarly
