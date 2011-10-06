@@ -59,7 +59,7 @@ class CPhilipsMainHeader : public CMedIOHeader
 
     enum Patient_Orientation_hf
     {
-      UndefinedOrientation_hf,
+      Undefined_Orientation_hf,
       Head_First,       /* Top of patient head is closest to scanner
                          * slice #0 while torso os along direction of
                          * increasing scanner slice # */

@@ -62,6 +62,9 @@ class CECAT7MainHeaderPrivate
 
     CECAT7MainHeader::Patient_Sex philips2Ecat7Sex(const char& genus) const;
     QString philips2Ecat7Isotop(const CPhilipsMainHeader::Isotop isotop) const;
+    CECAT7MainHeader::Patient_Orientation philips2ECAT7Orientation(const CPhilipsMainHeader::Patient_Orientation_hf hf,
+                                                                   const CPhilipsMainHeader::Patient_Orientation_ps ps) const;
+    CECAT7MainHeader::Acquisition_Type philips2ECAT7Acquisition_Type(const CPhilipsMainHeader::Acquisition_Protocol_Type t) const;
 
     // MainHeader structure (should be 512bytes)
     struct HeaderData
@@ -933,11 +936,12 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
       setFile_Type(ft);
 
       setPatient_Name(head->patient_Name());
+      setPatient_ID(head->ssn());
       setPatient_Weight(head->weight() / 1000.0f); // g -> kg
 
       QDate birthdate(head->bthyr(), head->bthmo(), head->bthday());
       setPatient_Birth_Date_Qt(birthdate);
-
+      setPatient_Orientation(m_pData->philips2ECAT7Orientation(head->orient_Hf(), head->orient_Ps()));
       setNum_Planes(head->nslice());
       setNum_Frames(head->nframe());
       setNum_Gates(1);
@@ -950,35 +954,34 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
 
       setCalibration_Units(CECAT7MainHeader::Uncalibrated);
       setCalibration_Factor(1.0f);
-      setData_Units("BQML");
-      
+      setData_Units("Bq/cc");
+      setStudy_Type(head->aqprotocol_Name());
+      setAcquisition_Type(m_pData->philips2ECAT7Acquisition_Type(head->aqprotocol_Type()));
+
+
       //check if additional information is available
       if(pHead2)
       {
-        switch(pHead2->headerFormat())
+        if(pHead2->headerFormat() == CMedIOHeader::PhilipsExtendedMainHeader)
         {
-          case CMedIOHeader::PhilipsExtendedMainHeader:
-          {
-            D("Setting additional information to ECAT7 main header");
-            const CPhilipsExtendedMainHeader* extHeader = static_cast<const CPhilipsExtendedMainHeader*>(pHead2);
+          D("Setting additional information to ECAT7 main header");
+          const CPhilipsExtendedMainHeader* extHeader = static_cast<const CPhilipsExtendedMainHeader*>(pHead2);
 
-            QString patientName(extHeader->Dpat_name()); 
+          QString patientName(extHeader->Dpat_name()); 
 
-            if(patientName.contains("^"))
-              patientName.replace("^", ", ");               
+          if(patientName.contains("^"))
+            patientName.replace("^", ", ");               
 
-            setPatient_Name(patientName.toAscii().constData());
+          setPatient_Name(patientName.toAscii().constData());
 
-            setStudy_Description(extHeader->series_desc());
-            setDose_Start_Time(extHeader->injection_date_time());
-            setScan_Start_Time(extHeader->acq_date_time());
-            setRadiopharmaceutical(extHeader->radiopharm_name());
-            setPatient_Sex(m_pData->philips2Ecat7Sex(extHeader->sex()));
-            setPatient_ID(extHeader->Dpat_id());
-            setPatient_Height(extHeader->height() / 10); // mm -> cm
-            
-          };break;
-          default:break;
+          setStudy_Description(extHeader->series_desc());
+          setDose_Start_Time(extHeader->injection_date_time());
+          setScan_Start_Time(extHeader->acq_date_time());
+          setRadiopharmaceutical(extHeader->radiopharm_name());
+          setPatient_Sex(m_pData->philips2Ecat7Sex(extHeader->sex()));
+          setPatient_ID(extHeader->Dpat_id());
+          setPatient_Height(extHeader->height() / 10.0f); // mm -> cm
+          setBranching_Fraction(extHeader->abundance() / 10.0f); // %
         }
       }
       bResult = true;
@@ -987,7 +990,7 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
 
     case CMedIOHeader::Unknown:
       // for an unknown header type we do nothing
-    break;
+      break;
   }
 
   RETURN(bResult);
@@ -1912,4 +1915,68 @@ QString CECAT7MainHeaderPrivate::philips2Ecat7Isotop(const CPhilipsMainHeader::I
 
   RETURN(isotopString.toAscii().constData());
   return isotopString;
+}
+
+CECAT7MainHeader::Patient_Orientation CECAT7MainHeaderPrivate::philips2ECAT7Orientation(const CPhilipsMainHeader::Patient_Orientation_hf hf,
+                                                                                        const CPhilipsMainHeader::Patient_Orientation_ps ps) const
+{
+  ENTER();
+  CECAT7MainHeader::Patient_Orientation orientation = CECAT7MainHeader::Orient_Unknown;
+
+  switch(hf)
+  {
+    case CPhilipsMainHeader::Head_First:
+    {
+      switch(ps)
+      {
+        case CPhilipsMainHeader::Prone: orientation = CECAT7MainHeader::HF_Prone; break;
+        case CPhilipsMainHeader::Supine: orientation = CECAT7MainHeader::HF_Supine; break;
+        case CPhilipsMainHeader::Left: orientation = CECAT7MainHeader::HF_Left; break;
+        case CPhilipsMainHeader::Right: orientation = CECAT7MainHeader::HF_Right; break;
+        case CPhilipsMainHeader::Undefined_Orientation_ps: orientation = CECAT7MainHeader::Orient_Unknown; break;
+      }
+    }
+    break;
+
+    case CPhilipsMainHeader::Feet_First:
+    {
+      switch(ps)
+      {
+        case CPhilipsMainHeader::Prone: orientation = CECAT7MainHeader::FF_Prone; break;
+        case CPhilipsMainHeader::Supine: orientation = CECAT7MainHeader::FF_Supine; break;
+        case CPhilipsMainHeader::Left: orientation = CECAT7MainHeader::FF_Left; break;
+        case CPhilipsMainHeader::Right: orientation = CECAT7MainHeader::FF_Right; break;
+        case CPhilipsMainHeader::Undefined_Orientation_ps: orientation = CECAT7MainHeader::Orient_Unknown; break;
+      }
+    }
+    break;
+
+    case CPhilipsMainHeader::Undefined_Orientation_hf: orientation = CECAT7MainHeader::Orient_Unknown; break;
+  }
+
+  RETURN(orientation);
+  return orientation;
+}
+
+
+CECAT7MainHeader::Acquisition_Type CECAT7MainHeaderPrivate::philips2ECAT7Acquisition_Type(const CPhilipsMainHeader::Acquisition_Protocol_Type t) const
+{
+  ENTER();
+  CECAT7MainHeader::Acquisition_Type type = CECAT7MainHeader::Undefined;
+
+  switch(t)
+  {
+    case CPhilipsMainHeader::Undefined_Acquisition_Protocol: type = CECAT7MainHeader::Undefined; break;
+    case CPhilipsMainHeader::Static_Emission:                type = CECAT7MainHeader::StaticEmission; break;
+    case CPhilipsMainHeader::Dynamic_Emission:               type = CECAT7MainHeader::DynamicEmission; break;
+    case CPhilipsMainHeader::Static_Transmission_Only:       type = CECAT7MainHeader::Transmission; break;
+    case CPhilipsMainHeader::Gated_Cardiac:                  type = CECAT7MainHeader::GatedEmission; break;
+    case CPhilipsMainHeader::Whole_Body_Emission:            type = CECAT7MainHeader::StaticEmission; break;
+    case CPhilipsMainHeader::Whole_Body_Transmission_only:   type = CECAT7MainHeader::Transmission; break;
+    case CPhilipsMainHeader::Not_Used:                       type = CECAT7MainHeader::Undefined; break;
+    case CPhilipsMainHeader::Singles:                        type = CECAT7MainHeader::Undefined; break;
+  }
+
+  RETURN(type);
+  return type;
 }
