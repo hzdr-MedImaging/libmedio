@@ -148,12 +148,6 @@ class CPhilipsMainHeader : public CMedIOHeader
     File_Type filtyp() const;
     long minTransXtalDiff() const;
     float tofTstampScale() const;
-    short daycre() const;
-    short mocre() const;
-    short yrcre() const;
-    short hrcre() const;
-    short mincre() const;
-    short seccre() const;
     short duratn() const;
     Subheader_Type shdtyp() const;
     float pscale() const;
@@ -263,12 +257,6 @@ class CPhilipsMainHeader : public CMedIOHeader
     void setFiltyp(const File_Type fType);
     void setMinTransXtalDiff(const long minTransXtalDiff);
     void setTofTstampScale(const float tofTstampScale);
-    void setDaycre(const short day);
-    void setMocre(const short month);
-    void setYrcre(const short year);
-    void setHrcre(const short hour);
-    void setMincre(const short minute);
-    void setSeccre(const short second);
     void setDuratn(const short seconds);
     void setShdtyp(const Subheader_Type sType);
     void setPscale(const float preScale);

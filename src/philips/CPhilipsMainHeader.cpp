@@ -859,36 +859,6 @@ float CPhilipsMainHeader::tofTstampScale() const
   return m_pData->header.tofTstampScale;
 }
 
-short CPhilipsMainHeader::daycre() const
-{
-  return m_pData->header.dep_daycre;
-}
-
-short CPhilipsMainHeader::mocre() const
-{
-  return m_pData->header.dep_mocre;
-}
-
-short CPhilipsMainHeader::yrcre() const
-{
-  return m_pData->header.dep_yrcre;
-}
-
-short CPhilipsMainHeader::hrcre() const
-{
-  return m_pData->header.dep_hrcre;
-}
-
-short CPhilipsMainHeader::mincre() const
-{
-  return m_pData->header.dep_mincre;
-}
-
-short CPhilipsMainHeader::seccre() const
-{
-  return m_pData->header.dep_seccre;
-}
-
 short CPhilipsMainHeader::duratn() const
 {
   return m_pData->header.duratn;
@@ -1422,36 +1392,6 @@ void CPhilipsMainHeader::setMinTransXtalDiff(const long minTransXtalDiff)
 void CPhilipsMainHeader::setTofTstampScale(const float tofTstampScale)
 {
   m_pData->header.tofTstampScale = tofTstampScale;
-}
-
-void CPhilipsMainHeader::setDaycre(const short day)
-{
-  m_pData->header.dep_daycre = day;
-}
-
-void CPhilipsMainHeader::setMocre(const short month)
-{
-  m_pData->header.dep_mocre = month;
-}
-
-void CPhilipsMainHeader::setYrcre(const short year)
-{
-  m_pData->header.dep_yrcre = year;
-}
-
-void CPhilipsMainHeader::setHrcre(const short hour)
-{
-  m_pData->header.dep_hrcre = hour;
-}
-
-void CPhilipsMainHeader::setMincre(const short minute)
-{
-  m_pData->header.dep_mincre = minute;
-}
-
-void CPhilipsMainHeader::setSeccre(const short second)
-{
-  m_pData->header.dep_seccre = second;
 }
 
 void CPhilipsMainHeader::setDuratn(const short seconds)
