@@ -958,7 +958,6 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
       setStudy_Type(head->aqprotocol_Name());
       setAcquisition_Type(m_pData->philips2ECAT7Acquisition_Type(head->aqprotocol_Type()));
 
-
       //check if additional information is available
       if(pHead2)
       {
@@ -973,7 +972,6 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
             patientName.replace("^", ", ");               
 
           setPatient_Name(patientName.toAscii().constData());
-
           setStudy_Description(extHeader->series_desc());
           setDose_Start_Time(extHeader->injection_date_time());
           setScan_Start_Time(extHeader->acq_date_time());
@@ -982,6 +980,7 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
           setPatient_ID(extHeader->Dpat_id());
           setPatient_Height(extHeader->height() / 10.0f); // mm -> cm
           setBranching_Fraction(extHeader->abundance() / 10.0f); // %
+          setBed_Elevation(extHeader->table_height());
         }
       }
       bResult = true;

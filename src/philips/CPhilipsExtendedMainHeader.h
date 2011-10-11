@@ -39,7 +39,7 @@ class CPhilipsExtendedMainHeader : public CMedIOHeader
 {
   public:
     // public enumeration types
-    enum  Route_Type
+    enum Route_Type
     {
       UndefinedRoute,
       Intravenous,

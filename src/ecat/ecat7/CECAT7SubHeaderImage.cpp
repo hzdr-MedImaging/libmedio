@@ -561,7 +561,7 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead1, const CMedIOH
  
       short durationSec = head->scnlen();
       short durationMsec = head->mseclen();
-      setFrame_Duration(durationSec * 1000 + durationMsec);
+      setFrame_Duration((durationSec * 1000) + durationMsec);
 
       // check for additional information
       if(pHead2)
