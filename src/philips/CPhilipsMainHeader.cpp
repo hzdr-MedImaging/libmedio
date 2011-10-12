@@ -23,6 +23,7 @@
  **************************************************************************/
 
 #include <QDataStream>
+#include <QDate>
 
 #include "CPhilipsMainHeader.h"
 #include "CPhilipsFile.h"
@@ -1891,4 +1892,18 @@ void CPhilipsMainHeader::setPetct_alignment_horizRotation(const short horizRotat
 void CPhilipsMainHeader::setPetct_alignment_vertRotation(const short vertRotation)
 {
   m_pData->header.petCt.alignment.vertRotation = vertRotation;
+}
+
+// special Qt-based methods
+QDate CPhilipsMainHeader::patient_Birth_Date_Qt() const
+{
+  QDate birthdate(m_pData->header.bthyr, m_pData->header.bthmo, m_pData->header.bthday);
+  return birthdate;
+}
+
+void CPhilipsMainHeader::setPatient_Birth_Date_Qt(const QDate& date)
+{
+  m_pData->header.bthyr = date.year();
+  m_pData->header.bthmo = date.month();
+  m_pData->header.bthday = date.day();  
 }

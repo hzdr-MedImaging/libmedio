@@ -358,6 +358,10 @@ class CPhilipsMainHeader : public CMedIOHeader
     void setPetct_alignment_horizRotation(const short horizRotation);
     void setPetct_alignment_vertRotation(const short vertRotation);
 
+    // special Qt-based methods
+    QDate patient_Birth_Date_Qt() const;
+    void setPatient_Birth_Date_Qt(const QDate& date);
+
   private:
     CPhilipsMainHeaderPrivate* m_pData;
 };

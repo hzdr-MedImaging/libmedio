@@ -938,9 +938,7 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
       setPatient_Name(head->patient_Name());
       setPatient_ID(head->ssn());
       setPatient_Weight(head->weight() / 1000.0f); // g -> kg
-
-      QDate birthdate(head->bthyr(), head->bthmo(), head->bthday());
-      setPatient_Birth_Date_Qt(birthdate);
+      setPatient_Birth_Date_Qt(head->patient_Birth_Date_Qt());
       setPatient_Orientation(m_pData->philips2ECAT7Orientation(head->orient_Hf(), head->orient_Ps()));
       setNum_Planes(head->nslice());
       setNum_Frames(head->nframe());
