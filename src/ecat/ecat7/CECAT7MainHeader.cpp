@@ -64,7 +64,8 @@ class CECAT7MainHeaderPrivate
     QString philips2Ecat7Isotop(const CPhilipsMainHeader::Isotop isotop) const;
     CECAT7MainHeader::Patient_Orientation philips2ECAT7Orientation(const CPhilipsMainHeader::Patient_Orientation_hf hf,
                                                                    const CPhilipsMainHeader::Patient_Orientation_ps ps) const;
-    CECAT7MainHeader::Acquisition_Type philips2ECAT7Acquisition_Type(const CPhilipsMainHeader::Acquisition_Protocol_Type t) const;
+    CECAT7MainHeader::Acquisition_Type philips2ECAT7Acquisition_Type(const CPhilipsMainHeader::Acquisition_Protocol_Type t,
+                                                                     const CPhilipsMainHeader::Acquisition_Type acq_type) const;
 
     // MainHeader structure (should be 512bytes)
     struct HeaderData
@@ -954,7 +955,8 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
       setCalibration_Factor(1.0f);
       setData_Units("Bq/cc");
       setStudy_Type(head->aqprotocol_Name());
-      setAcquisition_Type(m_pData->philips2ECAT7Acquisition_Type(head->aqprotocol_Type()));
+      setAcquisition_Type(m_pData->philips2ECAT7Acquisition_Type(head->aqprotocol_Type(),
+                                                                 head->scntyp()));
 
       //check if additional information is available
       if(pHead2)
@@ -1881,6 +1883,8 @@ QString CECAT7MainHeaderPrivate::philips2Ecat7Isotop(const CPhilipsMainHeader::I
   switch(isotop)
   {
     case CPhilipsMainHeader::UndefinedIsotop: isotopString = "Undefined"; break;
+    case CPhilipsMainHeader::OtherIsotop: isotopString = "Unknown"; break;
+    case CPhilipsMainHeader::UnknownIsotop: isotopString = "Unknown"; break;
     case CPhilipsMainHeader::F18: isotopString = "F-18"; break;
     case CPhilipsMainHeader::O15: isotopString = "O-15"; break;
     case CPhilipsMainHeader::C11: isotopString = "C-11"; break;
@@ -1890,8 +1894,6 @@ QString CECAT7MainHeaderPrivate::philips2Ecat7Isotop(const CPhilipsMainHeader::I
     case CPhilipsMainHeader::CU62: isotopString = "CU-62"; break;
     case CPhilipsMainHeader::CS137: isotopString = "CS-137"; break;
     case CPhilipsMainHeader::GE68: isotopString = "GE-68"; break;
-    case CPhilipsMainHeader::OtherIsotop: isotopString = "Other"; break;
-    case CPhilipsMainHeader::UnknownIsotop: isotopString = "Unknown"; break;
     case CPhilipsMainHeader::CU64: isotopString = "CU-64"; break;
     case CPhilipsMainHeader::BR76: isotopString = "BR-76"; break;
     case CPhilipsMainHeader::NA22: isotopString = "NA-22"; break;
@@ -1956,12 +1958,13 @@ CECAT7MainHeader::Patient_Orientation CECAT7MainHeaderPrivate::philips2ECAT7Orie
 }
 
 
-CECAT7MainHeader::Acquisition_Type CECAT7MainHeaderPrivate::philips2ECAT7Acquisition_Type(const CPhilipsMainHeader::Acquisition_Protocol_Type t) const
+CECAT7MainHeader::Acquisition_Type CECAT7MainHeaderPrivate::philips2ECAT7Acquisition_Type(const CPhilipsMainHeader::Acquisition_Protocol_Type acq_proto_type,
+                                                                                          const CPhilipsMainHeader::Acquisition_Type acq_type) const
 {
   ENTER();
   CECAT7MainHeader::Acquisition_Type type = CECAT7MainHeader::Undefined;
 
-  switch(t)
+  switch(acq_proto_type)
   {
     case CPhilipsMainHeader::Undefined_Acquisition_Protocol: type = CECAT7MainHeader::Undefined; break;
     case CPhilipsMainHeader::Static_Emission:                type = CECAT7MainHeader::StaticEmission; break;
@@ -1972,6 +1975,20 @@ CECAT7MainHeader::Acquisition_Type CECAT7MainHeaderPrivate::philips2ECAT7Acquisi
     case CPhilipsMainHeader::Whole_Body_Transmission_only:   type = CECAT7MainHeader::Transmission; break;
     case CPhilipsMainHeader::Not_Used:                       type = CECAT7MainHeader::Undefined; break;
     case CPhilipsMainHeader::Singles:                        type = CECAT7MainHeader::Undefined; break;
+  }
+
+  // in the case the acquisition_protocol_type is not set
+  // we check the acquisition_type
+  if(type == CECAT7MainHeader::Undefined)
+  {
+    switch(acq_type)
+    {
+      case CPhilipsMainHeader::Blank:        type = CECAT7MainHeader::Blank; break;
+      case CPhilipsMainHeader::Transmission: type = CECAT7MainHeader::Transmission; break;
+      case CPhilipsMainHeader::Emission:     type = CECAT7MainHeader::StaticEmission; break;
+
+      default:                               type = CECAT7MainHeader::Undefined; break;
+    }
   }
 
   RETURN(type);
