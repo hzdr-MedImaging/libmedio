@@ -17,6 +17,10 @@ class CApplication
   private:
     bool convertFile(const QFileInfo& inputFile);
     bool checkOutputFile(const QFileInfo& inputFile);
+    void showUsage(int argc, char* argv[]);
+    void showAppInfo();
+    void showVersion();
+
   
     QStringList m_sInputFileNames;
     QString     m_sOutputFileName;

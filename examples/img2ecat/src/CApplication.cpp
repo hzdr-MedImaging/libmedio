@@ -10,6 +10,7 @@
 #include <CPhilipsMainHeader>
 #include <CPhilipsExtendedMainHeader>
 #include <CPhilipsSubHeaderImage>
+#include <CMedIO>
 
 #include <iostream>
 #include <rtdebug.h>
@@ -82,6 +83,7 @@ bool CApplication::parseCmdLine(int argc, char* argv[])
       inputFileNames.removeAll(args.value("-o"));
     }
 
+#if 0
     if(args.contains("-n"))
     {
       m_sPatientName = args.value("-n");
@@ -92,6 +94,7 @@ bool CApplication::parseCmdLine(int argc, char* argv[])
     {
       m_bPreserveDataType = true;
     }
+#endif
 
     // we check if there is one and only one input file available
     // we do not support processing of multiple concorde micropet image files
@@ -104,16 +107,33 @@ bool CApplication::parseCmdLine(int argc, char* argv[])
       m_sInputFileNames = inputFileNames;
   }
 
-  // if(bResult == false)
-  //   showAppInfo();
+  if(bResult == false)
+    showAppInfo();
 
-  // if(args.contains("-v"))
-  //   showVersion();
-  // else if(bResult == false)
-  //   showUsage(argc, argv);
+  if(args.contains("-v"))
+    showVersion();
+  else if(bResult == false)
+    showUsage(argc, argv);
 
   RETURN(bResult);
   return bResult;
+}
+
+void CApplication::showUsage(int, char* argv[])
+{
+  ENTER();
+  // output usage information on the console.
+  cout << "Usage: " << argv[0] << " <options> <file.img>" << endl
+       << "Options:" << endl
+       << "  -o <file>    : ECAT image (*.v) to which the philips image is converted" << endl
+//       << "  -n <string>  : override patient name in ECAT output file" << endl
+//       << "  -p           : preserve data type as is and do not convert to short values" << endl
+//       << "                 (this will give you the highest precision on cost of space)" << endl
+//       << "  -r           : walk the specified directory recursively and convert all *.img" << endl
+//       << "                 file in it in one run." << endl
+       << "  -f           : force overwriting of existing files" << endl;
+  LEAVE();
+  return;
 }
 
 bool CApplication::checkOutputFile(const QFileInfo& inputFile)
@@ -160,6 +180,56 @@ bool CApplication::checkOutputFile(const QFileInfo& inputFile)
 
   RETURN(bResult);
   return bResult;
+}
+
+void CApplication::showAppInfo()
+{
+  ENTER();
+  // output some general program information
+  cout << endl
+       << PACKAGE_STRING << " - converts philips image files to ECAT files" << endl;
+//       << "(" __DATE__ ") Copyright (c) 2006-2011 by Hagen Moelle, Jens Langner / www.hzdr.de" << endl << endl;
+  LEAVE();
+  return;
+}
+void CApplication::showVersion()
+{
+  ENTER();
+  cout << "Detailed compilation information:" << endl << endl
+
+       // Compiler information
+       << "  "
+       #if defined(__GNUC__)
+       << "GCC " << __GNUC__ << "." << __GNUC_MINOR__ <<  "." << __GNUC_PATCHLEVEL__ << " "
+       #else
+       #warning unknown compiler suite
+       << "unknown compiler "
+       #endif
+       #if defined(__SPARC__)
+       << "[sparc]"
+       #elif defined(__POWERPC__)
+       << "[ppc]"
+       #elif defined(__i386__)
+       << "[x86]"
+       #elif defined(__X86_64__)
+       << "[x86_64]"
+       #else
+       #warning Unknown CPU model
+       << "[Unknown]"
+       #endif
+       << endl << endl
+  
+       // Qt version information
+       << "  Qt " << qVersion() << endl
+                  << "  Copyright (c) 2006-2011 Nokia Corporation" << endl << endl
+
+       // libmedio version information
+       << "  libmedio " << CMedIO::version().toAscii().constData() <<  " ("
+       << CMedIO::buildDate().toAscii().constData() << ")" << endl
+       << "  " << CMedIO::copyright().toAscii().constData() << endl;
+
+  LEAVE();
+  return;
 }
 
 bool CApplication::process()
