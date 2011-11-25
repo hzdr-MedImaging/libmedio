@@ -807,6 +807,21 @@ bool processCommando_Set()
                 }
               }
               break;
+
+              case INIT_BED_POSITION:
+              {
+                bool bSuccess = false;
+                float fInitBedPos = g_sValue.toFloat(&bSuccess);
+                if(bSuccess)
+                  pECAT7MainHeader->setInit_Bed_Position(fInitBedPos);
+                else
+                { 
+                  cout << "ERROR: can not convert bed position value to float." << endl;
+                  bResult = false;
+                }
+              }
+              break;
+
               case BED_POSITION:
               {
                 // this option needs an index position so we check
@@ -833,6 +848,7 @@ bool processCommando_Set()
                 }
               }
               break;
+
               case PATIENT_BIRTH_DATE:
               {
                 QDate birthDate = QDate::fromString(g_sValue, QString("dd.MM.yyyy"));
@@ -1491,6 +1507,7 @@ bool processCommando_Join()
   {
     CECATMainHeader::Type srcFileType = CECATMainHeader::Unknown;
     CECATMainHeader* pSrcMainHeader = NULL;
+
     // first we determine the type of our source ecat files / therefore we
     // open the first ecat source file
     CECATFile srcEcatFile(g_sSrcFileNames.first());
@@ -1509,6 +1526,7 @@ bool processCommando_Join()
         cout << "ERROR: can not read main header of first source file." << endl;
         bResult = false;
       }
+
       srcEcatFile.close();
     }
     else
@@ -1552,11 +1570,19 @@ bool processCommando_Join()
           {
             QString sSrcFileName = it.next();
             CECATFile srcEcatFile(sSrcFileName);
+
             if(srcEcatFile.open(QIODevice::ReadOnly) && ecatFile.format() != CECATFile::Undefined)
             {
               // now check if file format is the same as our destination file format
               if(srcFileType == srcEcatFile.fileType())
               {
+                // get the main header for later use
+                if(srcEcatFile.readMainHeader(pSrcMainHeader) == false)
+                {
+                  cout << "ERROR: can not read main header of source file '" << sSrcFileName.toAscii().constData() << "'" << endl;
+                  bResult = false;
+                }
+ 
                 // now copy copy directory entry
                 CECATSubHeader* pDestSubHeader = ecatFile.createEmptySubHeader();
                 CECATSubHeader* pSrcSubHeader = NULL;
@@ -1606,11 +1632,38 @@ bool processCommando_Join()
               cout << "ERROR: provided source file is not an ecat file." << endl;
               bResult = false;
             }
+
             switch(g_joinIndex)
             {
               case Frames: iDestFrame++; break;
               case Gates: iDestGate++; break;
-              case Beds: iDestBed++; break;
+              case Beds:
+              {
+                // we joining the individual files together as bed positions, thus we need to
+                // calculate the bed offset and store that one in our bed offset in the main header
+                if(iDestBed > 0)
+                {
+                  CECAT7MainHeader* pECAT7SrcMainHeader = static_cast<CECAT7MainHeader*>(pSrcMainHeader);
+                  CECAT7MainHeader* pECAT7DestMainHeader = static_cast<CECAT7MainHeader*>(pDestMainHeader);
+
+                  // get the initial bed position of the main header of the current source file
+                  float srcInitBedPos = pECAT7SrcMainHeader->init_Bed_Position();
+
+                  // set the bed offset in the main header of our destination file
+                  pECAT7DestMainHeader->setBed_Offset(iDestBed-1, srcInitBedPos - pECAT7DestMainHeader->init_Bed_Position());
+
+                  // write the main header once again as it may have been changed in between
+                  if(ecatFile.writeMainHeader(*pDestMainHeader) == false)
+                  {
+                    cout << "ERROR: could not write destination main header." << endl;
+                    bResult = false;
+                  }
+                }
+               
+                iDestBed++;
+              }
+              break;
+
               default:
               {
                 cout << "ERROR: join index not supported." << endl;
@@ -1624,6 +1677,7 @@ bool processCommando_Join()
           cout << "ERROR: could not write destination main header." << endl;
           bResult = false;
         }
+
         ecatFile.close();
       }
       else
@@ -2146,7 +2200,7 @@ void showVersionInformation()
 void showHelp(int& argc, char** argv)
 {
   cout << endl;
-  cout << "libmedio ECAT6/7 file utility v2.11" << endl;
+  cout << "libmedio ECAT6/7 file utility v2.12" << endl;
   cout << "-----------------------------------" << endl;
   cout << "Usage: " << argv[0] << " <options> ecatfile" << endl;
   cout << "Options:" << endl;
@@ -2238,6 +2292,7 @@ bool initHeaderMaps()
   ecat7MainHeaderMap.insert("dosestarttime", DOSE_START_TIME);
   ecat7MainHeaderMap.insert("scanstarttime", SCAN_START_TIME);
   ecat7MainHeaderMap.insert("bedelevation", BED_ELEVATION);
+  ecat7MainHeaderMap.insert("initbedposition", INIT_BED_POSITION);
   ecat7MainHeaderMap.insert("bedposition", BED_POSITION);
   ecat7MainHeaderMap.insert("acquisitiontype", ACQUISITION_TYPE);
   ecat7MainHeaderMap.insert("patientorientation", PATIENT_ORIENTATION);
