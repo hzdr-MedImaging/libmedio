@@ -197,23 +197,31 @@ void CECAT7MainHeader::clear()
   
   // set some default values for the new Main Header
   // (we mainly set these values like it is set on a EXACT HR+ scanner
-  m_pData->header.SW_Version            = 72;          // use v7.2 as the default ECAT version
-  m_pData->header.System_Type          = 962;        // set ECAT Model 962 (EXACT HR+) by default
-  m_pData->header.Distance_Scanned      = 15.52;      // scanner depth    
-  m_pData->header.Transaxial_FOV        = 58.3;        // transaxial FOV of an ECAT HR+
-  m_pData->header.Angular_Compression  = static_cast<short>(Mash2);
-  m_pData->header.Acquisition_Type      = static_cast<short>(DynamicEmission);
-  m_pData->header.Acquisition_Mode      = static_cast<short>(Windowed);
-  m_pData->header.Transm_Source_Type    = static_cast<short>(SRC_RING);
-  m_pData->header.Lwr_True_Thres        = 350;        // energy levels of an ECAT HR+
-  m_pData->header.Upr_True_Thres        = 650;
-  m_pData->header.Patient_Orientation  = CECAT7MainHeader::Orient_Unknown;
-  m_pData->header.Bin_Size              = 0.224983;    // cm
-  m_pData->header.Branching_Fraction    = 1.0;
-  m_pData->header.Septa_State          = static_cast<short>(Retracted);
-
-  strcpy(m_pData->header.Serial_Number, "1");
-  strcpy(m_pData->header.Study_Description, (QString("Created with libmedio v") + PACKAGE_VERSION).toAscii());
+  setMagic_Number("MATRIX72");
+  setSW_Version(72); // use 7.2 as default ECAT version
+  setSystem_Type(962); // set ECAT Moduel 962 (HR+) as default
+  setFile_Type(CECAT7MainHeader::Unknown);
+  setSerial_Number("1");
+  setDistance_Scanned(15.52f); // scanner depth [cm]
+  setTransaxial_FOV(58.3f); // transaxial FOV of HR+ [cm]
+  setAngular_Compression(CECAT7MainHeader::Mash2);
+  setAcquisition_Type(CECAT7MainHeader::DynamicEmission);
+  setAcquisition_Mode(CECAT7MainHeader::Windowed);
+  setCoin_Samp_Mode(CECAT7MainHeader::NetTrues);
+  setAxial_Samp_Mode(CECAT7MainHeader::Normal);
+  setCalibration_Units(CECAT7MainHeader::Uncalibrated);
+  setCalibration_Units_Label(CECAT7MainHeader::LMRGLU);
+  setCompression_Code(CECAT7MainHeader::Comp_None);
+  setPatient_Sex(CECAT7MainHeader::Sex_Unknown);
+  setPatient_Dexterity(CECAT7MainHeader::Dext_Unknown);
+  setPatient_Orientation(CECAT7MainHeader::Orient_Unknown);
+  setStudy_Description((QString("Created with libmedio v") + PACKAGE_VERSION).toAscii().constData());
+  setTransm_Source_Type(CECAT7MainHeader::SRC_RING);
+  setLwr_True_Thres(350); // [keV]
+  setUpr_True_Thres(650); // [keV]
+  setBin_Size(0.225f); // [cm]
+  setBranching_Fraction(1.0f);
+  setSepta_State(CECAT7MainHeader::Retracted);
 
   LEAVE();
 }
