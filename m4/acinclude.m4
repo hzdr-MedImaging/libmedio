@@ -2,7 +2,7 @@ dnl/* -*- mode: m4; tab-width: 2; c-basic-offset: 2; indent-tabs-mode: nil; -*-
 dnl * vim:set ts=2 sw=2 expandtab: *********************************************
 dnl *
 dnl * acinclude.m4 - Common configure macros especially for Qt3/Qt4
-dnl * Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
+dnl * Copyright (C) 2006-2012 by Jens Langner, www.hzdr.de
 dnl *
 dnl * This library is free software; you can redistribute it and/or
 dnl * modify it under the terms of the GNU Lesser General Public
@@ -152,13 +152,13 @@ AC_DEFUN([AC_ENABLE_STATIC_LIB],
 [
   AC_MSG_CHECKING(whether to link as a static library)
   AC_ARG_ENABLE(static-lib,
-                [AC_HELP_STRING([--enable-static-lib], [turn on static linkage [default=no]])],
+                [AC_HELP_STRING([--enable-static-lib], [turn on static linkage [default=yes]])],
                 [case "${enableval}" in
                   yes) test_on_enable_static_lib=yes  ;;
                   no)  test_on_enable_static_lib=no ;;
                   *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-lib) ;;
                 esac],
-                [test_on_enable_static_lib=no])
+                [test_on_enable_static_lib=yes])
 
   if test "$test_on_enable_static_lib" = "yes" -o "$ac_static_build" = "yes"; then
     QTLINK_LEVEL="${QTLINK_LEVEL} staticlib"
@@ -269,13 +269,13 @@ AC_DEFUN([AC_ENABLE_STATIC_RTDEBUG],
 [
   AC_MSG_CHECKING(whether to link rtdebug library static)
   AC_ARG_ENABLE(static-rtdebug,
-                [AC_HELP_STRING([--enable-static-rtdebug], [turn on static linkage of rtdebug lib [default=no]])],
+                [AC_HELP_STRING([--enable-static-rtdebug], [turn on static linkage of rtdebug lib [default=yes]])],
                 [case "${enableval}" in
                   yes) test_on_enable_static_rtdebug=yes  ;;
                   no)  test_on_enable_static_rtdebug=no ;;
                   *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-rtdebug) ;;
                 esac],
-                [test_on_enable_static_rtdebug=no])
+                [test_on_enable_static_rtdebug=yes])
 
   if test "$COMPILE_LEVEL" = "release"; then
     AC_MSG_RESULT([skipping, debug disabled]) 
@@ -302,13 +302,13 @@ AC_DEFUN([AC_ENABLE_STATIC_MEDIO],
 [
   AC_MSG_CHECKING(whether to link the medio library static)
   AC_ARG_ENABLE(static-medio,
-                [AC_HELP_STRING([--enable-static-medio], [turn on static linkage of medio libs [default=no]])],
+                [AC_HELP_STRING([--enable-static-medio], [turn on static linkage of medio libs [default=yes]])],
                 [case "${enableval}" in
                   yes) test_on_enable_static_medio=yes  ;;
                   no)  test_on_enable_static_medio=no ;;
                   *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-medio) ;;
                 esac],
-                [test_on_enable_static_medio=no])
+                [test_on_enable_static_medio=yes])
 
   if test "$test_on_enable_static_medio" = "yes" -o "$ac_static_build" = "yes"; then
     QTLINK_LEVEL="${QTLINK_LEVEL} staticmedio"
@@ -331,13 +331,13 @@ AC_DEFUN([AC_ENABLE_STATIC_GSL],
 [
   AC_MSG_CHECKING(whether to link the gsl library static)
   AC_ARG_ENABLE(static-gsl,
-                [AC_HELP_STRING([--enable-static-gsl], [turn on static linkage of gsl libs [default=no]])],
+                [AC_HELP_STRING([--enable-static-gsl], [turn on static linkage of gsl libs [default=yes]])],
                 [case "${enableval}" in
                   yes) test_on_enable_static_gsl=yes  ;;
                   no)  test_on_enable_static_gsl=no ;;
                   *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-gsl) ;;
                 esac],
-                [test_on_enable_static_gsl=no])
+                [test_on_enable_static_gsl=yes])
 
   if test "$test_on_enable_static_gsl" = "yes" -o "$ac_static_build" = "yes"; then
     QTLINK_LEVEL="${QTLINK_LEVEL} staticgsl"
@@ -360,13 +360,13 @@ AC_DEFUN([AC_ENABLE_STATIC_NCURSES],
 [
   AC_MSG_CHECKING(whether to link the ncurses library static)
   AC_ARG_ENABLE(static-ncurses,
-                [AC_HELP_STRING([--enable-static-ncurses], [turn on static linkage of ncurses lib [default=no]])],
+                [AC_HELP_STRING([--enable-static-ncurses], [turn on static linkage of ncurses lib [default=yes]])],
                 [case "${enableval}" in
                   yes) test_on_enable_static_ncurses=yes  ;;
                   no)  test_on_enable_static_ncurses=no ;;
                   *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-ncurses) ;;
                 esac],
-                [test_on_enable_static_ncurses=no])
+                [test_on_enable_static_ncurses=yes])
 
   if test "$test_on_enable_static_ncurses" = "yes" -o "$ac_static_build" = "yes"; then
     QTLINK_LEVEL="${QTLINK_LEVEL} staticncurses"
@@ -389,13 +389,13 @@ AC_DEFUN([AC_ENABLE_STATIC_MEDLM],
 [
   AC_MSG_CHECKING(whether to link the medlm library static)
   AC_ARG_ENABLE(static-medlm,
-                [AC_HELP_STRING([--enable-static-medlm], [turn on static linkage of medlm lib [default=no]])],
+                [AC_HELP_STRING([--enable-static-medlm], [turn on static linkage of medlm lib [default=yes]])],
                 [case "${enableval}" in
                   yes) test_on_enable_static_medlm=yes  ;;
                   no)  test_on_enable_static_medlm=no ;;
                   *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-medlm) ;;
                 esac],
-                [test_on_enable_static_medlm=no])
+                [test_on_enable_static_medlm=yes])
 
   if test "$test_on_enable_static_medlm" = "yes" -o "$ac_static_build" = "yes"; then
     QTLINK_LEVEL="${QTLINK_LEVEL} staticmedlm"
@@ -418,13 +418,13 @@ AC_DEFUN([AC_ENABLE_STATIC_MTRACK],
 [
   AC_MSG_CHECKING(whether to link the mtrack library static)
   AC_ARG_ENABLE(static-mtrack,
-                [AC_HELP_STRING([--enable-static-mtrack], [turn on static linkage of mtrack lib [default=no]])],
+                [AC_HELP_STRING([--enable-static-mtrack], [turn on static linkage of mtrack lib [default=yes]])],
                 [case "${enableval}" in
                   yes) test_on_enable_static_mtrack=yes ;;
                   no)  test_on_enable_static_mtrack=no  ;;
                   *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-mtrack) ;;
                 esac],
-                [test_on_enable_static_mtrack=no])
+                [test_on_enable_static_mtrack=yes])
 
   if test "$test_on_enable_static_mtrack" = "yes" -o "$ac_static_build" = "yes"; then
     QTLINK_LEVEL="${QTLINK_LEVEL} staticmtrack"
@@ -493,7 +493,7 @@ AC_DEFUN([AC_PROG_GCC_VERSION],
        cc_version="v. ?.??, bad"
        cc_verc_fail=yes
        ;;
-     2.95.[2-9]|2.95.[2-9][-.]*|3.[0-9]*|3.[0-9].[0-9]*|4.[0-9].[0-9]*)
+     2.95.[2-9]|2.95.[2-9][-.]*|3.[0-9]*|3.[0-9].[0-9]*|4.[0-9]*)
        _cc_major=`echo $cc_version | cut -d '.' -f 1`
        _cc_minor=`echo $cc_version | cut -d '.' -f 2`
        _cc_mini=`echo $cc_version | cut -d '.' -f 3`
@@ -1764,6 +1764,7 @@ AC_DEFUN([AC_PATH_QT4_LIB],
                      /usr/local/lib \
                      /usr/lib/qt \
                      /usr/lib/qt/lib \
+                     /usr/lib/x86_64-linux-gnu \
                      /usr/local/lib/qt \
                      /usr/X11/lib \
                      /usr/X11/lib/qt \
@@ -1929,6 +1930,33 @@ AC_DEFUN([AC_PATH_QT4_QMAKE],
   AC_SUBST(QMAKE_PATH)
 ])
 
+dnl
+dnl AC_CHECK_GETTICKCOUNT: checks for the existance of a GetTickCount() function which
+dnl should only be available to Windows. We use that function as a fallback for gettimeofday().
+dnl
+AC_DEFUN([AC_CHECK_GETTICKCOUNT],
+[
+  AC_REQUIRE_CPP()
+  AC_MSG_CHECKING(for GetTickCount)
+  
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+  save_LDFLAGS="$LDFLAGS"
+  LDFLAGS="-lkernel32"
+  
+  AC_TRY_LINK([#include <windows.h>], GetTickCount();, ac_have_gettickcount="yes", ac_have_gettickcount="no")
+  
+  dnl Define a shell variable for later checks
+  if test "$ac_have_gettickcount" = "no"; then
+    AC_MSG_RESULT([no])
+  else
+    AC_MSG_RESULT([yes])
+    AC_DEFINE(HAVE_GETTICKCOUNT)
+  fi
+  
+  LDFLAGS="$save_LDFLAGS"
+  AC_LANG_RESTORE
+])
 
 dnl
 dnl AC_PATH_RCPP: allows to override the default library search path for

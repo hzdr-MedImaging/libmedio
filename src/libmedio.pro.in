@@ -253,8 +253,8 @@ staticconfig {
 }
 
 # set the general compiler optimizations
-QMAKE_CFLAGS_RELEASE = -O3 -fomit-frame-pointer -funroll-loops
-QMAKE_CXXFLAGS_RELEASE = -O3 -fomit-frame-pointer -funroll-loops
+QMAKE_CFLAGS_RELEASE = -O3 -fomit-frame-pointer
+QMAKE_CXXFLAGS_RELEASE = -O3 -fomit-frame-pointer
 
 # tune the optimization a bit for each architecture
 !mac {
