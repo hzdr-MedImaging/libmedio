@@ -484,6 +484,51 @@ bool CPhilipsFile::readSubHeader(CPhilipsSubHeader*& subHeader, short slice,
   return result;
 }
 
+bool CPhilipsFile::readFrame(char*& matrixData, unsigned int& len, short frame)
+{
+  ENTER();
+  bool result = false;
+
+  CPhilipsMainHeader* mainHeader = NULL;
+  if(readMainHeader(mainHeader))
+  {
+    short sliceThickness = mainHeader->slcthk();
+  
+    QByteArray pFrameData;
+  
+    // in philips format every slice has an own subheader, so
+    // we need to hold one sub header of the philips file
+    CPhilipsSubHeaderImage* pLastPhilipsSubHeaderImage = NULL;
+
+    int max = maxSlice();
+    for(int slice = minSlice(); slice <= max; slice += sliceThickness)
+    {
+      unsigned int length = 0;
+      char* buffer = NULL;
+      result = readMatrix(buffer, length, slice, frame);
+
+      if(result == false)
+      {
+        delete []buffer;
+        break;
+      }
+
+      pFrameData.append(buffer, length);
+      delete []buffer;
+    }
+
+    if(result == true)
+    {
+      len = pFrameData.size();
+      matrixData = new char[len];
+      memcpy(matrixData, pFrameData.data(), len);
+    }
+  }
+
+  RETURN(reslut);
+  return result;
+}
+
 bool CPhilipsFile::readMatrix(QByteArray*& matrixData,
                               short slice, short frame, short tilt)
 {

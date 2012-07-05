@@ -81,6 +81,8 @@ class CPhilipsFile : public CMedIOData
     bool readExtendedMainHeader(CPhilipsExtendedMainHeader*& extendedMainHeader);
     bool readSubHeader(CPhilipsSubHeader*& subHeader, short slice, short frame=1, short tilt=0);
 
+    bool readFrame(char*& matrixData, unsigned int& len, short frame);
+
     bool readMatrix(QByteArray*& matrixData,
                     short slice, short frame = 1, short tilt = 0);
     bool readMatrix(char*& matrixData, unsigned int& len,
