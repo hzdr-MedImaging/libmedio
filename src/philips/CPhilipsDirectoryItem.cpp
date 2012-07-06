@@ -21,7 +21,7 @@
  * $Id$
  *
  **************************************************************************/
-
+#include <QCoreApplication>
 #include "CPhilipsDirectoryItem.h"
 #include "CPhilipsFile.h"
 
@@ -344,13 +344,15 @@ bool CPhilipsDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSi
     return false;
   }
 
+/*
   // as we can't handle compressed data abort
   if(m_pData->compressionFlag == Compressed)
   {
     W("matrix data is compressed. abort reading");
     RETURN(false);
     return false;
-  }
+    }
+*/
 
   // we load the MatrixData out of the Philipsfile manually but only
   // if the content flag  of this item is set to "used"
@@ -377,110 +379,147 @@ bool CPhilipsDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSi
 
     SHOWVALUE(m_pData->file->pos());
 
-    // then we allocate some memory for loading the matrixdata
-    // because dataBlock_End points to the last data block of the
-    // record, we need to add the lenght of one data block to get
-    // the size of the matrix
-    matrixSize = m_pData->dataBlock_End - m_pData->dataBlock_Start - subHeader->rawDataSize() + PHILIPS_BLOCKSIZE;
-    matrixData = new char[matrixSize];
-
-    // then we process the matrix data that is associated with
-    // this directoryitem. According to the LUMINARY TOOLKIT MANUAL
-    // all data is stored using big endian byte ordering. As the QDataStream
-    // is per default big endian, we don't have to set it to another byte order
-    // and just use the QDataStream operators to ensure correct byte swapping
-    switch(subHeader->datype())
+    if(m_pData->compressionFlag == Compressed)
     {
+      W("matrix data is compressed.");
+      QByteArray uncompressedData;
+
+      unsigned int compressedLength = m_pData->dataBlock_End - m_pData->dataBlock_Start - subHeader->rawDataSize() + PHILIPS_BLOCKSIZE;
+      unsigned int uncompressedLength = 144*144*2;
+
+      char tmp[compressedLength];
+      qint64 bytesRead =  m_pData->file->read(tmp, compressedLength);
+
+      QByteArray compressedData(tmp, bytesRead);
+      char* n = reinterpret_cast<char*>(&uncompressedLength);
+
+      QByteArray a;
+      a.resize(4+bytesRead);
+
+      QDataStream stream(&a, QIODevice::WriteOnly);
+      stream.setVersion(QDataStream::Qt_4_5);
+      stream << uncompressedLength;
+
+      a.append(compressedData);
+      //compressedData.prepend(QByteArray::number(uncompressedLength));
+      uncompressedData = qUncompress(a);
+      matrixSize = uncompressedData.size();
+      memcpy(matrixData, uncompressedData.data(), matrixSize);
+
+
+      QFile file("compressedStuff");
+      
+      file.open(QIODevice::WriteOnly);
+      file.write(compressedData);
+      file.close();
+      qApp->exit(0);
+    }
+    else
+    {
+      // then we allocate some memory for loading the matrixdata
+      // because dataBlock_End points to the last data block of the
+      // record, we need to add the lenght of one data block to get
+      // the size of the matrix
+      matrixSize = m_pData->dataBlock_End - m_pData->dataBlock_Start - subHeader->rawDataSize() + PHILIPS_BLOCKSIZE;
+      matrixData = new char[matrixSize];
+
+      // then we process the matrix data that is associated with
+      // this directoryitem. According to the LUMINARY TOOLKIT MANUAL
+      // all data is stored using big endian byte ordering. As the QDataStream
+      // is per default big endian, we don't have to set it to another byte order
+      // and just use the QDataStream operators to ensure correct byte swapping
+      switch(subHeader->datype())
+      {
 #if 0
-      case CPhilipsSubHeader::ByteData:
-      {
-        if(m_pData->file->read(matrixData, matrixSize) > 0)
-          result = true;
-      }
-      break;
-#endif
-      case CPhilipsSubHeader::SignedShort:
-        //case CPhilipsSubHeader::UnsignedShort:
-      {
-        QByteArray bufArray(8192, 0); // read 8KB chunks
-        quint16* ptr = (quint16*)matrixData;
-        for(unsigned int read=0; read < matrixSize;)
+        case CPhilipsSubHeader::ByteData:
         {
-          unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
-          unsigned int curRead = m_pData->file->read(bufArray.data(), toRead);
-          if(curRead != toRead)
-          {
-            result = false;
-            break;
-          }
-
-          // check if the curRead value is divide able through our data type 
-          ASSERT(curRead % sizeof(quint16) == 0);
-
-          // now that we have our chunk we use a bufferStream to stream
-          // out the values from it for making sure our data is correctly
-          // converted regarding to little/big endianess
-          QDataStream bufStream(bufArray);
-          for(unsigned int i=0; i < curRead; i+=sizeof(quint16))
-          {
-            bufStream >> *ptr;
-            ++ptr;
-          }
-
-          // increase our read counter
-          read += curRead;
+          if(m_pData->file->read(matrixData, matrixSize) > 0)
+            result = true;
         }
-      }
-      break;
+        break;
+#endif
+        case CPhilipsSubHeader::SignedShort:
+          //case CPhilipsSubHeader::UnsignedShort:
+        {
+          QByteArray bufArray(8192, 0); // read 8KB chunks
+          quint16* ptr = (quint16*)matrixData;
+          for(unsigned int read=0; read < matrixSize;)
+          {
+            unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
+            unsigned int curRead = m_pData->file->read(bufArray.data(), toRead);
+            if(curRead != toRead)
+            {
+              result = false;
+              break;
+            }
+
+            // check if the curRead value is divide able through our data type 
+            ASSERT(curRead % sizeof(quint16) == 0);
+
+            // now that we have our chunk we use a bufferStream to stream
+            // out the values from it for making sure our data is correctly
+            // converted regarding to little/big endianess
+            QDataStream bufStream(bufArray);
+            for(unsigned int i=0; i < curRead; i+=sizeof(quint16))
+            {
+              bufStream >> *ptr;
+              ++ptr;
+            }
+
+            // increase our read counter
+            read += curRead;
+          }
+        }
+        break;
 
 #if 0
-      case CPhilipsSubHeader::Float:
-      {
-        QByteArray bufArray(8192, 0); // read 8KB chunks
-        float* ptr = (float*)matrixData;
-        for(unsigned int read=0; read < matrixSize;)
+        case CPhilipsSubHeader::Float:
         {
-          unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
-          unsigned int curRead = m_pData->file->read(bufArray.data(), toRead);
-          if(curRead != toRead)
+          QByteArray bufArray(8192, 0); // read 8KB chunks
+          float* ptr = (float*)matrixData;
+          for(unsigned int read=0; read < matrixSize;)
           {
-            result = false;
-            break;
+            unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
+            unsigned int curRead = m_pData->file->read(bufArray.data(), toRead);
+            if(curRead != toRead)
+            {
+              result = false;
+              break;
+            }
+
+            // check if the curRead value is divide able through our data type 
+            ASSERT(curRead % sizeof(float) == 0);
+
+            // now that we have our chunk we use a bufferStream to stream
+            // out the values from it for making sure our data is correctly
+            // converted regarding to little/big endianess
+            QDataStream bufStream(bufArray);
+
+            // we have to set the QDataStream version to the Qt4.5 version
+            // because with Qt4.6 the floating point precision changed and
+            // otherwise causes our streaming to fail
+            bufStream.setVersion(QDataStream::Qt_4_5);
+
+            for(unsigned int i=0; i < curRead; i+=sizeof(float))
+            {
+              bufStream >> *ptr;
+              ++ptr;
+            }
+
+            // increase our read counter
+            read += curRead;
           }
-
-          // check if the curRead value is divide able through our data type 
-          ASSERT(curRead % sizeof(float) == 0);
-
-          // now that we have our chunk we use a bufferStream to stream
-          // out the values from it for making sure our data is correctly
-          // converted regarding to little/big endianess
-          QDataStream bufStream(bufArray);
-
-          // we have to set the QDataStream version to the Qt4.5 version
-          // because with Qt4.6 the floating point precision changed and
-          // otherwise causes our streaming to fail
-          bufStream.setVersion(QDataStream::Qt_4_5);
-
-          for(unsigned int i=0; i < curRead; i+=sizeof(float))
-          {
-            bufStream >> *ptr;
-            ++ptr;
-          }
-
-          // increase our read counter
-          read += curRead;
         }
-      }
-      break;
+        break;
 #endif
 
-      default:
-      {
-        D("Data type is not supported yet.");
-        result = false;
+        default:
+        {
+          D("Data type is not supported yet.");
+          result = false;
+        }
       }
     }
-
     // now we delete the subHeader we loaded temporarly
     delete subHeader;
   }
