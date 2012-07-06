@@ -170,6 +170,7 @@ class CPhilipsSubHeaderImage : public CPhilipsSubHeader
     unsigned short start_date_time_msec() const;
     unsigned short end_date_time_msec() const;
     unsigned short frame_ref_date_time_msec() const;
+    float scale_Factor(bool& ok) const;
 
     // methods to modify elements of the SubHeader  
     void setVersion(const short version);

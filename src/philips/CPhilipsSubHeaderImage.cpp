@@ -25,9 +25,12 @@
 #include "CPhilipsSubHeaderImage.h"
 #include "CPhilipsDirectoryItem.h"
 #include "CPhilipsFile.h"
+#include "CPhilipsMainHeader.h"
+#include "CPhilipsExtendedMainHeader.h"
 
 #include <QDataStream>
 #include <QDateTime>
+#include <QtCore/qmath.h>
 
 #include <rtdebug.h>
 
@@ -145,7 +148,37 @@ class CPhilipsSubHeaderImagePrivate
   } header;
 
   static const short currentSubHeaderVersion = 1;
+
+    bool isSUVScaleFactorSet()
+      {
+        return (header.suvscl > 0.0);
+      }
+
+    float defaultScaleFactor()
+      {
+        return header.imgscl;      
+      }
+
+    float calculateScaleFactor(const CPhilipsMainHeader* mainHead,
+                               const CPhilipsExtendedMainHeader* extHead);
 };
+
+float CPhilipsSubHeaderImagePrivate::calculateScaleFactor(const CPhilipsMainHeader* mainHeader,
+                                                          const CPhilipsExtendedMainHeader* extHeader)
+{
+  ENTER();
+
+  float dosage = mainHeader->activity() * 1000000.0f; // Bq
+  float deltaT = static_cast<float>(extHeader->acq_date_time() -
+                                    extHeader->injection_date_time()); // s
+  float halfLife = mainHeader->halfLife() * 60.0f; // s
+  float patientWeight = static_cast<float>(mainHeader->weight()); // g
+
+  float scaleFactor = header.suvscl * dosage * qExp(-qLn(2) * (deltaT/halfLife)) / patientWeight;
+
+  RETURN(scaleFactor);
+  return scaleFactor;
+}
 
 CPhilipsSubHeaderImage::CPhilipsSubHeaderImage(CPhilipsFile* philipsFile,
                                                CPhilipsDirectoryItem* pDirItem)
@@ -909,6 +942,35 @@ unsigned short CPhilipsSubHeaderImage::end_date_time_msec() const
 unsigned short CPhilipsSubHeaderImage::frame_ref_date_time_msec() const
 {
   return m_pData->header.frame_ref_date_time_msec;
+}
+
+float CPhilipsSubHeaderImage::scale_Factor(bool& ok) const
+{
+  ENTER();
+  float scaleFactor = 1.0;
+  ok = false;
+
+  if(m_pMedIOData->isReadable())
+  {
+    if(m_pData->isSUVScaleFactorSet())
+    {
+      CPhilipsMainHeader* mainHeader = NULL;
+      CPhilipsExtendedMainHeader* extMainHeader = NULL;
+      CPhilipsFile* file = static_cast<CPhilipsFile*>(m_pMedIOData);
+
+      if(file->readMainHeader(mainHeader) &&
+         file->readExtendedMainHeader(extMainHeader))
+      {
+        scaleFactor = m_pData->calculateScaleFactor(mainHeader, extMainHeader);
+        ok = true;
+      }
+    }
+    else
+      scaleFactor = m_pData->defaultScaleFactor();
+  }
+
+  RETURN(scaleFactor);
+  return scaleFactor;
 }
 
 // methods to modify elements of the SubHeader  
