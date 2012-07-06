@@ -468,8 +468,6 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
           pEcat7SubHeaderImage->setImage_Min(imgMinValue);
           pEcat7SubHeaderImage->setImage_Max(imgMaxValue);
 
-          D("suvScale     : %f", pPhilipsSubHeaderImage->suvscl());
-
           bool ok;
           pEcat7SubHeaderImage->setScale_Factor(pPhilipsSubHeaderImage->scale_Factor(ok));
 

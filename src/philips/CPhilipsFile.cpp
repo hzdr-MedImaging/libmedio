@@ -525,7 +525,7 @@ bool CPhilipsFile::readFrame(char*& matrixData, unsigned int& len, short frame)
     }
   }
 
-  RETURN(reslut);
+  RETURN(result);
   return result;
 }
 
