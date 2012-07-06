@@ -470,32 +470,17 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
 
           D("suvScale     : %f", pPhilipsSubHeaderImage->suvscl());
 
-          if(pPhilipsSubHeaderImage->suvscl() > 0.0)
+          bool ok;
+          pEcat7SubHeaderImage->setScale_Factor(pPhilipsSubHeaderImage->scale_Factor(ok));
+
+          if(ok == true)
           {
             pEcat7ImageHeader->setCalibration_Units(CECAT7MainHeader::Calibrated);
             pEcat7ImageHeader->setCalibration_Factor(1.0f);
             pEcat7ImageHeader->setData_Units("Bq/cc");
-
-            // now we calculate the new scale factor
-            float suvScale = pPhilipsSubHeaderImage->suvscl();
-            float dosage = pPhilipsMainHeader->activity() * 1000000.0f; // Bq
-            float deltaT = static_cast<float>(pPhilipsExtendedMainHeader->acq_date_time() - pPhilipsExtendedMainHeader->injection_date_time()); // s
-            float halfLife = pPhilipsMainHeader->halfLife() * 60.0f; // s
-            float patientWeight = static_cast<float>(pPhilipsMainHeader->weight()); // g
-
-            float factor = suvScale * dosage * qExp(-qLn(2) * (deltaT/halfLife)) / patientWeight;
-
-            D("dosage       : %f", dosage);
-            D("deltaT       : %f", deltaT);
-            D("halfLife     : %f", halfLife);
-            D("patientWeight: %f", patientWeight);
-            D("factor       : %f",factor);
-
-            pEcat7SubHeaderImage->setScale_Factor(factor);
           }
           else
           {
-            pEcat7SubHeaderImage->setScale_Factor(pPhilipsSubHeaderImage->imgscl());
             pEcat7ImageHeader->setCalibration_Units(CECAT7MainHeader::Uncalibrated);
             pEcat7ImageHeader->setData_Units("N/A");
           }
