@@ -310,9 +310,9 @@ bool CConcordeFile::readMatrix(QByteArray*& matrixData, short frame)
         unsigned int iFrameSize = 0;
         if(readMatrix(pTmp, iFrameSize, frame))
         {
+            matrixData = new QByteArray;
+            matrixData->setRawData(pTmp, iFrameSize);
             result = true;
-            matrixData = new QByteArray(pTmp, iFrameSize);
-            delete [] pTmp;
         }
     }
     RETURN(result);
@@ -327,12 +327,13 @@ bool CConcordeFile::readMatrix(QByteArray*& matrixData, CConcordeFrameHeader*& s
     if(isOpen())
         if(readSubHeader(subHeader, frame))
         {
-            char* pTmp = matrixData->data();
+            char* pTmp = NULL;
             unsigned int iFrameSize = 0;
             if(readMatrix(pTmp, iFrameSize, frame))
             {
+                matrixData = new QByteArray;
+                matrixData->setRawData(pTmp, iFrameSize);
                 result = true;
-                matrixData = new QByteArray(pTmp, iFrameSize);
             }
         }
     RETURN(result);

@@ -21,6 +21,7 @@
  * $Id$
  *
  **************************************************************************/
+
 #include <QCoreApplication>
 #include "CPhilipsDirectoryItem.h"
 #include "CPhilipsFile.h"
@@ -28,10 +29,15 @@
 #include "CPhilipsSubHeader.h"
 #include "CPhilipsSubHeaderImage.h"
 #include "CPhilipsSubHeaderSinogram.h"
+#include "CPhilipsSubHeaderSyntegra.h"
+#include "CPhilipsSubHeaderListmode.h"
 
 #include <QDataStream>
 #include <rtdebug.h>
 #include <iostream>
+
+#include <byteswap.h>
+
 // we define the private inline class of that one so that we
 // are able to hide the private methods & data of that class in the
 // public headers
@@ -268,9 +274,20 @@ bool CPhilipsDirectoryItem::readSubHeader(CPhilipsSubHeader*& subHeader)
           result = true;
         break;          
 
-        default:
-          E("philips type isn't specified or not supported yet.");
-        
+        case CPhilipsSubHeader::Syntegra:
+          subHeader = new CPhilipsSubHeaderSyntegra(*static_cast<CPhilipsSubHeaderSyntegra*>(m_pData->cachedSubHeader));
+          result = true;
+        break;          
+
+        case CPhilipsSubHeader::Listmode:
+          subHeader = new CPhilipsSubHeaderListmode(*static_cast<CPhilipsSubHeaderListmode*>(m_pData->cachedSubHeader));
+          result = true;
+        break;          
+
+        case CPhilipsSubHeader::Unknown:
+          // do nothing
+          E("Unknown subheader type found!");
+        break;
       }
 
       // set the mediodata object for the newly created subheader
@@ -322,8 +339,8 @@ bool CPhilipsDirectoryItem::readMatrix(QByteArray*& matrixData)
   // we use our method operating on a raw char pointer
   if(readMatrix(data, dataLen) && dataLen > 0)
   {
-    matrixData = new QByteArray(data, dataLen);
-    delete [] data;
+    matrixData = new QByteArray;
+    matrixData->setRawData(data, dataLen);
     result = true;
   }
 
@@ -344,21 +361,10 @@ bool CPhilipsDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSi
     return false;
   }
 
-/*
-  // as we can't handle compressed data abort
-  if(m_pData->compressionFlag == Compressed)
-  {
-    W("matrix data is compressed. abort reading");
-    RETURN(false);
-    return false;
-    }
-*/
-
   // we load the MatrixData out of the Philipsfile manually but only
   // if the content flag  of this item is set to "used"
   if(m_pData->contentFlag == Used)
   {
-
     // before we can read in the raw data we need to read in
     // the Subheader so that we know the data type of our raw
     // data
@@ -379,147 +385,121 @@ bool CPhilipsDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSi
 
     SHOWVALUE(m_pData->file->pos());
 
-    if(m_pData->compressionFlag == Compressed)
+    // then we allocate some memory for loading the matrixdata
+    // this should be:
+    matrixSize = m_pData->dataBlock_End - m_pData->dataBlock_Start - subHeader->rawDataSize() + PHILIPS_BLOCKSIZE;
+    matrixData = new char[matrixSize];
+
+    // now we read in the whole data at once
+    if(m_pData->file->read(matrixData, matrixSize) == matrixSize)
     {
-      W("matrix data is compressed.");
-      QByteArray uncompressedData;
+      // now we find out if this machine requires byte swapping or
+      // not depending on the input data type and the sysinfo
+      int dataTypeSize = sizeof(char);
+      bool byteSwapping = false;
 
-      unsigned int compressedLength = m_pData->dataBlock_End - m_pData->dataBlock_Start - subHeader->rawDataSize() + PHILIPS_BLOCKSIZE;
-      unsigned int uncompressedLength = 144*144*2;
-
-      char tmp[compressedLength];
-      qint64 bytesRead =  m_pData->file->read(tmp, compressedLength);
-
-      QByteArray compressedData(tmp, bytesRead);
-      char* n = reinterpret_cast<char*>(&uncompressedLength);
-
-      QByteArray a;
-      a.resize(4+bytesRead);
-
-      QDataStream stream(&a, QIODevice::WriteOnly);
-      stream.setVersion(QDataStream::Qt_4_5);
-      stream << uncompressedLength;
-
-      a.append(compressedData);
-      //compressedData.prepend(QByteArray::number(uncompressedLength));
-      uncompressedData = qUncompress(a);
-      matrixSize = uncompressedData.size();
-      memcpy(matrixData, uncompressedData.data(), matrixSize);
-
-
-      QFile file("compressedStuff");
-      
-      file.open(QIODevice::WriteOnly);
-      file.write(compressedData);
-      file.close();
-      qApp->exit(0);
-    }
-    else
-    {
-      // then we allocate some memory for loading the matrixdata
-      // because dataBlock_End points to the last data block of the
-      // record, we need to add the lenght of one data block to get
-      // the size of the matrix
-      matrixSize = m_pData->dataBlock_End - m_pData->dataBlock_Start - subHeader->rawDataSize() + PHILIPS_BLOCKSIZE;
-      matrixData = new char[matrixSize];
-
-      // then we process the matrix data that is associated with
-      // this directoryitem. According to the LUMINARY TOOLKIT MANUAL
-      // all data is stored using big endian byte ordering. As the QDataStream
-      // is per default big endian, we don't have to set it to another byte order
-      // and just use the QDataStream operators to ensure correct byte swapping
       switch(subHeader->datype())
       {
-#if 0
+        case CPhilipsSubHeader::UnknownDataType:
         case CPhilipsSubHeader::ByteData:
-        {
-          if(m_pData->file->read(matrixData, matrixSize) > 0)
-            result = true;
-        }
+          // nothing to do
         break;
-#endif
+
+        // Signed and Unsigned short is a 16bit big endian value
         case CPhilipsSubHeader::SignedShort:
-          //case CPhilipsSubHeader::UnsignedShort:
+        case CPhilipsSubHeader::UnsignedShort:
         {
-          QByteArray bufArray(8192, 0); // read 8KB chunks
-          quint16* ptr = (quint16*)matrixData;
-          for(unsigned int read=0; read < matrixSize;)
-          {
-            unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
-            unsigned int curRead = m_pData->file->read(bufArray.data(), toRead);
-            if(curRead != toRead)
-            {
-              result = false;
-              break;
-            }
-
-            // check if the curRead value is divide able through our data type 
-            ASSERT(curRead % sizeof(quint16) == 0);
-
-            // now that we have our chunk we use a bufferStream to stream
-            // out the values from it for making sure our data is correctly
-            // converted regarding to little/big endianess
-            QDataStream bufStream(bufArray);
-            for(unsigned int i=0; i < curRead; i+=sizeof(quint16))
-            {
-              bufStream >> *ptr;
-              ++ptr;
-            }
-
-            // increase our read counter
-            read += curRead;
-          }
+          dataTypeSize = sizeof(quint16);
+          byteSwapping = (QSysInfo::ByteOrder != QSysInfo::BigEndian);
         }
         break;
-
-#if 0
+  
+        // float is a 32bit big endian value
         case CPhilipsSubHeader::Float:
         {
-          QByteArray bufArray(8192, 0); // read 8KB chunks
-          float* ptr = (float*)matrixData;
-          for(unsigned int read=0; read < matrixSize;)
-          {
-            unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
-            unsigned int curRead = m_pData->file->read(bufArray.data(), toRead);
-            if(curRead != toRead)
-            {
-              result = false;
-              break;
-            }
-
-            // check if the curRead value is divide able through our data type 
-            ASSERT(curRead % sizeof(float) == 0);
-
-            // now that we have our chunk we use a bufferStream to stream
-            // out the values from it for making sure our data is correctly
-            // converted regarding to little/big endianess
-            QDataStream bufStream(bufArray);
-
-            // we have to set the QDataStream version to the Qt4.5 version
-            // because with Qt4.6 the floating point precision changed and
-            // otherwise causes our streaming to fail
-            bufStream.setVersion(QDataStream::Qt_4_5);
-
-            for(unsigned int i=0; i < curRead; i+=sizeof(float))
-            {
-              bufStream >> *ptr;
-              ++ptr;
-            }
-
-            // increase our read counter
-            read += curRead;
-          }
+          dataTypeSize = sizeof(float);
+          byteSwapping = (QSysInfo::ByteOrder != QSysInfo::BigEndian);
         }
         break;
-#endif
-
+          
         default:
         {
-          D("Data type is not supported yet.");
+          D("Data type not supported");
           result = false;
         }
       }
+
+      // before caring about byte swapping the data we check the
+      // compression flag and eventually uncompress the whole matrixData
+      // first
+      if(m_pData->compressionFlag == Compressed)
+      {
+        STARTCLOCK("uncompress");
+
+        quint32 uncompressedMatrixSize = subHeader->xdim() * subHeader->ydim() * dataTypeSize;
+        QByteArray compressedData = QByteArray::fromRawData(matrixData, matrixSize);
+
+        // the qUncompress() of Qt4 requires us to add a special header
+        // with the expected final size of the uncompressed data in bytes
+        QByteArray zlibHeader;
+        QDataStream stream(&zlibHeader, QIODevice::WriteOnly);
+        stream << uncompressedMatrixSize;
+        compressedData.prepend(zlibHeader);
+
+        // lets uncompress the data
+        QByteArray uncompressedData = qUncompress(compressedData);
+
+        // lets copy the uncompressedData to matrixData
+        delete[] matrixData;
+        matrixSize = uncompressedData.size();
+        matrixData = new char[matrixSize];
+        memcpy(matrixData, uncompressedData.constData(), matrixSize);
+
+        STOPCLOCK("uncompress");
+      }
+
+      // lets perform the byte swapping if required
+      if(byteSwapping == true)
+      {
+        STARTCLOCK("byteswap");
+
+        switch(dataTypeSize)
+        {
+          // 32bit data
+          case sizeof(quint32):
+          {
+            quint32 *data = (quint32 *)matrixData;
+            for(unsigned int i=0; i < matrixSize; i+=dataTypeSize)
+            {
+              *data = bswap_32(*data);
+              data++;
+            }
+          }
+          break;
+
+          // 16bit data
+          case sizeof(quint16):
+          {
+            quint16 *data = (quint16 *)matrixData;
+            for(unsigned int i=0; i < matrixSize; i+=dataTypeSize)
+            {
+              *data = bswap_16(*data);
+              data++;
+            }
+          }
+          break;
+
+          default:
+            E("invalid dataTypeSize: %d", dataTypeSize);
+          break;
+        }
+
+        STOPCLOCK("byteswap");
+      }
+      
+      result = true;
     }
+
     // now we delete the subHeader we loaded temporarly
     delete subHeader;
   }
@@ -540,8 +520,8 @@ bool CPhilipsDirectoryItem::readMatrix(QByteArray*& matrixData, CPhilipsSubHeade
   // we use our method operating on a raw char pointer
   if(readMatrix(data, dataLen, subHeader) && dataLen > 0)
   {
-    matrixData = new QByteArray(data, dataLen);
-    delete [] data;
+    matrixData = new QByteArray;
+    matrixData->setRawData(data, dataLen);
     result = true;
   }
 
@@ -623,28 +603,32 @@ void CPhilipsDirectoryItemPrivate::cacheSubHeader(const CPhilipsSubHeader& subHe
 {
   ENTER();
 
-  switch(file->subHeaderType())
+  if(cachedSubHeader != NULL)
+    *cachedSubHeader = *&subHeader;
+  else
   {
-    case CPhilipsSubHeader::Image:
+    switch(file->subHeaderType())
     {
-      if(cachedSubHeader)
-        *static_cast<CPhilipsSubHeaderImage*>(cachedSubHeader) = *static_cast<const CPhilipsSubHeaderImage*>(&subHeader);
-      else
+      case CPhilipsSubHeader::Image:
         cachedSubHeader = new CPhilipsSubHeaderImage(*static_cast<const CPhilipsSubHeaderImage*>(&subHeader));
-    }
-    break;
+      break;
 
-    case CPhilipsSubHeader::Sinogram:
-    {
-      if(cachedSubHeader)
-        *static_cast<CPhilipsSubHeaderSinogram*>(cachedSubHeader) = *static_cast<const CPhilipsSubHeaderSinogram*>(&subHeader);
-      else
+      case CPhilipsSubHeader::Sinogram:
         cachedSubHeader = new CPhilipsSubHeaderSinogram(*static_cast<const CPhilipsSubHeaderSinogram*>(&subHeader));
-    }
-    break;
+      break;
 
-    default:
-      E("Philips type isn't specified or not supportet yet.");
+      case CPhilipsSubHeader::Syntegra:
+        cachedSubHeader = new CPhilipsSubHeaderSyntegra(*static_cast<const CPhilipsSubHeaderSyntegra*>(&subHeader));
+      break;
+
+      case CPhilipsSubHeader::Listmode:
+        cachedSubHeader = new CPhilipsSubHeaderListmode(*static_cast<const CPhilipsSubHeaderListmode*>(&subHeader));
+      break;
+
+      case CPhilipsSubHeader::Unknown:
+        E("unknown subheader type found");
+      break;
+    }
   }
 
   if(cachedSubHeader)

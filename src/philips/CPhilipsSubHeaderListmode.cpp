@@ -22,7 +22,7 @@
  *
  **************************************************************************/
 
-#include "CPhilipsSubHeaderSinogram.h"
+#include "CPhilipsSubHeaderListmode.h"
 #include "CPhilipsDirectoryItem.h"
 #include "CPhilipsFile.h"
 
@@ -30,7 +30,7 @@
 
 #include <rtdebug.h>
 
-CPhilipsSubHeaderSinogram::CPhilipsSubHeaderSinogram(CPhilipsFile* philipsFile,
+CPhilipsSubHeaderListmode::CPhilipsSubHeaderListmode(CPhilipsFile* philipsFile,
                                                      CPhilipsDirectoryItem* pDirItem)
   : CPhilipsSubHeader(philipsFile, pDirItem)
 {
@@ -39,7 +39,7 @@ CPhilipsSubHeaderSinogram::CPhilipsSubHeaderSinogram(CPhilipsFile* philipsFile,
   LEAVE();
 }
 
-CPhilipsSubHeaderSinogram::CPhilipsSubHeaderSinogram(const CPhilipsSubHeaderSinogram& src)
+CPhilipsSubHeaderListmode::CPhilipsSubHeaderListmode(const CPhilipsSubHeaderListmode& src)
   : CPhilipsSubHeader(src)
 {
   ENTER();
@@ -47,57 +47,17 @@ CPhilipsSubHeaderSinogram::CPhilipsSubHeaderSinogram(const CPhilipsSubHeaderSino
   LEAVE();
 }
 
-CPhilipsSubHeader::Type CPhilipsSubHeaderSinogram::subHeaderType(void) const
+CPhilipsSubHeader::Type CPhilipsSubHeaderListmode::subHeaderType(void) const
 {
-  return CPhilipsSubHeader::Sinogram;
+  return CPhilipsSubHeader::Listmode;
 }
 
-CMedIOHeader* CPhilipsSubHeaderSinogram::clone() const
+CMedIOHeader* CPhilipsSubHeaderListmode::clone() const
 {
   ENTER();
 
-  CPhilipsSubHeaderSinogram* pNewHeader = new CPhilipsSubHeaderSinogram(*this);
+  CPhilipsSubHeaderListmode* pNewHeader = new CPhilipsSubHeaderListmode(*this);
 
   RETURN(pNewHeader);
   return pNewHeader;
 } 
-
-float CPhilipsSubHeaderSinogram::scnscl() const
-{
-  return CPhilipsSubHeader::scnscl();
-}
-
-short CPhilipsSubHeaderSinogram::scnmin() const
-{
-  return CPhilipsSubHeader::scnmin();
-}
-
-short CPhilipsSubHeaderSinogram::scnmax() const
-{
-  return CPhilipsSubHeader::scnmax();
-}
-
-float CPhilipsSubHeaderSinogram::scnsum() const
-{
-  return CPhilipsSubHeader::scnsum();
-}
-
-void CPhilipsSubHeaderSinogram::setScnscl(const float scnscl)
-{
-  CPhilipsSubHeader::setScnscl(scnscl);
-}
-
-void CPhilipsSubHeaderSinogram::setScnmin(const short scnmin)
-{
-  CPhilipsSubHeader::setScnmin(scnmin);
-}
-
-void CPhilipsSubHeaderSinogram::setScnmax(const short scnmax)
-{
-  CPhilipsSubHeader::setScnmax(scnmax);
-}
-
-void CPhilipsSubHeaderSinogram::setScnsum(const float scnsum)
-{
-  CPhilipsSubHeader::setScnsum(scnsum);
-}

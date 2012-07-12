@@ -37,6 +37,8 @@
 
 #include <rtdebug.h>
 
+#include <byteswap.h>
+
 // we define the private inline class of that one so that we
 // are able to hide the private methods & data of that class in the
 // public headers
@@ -46,7 +48,7 @@ class CECATDirectoryItemPrivate
     void cacheSubHeader(const CECATSubHeader& subHeader);
     
     CECATDirectoryItem*    dirItem;          // pointer to the directory Item
-    CECATFile*            file;              // pointer to the ECATFile
+    CECATFile*             file;              // pointer to the ECATFile
     CECATSubHeader*        cachedSubHeader;  // pointer to a cached SubHeader object
 
     // META information about the directory Item
@@ -55,8 +57,8 @@ class CECATDirectoryItemPrivate
     short                  gate;              // the MatrixID
     short                  bed;
     short                  data;
-    qint64                dataBlock_Start;  // also start of SubHeader
-    qint64                dataBlock_End;    // end of raw Data area
+    qint64                 dataBlock_Start;  // also start of SubHeader
+    qint64                 dataBlock_End;    // end of raw Data area
 
     enum CECATDirectoryItem::AccessStatus      status;
 };
@@ -356,8 +358,8 @@ bool CECATDirectoryItem::readMatrix(QByteArray*& matrixData)
   // we use our method operating on a raw char pointer
   if(readMatrix(data, dataLen) && dataLen > 0)
   {
-    matrixData = new QByteArray(data, dataLen);
-    delete [] data;
+    matrixData = new QByteArray;
+    matrixData->setRawData(data, dataLen);
     result = true;
   }
 
@@ -408,284 +410,113 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
     matrixSize = m_pData->dataBlock_End-m_pData->dataBlock_Start-subHeader->rawDataSize()+ECAT_BLOCKSIZE;
     matrixData = new char[matrixSize];
 
-    // then we process the matrix data that is associated with
-    // this directoryitem.
-    // here we have to care about the correct endianess, so that
-    // we convert BIG->LITTLE or vise versa depending on the
-    // system we are running.
-    switch(subHeader->data_Type())
+    // now we read in the whole data at once
+    if(m_pData->file->read(matrixData, matrixSize) == matrixSize)
     {
-      case CECATSubHeader::UnknownDataType:
-      {
-        W("No or an unknown data type was set for the matrix data of dirItem %08lx",
-            convertToMatrixID(m_pData->frame, m_pData->plane, m_pData->gate, m_pData->bed, m_pData->data));
+      // now we find out if this machine requires byte swapping or
+      // not depending on the input data type and the sysinfo
+      int dataTypeSize = sizeof(char);
+      bool byteSwapping = false;
 
-        if(m_pData->file->read(matrixData, matrixSize) > 0)
-          result = true;
-      }
-      break;
-
-      // write out Byte data. (1 byte)
-      case CECATSubHeader::ByteData:
+      switch(subHeader->data_Type())
       {
-        if(m_pData->file->read(matrixData, matrixSize) > 0)
-          result = true;
-      }
-      break;
+        case CECATSubHeader::UnknownDataType:
+        case CECATSubHeader::ByteData:
+          // nothing to do
+        break;
 
-      // VAX_Ix2 is a little endian short value, so we
-      // need to set the stream to little endian, read the data via the
-      // QDataStream operators to ensure correct byte swapping
-      case CECATSubHeader::VAX_Ix2:
-      {
-        // the endianess conversion takes quite some time, so
-        // what we do is to us a temporarly buffer to which we read
-        // some data from our fileStream and read out to our QByteArray
-        QByteArray bufArray(8192, 0); // read 8KB chunks
-        quint16* ptr = (quint16*)matrixData;
-        for(unsigned int read=0; read < matrixSize;)
+        // VAX_Ix2 is a little endian short value (16bit)
+        case CECATSubHeader::VAX_Ix2:
         {
-          unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
-          unsigned int curRead = m_pData->file->read(bufArray.data(), toRead);
-          if(curRead != toRead)
-          {
-            result = false;
-            break;
-          }
-
-          // check if the curRead value is divide able through our data type 
-          ASSERT(curRead % sizeof(quint16) == 0);
-
-          // now that we have our chunk we use a bufferStream to stream
-          // out the values from it for making sure our data is correctly
-          // converted regarding to little/big endianess
-          QDataStream bufStream(bufArray);
-          bufStream.setByteOrder(QDataStream::LittleEndian);
-          for(unsigned int i=0; i < curRead; i+=sizeof(quint16))
-          {
-            bufStream >> *ptr;
-            ++ptr;
-          }
-          bufStream.setByteOrder(QDataStream::BigEndian);
-
-          // increase our read counter
-          read += curRead;
+          dataTypeSize = sizeof(quint16);
+          byteSwapping = (QSysInfo::ByteOrder != QSysInfo::LittleEndian);
         }
-      }
-      break;
+        break;
 
-      // VAX_Ix4 is a little endian long value, so we
-      // need to set the stream to little endian, read the data via the
-      // QDataStream operators to ensure correct byte swapping
-      case CECATSubHeader::VAX_Ix4:
-      {
-        // the endianess conversion takes quite some time, so
-        // what we do is to us a temporarly buffer to which we read
-        // some data from our fileStream and read out to our QByteArray
-        QByteArray bufArray(8192, 0); // read 8KB chunks
-        quint32* ptr = (quint32*)matrixData;
-        for(unsigned int read=0; read < matrixSize;)
+        // VAX_Ix4 is a little endian long value (32bit)
+        case CECATSubHeader::VAX_Ix4:
         {
-          unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
-          unsigned int curRead = m_pData->file->read(bufArray.data(), toRead);
-          if(curRead != toRead)
-          {
-            result = false;
-            break;
-          }
-
-          // check if the curRead value is divide able through our data type 
-          ASSERT(curRead % sizeof(quint32) == 0);
-
-          // now that we have our chunk we use a bufferStream to stream
-          // out the values from it for making sure our data is correctly
-          // converted regarding to little/big endianess
-          QDataStream bufStream(bufArray);
-          bufStream.setByteOrder(QDataStream::LittleEndian);
-          for(unsigned int i=0; i < curRead; i+=sizeof(quint32))
-          {
-            bufStream >> *ptr;
-            ++ptr;
-          }
-          bufStream.setByteOrder(QDataStream::BigEndian);
-
-          // increase our read counter
-          read += curRead;
+          dataTypeSize = sizeof(quint32);
+          byteSwapping = (QSysInfo::ByteOrder != QSysInfo::LittleEndian);
         }
-      }
-      break;
-      
-      // VAX_Rx4 is a little endian float value, so we
-      // need to set the stream to little endian, read the data via the
-      // QDataStream operators to ensure correct byte swapping      
-      case CECATSubHeader::VAX_Rx4:
-      {
-        // the endianess conversion takes quite some time, so
-        // what we do is to us a temporarly buffer to which we read
-        // some data from our fileStream and read out to our QByteArray
-        QByteArray bufArray(8192, 0); // read 8KB chunks
-        float* ptr = (float*)matrixData;
-        for(unsigned int read=0; read < matrixSize;)
+        break;
+        
+        // VAX_Rx4 is a little endian float value (32bit)
+        case CECATSubHeader::VAX_Rx4:
         {
-          unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
-          unsigned int curRead = m_pData->file->read(bufArray.data(), toRead);
-          if(curRead != toRead)
+          dataTypeSize = sizeof(float);
+          byteSwapping = (QSysInfo::ByteOrder != QSysInfo::LittleEndian);
+        }
+        break;
+
+        // IEEEFloat is defined to be a big endian float value (32bit)
+        case CECATSubHeader::IEEEFloat:
+        {
+          dataTypeSize = sizeof(float);
+          byteSwapping = (QSysInfo::ByteOrder != QSysInfo::BigEndian);
+
+        }
+        break;
+
+        // SunShort is defined to be a big endian short value (16bit)
+        case CECATSubHeader::SunShort:
+        {
+          dataTypeSize = sizeof(quint16);
+          byteSwapping = (QSysInfo::ByteOrder != QSysInfo::BigEndian);
+        }
+        break;
+
+        // SunLong is defined to be a big endian long value (32bit)
+        case CECATSubHeader::SunLong:
+        {
+          dataTypeSize = sizeof(quint32);
+          byteSwapping = (QSysInfo::ByteOrder != QSysInfo::BigEndian);
+        }
+        break;
+      }    
+
+      // lets perform the byte swapping if required
+      if(byteSwapping == true)
+      {
+        STARTCLOCK("byteswap");
+
+        switch(dataTypeSize)
+        {
+          // 32bit data
+          case sizeof(quint32):
           {
-            result = false;
-            break;
+            quint32 *data = (quint32 *)matrixData;
+            for(unsigned int i=0; i < matrixSize; i+=dataTypeSize)
+            {
+              *data = bswap_32(*data);
+              data++;
+            }
           }
+          break;
 
-          // check if the curRead value is divide able through our data type 
-          ASSERT(curRead % sizeof(float) == 0);
+          // 16bit data
+          case sizeof(quint16):
+          {
+            quint16 *data = (quint16 *)matrixData;
+            for(unsigned int i=0; i < matrixSize; i+=dataTypeSize)
+            {
+              *data = bswap_16(*data);
+              data++;
+            }
+          }
+          break;
 
-          // now that we have our chunk we use a bufferStream to stream
-          // out the values from it for making sure our data is correctly
-          // converted regarding to little/big endianess
-          QDataStream bufStream(bufArray);
+          default:
+            E("invalid dataTypeSize: %d", dataTypeSize);
+          break;
+        }
+
+        STOPCLOCK("byteswap");
+      }
+
+      result = true;
+    }
  
-          // we have to set the QDataStream version to the Qt4.5 version
-          // because with Qt4.6 the floating point precision changed and
-          // otherwise causes our streaming to fail
-          bufStream.setVersion(QDataStream::Qt_4_5);
-          
-          bufStream.setByteOrder(QDataStream::LittleEndian);
-          for(unsigned int i=0; i < curRead; i+=sizeof(float))
-          {
-            bufStream >> *ptr;
-            ++ptr;
-          }
-          bufStream.setByteOrder(QDataStream::BigEndian);
-
-          // increase our read counter
-          read += curRead;
-        }
-      }
-      break;
-
-      // IEEEFloat is defined to be a big endian float value. As the QDataStream
-      // is per default big endian, we don't have to set it to another byte order
-      // and just use the QDataStream operators to ensure correct byte swapping
-      case CECATSubHeader::IEEEFloat:
-      {
-        // the endianess conversion takes quite some time, so
-        // what we do is to us a temporarly buffer to which we read
-        // some data from our fileStream and read out to our QByteArray
-        QByteArray bufArray(8192, 0); // read 8KB chunks
-        float* ptr = (float*)matrixData;
-        for(unsigned int read=0; read < matrixSize;)
-        {
-          unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
-          unsigned int curRead = m_pData->file->read(bufArray.data(), toRead);
-          if(curRead != toRead)
-          {
-            result = false;
-            break;
-          }
-
-          // check if the curRead value is divide able through our data type 
-          ASSERT(curRead % sizeof(float) == 0);
-
-          // now that we have our chunk we use a bufferStream to stream
-          // out the values from it for making sure our data is correctly
-          // converted regarding to little/big endianess
-          QDataStream bufStream(bufArray);
-
-          // we have to set the QDataStream version to the Qt4.5 version
-          // because with Qt4.6 the floating point precision changed and
-          // otherwise causes our streaming to fail
-          bufStream.setVersion(QDataStream::Qt_4_5);
-          
-          for(unsigned int i=0; i < curRead; i+=sizeof(float))
-          {
-            bufStream >> *ptr;
-            ++ptr;
-          }
-
-          // increase our read counter
-          read += curRead;
-        }
-      }
-      break;
-
-      // SunShort is defined to be a big endian short value. As the QDataStream
-      // is per default big endian, we don't have to set it to another byte order
-      // and just use the QDataStream operators to ensure correct byte swapping
-      case CECATSubHeader::SunShort:
-      {
-        // the endianess conversion takes quite some time, so
-        // what we do is to us a temporarly buffer to which we read
-        // some data from our fileStream and read out to our QByteArray
-        QByteArray bufArray(8192, 0); // read 8KB chunks
-        quint16* ptr = (quint16*)matrixData;
-        for(unsigned int read=0; read < matrixSize;)
-        {
-          unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
-          unsigned int curRead = m_pData->file->read(bufArray.data(), toRead);
-          if(curRead != toRead)
-          {
-            result = false;
-            break;
-          }
-
-          // check if the curRead value is divide able through our data type 
-          ASSERT(curRead % sizeof(quint16) == 0);
-
-          // now that we have our chunk we use a bufferStream to stream
-          // out the values from it for making sure our data is correctly
-          // converted regarding to little/big endianess
-          QDataStream bufStream(bufArray);
-          for(unsigned int i=0; i < curRead; i+=sizeof(quint16))
-          {
-            bufStream >> *ptr;
-            ++ptr;
-          }
-
-          // increase our read counter
-          read += curRead;
-        }
-      }
-      break;
-
-      // SunLong is defined to be a big endian long value. As the QDataStream
-      // is per default big endian, we don't have to set it to another byte order
-      // and just use the QDataStream operators to ensure correct byte swapping
-      case CECATSubHeader::SunLong:
-      {
-        // the endianess conversion takes quite some time, so
-        // what we do is to us a temporarly buffer to which we read
-        // some data from our fileStream and read out to our QByteArray
-        QByteArray bufArray(8192, 0); // read 8KB chunks
-        quint32* ptr = (quint32*)matrixData;
-        for(unsigned int read=0; read < matrixSize;)
-        {
-          unsigned int toRead = matrixSize-read >= 8192 ? 8192 : matrixSize-read;
-          unsigned int curRead = m_pData->file->read(bufArray.data(), toRead);
-          if(curRead != toRead)
-          {
-            result = false;
-            break;
-          }
-          
-          // check if the curRead value is divide able through our data type 
-          ASSERT(curRead % sizeof(quint32) == 0);
-
-          // now that we have our chunk we use a bufferStream to stream
-          // out the values from it for making sure our data is correctly
-          // converted regarding to little/big endianess
-          QDataStream bufStream(bufArray);
-          for(unsigned int i=0; i < curRead; i+=sizeof(quint32))
-          {
-            bufStream >> *ptr;
-            ++ptr;
-          }
-
-          // increase our read counter
-          read += curRead;
-        }
-      }
-      break;
-    }    
-
     // now we delete the subHeader we loaded temporarly
     delete subHeader;
   }
@@ -706,8 +537,8 @@ bool CECATDirectoryItem::readMatrix(QByteArray*& matrixData, CECATSubHeader*& su
   // we use our method operating on a raw char pointer
   if(readMatrix(data, dataLen, subHeader) && dataLen > 0)
   {
-    matrixData = new QByteArray(data, dataLen);
-    delete [] data;
+    matrixData = new QByteArray;
+    matrixData->setRawData(data, dataLen);
     result = true;
   }
 
@@ -1021,290 +852,125 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 
   SHOWVALUE(m_pData->file->pos());
 
-  // then we process the matrix data that is associated with
-  // this directoryitem.
-  // here we have to care about the correct endianess, so that
-  // we convert BIG->LITTLE or vise versa depending on the
-  // system we are running.
+  // now we find out if this machine requires byte swapping or
+  // not depending on the input data type and the sysinfo
+  int dataTypeSize = sizeof(char);
+  bool byteSwapping = false;
+
   switch(subHeader.data_Type())
   {
     case CECATSubHeader::UnknownDataType:
-    {
-      E("No or an unknown data type was set for the matrix data of dirItem %08lx",
-          convertToMatrixID(m_pData->frame, m_pData->plane, m_pData->gate, m_pData->bed, m_pData->data));
-      
-      result = false;
-    }
-    break;
-
-    // write out Byte data. (1 byte)
     case CECATSubHeader::ByteData:
-    {
-      if(m_pData->file->write(matrixData, matrixSize) == (qint64)matrixSize)
-        result = true;
-    }
+      // nothing to do
     break;
 
-    // VAX_Ix2 is a little endian short value, so we
-    // need to set the stream to little endian, read the data via the
-    // QDataStream operators to ensure correct byte swapping
+    // VAX_Ix2 is a little endian short value (16bit)
     case CECATSubHeader::VAX_Ix2:
     {
-      // the endianess conversion takes quite some time, so
-      // what we do is to us a temporarly buffer to which we read
-      // some data from our fileStream and read out to our QByteArray
-      QByteArray bufArray(8192, 0); // write in 8KB chunks
-      quint16* ptr = (quint16*)matrixData;
-      for(unsigned int written=0; written < matrixSize;)
-      {
-        unsigned int toWrite = matrixSize-written >= 8192 ? 8192 : matrixSize-written;
-
-        // check if the curRead value is divide able through our data type 
-        ASSERT(toWrite % sizeof(quint16) == 0);
-
-        // now that we have our chunk we use a bufferStream to stream
-        // in the values to it for making sure our data is correctly
-        // converted regarding to little/big endianess
-        QDataStream bufStream(&bufArray, QIODevice::WriteOnly);
-        bufStream.setByteOrder(QDataStream::LittleEndian);
-        for(unsigned int i=0; i < toWrite; i+=sizeof(quint16))
-        {
-          bufStream << *ptr;
-          ++ptr;
-        }
-        bufStream.setByteOrder(QDataStream::BigEndian);
-
-        // write out the data from our buffer to the file
-        if(m_pData->file->write(bufArray.data(), toWrite) != (qint64)toWrite)
-        {
-          result = false;
-          break;
-        }
-        
-        // increase our read counter
-        written += toWrite;
-      }
+      dataTypeSize = sizeof(quint16);
+      byteSwapping = (QSysInfo::ByteOrder != QSysInfo::LittleEndian);
     }
     break;
 
-    // VAX_Ix4 is a little endian long value, so we
-    // need to set the stream to little endian, read the data via the
-    // QDataStream operators to ensure correct byte swapping
+    // VAX_Ix4 is a little endian long value (32bit)
     case CECATSubHeader::VAX_Ix4:
     {
-      // the endianess conversion takes quite some time, so
-      // what we do is to us a temporarly buffer to which we read
-      // some data from our fileStream and read out to our QByteArray
-      QByteArray bufArray(8192, 0); // write in 8KB chunks
-      quint32* ptr = (quint32*)matrixData;
-      for(unsigned int written=0; written < matrixSize;)
-      {
-        unsigned int toWrite = matrixSize-written >= 8192 ? 8192 : matrixSize-written;
-
-        // check if the curRead value is divide able through our data type 
-        ASSERT(toWrite % sizeof(quint32) == 0);
-
-        // now that we have our chunk we use a bufferStream to stream
-        // in the values to it for making sure our data is correctly
-        // converted regarding to little/big endianess
-        QDataStream bufStream(&bufArray, QIODevice::WriteOnly);
-        bufStream.setByteOrder(QDataStream::LittleEndian);
-        for(unsigned int i=0; i < toWrite; i+=sizeof(quint32))
-        {
-          bufStream << *ptr;
-          ++ptr;
-        }
-        bufStream.setByteOrder(QDataStream::BigEndian);
-
-        // write out the data from our buffer to the file
-        if(m_pData->file->write(bufArray.data(), toWrite) != (qint64)toWrite)
-        {
-          result = false;
-          break;
-        }
-        
-        // increase our read counter
-        written += toWrite;
-      }
+      dataTypeSize = sizeof(quint32);
+      byteSwapping = (QSysInfo::ByteOrder != QSysInfo::LittleEndian);
     }
     break;
-    
-    // VAX_Rx4 is a little endian float value, so we
-    // need to set the stream to little endian, read the data via the
-    // QDataStream operators to ensure correct byte swapping      
+
+    // VAX_Rx4 is a little endian float value (32bit)
     case CECATSubHeader::VAX_Rx4:
     {
-      // the endianess conversion takes quite some time, so
-      // what we do is to us a temporarly buffer to which we read
-      // some data from our fileStream and read out to our QByteArray
-      QByteArray bufArray(8192, 0); // write in 8KB chunks
-      float* ptr = (float*)matrixData;
-      for(unsigned int written=0; written < matrixSize;)
-      {
-        unsigned int toWrite = matrixSize-written >= 8192 ? 8192 : matrixSize-written;
-
-        // check if the curRead value is divide able through our data type 
-        ASSERT(toWrite % sizeof(float) == 0);
-
-        // now that we have our chunk we use a bufferStream to stream
-        // in the values to it for making sure our data is correctly
-        // converted regarding to little/big endianess
-        QDataStream bufStream(&bufArray, QIODevice::WriteOnly);
-
-        // we have to set the QDataStream version to the Qt4.5 version
-        // because with Qt4.6 the floating point precision changed and
-        // otherwise causes our streaming to fail
-        bufStream.setVersion(QDataStream::Qt_4_5);
-        
-        bufStream.setByteOrder(QDataStream::LittleEndian);
-        for(unsigned int i=0; i < toWrite; i+=sizeof(float))
-        {
-          bufStream << *ptr;
-          ++ptr;
-        }
-        bufStream.setByteOrder(QDataStream::BigEndian);
-
-        // write out the data from our buffer to the file
-        if(m_pData->file->write(bufArray.data(), toWrite) != (qint64)toWrite)
-        {
-          result = false;
-          break;
-        }
-        
-        // increase our read counter
-        written += toWrite;
-      }
+      dataTypeSize = sizeof(float);
+      byteSwapping = (QSysInfo::ByteOrder != QSysInfo::LittleEndian);
     }
     break;
 
-    // IEEEFloat is defined to be a big endian float value. As the QDataStream
-    // is per default big endian, we don't have to set it to another byte order
-    // and just use the QDataStream operators to ensure correct byte swapping
+    // IEEEFloat is defined to be a big endian float value (32bit)
     case CECATSubHeader::IEEEFloat:
     {
-      // the endianess conversion takes quite some time, so
-      // what we do is to us a temporarly buffer to which we read
-      // some data from our fileStream and read out to our QByteArray
-      QByteArray bufArray(8192, 0); // write in 8KB chunks
-      float* ptr = (float*)matrixData;
-      for(unsigned int written=0; written < matrixSize;)
-      {
-        unsigned int toWrite = matrixSize-written >= 8192 ? 8192 : matrixSize-written;
-
-        // check if the curRead value is divide able through our data type 
-        ASSERT(toWrite % sizeof(float) == 0);
-
-        // now that we have our chunk we use a bufferStream to stream
-        // in the values to it for making sure our data is correctly
-        // converted regarding to little/big endianess
-        QDataStream bufStream(&bufArray, QIODevice::WriteOnly);
-
-        // we have to set the QDataStream version to the Qt4.5 version
-        // because with Qt4.6 the floating point precision changed and
-        // otherwise causes our streaming to fail
-        bufStream.setVersion(QDataStream::Qt_4_5);
-        
-        for(unsigned int i=0; i < toWrite; i+=sizeof(float))
-        {
-          bufStream << *ptr;
-          ++ptr;
-        }
-
-        // write out the data from our buffer to the file
-        if(m_pData->file->write(bufArray.data(), toWrite) != (qint64)toWrite)
-        {
-          result = false;
-          break;
-        }
-        
-        // increase our read counter
-        written += toWrite;
-      }
+      dataTypeSize = sizeof(float);
+      byteSwapping = (QSysInfo::ByteOrder != QSysInfo::BigEndian);
     }
     break;
 
-    // SunShort is defined to be a big endian short value. As the QDataStream
-    // is per default big endian, we don't have to set it to another byte order
-    // and just use the QDataStream operators to ensure correct byte swapping
+    // SunShort is defined to be a big endian short value (16bit)
     case CECATSubHeader::SunShort:
     {
-      // the endianess conversion takes quite some time, so
-      // what we do is to us a temporarly buffer to which we read
-      // some data from our fileStream and read out to our QByteArray
-      QByteArray bufArray(8192, 0); // write in 8KB chunks
-      quint16* ptr = (quint16*)matrixData;
-      for(unsigned int written=0; written < matrixSize;)
-      {
-        unsigned int toWrite = matrixSize-written >= 8192 ? 8192 : matrixSize-written;
-
-        // check if the curRead value is divide able through our data type 
-        ASSERT(toWrite % sizeof(quint16) == 0);
-
-        // now that we have our chunk we use a bufferStream to stream
-        // in the values to it for making sure our data is correctly
-        // converted regarding to little/big endianess
-        QDataStream bufStream(&bufArray, QIODevice::WriteOnly);
-        for(unsigned int i=0; i < toWrite; i+=sizeof(quint16))
-        {
-          bufStream << *ptr;
-          ++ptr;
-        }
-
-        // write out the data from our buffer to the file
-        if(m_pData->file->write(bufArray.data(), toWrite) != (qint64)toWrite)
-        {
-          result = false;
-          break;
-        }
-        
-        // increase our read counter
-        written += toWrite;
-      }
-
+      dataTypeSize = sizeof(quint16);
+      byteSwapping = (QSysInfo::ByteOrder != QSysInfo::BigEndian);
     }
     break;
 
-    // SunLong is defined to be a big endian long value. As the QDataStream
-    // is per default big endian, we don't have to set it to another byte order
-    // and just use the QDataStream operators to ensure correct byte swapping
+    // SunLong is defined to be a big endian long value (32bit)
     case CECATSubHeader::SunLong:
     {
-      // the endianess conversion takes quite some time, so
-      // what we do is to us a temporarly buffer to which we read
-      // some data from our fileStream and read out to our QByteArray
-      QByteArray bufArray(8192, 0); // write in 8KB chunks
-      quint32* ptr = (quint32*)matrixData;
-      for(unsigned int written=0; written < matrixSize;)
-      {
-        unsigned int toWrite = matrixSize-written >= 8192 ? 8192 : matrixSize-written;
-
-        // check if the curRead value is divide able through our data type 
-        ASSERT(toWrite % sizeof(quint32) == 0);
-
-        // now that we have our chunk we use a bufferStream to stream
-        // in the values to it for making sure our data is correctly
-        // converted regarding to little/big endianess
-        QDataStream bufStream(&bufArray, QIODevice::WriteOnly);
-        for(unsigned int i=0; i < toWrite; i+=sizeof(quint32))
-        {
-          bufStream << *ptr;
-          ++ptr;
-        }
-
-        // write out the data from our buffer to the file
-        if(m_pData->file->write(bufArray.data(), toWrite) != (qint64)toWrite)
-        {
-          result = false;
-          break;
-        }
-        
-        // increase our read counter
-        written += toWrite;
-      }
-
+      dataTypeSize = sizeof(quint32);
+      byteSwapping = (QSysInfo::ByteOrder != QSysInfo::BigEndian);
     }
     break;
-  }    
+  }
+
+  // lets perform the byte swapping if required
+  if(byteSwapping == true)
+  {
+    STARTCLOCK("byteswap");
+
+    // create a temporarly array with equal size like our
+    // source data
+    char* swappedMatrixData = new char[matrixSize];
+    
+    switch(dataTypeSize)
+    {
+      // 32bit data
+      case sizeof(quint32):
+      {
+        quint32 *srcData = (quint32 *)matrixData;
+        quint32 *dstData = (quint32 *)swappedMatrixData;
+        for(unsigned int i=0; i < matrixSize; i+=dataTypeSize)
+        {
+          *dstData = bswap_32(*srcData);
+          dstData++;
+          srcData++;
+        }
+      }
+      break;
+
+      // 16bit data
+      case sizeof(quint16):
+      {
+        quint16 *srcData = (quint16 *)matrixData;
+        quint16 *dstData = (quint16 *)swappedMatrixData;
+        for(unsigned int i=0; i < matrixSize; i+=dataTypeSize)
+        {
+          *dstData = bswap_16(*srcData);
+          dstData++;
+          srcData++;
+        }
+      }
+      break;
+
+      default:
+        E("invalid dataTypeSize: %d", dataTypeSize);
+      break;
+    }
+
+    // now write out the data in one run
+    if(m_pData->file->write(swappedMatrixData, matrixSize) == (qint64)matrixSize)
+      result = true;
+
+    // free the data afterwards
+    delete[] swappedMatrixData;
+
+    STOPCLOCK("byteswap");
+  }
+  else
+  {
+    if(m_pData->file->write(matrixData, matrixSize) == (qint64)matrixSize)
+      result = true;
+  }
 
   if(result)
   {

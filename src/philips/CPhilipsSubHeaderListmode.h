@@ -22,8 +22,8 @@
  *
  **************************************************************************/
 
-#ifndef CPHILIPSSUBHEADERSINOGRAM_H
-#define CPHILIPSSUBHEADERSINOGRAM_H
+#ifndef CPHILIPSSUBHEADERLISTMODE_H
+#define CPHILIPSSUBHEADERLISTMODE_H
 
 #ifndef __MEDIO_PRIVATE__
 #include <CPhilipsSubHeader>
@@ -35,31 +35,21 @@
 class CPhilipsFile;
 class CPhilipsDirectoryItem;
 
-class CPhilipsSubHeaderSinogram : public CPhilipsSubHeader
+class CPhilipsSubHeaderListmode : public CPhilipsSubHeader
 {
   public:
     // constructors
-    CPhilipsSubHeaderSinogram(CPhilipsFile* philipsFile = NULL,
+    CPhilipsSubHeaderListmode(CPhilipsFile* philipsFile = NULL,
                               CPhilipsDirectoryItem* pDirItem = NULL);
 
     // copy constructur and default assignment operator
-    CPhilipsSubHeaderSinogram(const CPhilipsSubHeaderSinogram& src);    
+    CPhilipsSubHeaderListmode(const CPhilipsSubHeaderListmode& src);    
 
     // return the subHeader type
     CPhilipsSubHeader::Type subHeaderType(void) const;
 
     // clone methods
     CMedIOHeader* clone() const;
-
-    // data access methods
-    float scnscl() const;
-    short scnmin() const;
-    short scnmax() const;
-    float scnsum() const;
-    void setScnscl(const float scnscl);
-    void setScnmin(const short scnmin);
-    void setScnmax(const short scnmax);
-    void setScnsum(const float scnsum);
 };
 
-#endif // CPHILIPSSUBHEADERSINOGRAM_H
+#endif // CPHILIPSSUBHEADERLISTMODE_H

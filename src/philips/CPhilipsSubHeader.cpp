@@ -24,8 +24,105 @@
 
 #include "CPhilipsSubHeader.h"
 #include "CPhilipsDirectoryItem.h"
+#include "CMedIOData.h"
+
+#include <QDateTime>
 
 #include <rtdebug.h>
+
+#include <byteswap.h>
+
+#define bswap_flt(x) ({ union { quint32 i; float f;} u; u.f = x; u.i = bswap_32(u.i); u.f; })
+
+class CPhilipsSubHeaderPrivate
+{
+  public:
+
+  #pragma pack(1)
+  struct HeaderData
+  {
+    char magic_number[14];            // 000: 14 chars identifying a subheader
+    qint16 version;                   // 014: 0 -> original version (w/ reconinfo), 1 -> no reconinfo; w/ DICOM recon data
+    char atten_corr[16];              // 016: Atten corr used
+    float actual_bedpos;              // 032: Actual bed position for whole body scanning
+    float orientation1[3];            // 036: Image orientation, 0-2
+    char dummy1[4];                   // 048: dummy/padding only
+    float orientation2[3];            // 052: Image orientation, 3-5
+    qint32 card_fr_time;              // 064: Nominal/actual cardiac frame time
+    qint32 card_high_rr;              // 068: R-R interval upper limit, msec
+    qint32 card_low_rr;               // 072: R-R interval lower limit, msec
+    qint32 card_tr_time;              // 076: Msec from trigger to scanning
+    char scatter_corr[16];            // 080: Scatter corr used
+    qint16 deadtime_corr;             // 096: Whether deadtime corr was used (bool)
+    qint16 randoms_corr;              // 098: Type of randoms correction (NONE,DYLD,SING)
+    qint16 det_norm;                  // 100: Whether the detector was normalized (bool)
+    qint16 nu_radsamp_corr;           // 102: Whether non-unif radial samp corr was used (bool)
+    qint16 pat_mot_corr;              // 104: Whether patient motion corr was used (bool)
+    float echo_time;                  // 106: DICOM echo time
+    float exposure_time;              // 110: Exposure time
+    float img_pos_x;                  // 114: mm x coordinate of upper left hand corner
+    float img_pos_y;                  // 118: mm y coordinate of upper left hand corner
+    char dummy2[4];                   // 122: dummy/padding only
+    qint16 datype;                    // 126: Data type (1=byte,2=I*2,4=R*4orI*4,8=R*8)
+    float img_pos_z;                  // 128: mm z coordinate of upper left hand corner
+    qint16 xdim;                      // 132: X dimension
+    qint16 ydim;                      // 134: Y dimension
+    qint16 slcnum;                    // 136: Slice number
+    qint16 tiltnum;                   // 138: Tilt Number
+    qint16 gatint;                    // 140: Gating interval (msec).
+    qint16 cntloss_corr;              // 142: Whether count loss corr was applied (bool)
+    float pix_spacing_x;              // 144: x: mm between ctr of pixel and next row and column
+    float pix_spacing_y;              // 148: y: mm between ctr of pixel and next row and column
+    float xray_current;               // 152: X-ray current in mA
+    float suvscl;                     // 156: SUV scale factor (non-zero only after running suv program)
+    float kvp;                        // 160: peak kilo voltage output of x ray generator
+    float Dslice_loc;                 // 164: relative position of exposure in mm
+    float magfac;                     // 168: Reconstruction magnification (nominally 1)
+    float imgscl;                     // 172: Image scale factor (nominally 1)
+    qint16 imgmin;                    // 176: Minimum value in image
+    qint16 imgmax;                    // 178: Maximum value in image
+    qint16 decay_corr;                // 180: Type of decay correction
+    float scnscl;                     // 182: Sinogram only: Scale factor to be applied to stored values to obtain data values
+    qint16 strhr;                     // 186: (Deprecated - use start_date_time) Starting time of this frame: hour.
+    qint16 strmin;                    // 188: (Deprecated - use start_date_time) Starting time of this frame: minute.
+    qint16 strsec;                    // 190: (Deprecated - use start_date_time) Starting time of this frame: second.
+    qint16 scnmin;                    // 192: Sinogram only: Smallest data value
+    qint16 scnmax;                    // 194: Sinogram only: Greatest data value
+    qint16 endhr;                     // 196: (Deprecated - use end_date_time) Ending time of this frame: hour.
+    qint16 endmin;                    // 198: (Deprecated - use end_date_time) Ending time of this frame: minute.
+    qint16 endsec;                    // 200: (Deprecated - use end_date_time) Ending time of this frame: second.
+    qint32 midtim;                    // 202: Time from start of scan to frame midtime of frame.
+    char dummy3[2];                   // 206: dummy/padding only
+    qint16 mseclen;                   // 208: Duration in millesecs (used for EC scan, e.g.)
+    qint16 scnlen;                    // 210: Scan duration in seconds.
+    float imgsum;                     // 212: Image only: Total number of events (sum of data)
+    float scnsum;                     // 216: Sinogram only: total number of events (sum of sinogram)
+    float bgdelrt;                    // 220: Beginning delays rate - all bankpairs
+    float enddelrt;                   // 224: Ending delays rate - all bankpairs
+    float bgsngrt;                    // 228: Beginning singles rate - all detectors
+    float bgcoincrt;                  // 232: Beginning coincidence rate - all bankpairs
+    float endsngrt;                   // 236: Ending singles rate - all detectors
+    float endcoincrt;                 // 240: Ending coincidence rate - all bankpairs
+    float deadtimefac;                // 244: Deadtime Correction Factor default=1.0
+    qint16 bedpos;                    // 248: Bed position for whole body scanning
+    float deadtime_bgsub;             // 250: Deadtime Correction Factor with background subtraction
+    char dummy4[2];                   // 254: dummy/padding only
+    char sop_uid[64];                 // 256: DICOM UID of an image within a series
+    char recon_method[16];            // 320: Recon algorithm used
+    qint32 start_date_time;           // 336: UTC starting date/time of this frame.
+    qint32 end_date_time;             // 340: UTC ending date/time of this frame.
+    qint16 laterality;                // 344: Description of the laterality of (possibly paired) body parts.
+    qint16 anatomy;                   // 346: Identifies the anatomic region of interest
+    qint32 frame_ref_date_time;       // 348: The point in time most representative of when data was acquired for this frame. Use access functions to read/write.
+    qint32 card_rr_time;              // 352: R-R (nominal) peak interval, in msec, from cardiac cycles used to acquire this frame.
+    qint32 resp_int_time;             // 356: Average measured interval time, in msec, from one resp trigger to the next for resp cycles in which this image occurs.
+    qint16 start_date_time_msec;      // 360: Fraction of a second (in msec) to be added to start_date_time to give a more accurate start time.
+    qint16 end_date_time_msec;        // 362: Fraction of a second (in msec) to be added to end_date_time to give a more accurate end time.
+    qint16 frame_ref_date_time_msec;  // 364: The point in time most representative of when data was acquired for this frame.
+  } header;
+  #pragma pack()
+};
+
 
 CPhilipsSubHeader::CPhilipsSubHeader(CMedIOData* philipsFile,
                                      CPhilipsDirectoryItem* dItem)
@@ -33,6 +130,20 @@ CPhilipsSubHeader::CPhilipsSubHeader(CMedIOData* philipsFile,
     m_pDirItem(dItem)
 {
   ENTER();
+
+  // allocate data from our private instance class
+  m_pData = new CPhilipsSubHeaderPrivate();
+
+  clear();
+
+  LEAVE();
+}
+
+CPhilipsSubHeader::~CPhilipsSubHeader()
+{
+  ENTER();
+
+  delete m_pData;
 
   LEAVE();
 }
@@ -42,7 +153,8 @@ CPhilipsSubHeader::CPhilipsSubHeader(const CPhilipsSubHeader& src)
 {
   ENTER();
 
-  // do nothing
+  // allocate data from our private instance class
+  m_pData = new CPhilipsSubHeaderPrivate(*(src.m_pData));
 
   LEAVE();
 }
@@ -51,7 +163,12 @@ CPhilipsSubHeader& CPhilipsSubHeader::operator=(const CPhilipsSubHeader& src)
 {
   ENTER();
 
-  convertFrom(&src);
+  if(m_pData != src.m_pData)
+  {
+    memcpy(&m_pData->header,
+           &src.m_pData->header,
+           sizeof(struct CPhilipsSubHeaderPrivate::HeaderData));
+  }
   
   LEAVE();
   return *this;
@@ -65,4 +182,1094 @@ CMedIOHeader::Format CPhilipsSubHeader::headerFormat() const
 void CPhilipsSubHeader::setDirectoryItem(CPhilipsDirectoryItem* dItem)
 { 
   m_pDirItem = dItem;
+}
+
+void CPhilipsSubHeader::clear()
+{
+  ENTER();
+
+  // clear our header structure first
+  memset(&m_pData->header, 0, sizeof(struct CPhilipsSubHeaderPrivate::HeaderData));
+
+  // set some default values
+  m_pData->header.version = 1; // the current version
+  m_pData->header.magfac = 1.0; // Not used. always set to 1.0
+
+  LEAVE();
+}
+
+bool CPhilipsSubHeader::load(void)
+{
+  ENTER();
+
+  // check if the stream is readable or not and
+  // set our MedIOData to the correct file position so that we can
+  // read the subheader  
+  if(m_pMedIOData->isReadable() == false ||
+     m_pDirItem->dataBlock_Start() == 0 ||
+     m_pMedIOData->seek(m_pDirItem->dataBlock_Start()) == false)
+  {
+    RETURN(false);
+    return false;
+  }
+
+  // we use a ByteArray buffer to speed up the endianess
+  // decoding
+  if(m_pMedIOData->read((char *)&m_pData->header, sizeof(m_pData->header)) != sizeof(m_pData->header))
+  {
+    RETURN(false);
+    return false;
+  }
+
+  // now that we have streamed in all data in one run we
+  // have to take care of correct endianness in the non-char
+  // entries in the header structure in case this is a little endian
+  // machine
+  if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+  {
+    // we only swap non-char elements of the header
+    m_pData->header.version = bswap_16(m_pData->header.version);
+    m_pData->header.actual_bedpos = bswap_flt(m_pData->header.actual_bedpos);
+    m_pData->header.orientation1[0] = bswap_flt(m_pData->header.orientation1[0]);
+    m_pData->header.orientation1[1] = bswap_flt(m_pData->header.orientation1[1]);
+    m_pData->header.orientation1[2] = bswap_flt(m_pData->header.orientation1[2]);
+    m_pData->header.orientation2[0] = bswap_flt(m_pData->header.orientation2[0]);
+    m_pData->header.orientation2[1] = bswap_flt(m_pData->header.orientation2[1]);
+    m_pData->header.orientation2[2] = bswap_flt(m_pData->header.orientation2[2]);
+    m_pData->header.card_fr_time = bswap_32(m_pData->header.card_fr_time);
+    m_pData->header.card_high_rr = bswap_32(m_pData->header.card_high_rr);
+    m_pData->header.card_low_rr = bswap_32(m_pData->header.card_low_rr);
+    m_pData->header.card_tr_time = bswap_32(m_pData->header.card_tr_time);
+    m_pData->header.deadtime_corr = bswap_16(m_pData->header.deadtime_corr);
+    m_pData->header.randoms_corr = bswap_16(m_pData->header.randoms_corr);
+    m_pData->header.det_norm = bswap_16(m_pData->header.det_norm);
+    m_pData->header.nu_radsamp_corr = bswap_16(m_pData->header.nu_radsamp_corr);
+    m_pData->header.pat_mot_corr = bswap_16(m_pData->header.pat_mot_corr);
+    m_pData->header.echo_time = bswap_flt(m_pData->header.echo_time);
+    m_pData->header.exposure_time = bswap_flt(m_pData->header.exposure_time);
+    m_pData->header.img_pos_x = bswap_flt(m_pData->header.img_pos_x);
+    m_pData->header.img_pos_y = bswap_flt(m_pData->header.img_pos_y);
+    m_pData->header.datype = bswap_16(m_pData->header.datype);
+    m_pData->header.img_pos_z = bswap_flt(m_pData->header.img_pos_z);
+    m_pData->header.xdim = bswap_16(m_pData->header.xdim);
+    m_pData->header.ydim = bswap_16(m_pData->header.ydim);
+    m_pData->header.slcnum = bswap_16(m_pData->header.slcnum);
+    m_pData->header.tiltnum = bswap_16(m_pData->header.tiltnum);
+    m_pData->header.gatint = bswap_16(m_pData->header.gatint);
+    m_pData->header.cntloss_corr = bswap_16(m_pData->header.cntloss_corr);
+    m_pData->header.pix_spacing_x = bswap_flt(m_pData->header.pix_spacing_x);
+    m_pData->header.pix_spacing_y = bswap_flt(m_pData->header.pix_spacing_y);
+    m_pData->header.xray_current = bswap_flt(m_pData->header.xray_current);
+    m_pData->header.suvscl = bswap_flt(m_pData->header.suvscl);
+    m_pData->header.kvp = bswap_flt(m_pData->header.kvp);
+    m_pData->header.Dslice_loc = bswap_flt(m_pData->header.Dslice_loc);
+    m_pData->header.magfac = bswap_flt(m_pData->header.magfac);
+    m_pData->header.imgscl = bswap_flt(m_pData->header.imgscl);
+    m_pData->header.imgmin = bswap_16(m_pData->header.imgmin);
+    m_pData->header.imgmax = bswap_16(m_pData->header.imgmax);
+    m_pData->header.decay_corr = bswap_16(m_pData->header.decay_corr);
+    m_pData->header.scnscl = bswap_flt(m_pData->header.scnscl);
+    m_pData->header.strhr = bswap_16(m_pData->header.strhr);
+    m_pData->header.strmin = bswap_16(m_pData->header.strmin);
+    m_pData->header.strsec = bswap_16(m_pData->header.strsec);
+    m_pData->header.scnmin = bswap_16(m_pData->header.scnmin);
+    m_pData->header.scnmax = bswap_16(m_pData->header.scnmax);
+    m_pData->header.endhr = bswap_16(m_pData->header.endhr);
+    m_pData->header.endmin = bswap_16(m_pData->header.endmin);
+    m_pData->header.endsec = bswap_16(m_pData->header.endsec);
+    m_pData->header.midtim = bswap_32(m_pData->header.midtim);
+    m_pData->header.mseclen = bswap_16(m_pData->header.mseclen);
+    m_pData->header.scnlen = bswap_16(m_pData->header.scnlen);
+    m_pData->header.imgsum = bswap_flt(m_pData->header.imgsum);
+    m_pData->header.scnsum = bswap_flt(m_pData->header.scnsum);
+    m_pData->header.bgdelrt = bswap_flt(m_pData->header.bgdelrt);
+    m_pData->header.enddelrt = bswap_flt(m_pData->header.enddelrt);
+    m_pData->header.bgsngrt = bswap_flt(m_pData->header.bgsngrt);
+    m_pData->header.bgcoincrt = bswap_flt(m_pData->header.bgcoincrt);
+    m_pData->header.endsngrt = bswap_flt(m_pData->header.endsngrt);
+    m_pData->header.endcoincrt = bswap_flt(m_pData->header.endcoincrt);
+    m_pData->header.deadtimefac = bswap_flt(m_pData->header.deadtimefac);
+    m_pData->header.bedpos = bswap_16(m_pData->header.bedpos);
+    m_pData->header.deadtime_bgsub = bswap_flt(m_pData->header.deadtime_bgsub);
+    m_pData->header.start_date_time = bswap_32(m_pData->header.start_date_time);
+    m_pData->header.end_date_time = bswap_32(m_pData->header.end_date_time);
+    m_pData->header.laterality = bswap_16(m_pData->header.laterality);
+    m_pData->header.anatomy = bswap_16(m_pData->header.anatomy);
+    m_pData->header.frame_ref_date_time = bswap_32(m_pData->header.frame_ref_date_time);
+    m_pData->header.card_rr_time = bswap_32(m_pData->header.card_rr_time);
+    m_pData->header.resp_int_time = bswap_32(m_pData->header.resp_int_time);
+    m_pData->header.start_date_time_msec = bswap_16(m_pData->header.start_date_time_msec);
+    m_pData->header.end_date_time_msec = bswap_16(m_pData->header.end_date_time_msec);
+    m_pData->header.frame_ref_date_time_msec = bswap_16(m_pData->header.frame_ref_date_time_msec);
+  }
+
+ // some more debug output
+#if defined(DEBUG)
+  D("Philips Image SubHeader loaded:");
+  D("----------------------------");
+  D("magic_number            : %014lx", m_pData->header.magic_number);
+  D("version                 : %d", m_pData->header.version);
+  D("atten_corr              : %s", m_pData->header.atten_corr);
+  D("actual_bedpos           : %f", m_pData->header.actual_bedpos);
+  D("orientation[0]          : %f", m_pData->header.orientation1[0]);
+  D("orientation[1]          : %f", m_pData->header.orientation1[1]);
+  D("orientation[2]          : %f", m_pData->header.orientation1[2]);
+  D("orientation[3]          : %f", m_pData->header.orientation2[0]);
+  D("orientation[4]          : %f", m_pData->header.orientation2[1]);
+  D("orientation[5]          : %f", m_pData->header.orientation2[2]);
+  D("card_fr_time            : %d", m_pData->header.card_fr_time);
+  D("card_high_rr            : %d", m_pData->header.card_high_rr);
+  D("card_low_rr             : %d", m_pData->header.card_low_rr);
+  D("card_high_rr            : %d", m_pData->header.card_tr_time);
+  D("scatter_corr            : %s", m_pData->header.scatter_corr);
+  D("deadtime_corr           : %d", m_pData->header.deadtime_corr);
+  D("randoms_corr            : %d", m_pData->header.randoms_corr);
+  D("det_norm                : %d", m_pData->header.det_norm);
+  D("nu_radsamp_corr         : %d", m_pData->header.nu_radsamp_corr);
+  D("pat_mot_corr            : %d", m_pData->header.pat_mot_corr);
+  D("echo_time               : %f", m_pData->header.echo_time);
+  D("exposure_time           : %f", m_pData->header.exposure_time);
+  D("img_pos_x               : %f", m_pData->header.img_pos_x);
+  D("img_pos_y               : %f", m_pData->header.img_pos_y);
+  D("img_pos_z               : %f", m_pData->header.img_pos_z);
+  D("datype                  : %d", m_pData->header.datype);
+  D("xdim                    : %d", m_pData->header.xdim);
+  D("ydim                    : %d", m_pData->header.ydim);
+  D("slcnum                  : %d", m_pData->header.slcnum);
+  D("tiltnum                 : %d", m_pData->header.tiltnum);
+  D("gatint                  : %d", m_pData->header.gatint);
+  D("cntloss_corr            : %d", m_pData->header.cntloss_corr);
+  D("pix_spacing_x           : %f", m_pData->header.pix_spacing_x);
+  D("pix_spacing_y           : %f", m_pData->header.pix_spacing_y);
+  D("xray_current            : %f", m_pData->header.xray_current);
+  D("suvscl                  : %f", m_pData->header.suvscl);
+  D("kvp                     : %f", m_pData->header.kvp);
+  D("Dslice_loc              : %f", m_pData->header.Dslice_loc);
+  D("magfac                  : %f", m_pData->header.magfac);
+  D("imgscl                  : %f", m_pData->header.imgscl);
+  D("imgmin                  : %d", m_pData->header.imgmin);
+  D("imgmax                  : %d", m_pData->header.imgmax);
+  D("scnscl                  : %f", m_pData->header.scnscl);
+  D("scnmin                  : %d", m_pData->header.scnmin);
+  D("scnmax                  : %d", m_pData->header.scnmax);
+  D("scnsum                  : %f", m_pData->header.scnsum);
+  D("decay_corr              : %d", m_pData->header.decay_corr);
+  D("strhr                   : %d", m_pData->header.strhr);
+  D("strmin                  : %d", m_pData->header.strmin);
+  D("strsec                  : %d", m_pData->header.strsec);
+  D("endhr                   : %d", m_pData->header.endhr);
+  D("endmin                  : %d", m_pData->header.endmin);
+  D("endsec                  : %d", m_pData->header.endsec);
+  D("midtim                  : %d", m_pData->header.midtim);
+  D("mseclen                 : %d", m_pData->header.mseclen);
+  D("scnlen                  : %d", m_pData->header.scnlen);
+  D("imgsum                  : %f", m_pData->header.imgsum);
+  D("bgdelrt                 : %f", m_pData->header.bgdelrt);
+  D("enddelrt                : %f", m_pData->header.enddelrt);
+  D("bgsngrt                 : %f", m_pData->header.bgsngrt);
+  D("bgcoincrt               : %f", m_pData->header.bgcoincrt);
+  D("endsngrt                : %f", m_pData->header.endsngrt);
+  D("endcoincrt              : %f", m_pData->header.endcoincrt);
+  D("deadtimefac             : %f", m_pData->header.deadtimefac);
+  D("bedpos                  : %d", m_pData->header.bedpos);
+  D("deadtime_bgsub          : %f", m_pData->header.deadtime_bgsub);
+  D("sop_uid                 : %s", m_pData->header.sop_uid);
+  D("recon_method            : %s", m_pData->header.recon_method);
+  D("start_date_time         : %s", QDateTime::fromTime_t(m_pData->header.start_date_time).toString().toAscii().constData());
+  D("end_date_time           : %s", QDateTime::fromTime_t(m_pData->header.end_date_time).toString().toAscii().constData());
+  D("laterality              : %d", m_pData->header.laterality);
+  D("anatomy                 : %d", m_pData->header.anatomy);
+  D("frame_ref_date_time     : %s", QDateTime::fromTime_t(m_pData->header.frame_ref_date_time).toString().toAscii().constData());
+  D("card_rr_time            : %ld", m_pData->header.card_rr_time);
+  D("resp_int_time           : %ld", m_pData->header.resp_int_time);
+  D("start_date_time_msec    : %d", m_pData->header.start_date_time_msec);
+  D("end_date_time_msec      : %d", m_pData->header.end_date_time_msec);
+  D("frame_ref_date_time_msec: %d", m_pData->header.frame_ref_date_time_msec);
+#endif
+
+  RETURN(true);
+  return true;
+}
+
+bool CPhilipsSubHeader::save(void) const
+{
+  ENTER();
+  bool result = false;
+
+  // check if this stream is writeable or not
+  if(m_pMedIOData == NULL || m_pMedIOData->isWritable() == false ||
+     m_pDirItem == NULL || m_pDirItem->dataBlock_Start() == 0 ||
+     m_pMedIOData->seek(m_pDirItem->dataBlock_Start()) == false)
+  {
+    RETURN(false);
+    return false;
+  }
+
+  SHOWVALUE(m_pMedIOData->pos());
+
+  // now that we have streamed in all data in one run we
+  // have to take care of correct endianness in the non-char
+  // entries in the header structure in case this is a little endian
+  // machine
+  if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+  {
+    // if we need to byte swap we have to create a whole copy of m_pData->header
+    struct CPhilipsSubHeaderPrivate::HeaderData beHeader;
+
+    // copy the current m_pData->header to beHeader
+    memcpy(&beHeader, &m_pData->header, sizeof(m_pData->header));
+
+    // we only swap non-char elements of the header
+    beHeader.version = bswap_16(beHeader.version);
+    beHeader.actual_bedpos = bswap_flt(beHeader.actual_bedpos);
+    beHeader.orientation1[0] = bswap_flt(beHeader.orientation1[0]);
+    beHeader.orientation1[1] = bswap_flt(beHeader.orientation1[1]);
+    beHeader.orientation1[2] = bswap_flt(beHeader.orientation1[2]);
+    beHeader.orientation2[0] = bswap_flt(beHeader.orientation2[0]);
+    beHeader.orientation2[1] = bswap_flt(beHeader.orientation2[1]);
+    beHeader.orientation2[2] = bswap_flt(beHeader.orientation2[2]);
+    beHeader.card_fr_time = bswap_32(beHeader.card_fr_time);
+    beHeader.card_high_rr = bswap_32(beHeader.card_high_rr);
+    beHeader.card_low_rr = bswap_32(beHeader.card_low_rr);
+    beHeader.card_tr_time = bswap_32(beHeader.card_tr_time);
+    beHeader.deadtime_corr = bswap_16(beHeader.deadtime_corr);
+    beHeader.randoms_corr = bswap_16(beHeader.randoms_corr);
+    beHeader.det_norm = bswap_16(beHeader.det_norm);
+    beHeader.nu_radsamp_corr = bswap_16(beHeader.nu_radsamp_corr);
+    beHeader.pat_mot_corr = bswap_16(beHeader.pat_mot_corr);
+    beHeader.echo_time = bswap_flt(beHeader.echo_time);
+    beHeader.exposure_time = bswap_flt(beHeader.exposure_time);
+    beHeader.img_pos_x = bswap_flt(beHeader.img_pos_x);
+    beHeader.img_pos_y = bswap_flt(beHeader.img_pos_y);
+    beHeader.datype = bswap_16(beHeader.datype);
+    beHeader.img_pos_z = bswap_flt(beHeader.img_pos_z);
+    beHeader.xdim = bswap_16(beHeader.xdim);
+    beHeader.ydim = bswap_16(beHeader.ydim);
+    beHeader.slcnum = bswap_16(beHeader.slcnum);
+    beHeader.tiltnum = bswap_16(beHeader.tiltnum);
+    beHeader.gatint = bswap_16(beHeader.gatint);
+    beHeader.cntloss_corr = bswap_16(beHeader.cntloss_corr);
+    beHeader.pix_spacing_x = bswap_flt(beHeader.pix_spacing_x);
+    beHeader.pix_spacing_y = bswap_flt(beHeader.pix_spacing_y);
+    beHeader.xray_current = bswap_flt(beHeader.xray_current);
+    beHeader.suvscl = bswap_flt(beHeader.suvscl);
+    beHeader.kvp = bswap_flt(beHeader.kvp);
+    beHeader.Dslice_loc = bswap_flt(beHeader.Dslice_loc);
+    beHeader.magfac = bswap_flt(beHeader.magfac);
+    beHeader.imgscl = bswap_flt(beHeader.imgscl);
+    beHeader.imgmin = bswap_16(beHeader.imgmin);
+    beHeader.imgmax = bswap_16(beHeader.imgmax);
+    beHeader.decay_corr = bswap_16(beHeader.decay_corr);
+    beHeader.scnscl = bswap_flt(beHeader.scnscl);
+    beHeader.strhr = bswap_16(beHeader.strhr);
+    beHeader.strmin = bswap_16(beHeader.strmin);
+    beHeader.strsec = bswap_16(beHeader.strsec);
+    beHeader.scnmin = bswap_16(beHeader.scnmin);
+    beHeader.scnmax = bswap_16(beHeader.scnmax);
+    beHeader.endhr = bswap_16(beHeader.endhr);
+    beHeader.endmin = bswap_16(beHeader.endmin);
+    beHeader.endsec = bswap_16(beHeader.endsec);
+    beHeader.midtim = bswap_32(beHeader.midtim);
+    beHeader.mseclen = bswap_16(beHeader.mseclen);
+    beHeader.scnlen = bswap_16(beHeader.scnlen);
+    beHeader.imgsum = bswap_flt(beHeader.imgsum);
+    beHeader.scnsum = bswap_flt(beHeader.scnsum);
+    beHeader.bgdelrt = bswap_flt(beHeader.bgdelrt);
+    beHeader.enddelrt = bswap_flt(beHeader.enddelrt);
+    beHeader.bgsngrt = bswap_flt(beHeader.bgsngrt);
+    beHeader.bgcoincrt = bswap_flt(beHeader.bgcoincrt);
+    beHeader.endsngrt = bswap_flt(beHeader.endsngrt);
+    beHeader.endcoincrt = bswap_flt(beHeader.endcoincrt);
+    beHeader.deadtimefac = bswap_flt(beHeader.deadtimefac);
+    beHeader.bedpos = bswap_16(beHeader.bedpos);
+    beHeader.deadtime_bgsub = bswap_flt(beHeader.deadtime_bgsub);
+    beHeader.start_date_time = bswap_32(beHeader.start_date_time);
+    beHeader.end_date_time = bswap_32(beHeader.end_date_time);
+    beHeader.laterality = bswap_16(beHeader.laterality);
+    beHeader.anatomy = bswap_16(beHeader.anatomy);
+    beHeader.frame_ref_date_time = bswap_32(beHeader.frame_ref_date_time);
+    beHeader.card_rr_time = bswap_32(beHeader.card_rr_time);
+    beHeader.resp_int_time = bswap_32(beHeader.resp_int_time);
+    beHeader.start_date_time_msec = bswap_16(beHeader.start_date_time_msec);
+    beHeader.end_date_time_msec = bswap_16(beHeader.end_date_time_msec);
+    beHeader.frame_ref_date_time_msec = bswap_16(beHeader.frame_ref_date_time_msec);
+
+    // now write out beHeader
+    if(m_pMedIOData->write((char *)&beHeader, sizeof(beHeader)) == sizeof(beHeader))
+      result = true;
+  }
+  else
+  {
+    // now write out to our outStream
+    if(m_pMedIOData->write((char *)&m_pData->header, sizeof(m_pData->header)) == sizeof(m_pData->header))
+      result = true;
+  }
+
+  // if we were successfull we need to output some more data until PHILIPS_BLOCKSIZE
+  if(result == true)
+  {
+    if(sizeof(m_pData->header) != PHILIPS_BLOCKSIZE)
+    {
+      QByteArray nulArray(PHILIPS_BLOCKSIZE-sizeof(m_pData->header), 0);
+
+      if(m_pMedIOData->write(nulArray) != nulArray.length())
+      {
+        result = false;
+        E("Error while writing %d NUL data", nulArray.length());
+      }
+    }
+
+    if(result == true)
+      m_pDirItem->subHeaderWritten(*this);
+  }
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsSubHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2)
+{
+  ENTER();
+  bool bResult = false;
+
+#warning TODO: implement CPhilipsSubHeaderImage::convertFrom()
+
+  RETURN(bResult);
+  return bResult;
+}
+
+// data acess methods
+short CPhilipsSubHeader::version() const
+{
+  return m_pData->header.version;
+}
+
+const char* CPhilipsSubHeader::atten_corr() const
+{
+  return m_pData->header.atten_corr;
+}
+
+float CPhilipsSubHeader::actual_bedpos() const
+{
+  return m_pData->header.actual_bedpos;
+}
+
+float CPhilipsSubHeader::orientation(const short i) const
+{
+  if(i >= 0 && i <= 2)
+    return m_pData->header.orientation1[i];
+  else if(i >= 3 && i <= 5)
+    return m_pData->header.orientation2[i-3];
+  else
+    return 0.0f;
+}
+
+int CPhilipsSubHeader::card_fr_time() const
+{
+  return m_pData->header.card_fr_time;
+}
+
+int CPhilipsSubHeader::card_high_rr() const
+{
+  return m_pData->header.card_high_rr;
+}
+
+int CPhilipsSubHeader::card_low_rr() const
+{
+  return m_pData->header.card_low_rr;
+}
+
+int CPhilipsSubHeader::card_tr_time() const
+{
+  return m_pData->header.card_tr_time;
+}
+
+const char* CPhilipsSubHeader::scatter_corr() const
+{
+  return m_pData->header.scatter_corr;
+}
+
+short CPhilipsSubHeader::deadtime_corr() const
+{
+  return m_pData->header.deadtime_corr;
+}
+
+CPhilipsSubHeader::Randoms_Type CPhilipsSubHeader::randoms_corr() const
+{
+  return static_cast<CPhilipsSubHeader::Randoms_Type>(m_pData->header.randoms_corr);
+}
+
+short CPhilipsSubHeader::det_norm() const
+{
+  return m_pData->header.det_norm;
+}
+
+short CPhilipsSubHeader::nu_radsamp_corr() const
+{
+  return m_pData->header.nu_radsamp_corr;
+}
+
+short CPhilipsSubHeader::pat_mot_corr() const
+{
+  return m_pData->header.pat_mot_corr;
+}
+
+float  CPhilipsSubHeader::echo_time() const
+{
+  return m_pData->header.echo_time;
+}
+
+float CPhilipsSubHeader::exposure_time() const
+{
+  return m_pData->header.exposure_time;
+}
+
+float CPhilipsSubHeader::img_pos_x() const
+{
+  return m_pData->header.img_pos_x;
+}
+
+float CPhilipsSubHeader::img_pos_y() const
+{
+  return m_pData->header.img_pos_y;
+}
+
+float CPhilipsSubHeader::img_pos_z() const
+{
+  return m_pData->header.img_pos_z;
+}
+
+CPhilipsSubHeader::Data_Type CPhilipsSubHeader::datype() const
+{
+  return static_cast<CPhilipsSubHeader::Data_Type>(m_pData->header.datype);
+}
+
+short CPhilipsSubHeader::xdim() const
+{
+  return m_pData->header.xdim;
+}
+
+short CPhilipsSubHeader::ydim() const
+{
+  return m_pData->header.ydim;
+}
+
+short CPhilipsSubHeader::slcnum() const
+{
+  return m_pData->header.slcnum;
+}
+
+short CPhilipsSubHeader::tiltnum() const
+{
+  return m_pData->header.tiltnum;
+}
+
+short CPhilipsSubHeader::gatint() const
+{
+  return m_pData->header.gatint;
+}
+
+short CPhilipsSubHeader::cntloss_corr() const
+{
+  return m_pData->header.cntloss_corr;
+}
+
+float CPhilipsSubHeader::pix_spacing_x() const
+{
+  return m_pData->header.pix_spacing_x;
+}
+
+float CPhilipsSubHeader::pix_spacing_y() const
+{
+  return m_pData->header.pix_spacing_y;
+}
+
+float CPhilipsSubHeader::xray_current() const
+{
+  return m_pData->header.xray_current;
+}
+
+float CPhilipsSubHeader::suvscl() const
+{
+  return m_pData->header.suvscl;
+}
+
+float CPhilipsSubHeader::kvp() const
+{
+  return m_pData->header.kvp;
+}
+
+float CPhilipsSubHeader::Dslice_loc() const
+{
+  return m_pData->header.Dslice_loc;
+}
+
+float CPhilipsSubHeader::magfac() const
+{
+  return m_pData->header.magfac;
+}
+
+float CPhilipsSubHeader::imgscl() const
+{
+  return m_pData->header.imgscl;
+}
+
+short CPhilipsSubHeader::imgmin() const
+{
+  return m_pData->header.imgmin;
+}
+
+short CPhilipsSubHeader::imgmax() const
+{
+  return m_pData->header.imgmax;
+}
+
+CPhilipsSubHeader::Decay_Type CPhilipsSubHeader::decay_corr() const
+{
+  return static_cast<CPhilipsSubHeader::Decay_Type>(m_pData->header.decay_corr);
+}
+short CPhilipsSubHeader::strhr() const
+{
+  return m_pData->header.strhr;
+}
+
+short CPhilipsSubHeader::strmin() const
+{
+  return m_pData->header.strmin;
+}
+
+short CPhilipsSubHeader::strsec() const
+{
+  return m_pData->header.strsec;
+}
+
+short CPhilipsSubHeader::endhr() const
+{
+  return m_pData->header.endhr;
+}
+
+short CPhilipsSubHeader::endmin() const
+{
+  return m_pData->header.endmin;
+}
+
+short CPhilipsSubHeader::endsec() const
+{
+  return m_pData->header.endsec;
+}
+
+int CPhilipsSubHeader::midtim() const
+{
+  return m_pData->header.midtim;
+}
+
+short CPhilipsSubHeader::mseclen() const
+{
+  return m_pData->header.mseclen;
+}
+
+short CPhilipsSubHeader::scnlen() const
+{
+  return m_pData->header.scnlen;
+}
+
+float CPhilipsSubHeader::imgsum() const
+{
+  return m_pData->header.imgsum;
+}
+
+float CPhilipsSubHeader::bgdelrt() const
+{
+  return m_pData->header.bgdelrt;
+}
+
+float CPhilipsSubHeader::enddelrt() const
+{
+  return m_pData->header.enddelrt;
+}
+
+float CPhilipsSubHeader::bgsngrt() const
+{
+  return m_pData->header.bgsngrt;
+}
+
+float CPhilipsSubHeader::bgcoincrt() const
+{
+  return m_pData->header.bgcoincrt;
+}
+
+float CPhilipsSubHeader::endsngrt() const
+{
+  return m_pData->header.endsngrt;
+}
+
+float CPhilipsSubHeader::endcoincrt() const
+{
+  return m_pData->header.endcoincrt;
+}
+
+float CPhilipsSubHeader::deadtimefac() const
+{
+  return m_pData->header.deadtimefac;
+}
+
+short CPhilipsSubHeader::bedpos() const
+{
+  return m_pData->header.bedpos;
+}
+
+float CPhilipsSubHeader::deadtime_bgsub() const
+{
+  return m_pData->header.deadtime_bgsub;
+}
+
+const char* CPhilipsSubHeader::sop_uid() const
+{
+  return m_pData->header.sop_uid;
+}
+
+const char* CPhilipsSubHeader::recon_method() const
+{
+  return m_pData->header.recon_method;
+}
+
+time_t CPhilipsSubHeader::start_date_time() const
+{
+  return m_pData->header.start_date_time;
+}
+
+time_t CPhilipsSubHeader::end_date_time() const
+{
+  return m_pData->header.end_date_time;
+}
+
+CPhilipsSubHeader::Laterality_Type CPhilipsSubHeader::laterality() const
+{
+  return static_cast<Laterality_Type>(m_pData->header.laterality);
+}
+
+CPhilipsSubHeader::Anatomy_Type CPhilipsSubHeader::anatomy() const
+{
+  return static_cast<Anatomy_Type>(m_pData->header.anatomy);
+}
+
+time_t CPhilipsSubHeader::frame_ref_date_time() const
+{
+  return m_pData->header.frame_ref_date_time;
+}
+
+int CPhilipsSubHeader::card_rr_time() const
+{
+  return m_pData->header.card_rr_time;
+}
+
+int CPhilipsSubHeader::resp_int_time() const
+{
+  return m_pData->header.resp_int_time;
+}
+
+unsigned short CPhilipsSubHeader::start_date_time_msec() const
+{
+  return m_pData->header.start_date_time_msec;
+}
+
+unsigned short CPhilipsSubHeader::end_date_time_msec() const
+{
+  return m_pData->header.end_date_time_msec;
+}
+
+unsigned short CPhilipsSubHeader::frame_ref_date_time_msec() const
+{
+  return m_pData->header.frame_ref_date_time_msec;
+}
+
+// methods to modify elements of the SubHeader  
+void CPhilipsSubHeader::setVersion(const short version)
+{
+  m_pData->header.version = version;
+}
+
+void CPhilipsSubHeader::setAtten_corr(const char* str)
+{
+  strncpy(m_pData->header.atten_corr, str, 16);
+}
+
+void CPhilipsSubHeader::setActual_bedpos(const float bedpos)
+{
+  m_pData->header.bedpos = bedpos;
+}
+
+void CPhilipsSubHeader::setOrientation(const short i, const float orientation)
+{
+  if(i >= 0 && i <= 2)
+    m_pData->header.orientation1[i] = orientation;
+  else if(i >= 3 && i <= 5)
+    m_pData->header.orientation2[i-3] = orientation;
+  else
+    E("index out of bounds: %d", i);
+}
+
+void CPhilipsSubHeader::setCard_fr_time(const int card_fr_time)
+{
+  m_pData->header.card_fr_time = card_fr_time;
+}
+
+void CPhilipsSubHeader::setCard_high_rr(const int card_high_rr)
+{
+  m_pData->header.card_high_rr = card_high_rr;
+}
+
+void CPhilipsSubHeader::setCard_low_rr(const int card_low_rr)
+{
+  m_pData->header.card_low_rr = card_low_rr;
+}
+
+void CPhilipsSubHeader::setCard_tr_time(const int card_high_rr)
+{
+  m_pData->header.card_high_rr = card_high_rr;
+}
+
+void CPhilipsSubHeader::setScatter_corr(const char* str)
+{
+  strncpy(m_pData->header.scatter_corr, str, 16);
+}
+
+void CPhilipsSubHeader::setDeadtime_corr(const short deadtime_corr)
+{
+  m_pData->header.deadtime_corr = deadtime_corr;
+}
+
+void CPhilipsSubHeader::setRandoms_corr(const CPhilipsSubHeader::Randoms_Type randoms_corr)
+{
+  m_pData->header.randoms_corr = static_cast<qint16>(randoms_corr);
+}
+
+void CPhilipsSubHeader::setDet_norm(const short det_norm)
+{
+  m_pData->header.det_norm = det_norm;
+}
+
+void CPhilipsSubHeader::setNu_radsamp_corr(const short nu_radsamp_corr)
+{
+  m_pData->header.nu_radsamp_corr = nu_radsamp_corr;
+}
+
+void CPhilipsSubHeader::setPat_mot_corr(const short pat_mot_corr)
+{
+  m_pData->header.pat_mot_corr = pat_mot_corr;
+}
+
+void CPhilipsSubHeader::setEcho_time(const float  echo_time)
+{
+  m_pData->header.echo_time = echo_time;
+}
+
+void CPhilipsSubHeader::setExposure_time(const float exposure_time)
+{
+  m_pData->header.exposure_time = exposure_time;
+}
+
+void CPhilipsSubHeader::setImg_pos_x(const float img_pos_x)
+{
+  m_pData->header.img_pos_x = img_pos_x;
+}
+
+void CPhilipsSubHeader::setImg_pos_y(const float img_pos_y)
+{
+  m_pData->header.img_pos_y = img_pos_y;
+}
+
+void CPhilipsSubHeader::setImg_pos_z(const float img_pos_z)
+{
+  m_pData->header.img_pos_z = img_pos_z;
+}
+
+void CPhilipsSubHeader::setDatype(const CPhilipsSubHeader::Data_Type datype)
+{
+  m_pData->header.datype = static_cast<qint16>(datype);
+}
+
+void CPhilipsSubHeader::setXdim(const short xdim)
+{
+  m_pData->header.xdim = xdim;
+}
+
+void CPhilipsSubHeader::setYdim(const short ydim)
+{
+  m_pData->header.ydim = ydim;
+}
+
+void CPhilipsSubHeader::setSlcnum(const short slcnum)
+{
+  m_pData->header.slcnum = slcnum;
+}
+
+void CPhilipsSubHeader::setTiltnum(const short tiltnum)
+{
+  m_pData->header.tiltnum = tiltnum;
+}
+
+void CPhilipsSubHeader::setGatint(const short gatint)
+{
+  m_pData->header.gatint = gatint;
+}
+
+void CPhilipsSubHeader::setCntloss_corr(const short cntloss_corr)
+{
+  m_pData->header.cntloss_corr = cntloss_corr;
+}
+
+void CPhilipsSubHeader::setPix_spacing_x(const float pix_spacing)
+{
+  m_pData->header.pix_spacing_x = pix_spacing;
+}
+
+void CPhilipsSubHeader::setPix_spacing_y(const float pix_spacing)
+{
+  m_pData->header.pix_spacing_y = pix_spacing;
+}
+
+void CPhilipsSubHeader::setXray_current(const float xray_current)
+{
+  m_pData->header.xray_current = xray_current;
+}
+
+void CPhilipsSubHeader::setSuvscl(const float suvscl)
+{
+  m_pData->header.suvscl = suvscl;
+}
+
+void CPhilipsSubHeader::setKvp(const float kvp)
+{
+  m_pData->header.kvp = kvp;
+}
+
+void CPhilipsSubHeader::setDslice_loc(const float Dslice_loc)
+{
+  m_pData->header.Dslice_loc = Dslice_loc;
+}
+
+void CPhilipsSubHeader::setMagfac(const float magfac)
+{
+  m_pData->header.magfac = magfac;
+}
+
+void CPhilipsSubHeader::setImgscl(const float imgscl)
+{
+  m_pData->header.imgscl = imgscl;
+}
+
+void CPhilipsSubHeader::setImgmin(const short imgmin)
+{
+  m_pData->header.imgmin = imgmin;
+}
+
+void CPhilipsSubHeader::setImgmax(const short imgmax)
+{
+  m_pData->header.imgmax = imgmax;
+}
+
+void CPhilipsSubHeader::setDecay_corr(const CPhilipsSubHeader::Decay_Type decay_corr)
+{
+  m_pData->header.decay_corr = static_cast<qint16>(decay_corr);
+}
+
+void CPhilipsSubHeader::setStrhr(const short strhr)
+{
+  m_pData->header.strhr = strhr;
+}
+
+void CPhilipsSubHeader::setStrmin(const short strmin)
+{
+  m_pData->header.strmin = strmin;
+}
+
+void CPhilipsSubHeader::setStrsec(const short strsec)
+{
+  m_pData->header.strsec = strsec;
+}
+
+void CPhilipsSubHeader::setEndhr(const short endhr)
+{
+  m_pData->header.endhr = endhr;
+}
+
+void CPhilipsSubHeader::setEndmin(const short endmin)
+{
+  m_pData->header.endmin = endmin;
+}
+
+void CPhilipsSubHeader::setEndsec(const short endsec)
+{
+  m_pData->header.endsec = endsec;
+}
+
+void CPhilipsSubHeader::setMidtim(const int midtim)
+{
+  m_pData->header.midtim = midtim;
+}
+
+void CPhilipsSubHeader::setMseclen(const short mseclen)
+{
+  m_pData->header.mseclen = mseclen;
+}
+
+void CPhilipsSubHeader::setScnlen(const short scnlen)
+{
+  m_pData->header.scnlen = scnlen;
+}
+
+void CPhilipsSubHeader::setImgsum(const float imgsum)
+{
+  m_pData->header.imgsum = imgsum;
+}
+
+void CPhilipsSubHeader::setBgdelrt(const float bgdelrt)
+{
+  m_pData->header.bgdelrt = bgdelrt;
+}
+
+void CPhilipsSubHeader::setEnddelrt(const float enddelrt)
+{
+  m_pData->header.enddelrt = enddelrt;
+}
+
+void CPhilipsSubHeader::setBgsngrt(const float bgsngrt)
+{
+  m_pData->header.bgsngrt = bgsngrt;
+}
+
+void CPhilipsSubHeader::setBgcoincrt(const float bgcoincrt)
+{
+  m_pData->header.bgcoincrt = bgcoincrt;
+}
+
+void CPhilipsSubHeader::setEndsngrt(const float endsngrt)
+{
+  m_pData->header.endsngrt = endsngrt;
+}
+
+void CPhilipsSubHeader::setEndcoincrt(const float endcoincrt)
+{
+  m_pData->header.endcoincrt = endcoincrt;
+}
+
+void CPhilipsSubHeader::setDeadtimefac(const float deadtimefac)
+{
+  m_pData->header.deadtimefac = deadtimefac;
+}
+
+void CPhilipsSubHeader::setBedpos(const short bedpos)
+{
+  m_pData->header.bedpos = bedpos;
+}
+
+void CPhilipsSubHeader::setDeadtime_bgsub(const float deadtime_bgsub)
+{
+  m_pData->header.deadtime_bgsub = deadtime_bgsub;
+}
+
+void CPhilipsSubHeader::setSop_uid(const char* str)
+{
+  strncpy(m_pData->header.sop_uid, str, 64);
+}
+
+void CPhilipsSubHeader::setRecon_method(const char* str)
+{
+  strncpy(m_pData->header.recon_method, str, 16);
+}
+
+void CPhilipsSubHeader::setStart_date_time(const time_t start_date_time)
+{
+  m_pData->header.start_date_time = start_date_time;
+}
+
+void CPhilipsSubHeader::setEnd_date_time(const time_t end_date_time)
+{
+  m_pData->header.end_date_time = end_date_time;
+}
+
+void CPhilipsSubHeader::setLaterality(const CPhilipsSubHeader::Laterality_Type laterality)
+{
+  m_pData->header.laterality = static_cast<qint16>(laterality);
+}
+
+void CPhilipsSubHeader::setAnatomy(const CPhilipsSubHeader::Anatomy_Type anatomy)
+{
+  m_pData->header.anatomy = static_cast<qint16>(anatomy);
+}
+
+void CPhilipsSubHeader::setFrame_ref_date_time(const time_t frame_ref_date_time)
+{
+  m_pData->header.frame_ref_date_time = frame_ref_date_time;
+}
+
+void CPhilipsSubHeader::setCard_rr_time(const int card_rr_time)
+{
+  m_pData->header.card_rr_time = card_rr_time;
+}
+
+void CPhilipsSubHeader::setResp_int_time(const int resp_int_time)
+{
+  m_pData->header.resp_int_time = resp_int_time;
+}
+
+void CPhilipsSubHeader::setStart_date_time_msec(const unsigned short msec)
+{
+  m_pData->header.start_date_time_msec = msec;
+}
+
+void CPhilipsSubHeader::setEnd_date_time_msec(const unsigned short msec)
+{
+  m_pData->header.end_date_time_msec = msec;
+}
+
+void CPhilipsSubHeader::setFrame_ref_date_time_msec(const unsigned short msec)
+{
+  m_pData->header.frame_ref_date_time_msec = msec;
+}
+
+int CPhilipsSubHeader::rawDataSize() const
+{
+  return 1*PHILIPS_BLOCKSIZE;
+}
+
+float CPhilipsSubHeader::scnscl() const
+{
+  return m_pData->header.scnscl;
+}
+
+short CPhilipsSubHeader::scnmin() const
+{
+  return m_pData->header.scnmin;
+}
+
+short CPhilipsSubHeader::scnmax() const
+{
+  return m_pData->header.scnmax;
+}
+
+float CPhilipsSubHeader::scnsum() const
+{
+  return m_pData->header.scnsum;
+}
+
+void CPhilipsSubHeader::setScnscl(const float scnscl)
+{
+  m_pData->header.scnscl = scnscl;
+}
+
+void CPhilipsSubHeader::setScnmin(const short scnmin)
+{
+  m_pData->header.scnmin = scnmin;
+}
+
+void CPhilipsSubHeader::setScnmax(const short scnmax)
+{
+  m_pData->header.scnmax = scnmax;
+}
+
+void CPhilipsSubHeader::setScnsum(const float scnsum)
+{
+  m_pData->header.scnsum = scnsum;
 }

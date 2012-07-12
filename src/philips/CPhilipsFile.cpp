@@ -390,10 +390,17 @@ CPhilipsSubHeader::Type CPhilipsFile::subHeaderType()
       type = CPhilipsSubHeader::Sinogram;
     break;
 
-    default:
-    {
-      W("Philips fileType couldn't be identified.");
-    }
+    case CPhilipsMainHeader::Syntegra:
+      type = CPhilipsSubHeader::Syntegra;
+    break;
+
+    case CPhilipsMainHeader::Listmode:
+      type = CPhilipsSubHeader::Listmode;
+    break;
+
+    case CPhilipsMainHeader::Unknown:
+      E("unknown philips main header type");
+    break;
   }
 
   RETURN(type);
@@ -496,10 +503,6 @@ bool CPhilipsFile::readFrame(char*& matrixData, unsigned int& len, short frame)
   
     QByteArray pFrameData;
   
-    // in philips format every slice has an own subheader, so
-    // we need to hold one sub header of the philips file
-    CPhilipsSubHeaderImage* pLastPhilipsSubHeaderImage = NULL;
-
     int max = maxSlice();
     for(int slice = minSlice(); slice <= max; slice += sliceThickness)
     {

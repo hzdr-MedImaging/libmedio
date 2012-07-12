@@ -556,8 +556,8 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead1, const CMedIOH
       setGate_Duration(0);
       setX_Dimension(head->xdim());
       setY_Dimension(head->ydim());
-      setX_Pixel_Size(head->pix_spacing(0) / 10.0); // mm -> cm
-      setY_Pixel_Size(head->pix_spacing(1) / 10.0); // mm -> cm
+      setX_Pixel_Size(head->pix_spacing_x() / 10.0f); // mm -> cm
+      setY_Pixel_Size(head->pix_spacing_y() / 10.0f); // mm -> cm
  
       short durationSec = head->scnlen();
       short durationMsec = head->mseclen();
@@ -573,9 +573,19 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead1, const CMedIOH
             D("Setting additional information to ECAT 7 sub header");
             const CPhilipsMainHeader* mainHeader = static_cast<const CPhilipsMainHeader*>(pHead2);
             setZ_Dimension(mainHeader->nslice());
-            setZ_Pixel_Size(static_cast<float>(mainHeader->slcthk()) / 10.0); // mm -> cm
-          }break;
-          default:break;
+            setZ_Pixel_Size(static_cast<float>(mainHeader->slcthk()) / 10.0f); // mm -> cm
+
+            if(head->pix_spacing_x() == 0)
+              setX_Pixel_Size(static_cast<float>(mainHeader->dmax()) / static_cast<float>(head->xdim()) / 10.0f); // mm -> cm
+
+            if(head->pix_spacing_y() == 0)
+              setY_Pixel_Size(static_cast<float>(mainHeader->dmax()) / static_cast<float>(head->ydim()) / 10.0f); // mm -> cm
+          }
+          break;
+
+          default:
+            // do nothing
+          break;
         }
       }
       bResult = true;
