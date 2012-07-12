@@ -24,8 +24,9 @@
 TEMPLATE = app
 QT = core
 DEPENDPATH += .
-INCLUDEPATH += . /usr/local/petlib/include/medio
-LIBS *= /usr/local/petlib/lib/libmedio.so.2
+INCLUDEPATH += . /usr/local/petlib/include/medio /usr/local/petlib/include/rtdebug
+#LIBS *= /usr/local/petlib/lib/libmedio.so.2
+LIBS *= ../../../lib/libmedio.a /usr/local/petlib/lib/librtdebug.so
 
 # Input
 SOURCES += ecatutil.cpp
