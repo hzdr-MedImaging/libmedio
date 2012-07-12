@@ -1891,7 +1891,7 @@ QString CECAT7MainHeaderPrivate::philips2Ecat7Isotop(const CPhilipsMainHeader::I
   switch(isotop)
   {
     case CPhilipsMainHeader::UndefinedIsotop: isotopString = "Undefined"; break;
-    case CPhilipsMainHeader::OtherIsotop: isotopString = "Unknown"; break;
+    case CPhilipsMainHeader::OtherIsotop: isotopString = "Other"; break;
     case CPhilipsMainHeader::UnknownIsotop: isotopString = "Unknown"; break;
     case CPhilipsMainHeader::F18: isotopString = "F-18"; break;
     case CPhilipsMainHeader::O15: isotopString = "O-15"; break;

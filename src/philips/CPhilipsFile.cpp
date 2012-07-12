@@ -943,9 +943,6 @@ CPhilipsSubHeader* CPhilipsFile::createEmptySubHeader()
         pEmptySubHeader = new CPhilipsSubHeaderSinogram(this);
       }
       break;
-
-      default:
-        E("Philips type isn't specified or not supported yet.");
     }
   }
 

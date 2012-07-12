@@ -766,8 +766,13 @@ bool CPhilipsDirectoryItem::writeMatrix(const char* matrixData, unsigned int mat
         subHeader = new CPhilipsSubHeaderSinogram(m_pData->file, this);
       break;
 
-      default:
-        E("Philips type isn't specified or not supported yet.");
+      case CPhilipsSubHeader::Syntegra:  
+        subHeader = new CPhilipsSubHeaderSyntegra(m_pData->file, this);
+      break;
+
+      case CPhilipsSubHeader::Listmode:  
+        subHeader = new CPhilipsSubHeaderListmode(m_pData->file, this);
+      break;
     }
   }
 
@@ -823,74 +828,116 @@ bool CPhilipsDirectoryItem::writeMatrix(const char* matrixData, unsigned int mat
 
   SHOWVALUE(m_pData->file->pos());
 
-  // then we process the matrix data that is associated with
-  // this directoryitem.
-  // here we have to care about the correct endianess, so that
-  // we convert BIG->LITTLE or vise versa depending on the
-  // system we are running.
+  // now we find out if this machine requires byte swapping or
+  // not depending on the input data type and the sysinfo
+  int dataTypeSize = sizeof(char);
+  bool byteSwapping = false;
+
   switch(subHeader.datype())
   {
     case CPhilipsSubHeader::UnknownDataType:
-    {
-      E("No or an unknown data type was set for the matrix data of dirItem %08lx",
-        convertToMatrixID(m_pData->slice, m_pData->frame, m_pData->tilt));
-      
-      result = false;
-    }
-    break;
-
-    // write out Byte data. (1 byte)
     case CPhilipsSubHeader::ByteData:
-    {
-      if(m_pData->file->write(matrixData, matrixSize) == (qint64)matrixSize)
-        result = true;
-    }
+      // nothing to do
     break;
 
+    // Signed and Unsigned short is a 16bit big endian value
     case CPhilipsSubHeader::SignedShort:
+    case CPhilipsSubHeader::UnsignedShort:
     {
-      // the endianess conversion takes quite some time, so
-      // what we do is to us a temporarly buffer to which we read
-      // some data from our fileStream and read out to our QByteArray
-      QByteArray bufArray(8192, 0); // write in 8KB chunks
-      quint16* ptr = (quint16*)matrixData;
-      for(unsigned int written=0; written < matrixSize;)
-      {
-        unsigned int toWrite = matrixSize-written >= 8192 ? 8192 : matrixSize-written;
-
-        // check if the curRead value is divide able through our data type 
-        ASSERT(toWrite % sizeof(quint16) == 0);
-
-        // now that we have our chunk we use a bufferStream to stream
-        // in the values to it for making sure our data is correctly
-        // converted regarding to little/big endianess
-        QDataStream bufStream(&bufArray, QIODevice::WriteOnly);
-        for(unsigned int i=0; i < toWrite; i+=sizeof(quint16))
-        {
-          bufStream << *ptr;
-          ++ptr;
-        }
-
-        // write out the data from our buffer to the file
-        if(m_pData->file->write(bufArray.data(), toWrite) != (qint64)toWrite)
-        {
-          result = false;
-          break;
-        }
-        
-        // increase our read counter
-        written += toWrite;
-      }
-
+      dataTypeSize = sizeof(quint16);
+      byteSwapping = (QSysInfo::ByteOrder != QSysInfo::BigEndian);
     }
     break;
-
+  
+    // float is a 32bit big endian value
+    case CPhilipsSubHeader::Float:
+    {
+      dataTypeSize = sizeof(float);
+      byteSwapping = (QSysInfo::ByteOrder != QSysInfo::BigEndian);
+    }
+    break;
+      
     default:
     {
-      E("Data type not supported yet.");
+      D("Data type not supported");
       result = false;
     }
-  }    
+  }
+
+  // if we need byte swapping we do it NOW
+  if(byteSwapping == true)
+  {
+    STARTCLOCK("byteswap");
+
+    // before performing the byteswapping we create a copy of the
+    // matrix data
+    char* swappedMatrixData = new char[matrixSize];
+    memcpy(swappedMatrixData, matrixData, matrixSize);
+
+    switch(dataTypeSize)
+    {
+      // 32bit data
+      case sizeof(quint32):
+      {
+        quint32 *data = (quint32 *)swappedMatrixData;
+        for(unsigned int i=0; i < matrixSize; i+=dataTypeSize)
+        {
+          *data = bswap_32(*data);
+          data++;
+        }
+      }
+      break;
+
+      // 16bit data
+      case sizeof(quint16):
+      {
+        quint16 *data = (quint16 *)swappedMatrixData;
+        for(unsigned int i=0; i < matrixSize; i+=dataTypeSize)
+        {
+          *data = bswap_16(*data);
+          data++;
+        }
+      }
+      break;
+
+      default:
+        E("invalid dataTypeSize: %d", dataTypeSize);
+      break;
+    }
+
+    // lets exchange matrixData with swappedMatrixData
+    matrixData = swappedMatrixData;
+
+    STOPCLOCK("byteswap");
+  }
+
+  // we always compress the data before we write it out to the file
+  STARTCLOCK("compress");
+
+  // create an uncompressedData bytearray to apply qCompress()
+  QByteArray uncompressedData = QByteArray::fromRawData(matrixData, matrixSize);
+
+  // lets compress the data
+  QByteArray compressedData = qCompress(uncompressedData);
+
+  // the qCompress() of Qt4 adds the final size of the uncompressed
+  // data to the first 4 bytes of the compressedData array. We need
+  // to strip that to write it out.
+  compressedData = compressedData.remove(0, 4);
+
+  // set matrixSize to the new compressed size
+  matrixSize = compressedData.size();
+
+  // set the directory item as containing compressed data
+  m_pData->compressionFlag = CPhilipsDirectoryItem::Compressed;
+
+  STOPCLOCK("compress");
+ 
+  // finally we write out the whole matrixData in one single run.
+  if(m_pData->file->write(compressedData) == (qint64)matrixSize)
+    result = true;
+  else
+    E("Error while trying to write compressedData to file");
 
   if(result)
   {
@@ -898,7 +945,7 @@ bool CPhilipsDirectoryItem::writeMatrix(const char* matrixData, unsigned int mat
     // or we have to add some more NULL bytes until we have 512 byte aligned data
     // because the Philips standard defines Philips files to be always dividable through
     // 512 byte blocks.
-    if((matrixSize % PHILIPS_BLOCKSIZE) > 0)
+    if((matrixSize % PHILIPS_BLOCKSIZE) != 0)
     {
       unsigned int fillLen = PHILIPS_BLOCKSIZE - (matrixSize % PHILIPS_BLOCKSIZE);
       char fillData[fillLen];
@@ -913,7 +960,7 @@ bool CPhilipsDirectoryItem::writeMatrix(const char* matrixData, unsigned int mat
       else
       {
         matrixSize += fillLen;
-        W("matrixsize %% Philips_BLOCKSIZE != 0. added %d NULL bytes", fillLen);
+        W("matrixSize(%d) %% PHILIPS_BLOCKSIZE(%d) != 0 - added %d NULL bytes", matrixSize, PHILIPS_BLOCKSIZE, fillLen);
       }
     }
 

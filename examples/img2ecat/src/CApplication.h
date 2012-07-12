@@ -15,7 +15,9 @@ class CApplication
     bool process();
 
   private:
-    bool convertFile(const QFileInfo& inputFile);
+    bool convert2Ecat(const QFileInfo& inputFile);
+    bool convert2Img(const QFileInfo& inputFile);
+    bool walkDirectory(const QDir& dir);
     bool checkOutputFile(const QFileInfo& inputFile);
     void showUsage(int argc, char* argv[]);
     void showAppInfo();
@@ -29,6 +31,8 @@ class CApplication
     QString     m_sStartDirectory;
     bool        m_bOverWrite;
     bool        m_bPreserveDataType;
+    bool        m_bRecursive;
+    bool        m_bEcat2Img;
 };
 
 #endif // CAPPLICATION_H

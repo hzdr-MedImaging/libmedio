@@ -15,6 +15,7 @@
 #include <iostream>
 #include <rtdebug.h>
 
+#include <QDir>
 #include <QString>
 #include <QFileInfo>
 #include <QMultiHash>
@@ -26,7 +27,9 @@ using namespace std;
 
 CApplication::CApplication()
  : m_bOverWrite(false),
-   m_bPreserveDataType(false)
+   m_bPreserveDataType(false),
+   m_bRecursive(false),
+   m_bEcat2Img(false)
 {
   ENTER();
   LEAVE();
@@ -96,6 +99,16 @@ bool CApplication::parseCmdLine(int argc, char* argv[])
     }
 #endif
 
+    if(args.contains("-r"))
+    {
+      m_bRecursive = true;
+    }
+
+    if(args.contains("-e") || QString(argv[0]).contains("ecat2img"))
+    {
+      m_bEcat2Img = true;
+    }
+
     // we check if there is one and only one input file available
     // we do not support processing of multiple concorde micropet image files
     if(inputFileNames.isEmpty())
@@ -126,11 +139,11 @@ void CApplication::showUsage(int, char* argv[])
   cout << "Usage: " << argv[0] << " <options> <file.img>" << endl
        << "Options:" << endl
        << "  -o <file>    : ECAT image (*.v) to which the philips image is converted" << endl
-//       << "  -n <string>  : override patient name in ECAT output file" << endl
+       << "  -e           : reverse operation (create ECAT from img file)" << endl
 //       << "  -p           : preserve data type as is and do not convert to short values" << endl
 //       << "                 (this will give you the highest precision on cost of space)" << endl
-//       << "  -r           : walk the specified directory recursively and convert all *.img" << endl
-//       << "                 file in it in one run." << endl
+       << "  -r           : walk the specified directory recursively and convert all *.img" << endl
+       << "                 file in it in one run." << endl
        << "  -f           : force overwriting of existing files" << endl;
   LEAVE();
   return;
@@ -141,9 +154,15 @@ bool CApplication::checkOutputFile(const QFileInfo& inputFile)
   ENTER();
   bool bResult = true;
   QFileInfo outputFile;
+  QString extension;
+
+  if(m_bEcat2Img == false)
+    extension = "v";
+  else
+    extension = "img";
 
   if(m_sPreferedOutputFile.isEmpty() == true)
-    outputFile = QFileInfo(inputFile.filePath() + ".v");
+    outputFile = QFileInfo(inputFile.filePath() + "." + extension);
   else
     outputFile = QFileInfo(m_sPreferedOutputFile);
     
@@ -237,43 +256,45 @@ bool CApplication::process()
   ENTER();
   bool result = true;
 
-  // // now we check out options and either convert bunch of files or a whole directory tree
-  // if(m_bRecursive == false)
-  // {
-  QString fileName;
-  foreach(fileName, m_sInputFileNames)
+  // now we check out options and either convert bunch of files or a whole directory tree
+  if(m_bRecursive == false)
   {
-    if(QFileInfo(fileName).exists() == true)
+    QString fileName;
+    foreach(fileName, m_sInputFileNames)
     {
-      if(convertFile(QFileInfo(fileName)) == false)
+      if(QFileInfo(fileName).exists() == true)
       {
-        result = false;
-        break;
+        if(m_bEcat2Img == false)
+          result = convert2Ecat(QFileInfo(fileName));
+        else
+          result = convert2Img(QFileInfo(fileName));
+
+        if(result == false)
+          break;
+      }
+      else
+      {
+        cout << "ERROR: file " << fileName.toAscii().constData()
+             << " doesn't exist. Skipping file." << endl;
       }
     }
-    else
-    {
-      cout << "ERROR: file " << fileName.toAscii().constData()
-           << " doesn't exist. Skipping file." << endl;
-    }
   }
-  // }
-  // else
-  // {
-  //   // lets walk the specified directory
-  //   if(m_sInputFileNames.count() > 1)
-  //   {
-  //     cout << "ERROR: only one directory can be specified." << endl;
-  //   }
-  //   else
-  //     result = walkDirectory(QDir(m_sInputFileNames[0]));
-  // }
+  else
+  {
+    // lets walk the specified directory
+    if(m_sInputFileNames.count() > 1)
+    {
+      cout << "ERROR: only one directory can be specified." << endl;
+    }
+    else
+      result = walkDirectory(QDir(m_sInputFileNames[0]));
+  }
 
   RETURN(result);
   return result;
 }
 
-bool CApplication::convertFile(const QFileInfo& inputFile)
+bool CApplication::convert2Ecat(const QFileInfo& inputFile)
 {
   ENTER();
   bool result = true;
@@ -524,6 +545,293 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
   {
     pPhilipsFile->close();
     delete pPhilipsFile;
+  }
+
+  RETURN(result);
+  return result;
+}
+
+bool CApplication::convert2Img(const QFileInfo& inputFile)
+{
+  ENTER();
+  bool result = true;
+  bool bUnknownDataType = false;
+  CECATFile* pEcat7Image = NULL;
+  CECATMainHeader *pEcat7MainHeader = NULL;
+  CECAT7MainHeader* pEcat7ImageHeader = NULL;
+  CPhilipsFile* pPhilipsFile = NULL;
+  CPhilipsMainHeader* pPhilipsMainHeader = NULL;
+  CPhilipsExtendedMainHeader* pPhilipsExtendedMainHeader = NULL;
+
+  // check if we can create the output file
+  if(checkOutputFile(inputFile) == false)
+    result = false;
+
+  if(result)
+  {
+    pEcat7Image = new CECATFile(inputFile.filePath());
+    if(pEcat7Image == NULL)
+      result = false;
+  }
+
+  if(result)
+  {
+    if(pEcat7Image->open(QIODevice::ReadOnly) == false)
+    {
+      cout << "ERROR: Can't open file " << inputFile.absoluteFilePath().toAscii().constData() << "." << endl;
+      result = false;
+    }
+  }
+
+  if(result)
+  {
+    // read main header
+    if(pEcat7Image->readMainHeader(pEcat7MainHeader) == false)
+    {
+      cout << "ERROR: When reading the mainheader or file is not an ECAT format image." << endl;
+      result = false;
+    }
+    else
+      pEcat7ImageHeader = static_cast<CECAT7MainHeader*>(pEcat7MainHeader);
+  }
+
+  if(result)
+  {
+    // check if it's an image file
+    if(pEcat7Image->fileType() != CECATMainHeader::ECAT7_Volume16)
+    {
+      cout << "ERROR: Input file is not an image file" << endl;
+      result = false;
+    }
+  }
+
+  if(result)
+  {
+    D("Creating empty philips image: '%s'", m_sOutputFileName.toAscii().data());
+    pPhilipsFile = new CPhilipsFile(m_sOutputFileName, CPhilipsMainHeader::Image);
+    if(pPhilipsFile->open(QIODevice::WriteOnly) == false)
+    {
+      cout << "ERROR: Could not write to outputfile - check permissions of directory or file!." << endl;
+      result = false;
+    }
+  }
+
+  if(result)
+  {
+    cout << "Converting: " << inputFile.absoluteFilePath().toAscii().constData() << endl;
+    cout << "OutputFile: " << QFileInfo(m_sOutputFileName).absoluteFilePath().toAscii().constData() << endl;
+
+    pPhilipsMainHeader = pPhilipsFile->createEmptyMainHeader();
+    pPhilipsExtendedMainHeader = pPhilipsFile->createEmptyExtendedMainHeader();
+
+    if(pPhilipsMainHeader != NULL && pPhilipsExtendedMainHeader != NULL)
+    {
+      pPhilipsMainHeader->convertFrom(pEcat7ImageHeader);
+
+      int numFrames = pEcat7Image->numFrames();
+      if(numFrames > NUMFRAMESLIMIT)
+      {
+        cout << "Warning: Can not create Philips image file with more than "
+             << NUMFRAMESLIMIT
+             << " frames - will only create "
+             << NUMFRAMESLIMIT
+             << " frames" 
+             << endl;
+
+        numFrames = NUMFRAMESLIMIT;
+      }
+
+      int minSlice = 0;
+      for(int frame = 1; frame <= numFrames; ++frame)
+      {
+         cout << "Converting Frame: " << (frame) << " of " << numFrames << endl;
+
+        // in philips format every slice has an own subheader, so
+        // we need to hold one sub header of the ecat file
+        // to convert it to an philips subheader for every slice
+
+        // take first subheader of the frame as the header of the whole frame
+        CECATSubHeader* pECATSubHeader = NULL;
+        CECAT7SubHeaderImage* pECATSubHeaderImage = NULL;
+        bool bReadSubHeader = pEcat7Image->readSubHeader(pECATSubHeader, frame);
+        if(bReadSubHeader == false)
+        {
+          cout << "ERROR: When loading image subheader of frame " << frame << endl;
+          result = false;
+
+          delete pECATSubHeaderImage;
+          break;
+        }
+        else
+          pECATSubHeaderImage = static_cast<CECAT7SubHeaderImage*>(pECATSubHeader);
+
+        char* pImageData;
+        unsigned int len = 0;
+        bool bReadMatrix = pEcat7Image->readMatrix(pImageData, len, frame);
+        if(bReadMatrix == false)
+        {
+          cout << "ERROR: When loading image data of frame " << frame << endl;
+          result = false;
+
+          delete pECATSubHeaderImage;
+          break;
+        }
+
+        if(result != false)
+        {
+          short imgMaxValue = pECATSubHeaderImage->image_Max();
+          short imgMinValue = pECATSubHeaderImage->image_Min();
+          D("imgMin: %d", imgMinValue);
+          D("imgMax: %d", imgMaxValue);
+
+          // now convert the subheader
+          CPhilipsSubHeaderImage* pPhilipsSubHeaderImage = static_cast<CPhilipsSubHeaderImage*>(pPhilipsFile->createEmptySubHeader());
+          pPhilipsSubHeaderImage->convertFrom(pECATSubHeaderImage, pEcat7ImageHeader);
+
+          // get dimensions of data
+          short xDim = pECATSubHeaderImage->x_Dimension();
+          short yDim = pECATSubHeaderImage->y_Dimension();
+          short zDim = pECATSubHeaderImage->z_Dimension();
+
+          int dataTypeSize;
+          switch(pECATSubHeaderImage->data_Type())
+          {
+            case CECATSubHeader::UnknownDataType:
+              W("unknown datatype found, assuming byte data");
+              dataTypeSize = sizeof(char);
+            break;
+
+            case CECATSubHeader::ByteData:
+              dataTypeSize = sizeof(char);
+            break;
+    
+            case CECATSubHeader::VAX_Ix2:
+            case CECATSubHeader::SunShort:
+              dataTypeSize = sizeof(qint16);
+            break;
+      
+            case CECATSubHeader::VAX_Ix4:
+            case CECATSubHeader::SunLong:
+              dataTypeSize = sizeof(qint32);
+            break;
+
+            case CECATSubHeader::IEEEFloat:
+            case CECATSubHeader::VAX_Rx4:
+              dataTypeSize = sizeof(float);
+            break;
+          }
+
+          // in the philips file format each slice is saved separately in a matrix
+          // in the ecat format (in volume mode), however, the whole volume is saved
+          // as a 3D matrix instead. So we have to split the volume now into slices
+          // and save them separately.
+          char *p = pImageData;
+          long matrixSize = xDim*yDim*dataTypeSize;
+          for(int z = 1; z < zDim+1; z++)
+          {
+            // before writing the matrix to the file we need to calculate the image min/max
+            // and the new scale factor
+            QByteArray buffer = QByteArray::fromRawData(pImageData, xDim*yDim);
+            CDataArray<qint16> dataArray(&buffer, xDim*yDim);
+            short imgMinValue = dataArray.minValue();
+            short imgMaxValue = dataArray.maxValue();
+            
+            pPhilipsSubHeaderImage->setImgmin(imgMinValue);
+            pPhilipsSubHeaderImage->setImgmax(imgMaxValue);
+
+            D("about to write slice %d", z);
+            pPhilipsFile->writeMatrix(p, matrixSize, *pPhilipsSubHeaderImage, z, frame);
+  
+            // now advance p
+            p += matrixSize;
+          }
+
+          //bool ok;
+          //pEcat7SubHeaderImage->setScale_Factor(pPhilipsSubHeaderImage->scale_Factor(ok));
+          //if(ok == true)
+          //{
+          //  pEcat7ImageHeader->setCalibration_Units(CECAT7MainHeader::Calibrated);
+          //  pEcat7ImageHeader->setCalibration_Factor(1.0f);
+          //  pEcat7ImageHeader->setData_Units("Bq/cc");
+          //}
+          //else
+          //{
+          //  pEcat7ImageHeader->setCalibration_Units(CECAT7MainHeader::Uncalibrated);
+          //  pEcat7ImageHeader->setData_Units("N/A");
+          //}
+
+          //// put in an annotation about being converted by mp2ecat
+          //pEcat7SubHeaderImage->setAnnotation("converted by " PACKAGE_NAME " " PACKAGE_VERSION);
+
+          //pEcat7Image->writeSubHeader(*pEcat7SubHeaderImage, frame);
+          //pEcat7Image->writeMatrix(pImageData, len, frame);
+          //delete pEcat7SubHeaderImage;
+        }
+
+        delete pECATSubHeaderImage;
+      }
+
+      if(bUnknownDataType == false)
+      {
+        cout << "Writing main header and finalizing file" << endl;
+
+        pPhilipsFile->writeMainHeader(*pPhilipsMainHeader);
+        pPhilipsFile->writeExtendedMainHeader(*pPhilipsExtendedMainHeader);
+        result = true;
+      }
+
+      pPhilipsFile->close();
+      delete pPhilipsMainHeader;
+      delete pPhilipsExtendedMainHeader;
+    }
+  }
+
+  delete pEcat7ImageHeader;
+  if(pEcat7Image != NULL)
+  {
+    pEcat7Image->close();
+    delete pEcat7Image;
+  }
+
+  RETURN(result);
+  return result;
+}
+
+bool CApplication::walkDirectory(const QDir& dir)
+{
+  ENTER();
+  bool result = true;
+  QString extension;
+
+  if(m_bEcat2Img == false)
+    extension = "img";
+  else
+    extension = "v";
+
+  // this function will recursively walk through a directory and process all *.img files in it
+  QFileInfoList dirEntries = dir.entryInfoList(QStringList("*." + extension), QDir::Files | QDir::NoSymLinks | QDir::AllDirs | QDir::NoDotAndDotDot);
+
+  QFileInfo dirEntry;
+  foreach(dirEntry, dirEntries)
+  {
+    if(dirEntry.isDir())
+    {
+      result = walkDirectory(QDir(dirEntry.absoluteFilePath()));
+    }
+    else
+    {
+      // check if we found a filename with a *.img suffix
+      if(dirEntry.suffix().toLower() == extension)
+      {
+        if(m_bEcat2Img == false)
+          convert2Ecat(dirEntry);
+        else
+          convert2Img(dirEntry);
+      }
+    }
+
+    if(result == false)
+      break;
   }
 
   RETURN(result);

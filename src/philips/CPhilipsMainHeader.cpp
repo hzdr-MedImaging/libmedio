@@ -30,6 +30,7 @@
 #include "CPhilipsDirectoryItem.h"
 #include "CMedIOHeader.h"
 #include "CMedIOData.h"
+#include "CECAT7MainHeader.h"
 
 #include <rtdebug.h>
 
@@ -210,6 +211,12 @@ public:
   } header;
 
   static const short currentMainHeaderFormat = 13;
+
+  // convert functions
+  bool ecat2philipsSex(const CECAT7MainHeader::Patient_Sex sex);
+  bool ecat2philipsIsotop(const QString& isotop);
+  bool ecat2philipsOrientation(const CECAT7MainHeader::Patient_Orientation eOrientation);
+  bool ecat2philipsAcquisitionType(const CECAT7MainHeader::Acquisition_Type acqType);
 };
 
 CPhilipsMainHeader::CPhilipsMainHeader(CPhilipsFile* file,
@@ -805,7 +812,69 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHea
 {
   ENTER();
   bool bResult = false;
-#warning TODO: implement CPhilipsMainHeader::convertFrom()
+
+  // depending on the MedIOHeader format we do have to 
+  // distinguish between our copy operations.
+  switch(pHead1->headerFormat())
+  {
+    case CMedIOHeader::ECATMainHeader:
+    {
+      const CECATMainHeader* eMainHeader = static_cast<const CECATMainHeader*>(pHead1);
+
+      // depending on the source type we have to copy either every data or just 
+      // some data of the src header
+      switch(eMainHeader->rtti())
+      {
+        // if the source header is also an ECAT7 one we can copy it in whole
+        // via a simple memcpy()
+        case CECATMainHeader::ECAT7MainHeader:
+        {
+          const CECAT7MainHeader* header = static_cast<const CECAT7MainHeader*>(pHead1);
+
+          // clear everything first
+          clear();
+
+          // now convert
+          CPhilipsMainHeader::File_Type fileType = CPhilipsMainHeader::Unknown;
+          switch(header->file_Type())
+          {
+            case CECAT7MainHeader::Volume8:
+            case CECAT7MainHeader::Volume16:
+            case CECAT7MainHeader::Image8:
+            case CECAT7MainHeader::Image16:
+              fileType = CPhilipsMainHeader::Image;
+            break;
+
+            case CECAT7MainHeader::Sinogram:
+            case CECAT7MainHeader::Sinogram3D_16:
+            case CECAT7MainHeader::Sinogram3D_8:
+            case CECAT7MainHeader::Sinogram3D_Float:
+              fileType = CPhilipsMainHeader::Sinogram;
+            break;
+          }
+
+          setFiltyp(fileType);
+          setPatient_Name(header->patient_Name());
+          setSsn(header->patient_ID());
+          setWeight(header->patient_Weight() * 1000.0f); // kg -> g
+          setPatient_Birth_Date_Qt(header->patient_Birth_Date_Qt());
+          m_pData->ecat2philipsOrientation(header->patient_Orientation());
+          setNslice(header->num_Planes());
+          setNframe(header->num_Frames());
+          setSlcthk(header->plane_Separation() * 10.0f); // cm -> mm
+          m_pData->ecat2philipsIsotop(header->isotope_Name());
+          setHalfLife(header->isotope_Halflife() / 60.0f); // sec -> min
+          setActivity(header->dosage() / 1000000.0f); // Bq -> MBq
+          setAqprotocol_Name(header->study_Type());
+          m_pData->ecat2philipsAcquisitionType(header->acquisition_Type());
+
+          bResult = true;
+        }
+        break;
+      }
+    }
+  }
+
   RETURN(bResult);
   return bResult;
 }
@@ -1906,4 +1975,192 @@ void CPhilipsMainHeader::setPatient_Birth_Date_Qt(const QDate& date)
   m_pData->header.bthyr = date.year();
   m_pData->header.bthmo = date.month();
   m_pData->header.bthday = date.day();  
+}
+
+bool CPhilipsMainHeaderPrivate::ecat2philipsSex(const CECAT7MainHeader::Patient_Sex sex)
+{
+  ENTER();
+  bool result = false;
+
+#warning TODO
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsMainHeaderPrivate::ecat2philipsIsotop(const QString& isotop)
+{
+  ENTER();
+  bool result = false;
+
+  QString isotope = isotop.toUpper().remove(QChar('-'));
+  if(isotope.contains("UNDEFINED"))
+    header.isotop = CPhilipsMainHeader::UndefinedIsotop;
+  else if(isotope.contains("UNKNOWN"))
+    header.isotop = CPhilipsMainHeader::UnknownIsotop;
+  else if(isotope.contains("F18"))
+    header.isotop = CPhilipsMainHeader::F18;
+  else if(isotope.contains("O15"))
+    header.isotop = CPhilipsMainHeader::O15;
+  else if(isotope.contains("C11"))
+    header.isotop = CPhilipsMainHeader::C11;
+  else if(isotope.contains("GA68"))
+    header.isotop = CPhilipsMainHeader::GA68;
+  else if(isotope.contains("N13"))
+    header.isotop = CPhilipsMainHeader::N13;
+  else if(isotope.contains("RB82"))
+    header.isotop = CPhilipsMainHeader::RB82;
+  else if(isotope.contains("CU62"))
+    header.isotop = CPhilipsMainHeader::CU62;
+  else if(isotope.contains("CS137"))
+    header.isotop = CPhilipsMainHeader::CS137;
+  else if(isotope.contains("GE68"))
+    header.isotop = CPhilipsMainHeader::GE68;
+  else if(isotope.contains("CU64"))
+    header.isotop = CPhilipsMainHeader::CU64;
+  else if(isotope.contains("BR76"))
+    header.isotop = CPhilipsMainHeader::BR76;
+  else if(isotope.contains("NA22"))
+    header.isotop = CPhilipsMainHeader::NA22;
+  else if(isotope.contains("O14"))
+    header.isotop = CPhilipsMainHeader::O14;
+  else if(isotope.contains("Y86"))
+    header.isotop = CPhilipsMainHeader::Y86;
+  else if(isotope.contains("ZN62"))
+    header.isotop = CPhilipsMainHeader::ZN62;
+  else if(isotope.contains("CU60"))
+    header.isotop = CPhilipsMainHeader::CU60;
+  else if(isotope.contains("CU61"))
+    header.isotop = CPhilipsMainHeader::CU61;
+  else if(isotope.contains("GA66"))
+    header.isotop = CPhilipsMainHeader::GA66;
+  else if(isotope.contains("BR75"))
+    header.isotop = CPhilipsMainHeader::BR75;
+  else if(isotope.contains("BR77"))
+    header.isotop = CPhilipsMainHeader::BR77;
+  else if(isotope.contains("I124"))
+    header.isotop = CPhilipsMainHeader::I124;
+  else if(isotope.contains("K38"))
+    header.isotop = CPhilipsMainHeader::K38;
+  else if(isotop.contains("MN52"))
+    header.isotop = CPhilipsMainHeader::MN52;
+  else if(isotop.contains("TC94M"))
+    header.isotop = CPhilipsMainHeader::TC94M;
+  else if(isotop.contains("TI45"))
+    header.isotop = CPhilipsMainHeader::TI45;
+  else
+    header.isotop = CPhilipsMainHeader::OtherIsotop;
+
+  result = true;
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsMainHeaderPrivate::ecat2philipsOrientation(const CECAT7MainHeader::Patient_Orientation eOrientation)
+{
+  ENTER();
+  bool result = false;
+
+  switch(eOrientation)
+  {
+    case CECAT7MainHeader::FF_Prone:
+      header.orient_ps = CPhilipsMainHeader::Prone;
+      header.orient_hf = CPhilipsMainHeader::Feet_First;
+    break;
+
+    case CECAT7MainHeader::FF_Supine:
+      header.orient_ps = CPhilipsMainHeader::Supine;
+      header.orient_hf = CPhilipsMainHeader::Feet_First;
+    break;
+
+    case CECAT7MainHeader::FF_Left:
+      header.orient_ps = CPhilipsMainHeader::Left;
+      header.orient_hf = CPhilipsMainHeader::Feet_First;
+    break;
+
+    case CECAT7MainHeader::FF_Right:
+      header.orient_ps = CPhilipsMainHeader::Right;
+      header.orient_hf = CPhilipsMainHeader::Feet_First;
+    break;
+
+    case CECAT7MainHeader::HF_Prone:
+      header.orient_ps = CPhilipsMainHeader::Prone;
+      header.orient_hf = CPhilipsMainHeader::Head_First;
+    break;
+
+    case CECAT7MainHeader::HF_Supine:
+      header.orient_ps = CPhilipsMainHeader::Supine;
+      header.orient_hf = CPhilipsMainHeader::Head_First;
+    break;
+
+    case CECAT7MainHeader::HF_Left:
+      header.orient_ps = CPhilipsMainHeader::Left;
+      header.orient_hf = CPhilipsMainHeader::Head_First;
+    break;
+
+    case CECAT7MainHeader::HF_Right:
+      header.orient_ps = CPhilipsMainHeader::Right;
+      header.orient_hf = CPhilipsMainHeader::Head_First;
+    break;
+
+    default:
+      header.orient_ps = CPhilipsMainHeader::Undefined_Orientation_ps;
+      header.orient_hf = CPhilipsMainHeader::Undefined_Orientation_hf;
+    break;
+  }
+
+  result = true;
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsMainHeaderPrivate::ecat2philipsAcquisitionType(const CECAT7MainHeader::Acquisition_Type acqType)
+{
+  ENTER();
+  bool result = false;
+  CPhilipsMainHeader::Acquisition_Protocol_Type ptype = CPhilipsMainHeader::Undefined_Acquisition_Protocol;
+  CPhilipsMainHeader::Acquisition_Type atype = CPhilipsMainHeader::UndefinedAcq;
+
+  switch(acqType)
+  {
+    case CECAT7MainHeader::Undefined:
+      ptype = CPhilipsMainHeader::Undefined_Acquisition_Protocol;
+      atype = CPhilipsMainHeader::UndefinedAcq;
+    break;
+
+    case CECAT7MainHeader::StaticEmission:
+    case CECAT7MainHeader::EmissionRectilinear:
+      ptype = CPhilipsMainHeader::Static_Emission; 
+      atype = CPhilipsMainHeader::Emission;
+    break;
+
+    case CECAT7MainHeader::DynamicEmission:
+      ptype = CPhilipsMainHeader::Dynamic_Emission;
+      atype = CPhilipsMainHeader::Emission;
+    break;
+
+    case CECAT7MainHeader::Transmission:
+    case CECAT7MainHeader::TransmissionRectilinear:
+      ptype = CPhilipsMainHeader::Static_Transmission_Only; 
+      atype = CPhilipsMainHeader::Transmission;
+    break;
+
+    case CECAT7MainHeader::GatedEmission:
+      ptype = CPhilipsMainHeader::Gated_Cardiac;
+      atype = CPhilipsMainHeader::Emission;
+    break;
+
+    case CECAT7MainHeader::Blank:
+      ptype = CPhilipsMainHeader::Undefined_Acquisition_Protocol;
+      atype = CPhilipsMainHeader::Blank;
+    break;
+  }
+
+  header.aqprotocol_type = ptype;
+  header.scntyp = atype;
+
+  RETURN(result);
+  return result;
 }

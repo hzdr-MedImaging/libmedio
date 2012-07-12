@@ -24,6 +24,8 @@
 
 #include "CPhilipsSubHeader.h"
 #include "CPhilipsDirectoryItem.h"
+#include "CECATSubHeader.h"
+#include "CECAT7SubHeaderImage.h"
 #include "CMedIOData.h"
 
 #include <QDateTime>
@@ -532,8 +534,81 @@ bool CPhilipsSubHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHead
   ENTER();
   bool bResult = false;
 
-#warning TODO: implement CPhilipsSubHeaderImage::convertFrom()
+  // depending on the MedIOHeader format we do have to 
+  // distinguish between our copy operations.
+  switch(pHead1->headerFormat())
+  {
+    case CMedIOHeader::ECATSubHeader:
+    {
+      const CECATSubHeader* eSubHeader = static_cast<const CECATSubHeader*>(pHead1);
 
+      // depending on the source type we have to copy either every data or just 
+      // some data of the src header
+      switch(eSubHeader->subHeaderType())
+      {
+        // if the source header is an ECAT7 image subheader we convert as much as possible
+        case CECATSubHeader::ECAT7_Image:
+        {
+          const CECAT7SubHeaderImage* header = static_cast<const CECAT7SubHeaderImage*>(pHead1);
+
+          // clear up anything
+          clear();
+
+          // convert now
+          CPhilipsSubHeader::Data_Type dtype = CPhilipsSubHeader::UnknownDataType;
+          switch(header->data_Type())
+          {
+            case CECATSubHeader::UnknownDataType:
+              W("Unknown DataType found while converting");
+              // do nothing
+            break;
+
+            case CECATSubHeader::ByteData:
+              dtype = CPhilipsSubHeader::ByteData;
+            break;
+
+            case CECATSubHeader::VAX_Ix2:
+            case CECATSubHeader::SunShort:
+              dtype = CPhilipsSubHeader::SignedShort;
+            break;
+
+            case CECATSubHeader::VAX_Ix4:
+            case CECATSubHeader::SunLong:
+              W("SunLong found, user HAVE to care about converting the matrix data to Float himself");
+              dtype = CPhilipsSubHeader::Float;
+            break;
+
+            case CECATSubHeader::VAX_Rx4:
+            case CECATSubHeader::IEEEFloat:
+              dtype = CPhilipsSubHeader::Float;
+            break;
+          }
+          setDatype(dtype);
+
+          setSuvscl(header->scale_Factor());
+          setImgmin(header->image_Min());
+          setImgmax(header->image_Max());
+          setXdim(header->x_Dimension());
+          setYdim(header->y_Dimension());
+          setPix_spacing_x(header->x_Pixel_Size() * 10.0f); // cm -> mm
+          setPix_spacing_y(header->y_Pixel_Size() * 10.0f); // cm -> mm
+          setScnlen(header->frame_Duration()/1000);
+          setMseclen(header->frame_Duration() % 1000);
+          
+          bResult = true;
+        }
+        break;
+
+        case CECATSubHeader::Unknown:
+          // for an unknown header type we do nothing
+        break;
+        
+        #warning "non Image copy not complete"
+      }
+    }
+    break;
+  }
+ 
   RETURN(bResult);
   return bResult;
 }

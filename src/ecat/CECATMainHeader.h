@@ -73,7 +73,7 @@ class CECATMainHeader : public CMedIOHeader
     // interface methods that are part of the ECAT6 and
     // ECAT7 standard and each ECAT6/7 implementation has
     // to implement it.
-    virtual  short num_Planes(void) const  = 0;
+    virtual short num_Planes(void) const  = 0;
     virtual short num_Frames(void) const  = 0;
     virtual short num_Gates(void) const    = 0;
     virtual short num_Bed_Pos(void) const  = 0;

@@ -28,7 +28,7 @@ template<class T> CDataArray<T>::CDataArray(QByteArray* pArray, int iNumElements
   : QVarLengthArray<T>(iNumElements)
 {
   ENTER();
-  T* pData = (T*)pArray->data();
+  T* pData = (T*)pArray->constData();
   m_minValue = m_maxValue = *pData;
   for(int i = 0; i < iNumElements; i++, pData++)
   {
