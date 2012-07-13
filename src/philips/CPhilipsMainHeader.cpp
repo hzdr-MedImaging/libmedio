@@ -34,6 +34,8 @@
 
 #include <rtdebug.h>
 
+#include "ByteSwap.h"
+
 // we define the private inline class of that one so that we
 // are able to hide the private methods & data of that class in the
 // public headers
@@ -59,158 +61,314 @@ public:
   };
 
   // MainHeader structure (should be 512 bytes)
+  #define MAINHEADER_SIZE 512
+  #define MAINHEADER_VERSION 13
+  #pragma pack(1)
   struct HeaderData
   {
-    qint16 file_fmt;       // file format (mainheader) version number
-    qint16 scan_geom;  // encoding of the scanner geometry
-    qint16 hw_config;   // encoding of hardware used in acquisition
-    qint16 edit_flag;         // 1 to indicat that the user has modified mainheader
-    qint16 filtyp;
-    qint32 minTransXtalDiff;    // Minimum zone difference in crystal space during all list-mode collections.
-    float tofTstampScale;      // Time-Of-Flight time stamp scale.
-
-    qint16 dep_daycre;
-    qint16 dep_mocre;
-    qint16 dep_yrcre;
-    qint16 dep_hrcre;
-    qint16 dep_mincre;
-    qint16 dep_seccre;
-    qint16 duratn;     // duration of scan in seconds
-    qint16 shdtyp;    // ImageIO subheader (1) or old subheader format (0)
-    qint16 sngpscl; // singles prescale, superceded by pscale
-    qint16 singopt; // 0=transmission only, 1=trans-ec, 2=ec only (obsoleted)
-    float pscale;      // amount by which the actual singles events is scaled down
-    float detectorRadius;       /* inscribed scanner radius (from middle of opening to
-                                   detector face) in mm */
-    qint16 virtualXtal; /* whether virtual crystals were used in the acquisition
-                           to simulate a larger detector */
-    qint16 phiMashing;       /* whether events from crystal phi values are combined
-                                6 Undefined/Unknown (assumption is no mashing)
-                                7 No mashing
-                                8 Events from pairs of consecutive angles have been added together */
-    qint16 polygonSides;    /* Number of "sides" in the scanner opening
-                               (may refer to detectors or PMT modules */
-    qint16 xtalsPerSide; // Number of detectors per opening (polygon) side
-    qint16 nXtalRows;      // Number of crystal rows in the axial (Z) direction
-    float crystalThickness;  // Detetctor crystal thickness in mm
-    float xXtalPitch;     // X crystal pitch in mm
-    float zXtalPitch;     // Z crystal pitch in mm
-    float axialFOV;          // in mm
-    qint16 rphiType;         // 0 Real, 1 Crystal
-    qint16 sliceType;
-    qint16 delayType;
-    qint16 pattyp;
-    qint16 scntyp;
-    qint16 numray;
-    qint16 numang;
-    qint16 slcthk;
-    qint16 isotop;
-    float slope;                 // Rescale slope. (Not used)
-    float intcpt; // Offset value to data. (Not used)
-    qint16 injtim;
-    float polygonVertAt0deg;
-    qint16 nslice;        // number of slices per frame
-    qint16 nframe;        // number of frames
-    qint16 bthday;
-    qint16 bthmo;
-    qint16 bthyr;
-    char ssn[10]; // suberceded by Dicom_Patient_ID
-    qint16 ntilt;         // number of tilts per frame
-    qint16 petnum;
-    float activity;           // in MBq
-    qint32 weight;            // in g
-    qint16 hrinj;
-    qint16 mininj;
-    float srcRadius;
-    float srcZpos;
-    float halfLife;           // in minutes
-    float concfac;
-    float concfac_bgsub;
-    float dmax;
-    float dline;
-    float angmax;
-    float x0;
-    float y0;
-    float z0;
-    float nevent;
-    float nsino;
-    qint16 eglob_low;
-    qint16 eglob_up;
-    qint16 eloc_low;
-    qint16 eloc_up;
-    qint16 orient_hf;
-    char scan_swrel[6];
-    qint16 tbl_direction;
-    qint16 orient_ps;
-    float frontLeadDiameter;
-    float backLeadDiameter;
-    float leadSeparation;
-    float ndelays;
-    float slcsep;
-    char fctrfil[20];           /* Factor file name. (PMT gains). was 16 */
-                                /* syn - (0008,1090) manufacturer's model name*/
-    char baselin[20];        /* Baseline file name. (DC offsets). was 16 */
-    char dstpkfl[20];        /* Distortion peak file name. */
-    char aqprotocol_name[20];/* acquisition protocol name */
-    qint16 aqprotocol_type;   /* 1=Emiss-Static, 2=Emiss-Dynamic,
-                               * 3=Trans-Static, 4=Gated Cardiac,
-                               * 5=Emiss-Whole-Body, 6=Trans-Whole-Body 
-                               * 7=Singles Trans, 8=Singles-Whole-Body */
-    char patient_name[30];   /* patient name */
-    float reslice_ang1;      /* Reslicing (OBL) angle 1 */
-    float reslice_ang2;      /* Reslicing (OBL) angle 2 */
-    float reslice_ang3;      /* Reslicing (OBL) angle 3 */
-    qint16 minslc;            /* Minimum Slice number */
-    /* syn - set to 1		*/
-    qint16 maxslc;            /* Maximum Slice number */
-    /* syn - set to number of slices */
-    qint16 minfrm;            /* Minimum Frame number */
-    qint16 maxfrm;            /* Maximum Frame number */
-    qint16 scanner_maxslice;  /* Maximum Slice number for a static frame
-                              * based on the useful axial extent of the
-                              * scanner. (unitless) */
-    qint16 rebin_type;         /* multi-slice or single slice or LOR */
-    char scnOrigin[16];       /* indicates origin of scan data = scanner number
-                               * (a000) - $SITENAME (10 chars) plus null */
-    char accNum[16]; /* Accession number. Will eventually be used with 
-                                 DICOM query retrieve. Initially used to support
-                                 dicom-send to PACS. */
-    qint16 movementCoinc;      /* table movement between emission frames in mm */
-    qint16 movementSing;   /* table movement between transmission frames in mm */
-    qint16 crbTstampPeriod;    /* Period between CRB timestamps in msec */
-    qint16 trailexists;       /* 1= trailer exists, 0 = no trailer */
-    quint32 trailbeg;           /* unsigned 32 bit number = # of bytes from
-                              * file beginning indicating where the
-                              * trailer begins */
-    struct 
-    {
-      qint16 valid;            /* Whether the file has a valid petct struct */
-      qint16 separation;       /* PET separation distance at acq time (1/10mm) */
-      qint16 landmark;         /* Landmark position at acq time (1/10mm) */
-      struct
-      {
-        qint32 timestamp;     /* Date/Time of alignment calibration 
-                                (seconds since Jan 1, 1970 [UNIX]) */
-        qint16 zOffset;       /* Not used at this time.  */
-        qint16 xShift;        /* shift in x from align-cal in 1/1000mm */
-        qint16 yShift;        /* shift in y from align-cal in 1/1000mm */
-        qint16 zShift;        /* shift in z from align-cal in 1/1000mm */
-        qint16 acFlags;       /* Not used at this time. */
-        qint16 xOffset;	      /* syn - (0020,0032) Image position x pos */
-                              /* shift in x of the center of the CT FOV
-                                 with respect to the PET FOV in 1/100mm */
-        qint16 yOffset;	      /* syn - (0020,0032) Image position y pos */
-                              /* shift in y of the center of the CT FOV
-                                 with respect to the PET FOV in 1/100mm */
-        qint16 axialRotation; /* rotation about z axis in 1/10,000 deg  */
-        qint16 horizRotation; /* rotation about x axis in 1/10,000 deg  */
-        qint16 vertRotation;  /* rotation about y axis in 1/10,000 deg  */
-        qint16 unused[2];     /* Not used at this time. */
-      } alignment;
-    } petCt;
+    char magic_number[6];         // 000: identifier
+    qint16 file_fmt;              // 006: file format (mainheader) version number
+    qint16 scan_geom;             // 008: encoding of the scanner geometry
+    qint16 hw_config;             // 010: encoding of hardware used in acquisition
+    char empty1[4];               // 012: empty
+    qint16 edit_flag;             // 016: 1 to indicat that the user has modified mainheader
+    char empty2[30];              // 018: empty
+    char empty3[4];               // 048: empty
+    qint16 filtyp;                // 052: file type
+    qint32 minTransXtalDiff;      // 054: Minimum zone difference in crystal space during all list-mode collections.
+    float tofTstampScale;         // 058: Time-Of-Flight time stamp scale.
+    char empty4[4];               // 062: empty
+    qint16 dep_daycre;            // 066:
+    qint16 dep_mocre;             // 068:
+    qint16 dep_yrcre;             // 070:
+    qint16 dep_hrcre;             // 072:
+    qint16 dep_mincre;            // 074:
+    qint16 dep_seccre;            // 076:
+    qint16 duratn;                // 078: duration of scan in seconds
+    qint16 shdtyp;                // 080: ImageIO subheader (1) or old subheader format (0)
+    qint16 sngpscl;               // 082: singles prescale, superceded by pscale
+    qint16 singopt;               // 084: 0=transmission only, 1=trans-ec, 2=ec only (obsoleted)
+    float pscale;                 // 086: amount by which the actual singles events is scaled down
+    float detectorRadius;         // 090: inscribed scanner radius (from middle of opening to detector face) in mm
+    qint16 virtualXtal;           // 094: whether virtual crystals were used in the acquisition to simulate a larger detector
+    qint16 phiMashing;            // 096: whether events from crystal phi values are combined:
+                                  //      6 Undefined/Unknown (assumption is no mashing)
+                                  //      7 No mashing
+                                  //      8 Events from pairs of consecutive angles have been added together
+    qint16 polygonSides;          // 098: Number of "sides" in the scanner opening (may refer to detectors or PMT modules
+    qint16 xtalsPerSide;          // 100: Number of detectors per opening (polygon) side
+    qint16 nXtalRows;             // 102: Number of crystal rows in the axial (Z) direction
+    float crystalThickness;       // 104: Detetctor crystal thickness in mm
+    float xXtalPitch;             // 108: X crystal pitch in mm
+    float zXtalPitch;             // 112: Z crystal pitch in mm
+    float axialFOV;               // 116: in mm
+    qint16 rphiType;              // 120: 0 Real, 1 Crystal
+    qint16 sliceType;             // 122:
+    qint16 delayType;             // 124:
+    char empty5[4];               // 126: empty
+    qint16 pattyp;                // 130:
+    qint16 scntyp;                // 132:
+    qint16 numray;                // 134:
+    qint16 numang;                // 136:
+    qint16 slcthk;                // 138:
+    qint16 isotop;                // 140:
+    float slope;                  // 142: Rescale slope. (Not used)
+    float intcpt;                 // 146: Offset value to data. (Not used)
+    qint16 injtim;                // 150:
+    float polygonVertAt0deg;      // 152:
+    qint16 nslice;                // 156: number of slices per frame
+    qint16 nframe;                // 158: number of frames
+    qint16 bthday;                // 160:
+    qint16 bthmo;                 // 162:
+    qint16 bthyr;                 // 164:
+    char ssn[10];                 // 166: suberceded by Dicom_Patient_ID
+    qint16 ntilt;                 // 176: number of tilts per frame
+    qint16 petnum;                // 178:
+    char empty6[4];               // 180:
+    float activity;               // 184: in MBq
+    qint32 weight;                // 188: in g
+    qint16 hrinj;                 // 192:
+    qint16 mininj;                // 194:
+    float srcRadius;              // 196:
+    float srcZpos;                // 200:
+    float halfLife;               // 204: in minutes
+    float concfac;                // 208:
+    float concfac_bgsub;          // 212:
+    float dmax;                   // 216:
+    float dline;                  // 220:
+    float angmax;                 // 224:
+    float x0;                     // 228:
+    float y0;                     // 232:
+    float z0;                     // 236:
+    float nevent;                 // 240:
+    float nsino;                  // 244:
+    qint16 eglob_low;             // 248:
+    qint16 eglob_up;              // 250:
+    qint16 eloc_low;              // 252:
+    qint16 eloc_up;               // 254:
+    qint16 orient_hf;             // 256:
+    char scan_swrel[6];           // 258:
+    qint16 petct_sepdist;         // 264: PET separation distance at acq time (1/10mm)
+    qint16 petct_landmrk;         // 266: Landmark position at acq time (1/10mm)
+    qint32 petct_timestamp;       // 268: Date/Time of alignment calibration (seconds since Jan 1, 1970 [UNIX])
+    qint16 tbl_direction;         // 272:
+    qint16 orient_ps;             // 274:
+    qint16 petct_zoffset;         // 276: Not used at this time.
+    qint16 petct_xshift;          // 278: shift in x from align-cal in 1/1000mm
+    qint16 petct_yshift;          // 280: shift in y from align-cal in 1/1000mm
+    qint16 petct_zshift;          // 282: shift in z from align-cal in 1/1000mm
+    qint16 petct_acqflgs;         // 284: Not used at this time.
+    qint16 petct_xoffset;         // 286: syn - (0020,0032) Image position x pos
+                                  //      shift in x of the center of the CT FOV    
+                                  //      with respect to the PET FOV in 1/100mm
+    qint16 petct_yoffset;         // 288: syn - (0020,0032) Image position y pos
+                                  //      shift in y of the center of the CT FOV
+                                  //      with respect to the PET FOV in 1/100mm
+    qint16 petct_axrot;           // 290: rotation about z axis in 1/10,000 deg
+    qint16 petct_horzrot;         // 292: rotation about x axis in 1/10,000 deg
+    qint16 petct_vertrot;         // 294: rotation about y axis in 1/10,000 deg
+    float frontLeadDiameter;      // 296:
+    float backLeadDiameter;       // 300:
+    float leadSeparation;         // 304:
+    float ndelays;                // 308:
+    float slcsep;                 // 312:
+    qint16 petct_valid;           // 316: Whether the file has a valid petct struct
+    char fctrfil[20];             // 318: Factor file name. (PMT gains). was 16
+                                  //      syn - (0008,1090) manufacturer's model name
+    char baselin[20];             // 338: Baseline file name. (DC offsets). was 16
+    char dstpkfl[20];             // 358: Distortion peak file name.
+    char aqprotocol_name[20];     // 378: acquisition protocol name
+    qint16 aqprotocol_type;       // 398: 1=Emiss-Static, 2=Emiss-Dynamic, 3=Trans-Static, 4=Gated Cardiac,
+                                  //      5=Emiss-Whole-Body, 6=Trans-Whole-Body, 7=Singles Trans, 8=Singles-Whole-Body
+    char patient_name[30];        // 400: patient name
+    float reslice_ang1;           // 430: Reslicing (OBL) angle 1
+    float reslice_ang2;           // 434: Reslicing (OBL) angle 2
+    float reslice_ang3;           // 438: Reslicing (OBL) angle 3
+    qint16 minslc;                // 442: Minimum Slice number / syn - set to 1
+    qint16 maxslc;                // 444: Maximum Slice number / syn - set to number of slices
+    qint16 minfrm;                // 446: Minimum Frame number
+    qint16 maxfrm;                // 448: Maximum Frame number
+    qint16 scanner_maxslice;      // 450: Maximum Slice number for a static frame based on the useful axial extent of the scanner. (unitless)
+    char empty7[2];               // 452: empty
+    qint16 rebin_type;            // 454: multi-slice or single slice or LOR
+    char scnOrigin[16];           // 456: indicates origin of scan data = scanner number (a000) - $SITENAME (10 chars) plus null
+    char accNum[16];              // 472: Accession number. Will eventually be used with DICOM query retrieve. Initially used to support
+                                  //      dicom-send to PACS.
+    qint16 movementCoinc;         // 488: table movement between emission frames in mm
+    qint16 movementSing;          // 490: table movement between transmission frames in mm
+    qint16 crbTstampPeriod;       // 492: Period between CRB timestamps in msec
+    char empty8[10];              // 494: empty
+    qint16 trailexists;           // 504: 1= trailer exists, 0 = no trailer
+    quint32 trailbeg;             // 506: unsigned 32 bit number = # of bytes from file beginning indicating where the trailer begins
+    char empty9[2];               // 510: empty
   } header;
+  #pragma pack()
 
-  static const short currentMainHeaderFormat = 13;
+  // the extended header data structure
+  #define EXTHEADER_SIZE 2048
+  #pragma pack(1)
+  struct ExtHeaderData
+  {
+    char Dpat_name[64];                   // 0000: DICOM patient name
+    char Dpat_id[64];                     // 0064: DICOM patient ID
+    char study_uid[64];                   // 0128: unique study identifier
+    char series_uid[64];                  // 0192: unique series identifier
+    char view_code[20];                   // 0256: Our version of DICOM view code
+    char sortproto_name[20];              // 0276: sorter protocol name
+    qint16 route;                         // 0296: 
+    qint16 pharm;                         // 0298:
+    char req_phys[64];                    // 0300: requesting physician
+    qint16 card_phstate;                  // 0364: Physiologic state
+    qint32 assay_date;                    // 0366: Date of radioactivity measurement
+    qint32 assay_time;                    // 0370: Time of radioactivity measurement
+    char series_desc[64];                 // 0374: Description
+    qint16 height;                        // 0438: Patient height, in mm
+    qint16 abundance;                     // 0440: Positron abundance ratio, in tenths of percent so that 1000 is 100%
+    qint16 realign_x;                     // 0442: For cardiac realignment. Additional horizontal (x) shift of center of CT
+                                          //       FOV w.r.t. PET (in 1/100mm).
+    qint16 realign_y;                     // 0444: For cardiac realignment. Additional vertical (y) shift of center of CT
+                                          //       FOV w.r.t. PET (in 1/100mm).
+    qint16 realign_hr;                    // 0446: For cardiac realignment. Additional rotation about the horizontal (X) axis
+                                          //       (in 1/1,000 degree).
+    qint32 acq_date_time;                 // 0448: Date/time data acquired (UTC). Use access functions to read/write.
+    qint32 study_date_time;               // 0452: Date/time study started (UTC). Use access functions to read/write.
+    qint32 injection_date_time;           // 0456: Date/time of injection (UTC). Use access functions to read/write.
+    qint32 file_create_date_time;         // 0460: Replaces daycre, mocre, yrcre, hrcre, mincre and seccre fields. Date and
+                                          //       time that the acquisition file was created. Filled in by acquisition.
+    qint16 resp_trig_loc;                 // 0464: Respiratory trigger location.
+    qint16 card_arrhythmia_rej_tech;      // 0466: Card Arrhythmia rejection techniques employed:
+                                          //       Bit mask:
+                                          //        0 = no rejection
+                                          //        1 = Rejection based on deviation from average R-R interval
+                                          //        2 = Rejection based on deviation from regular QRS loop
+                                          //        4 = Rejection based on PVC criteria.
+    float window_center;                  // 0468: Suggested center value to use when displaying this image.
+    float window_width;                   // 0472: Suggested width value to use when displaying this image.
+    qint16 realign_zr;                    // 0476: For cardiac realignment. Additional rotation about the axial (Z) axis
+                                          //       (in 1/1,000 degree).
+    qint16 realign_vr;                    // 0478: For cardiac realignment. Additional rotation about the vertical (Y) axis
+                                          //       (in 1/1,000 degree).
+    char empty1[8];                       // 0480: empty
+    qint16 resp_trig_threshold;           // 0488: Respiratory trigger threshold in % of chest expansion relative to last peak.
+    qint16 resp_phase_duration;           // 0490: Respiratory acquisition duration in % of the respiratory cycle.
+    qint16 resp_phase_offset;             // 0492: For respiratory gated, the offset from the trigger to the beginning of the acquisition, in %
+                                          //        of the respiratory cycle.
+    qint16 realign_z;                     // 0494: For cardiac realignment. Additional (z) shift of center of CT
+                                          //       FOV w.r.t. PET (in 1/100mm).
+    qint16 window_units;                  // 0496: Units in which window_center and window_width are specified.
+    char empty2[14];                      // 0498: empty
+    char referring_physician[64];         // 0512: referring physician
+    char study_id[16];                    // 0576: study identifier
+    char empty3[2];                       // 0592: empty
+    float Dslice_thick;                   // 0594: DICOM slice thickness
+    char sex;                             // 0598: (DICOM) patient sex
+    float table_height;                   // 0599: Table height
+    char empty4[1];                       // 0603: empty
+    qint16 card_bt_rej;                   // 0604: Heart beat duration sorting (y/n)
+    qint16 card_fr_type;                  // 0606: Type of cardiac framing performed
+    char Dmanufacture_model_name[64];     // 0608: DICOM manufacturers model name
+    char Dimage_type[64];                 // 0672: DICOM image identification
+    float min_bed_pos;                    // 0736: Minimum bed position
+    float max_bed_pos;                    // 0740: Maximum bed position
+    qint16 der_filled;                    // 0744: Whether derived fields filled
+    qint32 series_number;                 // 0746: DICOM series number
+    qint32 dep_study_date;                // 0750: (Deprecated - use study_date_time) Date study created (date_2_int())
+    qint32 dep_study_time;                // 0754: (Deprecated - use study_date_time) time study created
+    qint32 dep_acq_time;                  // 0758: (Deprecated - use acq_date_time) time data acquired
+    qint16 card_slc_dir;                  // 0762: Slice progression direction
+    char empty5[4];                       // 0764: empty
+    qint32 card_skip_msec;                // 0768: initial data skipped, in msec
+    qint32 card_skip_counts;              // 0772: initial data skipped, in counts
+    qint32 card_dur_msec;                 // 0776: duration of binned data, in msec
+    qint32 card_dur_counts;               // 0780: duration of binned data, in counts
+    qint32 card_beats_tot;                // 0784: beats occurring during movie
+    qint32 card_beats_acc;                // 0788: beats accepted into movie
+    qint16 card_skip_beats;               // 0792: Num beats skipped after arrhythmia.
+    qint16 pvc_threshold;                 // 0794: When PVC rejection used, the % of R-R below which is considered a PVC.
+    char empty6[12];                      // 0796: empty
+    qint32 dep_acq_date;                  // 0808: (Deprecated - use acq_date_time) Date data acquired (date_2_int())
+    char empty7[4];                       // 0812: empty
+    char radiopharm_name[64];             // 0816: Used when pharm == Other, to specify name of radiopharmaceutical used.
+    char Dserial_number[16];              // 0880: System serial number + null
+    char attncor_label[64];               // 0896: Label (UID) identifying related atten. corr. series.
+    char empty8[64];                      // 0960: empty
+    char contr_bolus_agent[64];           // 1024: DICOM contrast bolus agent
+    char sop_uid[64];                     // 1088: SOP UID of incoming images
+    char frame_ref_uid[64];               // 1152: UID of frame of reference image
+    char pps_file[30];                    // 1216: Perform procedure file
+    char worklist_file[30];               // 1246: Worklist file
+    char empty9[4];                       // 1276: empty
+    char recon_swrel[6];                  // 1280:
+    char analy_swrel[6];                  // 1286:
+    char recprotocol_name[19];            // 1292:
+    char insinofile[19];                  // 1311:
+    qint16 slc_add;                       // 1330:
+    qint16 slc_space;                     // 1332:
+    qint16 slc_thick;                     // 1334:
+    qint16 frame_add;                     // 1336:
+    qint16 frame_space;                   // 1338:
+    qint16 frame_thick;                   // 1340:
+    qint16 fltr_type;                     // 1342:
+    qint16 smoth;                         // 1344:
+    qint16 scatcorr_type;                 // 1346: 
+    qint16 edge_exp;                      // 1348: Number of bins to expand edge in background subtraction
+    qint16 bckang_avg;                    // 1350: Number of angles to average in background subtraction
+    float bck_coeff;                      // 1352: Non-uniform background coefficient background subtraction
+    qint16 bck_wid;                       // 1356: Number of bins for fitting tails radially in background subtraction
+    qint16 attncor_type;                  // 1358: The attenuation correction algorithm used in reconstruction
+    qint16 attncor_ecc;                   // 1360: Emission contamination correction used in attenuation correction
+    float attn_coeff;                     // 1362: Coefficient in attenuation correction (in centimeters)
+    char regfile[19];                     // 1366:
+    char proc_transinofile[19];           // 1385:
+    float skull_comp;                     // 1404:
+    qint16 norm_type;                     // 1408:
+    qint16 smp_norm;                      // 1410:
+    char axnfile[19];                     // 1412:
+    char effnormfile[19];                 // 1431:
+    qint16 gap_comp;                      // 1450:
+    qint16 algtype_em;                    // 1452:
+    qint16 num_iter;                      // 1454:
+    qint16 iter_em;                       // 1456:
+    qint16 subset_em;                     // 1458:
+    qint16 nsmooth_em;                    // 1460:
+    qint16 nrepeat_em;                    // 1462:
+    qint16 bckslc_avg;                    // 1464:
+    qint16 dead_corr;                     // 1466:
+    qint16 decay_corr;                    // 1468:
+    char transinofile[19];                // 1470:
+    char blnksinofile[19];                // 1489:
+    float tran_ray_fwhm;                  // 1508:
+    float tran_axl_fwhm;                  // 1512:
+    qint16 surv_mask;                     // 1516:
+    qint16 preflt_type;                   // 1518:
+    qint16 postflt_type;                  // 1520:
+    qint16 tr_posttyp;                    // 1522:
+    qint16 algtype_tr;                    // 1524:
+    qint16 iter_tr;                       // 1526:
+    qint16 subset_tr;                     // 1528:
+    qint16 nsmooth_tr;                    // 1530:
+    qint16 nrepeat_tr;                    // 1532:
+    qint16 attn_corr_3d;                  // 1534:
+    qint16 ramla_no_it;                   // 1536:
+    qint16 ramla_sysac;                   // 1538:
+    float ramla_lambda[5];                // 1540:
+    float ramla_blrad;                    // 1560:
+    float ramla_blalpha;                  // 1564:
+    float ramla_bcc_rsz;                  // 1568:
+    qint32 recon_date_time;               // 1572:
+    qint16 gating_type;                   // 1576:
+    char empty10[6];                      // 1578:
+    char ref_attncor_series_uid[64];      // 1584:
+    char ref_gated_qc_image_inst_uid[64]; // 1648: SOP Instance UID of Sec. Cap. image containing picture of cardiac waveform and trigger level.
+    char ref_raw_data_inst_uid[64];       // 1712:
+    qint32 start_table_pos_abs;           // 1776: Absolute start table position.
+    qint32 start_table_pos_rel;           // 1780: Relative start table position.
+    qint16 mr_valid;                      // 1784: Whether the file contains a valid PET/MR struct
+    char empty11[6];                      // 1786: empty
+    char coil_type[16];                   // 1792: number of MR coils positioned in FOV during scan
+    char empty12[240];                    // 1808:
+  } extHeader;
+  #pragma pack()
 
   // convert functions
   bool ecat2philipsSex(const CECAT7MainHeader::Patient_Sex sex);
@@ -256,6 +414,10 @@ CPhilipsMainHeader& CPhilipsMainHeader::operator=(const CPhilipsMainHeader& src)
     memcpy(&m_pData->header,
            &src.m_pData->header,
            sizeof(struct CPhilipsMainHeaderPrivate::HeaderData));
+
+    memcpy(&m_pData->extHeader,
+           &src.m_pData->extHeader,
+           sizeof(struct CPhilipsMainHeaderPrivate::ExtHeaderData));
   }
 
   LEAVE();
@@ -273,11 +435,46 @@ CPhilipsMainHeader::~CPhilipsMainHeader()
 void CPhilipsMainHeader::clear()
 {
   ENTER();
+
   // clear our MainHeader structure first
   memset(&m_pData->header, 0, sizeof(struct CPhilipsMainHeaderPrivate::HeaderData));
+  memset(&m_pData->extHeader, 0, sizeof(struct CPhilipsMainHeaderPrivate::ExtHeaderData));
+
+  // lets set some empty header elements to the predefined magic number
+  m_pData->header.magic_number[0] = 0x01;
+  m_pData->header.magic_number[1] = 0x00;
+  m_pData->header.magic_number[2] = 0x00;
+  m_pData->header.magic_number[3] = 0x00;
+  m_pData->header.magic_number[4] = 0x00;
+  m_pData->header.magic_number[5] = 0x16;
+
+  m_pData->header.empty1[0] = 0x00;
+  m_pData->header.empty1[1] = 0x40;
+  m_pData->header.empty1[2] = 0x00;
+  m_pData->header.empty1[3] = 0x5B;
+
+  m_pData->header.empty3[0] = 0x00;
+  m_pData->header.empty3[1] = 0x07;
+  m_pData->header.empty3[2] = 0xFF;
+  m_pData->header.empty3[3] = 0xFF;
+  
+  m_pData->header.empty4[0] = 0x00;
+  m_pData->header.empty4[1] = 0x20;
+  m_pData->header.empty4[2] = 0xFF;
+  m_pData->header.empty4[3] = 0xFF;
+
+  m_pData->header.empty5[0] = 0x00;
+  m_pData->header.empty5[1] = 0x1B;
+  m_pData->header.empty5[2] = 0xFF;
+  m_pData->header.empty5[3] = 0xFF;
+
+  m_pData->header.empty6[0] = 0x00;
+  m_pData->header.empty6[1] = 0x21;
+  m_pData->header.empty6[2] = 0xFF;
+  m_pData->header.empty6[3] = 0xFF;
 
   // set some default values for the new Main Header
-  m_pData->header.file_fmt = CPhilipsMainHeaderPrivate::currentMainHeaderFormat;
+  m_pData->header.file_fmt = MAINHEADER_VERSION;
 
   LEAVE();
 }
@@ -295,151 +492,129 @@ bool CPhilipsMainHeader::load()
     return false;
   }
 
-  // we use a ByteArray buffer to speed up the endianess
-  // decoding
-  QByteArray buffer(rawDataSize(), 0);
-  if(m_pMedIOData->read(buffer.data(), buffer.size()) != rawDataSize())
+  // read in the main header in one read() operation
+  ASSERT(sizeof(m_pData->header) == MAINHEADER_SIZE);
+  if(m_pMedIOData->read((char*)&m_pData->header, sizeof(m_pData->header)) != MAINHEADER_SIZE)
   {
     RETURN(false);
     return false;
   }
 
-  // now we generate a QDataStream on our buffer so that we can read
-  // out of the buffer instead of the raw file (> speed)
-  QDataStream stream(buffer);
-
-  // we have to set the QDataStream version to the Qt4.5 version
-  // because with Qt4.6 the floating point precision changed and
-  // otherwise causes our streaming to fail
-  stream.setVersion(QDataStream::Qt_4_5);
-
-  // we now read out the header information stepwise
-  // because there are some gaps between the header entries
-  // we have to skip some bytes
-  stream.skipRawData(6);                      // 0: skip the first 6 bytes
-  stream >> m_pData->header.file_fmt;      // 6: file_fmt
-  stream >> m_pData->header.scan_geom; // 8: scan_geom
-  stream >> m_pData->header.hw_config;  // 10: hw_config
-  stream.skipRawData(4);                      // 12: skip the next 4 bytes
-  stream >> m_pData->header.edit_flag;        // 16: edit_flag
-  stream.skipRawData(34);                     // 18: skip the next 34 bytes
-  stream >> m_pData->header.filtyp;        // 52: filtyp
-  stream >> m_pData->header.minTransXtalDiff; // 54: minTransXtalDiff
-  stream >> m_pData->header.tofTstampScale;   // 58: tofTstampScale
-  stream.skipRawData(4);                     // 62: skip the next 4 bytes
-  stream >> m_pData->header.dep_daycre;      // 66: dep_daycre
-  stream >> m_pData->header.dep_mocre;    // 68: dep_mocre
-  stream >> m_pData->header.dep_yrcre;     // 70: dep_yrcre
-  stream >> m_pData->header.dep_hrcre;     // 72: dep_hrcre
-  stream >> m_pData->header.dep_mincre;   // 74: dep_mincre
-  stream >> m_pData->header.dep_seccre;   // 76: dep_seccre
-  stream >> m_pData->header.duratn;    // 78: duratn
-  stream >> m_pData->header.shdtyp;   // 80: shdtyp
-  stream >> m_pData->header.sngpscl; // 82: sngpscl
-  stream >> m_pData->header.singopt; // 84: singopt
-  stream >> m_pData->header.pscale; // 86: Singles_Prescale
-  stream >> m_pData->header.detectorRadius;  // 90: detectorRadius
-  stream >> m_pData->header.virtualXtal; // 94: virtualXtal
-  stream >> m_pData->header.phiMashing;      // 96: phiMashing
-  stream >> m_pData->header.polygonSides;    // 98: polygonSides
-  stream >> m_pData->header.xtalsPerSide; // 100: xtalsPerSide
-  stream >> m_pData->header.nXtalRows;      // 102: nXtalRows
-  stream >> m_pData->header.crystalThickness; // 104: crystalThickness
-  stream >> m_pData->header.xXtalPitch;    // 108: xXtalPitch
-  stream >> m_pData->header.zXtalPitch;    // 112: zXtalPitch
-  stream >> m_pData->header.axialFOV;         // 116: axialFOV
-  stream >> m_pData->header.rphiType;         // 120: rphiType
-  stream >> m_pData->header.sliceType;        // 122: sliceType
-  stream >> m_pData->header.delayType;        // 124: delayType
-  stream.skipRawData(4);                       // 126: skip the next 4 bytes
-  stream >> m_pData->header.pattyp;         // 130: pattyp
-  stream >> m_pData->header.scntyp;  // 132: scntyp
-  stream >> m_pData->header.numray;           // 134: numray
-  stream >> m_pData->header.numang;           // 136: numang
-  stream >> m_pData->header.slcthk;   // 138: slcthk
-  stream >> m_pData->header.isotop;            // 140: isotop
-  stream >> m_pData->header.slope;             // 142: slope
-  stream >> m_pData->header.intcpt; // 146: intcpt
-  stream >> m_pData->header.injtim;        // 150: injtim
-  stream >> m_pData->header.polygonVertAt0deg;  // 152: polygonVertAt0deg
-  stream >> m_pData->header.nslice;            // 156: nslice
-  stream >> m_pData->header.nframe;            // 158: nframe
-  stream >> m_pData->header.bthday;         // 160: bthday
-  stream >> m_pData->header.bthmo;       // 162: bthmo
-  stream >> m_pData->header.bthyr;        // 164: bthyr
-  stream.readRawData(&m_pData->header.ssn[0], 10); // 166: ssn
-  stream >> m_pData->header.ntilt;                         // 176: ntilt
-  stream >> m_pData->header.petnum; // 178: petnum
-  stream.skipRawData(4);      // 180: skip 4 bytes 0x00,0x21,0xff,0xff
-  stream >> m_pData->header.activity;      // 184: activity 
-  stream >> m_pData->header.weight;        // 188: weight
-  stream >> m_pData->header.hrinj;         // 192: hrinj
-  stream >> m_pData->header.mininj;        // 194: mininj
-  stream >> m_pData->header.srcRadius;     // 196: srcRadius
-  stream >> m_pData->header.srcZpos;       // 200: srcZpos
-  stream >> m_pData->header.halfLife;                     // 204: halfLife
-  stream >> m_pData->header.concfac;                      // 208: concfac
-  stream >> m_pData->header.concfac_bgsub;                // 212: concfac_bgsub
-  stream >> m_pData->header.dmax;                         // 216: dmax
-  stream >> m_pData->header.dline;                        // 220: dline
-  stream >> m_pData->header.angmax;                       // 224: angmax
-  stream >> m_pData->header.x0;                           // 228: x0
-  stream >> m_pData->header.y0;                           // 232: y0
-  stream >> m_pData->header.z0;                           // 236: z0
-  stream >> m_pData->header.nevent;                       // 240: nevent
-  stream >> m_pData->header.nsino;                        // 244: nsino
-  stream >> m_pData->header.eglob_low;                   // 248: eglob_low
-  stream >> m_pData->header.eglob_up;                    // 250: eglob_up
-  stream >> m_pData->header.eloc_low;                    // 252: eloc_low
-  stream >> m_pData->header.eloc_up;                     // 254: eloc_up
-  stream >> m_pData->header.orient_hf; // 256: orient_hf
-  stream.readRawData(&m_pData->header.scan_swrel[0], 6); // 258: scan_swrel
-  stream >> m_pData->header.petCt.separation;
-  stream >> m_pData->header.petCt.landmark;
-  stream >> m_pData->header.petCt.alignment.timestamp;
-  stream >> m_pData->header.tbl_direction; // 272: tbl_direction
-  stream >> m_pData->header.orient_ps;     // 274: orient_ps
-  stream >> m_pData->header.petCt.alignment.zOffset;
-  stream >> m_pData->header.petCt.alignment.xShift;
-  stream >> m_pData->header.petCt.alignment.yShift;
-  stream >> m_pData->header.petCt.alignment.zShift;
-  stream >> m_pData->header.petCt.alignment.acFlags;
-  stream >> m_pData->header.petCt.alignment.xOffset;
-  stream >> m_pData->header.petCt.alignment.yOffset;
-  stream >> m_pData->header.petCt.alignment.axialRotation;
-  stream >> m_pData->header.petCt.alignment.horizRotation;
-  stream >> m_pData->header.petCt.alignment.vertRotation;
-  stream >> m_pData->header.frontLeadDiameter; // 296: frontLeadDiameter
-  stream >> m_pData->header.backLeadDiameter;  // 300: backLeadDiameter
-  stream >> m_pData->header.leadSeparation;    // 304: leadSeparation
-  stream >> m_pData->header.ndelays;           // 308: ndelays
-  stream >> m_pData->header.slcsep;            // 312: slcsep
-  stream >> m_pData->header.petCt.valid;       // 316: petct_valid
-  stream.readRawData(&m_pData->header.fctrfil[0], 20); // 318: fctrfil
-  stream.readRawData(&m_pData->header.baselin[0], 20); // 338: baselin
-  stream.readRawData(&m_pData->header.dstpkfl[0], 20); // 358: dstpkfl
-  stream.readRawData(&m_pData->header.aqprotocol_name[0], 20); // 378: aqprotocol_name
-  stream >> m_pData->header.aqprotocol_type;                   // 398: aqprotocol_type
-  stream.readRawData(&m_pData->header.patient_name[0], 30); // 400: patient_name
-  stream >> m_pData->header.reslice_ang1;       // 430: reslice_ang1
-  stream >> m_pData->header.reslice_ang2;       // 434: reslice_ang2
-  stream >> m_pData->header.reslice_ang3;       // 438: reslice_ang3
-  stream >> m_pData->header.minslc;            // 442: minslc
-  stream >> m_pData->header.maxslc;            // 444: maxslc
-  stream >> m_pData->header.minfrm;            // 448: minfrm
-  stream >> m_pData->header.maxfrm;            // 450: maxfrm
-  stream >> m_pData->header.scanner_maxslice;  // 452: scanner_maxslice
-  stream.skipRawData(2);                       // 454: skip the next 2 bytes
-  stream >> m_pData->header.rebin_type; // 456: rebin_type
-  stream.readRawData(&m_pData->header.scnOrigin[0], 16); // 458: scnOrigin
-  stream.readRawData(&m_pData->header.accNum[0], 16); // 474: accNum
-  stream >> m_pData->header.movementCoinc;            // 490: movementCoinc
-  stream >> m_pData->header.movementSing;            // 492: movementSing
-  stream >> m_pData->header.crbTstampPeriod;            // 494: crbTstampPeriod
-  stream.skipRawData(10);                            // 496: skip the next 10 bytes
-  stream >> m_pData->header.trailexists;            // 506: trailexists
-  stream >> m_pData->header.trailbeg;               // 508: trailbeg
-
+  // now that we have streamed in all data in one run we
+  // have to take care of correct endianness in the non-char
+  // entries in the header structure in case this is a little endian
+  // machine
+  if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+  {
+    // we only swap non-char elements of the header
+    BSWAP_16(m_pData->header.file_fmt);
+    BSWAP_16(m_pData->header.scan_geom);           
+    BSWAP_16(m_pData->header.hw_config);           
+    BSWAP_16(m_pData->header.edit_flag);           
+    BSWAP_16(m_pData->header.filtyp);             
+    BSWAP_32(m_pData->header.minTransXtalDiff);  
+    BSWAP_FLT(m_pData->header.tofTstampScale);  
+    BSWAP_16(m_pData->header.dep_daycre);      
+    BSWAP_16(m_pData->header.dep_mocre);      
+    BSWAP_16(m_pData->header.dep_yrcre);     
+    BSWAP_16(m_pData->header.dep_hrcre);    
+    BSWAP_16(m_pData->header.dep_mincre);  
+    BSWAP_16(m_pData->header.dep_seccre);        
+    BSWAP_16(m_pData->header.duratn);            
+    BSWAP_16(m_pData->header.shdtyp); 
+    BSWAP_16(m_pData->header.sngpscl); 
+    BSWAP_16(m_pData->header.singopt);
+    BSWAP_FLT(m_pData->header.pscale);
+    BSWAP_FLT(m_pData->header.detectorRadius);
+    BSWAP_16(m_pData->header.virtualXtal);
+    BSWAP_16(m_pData->header.phiMashing);
+    BSWAP_16(m_pData->header.polygonSides);
+    BSWAP_16(m_pData->header.xtalsPerSide);
+    BSWAP_16(m_pData->header.nXtalRows);
+    BSWAP_FLT(m_pData->header.crystalThickness);
+    BSWAP_FLT(m_pData->header.xXtalPitch);
+    BSWAP_FLT(m_pData->header.zXtalPitch);
+    BSWAP_FLT(m_pData->header.axialFOV);
+    BSWAP_16(m_pData->header.rphiType);
+    BSWAP_16(m_pData->header.sliceType);
+    BSWAP_16(m_pData->header.delayType);
+    BSWAP_16(m_pData->header.pattyp);
+    BSWAP_16(m_pData->header.scntyp);
+    BSWAP_16(m_pData->header.numray);
+    BSWAP_16(m_pData->header.numang);
+    BSWAP_16(m_pData->header.slcthk);
+    BSWAP_16(m_pData->header.isotop);
+    BSWAP_FLT(m_pData->header.slope);
+    BSWAP_FLT(m_pData->header.intcpt);
+    BSWAP_16(m_pData->header.injtim);
+    BSWAP_FLT(m_pData->header.polygonVertAt0deg);
+    BSWAP_16(m_pData->header.nslice);
+    BSWAP_16(m_pData->header.nframe);
+    BSWAP_16(m_pData->header.bthday);
+    BSWAP_16(m_pData->header.bthmo);
+    BSWAP_16(m_pData->header.bthyr);
+    BSWAP_16(m_pData->header.ntilt);
+    BSWAP_16(m_pData->header.petnum);
+    BSWAP_FLT(m_pData->header.activity);
+    BSWAP_32(m_pData->header.weight);
+    BSWAP_16(m_pData->header.hrinj);
+    BSWAP_16(m_pData->header.mininj);
+    BSWAP_FLT(m_pData->header.srcRadius);
+    BSWAP_FLT(m_pData->header.srcZpos);
+    BSWAP_FLT(m_pData->header.halfLife);
+    BSWAP_FLT(m_pData->header.concfac);
+    BSWAP_FLT(m_pData->header.concfac_bgsub);
+    BSWAP_FLT(m_pData->header.dmax);
+    BSWAP_FLT(m_pData->header.dline);
+    BSWAP_FLT(m_pData->header.angmax);
+    BSWAP_FLT(m_pData->header.x0);
+    BSWAP_FLT(m_pData->header.y0);
+    BSWAP_FLT(m_pData->header.z0);
+    BSWAP_FLT(m_pData->header.nevent);
+    BSWAP_FLT(m_pData->header.nsino);
+    BSWAP_16(m_pData->header.eglob_low);
+    BSWAP_16(m_pData->header.eglob_up);
+    BSWAP_16(m_pData->header.eloc_low);
+    BSWAP_16(m_pData->header.eloc_up);
+    BSWAP_16(m_pData->header.orient_hf);
+    BSWAP_16(m_pData->header.petct_sepdist);
+    BSWAP_16(m_pData->header.petct_landmrk);
+    BSWAP_32(m_pData->header.petct_timestamp);
+    BSWAP_16(m_pData->header.tbl_direction);
+    BSWAP_16(m_pData->header.orient_ps);
+    BSWAP_16(m_pData->header.petct_zoffset);
+    BSWAP_16(m_pData->header.petct_xshift);
+    BSWAP_16(m_pData->header.petct_yshift);
+    BSWAP_16(m_pData->header.petct_zshift);
+    BSWAP_16(m_pData->header.petct_acqflgs);
+    BSWAP_16(m_pData->header.petct_xoffset);
+    BSWAP_16(m_pData->header.petct_yoffset);
+    BSWAP_16(m_pData->header.petct_axrot);
+    BSWAP_16(m_pData->header.petct_horzrot);
+    BSWAP_16(m_pData->header.petct_vertrot);
+    BSWAP_FLT(m_pData->header.frontLeadDiameter);
+    BSWAP_FLT(m_pData->header.backLeadDiameter);
+    BSWAP_FLT(m_pData->header.leadSeparation);
+    BSWAP_FLT(m_pData->header.ndelays);
+    BSWAP_FLT(m_pData->header.slcsep);
+    BSWAP_16(m_pData->header.petct_valid);
+    BSWAP_16(m_pData->header.aqprotocol_type);
+    BSWAP_FLT(m_pData->header.reslice_ang1);
+    BSWAP_FLT(m_pData->header.reslice_ang2);
+    BSWAP_FLT(m_pData->header.reslice_ang3);
+    BSWAP_16(m_pData->header.minslc);
+    BSWAP_16(m_pData->header.maxslc);
+    BSWAP_16(m_pData->header.minfrm);
+    BSWAP_16(m_pData->header.maxfrm);
+    BSWAP_16(m_pData->header.scanner_maxslice);
+    BSWAP_16(m_pData->header.rebin_type);
+    BSWAP_16(m_pData->header.movementCoinc);
+    BSWAP_16(m_pData->header.movementSing);
+    BSWAP_16(m_pData->header.crbTstampPeriod);
+    BSWAP_16(m_pData->header.trailexists);
+    BSWAP_32(m_pData->header.trailbeg);
+  }
+  
 #if defined(DEBUG)
   D("philips Main Header loaded:");
   D("--------------------------");
@@ -544,20 +719,20 @@ bool CPhilipsMainHeader::load()
   D("trailexists      : %d", m_pData->header.trailexists);
   D("trailbeg         : %ld", m_pData->header.trailbeg);
   D("--PETCT--");
-  D("petct_valid                  : %d", m_pData->header.petCt.valid);
-  D("petct_separation             : %d", m_pData->header.petCt.separation);
-  D("petct_landmark               : %d", m_pData->header.petCt.landmark);
-  D("petct_alignment_timestamp    : %d", m_pData->header.petCt.alignment.timestamp);
-  D("petct_alignment_zOffset      : %d", m_pData->header.petCt.alignment.zOffset);
-  D("petct_alignment_xShift       : %d", m_pData->header.petCt.alignment.xShift);
-  D("petct_alignment_yShift       : %d", m_pData->header.petCt.alignment.yShift);
-  D("petct_alignment_zShift       : %d", m_pData->header.petCt.alignment.zShift);
-  D("petct_alignment_acFlags      : %d", m_pData->header.petCt.alignment.acFlags);
-  D("petct_alignment_xOffset      : %d", m_pData->header.petCt.alignment.xOffset);
-  D("petct_alignment_yOffset      : %d", m_pData->header.petCt.alignment.yOffset);
-  D("petct_alignment_axialRotation: %d", m_pData->header.petCt.alignment.axialRotation);
-  D("petct_alignment_horizRotation: %d", m_pData->header.petCt.alignment.horizRotation);
-  D("petct_alignment_vertRotation : %d", m_pData->header.petCt.alignment.vertRotation);
+  D("petct_valid                  : %d", m_pData->header.petct_valid);
+  D("petct_separation             : %d", m_pData->header.petct_sepdist);
+  D("petct_landmark               : %d", m_pData->header.petct_landmrk);
+  D("petct_alignment_timestamp    : %d", m_pData->header.petct_timestamp);
+  D("petct_alignment_zOffset      : %d", m_pData->header.petct_zoffset);
+  D("petct_alignment_xShift       : %d", m_pData->header.petct_xshift);
+  D("petct_alignment_yShift       : %d", m_pData->header.petct_yshift);
+  D("petct_alignment_zShift       : %d", m_pData->header.petct_zshift);
+  D("petct_alignment_acFlags      : %d", m_pData->header.petct_acqflgs);
+  D("petct_alignment_xOffset      : %d", m_pData->header.petct_xoffset);
+  D("petct_alignment_yOffset      : %d", m_pData->header.petct_yoffset);
+  D("petct_alignment_axialRotation: %d", m_pData->header.petct_axrot);
+  D("petct_alignment_horizRotation: %d", m_pData->header.petct_horzrot);
+  D("petct_alignment_vertRotation : %d", m_pData->header.petct_vertrot);
 #endif
 
   RETURN(true);
@@ -567,6 +742,7 @@ bool CPhilipsMainHeader::load()
 bool CPhilipsMainHeader::save(void) const
 {
   ENTER();
+  bool result = false;
 
   SHOWPOINTER(m_pMedIOData);
 
@@ -579,228 +755,158 @@ bool CPhilipsMainHeader::save(void) const
     return false;
   }
 
+  SHOWVALUE(m_pMedIOData->pos());
+
+  ASSERT(sizeof(m_pData->header) == MAINHEADER_SIZE);
+
   // before we can start reading out some data we have to collect some
   // out data beforehand which we use instead of the data stored in our
   // data structure (such as frames/slices/tilts etc.)
   CPhilipsFile* philipsFile = static_cast<CPhilipsFile*>(m_pMedIOData);
-
-  short minFrame = philipsFile->minFrame();
-  short maxFrame = philipsFile->maxFrame();
-  short numFrames = philipsFile->numFrames();
-  short minSlice = philipsFile->minSlice();
-  short maxSlice = philipsFile->maxSlice();
-  short numSlices  = philipsFile->numSlices();
-  short numTilts = philipsFile->numTilts();
+  m_pData->header.minfrm = philipsFile->minFrame();
+  m_pData->header.maxfrm = philipsFile->maxFrame();
+  m_pData->header.nframe = philipsFile->numFrames();
+  m_pData->header.minslc = philipsFile->minSlice();
+  m_pData->header.maxslc = philipsFile->maxSlice();
+  m_pData->header.nslice = philipsFile->numSlices();
+  m_pData->header.ntilt = philipsFile->numTilts();
   
-  // we write to a buffer first and write out later directly to the file
-  QByteArray buffer(rawDataSize(), 0);
-  QDataStream stream(&buffer, QIODevice::WriteOnly);
-
-  // we have to set the QDataStream version to the Qt4.5 version
-  // because with Qt4.6 the floating point precision changed and
-  // otherwise causes our streaming to fail
-  stream.setVersion(QDataStream::Qt_4_5);
-
-  // we now read out the header information stepwise
-  // as we have to care about big/little endianess, which
-  // is automatically done by the QT framework
-
-  // to write out the fill bytes
-  // we need a buffer
-  char byte[50];
-
-  byte[0]= 0x01;
-  byte[1]= 0x00;
-  byte[2]= 0x00;
-  byte[3]= 0x00;
-  byte[4]= 0x00;
-  byte[5]= 0x16;
-  stream.writeRawData(byte, 6); // 0: write the "file header"
-
-
-  stream << m_pData->header.file_fmt;      // 6: file_fmt
-  stream << m_pData->header.scan_geom; // 8: scan_geom
-  stream << m_pData->header.hw_config;  // 10: hw_config
-
-  byte[0]= 0x00;
-  byte[1]= 0x40;
-  byte[2]= 0x00;
-  byte[3]= 0x5B;
-  stream.writeRawData(byte, 4); // 12: write the next 4 bytes
-
-  stream << m_pData->header.edit_flag;        // 16: edit_flag
-
-  memset(byte, 0, 30);
-  stream.writeRawData(byte, 30);                     // 18: write the next 34 bytes
-  byte[0]= 0x00;
-  byte[1]= 0x07;
-  byte[2]= 0xFF;
-  byte[3]= 0xFF;
-  stream.writeRawData(byte, 4);
-
-  stream << m_pData->header.filtyp;        // 52: filtyp
-  stream << m_pData->header.minTransXtalDiff; // 54: minTransXtalDiff
-  stream << m_pData->header.tofTstampScale;   // 58: tofTstampScale
-
-  byte[0]= 0x00;
-  byte[1]= 0x20;
-  byte[2]= 0xFF;
-  byte[3]= 0xFF;  
-  stream.writeRawData(byte, 4);
-
-  stream << m_pData->header.dep_daycre;      // 66: dep_daycre
-  stream << m_pData->header.dep_mocre;    // 68: dep_mocre
-  stream << m_pData->header.dep_yrcre;     // 70: dep_yrcre
-  stream << m_pData->header.dep_hrcre;     // 72: dep_hrcre
-  stream << m_pData->header.dep_mincre;   // 74: dep_mincre
-  stream << m_pData->header.dep_seccre;   // 76: dep_seccre
-  stream << m_pData->header.duratn;    // 78: duratn
-  stream << m_pData->header.shdtyp;   // 80: shdtyp
-  stream << m_pData->header.sngpscl; // 82: sngpscl
-  stream << m_pData->header.singopt; // 84: singopt
-  stream << m_pData->header.pscale; // 86: Singles_Prescale
-  stream << m_pData->header.detectorRadius;  // 90: detectorRadius
-  stream << m_pData->header.virtualXtal; // 94: virtualXtal
-  stream << m_pData->header.phiMashing;      // 96: phiMashing
-  stream << m_pData->header.polygonSides;    // 98: polygonSides
-  stream << m_pData->header.xtalsPerSide; // 100: xtalsPerSide
-  stream << m_pData->header.nXtalRows;      // 102: nXtalRows
-  stream << m_pData->header.crystalThickness; // 104: crystalThickness
-  stream << m_pData->header.xXtalPitch;    // 108: xXtalPitch
-  stream << m_pData->header.zXtalPitch;    // 112: zXtalPitch
-  stream << m_pData->header.axialFOV;         // 116: axialFOV
-  stream << m_pData->header.rphiType;         // 120: rphiType
-  stream << m_pData->header.sliceType;        // 122: sliceType
-  stream << m_pData->header.delayType;        // 124: delayType
-
-  byte[0]= 0x00;
-  byte[1]= 0x1B;
-  byte[2]= 0xFF;
-  byte[3]= 0xFF;  
-  stream.writeRawData(byte, 4);
-
-  stream << m_pData->header.pattyp;         // 130: pattyp
-  stream << m_pData->header.scntyp;  // 132: scntyp
-  stream << m_pData->header.numray;           // 134: numray
-  stream << m_pData->header.numang;           // 136: numang
-  stream << m_pData->header.slcthk;   // 138: slcthk
-  stream << m_pData->header.isotop;            // 140: isotop
-  stream << m_pData->header.slope;             // 142: slope
-  stream << m_pData->header.intcpt; // 146: intcpt
-  stream << m_pData->header.injtim;        // 150: injtim
-  stream << m_pData->header.polygonVertAt0deg;  // 152: polygonVertAt0deg
-  stream << numSlices;            // 156: nslice
-  stream << numFrames;            // 158: nframe
-  stream << m_pData->header.bthday;         // 160: bthday
-  stream << m_pData->header.bthmo;       // 162: bthmo
-  stream << m_pData->header.bthyr;        // 164: bthyr
-  stream.writeRawData(&m_pData->header.ssn[0], 10); // 166: ssn
-  stream << numTilts;                         // 176: ntilt
-  stream << m_pData->header.petnum; // 178: petnum
-
-  byte[0]= 0x00;
-  byte[1]= 0x21;
-  byte[2]= 0xFF;
-  byte[3]= 0xFF;  
-  stream.writeRawData(byte, 4);
-
-  stream << m_pData->header.activity;      // 184: activity 
-  stream << m_pData->header.weight;        // 188: weight
-  stream << m_pData->header.hrinj;         // 192: hrinj
-  stream << m_pData->header.mininj;        // 194: mininj
-  stream << m_pData->header.srcRadius;     // 196: srcRadius
-  stream << m_pData->header.srcZpos;       // 200: srcZpos
-  stream << m_pData->header.halfLife;                     // 204: halfLife
-  stream << m_pData->header.concfac;                      // 208: concfac
-  stream << m_pData->header.concfac_bgsub;                // 212: concfac_bgsub
-  stream << m_pData->header.dmax;                         // 216: dmax
-  stream << m_pData->header.dline;                        // 220: dline
-  stream << m_pData->header.angmax;                       // 224: angmax
-  stream << m_pData->header.x0;                           // 228: x0
-  stream << m_pData->header.y0;                           // 232: y0
-  stream << m_pData->header.z0;                           // 236: z0
-  stream << m_pData->header.nevent;                       // 240: nevent
-  stream << m_pData->header.nsino;                        // 244: nsino
-  stream << m_pData->header.eglob_low;                   // 248: eglob_low
-  stream << m_pData->header.eglob_up;                    // 250: eglob_up
-  stream << m_pData->header.eloc_low;                    // 252: eloc_low
-  stream << m_pData->header.eloc_up;                     // 254: eloc_up
-  stream << m_pData->header.orient_hf; // 256: orient_hf
-  stream.writeRawData(&m_pData->header.scan_swrel[0], 6); // 258: scan_swrel
-
-  stream << m_pData->header.petCt.separation;
-  stream << m_pData->header.petCt.landmark;
-  stream << m_pData->header.petCt.alignment.timestamp;
-
-  stream << m_pData->header.tbl_direction; // 272: tbl_direction
-  stream << m_pData->header.orient_ps;     // 274: orient_ps
-
-  stream << m_pData->header.petCt.alignment.zOffset;
-  stream << m_pData->header.petCt.alignment.xShift;
-  stream << m_pData->header.petCt.alignment.yShift;
-  stream << m_pData->header.petCt.alignment.zShift;
-  stream << m_pData->header.petCt.alignment.acFlags;
-  stream << m_pData->header.petCt.alignment.xOffset;
-  stream << m_pData->header.petCt.alignment.yOffset;
-  stream << m_pData->header.petCt.alignment.axialRotation;
-  stream << m_pData->header.petCt.alignment.horizRotation;
-  stream << m_pData->header.petCt.alignment.vertRotation;
-
-  stream << m_pData->header.frontLeadDiameter; // 296: frontLeadDiameter
-  stream << m_pData->header.backLeadDiameter;  // 300: backLeadDiameter
-  stream << m_pData->header.leadSeparation;    // 304: leadSeparation
-  stream << m_pData->header.ndelays;           // 308: ndelays
-  stream << m_pData->header.slcsep;            // 312: slcsep
-  stream << m_pData->header.petCt.valid;       // 316: petct_valid
-  stream.writeRawData(&m_pData->header.fctrfil[0], 20); // 318: fctrfil
-  stream.writeRawData(&m_pData->header.baselin[0], 20); // 338: baselin
-  stream.writeRawData(&m_pData->header.dstpkfl[0], 20); // 358: dstpkfl
-  stream.writeRawData(&m_pData->header.aqprotocol_name[0], 20); // 378: aqprotocol_name
-  stream << m_pData->header.aqprotocol_type;                   // 398: aqprotocol_type
-  stream.writeRawData(&m_pData->header.patient_name[0], 30); // 400: patient_name
-  stream << m_pData->header.reslice_ang1;       // 430: reslice_ang1
-  stream << m_pData->header.reslice_ang2;       // 434: reslice_ang2
-  stream << m_pData->header.reslice_ang3;       // 438: reslice_ang3
-  stream << minSlice;            // 442: minslc
-  stream << maxSlice;            // 444: maxslc
-  stream << minFrame;            // 448: minfrm
-  stream << maxFrame;            // 450: maxfrm
-  stream << m_pData->header.scanner_maxslice;  // 452: scanner_maxslice
-
-  memset(byte, 0, 2);
-  stream.writeRawData(byte, 2);                       // 454: write the next 2 bytes
-
-  stream << m_pData->header.rebin_type; // 456: rebin_type
-  stream.writeRawData(&m_pData->header.scnOrigin[0], 16); // 458: scnOrigin
-  stream.writeRawData(&m_pData->header.accNum[0], 16); // 474: accNum
-  stream << m_pData->header.movementCoinc;            // 490: movementCoinc
-  stream << m_pData->header.movementSing;            // 492: movementSing
-  stream << m_pData->header.crbTstampPeriod;            // 494: crbTstampPeriod
-
-  memset(byte, 0, 10);         // 496: write the next 10 bytes
-  stream.writeRawData(byte, 10); 
-
-  stream << m_pData->header.trailexists;            // 506: trailexists
-  stream << m_pData->header.trailbeg;               // 508: trailbeg
-
-  byte[0] = 0x00;
-  stream.writeRawData(byte, 1);
-
-  // now write out to our outStream
-  bool result = false;
-  if(m_pMedIOData->write(buffer) != -1)
+  // now that we have streamed in all data in one run we
+  // have to take care of correct endianness in the non-char
+  // entries in the header structure in case this is a little endian
+  // machine
+  if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
   {
-    philipsFile->mainHeaderWritten(*this);
-    result = true;
+    // if we need to byte swap we have to create a whole copy of m_pData->header
+    struct CPhilipsMainHeaderPrivate::HeaderData beHeader;
+
+    // copy the current m_pData->header to beHeader
+    memcpy(&beHeader, &m_pData->header, sizeof(m_pData->header));
+
+    // we only swap non-char elements of the header
+    BSWAP_16(beHeader.file_fmt);
+    BSWAP_16(beHeader.scan_geom);           
+    BSWAP_16(beHeader.hw_config);           
+    BSWAP_16(beHeader.edit_flag);           
+    BSWAP_16(beHeader.filtyp);             
+    BSWAP_32(beHeader.minTransXtalDiff);  
+    BSWAP_FLT(beHeader.tofTstampScale);  
+    BSWAP_16(beHeader.dep_daycre);      
+    BSWAP_16(beHeader.dep_mocre);      
+    BSWAP_16(beHeader.dep_yrcre);     
+    BSWAP_16(beHeader.dep_hrcre);    
+    BSWAP_16(beHeader.dep_mincre);  
+    BSWAP_16(beHeader.dep_seccre);        
+    BSWAP_16(beHeader.duratn);            
+    BSWAP_16(beHeader.shdtyp); 
+    BSWAP_16(beHeader.sngpscl); 
+    BSWAP_16(beHeader.singopt);
+    BSWAP_FLT(beHeader.pscale);
+    BSWAP_FLT(beHeader.detectorRadius);
+    BSWAP_16(beHeader.virtualXtal);
+    BSWAP_16(beHeader.phiMashing);
+    BSWAP_16(beHeader.polygonSides);
+    BSWAP_16(beHeader.xtalsPerSide);
+    BSWAP_16(beHeader.nXtalRows);
+    BSWAP_FLT(beHeader.crystalThickness);
+    BSWAP_FLT(beHeader.xXtalPitch);
+    BSWAP_FLT(beHeader.zXtalPitch);
+    BSWAP_FLT(beHeader.axialFOV);
+    BSWAP_16(beHeader.rphiType);
+    BSWAP_16(beHeader.sliceType);
+    BSWAP_16(beHeader.delayType);
+    BSWAP_16(beHeader.pattyp);
+    BSWAP_16(beHeader.scntyp);
+    BSWAP_16(beHeader.numray);
+    BSWAP_16(beHeader.numang);
+    BSWAP_16(beHeader.slcthk);
+    BSWAP_16(beHeader.isotop);
+    BSWAP_FLT(beHeader.slope);
+    BSWAP_FLT(beHeader.intcpt);
+    BSWAP_16(beHeader.injtim);
+    BSWAP_FLT(beHeader.polygonVertAt0deg);
+    BSWAP_16(beHeader.nslice);
+    BSWAP_16(beHeader.nframe);
+    BSWAP_16(beHeader.bthday);
+    BSWAP_16(beHeader.bthmo);
+    BSWAP_16(beHeader.bthyr);
+    BSWAP_16(beHeader.ntilt);
+    BSWAP_16(beHeader.petnum);
+    BSWAP_FLT(beHeader.activity);
+    BSWAP_32(beHeader.weight);
+    BSWAP_16(beHeader.hrinj);
+    BSWAP_16(beHeader.mininj);
+    BSWAP_FLT(beHeader.srcRadius);
+    BSWAP_FLT(beHeader.srcZpos);
+    BSWAP_FLT(beHeader.halfLife);
+    BSWAP_FLT(beHeader.concfac);
+    BSWAP_FLT(beHeader.concfac_bgsub);
+    BSWAP_FLT(beHeader.dmax);
+    BSWAP_FLT(beHeader.dline);
+    BSWAP_FLT(beHeader.angmax);
+    BSWAP_FLT(beHeader.x0);
+    BSWAP_FLT(beHeader.y0);
+    BSWAP_FLT(beHeader.z0);
+    BSWAP_FLT(beHeader.nevent);
+    BSWAP_FLT(beHeader.nsino);
+    BSWAP_16(beHeader.eglob_low);
+    BSWAP_16(beHeader.eglob_up);
+    BSWAP_16(beHeader.eloc_low);
+    BSWAP_16(beHeader.eloc_up);
+    BSWAP_16(beHeader.orient_hf);
+    BSWAP_16(beHeader.petct_sepdist);
+    BSWAP_16(beHeader.petct_landmrk);
+    BSWAP_32(beHeader.petct_timestamp);
+    BSWAP_16(beHeader.tbl_direction);
+    BSWAP_16(beHeader.orient_ps);
+    BSWAP_16(beHeader.petct_zoffset);
+    BSWAP_16(beHeader.petct_xshift);
+    BSWAP_16(beHeader.petct_yshift);
+    BSWAP_16(beHeader.petct_zshift);
+    BSWAP_16(beHeader.petct_acqflgs);
+    BSWAP_16(beHeader.petct_xoffset);
+    BSWAP_16(beHeader.petct_yoffset);
+    BSWAP_16(beHeader.petct_axrot);
+    BSWAP_16(beHeader.petct_horzrot);
+    BSWAP_16(beHeader.petct_vertrot);
+    BSWAP_FLT(beHeader.frontLeadDiameter);
+    BSWAP_FLT(beHeader.backLeadDiameter);
+    BSWAP_FLT(beHeader.leadSeparation);
+    BSWAP_FLT(beHeader.ndelays);
+    BSWAP_FLT(beHeader.slcsep);
+    BSWAP_16(beHeader.petct_valid);
+    BSWAP_16(beHeader.aqprotocol_type);
+    BSWAP_FLT(beHeader.reslice_ang1);
+    BSWAP_FLT(beHeader.reslice_ang2);
+    BSWAP_FLT(beHeader.reslice_ang3);
+    BSWAP_16(beHeader.minslc);
+    BSWAP_16(beHeader.maxslc);
+    BSWAP_16(beHeader.minfrm);
+    BSWAP_16(beHeader.maxfrm);
+    BSWAP_16(beHeader.scanner_maxslice);
+    BSWAP_16(beHeader.rebin_type);
+    BSWAP_16(beHeader.movementCoinc);
+    BSWAP_16(beHeader.movementSing);
+    BSWAP_16(beHeader.crbTstampPeriod);
+    BSWAP_16(beHeader.trailexists);
+    BSWAP_32(beHeader.trailbeg);
+
+    // now write out beHeader
+    if(m_pMedIOData->write((char *)&beHeader, sizeof(beHeader)) == sizeof(beHeader))
+      result = true;
   }
+  else
+  {
+    // now write out to our outStream
+    if(m_pMedIOData->write((char *)&m_pData->header, sizeof(m_pData->header)) == sizeof(m_pData->header))
+      result = true;
+  }
+
+  if(result == true)
+    philipsFile->mainHeaderWritten(*this);
 
   RETURN(result);
   return result;
-}
-
-int CPhilipsMainHeader::rawDataSize() const
-{
-  return PHILIPS_BLOCKSIZE;
 }
 
 CMedIOHeader::Format CPhilipsMainHeader::headerFormat() const
@@ -1361,72 +1467,72 @@ unsigned long CPhilipsMainHeader::trailbeg() const
 
 CPhilipsMainHeader::Valid_Header_Struct CPhilipsMainHeader::petct_Valid() const
 {
-  return static_cast<Valid_Header_Struct>(m_pData->header.petCt.valid);
+  return static_cast<Valid_Header_Struct>(m_pData->header.petct_valid);
 }
 
 short CPhilipsMainHeader::petct_separation() const
 {
-  return m_pData->header.petCt.separation;
+  return m_pData->header.petct_sepdist;
 }
 
 short CPhilipsMainHeader::petct_landmark() const
 {
-  return m_pData->header.petCt.landmark;
+  return m_pData->header.petct_landmrk;
 }
 
 time_t CPhilipsMainHeader::petct_alignment_timestamp() const
 {
-  return m_pData->header.petCt.alignment.timestamp;
+  return m_pData->header.petct_timestamp;
 }
 
 short CPhilipsMainHeader::petct_alignment_zOffset() const
 {
-  return m_pData->header.petCt.alignment.zOffset;
+  return m_pData->header.petct_zoffset;
 }
 
 short CPhilipsMainHeader::petct_alignment_xShift() const
 {
-  return m_pData->header.petCt.alignment.xShift;
+  return m_pData->header.petct_xshift;
 }
 
 short CPhilipsMainHeader::petct_alignment_yShift() const
 {
-  return m_pData->header.petCt.alignment.yShift;
+  return m_pData->header.petct_yshift;
 }
 
 short CPhilipsMainHeader::petct_alignment_zShift() const
 {
-  return m_pData->header.petCt.alignment.zShift;
+  return m_pData->header.petct_zshift;
 }
 
 short CPhilipsMainHeader::petct_alignment_acFlags() const
 {
-  return m_pData->header.petCt.alignment.acFlags;
+  return m_pData->header.petct_acqflgs;
 }
 
 short CPhilipsMainHeader::petct_alignment_xOffset() const
 {
-  return m_pData->header.petCt.alignment.xOffset;
+  return m_pData->header.petct_xoffset;
 }
 
 short CPhilipsMainHeader::petct_alignment_yOffset() const
 {
-  return m_pData->header.petCt.alignment.yOffset;
+  return m_pData->header.petct_yoffset;
 }
 
 short CPhilipsMainHeader::petct_alignment_axialRotation() const
 {
-  return m_pData->header.petCt.alignment.axialRotation;
+  return m_pData->header.petct_axrot;
 }
 
 short CPhilipsMainHeader::petct_alignment_horizRotation() const
 {
-  return m_pData->header.petCt.alignment.horizRotation;
+  return m_pData->header.petct_horzrot;
 }
 
 short CPhilipsMainHeader::petct_alignment_vertRotation() const
 {
-  return m_pData->header.petCt.alignment.vertRotation;
+  return m_pData->header.petct_vertrot;
 }
 
 void CPhilipsMainHeader::setFile_Fmt(const short format)
@@ -1895,72 +2001,72 @@ void CPhilipsMainHeader::setTrailbeg(const unsigned long trailbeg)
 
 void CPhilipsMainHeader::setPetct_Valid(const CPhilipsMainHeader::Valid_Header_Struct petct_valid)
 {
-  m_pData->header.petCt.valid = static_cast<qint16>(petct_valid);
+  m_pData->header.petct_valid = static_cast<qint16>(petct_valid);
 }
 
 void CPhilipsMainHeader::setPetct_separation(const short separation)
 {
-  m_pData->header.petCt.separation = separation;
+  m_pData->header.petct_sepdist = separation;
 }
 
 void CPhilipsMainHeader::setPetct_landmark(const short landmark)
 {
-  m_pData->header.petCt.landmark = landmark;
+  m_pData->header.petct_landmrk = landmark;
 }
 
 void CPhilipsMainHeader::setPetct_alignment_timestamp(const time_t timestamp)
 {
-  m_pData->header.petCt.alignment.timestamp = timestamp;
+  m_pData->header.petct_timestamp = timestamp;
 }
 
 void CPhilipsMainHeader::setPetct_alignment_zOffset(const short zOffset)
 {
-  m_pData->header.petCt.alignment.zOffset = zOffset;
+  m_pData->header.petct_zoffset = zOffset;
 }
 
 void CPhilipsMainHeader::setPetct_alignment_xShift(const short xShift)
 {
-  m_pData->header.petCt.alignment.xShift = xShift;
+  m_pData->header.petct_xshift = xShift;
 }
 
 void CPhilipsMainHeader::setPetct_alignment_yShift(const short yShift)
 {
-  m_pData->header.petCt.alignment.yShift = yShift;
+  m_pData->header.petct_yshift = yShift;
 }
 
 void CPhilipsMainHeader::setPetct_alignment_zShift(const short zShift)
 {
-  m_pData->header.petCt.alignment.zShift = zShift;
+  m_pData->header.petct_zshift = zShift;
 }
 
 void CPhilipsMainHeader::setPetct_alignment_acFlags(const short acFlags)
 {
-  m_pData->header.petCt.alignment.acFlags = acFlags;
+  m_pData->header.petct_acqflgs = acFlags;
 }
 
 void CPhilipsMainHeader::setPetct_alignment_xOffset(const short xOffset)
 {
-  m_pData->header.petCt.alignment.xOffset = xOffset;
+  m_pData->header.petct_xoffset = xOffset;
 }
 
 void CPhilipsMainHeader::setPetct_alignment_yOffset(const short yOffset)
 {
-  m_pData->header.petCt.alignment.yOffset = yOffset;
+  m_pData->header.petct_yoffset = yOffset;
 }
 
 void CPhilipsMainHeader::setPetct_alignment_axialRotation(const short axialRotation)
 {
-  m_pData->header.petCt.alignment.axialRotation = axialRotation;
+  m_pData->header.petct_axrot = axialRotation;
 }
 
 void CPhilipsMainHeader::setPetct_alignment_horizRotation(const short horizRotation)
 {
-  m_pData->header.petCt.alignment.horizRotation = horizRotation;
+  m_pData->header.petct_horzrot = horizRotation;
 }
 
 void CPhilipsMainHeader::setPetct_alignment_vertRotation(const short vertRotation)
 {
-  m_pData->header.petCt.alignment.vertRotation = vertRotation;
+  m_pData->header.petct_vertrot = vertRotation;
 }
 
 // special Qt-based methods
