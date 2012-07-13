@@ -1726,7 +1726,7 @@ void CPhilipsMainHeader::setBthyr(const short year)
 
 void CPhilipsMainHeader::setSsn(const char* id)
 {
-  strncpy(m_pData->header.ssn, id, 10);
+  strncpy(m_pData->header.ssn, id, sizeof(m_pData->header.ssn));
 }
 
 void CPhilipsMainHeader::setNtilt(const short num)
@@ -1851,7 +1851,7 @@ void CPhilipsMainHeader::setOrient_Hf(const CPhilipsMainHeader::Patient_Orientat
 
 void CPhilipsMainHeader::scan_Swrel(const char* str)
 {
-  strncpy(m_pData->header.scan_swrel, str, 6);
+  strncpy(m_pData->header.scan_swrel, str, sizeof(m_pData->header.scan_swrel));
 }
 
 void CPhilipsMainHeader::setTbl_Direction(const CPhilipsMainHeader::Table_Direction tbl_direction)
@@ -1891,22 +1891,22 @@ void CPhilipsMainHeader::setSlcsep(const float slcsep)
 
 void CPhilipsMainHeader::setFctrfil(const char* str)
 {
-  strncpy(m_pData->header.fctrfil, str, 20);
+  strncpy(m_pData->header.fctrfil, str, sizeof(m_pData->header.fctrfil));
 }
 
 void CPhilipsMainHeader::setBaselin(const char* str)
 {
-  strncpy(m_pData->header.baselin, str, 20);
+  strncpy(m_pData->header.baselin, str, sizeof(m_pData->header.baselin));
 }
 
 void CPhilipsMainHeader::setDstpkfl(const char* str)
 {
-  strncpy(m_pData->header.dstpkfl, str, 20);
+  strncpy(m_pData->header.dstpkfl, str, sizeof(m_pData->header.dstpkfl));
 }
 
 void CPhilipsMainHeader::setAqprotocol_Name(const char* str)
 {
-  strncpy(m_pData->header.aqprotocol_name, str, 20);
+  strncpy(m_pData->header.aqprotocol_name, str, sizeof(m_pData->header.aqprotocol_name));
 }
 
 void CPhilipsMainHeader::setAqprotocol_Type(const CPhilipsMainHeader::Acquisition_Protocol_Type aqprotocol_type)
@@ -1916,7 +1916,7 @@ void CPhilipsMainHeader::setAqprotocol_Type(const CPhilipsMainHeader::Acquisitio
 
 void CPhilipsMainHeader::setPatient_Name(const char* str)
 {
-  strncpy(m_pData->header.patient_name, str, 30);
+  strncpy(m_pData->header.patient_name, str, sizeof(m_pData->header.patient_name));
 }
 
 void CPhilipsMainHeader::setReslice_Ang1(const float reslice_ang1)
@@ -1966,12 +1966,12 @@ void CPhilipsMainHeader::setRebin_Type(const Rebin_Type rebin_type)
 
 void CPhilipsMainHeader::setScnOrigin(const char *str)
 {
-  strncpy(m_pData->header.scnOrigin, str, 16);
+  strncpy(m_pData->header.scnOrigin, str, sizeof(m_pData->header.scnOrigin));
 }
 
 void CPhilipsMainHeader::setAccNum(const char *str)
 {
-  strncpy(m_pData->header.accNum, str, 16);
+  strncpy(m_pData->header.accNum, str, sizeof(m_pData->header.accNum));
 }
 
 void CPhilipsMainHeader::setMovementCoinc(const short movementCoinc)
@@ -2269,4 +2269,634 @@ bool CPhilipsMainHeaderPrivate::ecat2philipsAcquisitionType(const CECAT7MainHead
 
   RETURN(result);
   return result;
+}
+
+const char* CPhilipsMainHeader::Dpat_name() const
+{
+  return m_pData->extHeader.Dpat_name;
+}
+
+const char* CPhilipsMainHeader::Dpat_id() const
+{
+  return m_pData->extHeader.Dpat_id;
+}
+
+const char* CPhilipsMainHeader::study_uid() const
+{
+  return m_pData->extHeader.study_uid;
+}
+
+const char* CPhilipsMainHeader::series_uid() const
+{
+  return m_pData->extHeader.series_uid;
+}
+
+const char* CPhilipsMainHeader::view_code() const
+{
+  return m_pData->extHeader.view_code;
+}
+
+const char* CPhilipsMainHeader::sortproto_name() const
+{
+  return m_pData->extHeader.sortproto_name;
+}
+
+CPhilipsMainHeader::Route_Type CPhilipsMainHeader::route() const
+{
+  return static_cast<Route_Type>(m_pData->extHeader.route);
+}
+
+CPhilipsMainHeader::Pharm_Type CPhilipsMainHeader::pharm() const
+{
+  return static_cast<Pharm_Type>(m_pData->extHeader.pharm);
+}
+
+int CPhilipsMainHeader::assay_date() const
+{
+  return m_pData->extHeader.assay_date;
+}
+
+long CPhilipsMainHeader::assay_time() const
+{
+  return m_pData->extHeader.assay_time;
+}
+
+const char* CPhilipsMainHeader::series_desc() const
+{
+  return m_pData->extHeader.series_desc;
+}
+
+short CPhilipsMainHeader::height() const
+{
+  return m_pData->extHeader.height;
+}
+
+short CPhilipsMainHeader::abundance() const
+{
+  return m_pData->extHeader.abundance;
+}
+
+short CPhilipsMainHeader::realignment_xOffset() const
+{
+  return m_pData->extHeader.realign_x;
+}
+
+short CPhilipsMainHeader::realignment_yOffset() const
+{
+  return m_pData->extHeader.realign_y;
+}
+
+short CPhilipsMainHeader::realignment_horizRotation() const
+{
+  return m_pData->extHeader.realign_hr;
+}
+
+time_t CPhilipsMainHeader::acq_date_time() const
+{
+  return m_pData->extHeader.acq_date_time;
+}
+
+time_t CPhilipsMainHeader::study_date_time() const
+{
+  return m_pData->extHeader.study_date_time;
+}
+
+time_t CPhilipsMainHeader::injection_date_time() const
+{
+  return m_pData->extHeader.injection_date_time;
+}
+
+time_t CPhilipsMainHeader::file_create_date_time() const
+{
+  return m_pData->extHeader.file_create_date_time;
+}
+
+CPhilipsMainHeader::Respiration_Trigger_Location CPhilipsMainHeader::resp_trig_loc() const
+{
+  return static_cast<Respiration_Trigger_Location>(m_pData->extHeader.resp_trig_loc);
+}
+
+CPhilipsMainHeader::Card_Arrhythmia_Rej_Tech CPhilipsMainHeader::card_arrhythmia_rej_tech() const
+{
+  return static_cast<Card_Arrhythmia_Rej_Tech>(m_pData->extHeader.card_arrhythmia_rej_tech);
+}
+
+float CPhilipsMainHeader::window_center() const
+{
+  return m_pData->extHeader.window_center;
+}
+
+float CPhilipsMainHeader::window_width() const
+{
+  return m_pData->extHeader.window_width;
+}
+
+short CPhilipsMainHeader::realignment_axialRotation() const
+{
+  return m_pData->extHeader.realign_zr;
+}
+
+short CPhilipsMainHeader::realignment_vertRotation() const
+{
+  return m_pData->extHeader.realign_vr;
+}
+
+short CPhilipsMainHeader::resp_trig_threshold() const
+{
+  return m_pData->extHeader.resp_trig_threshold;
+}
+
+short CPhilipsMainHeader::resp_phase_duration() const
+{
+  return m_pData->extHeader.resp_phase_duration;
+}
+
+short CPhilipsMainHeader::resp_phase_offset() const
+{
+  return m_pData->extHeader.resp_phase_offset;
+}
+
+short CPhilipsMainHeader::realignment_zOffset() const
+{
+  return m_pData->extHeader.realign_z;
+}
+
+CPhilipsMainHeader::Window_Units CPhilipsMainHeader::window_units() const
+{
+  return static_cast<Window_Units>(m_pData->extHeader.window_units);
+}
+
+const char* CPhilipsMainHeader::req_phys() const
+{
+  return m_pData->extHeader.req_phys;
+}
+
+CPhilipsMainHeader::Card_Ph_State CPhilipsMainHeader::card_phstate() const
+{
+  return static_cast<Card_Ph_State>(m_pData->extHeader.card_phstate);
+}
+
+const char* CPhilipsMainHeader::referring_physician() const
+{
+  return m_pData->extHeader.referring_physician;
+}
+
+const char* CPhilipsMainHeader::study_id() const
+{
+  return m_pData->extHeader.study_id;
+}
+
+float CPhilipsMainHeader::Dslice_thick() const
+{
+  return m_pData->extHeader.Dslice_thick;
+}
+
+char CPhilipsMainHeader::sex() const
+{
+  return m_pData->extHeader.sex;
+}
+
+float CPhilipsMainHeader::table_height() const
+{
+  return m_pData->extHeader.table_height;
+}
+
+bool CPhilipsMainHeader::card_bt_rej() const
+{
+  return (m_pData->extHeader.card_bt_rej == 1);
+}
+
+CPhilipsMainHeader::Card_Fr_Type CPhilipsMainHeader::card_fr_type() const
+{
+  return static_cast<Card_Fr_Type>(m_pData->extHeader.card_fr_type);
+}
+
+const char* CPhilipsMainHeader::Dmanufacture_model_name() const
+{
+  return m_pData->extHeader.Dmanufacture_model_name;
+}
+
+const char* CPhilipsMainHeader::Dimage_type() const
+{
+  return m_pData->extHeader.Dimage_type;
+}
+
+float CPhilipsMainHeader::min_bed_pos() const
+{
+  return m_pData->extHeader.min_bed_pos;
+}
+
+float CPhilipsMainHeader::max_bed_pos() const
+{
+  return m_pData->extHeader.max_bed_pos;
+}
+
+bool CPhilipsMainHeader::der_filled() const
+{
+  return (m_pData->extHeader.der_filled == 1);
+}
+
+long CPhilipsMainHeader::series_number() const
+{
+  return m_pData->extHeader.series_number;
+}
+
+CPhilipsMainHeader::Card_Slc_Dir CPhilipsMainHeader::card_slc_dir() const
+{
+  return static_cast<Card_Slc_Dir>(m_pData->extHeader.card_slc_dir);
+}
+
+int CPhilipsMainHeader::card_skip_msec() const
+{
+  return m_pData->extHeader.card_skip_msec;
+}
+
+int CPhilipsMainHeader::card_skip_counts() const
+{
+  return m_pData->extHeader.card_skip_counts;
+}
+
+int CPhilipsMainHeader::card_dur_msec() const
+{
+  return m_pData->extHeader.card_dur_msec;
+}
+
+int CPhilipsMainHeader::card_dur_counts() const
+{
+  return m_pData->extHeader.card_dur_counts;
+}
+
+int CPhilipsMainHeader::card_beats_tot() const
+{
+  return m_pData->extHeader.card_beats_tot;
+}
+
+int CPhilipsMainHeader::card_beats_acc() const
+{
+  return m_pData->extHeader.card_beats_acc;
+}
+
+short CPhilipsMainHeader::card_skip_beats() const
+{
+  return m_pData->extHeader.card_skip_beats;
+}
+
+short CPhilipsMainHeader::pvc_threshold() const
+{
+  return m_pData->extHeader.pvc_threshold;
+}
+
+const char* CPhilipsMainHeader::radiopharm_name() const
+{
+  return m_pData->extHeader.radiopharm_name;
+}
+
+const char* CPhilipsMainHeader::Dserial_number() const
+{
+  return m_pData->extHeader.Dserial_number;
+}
+
+const char* CPhilipsMainHeader::attncor_label() const
+{
+  return m_pData->extHeader.attncor_label;
+}
+
+const char* CPhilipsMainHeader::contr_bolus_agent()
+{
+  return m_pData->extHeader.contr_bolus_agent;
+}
+
+const char* CPhilipsMainHeader::sop_uid()
+{
+  return m_pData->extHeader.sop_uid;
+}
+
+const char* CPhilipsMainHeader::frame_ref_uid()
+{
+  return m_pData->extHeader.frame_ref_uid;
+}
+
+const char* CPhilipsMainHeader::pps_file()
+{
+  return m_pData->extHeader.pps_file;
+}
+
+const char* CPhilipsMainHeader::worklist_file()
+{
+  return m_pData->extHeader.worklist_file;
+}
+
+void CPhilipsMainHeader::setDpat_name(const char* str)
+{
+  strncpy(m_pData->extHeader.Dpat_name, str, sizeof(m_pData->extHeader.Dpat_name));
+}
+
+void CPhilipsMainHeader::setDpat_id(const char* str)
+{
+  strncpy(m_pData->extHeader.Dpat_id, str, sizeof(m_pData->extHeader.Dpat_id));
+}
+
+void CPhilipsMainHeader::setStudy_uid(const char* str)
+{
+  strncpy(m_pData->extHeader.study_uid, str, sizeof(m_pData->extHeader.study_uid));
+}
+
+void CPhilipsMainHeader::setSeries_uid(const char* str)
+{
+  strncpy(m_pData->extHeader.series_uid, str, sizeof(m_pData->extHeader.series_uid));
+}
+
+void CPhilipsMainHeader::setView_code(const char* str)
+{
+  strncpy(m_pData->extHeader.view_code, str, sizeof(m_pData->extHeader.view_code));
+}
+
+void CPhilipsMainHeader::setSortproto_name(const char* str)
+{
+  strncpy(m_pData->extHeader.sortproto_name, str, sizeof(m_pData->extHeader.sortproto_name));
+}
+
+void CPhilipsMainHeader::setRoute(const Route_Type route)
+{
+  m_pData->extHeader.route = static_cast<qint16>(route);
+}
+
+void CPhilipsMainHeader::setPharm(const Pharm_Type pharm)
+{
+  m_pData->extHeader.pharm = static_cast<qint16>(pharm);
+}
+
+void CPhilipsMainHeader::setAssay_date(const int assay_date)
+{
+  m_pData->extHeader.assay_date = assay_date;
+}
+
+void CPhilipsMainHeader::setAssay_time(const long assay_time)
+{
+  m_pData->extHeader.assay_time = assay_time;
+}
+
+void CPhilipsMainHeader::setSeries_desc(const char* str)
+{
+  strncpy(m_pData->extHeader.series_desc, str, sizeof(m_pData->extHeader.series_desc));
+}
+
+void CPhilipsMainHeader::setHeight(const short height)
+{
+  m_pData->extHeader.height = height;
+}
+
+void CPhilipsMainHeader::setAbundance(const short abundance)
+{
+  m_pData->extHeader.abundance = abundance;
+}
+
+void CPhilipsMainHeader::setRealignment_xOffset(const short xOffset)
+{
+  m_pData->extHeader.realign_x = xOffset;
+}
+
+void CPhilipsMainHeader::setRealignment_yOffset(const short yOffset)
+{
+  m_pData->extHeader.realign_y = yOffset;
+}
+
+void CPhilipsMainHeader::setRealignment_horizRotation(const short horizRotation)
+{
+  m_pData->extHeader.realign_hr = horizRotation;
+}
+
+void CPhilipsMainHeader::setAcq_date_time(const time_t date_time)
+{
+  m_pData->extHeader.acq_date_time = date_time;
+}
+
+void CPhilipsMainHeader::setStudy_date_time(const time_t date_time)
+{
+  m_pData->extHeader.study_date_time = date_time;
+}
+
+void CPhilipsMainHeader::setInjection_date_time(const time_t date_time)
+{
+  m_pData->extHeader.injection_date_time = date_time;
+}
+
+void CPhilipsMainHeader::setFile_create_date_time(const time_t date_time)
+{
+  m_pData->extHeader.file_create_date_time = date_time;
+}
+
+void CPhilipsMainHeader::setResp_trig_loc(const CPhilipsMainHeader::Respiration_Trigger_Location location)
+{
+   m_pData->extHeader.resp_trig_loc = location;
+}
+
+void CPhilipsMainHeader::setCard_arrhythmia_rej_tech(const CPhilipsMainHeader::Card_Arrhythmia_Rej_Tech rej_tech)
+{
+  m_pData->extHeader.card_arrhythmia_rej_tech = rej_tech;
+}
+
+void CPhilipsMainHeader::setWindow_center(const float window_center)
+{
+  m_pData->extHeader.window_center = window_center;
+}
+
+void CPhilipsMainHeader::setWindow_width(const float window_width)
+{
+  m_pData->extHeader.window_width = window_width;
+}
+
+void CPhilipsMainHeader::setRealignment_axialRotation(const short axialRotation)
+{
+  m_pData->extHeader.realign_zr = axialRotation;
+}
+
+void CPhilipsMainHeader::setRealignment_vertRotation(const short vertRotation)
+{
+  m_pData->extHeader.realign_vr = vertRotation;
+}
+
+void CPhilipsMainHeader::setResp_trig_threshold(const short resp_trig_threshold)
+{
+  m_pData->extHeader.resp_trig_threshold = resp_trig_threshold;
+}
+
+void CPhilipsMainHeader::setResp_phase_duration(const short resp_phase_duration)
+{
+  m_pData->extHeader.resp_phase_duration = resp_phase_duration;
+}
+
+void CPhilipsMainHeader::setResp_phase_offset(const short resp_phase_offset)
+{
+  m_pData->extHeader.resp_phase_offset = resp_phase_offset;
+}
+
+void CPhilipsMainHeader::setRealignment_zOffset(const short zOffset)
+{
+  m_pData->extHeader.realign_z = zOffset;
+}
+
+void CPhilipsMainHeader::setWindow_units(const CPhilipsMainHeader::Window_Units window_units)
+{
+  m_pData->extHeader.window_units = static_cast<qint16>(window_units);
+}
+
+void CPhilipsMainHeader::setReq_phys(const char* str)
+{
+  strncpy(m_pData->extHeader.req_phys, str, sizeof(m_pData->extHeader.req_phys));
+}
+
+void CPhilipsMainHeader::setCard_phstate(const CPhilipsMainHeader::Card_Ph_State state)
+{
+  m_pData->extHeader.card_phstate = static_cast<quint16>(state);
+}
+
+void CPhilipsMainHeader::setReferring_physician(const char* str)
+{
+  strncpy(m_pData->extHeader.referring_physician, str, sizeof(m_pData->extHeader.referring_physician));
+}
+
+void CPhilipsMainHeader::setStudy_id(const char* str)
+{
+  strncpy(m_pData->extHeader.study_id, str, sizeof(m_pData->extHeader.study_id));
+}
+
+void CPhilipsMainHeader::setDslice_thick(const float Dslice_thick)
+{
+  m_pData->extHeader.Dslice_thick = Dslice_thick;
+}
+
+void CPhilipsMainHeader::setSex(const char sex)
+{
+  m_pData->extHeader.sex = sex;
+}
+
+void CPhilipsMainHeader::setTable_height(const float table_height)
+{
+  m_pData->extHeader.table_height = table_height;
+}
+
+void CPhilipsMainHeader::setCard_bt_rej(const bool flag)
+{
+  m_pData->extHeader.card_bt_rej = (flag == true)? 1 : 0;
+}
+
+void CPhilipsMainHeader::setCard_fr_type(const CPhilipsMainHeader::Card_Fr_Type type)
+{
+  m_pData->extHeader.card_fr_type = static_cast<qint16>(type);
+}
+
+void CPhilipsMainHeader::setDmanufacture_model_name(const char* str)
+{
+  strncpy(m_pData->extHeader.Dmanufacture_model_name, str, sizeof(m_pData->extHeader.Dmanufacture_model_name));
+}
+
+void CPhilipsMainHeader::setDimage_type(const char* str)
+{
+  strncpy(m_pData->extHeader.Dimage_type, str, sizeof(m_pData->extHeader.Dimage_type));
+}
+
+void CPhilipsMainHeader::setMin_bed_pos(const float min)
+{
+  m_pData->extHeader.min_bed_pos = min;
+}
+
+void CPhilipsMainHeader::setMax_bed_pos(const float max)
+{
+  m_pData->extHeader.max_bed_pos = max;
+}
+
+void CPhilipsMainHeader::setDer_filled(const bool flag)
+{
+  m_pData->extHeader.der_filled = (flag == true)? 1 : 0;
+}
+
+void CPhilipsMainHeader::setSeries_number(const long number)
+{
+  m_pData->extHeader.series_number = number;
+}
+
+void CPhilipsMainHeader::setCard_slc_dir(const CPhilipsMainHeader::Card_Slc_Dir direction)
+{
+  m_pData->extHeader.card_slc_dir = static_cast<qint16>(direction);
+}
+
+void CPhilipsMainHeader::setCard_skip_msec(const int msec)
+{
+  m_pData->extHeader.card_skip_msec = msec;
+}
+
+void CPhilipsMainHeader::setCard_skip_counts(const int counts)
+{
+  m_pData->extHeader.card_skip_counts = counts;
+}
+
+void CPhilipsMainHeader::setCard_dur_msec(const int msec)
+{
+  m_pData->extHeader.card_dur_msec = msec;
+}
+
+void CPhilipsMainHeader::setCard_dur_counts(const int counts)
+{
+  m_pData->extHeader.card_dur_counts = counts;
+}
+
+void CPhilipsMainHeader::setCard_beats_tot(const int beats)
+{
+  m_pData->extHeader.card_beats_tot = beats;
+}
+
+void CPhilipsMainHeader::setCard_beats_acc(const int acc)
+{
+  m_pData->extHeader.card_beats_acc = acc;
+}
+
+void CPhilipsMainHeader::setCard_skip_beats(const short beats)
+{
+  m_pData->extHeader.card_skip_beats = beats;
+}
+
+void CPhilipsMainHeader::setPvc_threshold(const short threshold)
+{
+  m_pData->extHeader.pvc_threshold = threshold;
+}
+
+void CPhilipsMainHeader::setRadiopharm_name(const char* str)
+{
+  strncpy(m_pData->extHeader.radiopharm_name, str, sizeof(m_pData->extHeader.radiopharm_name));
+}
+
+void CPhilipsMainHeader::setDserial_number(const char* str)
+{
+  strncpy(m_pData->extHeader.Dserial_number, str, sizeof(m_pData->extHeader.Dserial_number));
+}
+
+void CPhilipsMainHeader::setAttncor_label(const char* str)
+{
+  strncpy(m_pData->extHeader.attncor_label, str, sizeof(m_pData->extHeader.attncor_label));
+}
+
+void CPhilipsMainHeader::setContr_bolus_agent(const char* str)
+{
+  strncpy(m_pData->extHeader.contr_bolus_agent, str, sizeof(m_pData->extHeader.contr_bolus_agent));
+}
+
+void CPhilipsMainHeader::setSop_uid(const char* str)
+{
+  strncpy(m_pData->extHeader.sop_uid, str, sizeof(m_pData->extHeader.sop_uid));
+}
+
+void CPhilipsMainHeader::setFrame_ref_uid(const char* str)
+{
+  strncpy(m_pData->extHeader.frame_ref_uid, str, sizeof(m_pData->extHeader.frame_ref_uid));
+}
+
+void CPhilipsMainHeader::setPps_file(const char* str)
+{
+  strncpy(m_pData->extHeader.pps_file, str, sizeof(m_pData->extHeader.pps_file));
+}
+
+void CPhilipsMainHeader::setWorklist_file(const char* str)
+{
+  strncpy(m_pData->extHeader.worklist_file, str, sizeof(m_pData->extHeader.worklist_file));
 }
