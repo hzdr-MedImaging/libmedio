@@ -79,7 +79,7 @@ class CMedIOData : public QFile
     //! @brief run time typeinformation  
     //! @return specific class type at runtime
     virtual int rtti() const = 0;
-    
+ 
     //! @brief for querying error status information
     //! @return integer value for the specific error reason
     int errorStatus(void) const;

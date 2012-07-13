@@ -33,11 +33,11 @@
 #include "CECAT7SubHeaderScan.h"
 #include "CECAT7SubHeaderScan3D.h"
 
+#include "ByteSwap.h"
+
 #include <QDataStream>
 
 #include <rtdebug.h>
-
-#include <byteswap.h>
 
 // we define the private inline class of that one so that we
 // are able to hide the private methods & data of that class in the
@@ -372,6 +372,10 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
   ENTER();
   bool result = true;
     
+  // clear the ptrs first
+  matrixData = NULL;
+  matrixSize = 0;
+
   // check if the file associated with this item is readable or
   // not
   if(m_pData->file && m_pData->file->isReadable() == false)
@@ -399,6 +403,8 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
     // Matrix_SubHeader_StartPosition+1
     if(m_pData->file->seek(m_pData->dataBlock_Start+subHeader->rawDataSize()) == false)
     {
+      delete subHeader;
+
       RETURN(false);
       return false;
     }
@@ -484,26 +490,12 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
         {
           // 32bit data
           case sizeof(quint32):
-          {
-            quint32 *data = (quint32 *)matrixData;
-            for(unsigned int i=0; i < matrixSize; i+=dataTypeSize)
-            {
-              *data = bswap_32(*data);
-              data++;
-            }
-          }
+            bswap_matrix<quint32>(reinterpret_cast<const quint32*>(matrixData), matrixSize, reinterpret_cast<quint32*>(matrixData));
           break;
 
           // 16bit data
           case sizeof(quint16):
-          {
-            quint16 *data = (quint16 *)matrixData;
-            for(unsigned int i=0; i < matrixSize; i+=dataTypeSize)
-            {
-              *data = bswap_16(*data);
-              data++;
-            }
-          }
+            bswap_matrix<quint16>(reinterpret_cast<const quint16*>(matrixData), matrixSize, reinterpret_cast<quint16*>(matrixData));
           break;
 
           default:
@@ -519,6 +511,13 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
  
     // now we delete the subHeader we loaded temporarly
     delete subHeader;
+
+    if(result == false)
+    {
+      delete matrixData;
+      matrixData = NULL;
+      matrixSize = 0;
+    }
   }
   else
     result = false;
@@ -913,43 +912,23 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
     break;
   }
 
-  // lets perform the byte swapping if required
+  // lets perform our highly optimized byte swapping
   if(byteSwapping == true)
   {
     STARTCLOCK("byteswap");
+    char *swappedMatrixData = NULL;
 
-    // create a temporarly array with equal size like our
-    // source data
-    char* swappedMatrixData = new char[matrixSize];
-    
+    // lets byteswap
     switch(dataTypeSize)
     {
       // 32bit data
       case sizeof(quint32):
-      {
-        quint32 *srcData = (quint32 *)matrixData;
-        quint32 *dstData = (quint32 *)swappedMatrixData;
-        for(unsigned int i=0; i < matrixSize; i+=dataTypeSize)
-        {
-          *dstData = bswap_32(*srcData);
-          dstData++;
-          srcData++;
-        }
-      }
+        swappedMatrixData = reinterpret_cast<char*>(bswap_matrix<quint32>(reinterpret_cast<const quint32*>(matrixData), matrixSize));
       break;
 
       // 16bit data
       case sizeof(quint16):
-      {
-        quint16 *srcData = (quint16 *)matrixData;
-        quint16 *dstData = (quint16 *)swappedMatrixData;
-        for(unsigned int i=0; i < matrixSize; i+=dataTypeSize)
-        {
-          *dstData = bswap_16(*srcData);
-          dstData++;
-          srcData++;
-        }
-      }
+        swappedMatrixData = reinterpret_cast<char*>(bswap_matrix<quint16>(reinterpret_cast<const quint16*>(matrixData), matrixSize));
       break;
 
       default:
@@ -958,7 +937,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
     }
 
     // now write out the data in one run
-    if(m_pData->file->write(swappedMatrixData, matrixSize) == (qint64)matrixSize)
+    if(m_pData->file->write(swappedMatrixData, matrixSize) == static_cast<qint64>(matrixSize))
       result = true;
 
     // free the data afterwards
@@ -968,7 +947,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
   }
   else
   {
-    if(m_pData->file->write(matrixData, matrixSize) == (qint64)matrixSize)
+    if(m_pData->file->write(matrixData, matrixSize) == static_cast<qint64>(matrixSize))
       result = true;
   }
 

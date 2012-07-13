@@ -72,7 +72,7 @@ class CConcordeFile : public CMedIOData
     CConcordeFile& operator=(const CConcordeFile& src);
     
     // static methods for the MedIOData interface
-    static bool isOfType(const QString& fileName);
+    static FileType isOfType(const QString& fileName);
     static CMedIOData* createFromFile(const QString& fileName);
 
     //! @brief loads a given file 

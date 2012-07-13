@@ -36,7 +36,7 @@
 #include <rtdebug.h>
 #include <iostream>
 
-#include <byteswap.h>
+#include "ByteSwap.h"
 
 // we define the private inline class of that one so that we
 // are able to hide the private methods & data of that class in the
@@ -353,6 +353,10 @@ bool CPhilipsDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSi
   ENTER();
   bool result = true;
 
+  // clear the ptrs first
+  matrixData = NULL;
+  matrixSize = 0;
+
   // check if the file associated with this item is readable or
   // not
   if(m_pData->file && (m_pData->file->isReadable() == false))
@@ -379,6 +383,8 @@ bool CPhilipsDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSi
     // This data is stored directly after the subheader
     if(m_pData->file->seek(m_pData->dataBlock_Start + subHeader->rawDataSize()) == false)
     {
+      delete subHeader;
+
       RETURN(false);
       return false;
     }
@@ -467,26 +473,12 @@ bool CPhilipsDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSi
         {
           // 32bit data
           case sizeof(quint32):
-          {
-            quint32 *data = (quint32 *)matrixData;
-            for(unsigned int i=0; i < matrixSize; i+=dataTypeSize)
-            {
-              *data = bswap_32(*data);
-              data++;
-            }
-          }
+            bswap_matrix<quint32>(reinterpret_cast<const quint32*>(matrixData), matrixSize, reinterpret_cast<quint32*>(matrixData));
           break;
 
           // 16bit data
           case sizeof(quint16):
-          {
-            quint16 *data = (quint16 *)matrixData;
-            for(unsigned int i=0; i < matrixSize; i+=dataTypeSize)
-            {
-              *data = bswap_16(*data);
-              data++;
-            }
-          }
+            bswap_matrix<quint16>(reinterpret_cast<const quint16*>(matrixData), matrixSize, reinterpret_cast<quint16*>(matrixData));
           break;
 
           default:
@@ -502,6 +494,13 @@ bool CPhilipsDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSi
 
     // now we delete the subHeader we loaded temporarly
     delete subHeader;
+
+    if(result == false)
+    {
+      delete matrixData;
+      matrixData = NULL;
+      matrixSize = 0;
+    }
   }
   else
     result = false;
@@ -773,6 +772,10 @@ bool CPhilipsDirectoryItem::writeMatrix(const char* matrixData, unsigned int mat
       case CPhilipsSubHeader::Listmode:  
         subHeader = new CPhilipsSubHeaderListmode(m_pData->file, this);
       break;
+
+      case CPhilipsSubHeader::Unknown:
+        // do nothing
+      break;
     }
   }
 
@@ -871,33 +874,18 @@ bool CPhilipsDirectoryItem::writeMatrix(const char* matrixData, unsigned int mat
 
     // before performing the byteswapping we create a copy of the
     // matrix data
-    char* swappedMatrixData = new char[matrixSize];
-    memcpy(swappedMatrixData, matrixData, matrixSize);
+    char* swappedMatrixData = NULL;
 
     switch(dataTypeSize)
     {
       // 32bit data
       case sizeof(quint32):
-      {
-        quint32 *data = (quint32 *)swappedMatrixData;
-        for(unsigned int i=0; i < matrixSize; i+=dataTypeSize)
-        {
-          *data = bswap_32(*data);
-          data++;
-        }
-      }
+        swappedMatrixData = reinterpret_cast<char*>(bswap_matrix<quint32>(reinterpret_cast<const quint32*>(matrixData), matrixSize));
       break;
 
       // 16bit data
       case sizeof(quint16):
-      {
-        quint16 *data = (quint16 *)swappedMatrixData;
-        for(unsigned int i=0; i < matrixSize; i+=dataTypeSize)
-        {
-          *data = bswap_16(*data);
-          data++;
-        }
-      }
+        swappedMatrixData = reinterpret_cast<char*>(bswap_matrix<quint16>(reinterpret_cast<const quint16*>(matrixData), matrixSize));
       break;
 
       default:
@@ -938,6 +926,9 @@ bool CPhilipsDirectoryItem::writeMatrix(const char* matrixData, unsigned int mat
     result = true;
   else
     E("Error while trying to write compressedData to file");
+
+  if(byteSwapping == true)
+    delete[] matrixData;
 
   if(result)
   {
