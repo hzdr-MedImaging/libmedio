@@ -31,12 +31,10 @@
 #ifndef __MEDIO_PRIVATE__
 #include <CMedIOData>
 #include <CPhilipsMainHeader>
-#include <CPhilipsExtendedMainHeader>
 #include <CPhilipsSubHeader>
 #else
 #include <CMedIOData.h>
 #include <CPhilipsMainHeader.h>
-#include <CPhilipsExtendedMainHeader.h>
 #include <CPhilipsSubHeader.h>
 #endif
 
@@ -78,7 +76,6 @@ class CPhilipsFile : public CMedIOData
 
     // interface methods to read out specific data from the philips files
     bool readMainHeader(CPhilipsMainHeader*& mainHeader);
-    bool readExtendedMainHeader(CPhilipsExtendedMainHeader*& extendedMainHeader);
     bool readSubHeader(CPhilipsSubHeader*& subHeader, short slice, short frame=1, short tilt=0);
 
     bool readFrame(char*& matrixData, unsigned int& len, short frame);
@@ -94,7 +91,6 @@ class CPhilipsFile : public CMedIOData
 
     // methods to write out headers/data to the file.
     bool writeMainHeader(CPhilipsMainHeader& mainHeader);
-    bool writeExtendedMainHeader(CPhilipsExtendedMainHeader& extendedMainHeader);
     bool writeSubHeader(const CPhilipsSubHeader& subHeader,
                         short slice, short frame = 1, short tilt = 0);
     bool writeMatrix(const QByteArray& matrixData,
@@ -115,7 +111,6 @@ class CPhilipsFile : public CMedIOData
 
     // methods to generate some objects just for convienence
     CPhilipsMainHeader* createEmptyMainHeader();
-    CPhilipsExtendedMainHeader* createEmptyExtendedMainHeader();
     CPhilipsSubHeader* createEmptySubHeader();
 
     // internal methods to sync specific data with our headers

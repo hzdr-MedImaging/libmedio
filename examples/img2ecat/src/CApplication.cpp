@@ -8,7 +8,6 @@
 #include <CECAT7SubHeaderImage>
 #include <CPhilipsFile>
 #include <CPhilipsMainHeader>
-#include <CPhilipsExtendedMainHeader>
 #include <CPhilipsSubHeaderImage>
 #include <CMedIO>
 
@@ -303,7 +302,6 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
   CECAT7MainHeader* pEcat7ImageHeader = NULL;
   CPhilipsFile* pPhilipsFile = NULL;
   CPhilipsMainHeader* pPhilipsMainHeader = NULL;
-  CPhilipsExtendedMainHeader* pPhilipsExtendedMainHeader = NULL;
 
   // check if we can create the output file
   if(checkOutputFile(inputFile) == false)
@@ -348,15 +346,6 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
 
   if(result)
   {
-    // read the extended main header
-    if(pPhilipsFile->readExtendedMainHeader(pPhilipsExtendedMainHeader) == false)
-    {
-      cout << "No extended main header found." << endl;
-    }
-  }
-
-  if(result)
-  {
     D("Creating empty ecat image: '%s'", m_sOutputFileName.toAscii().data());
     pEcat7Image = new CECATFile(m_sOutputFileName, CECATMainHeader::ECAT7_Volume16);
     if(pEcat7Image->open(QIODevice::WriteOnly) == false)
@@ -375,7 +364,7 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
 
     if(pEcat7ImageHeader != NULL)
     {
-      pEcat7ImageHeader->convertFrom(pPhilipsMainHeader, pPhilipsExtendedMainHeader);
+      pEcat7ImageHeader->convertFrom(pPhilipsMainHeader);
 
       int numFrames = pPhilipsFile->numFrames();
       if(numFrames > NUMFRAMESLIMIT)
@@ -532,15 +521,8 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
     }
   }
 
-  if(pEcat7Image != NULL)
-    delete pEcat7Image;
-
-  if(pPhilipsMainHeader != NULL)
-    delete pPhilipsMainHeader;
-
-  if(pPhilipsExtendedMainHeader != NULL)
-    delete pPhilipsExtendedMainHeader;
-
+  delete pEcat7Image;
+  delete pPhilipsMainHeader;
   if(pPhilipsFile != NULL)
   {
     pPhilipsFile->close();
@@ -561,7 +543,6 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
   CECAT7MainHeader* pEcat7ImageHeader = NULL;
   CPhilipsFile* pPhilipsFile = NULL;
   CPhilipsMainHeader* pPhilipsMainHeader = NULL;
-  CPhilipsExtendedMainHeader* pPhilipsExtendedMainHeader = NULL;
 
   // check if we can create the output file
   if(checkOutputFile(inputFile) == false)
@@ -622,9 +603,7 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
     cout << "OutputFile: " << QFileInfo(m_sOutputFileName).absoluteFilePath().toAscii().constData() << endl;
 
     pPhilipsMainHeader = pPhilipsFile->createEmptyMainHeader();
-    pPhilipsExtendedMainHeader = pPhilipsFile->createEmptyExtendedMainHeader();
-
-    if(pPhilipsMainHeader != NULL && pPhilipsExtendedMainHeader != NULL)
+    if(pPhilipsMainHeader != NULL)
     {
       pPhilipsMainHeader->convertFrom(pEcat7ImageHeader);
 
@@ -776,13 +755,11 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
         cout << "Writing main header and finalizing file" << endl;
 
         pPhilipsFile->writeMainHeader(*pPhilipsMainHeader);
-        pPhilipsFile->writeExtendedMainHeader(*pPhilipsExtendedMainHeader);
         result = true;
       }
 
       pPhilipsFile->close();
       delete pPhilipsMainHeader;
-      delete pPhilipsExtendedMainHeader;
     }
   }
 

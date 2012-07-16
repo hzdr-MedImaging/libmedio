@@ -76,7 +76,6 @@ PUB_HEADER =  CMedIO.h \
               micropet/CConcordeImage.h \
               philips/CPhilipsFile.h \
               philips/CPhilipsMainHeader.h \
-              philips/CPhilipsExtendedMainHeader.h \
               philips/CPhilipsDirectory.h \
               philips/CPhilipsDirectoryItem.h \
               philips/CPhilipsSubHeader.h \
@@ -125,7 +124,6 @@ SOURCES  = CMedIO.cpp \
            micropet/CConcordeImage.cpp \
            philips/CPhilipsFile.cpp \
            philips/CPhilipsMainHeader.cpp \
-           philips/CPhilipsExtendedMainHeader.cpp \
            philips/CPhilipsDirectory.cpp \
            philips/CPhilipsDirectoryItem.cpp \
            philips/CPhilipsSubHeader.cpp \

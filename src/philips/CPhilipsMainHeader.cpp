@@ -27,6 +27,7 @@
 
 #include "CPhilipsMainHeader.h"
 #include "CPhilipsFile.h"
+#include "CPhilipsDirectory.h"
 #include "CPhilipsDirectoryItem.h"
 #include "CMedIOHeader.h"
 #include "CMedIOData.h"
@@ -500,6 +501,44 @@ bool CPhilipsMainHeader::load()
     return false;
   }
 
+  // now we also load the extended main header. However, we first have to query
+  // for the directory item of the extended header so that we can set the file
+  // to the right position.
+  ASSERT(sizeof(m_pData->extHeader) == EXTHEADER_SIZE);
+  CPhilipsFile* philipsFile = static_cast<CPhilipsFile*>(m_pMedIOData);
+  CPhilipsDirectory* philipsDirectory = philipsFile->directory();
+  bool extendedHeaderFound = false;
+  if(philipsDirectory != NULL)
+  {
+    if(philipsDirectory->isEmpty())
+      philipsDirectory->load();
+
+    if(philipsDirectory->isEmpty() == false)
+    {
+      CPhilipsDirectoryItem* extHeaderItem = philipsDirectory->extendedMainHeaderItem();
+      if(extHeaderItem != NULL)
+      {
+        // now we have the extendedheader diritem. so lets get the header out of it
+        if(m_pMedIOData->seek(extHeaderItem->dataBlock_Start()) == false ||
+           m_pMedIOData->read((char*)&m_pData->extHeader, sizeof(m_pData->extHeader)) != EXTHEADER_SIZE)
+        {
+          E("Error while trying to seek&load extended main header data");
+
+          RETURN(false);
+          return false;
+        }
+
+        extendedHeaderFound = true;
+      }
+      else
+        W("no extended header found in philips file");
+    }
+    else
+      W("empty directory found");
+  }
+  else 
+    W("directory == NULL");
+
   // now that we have streamed in all data in one run we
   // have to take care of correct endianness in the non-char
   // entries in the header structure in case this is a little endian
@@ -613,6 +652,113 @@ bool CPhilipsMainHeader::load()
     BSWAP_16(m_pData->header.crbTstampPeriod);
     BSWAP_16(m_pData->header.trailexists);
     BSWAP_32(m_pData->header.trailbeg);
+
+    // now swap also the extended header stuff.
+    if(extendedHeaderFound == true)
+    {
+      BSWAP_16(m_pData->extHeader.route);
+      BSWAP_16(m_pData->extHeader.pharm);
+      BSWAP_16(m_pData->extHeader.card_phstate);
+      BSWAP_32(m_pData->extHeader.assay_date);
+      BSWAP_32(m_pData->extHeader.assay_time);
+      BSWAP_16(m_pData->extHeader.height);   
+      BSWAP_16(m_pData->extHeader.abundance);
+      BSWAP_16(m_pData->extHeader.realign_x);
+      BSWAP_16(m_pData->extHeader.realign_y);
+      BSWAP_16(m_pData->extHeader.realign_hr);
+      BSWAP_32(m_pData->extHeader.acq_date_time);
+      BSWAP_32(m_pData->extHeader.study_date_time);
+      BSWAP_32(m_pData->extHeader.injection_date_time);
+      BSWAP_32(m_pData->extHeader.file_create_date_time);
+      BSWAP_16(m_pData->extHeader.resp_trig_loc);
+      BSWAP_16(m_pData->extHeader.card_arrhythmia_rej_tech);
+      BSWAP_FLT(m_pData->extHeader.window_center);
+      BSWAP_FLT(m_pData->extHeader.window_width);
+      BSWAP_16(m_pData->extHeader.realign_zr);
+      BSWAP_16(m_pData->extHeader.realign_vr);
+      BSWAP_16(m_pData->extHeader.resp_trig_threshold);
+      BSWAP_16(m_pData->extHeader.resp_phase_duration);
+      BSWAP_16(m_pData->extHeader.resp_phase_offset);
+      BSWAP_16(m_pData->extHeader.realign_z);
+      BSWAP_16(m_pData->extHeader.window_units);
+      BSWAP_FLT(m_pData->extHeader.Dslice_thick);
+      BSWAP_FLT(m_pData->extHeader.table_height);
+      BSWAP_16(m_pData->extHeader.card_bt_rej);
+      BSWAP_16(m_pData->extHeader.card_fr_type);
+      BSWAP_FLT(m_pData->extHeader.min_bed_pos);
+      BSWAP_FLT(m_pData->extHeader.max_bed_pos);
+      BSWAP_16(m_pData->extHeader.der_filled);
+      BSWAP_32(m_pData->extHeader.series_number);
+      BSWAP_32(m_pData->extHeader.dep_study_date);
+      BSWAP_32(m_pData->extHeader.dep_study_time);
+      BSWAP_32(m_pData->extHeader.dep_acq_time);
+      BSWAP_16(m_pData->extHeader.card_slc_dir);
+      BSWAP_32(m_pData->extHeader.card_skip_msec);
+      BSWAP_32(m_pData->extHeader.card_skip_counts);
+      BSWAP_32(m_pData->extHeader.card_dur_msec);
+      BSWAP_32(m_pData->extHeader.card_dur_counts);
+      BSWAP_32(m_pData->extHeader.card_beats_tot);
+      BSWAP_32(m_pData->extHeader.card_beats_acc);
+      BSWAP_16(m_pData->extHeader.card_skip_beats);
+      BSWAP_16(m_pData->extHeader.pvc_threshold);
+      BSWAP_32(m_pData->extHeader.dep_acq_date);
+      BSWAP_16(m_pData->extHeader.slc_add);
+      BSWAP_16(m_pData->extHeader.slc_space);
+      BSWAP_16(m_pData->extHeader.slc_thick);
+      BSWAP_16(m_pData->extHeader.frame_add);
+      BSWAP_16(m_pData->extHeader.frame_space);
+      BSWAP_16(m_pData->extHeader.frame_thick);
+      BSWAP_16(m_pData->extHeader.fltr_type);
+      BSWAP_16(m_pData->extHeader.smoth);
+      BSWAP_16(m_pData->extHeader.scatcorr_type);
+      BSWAP_16(m_pData->extHeader.edge_exp);
+      BSWAP_16(m_pData->extHeader.bckang_avg);
+      BSWAP_FLT(m_pData->extHeader.bck_coeff);
+      BSWAP_16(m_pData->extHeader.bck_wid);
+      BSWAP_16(m_pData->extHeader.attncor_type);
+      BSWAP_16(m_pData->extHeader.attncor_ecc);
+      BSWAP_FLT(m_pData->extHeader.attn_coeff);
+      BSWAP_FLT(m_pData->extHeader.skull_comp);
+      BSWAP_16(m_pData->extHeader.norm_type);
+      BSWAP_16(m_pData->extHeader.smp_norm);
+      BSWAP_16(m_pData->extHeader.gap_comp);
+      BSWAP_16(m_pData->extHeader.algtype_em);
+      BSWAP_16(m_pData->extHeader.num_iter);
+      BSWAP_16(m_pData->extHeader.iter_em);
+      BSWAP_16(m_pData->extHeader.subset_em);
+      BSWAP_16(m_pData->extHeader.nsmooth_em);
+      BSWAP_16(m_pData->extHeader.nrepeat_em);
+      BSWAP_16(m_pData->extHeader.bckslc_avg);
+      BSWAP_16(m_pData->extHeader.dead_corr);
+      BSWAP_16(m_pData->extHeader.decay_corr);
+      BSWAP_FLT(m_pData->extHeader.tran_ray_fwhm);
+      BSWAP_FLT(m_pData->extHeader.tran_axl_fwhm);
+      BSWAP_16(m_pData->extHeader.surv_mask);
+      BSWAP_16(m_pData->extHeader.preflt_type);
+      BSWAP_16(m_pData->extHeader.postflt_type);
+      BSWAP_16(m_pData->extHeader.tr_posttyp);
+      BSWAP_16(m_pData->extHeader.algtype_tr);
+      BSWAP_16(m_pData->extHeader.iter_tr);
+      BSWAP_16(m_pData->extHeader.subset_tr);
+      BSWAP_16(m_pData->extHeader.nsmooth_tr);
+      BSWAP_16(m_pData->extHeader.nrepeat_tr);
+      BSWAP_16(m_pData->extHeader.attn_corr_3d);
+      BSWAP_16(m_pData->extHeader.ramla_no_it);
+      BSWAP_16(m_pData->extHeader.ramla_sysac);
+      BSWAP_FLT(m_pData->extHeader.ramla_lambda[0]);
+      BSWAP_FLT(m_pData->extHeader.ramla_lambda[1]);
+      BSWAP_FLT(m_pData->extHeader.ramla_lambda[2]);
+      BSWAP_FLT(m_pData->extHeader.ramla_lambda[3]);
+      BSWAP_FLT(m_pData->extHeader.ramla_lambda[4]);
+      BSWAP_FLT(m_pData->extHeader.ramla_blrad);
+      BSWAP_FLT(m_pData->extHeader.ramla_blalpha);
+      BSWAP_FLT(m_pData->extHeader.ramla_bcc_rsz);
+      BSWAP_32(m_pData->extHeader.recon_date_time);
+      BSWAP_16(m_pData->extHeader.gating_type);
+      BSWAP_32(m_pData->extHeader.start_table_pos_abs);
+      BSWAP_32(m_pData->extHeader.start_table_pos_rel);
+      BSWAP_16(m_pData->extHeader.mr_valid);
+    }
   }
   
 #if defined(DEBUG)
@@ -733,6 +879,86 @@ bool CPhilipsMainHeader::load()
   D("petct_alignment_axialRotation: %d", m_pData->header.petct_axrot);
   D("petct_alignment_horizRotation: %d", m_pData->header.petct_horzrot);
   D("petct_alignment_vertRotation : %d", m_pData->header.petct_vertrot);
+
+  if(extendedHeaderFound == true)
+  {
+    D("Philips extended MainHeader loaded:");
+    D("----------------------------------");
+    D("Dpat_name                : %s", m_pData->extHeader.Dpat_name);
+    D("Dpat_id                  : %s", m_pData->extHeader.Dpat_id);
+    D("study_uid                : %s", m_pData->extHeader.study_uid);
+    D("series_uid               : %s", m_pData->extHeader.series_uid);
+  
+    D("view_code                : %s", m_pData->extHeader.view_code);
+    D("sortproto_name           : %s", m_pData->extHeader.sortproto_name);
+    D("route                    : %d", m_pData->extHeader.route);
+    D("pharm                    : %d", m_pData->extHeader.pharm);
+    D("req_phys                 : %s", m_pData->extHeader.req_phys);
+    D("card_phstate             : %d", m_pData->extHeader.card_phstate);
+    D("assay_date               : %d", m_pData->extHeader.assay_date);
+    D("assay_time               : %s", QDateTime::fromTime_t(m_pData->extHeader.assay_time).toString().toAscii().constData());
+    D("series_desc              : %s", m_pData->extHeader.series_desc);
+    D("height                   : %d", m_pData->extHeader.height);
+    D("abundance                : %d", m_pData->extHeader.abundance);
+    D("realignment.xOffset      : %d", m_pData->extHeader.realign_x);
+    D("realignment.yOffset      : %d", m_pData->extHeader.realign_y);
+    D("realignment.horizRotation: %d", m_pData->extHeader.realign_hr);
+    D("acq_date_time            : %s", QDateTime::fromTime_t(m_pData->extHeader.acq_date_time).toString().toAscii().constData());
+    D("study_date_time          : %s", QDateTime::fromTime_t(m_pData->extHeader.study_date_time).toString().toAscii().constData());
+    D("injection_date_time      : %s", QDateTime::fromTime_t(m_pData->extHeader.injection_date_time).toString().toAscii().constData());
+    D("file_create_date_time    : %s", QDateTime::fromTime_t(m_pData->extHeader.file_create_date_time).toString().toAscii().constData());
+    D("resp_trig_loc            : %d", m_pData->extHeader.resp_trig_loc);
+    D("card_arrhythmia_rej_tech : %d", m_pData->extHeader.card_arrhythmia_rej_tech);
+    D("window_center            : %d", m_pData->extHeader.window_center);
+    D("window_width             : %d", m_pData->extHeader.window_width);
+    D("realignment_axialRotation: %d", m_pData->extHeader.realign_zr);
+    D("realignment_verRotation  : %d", m_pData->extHeader.realign_vr);
+    D("resp_trig_threshold      : %d", m_pData->extHeader.resp_trig_threshold);
+    D("resp_phase_duration      : %d", m_pData->extHeader.resp_phase_duration);
+    D("resp_phase_offset        : %d", m_pData->extHeader.resp_phase_offset);
+    D("realignment.zOffset      : %d", m_pData->extHeader.realign_z);
+    D("window_units             : %d", m_pData->extHeader.window_units);
+  
+    D("referring_physician      : %s", m_pData->extHeader.referring_physician);
+    D("study_id                 : %s", m_pData->extHeader.study_id);
+  
+    D("Dslice_thick             : %f", m_pData->extHeader.Dslice_thick);
+    D("sex                      : %c", m_pData->extHeader.sex);
+    D("table_height             : %f", m_pData->extHeader.table_height);
+    D("card_bt_rej              : %d", m_pData->extHeader.card_bt_rej);
+    D("card_fr_type             : %d", m_pData->extHeader.card_fr_type);
+    D("Dmanufacture_model_name  : %s", m_pData->extHeader.Dmanufacture_model_name);
+    D("Dimage_type              : %s", m_pData->extHeader.Dimage_type);
+    D("min_bed_pos              : %f", m_pData->extHeader.min_bed_pos);
+    D("max_bed_pos              : %f", m_pData->extHeader.max_bed_pos);
+    D("der_filled               : %d", m_pData->extHeader.der_filled);
+    D("series_number            : %d", m_pData->extHeader.series_number);
+    D("dep_study_date           : %ld", m_pData->extHeader.dep_study_date);
+    D("dep_study_time           : %ld", m_pData->extHeader.dep_study_time);
+    D("dep_acq_time             : %ld", m_pData->extHeader.dep_acq_time);
+    D("card_slc_dir             : %d", m_pData->extHeader.card_slc_dir);
+  
+    D("card_skip_msec:          : %d", m_pData->extHeader.card_skip_msec);
+    D("card_skip_counts         : %d", m_pData->extHeader.card_skip_counts);
+    D("card_dur_msec            : %d", m_pData->extHeader.card_dur_msec);
+    D("card_dur_counts          : %d", m_pData->extHeader.card_dur_counts);
+    D("card_beats_tot           : %d", m_pData->extHeader.card_beats_tot);
+    D("card_beats_acc           : %d", m_pData->extHeader.card_beats_acc);
+    D("card_skip_beats          : %d", m_pData->extHeader.card_skip_beats);
+    D("pvc_threshold            : %d", m_pData->extHeader.pvc_threshold);
+    D("dep_acq_date             : %ld", m_pData->extHeader.dep_acq_date);
+    D("radiopharm_name          : %s", m_pData->extHeader.radiopharm_name);
+    D("Dserial_number           : %s", m_pData->extHeader.Dserial_number);
+    D("attncor_label            : %s", m_pData->extHeader.attncor_label);
+  
+    D("contr_bolus_agent        : %s", m_pData->extHeader.contr_bolus_agent);
+    D("sop_uid                  : %s", m_pData->extHeader.sop_uid);
+    D("frame_ref_uid            : %s", m_pData->extHeader.frame_ref_uid);
+    D("pps_file                 : %s", m_pData->extHeader.pps_file);
+    D("worklist_file            : %s", m_pData->extHeader.worklist_file);
+  }
+  else
+    W("no extended header found");
 #endif
 
   RETURN(true);
@@ -757,7 +983,9 @@ bool CPhilipsMainHeader::save(void) const
 
   SHOWVALUE(m_pMedIOData->pos());
 
+  // check that the sizes are absolutely correct
   ASSERT(sizeof(m_pData->header) == MAINHEADER_SIZE);
+  ASSERT(sizeof(m_pData->extHeader) == EXTHEADER_SIZE);
 
   // before we can start reading out some data we have to collect some
   // out data beforehand which we use instead of the data stored in our
@@ -775,135 +1003,287 @@ bool CPhilipsMainHeader::save(void) const
   // have to take care of correct endianness in the non-char
   // entries in the header structure in case this is a little endian
   // machine
+  struct CPhilipsMainHeaderPrivate::HeaderData* header = NULL;
+  struct CPhilipsMainHeaderPrivate::ExtHeaderData* extHeader = NULL;
   if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
   {
-    // if we need to byte swap we have to create a whole copy of m_pData->header
-    struct CPhilipsMainHeaderPrivate::HeaderData beHeader;
+    header = new CPhilipsMainHeaderPrivate::HeaderData;
 
     // copy the current m_pData->header to beHeader
-    memcpy(&beHeader, &m_pData->header, sizeof(m_pData->header));
+    memcpy(header, &m_pData->header, sizeof(m_pData->header));
 
     // we only swap non-char elements of the header
-    BSWAP_16(beHeader.file_fmt);
-    BSWAP_16(beHeader.scan_geom);           
-    BSWAP_16(beHeader.hw_config);           
-    BSWAP_16(beHeader.edit_flag);           
-    BSWAP_16(beHeader.filtyp);             
-    BSWAP_32(beHeader.minTransXtalDiff);  
-    BSWAP_FLT(beHeader.tofTstampScale);  
-    BSWAP_16(beHeader.dep_daycre);      
-    BSWAP_16(beHeader.dep_mocre);      
-    BSWAP_16(beHeader.dep_yrcre);     
-    BSWAP_16(beHeader.dep_hrcre);    
-    BSWAP_16(beHeader.dep_mincre);  
-    BSWAP_16(beHeader.dep_seccre);        
-    BSWAP_16(beHeader.duratn);            
-    BSWAP_16(beHeader.shdtyp); 
-    BSWAP_16(beHeader.sngpscl); 
-    BSWAP_16(beHeader.singopt);
-    BSWAP_FLT(beHeader.pscale);
-    BSWAP_FLT(beHeader.detectorRadius);
-    BSWAP_16(beHeader.virtualXtal);
-    BSWAP_16(beHeader.phiMashing);
-    BSWAP_16(beHeader.polygonSides);
-    BSWAP_16(beHeader.xtalsPerSide);
-    BSWAP_16(beHeader.nXtalRows);
-    BSWAP_FLT(beHeader.crystalThickness);
-    BSWAP_FLT(beHeader.xXtalPitch);
-    BSWAP_FLT(beHeader.zXtalPitch);
-    BSWAP_FLT(beHeader.axialFOV);
-    BSWAP_16(beHeader.rphiType);
-    BSWAP_16(beHeader.sliceType);
-    BSWAP_16(beHeader.delayType);
-    BSWAP_16(beHeader.pattyp);
-    BSWAP_16(beHeader.scntyp);
-    BSWAP_16(beHeader.numray);
-    BSWAP_16(beHeader.numang);
-    BSWAP_16(beHeader.slcthk);
-    BSWAP_16(beHeader.isotop);
-    BSWAP_FLT(beHeader.slope);
-    BSWAP_FLT(beHeader.intcpt);
-    BSWAP_16(beHeader.injtim);
-    BSWAP_FLT(beHeader.polygonVertAt0deg);
-    BSWAP_16(beHeader.nslice);
-    BSWAP_16(beHeader.nframe);
-    BSWAP_16(beHeader.bthday);
-    BSWAP_16(beHeader.bthmo);
-    BSWAP_16(beHeader.bthyr);
-    BSWAP_16(beHeader.ntilt);
-    BSWAP_16(beHeader.petnum);
-    BSWAP_FLT(beHeader.activity);
-    BSWAP_32(beHeader.weight);
-    BSWAP_16(beHeader.hrinj);
-    BSWAP_16(beHeader.mininj);
-    BSWAP_FLT(beHeader.srcRadius);
-    BSWAP_FLT(beHeader.srcZpos);
-    BSWAP_FLT(beHeader.halfLife);
-    BSWAP_FLT(beHeader.concfac);
-    BSWAP_FLT(beHeader.concfac_bgsub);
-    BSWAP_FLT(beHeader.dmax);
-    BSWAP_FLT(beHeader.dline);
-    BSWAP_FLT(beHeader.angmax);
-    BSWAP_FLT(beHeader.x0);
-    BSWAP_FLT(beHeader.y0);
-    BSWAP_FLT(beHeader.z0);
-    BSWAP_FLT(beHeader.nevent);
-    BSWAP_FLT(beHeader.nsino);
-    BSWAP_16(beHeader.eglob_low);
-    BSWAP_16(beHeader.eglob_up);
-    BSWAP_16(beHeader.eloc_low);
-    BSWAP_16(beHeader.eloc_up);
-    BSWAP_16(beHeader.orient_hf);
-    BSWAP_16(beHeader.petct_sepdist);
-    BSWAP_16(beHeader.petct_landmrk);
-    BSWAP_32(beHeader.petct_timestamp);
-    BSWAP_16(beHeader.tbl_direction);
-    BSWAP_16(beHeader.orient_ps);
-    BSWAP_16(beHeader.petct_zoffset);
-    BSWAP_16(beHeader.petct_xshift);
-    BSWAP_16(beHeader.petct_yshift);
-    BSWAP_16(beHeader.petct_zshift);
-    BSWAP_16(beHeader.petct_acqflgs);
-    BSWAP_16(beHeader.petct_xoffset);
-    BSWAP_16(beHeader.petct_yoffset);
-    BSWAP_16(beHeader.petct_axrot);
-    BSWAP_16(beHeader.petct_horzrot);
-    BSWAP_16(beHeader.petct_vertrot);
-    BSWAP_FLT(beHeader.frontLeadDiameter);
-    BSWAP_FLT(beHeader.backLeadDiameter);
-    BSWAP_FLT(beHeader.leadSeparation);
-    BSWAP_FLT(beHeader.ndelays);
-    BSWAP_FLT(beHeader.slcsep);
-    BSWAP_16(beHeader.petct_valid);
-    BSWAP_16(beHeader.aqprotocol_type);
-    BSWAP_FLT(beHeader.reslice_ang1);
-    BSWAP_FLT(beHeader.reslice_ang2);
-    BSWAP_FLT(beHeader.reslice_ang3);
-    BSWAP_16(beHeader.minslc);
-    BSWAP_16(beHeader.maxslc);
-    BSWAP_16(beHeader.minfrm);
-    BSWAP_16(beHeader.maxfrm);
-    BSWAP_16(beHeader.scanner_maxslice);
-    BSWAP_16(beHeader.rebin_type);
-    BSWAP_16(beHeader.movementCoinc);
-    BSWAP_16(beHeader.movementSing);
-    BSWAP_16(beHeader.crbTstampPeriod);
-    BSWAP_16(beHeader.trailexists);
-    BSWAP_32(beHeader.trailbeg);
+    BSWAP_16(header->file_fmt);
+    BSWAP_16(header->scan_geom);           
+    BSWAP_16(header->hw_config);           
+    BSWAP_16(header->edit_flag);           
+    BSWAP_16(header->filtyp);             
+    BSWAP_32(header->minTransXtalDiff);  
+    BSWAP_FLT(header->tofTstampScale);  
+    BSWAP_16(header->dep_daycre);      
+    BSWAP_16(header->dep_mocre);      
+    BSWAP_16(header->dep_yrcre);     
+    BSWAP_16(header->dep_hrcre);    
+    BSWAP_16(header->dep_mincre);  
+    BSWAP_16(header->dep_seccre);        
+    BSWAP_16(header->duratn);            
+    BSWAP_16(header->shdtyp); 
+    BSWAP_16(header->sngpscl); 
+    BSWAP_16(header->singopt);
+    BSWAP_FLT(header->pscale);
+    BSWAP_FLT(header->detectorRadius);
+    BSWAP_16(header->virtualXtal);
+    BSWAP_16(header->phiMashing);
+    BSWAP_16(header->polygonSides);
+    BSWAP_16(header->xtalsPerSide);
+    BSWAP_16(header->nXtalRows);
+    BSWAP_FLT(header->crystalThickness);
+    BSWAP_FLT(header->xXtalPitch);
+    BSWAP_FLT(header->zXtalPitch);
+    BSWAP_FLT(header->axialFOV);
+    BSWAP_16(header->rphiType);
+    BSWAP_16(header->sliceType);
+    BSWAP_16(header->delayType);
+    BSWAP_16(header->pattyp);
+    BSWAP_16(header->scntyp);
+    BSWAP_16(header->numray);
+    BSWAP_16(header->numang);
+    BSWAP_16(header->slcthk);
+    BSWAP_16(header->isotop);
+    BSWAP_FLT(header->slope);
+    BSWAP_FLT(header->intcpt);
+    BSWAP_16(header->injtim);
+    BSWAP_FLT(header->polygonVertAt0deg);
+    BSWAP_16(header->nslice);
+    BSWAP_16(header->nframe);
+    BSWAP_16(header->bthday);
+    BSWAP_16(header->bthmo);
+    BSWAP_16(header->bthyr);
+    BSWAP_16(header->ntilt);
+    BSWAP_16(header->petnum);
+    BSWAP_FLT(header->activity);
+    BSWAP_32(header->weight);
+    BSWAP_16(header->hrinj);
+    BSWAP_16(header->mininj);
+    BSWAP_FLT(header->srcRadius);
+    BSWAP_FLT(header->srcZpos);
+    BSWAP_FLT(header->halfLife);
+    BSWAP_FLT(header->concfac);
+    BSWAP_FLT(header->concfac_bgsub);
+    BSWAP_FLT(header->dmax);
+    BSWAP_FLT(header->dline);
+    BSWAP_FLT(header->angmax);
+    BSWAP_FLT(header->x0);
+    BSWAP_FLT(header->y0);
+    BSWAP_FLT(header->z0);
+    BSWAP_FLT(header->nevent);
+    BSWAP_FLT(header->nsino);
+    BSWAP_16(header->eglob_low);
+    BSWAP_16(header->eglob_up);
+    BSWAP_16(header->eloc_low);
+    BSWAP_16(header->eloc_up);
+    BSWAP_16(header->orient_hf);
+    BSWAP_16(header->petct_sepdist);
+    BSWAP_16(header->petct_landmrk);
+    BSWAP_32(header->petct_timestamp);
+    BSWAP_16(header->tbl_direction);
+    BSWAP_16(header->orient_ps);
+    BSWAP_16(header->petct_zoffset);
+    BSWAP_16(header->petct_xshift);
+    BSWAP_16(header->petct_yshift);
+    BSWAP_16(header->petct_zshift);
+    BSWAP_16(header->petct_acqflgs);
+    BSWAP_16(header->petct_xoffset);
+    BSWAP_16(header->petct_yoffset);
+    BSWAP_16(header->petct_axrot);
+    BSWAP_16(header->petct_horzrot);
+    BSWAP_16(header->petct_vertrot);
+    BSWAP_FLT(header->frontLeadDiameter);
+    BSWAP_FLT(header->backLeadDiameter);
+    BSWAP_FLT(header->leadSeparation);
+    BSWAP_FLT(header->ndelays);
+    BSWAP_FLT(header->slcsep);
+    BSWAP_16(header->petct_valid);
+    BSWAP_16(header->aqprotocol_type);
+    BSWAP_FLT(header->reslice_ang1);
+    BSWAP_FLT(header->reslice_ang2);
+    BSWAP_FLT(header->reslice_ang3);
+    BSWAP_16(header->minslc);
+    BSWAP_16(header->maxslc);
+    BSWAP_16(header->minfrm);
+    BSWAP_16(header->maxfrm);
+    BSWAP_16(header->scanner_maxslice);
+    BSWAP_16(header->rebin_type);
+    BSWAP_16(header->movementCoinc);
+    BSWAP_16(header->movementSing);
+    BSWAP_16(header->crbTstampPeriod);
+    BSWAP_16(header->trailexists);
+    BSWAP_32(header->trailbeg);
 
-    // now write out beHeader
-    if(m_pMedIOData->write((char *)&beHeader, sizeof(beHeader)) == sizeof(beHeader))
-      result = true;
+    // lets process the extended main header
+    extHeader = new CPhilipsMainHeaderPrivate::ExtHeaderData;
+
+    // copy the current m_pData->extHeader to extHeader
+    memcpy(extHeader, &m_pData->extHeader, sizeof(m_pData->extHeader));
+
+    // we only swap non-char elements of the header
+    BSWAP_16(extHeader->route);
+    BSWAP_16(extHeader->pharm);
+    BSWAP_16(extHeader->card_phstate);
+    BSWAP_32(extHeader->assay_date);
+    BSWAP_32(extHeader->assay_time);
+    BSWAP_16(extHeader->height);   
+    BSWAP_16(extHeader->abundance);
+    BSWAP_16(extHeader->realign_x);
+    BSWAP_16(extHeader->realign_y);
+    BSWAP_16(extHeader->realign_hr);
+    BSWAP_32(extHeader->acq_date_time);
+    BSWAP_32(extHeader->study_date_time);
+    BSWAP_32(extHeader->injection_date_time);
+    BSWAP_32(extHeader->file_create_date_time);
+    BSWAP_16(extHeader->resp_trig_loc);
+    BSWAP_16(extHeader->card_arrhythmia_rej_tech);
+    BSWAP_FLT(extHeader->window_center);
+    BSWAP_FLT(extHeader->window_width);
+    BSWAP_16(extHeader->realign_zr);
+    BSWAP_16(extHeader->realign_vr);
+    BSWAP_16(extHeader->resp_trig_threshold);
+    BSWAP_16(extHeader->resp_phase_duration);
+    BSWAP_16(extHeader->resp_phase_offset);
+    BSWAP_16(extHeader->realign_z);
+    BSWAP_16(extHeader->window_units);
+    BSWAP_FLT(extHeader->Dslice_thick);
+    BSWAP_FLT(extHeader->table_height);
+    BSWAP_16(extHeader->card_bt_rej);
+    BSWAP_16(extHeader->card_fr_type);
+    BSWAP_FLT(extHeader->min_bed_pos);
+    BSWAP_FLT(extHeader->max_bed_pos);
+    BSWAP_16(extHeader->der_filled);
+    BSWAP_32(extHeader->series_number);
+    BSWAP_32(extHeader->dep_study_date);
+    BSWAP_32(extHeader->dep_study_time);
+    BSWAP_32(extHeader->dep_acq_time);
+    BSWAP_16(extHeader->card_slc_dir);
+    BSWAP_32(extHeader->card_skip_msec);
+    BSWAP_32(extHeader->card_skip_counts);
+    BSWAP_32(extHeader->card_dur_msec);
+    BSWAP_32(extHeader->card_dur_counts);
+    BSWAP_32(extHeader->card_beats_tot);
+    BSWAP_32(extHeader->card_beats_acc);
+    BSWAP_16(extHeader->card_skip_beats);
+    BSWAP_16(extHeader->pvc_threshold);
+    BSWAP_32(extHeader->dep_acq_date);
+    BSWAP_16(extHeader->slc_add);
+    BSWAP_16(extHeader->slc_space);
+    BSWAP_16(extHeader->slc_thick);
+    BSWAP_16(extHeader->frame_add);
+    BSWAP_16(extHeader->frame_space);
+    BSWAP_16(extHeader->frame_thick);
+    BSWAP_16(extHeader->fltr_type);
+    BSWAP_16(extHeader->smoth);
+    BSWAP_16(extHeader->scatcorr_type);
+    BSWAP_16(extHeader->edge_exp);
+    BSWAP_16(extHeader->bckang_avg);
+    BSWAP_FLT(extHeader->bck_coeff);
+    BSWAP_16(extHeader->bck_wid);
+    BSWAP_16(extHeader->attncor_type);
+    BSWAP_16(extHeader->attncor_ecc);
+    BSWAP_FLT(extHeader->attn_coeff);
+    BSWAP_FLT(extHeader->skull_comp);
+    BSWAP_16(extHeader->norm_type);
+    BSWAP_16(extHeader->smp_norm);
+    BSWAP_16(extHeader->gap_comp);
+    BSWAP_16(extHeader->algtype_em);
+    BSWAP_16(extHeader->num_iter);
+    BSWAP_16(extHeader->iter_em);
+    BSWAP_16(extHeader->subset_em);
+    BSWAP_16(extHeader->nsmooth_em);
+    BSWAP_16(extHeader->nrepeat_em);
+    BSWAP_16(extHeader->bckslc_avg);
+    BSWAP_16(extHeader->dead_corr);
+    BSWAP_16(extHeader->decay_corr);
+    BSWAP_FLT(extHeader->tran_ray_fwhm);
+    BSWAP_FLT(extHeader->tran_axl_fwhm);
+    BSWAP_16(extHeader->surv_mask);
+    BSWAP_16(extHeader->preflt_type);
+    BSWAP_16(extHeader->postflt_type);
+    BSWAP_16(extHeader->tr_posttyp);
+    BSWAP_16(extHeader->algtype_tr);
+    BSWAP_16(extHeader->iter_tr);
+    BSWAP_16(extHeader->subset_tr);
+    BSWAP_16(extHeader->nsmooth_tr);
+    BSWAP_16(extHeader->nrepeat_tr);
+    BSWAP_16(extHeader->attn_corr_3d);
+    BSWAP_16(extHeader->ramla_no_it);
+    BSWAP_16(extHeader->ramla_sysac);
+    BSWAP_FLT(extHeader->ramla_lambda[0]);
+    BSWAP_FLT(extHeader->ramla_lambda[1]);
+    BSWAP_FLT(extHeader->ramla_lambda[2]);
+    BSWAP_FLT(extHeader->ramla_lambda[3]);
+    BSWAP_FLT(extHeader->ramla_lambda[4]);
+    BSWAP_FLT(extHeader->ramla_blrad);
+    BSWAP_FLT(extHeader->ramla_blalpha);
+    BSWAP_FLT(extHeader->ramla_bcc_rsz);
+    BSWAP_32(extHeader->recon_date_time);
+    BSWAP_16(extHeader->gating_type);
+    BSWAP_32(extHeader->start_table_pos_abs);
+    BSWAP_32(extHeader->start_table_pos_rel);
+    BSWAP_16(extHeader->mr_valid);
   }
   else
   {
-    // now write out to our outStream
-    if(m_pMedIOData->write((char *)&m_pData->header, sizeof(m_pData->header)) == sizeof(m_pData->header))
-      result = true;
+    header = &m_pData->header;
+    extHeader = &m_pData->extHeader;
   }
+
+  // now write out the main header to the file
+  if(m_pMedIOData->write(reinterpret_cast<char*>(header), sizeof(m_pData->header)) == MAINHEADER_SIZE)
+  {
+    // now we have to check/create the extended main header part which
+    // is part of the directory
+    CPhilipsFile* phFile = static_cast<CPhilipsFile*>(m_pMedIOData);
+    CPhilipsDirectory* philipsDirectory = phFile->directory();
+    if(philipsDirectory != NULL)
+    {
+      CPhilipsDirectoryItem* extHeaderItem = philipsDirectory->extendedMainHeaderItem();
+      if(extHeaderItem != NULL)
+      {
+        // now we have the extendedheader diritem. so lets get the header out of it
+        if(m_pMedIOData->seek(extHeaderItem->dataBlock_Start()) == true &&
+           m_pMedIOData->write(reinterpret_cast<char*>(extHeader), sizeof(m_pData->extHeader)) == EXTHEADER_SIZE)
+        {
+          // make sure to set the DataBlock_End()
+          extHeaderItem->setDataBlock_End(extHeaderItem->dataBlock_Start() + EXTHEADER_SIZE);
+
+          // now we write out the whole directory
+          // and if this works out everything worked out fine
+          if(philipsDirectory->save() == true)
+            result = true;
+        }
+        else
+          E("Error while trying to seek&save extended main header data");
+
+        result = true;
+      }
+      else
+        W("no extended header found in philips file");
+    }
+    else 
+      W("directory == NULL");
+  }
+  else
+    E("error on write() of main header");
 
   if(result == true)
     philipsFile->mainHeaderWritten(*this);
+
+  // if we byte swapped we have to delete the
+  // temporary byte swapped header structures
+  if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+  {
+    delete header;
+    delete extHeader;
+  }
 
   RETURN(result);
   return result;
@@ -973,6 +1353,7 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHea
           setActivity(header->dosage() / 1000000.0f); // Bq -> MBq
           setAqprotocol_Name(header->study_Type());
           m_pData->ecat2philipsAcquisitionType(header->acquisition_Type());
+          m_pData->ecat2philipsSex(header->patient_Sex());
 
           bResult = true;
         }
@@ -2088,7 +2469,20 @@ bool CPhilipsMainHeaderPrivate::ecat2philipsSex(const CECAT7MainHeader::Patient_
   ENTER();
   bool result = false;
 
-#warning TODO
+  switch(sex)
+  {
+    case CECAT7MainHeader::Sex_Male:
+      extHeader.sex = 'm';
+    break;
+
+    case CECAT7MainHeader::Sex_Female:
+      extHeader.sex = 'f';
+    break;
+
+    case CECAT7MainHeader::Sex_Unknown:
+      extHeader.sex = 'u';
+    break;
+ }
 
   RETURN(result);
   return result;

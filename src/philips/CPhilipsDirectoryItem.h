@@ -29,10 +29,9 @@
 
 #ifndef __MEDIO_PRIVATE__
 #include <CPhilipsSubHeader>
-#include <CPhilipsExtendedMainHeader>
 #else
 #include <CPhilipsSubHeader.h>
-#include <CPhilipsExtendedMainHeader.h>
+
 // some useful defines on the Philips file format
 // especially for PhilipsBlock calculation as Philips Files
 // are seperated in 512 byte blocks and positions within
@@ -99,6 +98,7 @@ class CPhilipsDirectoryItem
     // // mutator methods
     void setDataBlock_Start(const qint64 offset);
     void setDataBlock_End(const qint64 offset);
+    void setContentFlag(const ContentFlag flag);
     // void setDataBlock_Status(const AccessStatus status);
     // void setFrame(const short f);
     // void setPlane(const short p);
@@ -107,7 +107,6 @@ class CPhilipsDirectoryItem
     // void setData(const short d);
 
     // read i/o methods
-    bool readExtendedMainHeader(CPhilipsExtendedMainHeader*& extendedMainHeader);
     bool readSubHeader(CPhilipsSubHeader*& subHeader);
     bool readMatrix(QByteArray*& data);
     bool readMatrix(char*& data, unsigned int& len);
@@ -115,7 +114,6 @@ class CPhilipsDirectoryItem
     bool readMatrix(char*& data, unsigned int& len, CPhilipsSubHeader*& subHeader);
 
     // write i/o methods
-    bool writeExtendedMainHeader(const CPhilipsExtendedMainHeader& extendedMainHeader);
     bool writeSubHeader(const CPhilipsSubHeader& subHeader);
     bool writeMatrix(const QByteArray& data);
     bool writeMatrix(const char* data, unsigned int len);
@@ -129,7 +127,6 @@ class CPhilipsDirectoryItem
     friend QDataStream& operator>>(QDataStream& stream, CPhilipsDirectoryItem& item);
 
     // internal methods to sync specific data with our headers
-    void extendedMainHeaderWritten(const CPhilipsExtendedMainHeader& extendedMainHeader);
     void subHeaderWritten(const CPhilipsSubHeader& subHeader);
 
   private:

@@ -28,7 +28,6 @@
 #include "CECATDirectoryItem.h"
 #include "CConcordeFrameHeader.h"
 #include "CPhilipsMainHeader.h"
-#include "CPhilipsExtendedMainHeader.h"
 #include "MedIOUnits.h"
 
 #include "config.h"
@@ -966,31 +965,21 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
       setAcquisition_Type(m_pData->philips2ECAT7Acquisition_Type(head->aqprotocol_Type(),
                                                                  head->scntyp()));
 
-      //check if additional information is available
-      if(pHead2)
-      {
-        if(pHead2->headerFormat() == CMedIOHeader::PhilipsExtendedMainHeader)
-        {
-          D("Setting additional information to ECAT7 main header");
-          const CPhilipsExtendedMainHeader* extHeader = static_cast<const CPhilipsExtendedMainHeader*>(pHead2);
+      QString patientName(head->Dpat_name()); 
+      if(patientName.contains("^"))
+        patientName.replace("^", ", ");               
 
-          QString patientName(extHeader->Dpat_name()); 
+      setPatient_Name(patientName.toAscii().constData());
+      setStudy_Description(head->series_desc());
+      setDose_Start_Time(head->injection_date_time());
+      setScan_Start_Time(head->acq_date_time());
+      setRadiopharmaceutical(head->radiopharm_name());
+      setPatient_Sex(m_pData->philips2Ecat7Sex(head->sex()));
+      setPatient_ID(head->Dpat_id());
+      setPatient_Height(head->height() / 10.0f); // mm -> cm
+      setBranching_Fraction(static_cast<float>(head->abundance()) / 10.0f); // %
+      setBed_Elevation(head->table_height());
 
-          if(patientName.contains("^"))
-            patientName.replace("^", ", ");               
-
-          setPatient_Name(patientName.toAscii().constData());
-          setStudy_Description(extHeader->series_desc());
-          setDose_Start_Time(extHeader->injection_date_time());
-          setScan_Start_Time(extHeader->acq_date_time());
-          setRadiopharmaceutical(extHeader->radiopharm_name());
-          setPatient_Sex(m_pData->philips2Ecat7Sex(extHeader->sex()));
-          setPatient_ID(extHeader->Dpat_id());
-          setPatient_Height(extHeader->height() / 10.0f); // mm -> cm
-          setBranching_Fraction(extHeader->abundance() / 10.0f); // %
-          setBed_Elevation(extHeader->table_height());
-        }
-      }
       bResult = true;
     }
     break;

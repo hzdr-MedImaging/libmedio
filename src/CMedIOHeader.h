@@ -53,7 +53,6 @@ class CMedIOHeader
       ECATMainHeader,               //!< main header of ECAT6/7 PET scanners
       ECATSubHeader,                //!< sub header of ECAT6/7 PET scanners
       PhilipsMainHeader,            //!< main header of philips scanners
-      PhilipsExtendedMainHeader,    //!< extended main header of philips scanners
       PhilipsSubHeader              //!< sub header of philips scanners
     };
 

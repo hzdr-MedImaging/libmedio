@@ -44,13 +44,11 @@
 class CPhilipsDirectoryItemPrivate
 {
   public:
-    void cacheExtendedMainHeader(const CPhilipsExtendedMainHeader& extendedMainHeader);
     void cacheSubHeader(const CPhilipsSubHeader& subHeader);
     
     CPhilipsDirectoryItem* dirItem; // pointer to the directory Item
     CPhilipsFile* file;             // pointer to the PhilipsFile
     CPhilipsSubHeader* cachedSubHeader;  // pointer to a cached SubHeader object
-    CPhilipsExtendedMainHeader* cachedExtendedMainHeader;  // pointer to a cached ExtendedMainHeader object
 
     // META information about the directory Item
     short frame;                // information normally
@@ -107,7 +105,6 @@ CPhilipsDirectoryItem::~CPhilipsDirectoryItem()
   ENTER();
 
   delete m_pData->cachedSubHeader;
-  delete m_pData->cachedExtendedMainHeader;
   delete m_pData;
 
   LEAVE();
@@ -125,7 +122,6 @@ CPhilipsDirectoryItem::CPhilipsDirectoryItem(const CPhilipsDirectoryItem& src)
   m_pData->dirItem = this;
   m_pData->file = NULL;
   m_pData->cachedSubHeader = NULL;
-  m_pData->cachedExtendedMainHeader = NULL;
   
   LEAVE();
 }
@@ -206,46 +202,6 @@ void CPhilipsDirectoryItem::setDataBlock_Start(const qint64 offset)
 void CPhilipsDirectoryItem::setDataBlock_End(const qint64 offset)
 { 
   m_pData->dataBlock_End = offset;
-}
-
-bool CPhilipsDirectoryItem::readExtendedMainHeader(CPhilipsExtendedMainHeader*& extendedMainHeader)
-{
-  ENTER();
-  bool result = false;
-
-  if(m_pData->file && m_pData->file->isReadable())
-  {
-    // check if we have a cached extendedMainHeader ready already so that
-    // we can take that one instead of loading the extendedMainHeader once
-    // more from scratch
-    if(m_pData->cachedExtendedMainHeader)
-    {
-      extendedMainHeader = new CPhilipsExtendedMainHeader(*m_pData->cachedExtendedMainHeader);
-      result = true;
-
-      // set the mediodata object for the newly created extendedMainHeader
-      extendedMainHeader->setMedIOData(m_pData->file);
-      extendedMainHeader->setDirectoryItem(this);
-    }
-    else
-    {
-      extendedMainHeader = new CPhilipsExtendedMainHeader(m_pData->file, this);
-
-      if(extendedMainHeader)
-      {
-        if(extendedMainHeader->load() == false)
-        {
-          delete extendedMainHeader;
-          extendedMainHeader = NULL;
-        }
-        else
-          result = true;
-      }
-    }
-  }
-
-  RETURN(result);
-  return result;
 }
 
 bool CPhilipsDirectoryItem::readSubHeader(CPhilipsSubHeader*& subHeader)
@@ -545,27 +501,6 @@ bool CPhilipsDirectoryItem::readMatrix(char*& data, unsigned int& len, CPhilipsS
   return result;
 }
 
-bool CPhilipsDirectoryItem::writeExtendedMainHeader(const CPhilipsExtendedMainHeader& extendedMainHeader)
-{
-  ENTER();
-  bool result = false;
- 
-  m_pData->cacheExtendedMainHeader(extendedMainHeader);
-
-  if(m_pData->cachedExtendedMainHeader != NULL)
-    result = m_pData->cachedExtendedMainHeader->save();
-
-  // now we calculate the new EndPosition
-  if(result)
-  {
-    m_pData->dataBlock_End = m_pData->dataBlock_Start + extendedMainHeader.rawDataSize() - PHILIPS_BLOCKSIZE;
-    m_pData->contentFlag = Header;
-  }
-
-  RETURN(result);
-  return result;
-}
-
 bool CPhilipsDirectoryItem::writeSubHeader(const CPhilipsSubHeader& subHeaer)
 {
   ENTER();
@@ -578,24 +513,6 @@ bool CPhilipsDirectoryItem::writeSubHeader(const CPhilipsSubHeader& subHeaer)
 
   RETURN(result);
   return result;
-}
-
-void CPhilipsDirectoryItemPrivate::cacheExtendedMainHeader(const CPhilipsExtendedMainHeader& extendedMainHeader)
-{
-  ENTER();
-
-  if(cachedExtendedMainHeader)
-    *cachedExtendedMainHeader = extendedMainHeader;
-  else
-    cachedExtendedMainHeader = new CPhilipsExtendedMainHeader(extendedMainHeader);
-
-  if(cachedExtendedMainHeader)
-  {
-    cachedExtendedMainHeader->setMedIOData(file);
-    cachedExtendedMainHeader->setDirectoryItem(dirItem);
-  }
-
-  LEAVE();
 }
 
 void CPhilipsDirectoryItemPrivate::cacheSubHeader(const CPhilipsSubHeader& subHeader)
@@ -634,21 +551,6 @@ void CPhilipsDirectoryItemPrivate::cacheSubHeader(const CPhilipsSubHeader& subHe
   {
     cachedSubHeader->setMedIOData(file);
     cachedSubHeader->setDirectoryItem(dirItem);
-  }
-
-  LEAVE();
-}
-
-void CPhilipsDirectoryItem::extendedMainHeaderWritten(const CPhilipsExtendedMainHeader& extendedMainHeader)
-{
-  ENTER();
-
-  // if the extendedMainHeaderWritten is the same as our cached extendedMainHeader we don't
-  // have to copy it again and can break out immediately
-  if(&extendedMainHeader != m_pData->cachedExtendedMainHeader)
-  {
-    // otherwise we make sure the written extendedMainHeader is cached
-    m_pData->cacheExtendedMainHeader(extendedMainHeader);
   }
 
   LEAVE();
@@ -1056,4 +958,9 @@ QDataStream& operator>>(QDataStream& stream, CPhilipsDirectoryItem& dItem)
 #endif
   LEAVE();
   return stream;
+}
+
+void CPhilipsDirectoryItem::setContentFlag(const CPhilipsDirectoryItem::ContentFlag flag)
+{
+  m_pData->contentFlag = flag;
 }

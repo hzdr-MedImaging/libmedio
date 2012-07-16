@@ -250,26 +250,25 @@ bool CPhilipsFile::open(QIODevice::OpenModeFlag mode)
       if(m_pData->isPhilipsFile(this))
       {
         D("Found philips format header.");
-        m_pData->cachedMainHeader = new CPhilipsMainHeader(this);
 
-        // now that we have created our proper MainHeader we try
-        // to load the header information and then load the
-        // Philips DirectoryList out of the PhilipsFile.
-        if(m_pData->cachedMainHeader->load())
+        // we first create the item directory and load it accordingly.
+        m_pData->directory = new CPhilipsDirectory(this);
+        if(m_pData->directory->load())
         {
-          m_pData->directory = new CPhilipsDirectory(this);
-          if(m_pData->directory->load())
-          {
-            // only if the directory loading also suceeded we
-            // finally loaded the philips file
+          m_pData->cachedMainHeader = new CPhilipsMainHeader(this);
+
+          // now that we have created our proper MainHeader we try
+          // to load the header information
+          if(m_pData->cachedMainHeader->load())
             result = true;
-          }
+          else
+            W("main header loading failed");
         }
+        else
+          W("directory loading failed");
       }
       else
-      {
         D("No philips format header found.");
-      }
 
       // close the file
       QFile::close();
@@ -458,22 +457,6 @@ bool CPhilipsFile::readMainHeader(CPhilipsMainHeader*& mainHeader)
   return result;
 }
 
-bool CPhilipsFile::readExtendedMainHeader(CPhilipsExtendedMainHeader*& extendedMainHeader)
-{
-  ENTER();
-  bool result = false;
-
-  ASSERT(m_pData->directory);
-
-  // before we are going to read the extendedMainHeader from the philips file we
-  // have to check wheter the file is correctly open in Read mode.
-  if(isReadable() && m_pData->directory)
-    result = m_pData->directory->readExtendedMainHeader(extendedMainHeader);
-  
-  RETURN(result);
-  return result;
-}
-
 bool CPhilipsFile::readSubHeader(CPhilipsSubHeader*& subHeader, short slice,
                                  short frame, short tilt)
 {
@@ -615,22 +598,6 @@ bool CPhilipsFile::writeMainHeader(CPhilipsMainHeader& mainHeader)
   // routines.
   result = mainHeader.save();
   
-  RETURN(result);
-  return result;
-}
-
-bool CPhilipsFile::writeExtendedMainHeader(CPhilipsExtendedMainHeader& extendedMainHeader)
-{
-  ENTER();
-  bool result = false;
-
-  ASSERT(m_pData->directory);
-
-  if(m_pData->directory)
-  {
-    result = m_pData->directory->writeExtendedMainHeader(extendedMainHeader);
-  }
-
   RETURN(result);
   return result;
 }
@@ -909,19 +876,6 @@ CPhilipsMainHeader* CPhilipsFile::createEmptyMainHeader()
 
   RETURN(pEmptyMainHaeder);
   return pEmptyMainHaeder;
-}
-
-CPhilipsExtendedMainHeader* CPhilipsFile::createEmptyExtendedMainHeader()
-{
-  ENTER();
-  CPhilipsExtendedMainHeader* pEmptyExtendedMainHeader = NULL;
-  if(isOpen())
-  {
-    pEmptyExtendedMainHeader = new CPhilipsExtendedMainHeader(this);
-  }
-
-  RETURN(pEmptyExtendedMainHeader);
-  return pEmptyExtendedMainHeader;
 }
 
 CPhilipsSubHeader* CPhilipsFile::createEmptySubHeader()

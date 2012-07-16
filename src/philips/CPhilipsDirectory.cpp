@@ -34,7 +34,7 @@
 // of a philips directory list
 #define PHILIPS_DIRHEAD_SIZE 16
 #define PHILIPS_DIRITEM_SIZE 16
-#define PHILIPS_DIRITEM_NUM 31
+#define PHILIPS_DIRITEM_NUM  31
 #define PHILIPS_DIRLIST_SIZE (PHILIPS_DIRHEAD_SIZE+PHILIPS_DIRITEM_NUM*PHILIPS_DIRITEM_SIZE)
 
 // the RAW structures used in the philips directory blocks
@@ -508,6 +508,7 @@ CPhilipsDirectoryItem* CPhilipsDirectoryPrivate::newDirItem(quint32 matrixID)
 {
   ENTER();
   CPhilipsDirectoryItem* pNewDItem = new CPhilipsDirectoryItem(file, matrixID);
+
   // now that we generated a new directory item we want to put
   // in our directory immediately, we have to first check at which
   // dataposition it should be placed
@@ -532,9 +533,8 @@ CPhilipsDirectoryItem* CPhilipsDirectoryPrivate::newDirItem(quint32 matrixID)
   // sync our main header again
   // we do not sync if the new diritem is an extended main header
   if(pNewDItem->isExtendedHeader() == false)
-  {
     file->reWriteMainHeader();
-  }
+
   RETURN(pNewDItem);
   return pNewDItem;
 }
@@ -735,10 +735,10 @@ short CPhilipsDirectory::numTilts() const
   return tiltsNum;
 }
 
-bool CPhilipsDirectory::readExtendedMainHeader(CPhilipsExtendedMainHeader*& extendedMainHeader)
+CPhilipsDirectoryItem* CPhilipsDirectory::extendedMainHeaderItem() const
 {
   ENTER();
-  bool result = false;
+  CPhilipsDirectoryItem* item = NULL;
   
   // we iterate through our dictionary looking for an extendedMainHeader
   QMapIterator<quint32, CPhilipsDirectoryItem*> i(m_pData->dirItems);
@@ -747,18 +747,22 @@ bool CPhilipsDirectory::readExtendedMainHeader(CPhilipsExtendedMainHeader*& exte
     i.next();
     if(i.value()->isExtendedHeader() == true)
     {
-      // get the directoryItem so that we can query the extendedMainHeaader from it
-      CPhilipsDirectoryItem* pDirItem = i.value();
-
-      if(pDirItem)
-        result = pDirItem->readExtendedMainHeader(extendedMainHeader);
-
+      // we found the extendedMainHeader item so lets return it
+      item = i.value();
       break;
     }
   }
+
+  // if we still didn't find any extened main header item in the
+  // directory we simply create one.
+  if(item == NULL)
+  {
+    item = m_pData->newDirItem(PHILIPS_EXTENDED_HEADER);
+    item->setContentFlag(CPhilipsDirectoryItem::Header);
+  }
   
-  RETURN(result);
-  return result;
+  RETURN(item);
+  return item;
 }
 
 bool CPhilipsDirectory::readSubHeader(CPhilipsSubHeader*& subHeader, short slice, short frame,
@@ -857,26 +861,6 @@ bool CPhilipsDirectory::readMatrix(char*& matrixData, unsigned int& len, CPhilip
   return result;
 }
 
-bool CPhilipsDirectory::writeExtendedMainHeader(const CPhilipsExtendedMainHeader& extendedMainHeader)
-{
-  ENTER();
-  bool result = false;
-
-  quint32 mID = PHILIPS_EXTENDED_HEADER;
-  CPhilipsDirectoryItem* pNewItem = m_pData->dirItems.value(mID);
-  if(pNewItem == NULL)
-  {
-    pNewItem = m_pData->newDirItem(mID);
-  }
-
-  result = pNewItem->writeExtendedMainHeader(extendedMainHeader);
-  if(result)
-    save();
-
-  RETURN(result);
-  return result;
-}
-
 bool CPhilipsDirectory::writeSubHeader(const CPhilipsSubHeader& subHeader,
                                        short slice, short frame, short tilt)
 {
@@ -893,14 +877,12 @@ bool CPhilipsDirectory::writeSubHeader(const CPhilipsSubHeader& subHeader,
     // this position
     CPhilipsDirectoryItem* pNewDItem = m_pData->dirItems.value(mID);
     if(pNewDItem == NULL)
-    {
       pNewDItem = m_pData->newDirItem(mID);
-    }
 
-  // then we make sure the subheader is written to the Philips file.
-  result = pNewDItem->writeSubHeader(subHeader);
-  if(result)
-    save();
+    // then we make sure the subheader is written to the Philips file.
+    result = pNewDItem->writeSubHeader(subHeader);
+    if(result)
+      save();
   }
 
   RETURN(result);

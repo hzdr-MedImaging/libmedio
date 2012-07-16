@@ -26,7 +26,6 @@
 #include "CPhilipsDirectoryItem.h"
 #include "CPhilipsFile.h"
 #include "CPhilipsMainHeader.h"
-#include "CPhilipsExtendedMainHeader.h"
 
 #include <QDataStream>
 #include <QDateTime>
@@ -60,34 +59,46 @@ float CPhilipsSubHeaderImage::scale_Factor(bool& ok) const
 {
   ENTER();
 
-  float scaleFactor = 1.0;
+  float scaleFactor = 1.0f;
   ok = false;
 
-  if(m_pMedIOData->isReadable())
+  // check if the SUV scaling factor has been set
+  // in the subheader.
+  if(suvscl() > 0.0f)
   {
-    if(suvscl() > 0.0f)
+    if(m_pMedIOData->isReadable())
     {
       CPhilipsMainHeader* mainHeader = NULL;
-      CPhilipsExtendedMainHeader* extMainHeader = NULL;
       CPhilipsFile* file = static_cast<CPhilipsFile*>(m_pMedIOData);
 
-      if(file->readMainHeader(mainHeader) &&
-         file->readExtendedMainHeader(extMainHeader))
+      if(file->readMainHeader(mainHeader))
       {
         // now calculate the scale factor
         float dosage = mainHeader->activity() * 1000000.0f; // Bq
-        float deltaT = static_cast<float>(extMainHeader->acq_date_time() -
-                                          extMainHeader->injection_date_time()); // s
+        float deltaT = static_cast<float>(mainHeader->acq_date_time() -
+                                        mainHeader->injection_date_time()); // s
         float halfLife = mainHeader->halfLife() * 60.0f; // s
         float patientWeight = static_cast<float>(mainHeader->weight()); // g
 
-        scaleFactor = suvscl() * dosage * qExp(-qLn(2) * (deltaT/halfLife)) / patientWeight;
+        if(patientWeight != 0 && halfLife != 0 &&
+           dosage != 0)
+        {
+          // calculate the image scale factor by using dosage, deltaT, halfLife and
+          // patient weight to get the scale factor which should be used scale each
+          // image matrix element to get the real values.
+          scaleFactor = suvscl() * dosage * qExp(-qLn(2) * (deltaT/halfLife)) / patientWeight;
+          ok = true;
+        }
 
-        ok = true;
+        delete mainHeader;
       }
     }
-    else
-      scaleFactor = imgscl();
+  }
+  else
+  {
+    // else we use the imgscl() factor right away.
+    scaleFactor = imgscl();
+    ok = true;
   }
 
   RETURN(scaleFactor);

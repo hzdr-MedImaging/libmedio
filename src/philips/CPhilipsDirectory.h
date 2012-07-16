@@ -57,6 +57,9 @@ class CPhilipsDirectory
     CPhilipsDirectoryItem* item(short slice, short frame = 1,
                                 short tilt = 0);
 
+    // accessor method to get extended main header item
+    CPhilipsDirectoryItem* extendedMainHeaderItem() const;
+
     // methods to calculate the real amount
     // of frame/slice/tilt numbers carried in the directory.
     short maxFrame(void) const;
@@ -67,10 +70,8 @@ class CPhilipsDirectory
     short numTilts(void) const;
 
     // read methods
-    bool readExtendedMainHeader(CPhilipsExtendedMainHeader*& extendedMainHeader);
     bool readSubHeader(CPhilipsSubHeader*& subHeader,
                        short slice, short frame=1, short tilt=0);
-
     bool readMatrix(QByteArray*& matrixData,
                     short slice, short frame=1, short tilt=0);
     bool readMatrix(char*& matrixData, unsigned int& len,
@@ -81,7 +82,6 @@ class CPhilipsDirectory
                     short slice, short frame=1, short tilt=0);
 
     // write methods
-    bool writeExtendedMainHeader(const CPhilipsExtendedMainHeader& extendedMainHeader);
     bool writeSubHeader(const CPhilipsSubHeader& subHeader,
                         short slice, short frame = 1, short tilt = 0);
     bool writeMatrix(const QByteArray& matrix,
