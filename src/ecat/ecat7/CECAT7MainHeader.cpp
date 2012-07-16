@@ -979,6 +979,7 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
       setPatient_Height(head->height() / 10.0f); // mm -> cm
       setBranching_Fraction(static_cast<float>(head->abundance()) / 10.0f); // %
       setBed_Elevation(head->table_height());
+      setPhysician_Name(head->referring_physician());
 
       bResult = true;
     }

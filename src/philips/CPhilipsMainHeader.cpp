@@ -1353,7 +1353,19 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHea
           setActivity(header->dosage() / 1000000.0f); // Bq -> MBq
           setAqprotocol_Name(header->study_Type());
           m_pData->ecat2philipsAcquisitionType(header->acquisition_Type());
+
+          QString patientName(header->patient_Name());
+          setDpat_name(patientName.replace(", ", "^").toAscii().constData());
+          setSeries_desc(header->study_Description());
+          setInjection_date_time(header->dose_Start_Time());
+          setAcq_date_time(header->scan_Start_Time());
+          setRadiopharm_name(header->radiopharmaceutical());
           m_pData->ecat2philipsSex(header->patient_Sex());
+          setDpat_id(header->patient_ID());
+          setHeight(header->patient_Height() * 10.0f); // cm -> mm
+          setAbundance(header->branching_Fraction() * 10.0f); // %
+          setTable_height(header->bed_Elevation());
+          setReferring_physician(header->physician_Name());
 
           bResult = true;
         }

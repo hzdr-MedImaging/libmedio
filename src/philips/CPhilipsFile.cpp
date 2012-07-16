@@ -203,7 +203,7 @@ short CPhilipsFile::numSlices(void)
        (minSlice > 0) && (maxSlice > 0))
     {
       if((dist % sliceThickness) != 0)
-        W("(maxSlice - minSlice) is no multiple of the slice thickness.");
+        W("(maxSlice:%d - minSlice:%d) is no multiple of the slice thickness: %d", maxSlice, minSlice, sliceThickness);
 
       slicesNum  = dist / sliceThickness + 1;
     }
