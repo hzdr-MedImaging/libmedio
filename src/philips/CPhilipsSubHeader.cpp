@@ -191,6 +191,32 @@ void CPhilipsSubHeader::clear()
   // clear our header structure first
   memset(&m_pData->header, 0, sizeof(struct CPhilipsSubHeaderPrivate::HeaderData));
 
+  // set the fill bytes
+  m_pData->header.magic_number[0]  = 0x01;
+  m_pData->header.magic_number[1]  = 0x00;
+  m_pData->header.magic_number[2]  = 0x00;
+  m_pData->header.magic_number[3]  = 0x01;
+  m_pData->header.magic_number[4]  = 0x00;
+  m_pData->header.magic_number[5]  = 0x16;
+  m_pData->header.magic_number[6]  = 0xFF;
+  m_pData->header.magic_number[7]  = 0xFF;
+  m_pData->header.magic_number[8]  = 0x00;
+  m_pData->header.magic_number[9]  = 0x19;
+  m_pData->header.magic_number[10] = 0x00;
+  m_pData->header.magic_number[11] = 0x3E;
+  m_pData->header.magic_number[12] = 0x00;
+  m_pData->header.magic_number[13] = 0x3F;
+
+  m_pData->header.dummy1[0] = 0x00;
+  m_pData->header.dummy1[1] = 0x25;
+  m_pData->header.dummy1[2] = 0xFF;
+  m_pData->header.dummy1[3] = 0xFF;
+
+  m_pData->header.dummy2[0] = 0x00;
+  m_pData->header.dummy2[1] = 0x11;
+  m_pData->header.dummy2[2] = 0xFF;
+  m_pData->header.dummy2[3] = 0xFF;
+
   // set some default values
   m_pData->header.version = 1; // the current version
   m_pData->header.magfac = 1.0; // Not used. always set to 1.0
@@ -215,7 +241,7 @@ bool CPhilipsSubHeader::load(void)
 
   // we use a ByteArray buffer to speed up the endianess
   // decoding
-  if(m_pMedIOData->read((char *)&m_pData->header, sizeof(m_pData->header)) != sizeof(m_pData->header))
+  if(m_pMedIOData->read(reinterpret_cast<char*>(&m_pData->header), sizeof(m_pData->header)) != sizeof(m_pData->header))
   {
     RETURN(false);
     return false;
@@ -307,7 +333,7 @@ bool CPhilipsSubHeader::load(void)
 #if defined(DEBUG)
   D("Philips Image SubHeader loaded:");
   D("----------------------------");
-  D("magic_number            : %014lx", m_pData->header.magic_number);
+  D("magic_number            : %02x%02x", (quint32)m_pData->header.magic_number[0], (quint32)m_pData->header.magic_number[0]);
   D("version                 : %d", m_pData->header.version);
   D("atten_corr              : %s", m_pData->header.atten_corr);
   D("actual_bedpos           : %f", m_pData->header.actual_bedpos);

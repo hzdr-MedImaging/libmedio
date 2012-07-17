@@ -48,6 +48,7 @@ class CPhilipsFile : public CMedIOData
     // constructors
     CPhilipsFile(const QString& filename,
                  CPhilipsMainHeader::File_Type fileType = CPhilipsMainHeader::Unknown);
+    CPhilipsFile(CPhilipsMainHeader::File_Type fileType = CPhilipsMainHeader::Unknown);
     ~CPhilipsFile();
 
     // static methods for the MedIOData Interface
@@ -71,40 +72,37 @@ class CPhilipsFile : public CMedIOData
     short numFrames(void) const;
     short maxSlice(void) const;
     short minSlice(void) const;
-    short numSlices(void);
+    short numSlices(short frame=-1) const;
     short numTilts(void) const;
 
     // interface methods to read out specific data from the philips files
     bool readMainHeader(CPhilipsMainHeader*& mainHeader);
-    bool readSubHeader(CPhilipsSubHeader*& subHeader, short slice, short frame=1, short tilt=0);
-
-    bool readFrame(char*& matrixData, unsigned int& len, short frame);
-
+    bool readSubHeader(CPhilipsSubHeader*& subHeader, short frame=-1, short slice=-1, short tilt=0);
     bool readMatrix(QByteArray*& matrixData,
-                    short slice, short frame = 1, short tilt = 0);
+                    short frame=-1, short slice=-1, short tilt=0);
     bool readMatrix(char*& matrixData, unsigned int& len,
-                    short slice, short frame = 1, short tilt = 0);
+                    short frame=-1, short slice=-1, short tilt=0);
     bool readMatrix(QByteArray*& matrixData, CPhilipsSubHeader*& subHeader,
-                    short slice, short frame = 1, short tilt = 0);
+                    short frame=-1, short slice=-1, short tilt=0);
     bool readMatrix(char*& matrixData, unsigned int& len, CPhilipsSubHeader*& subHeader,
-                    short slice, short frame = 1, short tilt = 0);
+                    short frame=-1, short slice=-1, short tilt=0);
 
     // methods to write out headers/data to the file.
     bool writeMainHeader(CPhilipsMainHeader& mainHeader);
     bool writeSubHeader(const CPhilipsSubHeader& subHeader,
-                        short slice, short frame = 1, short tilt = 0);
+                        short frame=-1, short slice=-1, short tilt=0);
     bool writeMatrix(const QByteArray& matrixData,
-                     short slice, short frame=1, short tilt=0);
+                     short frame=-1, short slice=-1, short tilt=0);
     bool writeMatrix(const char* matrixData, unsigned int size,
-                     short slice, short frame=1, short tilt=0);
+                     short frame=-1, short slice=-1, short tilt=0);
     bool writeMatrix(const QByteArray& matrixData, const CPhilipsSubHeader& subHeader,
-                     short slice, short frame=1, short tilt=0);
+                     short frame=-1, short slice=-1, short tilt=0);
     bool writeMatrix(const char* matrixData, unsigned int size, const CPhilipsSubHeader& subHeader,
-                     short slice, short frame=1, short tilt=0);
+                     short frame=-1, short slice=-1, short tilt=0);
     bool writeMatrix(const QByteArray& matrixData, CPhilipsSubHeader::Data_Type type, 
-                     short slice, short frame=1, short tilt=0);
+                     short frame=-1, short slice=-1, short tilt=0);
     bool writeMatrix(const char* matrixData, unsigned int size, CPhilipsSubHeader::Data_Type type,
-                     short slice, short frame=1, short tilt=0);
+                     short frame=-1, short slice=-1, short tilt=0);
 
     // more advanced methods to access the directory list of a philips file
     CPhilipsDirectory* directory() const;

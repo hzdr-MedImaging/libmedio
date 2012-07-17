@@ -91,6 +91,20 @@ CPhilipsFile::CPhilipsFile(const QString& filename, CPhilipsMainHeader::File_Typ
   LEAVE();
 }
 
+CPhilipsFile::CPhilipsFile(CPhilipsMainHeader::File_Type fileType)
+  : CMedIOData(QString())
+{
+  ENTER();
+
+  // allocate data from our private instance class
+  m_pData = new CPhilipsFilePrivate();
+  m_pData->fileType = fileType;
+  m_pData->directory = NULL;
+  m_pData->cachedMainHeader = NULL;
+
+  LEAVE();
+}
+
 CPhilipsFile::~CPhilipsFile()
 {
   ENTER();
@@ -161,56 +175,9 @@ short CPhilipsFile::minSlice(void) const
   return m_pData->directory->minSlice();
 }
 
-short CPhilipsFile::numSlices(void)
+short CPhilipsFile::numSlices(short frame) const
 {
-  ENTER();
-  short slicesNum = 0;
-
-  if(isOpen())
-  {
-    // if there is a cachedMainHeader we use it
-    // instead of loading the mainheader
-    bool cachedMainHeaderUsed = true;
-    CPhilipsMainHeader* mainHeader = m_pData->cachedMainHeader;
-    SHOWPOINTER(mainHeader);
-    if(mainHeader == NULL)
-    {
-      cachedMainHeaderUsed = false;
-      if(readMainHeader(mainHeader) == false)
-      {
-        delete mainHeader;
-
-        RETURN(0);
-        return 0;
-      }
-    }
-
-    // we need to get the min and max slice
-    // and calculate the number of slices with the slice thickness
-    short minSlice = this->minSlice();
-    short maxSlice = this->maxSlice();
-    short dist = maxSlice - minSlice;
-    short sliceThickness = mainHeader->slcthk();
-
-    // we have to delete the mainHeader
-    // if we didn't use the cachedMainHeader
-    if(cachedMainHeaderUsed == false)
-      delete mainHeader;
-
-    // we only calculate the number of slices if
-    // the slice thickness is set, to not divide by zero
-    if((sliceThickness > 0) &&
-       (minSlice > 0) && (maxSlice > 0))
-    {
-      if((dist % sliceThickness) != 0)
-        W("(maxSlice:%d - minSlice:%d) is no multiple of the slice thickness: %d", maxSlice, minSlice, sliceThickness);
-
-      slicesNum  = dist / sliceThickness + 1;
-    }
-  }
-
-  RETURN(slicesNum);
-  return slicesNum;
+  return m_pData->directory->numSlices(frame);
 }
 
 short CPhilipsFile::numTilts(void) const
@@ -457,133 +424,214 @@ bool CPhilipsFile::readMainHeader(CPhilipsMainHeader*& mainHeader)
   return result;
 }
 
-bool CPhilipsFile::readSubHeader(CPhilipsSubHeader*& subHeader, short slice,
-                                 short frame, short tilt)
+bool CPhilipsFile::readSubHeader(CPhilipsSubHeader*& subHeader,
+                                 short frame, short slice, short tilt)
 {
   ENTER();
   bool result = false;
-
   ASSERT(m_pData->directory);
+
+  subHeader = NULL;
 
   // before we are going to read the SubHeader from the philips file we
   // have to check wheter the file is correctly open in Read mode.
   if(isReadable() && m_pData->directory)
-    result = m_pData->directory->readSubHeader(subHeader, slice, frame, tilt);
+    result = m_pData->directory->readSubHeader(subHeader, frame, slice, tilt);
   
   RETURN(result);
   return result;
 }
 
-bool CPhilipsFile::readFrame(char*& matrixData, unsigned int& len, short frame)
+bool CPhilipsFile::readMatrix(QByteArray*& matrixData,
+                              short frame, short slice, short tilt)
 {
   ENTER();
   bool result = false;
+  ASSERT(m_pData->directory);
+  
+  matrixData = NULL;
 
-  CPhilipsMainHeader* mainHeader = NULL;
-  if(readMainHeader(mainHeader))
+  // we have to perform a search within the whole DirectoryList
+  // to get the MatrixData but we just need to query the
+  // Main directory here as it will forward the query to it's sub
+  // directories
+  if(isReadable() && m_pData->directory)
   {
-    short sliceThickness = mainHeader->slcthk();
-  
-    QByteArray pFrameData;
-  
-    int max = maxSlice();
-    for(int slice = minSlice(); slice <= max; slice += sliceThickness)
+    // if slice == -1 then we sum all slices of a specified frame
+    if(slice == -1)
     {
-      unsigned int length = 0;
-      char* buffer = NULL;
-      result = readMatrix(buffer, length, slice, frame);
-
-      if(result == false)
+      short minsl = minSlice();
+      short maxsl = maxSlice();
+      short incr = (maxsl-minsl)/(numSlices(frame)-1);
+      for(short curSlice=minsl; curSlice <= maxsl; curSlice += incr)
       {
-        delete []buffer;
-        break;
+        QByteArray* sliceData = NULL;
+        if(m_pData->directory->readMatrix(sliceData, frame, curSlice, tilt))
+        {
+          if(matrixData != NULL)
+          {
+            matrixData->append(*sliceData);
+            delete sliceData;
+          }
+          else
+            matrixData = sliceData;
+
+          result = true;
+        }
+        else
+        {
+          delete matrixData;
+          matrixData = NULL;
+          result = false;
+          break;
+        }
       }
-
-      pFrameData.append(buffer, length);
-      delete []buffer;
     }
-
-    if(result == true)
-    {
-      len = pFrameData.size();
-      matrixData = new char[len];
-      memcpy(matrixData, pFrameData.data(), len);
-    }
+    else
+      result = m_pData->directory->readMatrix(matrixData, frame, slice, tilt);
   }
 
   RETURN(result);
   return result;
 }
 
-bool CPhilipsFile::readMatrix(QByteArray*& matrixData,
-                              short slice, short frame, short tilt)
-{
-  ENTER();
-  bool result = false;
-  ASSERT(m_pData->directory);
-  
-  // we have to perform a search within the whole DirectoryList
-  // to get the MatrixData but we just need to query the
-  // Main directory here as it will forward the query to it's sub
-  // directories
-  if(isReadable() && m_pData->directory)
-    result = m_pData->directory->readMatrix(matrixData, slice, frame, tilt);
-
-  RETURN(result);
-  return result;
-}
-
 bool CPhilipsFile::readMatrix(char*& matrixData, unsigned int& len,
-                              short slice, short frame, short tilt)
+                              short frame, short slice, short tilt)
 {
   ENTER();
   bool result = false;
-
   ASSERT(m_pData->directory);
+
+  matrixData = NULL;
+  len = 0;
 
   // we have to perform a search within the whole DirectoryList
   // to get the MatrixData but we just need to query the
   // Main directory here as it will forward the query to it's sub
   // directories
   if(isReadable() && m_pData->directory)
-    result = m_pData->directory->readMatrix(matrixData, len, slice, frame, tilt);
+  {
+    // if slice == -1 then we sum all slices of a specified frame
+    if(slice == -1)
+    {
+      // we do that by called the QByteArray version of that function
+      // instead
+      QByteArray* frameData = NULL;
+      if(readMatrix(frameData, frame, slice, tilt) == true)
+      {
+        // now we copy frameData to a new char array
+        len = frameData->size();
+        matrixData = new char[len];
+        memcpy(matrixData, frameData->constData(), len);
+
+        delete frameData;
+        result = true;
+      }
+    }
+    else
+      result = m_pData->directory->readMatrix(matrixData, len, frame, slice, tilt);
+  }
 
   RETURN(result);
   return result;
 }
 
 bool CPhilipsFile::readMatrix(QByteArray*& matrixData, CPhilipsSubHeader*& subHeader,
-                              short slice, short frame, short tilt)
+                              short frame, short slice, short tilt)
 {
   ENTER();
   bool result = false;
   ASSERT(m_pData->directory);
   
+  matrixData = NULL;
+  subHeader = NULL;
+
   // we have to perform a search within the whole DirectoryList
   // to get the MatrixData but we just need to query the
   // Main directory here as it will forward the query to it's sub
   // directories
   if(isReadable() && m_pData->directory)
-    result = m_pData->directory->readMatrix(matrixData, subHeader, slice, frame, tilt);
+  {
+    // if slice == -1 then we sum all slices of a specified frame
+    if(slice == -1)
+    {
+      short minsl = minSlice();
+      short maxsl = maxSlice();
+      short incr = (maxsl-minsl)/(numSlices(frame)-1);
+
+      // let us first get the subheader which is the same for all slices
+      // (hopefully)
+      if(m_pData->directory->readSubHeader(subHeader, frame, minsl, tilt))
+      {
+        for(short curSlice=minsl; curSlice <= maxsl; curSlice += incr)
+        {
+          QByteArray* sliceData = NULL;
+          if(m_pData->directory->readMatrix(sliceData, frame, curSlice, tilt))
+          {
+            if(matrixData != NULL)
+            {
+              matrixData->append(*sliceData);
+              delete sliceData;
+            }
+            else
+              matrixData = sliceData;
+
+            result = true;
+          }
+          else
+          {
+            delete matrixData;
+            matrixData = NULL;
+            result = false;
+            break;
+          }
+        }
+      }
+    }
+    else
+      result = m_pData->directory->readMatrix(matrixData, subHeader, frame, slice, tilt);
+  }
 
   RETURN(result);
   return result;
 }
 
 bool CPhilipsFile::readMatrix(char*& matrixData, unsigned int& len, CPhilipsSubHeader*& subHeader,
-                              short slice, short frame, short tilt)
+                              short frame, short slice, short tilt)
 {
   ENTER();
   bool result = false;
-
   ASSERT(m_pData->directory);
+
+  matrixData = NULL;
+  len = 0;
 
   // we have to perform a search within the whole DirectoryList
   // to get the MatrixData but we just need to query the
   // Main directory here as it will forward the query to it's sub
   // directories
   if(isReadable() && m_pData->directory)
-    result = m_pData->directory->readMatrix(matrixData, len, subHeader, slice, frame, tilt);
+  {
+    // if slice == -1 then we sum all slices of a specified frame
+    if(slice == -1)
+    {
+      // we do that by called the QByteArray version of that function
+      // instead
+      QByteArray* frameData = NULL;
+      if(readMatrix(frameData, subHeader, frame, slice, tilt) == true)
+      {
+        // now we copy frameData to a new char array
+        len = frameData->size();
+        matrixData = new char[len];
+        memcpy(matrixData, frameData->constData(), len);
+
+        delete frameData;
+        result = true;
+      }
+    }
+    else
+      result = m_pData->directory->readMatrix(matrixData, len, subHeader, frame, slice, tilt);
+  }
 
   RETURN(result);
   return result;
@@ -602,7 +650,8 @@ bool CPhilipsFile::writeMainHeader(CPhilipsMainHeader& mainHeader)
   return result;
 }
 
-bool CPhilipsFile::writeSubHeader(const CPhilipsSubHeader& subHeader, short slice, short frame, short tilt)
+bool CPhilipsFile::writeSubHeader(const CPhilipsSubHeader& subHeader,
+                                  short frame, short slice, short tilt)
 {
   ENTER();
   bool result = false;
@@ -612,7 +661,7 @@ bool CPhilipsFile::writeSubHeader(const CPhilipsSubHeader& subHeader, short slic
   // forward the write request to the MainDirectory which is going to manage
   // everything else for us
   if(m_pData->directory &&
-     m_pData->directory->writeSubHeader(subHeader, slice, frame, tilt))
+     m_pData->directory->writeSubHeader(subHeader, frame, slice, tilt))
   {
     // make sure the slice/frame/tilt parameters in the mainheader
     // are in sync
@@ -639,7 +688,7 @@ bool CPhilipsFile::writeSubHeader(const CPhilipsSubHeader& subHeader, short slic
 }
 
 bool CPhilipsFile::writeMatrix(const QByteArray& matrixData, 
-                               short slice, short frame, short tilt)
+                               short frame, short slice, short tilt)
 {
   ENTER();
   bool result = false;
@@ -649,7 +698,7 @@ bool CPhilipsFile::writeMatrix(const QByteArray& matrixData,
   // forward the write request to the MainDirectory which is going to manage
   // everything else for us
   if(m_pData->directory &&
-     m_pData->directory->writeMatrix(matrixData, slice, frame, tilt))
+     m_pData->directory->writeMatrix(matrixData, frame, slice, tilt))
   {
     // make sure the frames/planes/gates/bedpos parameters in the mainheader
     // are in sync
@@ -676,7 +725,7 @@ bool CPhilipsFile::writeMatrix(const QByteArray& matrixData,
 }
 
 bool CPhilipsFile::writeMatrix(const char* matrixData, unsigned int size,
-                               short slice, short frame, short tilt)
+                               short frame, short slice, short tilt)
 {
   ENTER();
   bool result = false;
@@ -686,7 +735,7 @@ bool CPhilipsFile::writeMatrix(const char* matrixData, unsigned int size,
   // forward the write request to the MainDirectory which is going to manage
   // everything else for us
   if(m_pData->directory && 
-     m_pData->directory->writeMatrix(matrixData, size, slice, frame, tilt))
+     m_pData->directory->writeMatrix(matrixData, size, frame, slice, tilt))
   {
     // make sure the frames/planes/gates/bedpos parameters in the mainheader
     // are in sync
@@ -713,7 +762,7 @@ bool CPhilipsFile::writeMatrix(const char* matrixData, unsigned int size,
 }
 
 bool CPhilipsFile::writeMatrix(const QByteArray& matrixData, const CPhilipsSubHeader& subHeader,
-                               short slice, short frame, short tilt)
+                               short frame, short slice, short tilt)
 {
   ENTER();
   bool result = false;
@@ -723,7 +772,7 @@ bool CPhilipsFile::writeMatrix(const QByteArray& matrixData, const CPhilipsSubHe
   // forward the write request to the MainDirectory which is going to manage
   // everything else for us
   if(m_pData->directory &&
-     m_pData->directory->writeMatrix(matrixData, subHeader, slice, frame, tilt))
+     m_pData->directory->writeMatrix(matrixData, subHeader, frame, slice, tilt))
   {
     // make sure the frames/planes/gates/bedpos parameters in the mainheader
     // are in sync
@@ -750,7 +799,7 @@ bool CPhilipsFile::writeMatrix(const QByteArray& matrixData, const CPhilipsSubHe
 }
 
 bool CPhilipsFile::writeMatrix(const char* matrixData, unsigned int size, const CPhilipsSubHeader& subHeader,
-                               short slice, short frame, short tilt)
+                               short frame, short slice, short tilt)
 {
   ENTER();
   bool result = false;
@@ -760,7 +809,7 @@ bool CPhilipsFile::writeMatrix(const char* matrixData, unsigned int size, const 
   // forward the write request to the MainDirectory which is going to manage
   // everything else for us
   if(m_pData->directory && 
-     m_pData->directory->writeMatrix(matrixData, size, subHeader, slice, frame, tilt))
+     m_pData->directory->writeMatrix(matrixData, size, subHeader, frame, slice, tilt))
   {
     // make sure the frames/planes/gates/bedpos parameters in the mainheader
     // are in sync
@@ -787,7 +836,7 @@ bool CPhilipsFile::writeMatrix(const char* matrixData, unsigned int size, const 
 }
 
 bool CPhilipsFile::writeMatrix(const QByteArray& matrixData, CPhilipsSubHeader::Data_Type type, 
-                               short slice, short frame, short tilt)
+                               short frame, short slice, short tilt)
 {
   ENTER();
   bool result = false;
@@ -797,7 +846,7 @@ bool CPhilipsFile::writeMatrix(const QByteArray& matrixData, CPhilipsSubHeader::
   // forward the write request to the MainDirectory which is going to manage
   // everything else for us
   if(m_pData->directory &&
-     m_pData->directory->writeMatrix(matrixData, type, slice, frame, tilt))
+     m_pData->directory->writeMatrix(matrixData, type, frame, slice, tilt))
   {
     // make sure the frames/planes/gates/bedpos parameters in the mainheader
     // are in sync
@@ -824,7 +873,7 @@ bool CPhilipsFile::writeMatrix(const QByteArray& matrixData, CPhilipsSubHeader::
 }
 
 bool CPhilipsFile::writeMatrix(const char* matrixData, unsigned int size, CPhilipsSubHeader::Data_Type type,
-                               short slice, short frame, short tilt)
+                               short frame, short slice, short tilt)
 {
   ENTER();
   bool result = false;
@@ -834,7 +883,7 @@ bool CPhilipsFile::writeMatrix(const char* matrixData, unsigned int size, CPhili
   // forward the write request to the MainDirectory which is going to manage
   // everything else for us
   if(m_pData->directory && 
-     m_pData->directory->writeMatrix(matrixData, size, type, slice, frame, tilt))
+     m_pData->directory->writeMatrix(matrixData, size, type, frame, slice, tilt))
   {
     // make sure the frames/planes/gates/bedpos parameters in the mainheader
     // are in sync

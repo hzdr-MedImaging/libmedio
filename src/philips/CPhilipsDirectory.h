@@ -54,8 +54,7 @@ class CPhilipsDirectory
     bool isEmpty() const;
     unsigned int count() const;
     CPhilipsDirectoryItem* operator[](unsigned int num) const;
-    CPhilipsDirectoryItem* item(short slice, short frame = 1,
-                                short tilt = 0);
+    CPhilipsDirectoryItem* item(short frame=-1, short slice=-1, short tilt=0);
 
     // accessor method to get extended main header item
     CPhilipsDirectoryItem* extendedMainHeaderItem() const;
@@ -67,35 +66,37 @@ class CPhilipsDirectory
     short numFrames(void) const;
     short maxSlice(void) const;
     short minSlice(void) const;
+    short numSlices(short frame=-1) const;
     short numTilts(void) const;
 
     // read methods
     bool readSubHeader(CPhilipsSubHeader*& subHeader,
-                       short slice, short frame=1, short tilt=0);
+                       short frame=-1, short slice=-1, short tilt=0);
     bool readMatrix(QByteArray*& matrixData,
-                    short slice, short frame=1, short tilt=0);
+                    short frame=-1, short slice=-1, short tilt=0);
     bool readMatrix(char*& matrixData, unsigned int& len,
-                    short slice, short frame=1, short tilt=0);
+                    short frame=-1, short slice=-1, short tilt=0);
     bool readMatrix(QByteArray*& matrixData, CPhilipsSubHeader*& subHeader,
-                    short slice, short frame=1, short tilt=0);
+                    short frame=-1, short slice=-1, short tilt=0);
     bool readMatrix(char*& matrixData, unsigned int& len, CPhilipsSubHeader*& subHeader,
-                    short slice, short frame=1, short tilt=0);
+                    short frame=-1, short slice=-1, short tilt=0);
 
     // write methods
     bool writeSubHeader(const CPhilipsSubHeader& subHeader,
-                        short slice, short frame = 1, short tilt = 0);
+                        short frame=-1, short slice=-1, short tilt=0);
     bool writeMatrix(const QByteArray& matrix,
-                     short slice, short frame=1, short tilt=1);
+                     short frame=-1, short slice=-1, short tilt=0);
     bool writeMatrix(const char* matrix, unsigned int size,
-                     short slice, short frame=1, short tilt=1);
+                     short frame=-1, short slice=-1, short tilt=0);
     bool writeMatrix(const QByteArray& matrix, CPhilipsSubHeader::Data_Type type,
-                     short slice, short frame=1, short tilt=1);
+                     short frame=-1, short slice=-1, short tilt=0);
     bool writeMatrix(const char* matrix, unsigned int size, CPhilipsSubHeader::Data_Type type,
-                     short slice, short frame=1, short tilt=1);
+                     short frame=-1, short slice=-1, short tilt=0);
     bool writeMatrix(const QByteArray& matrix, const CPhilipsSubHeader& subHeader,
-                     short slice, short frame=1, short tilt=1);
+                     short frame=-1, short slice=-1, short tilt=0);
     bool writeMatrix(const char* matrix, unsigned int size, const CPhilipsSubHeader& subHeader,
-                     short slice, short frame=1, short tilt=1);
+                     short frame=-1, short slice=-1, short tilt=0);
+
   private:
     CPhilipsDirectoryPrivate* m_pData;
 };

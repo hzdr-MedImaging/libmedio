@@ -484,11 +484,13 @@ unsigned int CPhilipsDirectory::count() const
   return m_pData->dirItems.count();
 }
 
-CPhilipsDirectoryItem* CPhilipsDirectory::item(short slice, short frame,
-                                               short tilt)
+CPhilipsDirectoryItem* CPhilipsDirectory::item(short frame, short slice, short tilt)
 {
   ENTER();
   CPhilipsDirectoryItem* dirItem = NULL;
+
+  if(frame == -1) frame = minFrame();
+  if(slice == -1) slice = minSlice();
 
   if(matrixParamsValid(slice, frame, tilt))
   {
@@ -708,6 +710,33 @@ short CPhilipsDirectory::minSlice() const
   return slicesMin;
 }
 
+short CPhilipsDirectory::numSlices(short frame) const
+{
+  ENTER();
+  short numSlices = 0;
+
+  if(frame == -1)
+    frame = minFrame();
+
+  // we iterate through our dictionary looking for the lowest
+  // available slice number
+  QMapIterator<quint32, CPhilipsDirectoryItem*> i(m_pData->dirItems);
+  while(i.hasNext())
+  {
+    i.next();
+
+    // skip extended header
+    if(i.value()->isExtendedHeader() == false)
+    {
+      if(i.value()->frame() == frame)
+        numSlices++;
+    }
+  }
+
+  RETURN(numSlices);
+  return numSlices;
+}
+
 short CPhilipsDirectory::numTilts() const
 {
   ENTER();
@@ -765,13 +794,15 @@ CPhilipsDirectoryItem* CPhilipsDirectory::extendedMainHeaderItem() const
   return item;
 }
 
-bool CPhilipsDirectory::readSubHeader(CPhilipsSubHeader*& subHeader, short slice, short frame,
-                                      short tilt)
+bool CPhilipsDirectory::readSubHeader(CPhilipsSubHeader*& subHeader,
+                                      short frame, short slice, short tilt)
 {
   ENTER();
   bool result = false;
-  D("IN directory readSubHeader");
-  
+
+  if(frame == -1) frame = minFrame();
+  if(slice == -1) slice = minSlice();
+
   if(matrixParamsValid(slice, frame, tilt))
   {
     // get the directoryItem so that we can query the matrix from it
@@ -786,11 +817,15 @@ bool CPhilipsDirectory::readSubHeader(CPhilipsSubHeader*& subHeader, short slice
 }
 
 bool CPhilipsDirectory::readMatrix(QByteArray*& matrixData,
-                                   short slice, short frame, short tilt)
+                                   short frame, short slice, short tilt)
 {
   ENTER();
   bool result = false;
 
+  if(frame == -1) frame = minFrame();
+  if(slice == -1) slice = minSlice();
+
+D("readMatrix: %d %d %d", frame, slice, tilt);
   if(matrixParamsValid(slice, frame, tilt))
   {
     // get the directoryItem so that we can query the matrix from it
@@ -805,10 +840,13 @@ bool CPhilipsDirectory::readMatrix(QByteArray*& matrixData,
 }
 
 bool CPhilipsDirectory::readMatrix(char*& matrixData, unsigned int& len,
-                                   short slice, short frame, short tilt)
+                                   short frame, short slice, short tilt)
 {
   ENTER();
   bool result = false;
+
+  if(frame == -1) frame = minFrame();
+  if(slice == -1) slice = minSlice();
 
   if(matrixParamsValid(slice, frame, tilt))
   {
@@ -824,10 +862,13 @@ bool CPhilipsDirectory::readMatrix(char*& matrixData, unsigned int& len,
 }
 
 bool CPhilipsDirectory::readMatrix(QByteArray*& matrixData, CPhilipsSubHeader*& subHeader,
-                                   short slice, short frame, short tilt)
+                                   short frame, short slice, short tilt)
 {
   ENTER();
   bool result = false;
+
+  if(frame == -1) frame = minFrame();
+  if(slice == -1) slice = minSlice();
 
   if(matrixParamsValid(slice, frame, tilt))
   {
@@ -843,10 +884,13 @@ bool CPhilipsDirectory::readMatrix(QByteArray*& matrixData, CPhilipsSubHeader*& 
 }
 
 bool CPhilipsDirectory::readMatrix(char*& matrixData, unsigned int& len, CPhilipsSubHeader*& subHeader,
-                                   short slice, short frame, short tilt)
+                                   short frame, short slice, short tilt)
 {
   ENTER();
   bool result = false;
+ 
+  if(frame == -1) frame = minFrame();
+  if(slice == -1) slice = minSlice();
 
   if(matrixParamsValid(slice, frame, tilt))
   {
@@ -862,10 +906,13 @@ bool CPhilipsDirectory::readMatrix(char*& matrixData, unsigned int& len, CPhilip
 }
 
 bool CPhilipsDirectory::writeSubHeader(const CPhilipsSubHeader& subHeader,
-                                       short slice, short frame, short tilt)
+                                       short frame, short slice, short tilt)
 {
   ENTER();
   bool result = false;
+
+  if(frame == -1) frame = minFrame();
+  if(slice == -1) slice = minSlice();
 
   if(matrixParamsValid(slice, frame, tilt))
   {
@@ -889,13 +936,14 @@ bool CPhilipsDirectory::writeSubHeader(const CPhilipsSubHeader& subHeader,
   return result;
 }
 
-/* --------------------------------------------------------- */
-
 bool CPhilipsDirectory::writeMatrix(const QByteArray& matrixData,
-                                    short slice, short frame, short tilt)
+                                    short frame, short slice, short tilt)
 {
   ENTER();
   bool result = false;
+
+  if(frame == -1) frame = minFrame();
+  if(slice == -1) slice = minSlice();
 
   if(matrixParamsValid(slice, frame, tilt))
   {
@@ -925,10 +973,13 @@ bool CPhilipsDirectory::writeMatrix(const QByteArray& matrixData,
 }
 
 bool CPhilipsDirectory::writeMatrix(const char* matrixData, unsigned int size,
-                                    short slice, short frame, short tilt)
+                                    short frame, short slice, short tilt)
 {
   ENTER();
   bool result = false;
+
+  if(frame == -1) frame = minFrame();
+  if(slice == -1) slice = minSlice();
 
   if(matrixParamsValid(slice, frame, tilt))
   {  
@@ -958,10 +1009,13 @@ bool CPhilipsDirectory::writeMatrix(const char* matrixData, unsigned int size,
 }
 
 bool CPhilipsDirectory::writeMatrix(const QByteArray& matrixData, CPhilipsSubHeader::Data_Type type,
-                                    short slice, short frame, short tilt)
+                                    short frame, short slice, short tilt)
 {
   ENTER();
   bool result = false;
+
+  if(frame == -1) frame = minFrame();
+  if(slice == -1) slice = minSlice();
 
   if(matrixParamsValid(slice, frame, tilt))
   {
@@ -992,10 +1046,13 @@ bool CPhilipsDirectory::writeMatrix(const QByteArray& matrixData, CPhilipsSubHea
 
 bool CPhilipsDirectory::writeMatrix(const char* matrixData, unsigned int size,
                                     CPhilipsSubHeader::Data_Type type,
-                                    short slice, short frame, short tilt)
+                                    short frame, short slice, short tilt)
 {
   ENTER();
   bool result = false;
+
+  if(frame == -1) frame = minFrame();
+  if(slice == -1) slice = minSlice();
 
   if(matrixParamsValid(slice, frame, tilt))
   {
@@ -1025,10 +1082,13 @@ bool CPhilipsDirectory::writeMatrix(const char* matrixData, unsigned int size,
 }
 
 bool CPhilipsDirectory::writeMatrix(const QByteArray& matrixData, const CPhilipsSubHeader& subHeader,
-                                    short slice, short frame, short tilt)
+                                    short frame, short slice, short tilt)
 {
   ENTER();
   bool result = false;
+
+  if(frame == -1) frame = minFrame();
+  if(slice == -1) slice = minSlice();
 
   if(matrixParamsValid(slice, frame, tilt))
   {  
@@ -1058,10 +1118,13 @@ bool CPhilipsDirectory::writeMatrix(const QByteArray& matrixData, const CPhilips
 }
 
 bool CPhilipsDirectory::writeMatrix(const char* matrixData, unsigned int size, const CPhilipsSubHeader& subHeader,
-                                    short slice, short frame, short tilt)
+                                    short frame, short slice, short tilt)
 {
   ENTER();
   bool result = false;
+
+  if(frame == -1) frame = minFrame();
+  if(slice == -1) slice = minSlice();
 
   if(matrixParamsValid(slice, frame, tilt))
   {  
@@ -1089,8 +1152,6 @@ bool CPhilipsDirectory::writeMatrix(const char* matrixData, unsigned int size, c
   RETURN(result);
   return result;
 }
-
-/* ---------------------------------- */
 
 CPhilipsDirectoryItem* CPhilipsDirectory::operator[](unsigned int num) const
 {

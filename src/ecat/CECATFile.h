@@ -50,6 +50,7 @@ class CECATFile : public CMedIOData
     // constructors
     CECATFile(const QString& filename,
               CECATMainHeader::Type fileType = CECATMainHeader::Unknown);
+    CECATFile(CECATMainHeader::Type fileType = CECATMainHeader::Unknown);
     ~CECATFile();
     
     // static methods for the MedIOData interface

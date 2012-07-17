@@ -62,7 +62,7 @@ class CConcordeFile : public CMedIOData
 
     //! @brief constructor
     //! @param filename: complete path to file holding concorde microPET medical data
-    CConcordeFile(const QString& filename);
+    CConcordeFile(const QString& filename = QString());
 
     //! @brief destructor
     virtual ~CConcordeFile();

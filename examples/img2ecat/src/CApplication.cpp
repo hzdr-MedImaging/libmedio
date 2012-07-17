@@ -391,11 +391,10 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
 
         // take first subheader of the frame as the header of the whole frame
         CPhilipsSubHeader* pPhilipsSubHeader = NULL;
-        bool bReadSubHeader = pPhilipsFile->readSubHeader(pPhilipsSubHeader, minSlice, frame);
-
+        bool bReadSubHeader = pPhilipsFile->readSubHeader(pPhilipsSubHeader, frame, minSlice);
         if(bReadSubHeader == false)
         {
-          cout << "ERROR: When loading image subheader of slice " << minSlice
+          cout << "ERROR: When loading image subheader of slice " << dec << minSlice
                << ", frame " << frame << endl;
 
           result = false;
@@ -405,17 +404,15 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
           break;
         }
 
-        char* pImageData;
+        char* pImageData = NULL;
         unsigned int len = 0;
-        bool bReadMatrix = pPhilipsFile->readFrame(pImageData, len, frame);
+        bool bReadMatrix = pPhilipsFile->readMatrix(pImageData, len, frame);
         if(bReadMatrix == false)
         {
           cout << "ERROR: When loading image data of frame " << frame << endl;
           result = false;
 
-          if(pPhilipsSubHeader != NULL)
-            delete pPhilipsSubHeader;
-
+          delete pPhilipsSubHeader;
           break;
         }
 
@@ -718,8 +715,8 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
             pPhilipsSubHeaderImage->setImgmin(imgMinValue);
             pPhilipsSubHeaderImage->setImgmax(imgMaxValue);
 
-            D("about to write slice %d", z);
-            pPhilipsFile->writeMatrix(p, matrixSize, *pPhilipsSubHeaderImage, z, frame);
+            cout << "about to write slice: " << z*pPhilipsMainHeader->slcthk() << endl;
+            pPhilipsFile->writeMatrix(p, matrixSize, *pPhilipsSubHeaderImage, frame, z*pPhilipsMainHeader->slcthk());
   
             // now advance p
             p += matrixSize;

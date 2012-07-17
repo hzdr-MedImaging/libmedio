@@ -998,7 +998,7 @@ bool CPhilipsMainHeader::save(void) const
   m_pData->header.maxslc = philipsFile->maxSlice();
   m_pData->header.nslice = philipsFile->numSlices();
   m_pData->header.ntilt = philipsFile->numTilts();
-  
+
   // now that we have streamed in all data in one run we
   // have to take care of correct endianness in the non-char
   // entries in the header structure in case this is a little endian
@@ -1348,6 +1348,7 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHea
           setNslice(header->num_Planes());
           setNframe(header->num_Frames());
           setSlcthk(header->plane_Separation() * 10.0f); // cm -> mm
+          setDslice_thick(header->plane_Separation() * 10.0f); // cm -> mm
           m_pData->ecat2philipsIsotop(header->isotope_Name());
           setHalfLife(header->isotope_Halflife() / 60.0f); // sec -> min
           setActivity(header->dosage() / 1000000.0f); // Bq -> MBq

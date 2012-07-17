@@ -71,6 +71,24 @@ CECATFile::CECATFile(const QString& filename, CECATMainHeader::Type fileType)
   LEAVE();
 }
 
+CECATFile::CECATFile(CECATMainHeader::Type fileType)
+  : CMedIOData(QString())
+{
+  ENTER();
+
+  // allocate data from our private instance class
+  m_pData = new CECATFilePrivate();
+  m_pData->iECATformat = CECATFile::Undefined;
+  m_pData->directory = NULL;
+  m_pData->iMainHeaderType = fileType;
+  m_pData->cachedMainHeader = NULL;
+
+  if(fileType != CECATMainHeader::Unknown)
+    setFileType(fileType);
+
+  LEAVE();
+}
+
 CECATFile::~CECATFile()
 {
   ENTER();
