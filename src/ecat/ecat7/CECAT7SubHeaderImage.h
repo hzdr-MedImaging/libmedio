@@ -49,7 +49,7 @@ class CECAT7SubHeaderImage : public CECATSubHeader
                             Hamming,
                             Parzen,
                             Shepp,
-                            ButterWoth2,
+                            Butterworth,
                             Gaussian,
                             Median,
                             Boxcar };

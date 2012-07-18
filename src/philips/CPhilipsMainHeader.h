@@ -42,6 +42,24 @@ class CPhilipsFile;
 class CPhilipsMainHeader : public CMedIOHeader
 {
   public:
+    // enums for hw_config bit fields
+    enum HW_Flags
+    {
+      MCT    = (1 <<  0),
+      PAC    = (1 <<  1),
+      PPU    = (1 <<  2),
+      MCS    = (1 <<  3),
+      PPU3   = (1 <<  4),
+      CRB    = (1 <<  5),
+      TFE    = (1 <<  6),
+      DP_RAM = (1 <<  7),
+      MCC    = (1 <<  8),
+      SRC    = (1 <<  9),
+      PETCT  = (1 << 10),
+      PHYSIO = (1 << 11),
+      PETMR  = (1 << 12)
+    };
+
     // possible Philips file types
     enum File_Type {Unknown = 0, Sinogram, Image, VID, OtherFile, Syntegra, Listmode, Rawmode};
     enum Subheader_Type {UCLA_CTI = 0, UGM};
@@ -237,6 +255,16 @@ class CPhilipsMainHeader : public CMedIOHeader
       Mashing2
     };
 
+    enum Fltr_Type
+    {
+      Undefined_Fltr = 0,
+      No_Fltr,
+      Ramp_Fltr,
+      Hanning_Fltr,
+      Gaussian_Fltr,
+      Butterworth_Fltr
+    };
+
     // constructors
     CPhilipsMainHeader(CPhilipsFile* file,
                        CPhilipsMainHeader::File_Type = CPhilipsMainHeader::Unknown);
@@ -260,7 +288,6 @@ class CPhilipsMainHeader : public CMedIOHeader
     virtual CMedIOHeader* clone() const;
 
     // data acess methods
-    bool isPETMR() const;
     short file_Fmt() const;
     short scan_Geom() const;
     short hw_Config() const;
@@ -427,11 +454,12 @@ class CPhilipsMainHeader : public CMedIOHeader
     const char* radiopharm_name() const;
     const char* Dserial_number() const;
     const char* attncor_label() const;
-    const char* contr_bolus_agent();
-    const char* sop_uid();
-    const char* frame_ref_uid();
-    const char* pps_file();
-    const char* worklist_file();
+    const char* contr_bolus_agent() const;
+    const char* sop_uid() const;
+    const char* frame_ref_uid() const;
+    const char* pps_file() const;
+    const char* worklist_file() const;
+    Fltr_Type fltr_type() const;
 
     // methods to modify elements of the MainHeader  
     void setFile_Fmt(const short format);
@@ -605,6 +633,7 @@ class CPhilipsMainHeader : public CMedIOHeader
     void setFrame_ref_uid(const char* str);
     void setPps_file(const char* str);
     void setWorklist_file(const char* str);
+    void setFltr_type(const Fltr_Type type);
 
     // special Qt-based methods
     QDate patient_Birth_Date_Qt() const;

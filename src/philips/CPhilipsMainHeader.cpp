@@ -43,24 +43,6 @@
 class CPhilipsMainHeaderPrivate
 {
 public:
-  // enums for hw_config bit fields
-  enum HW_Flags
-  {
-    MCT    = (1 <<  0),
-    PAC    = (1 <<  1),
-    PPU    = (1 <<  2),
-    MCS    = (1 <<  3),
-    PPU3   = (1 <<  4),
-    CRB    = (1 <<  5),
-    TFE    = (1 <<  6),
-    DP_RAM = (1 <<  7),
-    MCC    = (1 <<  8),
-    SRC    = (1 <<  9),
-    PETCT  = (1 << 10),
-    PHYSIO = (1 << 11),
-    PETMR  = (1 << 12)
-  };
-
   // MainHeader structure (should be 512 bytes)
   #define MAINHEADER_SIZE 512
   #define MAINHEADER_VERSION 13
@@ -1387,11 +1369,6 @@ CMedIOHeader* CPhilipsMainHeader::clone() const
 
   RETURN(pNewHeader);
   return pNewHeader;
-}
-
-bool CPhilipsMainHeader::isPETMR() const
-{
-  return m_pData->header.hw_config & CPhilipsMainHeaderPrivate::PETMR;
 }
 
 short CPhilipsMainHeader::file_Fmt() const
@@ -2969,29 +2946,34 @@ const char* CPhilipsMainHeader::attncor_label() const
   return m_pData->extHeader.attncor_label;
 }
 
-const char* CPhilipsMainHeader::contr_bolus_agent()
+const char* CPhilipsMainHeader::contr_bolus_agent() const
 {
   return m_pData->extHeader.contr_bolus_agent;
 }
 
-const char* CPhilipsMainHeader::sop_uid()
+const char* CPhilipsMainHeader::sop_uid() const
 {
   return m_pData->extHeader.sop_uid;
 }
 
-const char* CPhilipsMainHeader::frame_ref_uid()
+const char* CPhilipsMainHeader::frame_ref_uid() const
 {
   return m_pData->extHeader.frame_ref_uid;
 }
 
-const char* CPhilipsMainHeader::pps_file()
+const char* CPhilipsMainHeader::pps_file() const
 {
   return m_pData->extHeader.pps_file;
 }
 
-const char* CPhilipsMainHeader::worklist_file()
+const char* CPhilipsMainHeader::worklist_file() const
 {
   return m_pData->extHeader.worklist_file;
+}
+
+CPhilipsMainHeader::Fltr_Type CPhilipsMainHeader::fltr_type() const
+{
+  return static_cast<CPhilipsMainHeader::Fltr_Type>(m_pData->extHeader.fltr_type);
 }
 
 void CPhilipsMainHeader::setDpat_name(const char* str)
@@ -3307,4 +3289,9 @@ void CPhilipsMainHeader::setPps_file(const char* str)
 void CPhilipsMainHeader::setWorklist_file(const char* str)
 {
   strncpy(m_pData->extHeader.worklist_file, str, sizeof(m_pData->extHeader.worklist_file));
+}
+
+void CPhilipsMainHeader::setFltr_type(const CPhilipsMainHeader::Fltr_Type type)
+{
+  m_pData->extHeader.fltr_type = type;
 }

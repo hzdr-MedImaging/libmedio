@@ -544,25 +544,58 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead1, const CMedIOH
     case CMedIOHeader::PhilipsSubHeader:
     {
       const CPhilipsSubHeaderImage* head = static_cast<const CPhilipsSubHeaderImage*>(pHead1);
+
       // first clean up
       clear();
+
       // now convert
-      setData_Type(CECATSubHeader::SunShort);
+      CECATSubHeader::Data_Type dtype = CECATSubHeader::UnknownDataType;
+      switch(head->datype())
+      {
+        case CPhilipsSubHeader::UnknownDataType:
+          W("Unknown DataType found while converting");
+          // do nothing
+        break;
+
+        case CPhilipsSubHeader::ByteData:
+          dtype = CECATSubHeader::ByteData;
+        break;
+
+        case CPhilipsSubHeader::SignedShort:
+        case CPhilipsSubHeader::UnsignedShort:
+          dtype = CECATSubHeader::SunShort;
+        break;
+
+        case CPhilipsSubHeader::Float:
+          dtype = CECATSubHeader::IEEEFloat;
+        break;
+      }
+      setData_Type(dtype);
+
       setNum_Dimensions(3);
-      setRecon_Zoom(1.0);
-      setScale_Factor(head->suvscl());
-      setImage_Min(head->imgmin());
-      setImage_Max(head->imgmax());
-      setGate_Duration(0);
       setX_Dimension(head->xdim());
       setY_Dimension(head->ydim());
+      setRecon_Zoom(1.0);
+
+      if(head->suvscl() != 0.0f)
+        setScale_Factor(head->suvscl());
+      else
+        setScale_Factor(head->imgscl());
+
+      setImage_Min(head->imgmin());
+      setImage_Max(head->imgmax());
       setX_Pixel_Size(head->pix_spacing_x() / 10.0f); // mm -> cm
       setY_Pixel_Size(head->pix_spacing_y() / 10.0f); // mm -> cm
- 
-      short durationSec = head->scnlen();
-      short durationMsec = head->mseclen();
-      setFrame_Duration((durationSec * 1000) + durationMsec);
+      setFrame_Duration((head->scnlen() * 1000) + head->mseclen());
 
+      setGate_Duration(0);
+      if(QString(head->scatter_corr()).contains("SIMUL"))
+        setScatter_Type(CECAT7SubHeaderImage::Simulated);
+      else
+        setScatter_Type(CECAT7SubHeaderImage::None);
+    
+      setRecon_Type(CECAT7SubHeaderImage::IterativeCPURecon);
+  
       // check for additional information
       if(pHead2)
       {
@@ -570,8 +603,8 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead1, const CMedIOH
         {
           case CMedIOHeader::PhilipsMainHeader:
           {
-            D("Setting additional information to ECAT 7 sub header");
             const CPhilipsMainHeader* mainHeader = static_cast<const CPhilipsMainHeader*>(pHead2);
+
             setZ_Dimension(mainHeader->nslice());
             setZ_Pixel_Size(static_cast<float>(mainHeader->slcthk()) / 10.0f); // mm -> cm
 
@@ -580,6 +613,40 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead1, const CMedIOH
 
             if(head->pix_spacing_y() == 0)
               setY_Pixel_Size(static_cast<float>(mainHeader->dmax()) / static_cast<float>(head->ydim()) / 10.0f); // mm -> cm
+
+            setNum_R_Elements(mainHeader->dmax() / 2); // is that correct?
+            setNum_Angles(mainHeader->numang());
+
+            CECAT7SubHeaderImage::Filter_Code fcode = CECAT7SubHeaderImage::NoFilter;
+            switch(mainHeader->fltr_type())
+            {
+              case CPhilipsMainHeader::Undefined_Fltr:
+              case CPhilipsMainHeader::No_Fltr:
+                // do nothing
+              break;
+
+              case CPhilipsMainHeader::Ramp_Fltr:
+                fcode = CECAT7SubHeaderImage::Ramp;
+              break;
+
+              case CPhilipsMainHeader::Hanning_Fltr:
+                fcode = CECAT7SubHeaderImage::Hanning;
+              break;
+
+              case CPhilipsMainHeader::Gaussian_Fltr:
+                fcode = CECAT7SubHeaderImage::Gaussian;
+              break;
+
+              case CPhilipsMainHeader::Butterworth_Fltr:
+                fcode = CECAT7SubHeaderImage::Butterworth;
+              break;
+            }
+            setFilter_Code(fcode);
+
+            // set the frame start time relative to the acq_date_time
+            setFrame_Start_Time((head->start_date_time() - mainHeader->acq_date_time()) * 1000); // s -> ms
+            setNum_R_Elements(mainHeader->dmax() / 2); // is that correct?
+            setNum_Angles(mainHeader->numang());
           }
           break;
 
@@ -588,6 +655,7 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead1, const CMedIOH
           break;
         }
       }
+
       bResult = true;
     }
     break;

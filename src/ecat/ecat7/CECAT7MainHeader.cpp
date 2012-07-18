@@ -997,7 +997,7 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
       setInit_Bed_Position(head->min_bed_pos() / 10.0f); // mm -> cm
       setPlane_Separation(head->Dslice_thick() / 10.0f); // mm -> cm
 
-      if(QString(head->Dmanufacture_model_name()).contains("PET/MR"))
+      if(head->hw_Config() & CPhilipsMainHeader::PETMR)
       {
         setLwr_True_Thres(460); // see Zaidi, et al.
         setUpr_True_Thres(665);
