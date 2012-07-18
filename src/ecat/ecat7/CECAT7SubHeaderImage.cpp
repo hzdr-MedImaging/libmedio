@@ -614,9 +614,6 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead1, const CMedIOH
             if(head->pix_spacing_y() == 0)
               setY_Pixel_Size(static_cast<float>(mainHeader->dmax()) / static_cast<float>(head->ydim()) / 10.0f); // mm -> cm
 
-            setNum_R_Elements(mainHeader->dmax() / 2); // is that correct?
-            setNum_Angles(mainHeader->numang());
-
             CECAT7SubHeaderImage::Filter_Code fcode = CECAT7SubHeaderImage::NoFilter;
             switch(mainHeader->fltr_type())
             {
@@ -645,8 +642,18 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead1, const CMedIOH
 
             // set the frame start time relative to the acq_date_time
             setFrame_Start_Time((head->start_date_time() - mainHeader->acq_date_time()) * 1000); // s -> ms
-            setNum_R_Elements(mainHeader->dmax() / 2); // is that correct?
-            setNum_Angles(mainHeader->numang());
+
+            // R_elements/Angles are usually only relevant for sinograms
+            // however, we fill the stuff in for consistency reasons
+            if(mainHeader->dmax() == 576)
+              setNum_R_Elements(291);
+            else if(mainHeader->dmax() == 265)
+              setNum_R_Elements(193);
+
+            if(mainHeader->phiMashing() == CPhilipsMainHeader::Mashing2)
+              setNum_Angles(336/2);
+            else
+              setNum_Angles(336);
           }
           break;
 
