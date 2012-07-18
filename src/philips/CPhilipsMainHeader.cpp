@@ -2976,6 +2976,11 @@ CPhilipsMainHeader::Fltr_Type CPhilipsMainHeader::fltr_type() const
   return static_cast<CPhilipsMainHeader::Fltr_Type>(m_pData->extHeader.fltr_type);
 }
 
+short CPhilipsMainHeader::decay_corr() const
+{
+  return m_pData->extHeader.decay_corr;
+}
+
 void CPhilipsMainHeader::setDpat_name(const char* str)
 {
   strncpy(m_pData->extHeader.Dpat_name, str, sizeof(m_pData->extHeader.Dpat_name));
@@ -3294,4 +3299,9 @@ void CPhilipsMainHeader::setWorklist_file(const char* str)
 void CPhilipsMainHeader::setFltr_type(const CPhilipsMainHeader::Fltr_Type type)
 {
   m_pData->extHeader.fltr_type = type;
+}
+
+void CPhilipsMainHeader::setDecay_corr(const short decay)
+{
+  m_pData->extHeader.decay_corr = decay;
 }

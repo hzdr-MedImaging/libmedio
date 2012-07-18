@@ -460,6 +460,7 @@ class CPhilipsMainHeader : public CMedIOHeader
     const char* pps_file() const;
     const char* worklist_file() const;
     Fltr_Type fltr_type() const;
+    short decay_corr() const;
 
     // methods to modify elements of the MainHeader  
     void setFile_Fmt(const short format);
@@ -634,6 +635,7 @@ class CPhilipsMainHeader : public CMedIOHeader
     void setPps_file(const char* str);
     void setWorklist_file(const char* str);
     void setFltr_type(const Fltr_Type type);
+    void setDecay_corr(const short decay);
 
     // special Qt-based methods
     QDate patient_Birth_Date_Qt() const;

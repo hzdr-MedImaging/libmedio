@@ -654,6 +654,11 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead1, const CMedIOH
               setNum_Angles(336/2);
             else
               setNum_Angles(336);
+
+            if(mainHeader->decay_corr() == 1)
+              setDecay_Corr_Fctr(1.0f);
+            else
+              setDecay_Corr_Fctr(0.0f);
           }
           break;
 

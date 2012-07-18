@@ -427,40 +427,37 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
 
         short imgMaxValue = 0;
         short imgMinValue = SHRT_MAX;
-        CECATSubHeader::Data_Type outputDataType = CECATSubHeader::UnknownDataType;
         CPhilipsSubHeaderImage* pPhilipsSubHeaderImage = static_cast<CPhilipsSubHeaderImage*>(pPhilipsSubHeader);
-
         switch(pPhilipsSubHeaderImage->datype())
         {
           case CPhilipsSubHeader::SignedShort:
           {
-            D("found signed short source data");
-
-            short xdim = pPhilipsSubHeaderImage->xdim();
-            short ydim = pPhilipsSubHeaderImage->ydim();
-
             int numElements = len/sizeof(qint16);
 
-            QByteArray buffer(pImageData, len);
-            // cout << "len: " << len << endl;
-            // cout << "num: " << numElements << endl;
+            QByteArray buffer = QByteArray::fromRawData(pImageData, len);
             CDataArray<qint16> dataArray(&buffer, numElements);
             imgMaxValue = dataArray.maxValue();
             imgMinValue = dataArray.minValue();
+          }
+          break;
 
-            D("xdim    : %d", xdim);
-            D("ydim    : %d", ydim);
-            D("numSlices: %d", pPhilipsFile->numSlices());
-            D("numElem : %d", numElements);
-            D("imgMin: %d", imgMinValue);
-            D("imgMax: %d", imgMaxValue);
+          case CPhilipsSubHeader::UnsignedShort:
+          {
+            int numElements = len/sizeof(quint16);
+            QByteArray buffer = QByteArray::fromRawData(pImageData, len);
+            CDataArray<quint16> dataArray(&buffer, numElements);
+            imgMaxValue = dataArray.maxValue();
+            imgMinValue = dataArray.minValue();
+          }
+          break;
 
-            // cout << "imgMin " << imgMinValue << endl
-            //      << "imgMax " << imgMaxValue << endl;
-
-
-            outputDataType = CECATSubHeader::SunShort;
-
+          case CPhilipsSubHeader::Float:
+          {
+            int numElements = len/sizeof(float);
+            QByteArray buffer = QByteArray::fromRawData(pImageData, len);
+            CDataArray<float> dataArray(&buffer, numElements);
+            imgMaxValue = dataArray.maxValue();
+            imgMinValue = dataArray.minValue();
           }
           break;
 
@@ -476,7 +473,6 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
           CECAT7SubHeaderImage* pEcat7SubHeaderImage;
           pEcat7SubHeaderImage = static_cast<CECAT7SubHeaderImage*>(pEcat7Image->createEmptySubHeader());
           pEcat7SubHeaderImage->convertFrom(pPhilipsSubHeaderImage, pPhilipsMainHeader);
-          pEcat7SubHeaderImage->setData_Type(outputDataType);
 
           D("imgMin: %d", imgMinValue);
           D("imgMax: %d", imgMaxValue);
