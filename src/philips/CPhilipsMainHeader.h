@@ -222,10 +222,19 @@ class CPhilipsMainHeader : public CMedIOHeader
       Percent
     };
 
-    enum Card_Slc_Dir{
+    enum Card_Slc_Dir
+    {
       Undefined_Card_Slc_Dir = 0,
       Base_To_Apex,
       Apex_To_Base
+    };
+
+    enum Mashing_Type
+    {
+      ListmodeMashing = -1,
+      UndefinedMashing = 0,
+      NoMashing,
+      Mashing2
     };
 
     // constructors
@@ -264,7 +273,7 @@ class CPhilipsMainHeader : public CMedIOHeader
     float pscale() const;
     float detectorRadius() const;
     bool virtualXtal() const;
-    short phiMashing() const;
+    Mashing_Type phiMashing() const;
     short polygonSides() const;
     short xtalsPerSide() const;
     short nXtalRows() const;
@@ -437,7 +446,7 @@ class CPhilipsMainHeader : public CMedIOHeader
     void setPscale(const float preScale);
     void setDetectorRadius(const float radius);
     void setVirtualXtal(const bool virtualCrystals);
-    void setPhiMashing(const short phiMashing);
+    void setPhiMashing(const Mashing_Type phiMashing);
     void setPolygonSides(const short polygonSides);
     void setXtalsPerSide(const short crystalsPerSide);
     void setnXtalRows(const short crystalRows);

@@ -28,6 +28,7 @@
 #include "CECATDirectoryItem.h"
 #include "CConcordeFrameHeader.h"
 #include "CPhilipsMainHeader.h"
+#include "CPhilipsSubHeaderImage.h"
 #include "MedIOUnits.h"
 
 #include "config.h"
@@ -939,47 +940,114 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
       // we have to save the filetype
       CECAT7MainHeader::File_Type ft = file_Type();
       const CPhilipsMainHeader* head = static_cast<const CPhilipsMainHeader*>(pHead1);
+
+      // clear the main header first
       clear();
+
       // now set the old filetype again
       setFile_Type(ft);
 
-      setPatient_Name(head->patient_Name());
-      setPatient_ID(head->ssn());
+      // now convert as much as possible
+      setSystem_Type(0); // 0 means unknown system type
+      setSerial_Number(head->Dserial_number());
+      setScan_Start_Time(head->acq_date_time());
+      setIsotope_Name(m_pData->philips2Ecat7Isotop(head->isotop()).toAscii().constData());
+      setIsotope_Halflife(head->halfLife() * 60.0f); // min -> sec
+      setRadiopharmaceutical(head->radiopharm_name());
+      setBed_Elevation(head->table_height());
+      setDistance_Scanned(head->axialFOV() / 10.0f); // mm -> cm
+      setTransaxial_FOV(head->dmax() / 10.0f); // mm -> cm
+      setAngular_Compression(head->phiMashing() != CPhilipsMainHeader::Mashing2 ? CECAT7MainHeader::No_Mash : CECAT7MainHeader::Mash2);
+      setCalibration_Factor(1.0f);
+      setStudy_Type(head->aqprotocol_Name());
+      setPatient_ID(head->Dpat_id());
+      setPatient_Name(QString(head->Dpat_name()).replace("^", ", ").toAscii().constData());
+      setPatient_Sex(m_pData->philips2Ecat7Sex(head->sex()));
+      setPatient_Height(head->height() / 10.0f); // mm -> cm
       setPatient_Weight(head->weight() / 1000.0f); // g -> kg
       setPatient_Birth_Date_Qt(head->patient_Birth_Date_Qt());
+
+      // set the patient age depending on the scan start time
+      QDateTime scanStartTime = scan_Start_Time_Qt();
+      QDate birthDate = patient_Birth_Date_Qt();
+      if(scanStartTime.isValid() && birthDate.isValid())
+      {
+        // calculate the patient birth date. Unfortunately we have to do that a bit
+        // complicated here because QDate() does not have a yearsTo() function :(
+        int diffYears = scanStartTime.date().year() - birthDate.year();
+        QDate diffDate = scanStartTime.date().addYears(-diffYears);
+
+        // now we check if the diffDate is smaller than date and if so
+        // we have to substract one year to get out the correct year
+        if(diffDate < birthDate)
+          diffYears--;
+
+        setPatient_Age(diffYears > 0 ? diffYears : 0);
+      }
+  
+      setPhysician_Name(head->referring_physician());
+      setStudy_Description(head->series_desc());
+      setAcquisition_Type(m_pData->philips2ECAT7Acquisition_Type(head->aqprotocol_Type(), head->scntyp()));
       setPatient_Orientation(m_pData->philips2ECAT7Orientation(head->orient_Hf(), head->orient_Ps()));
+      setFacility_Name(head->Dmanufacture_model_name());
       setNum_Planes(head->nslice());
       setNum_Frames(head->nframe());
       setNum_Gates(1);
       setNum_Bed_Pos(0);
-      setPlane_Separation(head->slcthk() / 10.0f); // mm -> cm
+      setInit_Bed_Position(head->min_bed_pos() / 10.0f); // mm -> cm
+      setPlane_Separation(head->Dslice_thick() / 10.0f); // mm -> cm
 
-      setIsotope_Name(m_pData->philips2Ecat7Isotop(head->isotop()).toAscii().constData());
-      setIsotope_Halflife(head->halfLife() * 60.0f); // min -> sec
+      if(QString(head->Dmanufacture_model_name()).contains("PET/MR"))
+      {
+        setLwr_True_Thres(460); // see Zaidi, et al.
+        setUpr_True_Thres(665);
+      }
+      else
+      {
+        setLwr_True_Thres(440); // see Surti, et al.
+        setUpr_True_Thres(665);
+      }
+
+      setAcquisition_Mode(CECAT7MainHeader::Windowed);
+      setBin_Size(0); // set to zero because we don't have that info
+      setBranching_Fraction(static_cast<float>(head->abundance()) / 10.0f); // %
+      setDose_Start_Time(head->injection_date_time());
       setDosage(head->activity() * 1000000.0f);      // MBq -> Bq
 
-      setCalibration_Units(CECAT7MainHeader::Uncalibrated);
-      setCalibration_Factor(1.0f);
-      setData_Units("Bq/cc");
-      setStudy_Type(head->aqprotocol_Name());
-      setAcquisition_Type(m_pData->philips2ECAT7Acquisition_Type(head->aqprotocol_Type(),
-                                                                 head->scntyp()));
+      // now we have to find out things abour the calibration
+      // thus we have to query stuff from the subheader
+      if(pHead2 != NULL)
+      {
+        switch(pHead2->headerFormat())
+        {
+          case CMedIOHeader::PhilipsSubHeader:
+          {
+            const CPhilipsSubHeaderImage* subHead = static_cast<const CPhilipsSubHeaderImage*>(pHead2);
+    
+            if(subHead->suvscl() != 0.0f)
+            {
+              setData_Units("SUV");
+              setCalibration_Units(CECAT7MainHeader::Calibrated);
+              setCalibration_Units_Label(CECAT7MainHeader::LMRGLU);
+            }
+            else
+            {
+              setData_Units("N/A");
+              setCalibration_Units(CECAT7MainHeader::Uncalibrated);
+            }
+          }
+          break;
 
-      QString patientName(head->Dpat_name()); 
-      if(patientName.contains("^"))
-        patientName.replace("^", ", ");               
-
-      setPatient_Name(patientName.toAscii().constData());
-      setStudy_Description(head->series_desc());
-      setDose_Start_Time(head->injection_date_time());
-      setScan_Start_Time(head->acq_date_time());
-      setRadiopharmaceutical(head->radiopharm_name());
-      setPatient_Sex(m_pData->philips2Ecat7Sex(head->sex()));
-      setPatient_ID(head->Dpat_id());
-      setPatient_Height(head->height() / 10.0f); // mm -> cm
-      setBranching_Fraction(static_cast<float>(head->abundance()) / 10.0f); // %
-      setBed_Elevation(head->table_height());
-      setPhysician_Name(head->referring_physician());
+          default:
+            // do nothing
+          break;
+        }
+      }
+      else
+      {
+        setData_Units("N/A");
+        setCalibration_Units(CECAT7MainHeader::Uncalibrated);
+      }
 
       bResult = true;
     }
@@ -987,7 +1055,7 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
 
     case CMedIOHeader::Unknown:
       // for an unknown header type we do nothing
-      break;
+    break;
   }
 
   RETURN(bResult);

@@ -364,7 +364,17 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
 
     if(pEcat7ImageHeader != NULL)
     {
-      pEcat7ImageHeader->convertFrom(pPhilipsMainHeader);
+      CPhilipsSubHeader* pPhilipsSubHeader = NULL;
+
+      // get the philips subheader of the first frame because we need it
+      // for converting the main header
+      pPhilipsFile->readSubHeader(pPhilipsSubHeader);
+
+      // convert the philips main header into an ECAT main header
+      pEcat7ImageHeader->convertFrom(pPhilipsMainHeader, pPhilipsSubHeader);
+
+      // delete the sub header right away
+      delete pPhilipsSubHeader;
 
       int numFrames = pPhilipsFile->numFrames();
       if(numFrames > NUMFRAMESLIMIT)
@@ -380,7 +390,6 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
       }
 
       int minSlice = pPhilipsFile->minSlice();
-
       for(int frame = 1; frame <= numFrames; ++frame)
       {
          cout << "Converting Frame: " << (frame) << " of " << numFrames << endl;
@@ -475,20 +484,11 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
           pEcat7SubHeaderImage->setImage_Min(imgMinValue);
           pEcat7SubHeaderImage->setImage_Max(imgMaxValue);
 
-          bool ok;
+          bool ok = false;
           pEcat7SubHeaderImage->setScale_Factor(pPhilipsSubHeaderImage->scale_Factor(ok));
 
-          if(ok == true)
-          {
-            pEcat7ImageHeader->setCalibration_Units(CECAT7MainHeader::Calibrated);
-            pEcat7ImageHeader->setCalibration_Factor(1.0f);
+          if(ok == true && pPhilipsSubHeaderImage->suvscl() != 0.0f)
             pEcat7ImageHeader->setData_Units("Bq/cc");
-          }
-          else
-          {
-            pEcat7ImageHeader->setCalibration_Units(CECAT7MainHeader::Uncalibrated);
-            pEcat7ImageHeader->setData_Units("N/A");
-          }
 
           // put in an annotation about being converted by mp2ecat
           pEcat7SubHeaderImage->setAnnotation("converted by " PACKAGE_NAME " " PACKAGE_VERSION);
@@ -617,7 +617,6 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
         numFrames = NUMFRAMESLIMIT;
       }
 
-      int minSlice = 0;
       for(int frame = 1; frame <= numFrames; ++frame)
       {
          cout << "Converting Frame: " << (frame) << " of " << numFrames << endl;

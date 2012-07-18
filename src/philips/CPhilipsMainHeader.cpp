@@ -1454,9 +1454,9 @@ bool CPhilipsMainHeader::virtualXtal() const
   return (m_pData->header.virtualXtal == 1);
 }
 
-short CPhilipsMainHeader::phiMashing() const
+CPhilipsMainHeader::Mashing_Type CPhilipsMainHeader::phiMashing() const
 {
-  return m_pData->header.phiMashing;
+  return static_cast<CPhilipsMainHeader::Mashing_Type>(m_pData->header.phiMashing);
 }
 
 short CPhilipsMainHeader::polygonSides() const
@@ -1988,7 +1988,8 @@ void CPhilipsMainHeader::setVirtualXtal(const bool virtualCrystals)
 {
   m_pData->header.virtualXtal = virtualCrystals;
 }
-void CPhilipsMainHeader::setPhiMashing(const short phiMashing)
+
+void CPhilipsMainHeader::setPhiMashing(const CPhilipsMainHeader::Mashing_Type phiMashing)
 {
   m_pData->header.phiMashing = phiMashing;
 }

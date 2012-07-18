@@ -76,7 +76,7 @@ float CPhilipsSubHeaderImage::scale_Factor(bool& ok) const
         // now calculate the scale factor
         float dosage = mainHeader->activity() * 1000000.0f; // Bq
         float deltaT = static_cast<float>(mainHeader->acq_date_time() -
-                                        mainHeader->injection_date_time()); // s
+                                          mainHeader->injection_date_time()); // s
         float halfLife = mainHeader->halfLife() * 60.0f; // s
         float patientWeight = static_cast<float>(mainHeader->weight()); // g
 
