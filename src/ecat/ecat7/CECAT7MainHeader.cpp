@@ -61,7 +61,7 @@ class CECAT7MainHeaderPrivate
     CECAT7MainHeader::Patient_Orientation concorde2ECAT7Orientation(const CConcordeMainHeader::SubjectOrientation o) const;
 
     CECAT7MainHeader::Patient_Sex philips2Ecat7Sex(const char& genus) const;
-    QString philips2Ecat7Isotop(const CPhilipsMainHeader::Isotop isotop) const;
+    QString philips2Ecat7Isotop(const CPhilipsMainHeader::Isotope isotop) const;
     CECAT7MainHeader::Patient_Orientation philips2ECAT7Orientation(const CPhilipsMainHeader::Patient_Orientation_hf hf,
                                                                    const CPhilipsMainHeader::Patient_Orientation_ps ps) const;
     CECAT7MainHeader::Acquisition_Type philips2ECAT7Acquisition_Type(const CPhilipsMainHeader::Acquisition_Protocol_Type t,
@@ -955,11 +955,11 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
       setIsotope_Halflife(head->halfLife() * 60.0f); // min -> sec
       setRadiopharmaceutical(head->radiopharm_name());
       setBed_Elevation(head->table_height());
-      setDistance_Scanned(head->axialFOV() / 10.0f); // mm -> cm
+      setDistance_Scanned(head->axialFov() / 10.0f); // mm -> cm
       setTransaxial_FOV(head->dmax() / 10.0f); // mm -> cm
       setAngular_Compression(head->phiMashing() != CPhilipsMainHeader::Mashing2 ? CECAT7MainHeader::No_Mash : CECAT7MainHeader::Mash2);
       setCalibration_Factor(1.0f);
-      setStudy_Type(head->aqprotocol_Name());
+      setStudy_Type(head->aqprotocol_name());
       setPatient_ID(head->Dpat_id());
       setPatient_Name(QString(head->Dpat_name()).replace("^", ", ").toAscii().constData());
       setPatient_Sex(m_pData->philips2Ecat7Sex(head->sex()));
@@ -987,9 +987,10 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
   
       setPhysician_Name(head->referring_physician());
       setStudy_Description(head->series_desc());
-      setAcquisition_Type(m_pData->philips2ECAT7Acquisition_Type(head->aqprotocol_Type(), head->scntyp()));
-      setPatient_Orientation(m_pData->philips2ECAT7Orientation(head->orient_Hf(), head->orient_Ps()));
-      setFacility_Name(head->Dmanufacture_model_name());
+      setAcquisition_Type(m_pData->philips2ECAT7Acquisition_Type(head->aqprotocol_type(), head->scntyp()));
+      setPatient_Orientation(m_pData->philips2ECAT7Orientation(head->orient_hf(), head->orient_ps()));
+      setFacility_Name(head->scnOrigin());
+      setOperator_Name(head->Dmanufacture_model_name());
       setNum_Planes(head->nslice());
       setNum_Frames(head->nframe());
       setNum_Gates(1);
@@ -997,7 +998,7 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
       setInit_Bed_Position(head->min_bed_pos() / 10.0f); // mm -> cm
       setPlane_Separation(head->Dslice_thick() / 10.0f); // mm -> cm
 
-      if(head->hw_Config() & CPhilipsMainHeader::PETMR)
+      if(head->hw_config() & CPhilipsMainHeader::PETMR)
       {
         setLwr_True_Thres(460); // see Zaidi, et al.
         setUpr_True_Thres(665);
@@ -1010,7 +1011,7 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeade
 
       setAcquisition_Mode(CECAT7MainHeader::Windowed);
       setBin_Size(0); // set to zero because we don't have that info
-      setBranching_Fraction(static_cast<float>(head->abundance()) / 10.0f); // %
+      setBranching_Fraction(static_cast<float>(head->abundance()) / 1000.0f); // 1.0 = 100%
       setDose_Start_Time(head->injection_date_time());
       setDosage(head->activity() * 1000000.0f);      // MBq -> Bq
 
@@ -1941,16 +1942,16 @@ CECAT7MainHeader::Patient_Sex CECAT7MainHeaderPrivate::philips2Ecat7Sex(const ch
   return E7s;
 }
 
-QString CECAT7MainHeaderPrivate::philips2Ecat7Isotop(const CPhilipsMainHeader::Isotop isotop) const
+QString CECAT7MainHeaderPrivate::philips2Ecat7Isotop(const CPhilipsMainHeader::Isotope isotop) const
 {
   ENTER();
   QString isotopString;
 
   switch(isotop)
   {
-    case CPhilipsMainHeader::UndefinedIsotop: isotopString = "Undefined"; break;
-    case CPhilipsMainHeader::OtherIsotop: isotopString = "Other"; break;
-    case CPhilipsMainHeader::UnknownIsotop: isotopString = "Unknown"; break;
+    case CPhilipsMainHeader::UndefinedIsotope: isotopString = "Undefined"; break;
+    case CPhilipsMainHeader::OtherIsotope: isotopString = "Other"; break;
+    case CPhilipsMainHeader::UnknownIsotope: isotopString = "Unknown"; break;
     case CPhilipsMainHeader::F18: isotopString = "F-18"; break;
     case CPhilipsMainHeader::O15: isotopString = "O-15"; break;
     case CPhilipsMainHeader::C11: isotopString = "C-11"; break;
