@@ -180,6 +180,16 @@ short CPhilipsFile::numSlices(short frame) const
   return m_pData->directory->numSlices(frame);
 }
 
+short CPhilipsFile::maxTilt(void) const
+{
+  return m_pData->directory->maxTilt();
+}
+
+short CPhilipsFile::minTilt(void) const
+{
+  return m_pData->directory->minTilt();
+}
+
 short CPhilipsFile::numTilts(void) const
 {
   return m_pData->directory->numTilts();
