@@ -39,7 +39,10 @@ bool CPhilipsBinFile::open(QIODevice::OpenModeFlag mode)
           E("only header version 1 supported yet");
       }
       else
+      {
         E("this is not a bin file");
+        close();
+      }
     }
     else
       close();
