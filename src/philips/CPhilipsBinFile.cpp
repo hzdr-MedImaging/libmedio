@@ -1,0 +1,184 @@
+#include <rtdebug.h>
+#include "CPhilipsBinFile.h"
+#include "ByteSwap.h"
+
+#define BIN_FILE_MAGIC_NUMBER 0x7c1e40d4
+
+CPhilipsBinFile::CPhilipsBinFile(QString filename)
+  : CMedIOData(filename)
+{
+  ENTER();
+  LEAVE();
+}
+
+bool CPhilipsBinFile::open(QIODevice::OpenModeFlag mode)
+{
+  ENTER();
+  bool returnValue = false;
+
+  if(QFile::open(mode))
+  {
+    if(read(reinterpret_cast<char*>(&header), sizeof(PhilipsBinHeader1)))
+    {
+      if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+      {
+        BSWAP_32(header.magicNumber);
+        BSWAP_32(header.headerVersion);
+        BSWAP_32(header.headerWords);
+        BSWAP_32(header.dataType);
+        BSWAP_32(header.zDim);
+        BSWAP_32(header.yDim);
+        BSWAP_32(header.xDim);
+      }
+
+      if(header.magicNumber == BIN_FILE_MAGIC_NUMBER)
+      {
+        if(header.headerVersion == 1)
+          returnValue = true;
+        else
+          E("only header version 1 supported yet");
+      }
+      else
+        E("this is not a bin file");
+    }
+    else
+      close();
+  }
+
+  RETURN(returnValue);
+  return returnValue;
+}
+
+void CPhilipsBinFile::close()
+{
+  ENTER();
+  QFile::close();
+  LEAVE();
+}
+
+unsigned int CPhilipsBinFile::elementSize() const
+{
+  ENTER();
+  unsigned int size = 0;
+
+  switch(header.dataType)
+  {
+    case UnsignedInt8:
+    case SignedInt8:
+    {
+      size = 1;
+    }
+    break;
+
+    case UnsignedInt16:
+    case SignedInt16:
+    {
+      size = 2;
+    }
+    break;
+
+    case UnsignedInt32:
+    case SignedInt32:
+    case Float32:
+    {
+      size = 4;
+    }
+    break;
+
+    case Float64:
+    {
+      size = 8;
+    }
+    break;
+
+    default:
+      // nothing
+    break;
+  }
+
+  RETURN(size);
+  return size;
+}
+
+unsigned int CPhilipsBinFile::numberOfElements() const
+{
+  ENTER();
+  RETURN(header.zDim * header.yDim * header.xDim);
+  return header.zDim * header.yDim * header.xDim;
+}
+
+void CPhilipsBinFile::swap(char*& data)
+{
+  ENTER();
+  if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+  {
+    switch(header.dataType)
+    {
+      case UnsignedInt16:
+      case SignedInt16:
+      {
+        quint16*  data16 = reinterpret_cast<quint16*>(data);
+        for(unsigned int i=0; i < numberOfElements(); ++i)
+        {
+          BSWAP_16(data16[i]);
+        }
+      }
+      break;
+
+      case UnsignedInt32:
+      case SignedInt32:
+      case Float32:
+      {
+        quint32* data32 = reinterpret_cast<quint32*>(data);
+
+        for(unsigned int i=0; i < numberOfElements(); ++i)
+        {
+          BSWAP_32(data32[i]);
+        }
+      }
+      break;
+
+#warning Float64 not handled int swap()
+
+      default:
+        // nothing
+      break;
+    }
+  }
+  LEAVE();
+}
+
+bool CPhilipsBinFile::readMatrix(char*& data, unsigned int& length)
+{
+  ENTER();
+  bool returnValue = false;
+
+  if(isOpen() &&
+     isReadable())
+  {
+    length = numberOfElements() * elementSize();
+    data = new char[length];
+    qint64 bytesRead = 0;
+
+    seek(sizeof(PhilipsBinHeader1));
+
+    bytesRead = read(data, length);
+
+    if((bytesRead != -1) &&
+       (bytesRead == static_cast<qint64>(length)))
+    {
+      swap(data);
+      returnValue = true;
+    }
+    else
+    {
+      length = 0;
+      delete [] data;
+      data = NULL;
+      E("reading failed");
+    }
+  }
+
+  RETURN(returnValue);
+  return returnValue;
+}
