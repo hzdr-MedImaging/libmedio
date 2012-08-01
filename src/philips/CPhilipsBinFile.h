@@ -51,9 +51,11 @@ class CPhilipsBinFile : public CMedIOData
     // the matrix has the following data order: data[z][y][x]
     bool readMatrix(char*& data, unsigned int &length);
 
-    PhilipsBinHeader1 header;
+    PhilipsBinHeader1 header() const {return m_header;}
 
-  private:  
+  private:
+    PhilipsBinHeader1 m_header;
+
     void swap(char*& data);
     unsigned int elementSize() const;
     unsigned int numberOfElements() const;

@@ -18,22 +18,22 @@ bool CPhilipsBinFile::open(QIODevice::OpenModeFlag mode)
 
   if(QFile::open(mode))
   {
-    if(read(reinterpret_cast<char*>(&header), sizeof(PhilipsBinHeader1)))
+    if(read(reinterpret_cast<char*>(&m_header), sizeof(PhilipsBinHeader1)))
     {
       if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
       {
-        BSWAP_32(header.magicNumber);
-        BSWAP_32(header.headerVersion);
-        BSWAP_32(header.headerWords);
-        BSWAP_32(header.dataType);
-        BSWAP_32(header.zDim);
-        BSWAP_32(header.yDim);
-        BSWAP_32(header.xDim);
+        BSWAP_32(m_header.magicNumber);
+        BSWAP_32(m_header.headerVersion);
+        BSWAP_32(m_header.headerWords);
+        BSWAP_32(m_header.dataType);
+        BSWAP_32(m_header.zDim);
+        BSWAP_32(m_header.yDim);
+        BSWAP_32(m_header.xDim);
       }
 
-      if(header.magicNumber == BIN_FILE_MAGIC_NUMBER)
+      if(m_header.magicNumber == BIN_FILE_MAGIC_NUMBER)
       {
-        if(header.headerVersion == 1)
+        if(m_header.headerVersion == 1)
           returnValue = true;
         else
           E("only header version 1 supported yet");
@@ -64,7 +64,7 @@ unsigned int CPhilipsBinFile::elementSize() const
   ENTER();
   unsigned int size = 0;
 
-  switch(header.dataType)
+  switch(m_header.dataType)
   {
     case UnsignedInt8:
     case SignedInt8:
@@ -106,8 +106,8 @@ unsigned int CPhilipsBinFile::elementSize() const
 unsigned int CPhilipsBinFile::numberOfElements() const
 {
   ENTER();
-  RETURN(header.zDim * header.yDim * header.xDim);
-  return header.zDim * header.yDim * header.xDim;
+  RETURN(m_header.zDim * m_header.yDim * m_header.xDim);
+  return m_header.zDim * m_header.yDim * m_header.xDim;
 }
 
 void CPhilipsBinFile::swap(char*& data)
@@ -115,7 +115,7 @@ void CPhilipsBinFile::swap(char*& data)
   ENTER();
   if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
   {
-    switch(header.dataType)
+    switch(m_header.dataType)
     {
       case UnsignedInt16:
       case SignedInt16:
