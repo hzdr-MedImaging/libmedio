@@ -16,7 +16,8 @@ struct PhilipsBinHeader2
 };
 */
 
-struct PhilipsBinHeader1 {
+struct PhilipsBinHeader1
+{
     quint32 magicNumber;   // Identifies this as a bin file
     quint32 headerVersion;
     quint32 headerWords;   // Header size, in 4-byte words
@@ -44,6 +45,7 @@ class CPhilipsBinFile : public CMedIOData
     CPhilipsBinFile(QString filename);
 
     bool open(OpenModeFlag mode);
+    quint32 readVersion();
     void close();
 
     int rtti() const {return CMedIOData::PhilipsBin;}

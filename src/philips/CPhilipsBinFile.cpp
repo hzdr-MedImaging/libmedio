@@ -52,6 +52,31 @@ bool CPhilipsBinFile::open(QIODevice::OpenModeFlag mode)
   return returnValue;
 }
 
+quint32 CPhilipsBinFile::readVersion()
+{
+  ENTER();
+  quint32 version = -1;
+
+  if(isOpen() &&
+     isReadable())
+  {
+    quint64 oldPosition = pos();
+
+    if(seek(sizeof(quint32)))
+    {
+      read(reinterpret_cast<char*>(&version), sizeof(quint32));
+
+      if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+        BSWAP_32(version);
+    }
+
+    seek(oldPosition);
+  }
+
+  RETURN(version);
+  return version;
+}
+
 void CPhilipsBinFile::close()
 {
   ENTER();
