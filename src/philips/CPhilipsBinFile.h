@@ -46,7 +46,7 @@ class CPhilipsBinFile : public CMedIOData
     bool open(OpenModeFlag mode);
     void close();
 
-    int rtti() const {return Unknown;}
+    int rtti() const {return CMedIOData::PhilipsBin;}
 
     // the matrix has the following data order: data[z][y][x]
     bool readMatrix(char*& data, unsigned int &length);

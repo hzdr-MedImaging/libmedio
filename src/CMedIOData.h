@@ -52,7 +52,8 @@ class CMedIOData : public QFile
       Unknown = 0,      //!< unknown data which is not supported
       ConcordeMicropet,  //!< data produced by a concorde micropet scanner  
       ECAT,              //!< ECAT6/7 format
-      Philips            //!< data produced by a philips PET/MR scanner
+      Philips,           //!< data produced by a philips PET/MR scanner
+      PhilipsBin
     };
 
     //! @enum enumeration carrying special IO error codes which
