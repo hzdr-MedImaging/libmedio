@@ -33,7 +33,7 @@
 #include "CECAT7SubHeaderScan.h"
 #include "CECAT7SubHeaderScan3D.h"
 
-#include "ByteSwap.h"
+#include "bswap.h"
 
 #include <QDataStream>
 

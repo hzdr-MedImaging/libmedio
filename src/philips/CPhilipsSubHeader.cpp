@@ -32,7 +32,7 @@
 
 #include <rtdebug.h>
 
-#include "ByteSwap.h"
+#include "bswap.h"
 
 class CPhilipsSubHeaderPrivate
 {

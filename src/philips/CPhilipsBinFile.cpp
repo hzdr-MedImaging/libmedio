@@ -1,8 +1,9 @@
 #include <rtdebug.h>
 #include "CPhilipsBinFile.h"
-#include "ByteSwap.h"
 
-static const quint32 BIN_FILE_MAGIC_NUMBER = 0x7c1e40d4;
+#include "bswap.h"
+
+#define BIN_FILE_MAGIC_NUMBER 0x7c1e40d4
 
 CPhilipsBinFile::CPhilipsBinFile(QString filename)
   : CMedIOData(filename)
