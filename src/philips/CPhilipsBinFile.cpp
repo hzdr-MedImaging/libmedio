@@ -146,7 +146,9 @@ void CPhilipsBinFile::swap(char*& data)
       case SignedInt16:
       {
         quint16* data16 = reinterpret_cast<quint16*>(data);
-        bswap_matrix<quint16>(data16, numberOfElements(),data16);
+
+        for(unsigned int i = 0; i < numberOfElements(); ++i)
+          BSWAP_16(data16[i]);
       }
       break;
 
@@ -155,7 +157,9 @@ void CPhilipsBinFile::swap(char*& data)
       case Float32:
       {
         quint32* data32 = reinterpret_cast<quint32*>(data);
-        bswap_matrix<quint32>(data32, numberOfElements(), data32);
+
+        for(unsigned int i = 0; i < numberOfElements(); ++i)
+          BSWAP_32(data32[i]);
       }
       break;
 
