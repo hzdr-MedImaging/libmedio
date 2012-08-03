@@ -25,14 +25,13 @@
 #ifndef CPHILIPSMAINHEADER_H
 #define CPHILIPSMAINHEADER_H
 
-#include <QTextStream>
-
 #ifndef __MEDIO_PRIVATE__
 #include <CMedIOHeader>
 #else
 #include <CMedIOHeader.h>
 #endif
 
+#include <QDateTime>
 #include <time.h>
 
 // forward declarations
@@ -610,26 +609,34 @@ class CPhilipsMainHeader : public CMedIOHeader
     const char* coil_type() const;
 
     // methods to modify elements of the MainHeader  
-    void setFile_Fmt(const short format);
-    void setScan_Geom(const short geometry);
-    void setHw_Config(const short config);
-    void setEdit_Flag(const short eFlag);
+    void setFile_fmt(const short format);
+    void setScan_geom(const short geometry);
+    void setHw_config(const short config);
+    void setEdit_flag(const short eFlag);
     void setFiltyp(const File_Type fType);
     void setMinTransXtalDiff(const int minTransXtalDiff);
     void setTofTstampScale(const float tofTstampScale);
+    void setDep_daycre(const short daycre);
+    void setDep_mocre(const short mocre);
+    void setDep_yrcre(const short moccre);
+    void setDep_hrcre(const short hrcre);
+    void setDep_mincre(const short hrcre);
+    void setDep_seccre(const short hrcre);
     void setDuratn(const short seconds);
     void setShdtyp(const Subheader_Type sType);
+    void setSngpscl(const short sngpscl);
+    void setSingopt(const short singopt);
     void setPscale(const float preScale);
     void setDetectorRadius(const float radius);
     void setVirtualXtal(const bool virtualCrystals);
     void setPhiMashing(const Mashing_Type phiMashing);
     void setPolygonSides(const short polygonSides);
     void setXtalsPerSide(const short crystalsPerSide);
-    void setnXtalRows(const short crystalRows);
+    void setNXtalRows(const short crystalRows);
     void setCrystalThickness(const float crystalThickness);
     void setXXtalPitch(const float pitch);
     void setZXtalPitch(const float pitch);
-    void setAxialFOV(const float axialFOV);
+    void setAxialFov(const float axialFOV);
     void setRphiType(const RPhi_Type rType);
     void setSliceType(const Slice_Type sType);
     void setDelayType(const Delay_Type dType);
@@ -668,34 +675,48 @@ class CPhilipsMainHeader : public CMedIOHeader
     void setZ0(const float z0);
     void setNevent(const float nevent);
     void setNsino(const float nsino);
-    void setEglob_Low(const short eglob_low);
-    void setEglob_Up(const short eglob_up);
-    void setEloc_Low(const short eloc_low);
-    void setEloc_Up(const short eloc_up);
-    void setOrient_Hf(const Patient_Orientation_hf orient_hf);
-    void scan_Swrel(const char* str);
-    void setTbl_Direction(const Table_Direction tbl_direction);
-    void setOrient_Ps(const Patient_Orientation_ps orient_ps);
+    void setEglob_low(const short eglob_low);
+    void setEglob_up(const short eglob_up);
+    void setEloc_low(const short eloc_low);
+    void setEloc_up(const short eloc_up);
+    void setOrient_hf(const Patient_Orientation_hf orient_hf);
+    void setScan_swrel(const char* str);
+    void setPetct_sepdist(const short sepdist);
+    void setPetct_landmrk(const short landmrk);
+    void setPetct_align_timestamp(const time_t tstamp);
+    void setTbl_direction(const Table_Direction tbl_direction);
+    void setOrient_ps(const Patient_Orientation_ps orient_ps);
+    void setPetct_align_zoffset(const short zoffset);
+    void setPetct_align_xshift(const short xshift);
+    void setPetct_align_yshift(const short yshift);
+    void setPetct_align_zshift(const short zshift);
+    void setPetct_align_acqflgs(const short acqflgs);
+    void setPetct_align_xoffset(const short xoffset);
+    void setPetct_align_yoffset(const short yoffset);
+    void setPetct_align_axrot(const short axrot);
+    void setPetct_align_horzrot(const short horzrot);
+    void setPetct_align_vertrot(const short vertrot);
     void setFrontLeadDiameter(const float frontLeadDiameter);
     void setBackLeadDiameter(const float backLeadDiameter);
     void setLeadSeparation(const float leadSeparation);
     void setNdelays(const float ndelays);
     void setSlcsep(const float slcsep);
+    void setPetct_valid(const PETCT_Valid_Type type);
     void setFctrfil(const char* str);
     void setBaselin(const char* str);
     void setDstpkfl(const char* str);
-    void setAqprotocol_Name(const char* str);
-    void setAqprotocol_Type(const Acquisition_Protocol_Type aqprotocol_type);
-    void setPatient_Name(const char* str);
-    void setReslice_Ang1(const float reslice_ang1);
-    void setReslice_Ang2(const float reslice_ang2);
-    void setReslice_Ang3(const float reslice_ang3);
+    void setAqprotocol_name(const char* str);
+    void setAqprotocol_type(const Acquisition_Protocol_Type aqprotocol_type);
+    void setPatient_name(const char* str);
+    void setReslice_ang1(const float reslice_ang1);
+    void setReslice_ang2(const float reslice_ang2);
+    void setReslice_ang3(const float reslice_ang3);
     void setMinslc(const short minslc);
     void setMaxslc(const short maxslc);
     void setMinfrm(const short minfrm);
     void setMaxfrm(const short maxfrm);
-    void setScanner_Maxslice(const short scanner_maxslice);
-    void setRebin_Type(const Rebin_Type rebin_type);
+    void setScanner_maxslice(const short scanner_maxslice);
+    void setRebin_type(const Rebin_Type rebin_type);
     void setScnOrigin(const char *str);
     void setAccNum(const char *str);
     void setMovementCoinc(const short movementCoinc);
@@ -703,20 +724,6 @@ class CPhilipsMainHeader : public CMedIOHeader
     void setCrbTstampPeriod(const short crbTstampPeriod);
     void setTrailexists(const short trailexists);
     void setTrailbeg(const unsigned int trailbeg);
-    void setPetct_Valid(const PETCT_Valid_Type petct_valid);
-    void setPetct_sepdist(const short separation);
-    void setPetct_landmrk(const short landmark);
-    void setPetct_align_timestamp(const time_t timestamp);
-    void setPetct_align_zoffset(const short zOffset);
-    void setPetct_align_xshift(const short xShift);
-    void setPetct_align_yshift(const short yShift);
-    void setPetct_align_zshift(const short zShift);
-    void setPetct_align_acqflags(const short acqFlags);
-    void setPetct_align_xoffset(const short xOffset);
-    void setPetct_align_yoffset(const short yOffset);
-    void setPetct_align_axialrotation(const short axialRotation);
-    void setPetct_align_horizrotation(const short horizRotation);
-    void setPetct_align_vertrotation(const short vertRotation);
 
     // extended header functions
     void setDpat_name(const char* str);
@@ -765,6 +772,9 @@ class CPhilipsMainHeader : public CMedIOHeader
     void setMax_bed_pos(const float max);
     void setDer_filled(const bool flag);
     void setSeries_number(const int number);
+    void setDep_study_date(const int date);
+    void setDep_study_time(const int time);
+    void setDep_acq_time(const int time);
     void setCard_slc_dir(const Card_Slc_Dir direction);
     void setCard_skip_msec(const int msec);
     void setCard_skip_counts(const int counts);
@@ -774,6 +784,7 @@ class CPhilipsMainHeader : public CMedIOHeader
     void setCard_beats_acc(const int acc);
     void setCard_skip_beats(const short beats);
     void setPvc_threshold(const short threshold);
+    void setDep_acq_date(const int date);
     void setRadiopharm_name(const char* str);
     void setDserial_number(const char* str);
     void setAttncor_label(const char* str);
@@ -782,12 +793,88 @@ class CPhilipsMainHeader : public CMedIOHeader
     void setFrame_ref_uid(const char* str);
     void setPps_file(const char* str);
     void setWorklist_file(const char* str);
+    void setRecon_swrel(const char* str);
+    void setAnaly_swrel(const char* str);
+    void setRecprotocol_name(const char* str);
+    void setInsinofile(const char* str);
+    void setSlc_add(const bool add);
+    void setSlc_space(const short space);
+    void setSlc_thick(const short thick);
+    void setFrame_add(const bool add);
+    void setFrame_space(const short space);
+    void setFrame_thick(const short thick);
     void setFltr_type(const Fltr_Type type);
-    void setDecay_corr(const short decay);
+    void setSmoth(const short smoth);
+    void setScatcorr_type(const short type);
+    void setEdge_exp(const short exp);
+    void setBckang_avg(const short avg);
+    void setBck_coeff(const float coeff);
+    void setBck_wid(const short wid);
+    void setAttncor_type(const AttnCorr_Type type);
+    void setAttncor_ecc(const AttnCorrEcc_Type type);
+    void setAttn_coeff(const float coeff);
+    void setRegfile(const char* file);
+    void setProc_transinofile(const char* file);
+    void setSkull_comp(const float comp);
+    void setNorm_type(const Norm_Type type);
+    void setSmp_norm(const bool norm);
+    void setAxnfile(const char* file);
+    void setEffnormfile(const char* file);
+    void setGap_comp(const bool norm);
+    void setAlgtype_em(const Alg_Type type);
+    void setNum_iter(const short num);
+    void setIter_em(const short em);
+    void setSubset_em(const short em);
+    void setNsmooth_em(const short em);
+    void setNrepeat_em(const short em);
+    void setBckslc_avg(const short avg);
+    void setDead_corr(const bool corr);
+    void setDecay_corr(const bool corr);
+    void setTransinofile(const char* file);
+    void setBlnksinofile(const char* file);
+    void setTran_ray_fwhm(const float fwhm);
+    void setTran_axl_fwhm(const float fwhm);
+    void setSurv_mask(const short mask);
+    void setPreflt_type(const PreFlt_Type type);
+    void setPostflt_type(const PreFlt_Type type);
+    void setTr_posttyp(const PostProc_Type type);
+    void setAlgtype_tr(const AlgTr_Type type);
+    void setIter_tr(const short tr);
+    void setSubset_tr(const short tr);
+    void setNsmooth_tr(const short tr);
+    void setNrepeat_tr(const short tr);
+    void setAttn_corr_3d(const bool attn);
+    void setRamla_no_it(const short it);
+    void setRamla_sysac(const short sysac);
+    void setRamla_lambda(const short i, const float lambda);
+    void setRamla_blrad(const float blrad);
+    void setRamla_blalpha(const float blalpha);
+    void setRamla_bcc_rsz(const float rsz);
+    void setRecon_date_time(const time_t time);
+    void setGating_type(const short type);
+    void setRef_attncor_series_uid(const char* str);
+    void setRef_gated_qc_image_inst_uid(const char* str);
+    void setRef_raw_data_inst_uid(const char* str);
+    void setStart_table_pos_abs(const int pos);
+    void setStart_table_pos_rel(const int pos);
+    void setMr_valid(const bool valid);
+    void setCoil_type(const char* str);
 
     // special Qt-based methods
     QDate patient_Birth_Date_Qt() const;
     void setPatient_Birth_Date_Qt(const QDate& date);
+    QDateTime petct_align_timestamp_Qt() const;
+    void setPetct_align_timestamp_Qt(const QDateTime& datetime);
+    QDateTime acq_date_time_Qt() const;
+    void setAcq_date_time_Qt(const QDateTime& datetime);
+    QDateTime study_date_time_Qt() const;
+    void setStudy_date_time_Qt(const QDateTime& datetime);
+    QDateTime injection_date_time_Qt() const;
+    void setInjection_date_time_Qt(const QDateTime& datetime);
+    QDateTime file_create_date_time_Qt() const;
+    void setFile_create_date_time_Qt(const QDateTime& datetime);
+    QDateTime recon_date_time_Qt() const;
+    void setRecon_date_time_Qt(const QDateTime& datetime);
 
   private:
     CPhilipsMainHeaderPrivate* m_pData;

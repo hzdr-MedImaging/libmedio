@@ -31,6 +31,8 @@
 #include <CMedIOHeader.h>
 #endif
 
+#include <QDateTime>
+
 // forward declarations
 class CPhilipsSubHeaderPrivate;
 class CPhilipsDirectoryItem;
@@ -248,6 +250,14 @@ class CPhilipsSubHeader : public CMedIOHeader
     void setStart_date_time_msec(const unsigned short msec);
     void setEnd_date_time_msec(const unsigned short msec);
     void setFrame_ref_date_time_msec(const unsigned short msec);
+
+    // special Qt-based methods
+    QDateTime start_date_time_Qt() const;
+    void setStart_date_time_Qt(const QDateTime& datetime);
+    QDateTime end_date_time_Qt() const;
+    void setEnd_date_time_Qt(const QDateTime& datetime);
+    QDateTime frame_ref_date_time_Qt() const;
+    void setFrame_ref_date_time_Qt(const QDateTime& datetime);
 
   // some methods only accessible from subclasses
   protected:

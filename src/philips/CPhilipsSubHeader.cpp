@@ -1372,3 +1372,42 @@ void CPhilipsSubHeader::setScnsum(const float scnsum)
 {
   m_pData->header.scnsum = scnsum;
 }
+
+QDateTime CPhilipsSubHeader::start_date_time_Qt() const
+{
+  QDateTime Jan1970(QDate(1970, 1, 1), QTime(), Qt::UTC);
+  QDateTime datetime = Jan1970.addSecs(m_pData->header.start_date_time);
+  return datetime.toLocalTime();
+}
+
+void CPhilipsSubHeader::setStart_date_time_Qt(const QDateTime& datetime)
+{
+  QDateTime Jan1970(QDate(1970, 1, 1), QTime(), Qt::UTC);
+  m_pData->header.start_date_time = Jan1970.secsTo(datetime.toUTC());
+}
+
+QDateTime CPhilipsSubHeader::end_date_time_Qt() const
+{
+  QDateTime Jan1970(QDate(1970, 1, 1), QTime(), Qt::UTC);
+  QDateTime datetime = Jan1970.addSecs(m_pData->header.end_date_time);
+  return datetime.toLocalTime();
+}
+
+void CPhilipsSubHeader::setEnd_date_time_Qt(const QDateTime& datetime)
+{
+  QDateTime Jan1970(QDate(1970, 1, 1), QTime(), Qt::UTC);
+  m_pData->header.end_date_time = Jan1970.secsTo(datetime.toUTC());
+}
+
+QDateTime CPhilipsSubHeader::frame_ref_date_time_Qt() const
+{
+  QDateTime Jan1970(QDate(1970, 1, 1), QTime(), Qt::UTC);
+  QDateTime datetime = Jan1970.addSecs(m_pData->header.frame_ref_date_time);
+  return datetime.toLocalTime();
+}
+
+void CPhilipsSubHeader::setFrame_ref_date_time_Qt(const QDateTime& datetime)
+{
+  QDateTime Jan1970(QDate(1970, 1, 1), QTime(), Qt::UTC);
+  m_pData->header.frame_ref_date_time = Jan1970.secsTo(datetime.toUTC());
+}
