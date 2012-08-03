@@ -27,16 +27,23 @@
 
 #include <rtdebug.h>
 
-// byteswap macros. For other systems than windows we use the
-// more optimized bswap_XX() macros coming from byteswap.h (gnulib)
-#if !defined(Q_WS_WIN)
-#include <byteswap.h>
+// bswap_XX() byteswap macros. These macros are usually coming from linux. But
+// as we need to get this compiled on mac and windows as well we use different
+// definitions here
+#if defined(Q_OS_MAC) 
+#include <libkern/OSByteOrder.h> 
 #define bswap_8(x)  ((x) & 0xff)
-#else
+#define bswap_16(x) OSSwapInt16(x) 
+#define bswap_32(x) OSSwapInt32(x) 
+#define bswap_64(x) OSSwapInt64(x) 
+#elif defined(Q_OS_WIN)
 #define bswap_8(x)  ((x) & 0xff)
 #define bswap_16(x) ((bswap_8(x) << 8) | bswap_8((x) >> 8))
 #define bswap_32(x) ((bswap_16(x) << 16) | bswap_16((x) >> 16))
 #define bswap_64(x) ((bswap_32(x) << 32) | bswap_32((x) >> 32))
+#else
+#include <byteswap.h>
+#define bswap_8(x)  ((x) & 0xff)
 #endif
 
 // macro for byteswapping float (32bit) values using
