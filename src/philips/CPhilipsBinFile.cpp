@@ -2,7 +2,7 @@
 #include "CPhilipsBinFile.h"
 #include "ByteSwap.h"
 
-#define BIN_FILE_MAGIC_NUMBER 0x7c1e40d4
+static const quint32 BIN_FILE_MAGIC_NUMBER = 0x7c1e40d4;
 
 CPhilipsBinFile::CPhilipsBinFile(QString filename)
   : CMedIOData(filename)
@@ -145,11 +145,8 @@ void CPhilipsBinFile::swap(char*& data)
       case UnsignedInt16:
       case SignedInt16:
       {
-        quint16*  data16 = reinterpret_cast<quint16*>(data);
-        for(unsigned int i=0; i < numberOfElements(); ++i)
-        {
-          BSWAP_16(data16[i]);
-        }
+        quint16* data16 = reinterpret_cast<quint16*>(data);
+        bswap_matrix<quint16>(data16, numberOfElements(),data16);
       }
       break;
 
@@ -158,11 +155,7 @@ void CPhilipsBinFile::swap(char*& data)
       case Float32:
       {
         quint32* data32 = reinterpret_cast<quint32*>(data);
-
-        for(unsigned int i=0; i < numberOfElements(); ++i)
-        {
-          BSWAP_32(data32[i]);
-        }
+        bswap_matrix<quint32>(data32, numberOfElements(), data32);
       }
       break;
 
