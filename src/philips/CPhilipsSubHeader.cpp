@@ -231,7 +231,8 @@ bool CPhilipsSubHeader::load(void)
   // check if the stream is readable or not and
   // set our MedIOData to the correct file position so that we can
   // read the subheader  
-  if(m_pMedIOData->isReadable() == false ||
+  if(m_pMedIOData == NULL ||
+     m_pMedIOData->isReadable() == false ||
      m_pDirItem->dataBlock_Start() == 0 ||
      m_pMedIOData->seek(m_pDirItem->dataBlock_Start()) == false)
   {
@@ -239,8 +240,7 @@ bool CPhilipsSubHeader::load(void)
     return false;
   }
 
-  // we use a ByteArray buffer to speed up the endianess
-  // decoding
+  // we read in all data at once using read()
   if(m_pMedIOData->read(reinterpret_cast<char*>(&m_pData->header), sizeof(m_pData->header)) != sizeof(m_pData->header))
   {
     RETURN(false);

@@ -30,44 +30,50 @@
 
 #include <rtdebug.h>
 
+#include "bswap.h"
+
 // we define the private inline class of that one so that we
 // are able to hide the private methods & data of that class in the
 // public headers
 class CECAT7SubHeaderAttenCorrPrivate
 {
   public:
+    // SubHeder structure (should be 512 bytes)
+    #define SUBHEADER_SIZE 512
+    #pragma pack(1)
     struct HeaderData
     {
-      quint16  Data_Type;
-      quint16  Num_Dimensions;
-      quint16  Attenuation_Type;
-      quint16  Num_R_Elements;
-      quint16  Num_Angles;
-      quint16  Num_Z_Elements;
-      quint16  Ring_Difference;
-      float    X_Resolution;
-      float    Y_Resolution;
-      float    Z_Resolution;
-      float    W_Resolution;
-      float    Scale_Factor;
-      float    X_Offset;
-      float    Y_Offset;
-      float    X_Radius;
-      float    Y_Radius;
-      float    Tilt_Angle;
-      float    Attenuation_Coeff;
-      float    Attenuation_Min;
-      float    Attenuation_Max;
-      float    Skull_Thickness;
-      quint16  Num_Additional_Atten_Coeff;
-      float    Additional_Atten_Coeff[8];
-      float    Edge_Finding_Threshold;
-      quint16  Storage_Order;
-      quint16  Span;
-      quint16  Z_Elements[64];
-      quint16  Unused[90];
-      quint16  CTI_Reserved[50];
-    } header;
+      quint16  Data_Type;                  //   0: Data_Type
+      quint16  Num_Dimensions;             //   2: Num_Dimensions
+      quint16  Attenuation_Type;           //   4: Attenuation_Type
+      quint16  Num_R_Elements;             //   6: Num_R_Elements
+      quint16  Num_Angles;                 //   8: Num_Angles
+      quint16  Num_Z_Elements;             //  10: Num_Z_Elements
+      quint16  Ring_Difference;            //  12: Ring_Difference
+      float    X_Resolution;               //  14: X_Resolution
+      float    Y_Resolution;               //  18: Y_Resolution
+      float    Z_Resolution;               //  22: Z_Resolution
+      float    W_Resolution;               //  26: W_Resolution
+      float    Scale_Factor;               //  30: Scale_Factor
+      float    X_Offset;                   //  34: X_Offset
+      float    Y_Offset;                   //  38: Y_Offset
+      float    X_Radius;                   //  42: X_Radius
+      float    Y_Radius;                   //  46: Y_Radius
+      float    Tilt_Angle;                 //  50: Tilt_Angle
+      float    Attenuation_Coeff;          //  54: Attenuation_Coeff
+      float    Attenuation_Min;            //  58: Attenuation_Min
+      float    Attenuation_Max;            //  62: Attenuation_Max
+      float    Skull_Thickness;            //  66: Skull_Thickness
+      quint16  Num_Additional_Atten_Coeff; //  70: Num_Additional_Atten_Coeff
+      float    Additional_Atten_Coeff[8];  //  72: Additional_Atten_Coeff (8)
+      float    Edge_Finding_Threshold;     // 104: Edge_Finding_Threshold
+      quint16  Storage_Order;              // 108: Storage_Order
+      quint16  Span;                       // 110: Span
+      quint16  Z_Elements[64];             // 112: Z_Elements (64)                                      
+      quint16  Unused[90];                 // 240: Unused (90)
+      quint16  CTI_Reserved[50];           // 412: CTI_Reserved (50)
+    } header; 
+    #pragma pack()
 };
 
 CECAT7SubHeaderAttenCorr::CECAT7SubHeaderAttenCorr(CECATFile* ecatFile,
@@ -139,7 +145,8 @@ bool CECAT7SubHeaderAttenCorr::load(void)
   // check if the stream is readable or not and
   // set our MedIOData to the correct file position so that we can
   // read the subheader  
-  if(m_pMedIOData->isReadable() == false ||
+  if(m_pMedIOData == NULL ||
+     m_pMedIOData->isReadable() == false ||
      m_pDirItem->dataBlock_Start() == 0 ||
      m_pMedIOData->seek(m_pDirItem->dataBlock_Start()) == false)
   {
@@ -147,95 +154,94 @@ bool CECAT7SubHeaderAttenCorr::load(void)
     return false;
   }
 
-  // we use a ByteArray buffer to speed up the endianess
-  // decoding
-  QByteArray buffer(rawDataSize(), 0);
-  if(m_pMedIOData->read(buffer.data(), buffer.size()) != rawDataSize())
+  // we read in all data at once using read()
+  ASSERT(sizeof(m_pData->header) == SUBHEADER_SIZE);
+  if(m_pMedIOData->read(reinterpret_cast<char*>(&m_pData->header), sizeof(m_pData->header)) != SUBHEADER_SIZE)
   {
     RETURN(false);
     return false;
   }
 
-  // now we generate a QDataStream on our buffer so that we can read
-  // out of the buffer instead of the raw file (> speed)
-  QDataStream stream(buffer);  
+  // now that we have streamed in all data in one run we
+  // have to take care of correct endianness in the non-char
+  // entries in the header structure in case this is a little endian
+  // machine
+  if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+  {
+    // we only swap non-char elements of the header
+    BSWAP_16(m_pData->header.Data_Type);
+    BSWAP_16(m_pData->header.Num_Dimensions);
+    BSWAP_16(m_pData->header.Attenuation_Type);
+    BSWAP_16(m_pData->header.Num_R_Elements);
+    BSWAP_16(m_pData->header.Num_Angles);
+    BSWAP_16(m_pData->header.Num_Z_Elements);
+    BSWAP_16(m_pData->header.Ring_Difference);
+    BSWAP_FLT(m_pData->header.X_Resolution);
+    BSWAP_FLT(m_pData->header.Y_Resolution);
+    BSWAP_FLT(m_pData->header.Z_Resolution);
+    BSWAP_FLT(m_pData->header.W_Resolution);
+    BSWAP_FLT(m_pData->header.Scale_Factor);
+    BSWAP_FLT(m_pData->header.X_Offset);
+    BSWAP_FLT(m_pData->header.Y_Offset);
+    BSWAP_FLT(m_pData->header.X_Radius);
+    BSWAP_FLT(m_pData->header.Y_Radius);
+    BSWAP_FLT(m_pData->header.Tilt_Angle);
+    BSWAP_FLT(m_pData->header.Attenuation_Coeff);
+    BSWAP_FLT(m_pData->header.Attenuation_Min);
+    BSWAP_FLT(m_pData->header.Attenuation_Max);
+    BSWAP_FLT(m_pData->header.Skull_Thickness);
+    BSWAP_16(m_pData->header.Num_Additional_Atten_Coeff);
 
-  // we have to set the QDataStream version to the Qt4.5 version
-  // because with Qt4.6 the floating point precision changed and
-  // otherwise causes our streaming to fail
-  stream.setVersion(QDataStream::Qt_4_5);
-  
-  // lets read in each single data element of our
-  // data structure to maintain the correct endianess of the
-  // data
-  stream >> m_pData->header.Data_Type;                    //   0: Data_Type
-  stream >> m_pData->header.Num_Dimensions;              //   2: Num_Dimensions
-  stream >> m_pData->header.Attenuation_Type;            //   4: Attenuation_Type
-  stream >> m_pData->header.Num_R_Elements;              //   6: Num_R_Elements
-  stream >> m_pData->header.Num_Angles;                  //   8: Num_Angles
-  stream >> m_pData->header.Num_Z_Elements;              //  10: Num_Z_Elements
-  stream >> m_pData->header.Ring_Difference;              //  12: Ring_Difference
-  stream >> m_pData->header.X_Resolution;                //  14: X_Resolution
-  stream >> m_pData->header.Y_Resolution;                //  18: Y_Resolution
-  stream >> m_pData->header.Z_Resolution;                //  22: Z_Resolution
-  stream >> m_pData->header.W_Resolution;                //  26: W_Resolution
-  stream >> m_pData->header.Scale_Factor;                //  30: Scale_Factor
-  stream >> m_pData->header.X_Offset;                    //  34: X_Offset
-  stream >> m_pData->header.Y_Offset;                    //  38: Y_Offset
-  stream >> m_pData->header.X_Radius;                    //  42: X_Radius
-  stream >> m_pData->header.Y_Radius;                    //  46: Y_Radius
-  stream >> m_pData->header.Tilt_Angle;                  //  50: Tilt_Angle
-  stream >> m_pData->header.Attenuation_Coeff;            //  54: Attenuation_Coeff
-  stream >> m_pData->header.Attenuation_Min;              //  58: Attenuation_Min
-  stream >> m_pData->header.Attenuation_Max;              //  62: Attenuation_Max
-  stream >> m_pData->header.Skull_Thickness;              //  66: Skull_Thickness
-  stream >> m_pData->header.Num_Additional_Atten_Coeff;  //  70: Num_Additional_Atten_Coeff
-  for(int i=0; i < 8; i++)
-    stream >> m_pData->header.Additional_Atten_Coeff[i];  //  72: Additional_Atten_Coeff (8)
-  stream >> m_pData->header.Edge_Finding_Threshold;      // 104: Edge_Finding_Threshold
-  stream >> m_pData->header.Storage_Order;                // 108: Storage_Order
-  stream >> m_pData->header.Span;                        // 110: Span
-  for(int i=0; i < 64; i++)
-    stream >> m_pData->header.Z_Elements[i];              // 112: Z_Elements (64)
-  for(int i=0; i < 90; i++)
-    stream >> m_pData->header.Unused[i];                  // 240: Unused (90)
-  for(int i=0; i < 50; i++)
-    stream >> m_pData->header.CTI_Reserved[i];            // 412: CTI_Reserved (50)
+    for(int i=0; i < 8; i++)
+      BSWAP_FLT(m_pData->header.Additional_Atten_Coeff[i]);
 
-  return true;
+    BSWAP_FLT(m_pData->header.Edge_Finding_Threshold);
+    BSWAP_16(m_pData->header.Storage_Order);
+    BSWAP_16(m_pData->header.Span);
+
+    for(int i=0; i < 64; i++)
+      BSWAP_16(m_pData->header.Z_Elements[i]);
+
+    for(int i=0; i < 90; i++)
+      BSWAP_16(m_pData->header.Unused[i]);
+
+    for(int i=0; i < 50; i++)
+      BSWAP_16(m_pData->header.CTI_Reserved[i]);
+  }
+
   // some more debug output
 #if defined(DEBUG)
   D("ECAT7 Attenuation Correction SubHeader loaded:");
   D("---------------------------------------------");
-  D("Data_Type                 : %d",        m_pData->header.Data_Type);
-  D("Num_Dimensions             : %d",        m_pData->header.Num_Dimensions);
-  D("Attenuation_Type          : %d",        m_pData->header.Attenuation_Type);
-  D("Num_R_Elements             : %d",        m_pData->header.Num_R_Elements);
-  D("Num_Angles                : %d",        m_pData->header.Num_Angles);
-  D("Num_Z_Elements            : %d",        m_pData->header.Num_Z_Elements);
-  D("Ring_Difference           : %d",        m_pData->header.Ring_Difference);
+  D("Data_Type                 : %d",       m_pData->header.Data_Type);
+  D("Num_Dimensions            : %d",       m_pData->header.Num_Dimensions);
+  D("Attenuation_Type          : %d",       m_pData->header.Attenuation_Type);
+  D("Num_R_Elements            : %d",       m_pData->header.Num_R_Elements);
+  D("Num_Angles                : %d",       m_pData->header.Num_Angles);
+  D("Num_Z_Elements            : %d",       m_pData->header.Num_Z_Elements);
+  D("Ring_Difference           : %d",       m_pData->header.Ring_Difference);
   D("X_Resolution              : %f cm",    m_pData->header.X_Resolution);
   D("Y_Resolution              : %f cm",    m_pData->header.Y_Resolution);
   D("Z_Resolution              : %f cm",    m_pData->header.Z_Resolution);
-  D("W_Resolution              : %f",        m_pData->header.W_Resolution);
-  D("Scale_Factor              : %f",        m_pData->header.Scale_Factor);
-  D("X_Offset                   : %f cm",    m_pData->header.X_Offset);
-  D("Y_Offset                   : %f cm",    m_pData->header.Y_Offset);
+  D("W_Resolution              : %f",       m_pData->header.W_Resolution);
+  D("Scale_Factor              : %f",       m_pData->header.Scale_Factor);
+  D("X_Offset                  : %f cm",    m_pData->header.X_Offset);
+  D("Y_Offset                  : %f cm",    m_pData->header.Y_Offset);
   D("X_Radius                  : %f cm",    m_pData->header.X_Radius);
   D("Y_Radius                  : %f cm",    m_pData->header.Y_Radius);
   D("Tilt_Angle                : %f°",      m_pData->header.Tilt_Angle);
-  D("Attenuation_Coeff         : %f cm^-1",  m_pData->header.Attenuation_Coeff);
-  D("Attenuation_Min           : %f",        m_pData->header.Attenuation_Min);
-  D("Attenuation_Max           : %f",        m_pData->header.Attenuation_Max);
+  D("Attenuation_Coeff         : %f cm^-1", m_pData->header.Attenuation_Coeff);
+  D("Attenuation_Min           : %f",       m_pData->header.Attenuation_Min);
+  D("Attenuation_Max           : %f",       m_pData->header.Attenuation_Max);
   D("Skull_Thickness           : %f cm",    m_pData->header.Skull_Thickness);
-  D("Num_Additional_Atten_Coeff: %d",        m_pData->header.Num_Additional_Atten_Coeff);
+  D("Num_Additional_Atten_Coeff: %d",       m_pData->header.Num_Additional_Atten_Coeff);
   for(int i=0; i < m_pData->header.Num_Additional_Atten_Coeff; i++)
   {
     D("Additional_Atten_Coeff[%d]: %f", i+1, m_pData->header.Additional_Atten_Coeff[i]);
   }
-  D("Edge_Finding_Threshold    : %f",        m_pData->header.Edge_Finding_Threshold);
-  D("Storage_Order             : %d",        m_pData->header.Storage_Order);
-  D("Span                       : %d",        m_pData->header.Span);
+  D("Edge_Finding_Threshold    : %f",       m_pData->header.Edge_Finding_Threshold);
+  D("Storage_Order             : %d",       m_pData->header.Storage_Order);
+  D("Span                      : %d",       m_pData->header.Span);
   for(int i=0; i < 64; i++)
   {
     D("Z_Elements              [%d]: %f", i+1, m_pData->header.Z_Elements[i]);
@@ -261,59 +267,68 @@ bool CECAT7SubHeaderAttenCorr::save(void) const
 
   SHOWVALUE(m_pMedIOData->pos());
 
-  // we write to a buffer first and write out later directly to the file
-  QByteArray buffer(rawDataSize(), 0);
-  QDataStream stream(&buffer, QIODevice::WriteOnly);
+  ASSERT(sizeof(m_pData->header) == SUBHEADER_SIZE);
+  struct CECAT7SubHeaderAttenCorrPrivate::HeaderData* header = NULL;
+  if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+  {
+    header = new CECAT7SubHeaderAttenCorrPrivate::HeaderData;
 
-  // we have to set the QDataStream version to the Qt4.5 version
-  // because with Qt4.6 the floating point precision changed and
-  // otherwise causes our streaming to fail
-  stream.setVersion(QDataStream::Qt_4_5);
+    // copy the current m_pData->header to beHeader
+    memcpy(header, &m_pData->header, sizeof(m_pData->header));
 
-  // lets write out each single data element of our
-  // data structure to maintain the correct endianess of the
-  // data
-  stream << m_pData->header.Data_Type;                    //   0: Data_Type
-  stream << m_pData->header.Num_Dimensions;              //   2: Num_Dimensions
-  stream << m_pData->header.Attenuation_Type;            //   4: Attenuation_Type
-  stream << m_pData->header.Num_R_Elements;              //   6: Num_R_Elements
-  stream << m_pData->header.Num_Angles;                  //   8: Num_Angles
-  stream << m_pData->header.Num_Z_Elements;              //  10: Num_Z_Elements
-  stream << m_pData->header.Ring_Difference;              //  12: Ring_Difference
-  stream << m_pData->header.X_Resolution;                //  14: X_Resolution
-  stream << m_pData->header.Y_Resolution;                //  18: Y_Resolution
-  stream << m_pData->header.Z_Resolution;                //  22: Z_Resolution
-  stream << m_pData->header.W_Resolution;                //  26: W_Resolution
-  stream << m_pData->header.Scale_Factor;                //  30: Scale_Factor
-  stream << m_pData->header.X_Offset;                    //  34: X_Offset
-  stream << m_pData->header.Y_Offset;                    //  38: Y_Offset
-  stream << m_pData->header.X_Radius;                    //  42: X_Radius
-  stream << m_pData->header.Y_Radius;                    //  46: Y_Radius
-  stream << m_pData->header.Tilt_Angle;                  //  50: Tilt_Angle
-  stream << m_pData->header.Attenuation_Coeff;            //  54: Attenuation_Coeff
-  stream << m_pData->header.Attenuation_Min;              //  58: Attenuation_Min
-  stream << m_pData->header.Attenuation_Max;              //  62: Attenuation_Max
-  stream << m_pData->header.Skull_Thickness;              //  66: Skull_Thickness
-  stream << m_pData->header.Num_Additional_Atten_Coeff;  //  70: Num_Additional_Atten_Coeff
-  for(int i=0; i < 8; i++)
-    stream << m_pData->header.Additional_Atten_Coeff[i];  //  72: Additional_Atten_Coeff (8)
-  stream << m_pData->header.Edge_Finding_Threshold;      // 104: Edge_Finding_Threshold
-  stream << m_pData->header.Storage_Order;                // 108: Storage_Order
-  stream << m_pData->header.Span;                        // 110: Span
-  for(int i=0; i < 64; i++)
-    stream << m_pData->header.Z_Elements[i];              // 112: Z_Elements (64)
-  for(int i=0; i < 90; i++)
-    stream << m_pData->header.Unused[i];                  // 240: Unused (90)
-  for(int i=0; i < 50; i++)
-    stream << m_pData->header.CTI_Reserved[i];            // 412: CTI_Reserved (50)
+    // we only swap non-char elements of the header
+    BSWAP_16(header->Data_Type);
+    BSWAP_16(header->Num_Dimensions);
+    BSWAP_16(header->Attenuation_Type);
+    BSWAP_16(header->Num_R_Elements);
+    BSWAP_16(header->Num_Angles);
+    BSWAP_16(header->Num_Z_Elements);
+    BSWAP_16(header->Ring_Difference);
+    BSWAP_FLT(header->X_Resolution);
+    BSWAP_FLT(header->Y_Resolution);
+    BSWAP_FLT(header->Z_Resolution);
+    BSWAP_FLT(header->W_Resolution);
+    BSWAP_FLT(header->Scale_Factor);
+    BSWAP_FLT(header->X_Offset);
+    BSWAP_FLT(header->Y_Offset);
+    BSWAP_FLT(header->X_Radius);
+    BSWAP_FLT(header->Y_Radius);
+    BSWAP_FLT(header->Tilt_Angle);
+    BSWAP_FLT(header->Attenuation_Coeff);
+    BSWAP_FLT(header->Attenuation_Min);
+    BSWAP_FLT(header->Attenuation_Max);
+    BSWAP_FLT(header->Skull_Thickness);
+    BSWAP_16(header->Num_Additional_Atten_Coeff);
+
+    for(int i=0; i < 8; i++)
+      BSWAP_FLT(header->Additional_Atten_Coeff[i]);
+
+    BSWAP_FLT(header->Edge_Finding_Threshold);
+    BSWAP_16(header->Storage_Order);
+    BSWAP_16(header->Span);
+
+    for(int i=0; i < 64; i++)
+      BSWAP_16(header->Z_Elements[i]);
+
+    for(int i=0; i < 90; i++)
+      BSWAP_16(header->Unused[i]);
+
+    for(int i=0; i < 50; i++)
+      BSWAP_16(header->CTI_Reserved[i]);
+  }
 
   // now write out to our outStream
   bool result = false;
-  if(m_pMedIOData->write(buffer) != -1)
+  if(m_pMedIOData->write(reinterpret_cast<char*>(header), sizeof(m_pData->header)) == SUBHEADER_SIZE)
   {
     m_pDirItem->subHeaderWritten(*this);
     result = true;
   }
+
+  // if we byte swapped we have to delete the
+  // temporary byte swapped header structures
+  if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+    delete header;
 
   RETURN(result);
   return result;
@@ -688,4 +703,3 @@ void CECAT7SubHeaderAttenCorr::setCTI_Reserverd(const short i, const short n)
 {
   m_pData->header.CTI_Reserved[i] = n;
 }
-

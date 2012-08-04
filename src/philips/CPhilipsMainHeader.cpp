@@ -658,7 +658,7 @@ bool CPhilipsMainHeader::load()
 
   // read in the main header in one read() operation
   ASSERT(sizeof(m_pData->header) == MAINHEADER_SIZE);
-  if(m_pMedIOData->read((char*)&m_pData->header, sizeof(m_pData->header)) != MAINHEADER_SIZE)
+  if(m_pMedIOData->read(reinterpret_cast<char*>(&m_pData->header), sizeof(m_pData->header)) != MAINHEADER_SIZE)
   {
     RETURN(false);
     return false;
