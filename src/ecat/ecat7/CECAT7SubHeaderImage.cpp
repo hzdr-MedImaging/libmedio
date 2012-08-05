@@ -30,9 +30,9 @@
 #include "CPhilipsMainHeader.h"
 #include "CPhilipsSubHeaderImage.h"
 
-#include <QDataStream>
-
 #include <rtdebug.h>
+
+#include "bswap.h"
 
 // we define the private inline class of that one so that we
 // are able to hide the private methods & data of that class in the
@@ -40,70 +40,73 @@
 class CECAT7SubHeaderImagePrivate
 {
   public:
+    #define SUBHEADER_SIZE 512
+    #pragma pack(1)
     struct HeaderData
     {
-      quint16  Data_Type;
-      quint16  Num_Dimensions;
-      quint16  X_Dimension;
-      quint16  Y_Dimension;
-      quint16  Z_Dimension;
-      float    X_Offset;
-      float    Y_Offset;
-      float    Z_Offset;
-      float    Recon_Zoom;
-      float    Scale_Factor;
-      quint16  Image_Min;
-      quint16  Image_Max;
-      float    X_Pixel_Size;
-      float    Y_Pixel_Size;
-      float    Z_Pixel_Size;
-      quint32  Frame_Duration;
-      quint32  Frame_Start_Time;
-      quint16  Filter_Code;
-      float    X_Resolution;
-      float    Y_Resolution;
-      float    Z_Resolution;
-      float    Num_R_Elements;
-      float    Num_Angles;
-      float    Z_Rotation_Angle;
-      float    Decay_Corr_Fctr;
-      quint32  Processing_Code;
-      quint32  Gate_Duration;
-      quint32  R_Wave_Offset;
-      quint32  Num_Accepted_Beats;
-      float    Filter_Cutoff_Frequency;
-      float    Filter_Resolution;
-      float    Filter_Ramp_Slope;
-      quint16  Filter_Order;
-      float    Filter_Scatter_Fraction;
-      float    Filter_Scatter_Slope;
-      char    Annotation[40];
-      float    MT_1_1;
-      float    MT_1_2;
-      float    MT_1_3;
-      float    MT_2_1;
-      float    MT_2_2;
-      float    MT_2_3;
-      float    MT_3_1;
-      float    MT_3_2;
-      float    MT_3_3;
-      float    RFilter_Cutoff;
-      float    RFilter_Resolution;
-      quint16  RFilter_Code;
-      quint16  RFilter_Order;
-      float    ZFilter_Cutoff;
-      float    ZFilter_Resolution;
-      quint16  ZFilter_Code;
-      quint16  ZFilter_Order;
-      float    MT_1_4;
-      float    MT_2_4;
-      float    MT_3_4;
-      quint16  Scatter_Type;
-      quint16  Recon_Type;
-      quint16  Recon_Views;
-      quint16  CTI_Reserved[87];
-      quint16  User_Reserved[49];
+      quint16  Data_Type;                  //   0: Data_Type
+      quint16  Num_Dimensions;             //   2: Num_Dimensions
+      quint16  X_Dimension;                //   4: X_Dimension
+      quint16  Y_Dimension;                //   6: Y_Dimension
+      quint16  Z_Dimension;                //   8: Z_Dimension
+      float    X_Offset;                   //  10: X_Offset
+      float    Y_Offset;                   //  14: Y_Offset
+      float    Z_Offset;                   //  18: Z_Offset
+      float    Recon_Zoom;                 //  22: Recon_Zoom
+      float    Scale_Factor;               //  26: Scale_Factor
+      quint16  Image_Min;                  //  30: Image_Min
+      quint16  Image_Max;                  //  32: Image_Max
+      float    X_Pixel_Size;               //  34: X_Pixel_Size
+      float    Y_Pixel_Size;               //  38: Y_Pixel_Size
+      float    Z_Pixel_Size;               //  42: Z_Pixel_Size
+      quint32  Frame_Duration;             //  46: Frame_Duration
+      quint32  Frame_Start_Time;           //  50: Frame_Start_Time
+      quint16  Filter_Code;                //  54: Filter_Code
+      float    X_Resolution;               //  56: X_Resolution
+      float    Y_Resolution;               //  60: Y_Resolution
+      float    Z_Resolution;               //  64: Z_Resolution
+      float    Num_R_Elements;             //  70: Num_R_Elements
+      float    Num_Angles;                 //  72: Num_Angles
+      float    Z_Rotation_Angle;           //  76: Z_Rotation_Angle
+      float    Decay_Corr_Fctr;            //  80: Decay_Corr_Fctr
+      quint32  Processing_Code;            //  84: Processing_Code
+      quint32  Gate_Duration;              //  88: Gate_Duration
+      quint32  R_Wave_Offset;              //  92: R_Wave_Offset
+      quint32  Num_Accepted_Beats;         //  96: Num_Accepted_Beats
+      float    Filter_Cutoff_Frequency;    // 100: Filter_Cutoff_Frequency
+      float    Filter_Resolution;          // 104: Filter_Resolution
+      float    Filter_Ramp_Slope;          // 108: Filter_Ramp_Slope
+      quint16  Filter_Order;               // 112: Filter_Order
+      float    Filter_Scatter_Fraction;    // 116: Filter_Scatter_Fraction
+      float    Filter_Scatter_Slope;       // 120: Filter_Scatter_Slope
+      char    Annotation[40];              // 122: Annotation
+      float    MT_1_1;                     // 162: MT_1_1
+      float    MT_1_2;                     // 166: MT_1_2
+      float    MT_1_3;                     // 170: MT_1_3
+      float    MT_2_1;                     // 174: MT_2_1
+      float    MT_2_2;                     // 178: MT_2_2
+      float    MT_2_3;                     // 182: MT_2_3
+      float    MT_3_1;                     // 186: MT_3_1
+      float    MT_3_2;                     // 190: MT_3_2
+      float    MT_3_3;                     // 194: MT_3_3
+      float    RFilter_Cutoff;             // 198: RFilter_Cutoff
+      float    RFilter_Resolution;         // 202: RFilter_Resolution
+      quint16  RFilter_Code;               // 206: RFilter_Code
+      quint16  RFilter_Order;              // 208: RFilter_Order
+      float    ZFilter_Cutoff;             // 210: ZFilter_Cutoff
+      float    ZFilter_Resolution;         // 214: ZFilter_Resolution
+      quint16  ZFilter_Code;               // 218: ZFilter_Code
+      quint16  ZFilter_Order;              // 220: ZFilter_Order
+      float    MT_1_4;                     // 222: MT_1_4
+      float    MT_2_4;                     // 226: MT_2_4
+      float    MT_3_4;                     // 230: MT_3_4
+      quint16  Scatter_Type;               // 230: Scatter_Type
+      quint16  Recon_Type;                 // 236: Recon_Type
+      quint16  Recon_Views;                // 238: Recon_Views
+      quint16  CTI_Reserved[87];           // 240: CTI_Reserved
+      quint16  User_Reserved[49];          // 414: User_Reserved
     } header;
+    #pragma pack()
 };
 
 CECAT7SubHeaderImage::CECAT7SubHeaderImage(CECATFile* ecatFile,
@@ -177,7 +180,8 @@ bool CECAT7SubHeaderImage::load(void)
   // check if the stream is readable or not and
   // set our MedIOData to the correct file position so that we can
   // read the subheader  
-  if(m_pMedIOData->isReadable() == false ||
+  if(m_pMedIOData == NULL ||
+     m_pMedIOData->isReadable() == false ||
      m_pDirItem->dataBlock_Start() == 0 ||
      m_pMedIOData->seek(m_pDirItem->dataBlock_Start()) == false)
   {
@@ -185,154 +189,149 @@ bool CECAT7SubHeaderImage::load(void)
     return false;
   }
 
-  // we use a ByteArray buffer to speed up the endianess
-  // decoding
-  QByteArray buffer(rawDataSize(), 0);
-  if(m_pMedIOData->read(buffer.data(), buffer.size()) != rawDataSize())
+  // we read in all data at once using read()
+  ASSERT(sizeof(m_pData->header) == SUBHEADER_SIZE);
+  if(m_pMedIOData->read(reinterpret_cast<char*>(&m_pData->header), sizeof(m_pData->header)) != SUBHEADER_SIZE)
   {
     RETURN(false);
     return false;
   }
+ 
+  // now that we have streamed in all data in one run we
+  // have to take care of correct endianness in the non-char
+  // entries in the header structure in case this is a little endian
+  // machine
+  if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+  {
+    // we only swap non-char elements of the header
+    BSWAP_16(m_pData->header.Data_Type);               
+    BSWAP_16(m_pData->header.Num_Dimensions);          
+    BSWAP_16(m_pData->header.X_Dimension);             
+    BSWAP_16(m_pData->header.Y_Dimension);             
+    BSWAP_16(m_pData->header.Z_Dimension);             
+    BSWAP_FLT(m_pData->header.X_Offset);                
+    BSWAP_FLT(m_pData->header.Y_Offset);                
+    BSWAP_FLT(m_pData->header.Z_Offset);                
+    BSWAP_FLT(m_pData->header.Recon_Zoom);              
+    BSWAP_FLT(m_pData->header.Scale_Factor);            
+    BSWAP_16(m_pData->header.Image_Min);               
+    BSWAP_16(m_pData->header.Image_Max);               
+    BSWAP_FLT(m_pData->header.X_Pixel_Size);            
+    BSWAP_FLT(m_pData->header.Y_Pixel_Size);            
+    BSWAP_FLT(m_pData->header.Z_Pixel_Size);            
+    BSWAP_32(m_pData->header.Frame_Duration);           
+    BSWAP_32(m_pData->header.Frame_Start_Time);
+    BSWAP_16(m_pData->header.Filter_Code);
+    BSWAP_FLT(m_pData->header.X_Resolution);
+    BSWAP_FLT(m_pData->header.Y_Resolution);
+    BSWAP_FLT(m_pData->header.Z_Resolution);
+    BSWAP_FLT(m_pData->header.Num_R_Elements);
+    BSWAP_FLT(m_pData->header.Num_Angles);   
+    BSWAP_FLT(m_pData->header.Z_Rotation_Angle);
+    BSWAP_FLT(m_pData->header.Decay_Corr_Fctr);
+    BSWAP_32(m_pData->header.Processing_Code);
+    BSWAP_32(m_pData->header.Gate_Duration); 
+    BSWAP_32(m_pData->header.R_Wave_Offset);
+    BSWAP_32(m_pData->header.Num_Accepted_Beats);
+    BSWAP_FLT(m_pData->header.Filter_Cutoff_Frequency);
+    BSWAP_FLT(m_pData->header.Filter_Resolution);
+    BSWAP_FLT(m_pData->header.Filter_Ramp_Slope);
+    BSWAP_16(m_pData->header.Filter_Order);
+    BSWAP_FLT(m_pData->header.Filter_Scatter_Fraction);
+    BSWAP_FLT(m_pData->header.Filter_Scatter_Slope);
+    BSWAP_FLT(m_pData->header.MT_1_1);
+    BSWAP_FLT(m_pData->header.MT_1_2);
+    BSWAP_FLT(m_pData->header.MT_1_3);
+    BSWAP_FLT(m_pData->header.MT_2_1);
+    BSWAP_FLT(m_pData->header.MT_2_2);
+    BSWAP_FLT(m_pData->header.MT_2_3);
+    BSWAP_FLT(m_pData->header.MT_3_1);
+    BSWAP_FLT(m_pData->header.MT_3_2);
+    BSWAP_FLT(m_pData->header.MT_3_3);
+    BSWAP_FLT(m_pData->header.RFilter_Cutoff);
+    BSWAP_FLT(m_pData->header.RFilter_Resolution);
+    BSWAP_16(m_pData->header.RFilter_Code);
+    BSWAP_16(m_pData->header.RFilter_Order);
+    BSWAP_FLT(m_pData->header.ZFilter_Cutoff);
+    BSWAP_FLT(m_pData->header.ZFilter_Resolution);
+    BSWAP_16(m_pData->header.ZFilter_Code);
+    BSWAP_16(m_pData->header.ZFilter_Order);
+    BSWAP_FLT(m_pData->header.MT_1_4);
+    BSWAP_FLT(m_pData->header.MT_2_4);
+    BSWAP_FLT(m_pData->header.MT_3_4);
+    BSWAP_16(m_pData->header.Scatter_Type);
+    BSWAP_16(m_pData->header.Recon_Type);
+    BSWAP_16(m_pData->header.Recon_Views);
+    for(int i=0; i < 87; i++)
+      BSWAP_16(m_pData->header.CTI_Reserved[i]);
 
-  // now we generate a QDataStream on our buffer so that we can read
-  // out of the buffer instead of the raw file (> speed)
-  QDataStream stream(buffer);  
-
-  // we have to set the QDataStream version to the Qt4.5 version
-  // because with Qt4.6 the floating point precision changed and
-  // otherwise causes our streaming to fail
-  stream.setVersion(QDataStream::Qt_4_5);
-  
-  // lets read in each single data element of our
-  // data structure to maintain the correct endianess of the
-  // data
-  stream >> m_pData->header.Data_Type;                      //   0: Data_Type
-  stream >> m_pData->header.Num_Dimensions;                //   2: Num_Dimensions
-  stream >> m_pData->header.X_Dimension;                    //   4: X_Dimension
-  stream >> m_pData->header.Y_Dimension;                    //   6: Y_Dimension
-  stream >> m_pData->header.Z_Dimension;                    //   8: Z_Dimension
-  stream >> m_pData->header.X_Offset;                      //  10: X_Offset
-  stream >> m_pData->header.Y_Offset;                      //  14: Y_Offset
-  stream >> m_pData->header.Z_Offset;                      //  18: Z_Offset
-  stream >> m_pData->header.Recon_Zoom;                    //  22: Recon_Zoom
-  stream >> m_pData->header.Scale_Factor;                  //  26: Scale_Factor
-  stream >> m_pData->header.Image_Min;                      //  30: Image_Min
-  stream >> m_pData->header.Image_Max;                      //  32: Image_Max
-  stream >> m_pData->header.X_Pixel_Size;                  //  34: X_Pixel_Size
-  stream >> m_pData->header.Y_Pixel_Size;                  //  38: Y_Pixel_Size
-  stream >> m_pData->header.Z_Pixel_Size;                  //  42: Z_Pixel_Size
-  stream >> m_pData->header.Frame_Duration;                //  46: Frame_Duration
-  stream >> m_pData->header.Frame_Start_Time;              //  50: Frame_Start_Time
-  stream >> m_pData->header.Filter_Code;                    //  54: Filter_Code
-  stream >> m_pData->header.X_Resolution;                  //  56: X_Resolution
-  stream >> m_pData->header.Y_Resolution;                  //  60: Y_Resolution
-  stream >> m_pData->header.Z_Resolution;                  //  64: Z_Resolution
-  stream >> m_pData->header.Num_R_Elements;                //  70: Num_R_Elements
-  stream >> m_pData->header.Num_Angles;                    //  72: Num_Angles
-  stream >> m_pData->header.Z_Rotation_Angle;              //  76: Z_Rotation_Angle
-  stream >> m_pData->header.Decay_Corr_Fctr;                //  80: Decay_Corr_Fctr
-  stream >> m_pData->header.Processing_Code;                //  84: Processing_Code
-  stream >> m_pData->header.Gate_Duration;                  //  88: Gate_Duration
-  stream >> m_pData->header.R_Wave_Offset;                  //  92: R_Wave_Offset
-  stream >> m_pData->header.Num_Accepted_Beats;            //  96: Num_Accepted_Beats
-  stream >> m_pData->header.Filter_Cutoff_Frequency;        // 100: Filter_Cutoff_Frequency
-  stream >> m_pData->header.Filter_Resolution;              // 104: Filter_Resolution
-  stream >> m_pData->header.Filter_Ramp_Slope;              // 108: Filter_Ramp_Slope
-  stream >> m_pData->header.Filter_Order;                  // 112: Filter_Order
-  stream >> m_pData->header.Filter_Scatter_Fraction;        // 116: Filter_Scatter_Fraction
-  stream >> m_pData->header.Filter_Scatter_Slope;          // 120: Filter_Scatter_Slope
-  stream.readRawData(&m_pData->header.Annotation[0], 40);  // 122: Annotation
-  stream >> m_pData->header.MT_1_1;                        // 162: MT_1_1
-  stream >> m_pData->header.MT_1_2;                        // 166: MT_1_2
-  stream >> m_pData->header.MT_1_3;                        // 170: MT_1_3
-  stream >> m_pData->header.MT_2_1;                        // 174: MT_2_1
-  stream >> m_pData->header.MT_2_2;                        // 178: MT_2_2
-  stream >> m_pData->header.MT_2_3;                        // 182: MT_2_3
-  stream >> m_pData->header.MT_3_1;                        // 186: MT_3_1
-  stream >> m_pData->header.MT_3_2;                        // 190: MT_3_2
-  stream >> m_pData->header.MT_3_3;                        // 194: MT_3_3
-  stream >> m_pData->header.RFilter_Cutoff;                // 198: RFilter_Cutoff
-  stream >> m_pData->header.RFilter_Resolution;            // 202: RFilter_Resolution
-  stream >> m_pData->header.RFilter_Code;                  // 206: RFilter_Code
-  stream >> m_pData->header.RFilter_Order;                  // 208: RFilter_Order
-  stream >> m_pData->header.ZFilter_Cutoff;                // 210: ZFilter_Cutoff
-  stream >> m_pData->header.ZFilter_Resolution;            // 214: ZFilter_Resolution
-  stream >> m_pData->header.ZFilter_Code;                  // 218: ZFilter_Code
-  stream >> m_pData->header.ZFilter_Order;                  // 220: ZFilter_Order
-  stream >> m_pData->header.MT_1_4;                        // 222: MT_1_4
-  stream >> m_pData->header.MT_2_4;                        // 226: MT_2_4
-  stream >> m_pData->header.MT_3_4;                        // 230: MT_3_4
-  stream >> m_pData->header.Scatter_Type;                  // 230: Scatter_Type
-  stream >> m_pData->header.Recon_Type;                    // 236: Recon_Type
-  stream >> m_pData->header.Recon_Views;                    // 238: Recon_Views
-  for(int i=0; i < 87; i++)
-    stream >> m_pData->header.CTI_Reserved[i];              // 240: CTI_Reserved
-  for(int i=0; i < 49; i++)
-    stream >> m_pData->header.User_Reserved[i];            // 414: User_Reserved
+    for(int i=0; i < 49; i++)
+      BSWAP_16(m_pData->header.User_Reserved[i]);
+  }
 
   // some more debug output
 #if defined(DEBUG)
   D("ECAT7 Image SubHeader loaded:");
   D("----------------------------");
-  D("Data_Type                 : %d",        m_pData->header.Data_Type);
-  D("Num_Dimensions            : %d",        m_pData->header.Num_Dimensions);
-  D("X_Dimension               : %d",        m_pData->header.X_Dimension);
-  D("Y_Dimension               : %d",        m_pData->header.Y_Dimension);
-  D("Z_Dimension               : %d",        m_pData->header.Z_Dimension);
+  D("Data_Type                 : %d",       m_pData->header.Data_Type);
+  D("Num_Dimensions            : %d",       m_pData->header.Num_Dimensions);
+  D("X_Dimension               : %d",       m_pData->header.X_Dimension);
+  D("Y_Dimension               : %d",       m_pData->header.Y_Dimension);
+  D("Z_Dimension               : %d",       m_pData->header.Z_Dimension);
   D("X_Offset                  : %f cm",    m_pData->header.X_Offset);
   D("Y_Offset                  : %f cm",    m_pData->header.Y_Offset);
   D("Z_Offset                  : %f cm",    m_pData->header.Z_Offset);
   D("Recon_Zoom                : %fx",      m_pData->header.Recon_Zoom);
-  D("Scale_Factor              : %f",        m_pData->header.Scale_Factor);
-  D("Image_Min                 : %d",        m_pData->header.Image_Min);
-  D("Image_Max                 : %d",        m_pData->header.Image_Max);
+  D("Scale_Factor              : %f",       m_pData->header.Scale_Factor);
+  D("Image_Min                 : %d",       m_pData->header.Image_Min);
+  D("Image_Max                 : %d",       m_pData->header.Image_Max);
   D("X_Pixel_Size              : %f cm",    m_pData->header.X_Pixel_Size);
   D("Y_Pixel_Size              : %f cm",    m_pData->header.Y_Pixel_Size);
   D("Z_Pixel_Size              : %f cm",    m_pData->header.Z_Pixel_Size);
   D("Frame_Duration            : %d msec",  m_pData->header.Frame_Duration);
   D("Frame_Start_Time          : %d msec",  m_pData->header.Frame_Start_Time);
-  D("Filter_Code               : %d",        m_pData->header.Filter_Code);
+  D("Filter_Code               : %d",       m_pData->header.Filter_Code);
   D("X_Resolution              : %f cm",    m_pData->header.X_Resolution);
   D("Y_Resolution              : %f cm",    m_pData->header.Y_Resolution);
   D("Z_Resolution              : %f cm",    m_pData->header.Z_Resolution);
-  D("Num_R_Elements            : %f",        m_pData->header.Num_R_Elements);
-  D("Num_Angles                : %f",        m_pData->header.Num_Angles);
+  D("Num_R_Elements            : %f",       m_pData->header.Num_R_Elements);
+  D("Num_Angles                : %f",       m_pData->header.Num_Angles);
   D("Z_Rotation_Angle          : %f°",      m_pData->header.Z_Rotation_Angle);
-  D("Decay_Corr_Fctr           : %f",        m_pData->header.Decay_Corr_Fctr);
-  D("Processing_Code           : %d",        m_pData->header.Processing_Code);
+  D("Decay_Corr_Fctr           : %f",       m_pData->header.Decay_Corr_Fctr);
+  D("Processing_Code           : %d",       m_pData->header.Processing_Code);
   D("Gate_Duration             : %d msec",  m_pData->header.Gate_Duration);
   D("R_Wave_Offset             : %d msec",  m_pData->header.R_Wave_Offset);
-  D("Num_Accepted_Beats        : %d",        m_pData->header.Num_Accepted_Beats);
-  D("Filter_Cutoff_Frequency   : %f",        m_pData->header.Filter_Cutoff_Frequency);
-  D("Filter_Resolution         : %f",        m_pData->header.Filter_Resolution);
-  D("Filter_Ramp_Slope         : %f",        m_pData->header.Filter_Ramp_Slope);
-  D("Filter_Order              : %d",        m_pData->header.Filter_Order);
-  D("Filter_Scatter_Fraction   : %f",        m_pData->header.Filter_Scatter_Fraction);
-  D("Filter_Scatter_Slope      : %f",        m_pData->header.Filter_Scatter_Slope);
-  D("Annotation                : %s",        m_pData->header.Annotation);
-  D("MT_1_1                    : %f",        m_pData->header.MT_1_1);
-  D("MT_1_2                    : %f",        m_pData->header.MT_1_2);
-  D("MT_1_3                    : %f",        m_pData->header.MT_1_3);
-  D("MT_2_1                    : %f",        m_pData->header.MT_2_1);
-  D("MT_2_2                    : %f",        m_pData->header.MT_2_2);
-  D("MT_2_3                    : %f",        m_pData->header.MT_2_3);
-  D("MT_3_1                    : %f",        m_pData->header.MT_3_1);
-  D("MT_3_2                    : %f",        m_pData->header.MT_3_2);
-  D("MT_3_3                    : %f",        m_pData->header.MT_3_3);
-  D("RFilter_Cutoff            : %f",        m_pData->header.RFilter_Cutoff);
-  D("RFilter_Resolution        : %f",        m_pData->header.RFilter_Resolution);
-  D("RFilter_Code              : %d",        m_pData->header.RFilter_Code);
-  D("RFilter_Order             : %d",        m_pData->header.RFilter_Order);
-  D("ZFilter_Cutoff            : %f",        m_pData->header.ZFilter_Cutoff);
-  D("ZFilter_Resolution        : %f",        m_pData->header.ZFilter_Resolution);
-  D("ZFilter_Code              : %d",        m_pData->header.ZFilter_Code);
-  D("ZFilter_Order             : %d",        m_pData->header.ZFilter_Order);
-  D("MT_1_4                    : %f",        m_pData->header.MT_1_4);
-  D("MT_2_4                    : %f",        m_pData->header.MT_2_4);
-  D("MT_3_4                    : %f",        m_pData->header.MT_3_4);
-  D("Scatter_Type              : %d",        m_pData->header.Scatter_Type);
-  D("Recon_Type                : %d",        m_pData->header.Recon_Type);
-  D("Recon_Views               : %d",        m_pData->header.Recon_Views);
+  D("Num_Accepted_Beats        : %d",       m_pData->header.Num_Accepted_Beats);
+  D("Filter_Cutoff_Frequency   : %f",       m_pData->header.Filter_Cutoff_Frequency);
+  D("Filter_Resolution         : %f",       m_pData->header.Filter_Resolution);
+  D("Filter_Ramp_Slope         : %f",       m_pData->header.Filter_Ramp_Slope);
+  D("Filter_Order              : %d",       m_pData->header.Filter_Order);
+  D("Filter_Scatter_Fraction   : %f",       m_pData->header.Filter_Scatter_Fraction);
+  D("Filter_Scatter_Slope      : %f",       m_pData->header.Filter_Scatter_Slope);
+  D("Annotation                : %s",       m_pData->header.Annotation);
+  D("MT_1_1                    : %f",       m_pData->header.MT_1_1);
+  D("MT_1_2                    : %f",       m_pData->header.MT_1_2);
+  D("MT_1_3                    : %f",       m_pData->header.MT_1_3);
+  D("MT_2_1                    : %f",       m_pData->header.MT_2_1);
+  D("MT_2_2                    : %f",       m_pData->header.MT_2_2);
+  D("MT_2_3                    : %f",       m_pData->header.MT_2_3);
+  D("MT_3_1                    : %f",       m_pData->header.MT_3_1);
+  D("MT_3_2                    : %f",       m_pData->header.MT_3_2);
+  D("MT_3_3                    : %f",       m_pData->header.MT_3_3);
+  D("RFilter_Cutoff            : %f",       m_pData->header.RFilter_Cutoff);
+  D("RFilter_Resolution        : %f",       m_pData->header.RFilter_Resolution);
+  D("RFilter_Code              : %d",       m_pData->header.RFilter_Code);
+  D("RFilter_Order             : %d",       m_pData->header.RFilter_Order);
+  D("ZFilter_Cutoff            : %f",       m_pData->header.ZFilter_Cutoff);
+  D("ZFilter_Resolution        : %f",       m_pData->header.ZFilter_Resolution);
+  D("ZFilter_Code              : %d",       m_pData->header.ZFilter_Code);
+  D("ZFilter_Order             : %d",       m_pData->header.ZFilter_Order);
+  D("MT_1_4                    : %f",       m_pData->header.MT_1_4);
+  D("MT_2_4                    : %f",       m_pData->header.MT_2_4);
+  D("MT_3_4                    : %f",       m_pData->header.MT_3_4);
+  D("Scatter_Type              : %d",       m_pData->header.Scatter_Type);
+  D("Recon_Type                : %d",       m_pData->header.Recon_Type);
+  D("Recon_Views               : %d",       m_pData->header.Recon_Views);
 #endif
 
   RETURN(true);
@@ -354,89 +353,95 @@ bool CECAT7SubHeaderImage::save(void) const
 
   SHOWVALUE(m_pMedIOData->pos());
 
-  // we write to a buffer first and write out later directly to the file
-  QByteArray buffer(rawDataSize(), 0);
-  QDataStream stream(&buffer, QIODevice::WriteOnly);
- 
-  // we have to set the QDataStream version to the Qt4.5 version
-  // because with Qt4.6 the floating point precision changed and
-  // otherwise causes our streaming to fail
-  stream.setVersion(QDataStream::Qt_4_5);
-  
-  // lets write out each single data element of our
-  // data structure to maintain the correct endianess of the
-  // data
-  stream << m_pData->header.Data_Type;                      //   0: Data_Type
-  stream << m_pData->header.Num_Dimensions;                //   2: Num_Dimensions
-  stream << m_pData->header.X_Dimension;                    //   4: X_Dimension
-  stream << m_pData->header.Y_Dimension;                    //   6: Y_Dimension
-  stream << m_pData->header.Z_Dimension;                    //   8: Z_Dimension
-  stream << m_pData->header.X_Offset;                      //  10: X_Offset
-  stream << m_pData->header.Y_Offset;                      //  14: Y_Offset
-  stream << m_pData->header.Z_Offset;                      //  18: Z_Offset
-  stream << m_pData->header.Recon_Zoom;                    //  22: Recon_Zoom
-  stream << m_pData->header.Scale_Factor;                  //  26: Scale_Factor
-  stream << m_pData->header.Image_Min;                      //  30: Image_Min
-  stream << m_pData->header.Image_Max;                      //  32: Image_Max
-  stream << m_pData->header.X_Pixel_Size;                  //  34: X_Pixel_Size
-  stream << m_pData->header.Y_Pixel_Size;                  //  38: Y_Pixel_Size
-  stream << m_pData->header.Z_Pixel_Size;                  //  42: Z_Pixel_Size
-  stream << m_pData->header.Frame_Duration;                //  46: Frame_Duration
-  stream << m_pData->header.Frame_Start_Time;              //  50: Frame_Start_Time
-  stream << m_pData->header.Filter_Code;                    //  54: Filter_Code
-  stream << m_pData->header.X_Resolution;                  //  56: X_Resolution
-  stream << m_pData->header.Y_Resolution;                  //  60: Y_Resolution
-  stream << m_pData->header.Z_Resolution;                  //  64: Z_Resolution
-  stream << m_pData->header.Num_R_Elements;                //  70: Num_R_Elements
-  stream << m_pData->header.Num_Angles;                    //  72: Num_Angles
-  stream << m_pData->header.Z_Rotation_Angle;              //  76: Z_Rotation_Angle
-  stream << m_pData->header.Decay_Corr_Fctr;                //  80: Decay_Corr_Fctr
-  stream << m_pData->header.Processing_Code;                //  84: Processing_Code
-  stream << m_pData->header.Gate_Duration;                  //  88: Gate_Duration
-  stream << m_pData->header.R_Wave_Offset;                  //  92: R_Wave_Offset
-  stream << m_pData->header.Num_Accepted_Beats;            //  96: Num_Accepted_Beats
-  stream << m_pData->header.Filter_Cutoff_Frequency;        // 100: Filter_Cutoff_Frequency
-  stream << m_pData->header.Filter_Resolution;              // 104: Filter_Resolution
-  stream << m_pData->header.Filter_Ramp_Slope;              // 108: Filter_Ramp_Slope
-  stream << m_pData->header.Filter_Order;                  // 112: Filter_Order
-  stream << m_pData->header.Filter_Scatter_Fraction;        // 116: Filter_Scatter_Fraction
-  stream << m_pData->header.Filter_Scatter_Slope;          // 120: Filter_Scatter_Slope
-  stream.writeRawData(&m_pData->header.Annotation[0], 40);
-  stream << m_pData->header.MT_1_1;                        // 162: MT_1_1
-  stream << m_pData->header.MT_1_2;                        // 166: MT_1_2
-  stream << m_pData->header.MT_1_3;                        // 170: MT_1_3
-  stream << m_pData->header.MT_2_1;                        // 174: MT_2_1
-  stream << m_pData->header.MT_2_2;                        // 178: MT_2_2
-  stream << m_pData->header.MT_2_3;                        // 182: MT_2_3
-  stream << m_pData->header.MT_3_1;                        // 186: MT_3_1
-  stream << m_pData->header.MT_3_2;                        // 190: MT_3_2
-  stream << m_pData->header.MT_3_3;                        // 194: MT_3_3
-  stream << m_pData->header.RFilter_Cutoff;                // 198: RFilter_Cutoff
-  stream << m_pData->header.RFilter_Resolution;            // 202: RFilter_Resolution
-  stream << m_pData->header.RFilter_Code;                  // 206: RFilter_Code
-  stream << m_pData->header.RFilter_Order;                  // 208: RFilter_Order
-  stream << m_pData->header.ZFilter_Cutoff;                // 210: ZFilter_Cutoff
-  stream << m_pData->header.ZFilter_Resolution;            // 214: ZFilter_Resolution
-  stream << m_pData->header.ZFilter_Code;                  // 218: ZFilter_Code
-  stream << m_pData->header.ZFilter_Order;                  // 220: ZFilter_Order
-  stream << m_pData->header.MT_1_4;                        // 222: MT_1_4
-  stream << m_pData->header.MT_2_4;                        // 226: MT_2_4
-  stream << m_pData->header.MT_3_4;                        // 230: MT_3_4
-  stream << m_pData->header.Scatter_Type;                  // 230: Scatter_Type
-  stream << m_pData->header.Recon_Type;                    // 236: Recon_Type
-  stream << m_pData->header.Recon_Views;                    // 238: Recon_Views
-  for(int i=0; i < 87; i++)
-    stream << m_pData->header.CTI_Reserved[i];              // 240: CTI_Reserved
-  for(int i=0; i < 49; i++)
-    stream << m_pData->header.User_Reserved[i];            // 414: User_Reserved
-  
+  ASSERT(sizeof(m_pData->header) == SUBHEADER_SIZE);
+  struct CECAT7SubHeaderImagePrivate::HeaderData* header = NULL;
+  if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+  {
+    header = new CECAT7SubHeaderImagePrivate::HeaderData;
+
+    // copy the current m_pData->header to beHeader
+    memcpy(header, &m_pData->header, sizeof(m_pData->header));
+
+    // we only swap non-char elements of the header
+    BSWAP_16(header->Data_Type);               
+    BSWAP_16(header->Num_Dimensions);          
+    BSWAP_16(header->X_Dimension);             
+    BSWAP_16(header->Y_Dimension);             
+    BSWAP_16(header->Z_Dimension);             
+    BSWAP_FLT(header->X_Offset);                
+    BSWAP_FLT(header->Y_Offset);                
+    BSWAP_FLT(header->Z_Offset);                
+    BSWAP_FLT(header->Recon_Zoom);              
+    BSWAP_FLT(header->Scale_Factor);            
+    BSWAP_16(header->Image_Min);               
+    BSWAP_16(header->Image_Max);               
+    BSWAP_FLT(header->X_Pixel_Size);            
+    BSWAP_FLT(header->Y_Pixel_Size);            
+    BSWAP_FLT(header->Z_Pixel_Size);            
+    BSWAP_32(header->Frame_Duration);           
+    BSWAP_32(header->Frame_Start_Time);
+    BSWAP_16(header->Filter_Code);
+    BSWAP_FLT(header->X_Resolution);
+    BSWAP_FLT(header->Y_Resolution);
+    BSWAP_FLT(header->Z_Resolution);
+    BSWAP_FLT(header->Num_R_Elements);
+    BSWAP_FLT(header->Num_Angles);   
+    BSWAP_FLT(header->Z_Rotation_Angle);
+    BSWAP_FLT(header->Decay_Corr_Fctr);
+    BSWAP_32(header->Processing_Code);
+    BSWAP_32(header->Gate_Duration); 
+    BSWAP_32(header->R_Wave_Offset);
+    BSWAP_32(header->Num_Accepted_Beats);
+    BSWAP_FLT(header->Filter_Cutoff_Frequency);
+    BSWAP_FLT(header->Filter_Resolution);
+    BSWAP_FLT(header->Filter_Ramp_Slope);
+    BSWAP_16(header->Filter_Order);
+    BSWAP_FLT(header->Filter_Scatter_Fraction);
+    BSWAP_FLT(header->Filter_Scatter_Slope);
+    BSWAP_FLT(header->MT_1_1);
+    BSWAP_FLT(header->MT_1_2);
+    BSWAP_FLT(header->MT_1_3);
+    BSWAP_FLT(header->MT_2_1);
+    BSWAP_FLT(header->MT_2_2);
+    BSWAP_FLT(header->MT_2_3);
+    BSWAP_FLT(header->MT_3_1);
+    BSWAP_FLT(header->MT_3_2);
+    BSWAP_FLT(header->MT_3_3);
+    BSWAP_FLT(header->RFilter_Cutoff);
+    BSWAP_FLT(header->RFilter_Resolution);
+    BSWAP_16(header->RFilter_Code);
+    BSWAP_16(header->RFilter_Order);
+    BSWAP_FLT(header->ZFilter_Cutoff);
+    BSWAP_FLT(header->ZFilter_Resolution);
+    BSWAP_16(header->ZFilter_Code);
+    BSWAP_16(header->ZFilter_Order);
+    BSWAP_FLT(header->MT_1_4);
+    BSWAP_FLT(header->MT_2_4);
+    BSWAP_FLT(header->MT_3_4);
+    BSWAP_16(header->Scatter_Type);
+    BSWAP_16(header->Recon_Type);
+    BSWAP_16(header->Recon_Views);
+    for(int i=0; i < 87; i++)
+      BSWAP_16(header->CTI_Reserved[i]);
+
+    for(int i=0; i < 49; i++)
+      BSWAP_16(header->User_Reserved[i]);
+  }
+  else
+    header = &m_pData->header;
+
   // now write out to our outStream
   bool result = false;
-  if(m_pMedIOData->write(buffer) != -1)
+  if(m_pMedIOData->write(reinterpret_cast<char*>(header), sizeof(m_pData->header)) == SUBHEADER_SIZE)
   {
     m_pDirItem->subHeaderWritten(*this);
     result = true;
   }
+
+  // if we byte swapped we have to delete the
+  // temporary byte swapped header structures
+  if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+    delete header;
 
   RETURN(result);
   return result;

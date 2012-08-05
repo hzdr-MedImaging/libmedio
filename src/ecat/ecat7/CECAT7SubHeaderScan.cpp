@@ -26,9 +26,9 @@
 #include "CECATDirectoryItem.h"
 #include "CECATFile.h"
 
-#include <QDataStream>
-
 #include <rtdebug.h>
+
+#include "bswap.h"
 
 // we define the private inline class of that one so that we
 // are able to hide the private methods & data of that class in the
@@ -36,44 +36,47 @@
 class CECAT7SubHeaderScanPrivate
 {
   public:
+    #define SUBHEADER_SIZE 512
+    #pragma pack(1)
     struct HeaderData
     {
-      quint16  Data_Type;
-      quint16  Num_Dimensions;
-      quint16  Num_R_Elements;
-      quint16  Num_Angles;
-      quint16  Corrections_Applied;
-      quint16  Num_Z_Elements;
-      quint16  Ring_Difference;
-      float    X_Resolution;
-      float    Y_Resolution;
-      float    Z_Resolution;
-      float    W_Resolution;
-      quint16  Gate_Reserved[6];
-      quint32  Gate_Duration;
-      quint32  R_Wave_Offset;
-      quint32  Num_Accepted_Beats;
-      float    Scale_Factor;
-      quint16  Scan_Min;
-      quint16  Scan_Max;
-      quint32  Prompts;
-      quint32  Delayed;
-      quint32  Multiples;
-      quint32  Net_Trues;
-      float    Cor_Singles[16];
-      float    Uncor_Singles[16];
-      float    Tot_Avg_Cor;
-      float    Tot_Avg_Uncor;
-      quint32  Total_Coin_Rate;
-      quint32  Frame_Start_Time;
-      quint32  Frame_Duration;
-      float    Deadtime_Correction_Factor;
-      quint16  Physical_Planes[8];
-      quint16  CTI_reserved[83];
-      quint16  User_Reserved[50];
-    } header;
-};
-
+      quint16  Data_Type;                   //   0: Data_Type
+      quint16  Num_Dimensions;              //   2: Num_Dimensions
+      quint16  Num_R_Elements;              //   4: Num_R_Elements
+      quint16  Num_Angles;                  //   6: Num_Angles
+      quint16  Corrections_Applied;         //   8: Corrections_Applied
+      quint16  Num_Z_Elements;              //  10: Num_Z_Elements
+      quint16  Ring_Difference;             //  12: Ring_Difference
+      float    X_Resolution;                //  14: X_Resolution
+      float    Y_Resolution;                //  18: Y_Resolution
+      float    Z_Resolution;                //  22: Z_Resolution
+      float    W_Resolution;                //  26: W_Resolution
+      quint16  Gate_Reserved[6];            //  30: Gate_Reserved                                              
+      quint32  Gate_Duration;               //  42: Gate_Duration
+      quint32  R_Wave_Offset;               //  46: R_Wave_Offset
+      quint32  Num_Accepted_Beats;          //  50: Num_Accepted_Beats
+      float    Scale_Factor;                //  54: Scale_Factor
+      quint16  Scan_Min;                    //  54: Scan_Min
+      quint16  Scan_Max;                    //  60: Scan_Max
+      quint32  Prompts;                     //  62: Prompts
+      quint32  Delayed;                     //  66: Delayed
+      quint32  Multiples;                   //  70: Multiples
+      quint32  Net_Trues;                   //  74: Net_Trues
+      float    Cor_Singles[16];             //  78: Cor_Singles                                                 
+      float    Uncor_Singles[16];           // 142: Uncor_Singles                                               
+      float    Tot_Avg_Cor;                 // 206: Tot_Avg_Cor               
+      float    Tot_Avg_Uncor;               // 210: Tot_Avg_Uncor             
+      quint32  Total_Coin_Rate;             // 214: Total_Coin_Rate           
+      quint32  Frame_Start_Time;            // 218: Frame_Start_Time           
+      quint32  Frame_Duration;              // 222: Frame_Duration             
+      float    Deadtime_Correction_Factor;  // 226: Deadtime_Correction_Factor
+      quint16  Physical_Planes[8];          // 230: Physical_Planes
+      quint16  CTI_reserved[83];            // 246: CTI_reserved
+      quint16  User_Reserved[50];           // 412: User_Reserved                                 
+    } header;                         
+    #pragma pack()                                                      
+};                                    
+                                       
 CECAT7SubHeaderScan::CECAT7SubHeaderScan(CECATFile* ecatFile,
                                          CECATDirectoryItem* pDirItem)
   : CECATSubHeader(ecatFile, pDirItem)
@@ -141,7 +144,8 @@ bool CECAT7SubHeaderScan::load(void)
 
   // check if the stream is readable and if we can seek to the
   // expected position of the subheader
-  if(m_pMedIOData->isReadable() == false ||
+  if(m_pMedIOData == NULL ||
+     m_pMedIOData->isReadable() == false ||
      m_pDirItem->dataBlock_Start() == 0 ||
      m_pMedIOData->seek(m_pDirItem->dataBlock_Start()) == false)
   {
@@ -149,96 +153,92 @@ bool CECAT7SubHeaderScan::load(void)
     return false;
   }
 
-  // we use a ByteArray buffer to speed up the endianess
-  // decoding
-  QByteArray buffer(rawDataSize(), 0);
-  if(m_pMedIOData->read(buffer.data(), buffer.size()) != rawDataSize())
+  // we read in all data at once using read()
+  ASSERT(sizeof(m_pData->header) == SUBHEADER_SIZE);
+  if(m_pMedIOData->read(reinterpret_cast<char*>(&m_pData->header), sizeof(m_pData->header)) != SUBHEADER_SIZE)
   {
     RETURN(false);
     return false;
   }
 
-  // now we generate a QDataStream on our buffer so that we can read
-  // out of the buffer instead of the raw file (> speed)
-  QDataStream stream(buffer);
-
-  // we have to set the QDataStream version to the Qt4.5 version
-  // because with Qt4.6 the floating point precision changed and
-  // otherwise causes our streaming to fail
-  stream.setVersion(QDataStream::Qt_4_5);
-  
-  // lets read in each single data element of our
-  // data structure to maintain the correct endianess of the
-  // data
-  stream >> m_pData->header.Data_Type;                      //   0: Data_Type
-  stream >> m_pData->header.Num_Dimensions;                //   2: Num_Dimensions
-  stream >> m_pData->header.Num_R_Elements;                //   4: Num_R_Elements
-  stream >> m_pData->header.Num_Angles;                    //   6: Num_Angles
-  stream >> m_pData->header.Corrections_Applied;            //   8: Corrections_Applied
-  stream >> m_pData->header.Num_Z_Elements;                //  10: Num_Z_Elements
-  stream >> m_pData->header.Ring_Difference;                //  12: Ring_Difference
-  stream >> m_pData->header.X_Resolution;                  //  14: X_Resolution
-  stream >> m_pData->header.Y_Resolution;                  //  18: Y_Resolution
-  stream >> m_pData->header.Z_Resolution;                  //  22: Z_Resolution
-  stream >> m_pData->header.W_Resolution;                  //  26: W_Resolution
-  for(int i=0; i < 6; i++)
-    stream >> m_pData->header.Gate_Reserved[i];            //  30: Gate_Reserved
-  stream >> m_pData->header.Gate_Duration;                  //  42: Gate_Duration
-  stream >> m_pData->header.R_Wave_Offset;                  //  46: R_Wave_Offset
-  stream >> m_pData->header.Num_Accepted_Beats;            //  50: Num_Accepted_Beats
-  stream >> m_pData->header.Scale_Factor;                  //  54: Scale_Factor
-  stream >> m_pData->header.Scan_Min;                      //  54: Scan_Min
-  stream >> m_pData->header.Scan_Max;                      //  60: Scan_Max
-  stream >> m_pData->header.Prompts;                        //  62: Prompts
-  stream >> m_pData->header.Delayed;                        //  66: Delayed
-  stream >> m_pData->header.Multiples;                      //  70: Multiples
-  stream >> m_pData->header.Net_Trues;                      //  74: Net_Trues
-  for(int i=0; i < 16; i++)
-    stream >> m_pData->header.Cor_Singles[i];              //  78: Cor_Singles
-  for(int i=0; i < 16; i++)
-    stream >> m_pData->header.Uncor_Singles[i];            // 142: Uncor_Singles
-  stream >> m_pData->header.Tot_Avg_Cor;                    // 206: Tot_Avg_Cor
-  stream >> m_pData->header.Tot_Avg_Uncor;                  // 210: Tot_Avg_Uncor
-  stream >> m_pData->header.Total_Coin_Rate;                // 214: Total_Coin_Rate
-  stream >> m_pData->header.Frame_Start_Time;              // 218: Frame_Start_Time
-  stream >> m_pData->header.Frame_Duration;                // 222: Frame_Duration
-  stream >> m_pData->header.Deadtime_Correction_Factor;    // 226: Deadtime_Correction_Factor
-  for(int i=0; i < 8; i++)
-    stream >> m_pData->header.Physical_Planes[i];          // 230: Physical_Planes
-  for(int i=0; i < 83; i++)
-    stream >> m_pData->header.CTI_reserved[i];              // 246: CTI_reserved
-  for(int i=0; i < 50; i++)
-    stream >> m_pData->header.User_Reserved[i];            // 412: User_Reserved  
+  // now that we have streamed in all data in one run we
+  // have to take care of correct endianness in the non-char
+  // entries in the header structure in case this is a little endian
+  // machine
+  if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+  {
+    // we only swap non-char elements of the header
+    BSWAP_16(m_pData->header.Data_Type);                 
+    BSWAP_16(m_pData->header.Num_Dimensions);            
+    BSWAP_16(m_pData->header.Num_R_Elements);            
+    BSWAP_16(m_pData->header.Num_Angles);                
+    BSWAP_16(m_pData->header.Corrections_Applied);       
+    BSWAP_16(m_pData->header.Num_Z_Elements);            
+    BSWAP_16(m_pData->header.Ring_Difference);           
+    BSWAP_FLT(m_pData->header.X_Resolution);              
+    BSWAP_FLT(m_pData->header.Y_Resolution);              
+    BSWAP_FLT(m_pData->header.Z_Resolution);              
+    BSWAP_FLT(m_pData->header.W_Resolution);              
+    for(int i=0; i < 6; i++)
+      BSWAP_16(m_pData->header.Gate_Reserved[i]);
+    BSWAP_32(m_pData->header.Gate_Duration);             
+    BSWAP_32(m_pData->header.R_Wave_Offset);             
+    BSWAP_32(m_pData->header.Num_Accepted_Beats);
+    BSWAP_FLT(m_pData->header.Scale_Factor);
+    BSWAP_16(m_pData->header.Scan_Min);
+    BSWAP_16(m_pData->header.Scan_Max);
+    BSWAP_32(m_pData->header.Prompts);
+    BSWAP_32(m_pData->header.Delayed);
+    BSWAP_32(m_pData->header.Multiples);
+    BSWAP_32(m_pData->header.Net_Trues);
+    for(int i=0; i < 16; i++)
+    {
+      BSWAP_FLT(m_pData->header.Cor_Singles[i]);
+      BSWAP_FLT(m_pData->header.Uncor_Singles[i]);
+    }
+    BSWAP_FLT(m_pData->header.Tot_Avg_Cor);
+    BSWAP_FLT(m_pData->header.Tot_Avg_Uncor);
+    BSWAP_32(m_pData->header.Total_Coin_Rate);
+    BSWAP_32(m_pData->header.Frame_Start_Time);
+    BSWAP_32(m_pData->header.Frame_Duration);
+    BSWAP_FLT(m_pData->header.Deadtime_Correction_Factor);
+    for(int i=0; i < 8; i++)
+      BSWAP_16(m_pData->header.Physical_Planes[i]);
+    for(int i=0; i < 83; i++)
+      BSWAP_16(m_pData->header.CTI_reserved[i]);
+    for(int i=0; i < 50; i++)
+      BSWAP_16(m_pData->header.User_Reserved[i]);
+  }
 
   // some more debug output
 #if defined(DEBUG)
   D("ECAT7 Scan SubHeader loaded:");
   D("---------------------------");
-  D("Data_Type                 : %d",        m_pData->header.Data_Type);
-  D("Num_Dimensions             : %d",        m_pData->header.Num_Dimensions);
-  D("Num_R_Elements             : %d",        m_pData->header.Num_R_Elements);
-  D("Num_Angles                : %d",        m_pData->header.Num_Angles);
-  D("Corrections_Applied       : %d",        m_pData->header.Corrections_Applied);
-  D("Num_Z_Elements            : %d",        m_pData->header.Num_Z_Elements);
-  D("Ring_Difference           : %d",        m_pData->header.Ring_Difference);
+  D("Data_Type                 : %d",       m_pData->header.Data_Type);
+  D("Num_Dimensions            : %d",       m_pData->header.Num_Dimensions);
+  D("Num_R_Elements            : %d",       m_pData->header.Num_R_Elements);
+  D("Num_Angles                : %d",       m_pData->header.Num_Angles);
+  D("Corrections_Applied       : %d",       m_pData->header.Corrections_Applied);
+  D("Num_Z_Elements            : %d",       m_pData->header.Num_Z_Elements);
+  D("Ring_Difference           : %d",       m_pData->header.Ring_Difference);
   D("X_Resolution              : %f cm",    m_pData->header.X_Resolution);
   D("Y_Resolution              : %f cm",    m_pData->header.Y_Resolution);
   D("Z_Resolution              : %f cm",    m_pData->header.Z_Resolution);
-  D("W_Resolution              : %f",        m_pData->header.W_Resolution);
+  D("W_Resolution              : %f",       m_pData->header.W_Resolution);
   for(int i=0; i < 6; i++)
   {
     D("Gate_Reserved          [%d]: %d", i+1, m_pData->header.Gate_Reserved[i]);
   }
   D("Gate_Duration             : %d msec",  m_pData->header.Gate_Duration);
-  D("R_Wave_Offset             : %d",        m_pData->header.R_Wave_Offset);
-  D("Num_Accepted_Beats        : %d",        m_pData->header.Num_Accepted_Beats);
-  D("Scale_Factor              : %f",        m_pData->header.Scale_Factor);
-  D("Scan_Min                  : %d",        m_pData->header.Scan_Min);
-  D("Scan_Max                  : %d",        m_pData->header.Scan_Max);
-  D("Prompts                   : %d",        m_pData->header.Prompts);
-  D("Delayed                   : %d",        m_pData->header.Delayed);
-  D("Multiples                 : %d",        m_pData->header.Multiples);
-  D("Net_Trues                 : %d",        m_pData->header.Net_Trues);
+  D("R_Wave_Offset             : %d",       m_pData->header.R_Wave_Offset);
+  D("Num_Accepted_Beats        : %d",       m_pData->header.Num_Accepted_Beats);
+  D("Scale_Factor              : %f",       m_pData->header.Scale_Factor);
+  D("Scan_Min                  : %d",       m_pData->header.Scan_Min);
+  D("Scan_Max                  : %d",       m_pData->header.Scan_Max);
+  D("Prompts                   : %d",       m_pData->header.Prompts);
+  D("Delayed                   : %d",       m_pData->header.Delayed);
+  D("Multiples                 : %d",       m_pData->header.Multiples);
+  D("Net_Trues                 : %d",       m_pData->header.Net_Trues);
   for(int i=0; i < 16; i++)
   {
     D("Cor_Singles           [%02d]: %f", i+1, m_pData->header.Cor_Singles[i]);
@@ -247,12 +247,12 @@ bool CECAT7SubHeaderScan::load(void)
   {
     D("Uncor_Singles         [%02d]: %f", i+1, m_pData->header.Uncor_Singles[i]);
   }
-  D("Tot_Avg_Cor               : %f",        m_pData->header.Tot_Avg_Cor);
-  D("Tot_Avg_Uncor             : %f",        m_pData->header.Tot_Avg_Uncor);
-  D("Total_Coin_Rate           : %d",        m_pData->header.Total_Coin_Rate);
+  D("Tot_Avg_Cor               : %f",       m_pData->header.Tot_Avg_Cor);
+  D("Tot_Avg_Uncor             : %f",       m_pData->header.Tot_Avg_Uncor);
+  D("Total_Coin_Rate           : %d",       m_pData->header.Total_Coin_Rate);
   D("Frame_Start_Time          : %d msec",  m_pData->header.Frame_Start_Time);
   D("Frame_Duration            : %d msec",  m_pData->header.Frame_Duration);
-  D("Deadtime_Correction_Factor: %f",        m_pData->header.Deadtime_Correction_Factor);
+  D("Deadtime_Correction_Factor: %f",       m_pData->header.Deadtime_Correction_Factor);
   for(int i=0; i < 8; i++)
   {
   D("Physical_Planes        [%d]: %d", i+1, m_pData->header.Physical_Planes[i]);
@@ -278,65 +278,72 @@ bool CECAT7SubHeaderScan::save(void) const
 
   SHOWVALUE(m_pMedIOData->pos());
 
-  // we write to a buffer first and write out later directly to the file
-  QByteArray buffer(rawDataSize(), 0);
-  QDataStream stream(&buffer, QIODevice::WriteOnly);
+  ASSERT(sizeof(m_pData->header) == SUBHEADER_SIZE);
+  struct CECAT7SubHeaderScanPrivate::HeaderData* header = NULL;
+  if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+  {
+    header = new CECAT7SubHeaderScanPrivate::HeaderData;
 
-  // we have to set the QDataStream version to the Qt4.5 version
-  // because with Qt4.6 the floating point precision changed and
-  // otherwise causes our streaming to fail
-  stream.setVersion(QDataStream::Qt_4_5);
-  
-  // lets read in each single data element of our
-  // data structure to maintain the correct endianess of the
-  // data
-  stream << m_pData->header.Data_Type;                      //   0: Data_Type
-  stream << m_pData->header.Num_Dimensions;                //   2: Num_Dimensions
-  stream << m_pData->header.Num_R_Elements;                //   4: Num_R_Elements
-  stream << m_pData->header.Num_Angles;                    //   6: Num_Angles
-  stream << m_pData->header.Corrections_Applied;            //   8: Corrections_Applied
-  stream << m_pData->header.Num_Z_Elements;                //  10: Num_Z_Elements
-  stream << m_pData->header.Ring_Difference;                //  12: Ring_Difference
-  stream << m_pData->header.X_Resolution;                  //  14: X_Resolution
-  stream << m_pData->header.Y_Resolution;                  //  18: Y_Resolution
-  stream << m_pData->header.Z_Resolution;                  //  22: Z_Resolution
-  stream << m_pData->header.W_Resolution;                  //  26: W_Resolution
-  for(int i=0; i < 6; i++)
-    stream << m_pData->header.Gate_Reserved[i];            //  30: Gate_Reserved
-  stream << m_pData->header.Gate_Duration;                  //  42: Gate_Duration
-  stream << m_pData->header.R_Wave_Offset;                  //  46: R_Wave_Offset
-  stream << m_pData->header.Num_Accepted_Beats;            //  50: Num_Accepted_Beats
-  stream << m_pData->header.Scale_Factor;                  //  54: Scale_Factor
-  stream << m_pData->header.Scan_Min;                      //  54: Scan_Min
-  stream << m_pData->header.Scan_Max;                      //  60: Scan_Max
-  stream << m_pData->header.Prompts;                        //  62: Prompts
-  stream << m_pData->header.Delayed;                        //  66: Delayed
-  stream << m_pData->header.Multiples;                      //  70: Multiples
-  stream << m_pData->header.Net_Trues;                      //  74: Net_Trues
-  for(int i=0; i < 16; i++)
-    stream << m_pData->header.Cor_Singles[i];              //  78: Cor_Singles
-  for(int i=0; i < 16; i++)
-    stream << m_pData->header.Uncor_Singles[i];            // 142: Uncor_Singles
-  stream << m_pData->header.Tot_Avg_Cor;                    // 206: Tot_Avg_Cor
-  stream << m_pData->header.Tot_Avg_Uncor;                  // 210: Tot_Avg_Uncor
-  stream << m_pData->header.Total_Coin_Rate;                // 214: Total_Coin_Rate
-  stream << m_pData->header.Frame_Start_Time;              // 218: Frame_Start_Time
-  stream << m_pData->header.Frame_Duration;                // 222: Frame_Duration
-  stream << m_pData->header.Deadtime_Correction_Factor;    // 226: Deadtime_Correction_Factor
-  for(int i=0; i < 8; i++)
-    stream << m_pData->header.Physical_Planes[i];          // 230: Physical_Planes
-  for(int i=0; i < 83; i++)
-    stream << m_pData->header.CTI_reserved[i];              // 246: CTI_reserved
-  for(int i=0; i < 50; i++)
-    stream << m_pData->header.User_Reserved[i];            // 412: User_Reserved  
-  
+    // copy the current m_pData->header to beHeader
+    memcpy(header, &m_pData->header, sizeof(m_pData->header));
+
+    // we only swap non-char elements of the header
+    BSWAP_16(header->Data_Type);                 
+    BSWAP_16(header->Num_Dimensions);            
+    BSWAP_16(header->Num_R_Elements);            
+    BSWAP_16(header->Num_Angles);                
+    BSWAP_16(header->Corrections_Applied);       
+    BSWAP_16(header->Num_Z_Elements);            
+    BSWAP_16(header->Ring_Difference);           
+    BSWAP_FLT(header->X_Resolution);              
+    BSWAP_FLT(header->Y_Resolution);              
+    BSWAP_FLT(header->Z_Resolution);              
+    BSWAP_FLT(header->W_Resolution);              
+    for(int i=0; i < 6; i++)
+      BSWAP_16(header->Gate_Reserved[i]);
+    BSWAP_32(header->Gate_Duration);             
+    BSWAP_32(header->R_Wave_Offset);             
+    BSWAP_32(header->Num_Accepted_Beats);
+    BSWAP_FLT(header->Scale_Factor);
+    BSWAP_16(header->Scan_Min);
+    BSWAP_16(header->Scan_Max);
+    BSWAP_32(header->Prompts);
+    BSWAP_32(header->Delayed);
+    BSWAP_32(header->Multiples);
+    BSWAP_32(header->Net_Trues);
+    for(int i=0; i < 16; i++)
+    {
+      BSWAP_FLT(header->Cor_Singles[i]);
+      BSWAP_FLT(header->Uncor_Singles[i]);
+    }
+    BSWAP_FLT(header->Tot_Avg_Cor);
+    BSWAP_FLT(header->Tot_Avg_Uncor);
+    BSWAP_32(header->Total_Coin_Rate);
+    BSWAP_32(header->Frame_Start_Time);
+    BSWAP_32(header->Frame_Duration);
+    BSWAP_FLT(header->Deadtime_Correction_Factor);
+    for(int i=0; i < 8; i++)
+      BSWAP_16(header->Physical_Planes[i]);
+    for(int i=0; i < 83; i++)
+      BSWAP_16(header->CTI_reserved[i]);
+    for(int i=0; i < 50; i++)
+      BSWAP_16(header->User_Reserved[i]);
+  }
+  else
+    header = &m_pData->header;
+
   // now write out to our outStream
   bool result = false;
-  if(m_pMedIOData->write(buffer) != -1)
+  if(m_pMedIOData->write(reinterpret_cast<char*>(header), sizeof(m_pData->header)) == SUBHEADER_SIZE)
   {
     m_pDirItem->subHeaderWritten(*this);
     result = true;
   }
+
+  // if we byte swapped we have to delete the
+  // temporary byte swapped header structures
+  if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+    delete header;
 
   RETURN(result);
   return result;

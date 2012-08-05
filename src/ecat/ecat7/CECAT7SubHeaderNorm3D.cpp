@@ -26,9 +26,9 @@
 #include "CECATDirectoryItem.h"
 #include "CECATFile.h"
 
-#include <QDataStream>
-
 #include <rtdebug.h>
+
+#include "bswap.h"
 
 // we define the private inline class of that one so that we
 // are able to hide the private methods & data of that class in the
@@ -36,29 +36,32 @@
 class CECAT7SubHeaderNorm3DPrivate
 {
   public:
+    #define SUBHEADER_SIZE 512
+    #pragma pack(1)
     struct HeaderData
     {
-      quint16  Data_Type;
-      quint16  Num_R_Elements;
-      quint16  Num_Transaxial_Crystals;
-      quint16  Num_Crystal_Rings;
-      quint16  Crystals_Per_Ring;
-      quint16  Num_Geo_Corr_Planes;
-      quint16  ULD;
-      quint16  LLD;
-      quint16  Scatter_Energy;
-      float    Norm_Quality_Factor;
-      quint16  Norm_Quality_Factor_Code;
-      float    Ring_DTCor1[32];
-      float    Ring_DTCor2[32];
-      float    Crystal_DTCor[8];
-      quint16  Span;
-      quint16  Max_Ring_Diff;
-      quint16  CTI_reserved[48];
-      quint16  User_Reserved[50];
-    } header;
-};
-
+      quint16  Data_Type;                //   0: Data_Type
+      quint16  Num_R_Elements;           //   2: Num_R_Elements
+      quint16  Num_Transaxial_Crystals;  //   4: Num_Transaxial_Crystals
+      quint16  Num_Crystal_Rings;        //   6: Num_Crystal_Rings
+      quint16  Crystals_Per_Ring;        //   8: Crystals_Per_Ring
+      quint16  Num_Geo_Corr_Planes;      //  10: Num_Geo_Corr_Planes
+      quint16  ULD;                      //  12: ULD
+      quint16  LLD;                      //  14: LLD
+      quint16  Scatter_Energy;           //  16: Scatter_Energy
+      float    Norm_Quality_Factor;      //  18: Norm_Quality_Factor
+      quint16  Norm_Quality_Factor_Code; //  22: Norm_Quality_Factor
+      float    Ring_DTCor1[32];          //  24: Ring_DTCor1 (32)                               
+      float    Ring_DTCor2[32];          // 152: Ring_DTCor2 (32)
+      float    Crystal_DTCor[8];         // 280: Crystal_DTCor (8)                                
+      quint16  Span;                     // 312: Span
+      quint16  Max_Ring_Diff;            // 314: Max_Ring_Diff                               
+      quint16  CTI_reserved[48];         // 316: CTI_reserved
+      quint16  User_Reserved[50];        // 412: User_Reserved 
+    } header;                             
+    #pragma pack()
+};                                                                       
+                                          
 CECAT7SubHeaderNorm3D::CECAT7SubHeaderNorm3D(CECATFile* ecatFile,
                                              CECATDirectoryItem* pDirItem)
   : CECATSubHeader(ecatFile, pDirItem)
@@ -128,7 +131,8 @@ bool CECAT7SubHeaderNorm3D::load(void)
   // check if the stream is readable or not and
   // set our MedIOData to the correct file position so that we can
   // read the subheader
-  if(m_pMedIOData->isReadable() == false ||
+  if(m_pMedIOData == NULL ||
+     m_pMedIOData->isReadable() == false ||
      m_pDirItem->dataBlock_Start() == 0 ||
      m_pMedIOData->seek(m_pDirItem->dataBlock_Start()) == false)
   {
@@ -136,50 +140,50 @@ bool CECAT7SubHeaderNorm3D::load(void)
     return false;
   }
 
-  // we use a ByteArray buffer to speed up the endianess
-  // decoding
-  QByteArray buffer(rawDataSize(), 0);
-  if(m_pMedIOData->read(buffer.data(), buffer.size()) != rawDataSize())
+  // we read in all data at once using read()
+  ASSERT(sizeof(m_pData->header) == SUBHEADER_SIZE);
+  if(m_pMedIOData->read(reinterpret_cast<char*>(&m_pData->header), sizeof(m_pData->header)) != SUBHEADER_SIZE)
   {
     RETURN(false);
     return false;
   }
 
-  // now we generate a QDataStream on our buffer so that we can read
-  // out of the buffer instead of the raw file (> speed)
-  QDataStream stream(buffer);  
+  // now that we have streamed in all data in one run we
+  // have to take care of correct endianness in the non-char
+  // entries in the header structure in case this is a little endian
+  // machine
+  if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+  {
+    // we only swap non-char elements of the header
+    BSWAP_16(m_pData->header.Data_Type);
+    BSWAP_16(m_pData->header.Num_R_Elements);
+    BSWAP_16(m_pData->header.Num_Transaxial_Crystals);
+    BSWAP_16(m_pData->header.Num_Crystal_Rings);
+    BSWAP_16(m_pData->header.Crystals_Per_Ring);
+    BSWAP_16(m_pData->header.Num_Geo_Corr_Planes);
+    BSWAP_16(m_pData->header.ULD);
+    BSWAP_16(m_pData->header.LLD);
+    BSWAP_16(m_pData->header.Scatter_Energy);
+    BSWAP_FLT(m_pData->header.Norm_Quality_Factor);
+    BSWAP_16(m_pData->header.Norm_Quality_Factor_Code);
+    for(int i=0; i < 32; i++)
+    {
+      BSWAP_FLT(m_pData->header.Ring_DTCor1[i]);
+      BSWAP_FLT(m_pData->header.Ring_DTCor2[i]);
+    }
 
-  // we have to set the QDataStream version to the Qt4.5 version
-  // because with Qt4.6 the floating point precision changed and
-  // otherwise causes our streaming to fail
-  stream.setVersion(QDataStream::Qt_4_5);
-  
-  // lets read in each single data element of our
-  // data structure to maintain the correct endianess of the
-  // data
-  stream >> m_pData->header.Data_Type;                      //   0: Data_Type
-  stream >> m_pData->header.Num_R_Elements;                //   2: Num_R_Elements
-  stream >> m_pData->header.Num_Transaxial_Crystals;        //   4: Num_Transaxial_Crystals
-  stream >> m_pData->header.Num_Crystal_Rings;              //   6: Num_Crystal_Rings
-  stream >> m_pData->header.Crystals_Per_Ring;              //   8: Crystals_Per_Ring
-  stream >> m_pData->header.Num_Geo_Corr_Planes;            //  10: Num_Geo_Corr_Planes
-  stream >> m_pData->header.ULD;                            //  12: ULD
-  stream >> m_pData->header.LLD;                            //  14: LLD
-  stream >> m_pData->header.Scatter_Energy;                //  16: Scatter_Energy
-  stream >> m_pData->header.Norm_Quality_Factor;            //  18: Norm_Quality_Factor
-  stream >> m_pData->header.Norm_Quality_Factor_Code;      //  22: Norm_Quality_Factor
-  for(int i=0; i < 32; i++)
-    stream >> m_pData->header.Ring_DTCor1[i];              //  24: Ring_DTCor1 (32)
-  for(int i=0; i < 32; i++)
-    stream >> m_pData->header.Ring_DTCor2[i];              // 152: Ring_DTCor2 (32)
-  for(int i=0; i < 8; i++)
-    stream >> m_pData->header.Crystal_DTCor[i];            // 280: Crystal_DTCor (8)
-  stream >> m_pData->header.Span;                          // 312: Span
-  stream >> m_pData->header.Max_Ring_Diff;                  // 314: Max_Ring_Diff
-  for(int i=0; i < 48; i++)
-    stream >> m_pData->header.CTI_reserved[i];              // 316: CTI_reserved
-  for(int i=0; i < 50; i++)
-    stream >> m_pData->header.User_Reserved[i];            // 412: User_Reserved
+    for(int i=0; i < 8; i++)
+      BSWAP_FLT(m_pData->header.Crystal_DTCor[i]);
+
+    BSWAP_16(m_pData->header.Span);
+    BSWAP_16(m_pData->header.Max_Ring_Diff);
+
+    for(int i=0; i < 48; i++)
+      BSWAP_16(m_pData->header.CTI_reserved[i]);
+
+    for(int i=0; i < 50; i++)
+      BSWAP_16(m_pData->header.User_Reserved[i]);
+  }
 
   // some more debug output
 #if defined(DEBUG)
@@ -231,49 +235,60 @@ bool CECAT7SubHeaderNorm3D::save(void) const
 
   SHOWVALUE(m_pMedIOData->pos());
 
-  // we write to a buffer first and write out later directly to the file
-  QByteArray buffer(rawDataSize(), 0);
-  QDataStream stream(&buffer, QIODevice::WriteOnly);
+  ASSERT(sizeof(m_pData->header) == SUBHEADER_SIZE);
+  struct CECAT7SubHeaderNorm3DPrivate::HeaderData* header = NULL;
+  if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+  {
+    header = new CECAT7SubHeaderNorm3DPrivate::HeaderData;
 
-  // we have to set the QDataStream version to the Qt4.5 version
-  // because with Qt4.6 the floating point precision changed and
-  // otherwise causes our streaming to fail
-  stream.setVersion(QDataStream::Qt_4_5);
-  
-  // lets read in each single data element of our
-  // data structure to maintain the correct endianess of the
-  // data
-  stream << m_pData->header.Data_Type;                      //   0: Data_Type
-  stream << m_pData->header.Num_R_Elements;                //   2: Num_R_Elements
-  stream << m_pData->header.Num_Transaxial_Crystals;        //   4: Num_Transaxial_Crystals
-  stream << m_pData->header.Num_Crystal_Rings;              //   6: Num_Crystal_Rings
-  stream << m_pData->header.Crystals_Per_Ring;              //   8: Crystals_Per_Ring
-  stream << m_pData->header.Num_Geo_Corr_Planes;            //  10: Num_Geo_Corr_Planes
-  stream << m_pData->header.ULD;                            //  12: ULD
-  stream << m_pData->header.LLD;                            //  14: LLD
-  stream << m_pData->header.Scatter_Energy;                //  16: Scatter_Energy
-  stream << m_pData->header.Norm_Quality_Factor;            //  18: Norm_Quality_Factor
-  stream << m_pData->header.Norm_Quality_Factor_Code;      //  22: Norm_Quality_Factor
-  for(int i=0; i < 32; i++)
-    stream << m_pData->header.Ring_DTCor1[i];              //  24: Ring_DTCor1 (32)
-  for(int i=0; i < 32; i++)
-    stream << m_pData->header.Ring_DTCor2[i];              // 152: Ring_DTCor2 (32)
-  for(int i=0; i < 8; i++)
-    stream << m_pData->header.Crystal_DTCor[i];            // 280: Crystal_DTCor (8)
-  stream << m_pData->header.Span;                          // 312: Span
-  stream << m_pData->header.Max_Ring_Diff;                  // 314: Max_Ring_Diff
-  for(int i=0; i < 48; i++)
-    stream << m_pData->header.CTI_reserved[i];              // 316: CTI_reserved
-  for(int i=0; i < 50; i++)
-    stream << m_pData->header.User_Reserved[i];            // 412: User_Reserved
-  
+    // copy the current m_pData->header to beHeader
+    memcpy(header, &m_pData->header, sizeof(m_pData->header));
+
+    // we only swap non-char elements of the header
+    BSWAP_16(header->Data_Type);
+    BSWAP_16(header->Num_R_Elements);
+    BSWAP_16(header->Num_Transaxial_Crystals);
+    BSWAP_16(header->Num_Crystal_Rings);
+    BSWAP_16(header->Crystals_Per_Ring);
+    BSWAP_16(header->Num_Geo_Corr_Planes);
+    BSWAP_16(header->ULD);
+    BSWAP_16(header->LLD);
+    BSWAP_16(header->Scatter_Energy);
+    BSWAP_FLT(header->Norm_Quality_Factor);
+    BSWAP_16(header->Norm_Quality_Factor_Code);
+    for(int i=0; i < 32; i++)
+    {
+      BSWAP_FLT(header->Ring_DTCor1[i]);
+      BSWAP_FLT(header->Ring_DTCor2[i]);
+    }
+
+    for(int i=0; i < 8; i++)
+      BSWAP_FLT(header->Crystal_DTCor[i]);
+
+    BSWAP_16(header->Span);
+    BSWAP_16(header->Max_Ring_Diff);
+
+    for(int i=0; i < 48; i++)
+      BSWAP_16(header->CTI_reserved[i]);
+
+    for(int i=0; i < 50; i++)
+      BSWAP_16(header->User_Reserved[i]);
+  }
+  else
+    header = &m_pData->header;
+
   // now write out to our outStream
   bool result = false;
-  if(m_pMedIOData->write(buffer) != -1)
+  if(m_pMedIOData->write(reinterpret_cast<char*>(header), sizeof(m_pData->header)) == SUBHEADER_SIZE)
   {
     m_pDirItem->subHeaderWritten(*this);
     result = true;
   }
+
+  // if we byte swapped we have to delete the
+  // temporary byte swapped header structures
+  if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+    delete header;
 
   RETURN(result);
   return result;

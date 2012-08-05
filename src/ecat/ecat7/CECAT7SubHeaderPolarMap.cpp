@@ -26,9 +26,9 @@
 #include "CECATDirectoryItem.h"
 #include "CECATFile.h"
 
-#include <QDataStream>
-
 #include <rtdebug.h>
+
+#include "bswap.h"
 
 // we define the private inline class of that one so that we
 // are able to hide the private methods & data of that class in the
@@ -36,41 +36,44 @@
 class CECAT7SubHeaderPolarMapPrivate
 {
   public:
+    #define SUBHEADER_SIZE 512
+    #pragma pack(1)
     struct HeaderData
     {
-      quint16  Data_Type;
-      quint16  Polar_Map_Type;
-      quint16  Num_Rings;
-      quint16  Sectors_Per_Ring[32];
-      float    Ring_Position[32];
-      quint16  Ring_Angle[32];
-      quint16  Start_Angle;
-      quint16  Long_Axis_Left[3];
-      quint16  Long_Axis_Right[3];
-      quint16  Position_Data;
-      quint16  Image_Min;
-      quint16  Image_Max;
-      float    Scale_Factor;
-      float    Pixel_Size;
-      quint32  Frame_Duration;
-      quint32  Frame_Start_Time;
-      quint16  Processing_Code;
-      quint16  Quant_Units;
-      char    Annotation[40];
-      quint32  Gate_Duration;
-      quint32  R_Wave_Offset;
-      quint32  Num_Accepted_Beats;
-      char    Polar_Map_Protocol[20];
-      char    Database_Name[30];
-      quint16  CTI_reserved[27];
-      quint16  User_Reserved[27];
-    } header;
-};
-
+      quint16  Data_Type;              //   0: Data_Type
+      quint16  Polar_Map_Type;         //   2: Polar_Map_Type
+      quint16  Num_Rings;              //   4: Num_Rings
+      quint16  Sectors_Per_Ring[32];   //   6: Sectors_Per_Ring (32)                              
+      float    Ring_Position[32];      //  70: Ring_Position
+      quint16  Ring_Angle[32];         // 198: Ring_Angle                              
+      quint16  Start_Angle;            // 262: Start_Angle
+      quint16  Long_Axis_Left[3];      // 264: Long_Axis_Left                             
+      quint16  Long_Axis_Right[3];     // 270: Long_Axis_Right
+      quint16  Position_Data;          // 276: Position_Data
+      quint16  Image_Min;              // 278: Image_Min                             
+      quint16  Image_Max;              // 280: Image_Max
+      float    Scale_Factor;           // 282: Scale_Factor                              
+      float    Pixel_Size;             // 286: Pixel_Size
+      quint32  Frame_Duration;         // 290: Frame_Duration 
+      quint32  Frame_Start_Time;       // 294: Frame_Start_Time 
+      quint16  Processing_Code;        // 298: Processing_Code
+      quint16  Quant_Units;            // 300: Quant_Units
+      char     Annotation[40];         // 302: Annotation
+      quint32  Gate_Duration;          // 342: Gate_Duration
+      quint32  R_Wave_Offset;          // 346: R_Wave_Offset
+      quint32  Num_Accepted_Beats;     // 350: Num_Accepted_Beats 
+      char     Polar_Map_Protocol[20]; // 354: Polar_Map_Protocol 
+      char     Database_Name[30];      // 374: Database_Name
+      quint16  CTI_reserved[27];       // 404: CTI_reserved 
+      quint16  User_Reserved[27];      // 464: User_Reserved 
+    } header;                         
+    #pragma pack()
+};                                    
+                                     
 CECAT7SubHeaderPolarMap::CECAT7SubHeaderPolarMap(CECATFile* ecatFile,
                                                  CECATDirectoryItem* pDirItem)
   : CECATSubHeader(ecatFile, pDirItem)
-{
+{                                             
   ENTER();
 
   // allocate data from our private instance class
@@ -135,7 +138,8 @@ bool CECAT7SubHeaderPolarMap::load(void)
   // check if the stream is readable or not and
   // set our MedIOData to the correct file position so that we can
   // read the subheader
-  if(m_pMedIOData->isReadable() == false ||
+  if(m_pMedIOData == NULL ||
+     m_pMedIOData->isReadable() == false ||
      m_pDirItem->dataBlock_Start() == 0 ||
      m_pMedIOData->seek(m_pDirItem->dataBlock_Start()) == false)
   {
@@ -143,60 +147,54 @@ bool CECAT7SubHeaderPolarMap::load(void)
     return false;
   }
   
-  // we use a ByteArray buffer to speed up the endianess
-  // decoding
-  QByteArray buffer(rawDataSize(), 0);
-  if(m_pMedIOData->read(buffer.data(), buffer.size()) != rawDataSize())
+  // we read in all data at once using read()
+  ASSERT(sizeof(m_pData->header) == SUBHEADER_SIZE);
+  if(m_pMedIOData->read(reinterpret_cast<char*>(&m_pData->header), sizeof(m_pData->header)) != SUBHEADER_SIZE)
   {
     RETURN(false);
     return false;
   }
 
-  // now we generate a QDataStream on our buffer so that we can read
-  // out of the buffer instead of the raw file (> speed)
-  QDataStream stream(buffer);
-
-  // we have to set the QDataStream version to the Qt4.5 version
-  // because with Qt4.6 the floating point precision changed and
-  // otherwise causes our streaming to fail
-  stream.setVersion(QDataStream::Qt_4_5);
-  
-  // lets read in each single data element of our
-  // data structure to maintain the correct endianess of the
-  // data
-  stream >> m_pData->header.Data_Type;                              //   0: Data_Type
-  stream >> m_pData->header.Polar_Map_Type;                        //   2: Polar_Map_Type
-  stream >> m_pData->header.Num_Rings;                              //   4: Num_Rings
-  for(int i=0; i < 32; i++)
-    stream >> m_pData->header.Sectors_Per_Ring[i];                  //   6: Sectors_Per_Ring (32)
-  for(int i=0; i < 32; i++)
-    stream >> m_pData->header.Ring_Position[i];                    //  70: Ring_Position
-  for(int i=0; i < 32; i++)
-    stream >> m_pData->header.Ring_Angle[i];                        // 198: Ring_Angle
-  stream >> m_pData->header.Start_Angle;                            // 262: Start_Angle
-  for(int i=0; i < 3; i++)
-    stream >> m_pData->header.Long_Axis_Left[i];                    // 264: Long_Axis_Left
-  for(int i=0; i < 3; i++)
-    stream >> m_pData->header.Long_Axis_Right[i];                  // 270: Long_Axis_Right
-  stream >> m_pData->header.Position_Data;                          // 276: Position_Data
-  stream >> m_pData->header.Image_Min;                              // 278: Image_Min
-  stream >> m_pData->header.Image_Max;                              // 280: Image_Max
-  stream >> m_pData->header.Scale_Factor;                          // 282: Scale_Factor
-  stream >> m_pData->header.Pixel_Size;                            // 286: Pixel_Size
-  stream >> m_pData->header.Frame_Duration;                        // 290: Frame_Duration
-  stream >> m_pData->header.Frame_Start_Time;                      // 294: Frame_Start_Time
-  stream >> m_pData->header.Processing_Code;                        // 298: Processing_Code
-  stream >> m_pData->header.Quant_Units;                            // 300: Quant_Units
-  stream.readRawData(&m_pData->header.Annotation[0], 40);          // 302: Annotation
-  stream >> m_pData->header.Gate_Duration;                          // 342: Gate_Duration
-  stream >> m_pData->header.R_Wave_Offset;                          // 346: R_Wave_Offset
-  stream >> m_pData->header.Num_Accepted_Beats;                    // 350: Num_Accepted_Beats
-  stream.readRawData(&m_pData->header.Polar_Map_Protocol[0], 20);  // 354: Polar_Map_Protocol
-  stream.readRawData(&m_pData->header.Database_Name[0], 30);      // 374: Database_Name
-  for(int i=0; i < 27; i++)
-    stream >> m_pData->header.CTI_reserved[i];                      // 404: CTI_reserved
-  for(int i=0; i < 27; i++)
-    stream >> m_pData->header.User_Reserved[i];                    // 464: User_Reserved
+  // now that we have streamed in all data in one run we
+  // have to take care of correct endianness in the non-char
+  // entries in the header structure in case this is a little endian
+  // machine
+  if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+  {
+    // we only swap non-char elements of the header
+    BSWAP_16(m_pData->header.Data_Type);             
+    BSWAP_16(m_pData->header.Polar_Map_Type);        
+    BSWAP_16(m_pData->header.Num_Rings);             
+    for(int i=0; i < 32; i++)
+    {
+      BSWAP_16(m_pData->header.Sectors_Per_Ring[i]);
+      BSWAP_FLT(m_pData->header.Ring_Position[i]);
+      BSWAP_16(m_pData->header.Ring_Angle[i]);
+    }
+    BSWAP_16(m_pData->header.Start_Angle);           
+    for(int i=0; i < 3; i++)
+    {
+      BSWAP_16(m_pData->header.Long_Axis_Left[i]); 
+      BSWAP_16(m_pData->header.Long_Axis_Right[i]);
+    }
+    BSWAP_16(m_pData->header.Position_Data);         
+    BSWAP_16(m_pData->header.Image_Min);             
+    BSWAP_16(m_pData->header.Image_Max);             
+    BSWAP_FLT(m_pData->header.Scale_Factor);          
+    BSWAP_FLT(m_pData->header.Pixel_Size);            
+    BSWAP_32(m_pData->header.Frame_Duration);        
+    BSWAP_32(m_pData->header.Frame_Start_Time);      
+    BSWAP_16(m_pData->header.Processing_Code);       
+    BSWAP_16(m_pData->header.Quant_Units);           
+    BSWAP_32(m_pData->header.Gate_Duration);         
+    BSWAP_32(m_pData->header.R_Wave_Offset);         
+    BSWAP_32(m_pData->header.Num_Accepted_Beats);    
+    for(int i=0; i < 27; i++)
+    {
+      BSWAP_16(m_pData->header.CTI_reserved[i]);
+      BSWAP_16(m_pData->header.User_Reserved[i]);
+    }
+  }
 
   // some more debug output
 #if defined(DEBUG)
@@ -262,59 +260,64 @@ bool CECAT7SubHeaderPolarMap::save(void) const
 
   SHOWVALUE(m_pMedIOData->pos());
   
-  // we write to a buffer first and write out later directly to the file
-  QByteArray buffer(rawDataSize(), 0);
-  QDataStream stream(&buffer, QIODevice::WriteOnly);
-  
-  // we have to set the QDataStream version to the Qt4.5 version
-  // because with Qt4.6 the floating point precision changed and
-  // otherwise causes our streaming to fail
-  stream.setVersion(QDataStream::Qt_4_5);
-  
-  // lets read in each single data element of our
-  // data structure to maintain the correct endianess of the
-  // data
-  stream << m_pData->header.Data_Type;                              //   0: Data_Type
-  stream << m_pData->header.Polar_Map_Type;                        //   2: Polar_Map_Type
-  stream << m_pData->header.Num_Rings;                              //   4: Num_Rings
-  for(int i=0; i < 32; i++)
-    stream << m_pData->header.Sectors_Per_Ring[i];                  //   6: Sectors_Per_Ring (32)
-  for(int i=0; i < 32; i++)
-    stream << m_pData->header.Ring_Position[i];                    //  70: Ring_Position
-  for(int i=0; i < 32; i++)
-    stream << m_pData->header.Ring_Angle[i];                        // 198: Ring_Angle
-  stream << m_pData->header.Start_Angle;                            // 262: Start_Angle
-  for(int i=0; i < 3; i++)
-    stream << m_pData->header.Long_Axis_Left[i];                    // 264: Long_Axis_Left
-  for(int i=0; i < 3; i++)
-    stream << m_pData->header.Long_Axis_Right[i];                  // 270: Long_Axis_Right
-  stream << m_pData->header.Position_Data;                          // 276: Position_Data
-  stream << m_pData->header.Image_Min;                              // 278: Image_Min
-  stream << m_pData->header.Image_Max;                              // 280: Image_Max
-  stream << m_pData->header.Scale_Factor;                          // 282: Scale_Factor
-  stream << m_pData->header.Pixel_Size;                            // 286: Pixel_Size
-  stream << m_pData->header.Frame_Duration;                        // 290: Frame_Duration
-  stream << m_pData->header.Frame_Start_Time;                      // 294: Frame_Start_Time
-  stream << m_pData->header.Processing_Code;                        // 298: Processing_Code
-  stream << m_pData->header.Quant_Units;                            // 300: Quant_Units
-  stream.writeRawData(&m_pData->header.Annotation[0], 40);        // 302: Annotation
-  stream << m_pData->header.Gate_Duration;                          // 342: Gate_Duration
-  stream << m_pData->header.R_Wave_Offset;                          // 346: R_Wave_Offset
-  stream << m_pData->header.Num_Accepted_Beats;                    // 350: Num_Accepted_Beats
-  stream.writeRawData(&m_pData->header.Polar_Map_Protocol[0], 20);// 354: Polar_Map_Protocol
-  stream.writeRawData(&m_pData->header.Database_Name[0], 30);      // 374: Database_Name
-  for(int i=0; i < 27; i++)
-    stream << m_pData->header.CTI_reserved[i];                      // 404: CTI_reserved
-  for(int i=0; i < 27; i++)
-    stream << m_pData->header.User_Reserved[i];                    // 464: User_Reserved
+  ASSERT(sizeof(m_pData->header) == SUBHEADER_SIZE);
+  struct CECAT7SubHeaderPolarMapPrivate::HeaderData* header = NULL;
+  if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+  {
+    header = new CECAT7SubHeaderPolarMapPrivate::HeaderData;
+
+    // copy the current m_pData->header to beHeader
+    memcpy(header, &m_pData->header, sizeof(m_pData->header));
+
+    // we only swap non-char elements of the header
+    BSWAP_16(header->Data_Type);             
+    BSWAP_16(header->Polar_Map_Type);        
+    BSWAP_16(header->Num_Rings);             
+    for(int i=0; i < 32; i++)
+    {
+      BSWAP_16(header->Sectors_Per_Ring[i]);
+      BSWAP_FLT(header->Ring_Position[i]);
+      BSWAP_16(header->Ring_Angle[i]);
+    }
+    BSWAP_16(header->Start_Angle);           
+    for(int i=0; i < 3; i++)
+    {
+      BSWAP_16(header->Long_Axis_Left[i]); 
+      BSWAP_16(header->Long_Axis_Right[i]);
+    }
+    BSWAP_16(header->Position_Data);         
+    BSWAP_16(header->Image_Min);             
+    BSWAP_16(header->Image_Max);             
+    BSWAP_FLT(header->Scale_Factor);          
+    BSWAP_FLT(header->Pixel_Size);            
+    BSWAP_32(header->Frame_Duration);        
+    BSWAP_32(header->Frame_Start_Time);      
+    BSWAP_16(header->Processing_Code);       
+    BSWAP_16(header->Quant_Units);           
+    BSWAP_32(header->Gate_Duration);         
+    BSWAP_32(header->R_Wave_Offset);         
+    BSWAP_32(header->Num_Accepted_Beats);    
+    for(int i=0; i < 27; i++)
+    {
+      BSWAP_16(header->CTI_reserved[i]);
+      BSWAP_16(header->User_Reserved[i]);
+    }
+  }
+  else
+    header = &m_pData->header;
 
   // now write out to our outStream
   bool result = false;
-  if(m_pMedIOData->write(buffer) != -1)
+  if(m_pMedIOData->write(reinterpret_cast<char*>(header), sizeof(m_pData->header)) == SUBHEADER_SIZE)
   {
     m_pDirItem->subHeaderWritten(*this);
     result = true;
   }
+
+  // if we byte swapped we have to delete the
+  // temporary byte swapped header structures
+  if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+    delete header;
 
   RETURN(result);
   return result;

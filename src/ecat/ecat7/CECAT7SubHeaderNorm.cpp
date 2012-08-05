@@ -26,9 +26,9 @@
 #include "CECATDirectoryItem.h"
 #include "CECATFile.h"
 
-#include <QDataStream>
-
 #include <rtdebug.h>
+
+#include "bswap.h"
 
 // we define the private inline class of that one so that we
 // are able to hide the private methods & data of that class in the
@@ -36,27 +36,30 @@
 class CECAT7SubHeaderNormPrivate
 {
   public:
+    #define SUBHEADER_SIZE 512
+    #pragma pack(1)
     struct HeaderData
     {
-      quint16  Data_Type;
-      quint16  Num_Dimensions;
-      quint16  Num_R_Elements;
-      quint16  Num_Angles;
-      quint16  Num_Z_Elements;
-      quint16  Ring_Difference;
-      float    Scale_Factor;
-      float    Norm_Min;
-      float    Norm_Max;
-      float    FOV_Source_Width;
-      float    Norm_Quality_Factor;
-      quint16  Norm_Quality_Factor_Code;
-      quint16  Storage_Order;
-      quint16  Span;
-      quint16  Z_Elements[64];
-      quint16  CTI_reserved[123];
-      quint16  User_Reserved[50];
-    } header;
-};
+      quint16  Data_Type;                //   0: Data_Type
+      quint16  Num_Dimensions;           //   2: Num_Dimensions
+      quint16  Num_R_Elements;           //   4: Num_R_Elements
+      quint16  Num_Angles;               //   6: Num_Angles
+      quint16  Num_Z_Elements;           //   8: Num_Z_Elements
+      quint16  Ring_Difference;          //  10: Ring_Difference
+      float    Scale_Factor;             //  12: Scale_Factor
+      float    Norm_Min;                 //  16: Norm_Min
+      float    Norm_Max;                 //  20: Norm_Max
+      float    FOV_Source_Width;         //  24: FOV_Source_Width
+      float    Norm_Quality_Factor;      //  28: Norm_Quality_Factor
+      quint16  Norm_Quality_Factor_Code; //  32: Norm_Quality_Factor_Code
+      quint16  Storage_Order;            //  34: Storage_Order
+      quint16  Span;                     //  36: Span
+      quint16  Z_Elements[64];           //  38: Z_Elements (64)
+      quint16  CTI_reserved[123];        // 123: CTI_reserved (123)
+      quint16  User_Reserved[50];        // 412: User_Reserved (50)
+    } header;                            
+    #pragma pack()                                                       
+};                                      
 
 CECAT7SubHeaderNorm::CECAT7SubHeaderNorm(CECATFile* ecatFile,
                                          CECATDirectoryItem* pDirItem)
@@ -128,7 +131,8 @@ bool CECAT7SubHeaderNorm::load(void)
   // check if the stream is readable or not and
   // set our MedIOData to the correct file position so that we can
   // read the subheader  
-  if(m_pMedIOData->isReadable() == false ||
+  if(m_pMedIOData == NULL ||
+     m_pMedIOData->isReadable() == false ||
      m_pDirItem->dataBlock_Start() == 0 ||
      m_pMedIOData->seek(m_pDirItem->dataBlock_Start()) == false)
   {
@@ -136,70 +140,65 @@ bool CECAT7SubHeaderNorm::load(void)
     return false;
   }
   
-  // we use a ByteArray buffer to speed up the endianess
-  // decoding
-  QByteArray buffer(rawDataSize(), 0);
-  if(m_pMedIOData->read(buffer.data(), buffer.size()) != rawDataSize())
+  // we read in all data at once using read()
+  ASSERT(sizeof(m_pData->header) == SUBHEADER_SIZE);
+  if(m_pMedIOData->read(reinterpret_cast<char*>(&m_pData->header), sizeof(m_pData->header)) != SUBHEADER_SIZE)
   {
     RETURN(false);
     return false;
   }
 
-  // now we generate a QDataStream on our buffer so that we can read
-  // out of the buffer instead of the raw file (> speed)
-  QDataStream stream(buffer);
+  // now that we have streamed in all data in one run we
+  // have to take care of correct endianness in the non-char
+  // entries in the header structure in case this is a little endian
+  // machine
+  if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+  {
+    // we only swap non-char elements of the header
+    BSWAP_16(m_pData->header.Data_Type);
+    BSWAP_16(m_pData->header.Num_Dimensions);
+    BSWAP_16(m_pData->header.Num_R_Elements);
+    BSWAP_16(m_pData->header.Num_Angles);
+    BSWAP_16(m_pData->header.Num_Z_Elements);
+    BSWAP_16(m_pData->header.Ring_Difference);
+    BSWAP_FLT(m_pData->header.Scale_Factor);
+    BSWAP_FLT(m_pData->header.Norm_Min);
+    BSWAP_FLT(m_pData->header.Norm_Max);
+    BSWAP_FLT(m_pData->header.FOV_Source_Width);
+    BSWAP_FLT(m_pData->header.Norm_Quality_Factor);
+    BSWAP_16(m_pData->header.Norm_Quality_Factor_Code);
+    BSWAP_16(m_pData->header.Storage_Order);
+    BSWAP_16(m_pData->header.Span);
+    for(int i=0; i < 64; i++)
+      BSWAP_16(m_pData->header.Z_Elements[i]);
 
-  // we have to set the QDataStream version to the Qt4.5 version
-  // because with Qt4.6 the floating point precision changed and
-  // otherwise causes our streaming to fail
-  stream.setVersion(QDataStream::Qt_4_5);
-  
-  // lets read in each single data element of our
-  // data structure to maintain the correct endianess of the
-  // data
-  stream >> m_pData->header.Data_Type;                      //   0: Data_Type
-  stream >> m_pData->header.Num_Dimensions;                //   2: Num_Dimensions
-  stream >> m_pData->header.Num_R_Elements;                //   4: Num_R_Elements
-  stream >> m_pData->header.Num_Angles;                    //   6: Num_Angles
-  stream >> m_pData->header.Num_Z_Elements;                //   8: Num_Z_Elements
-  stream >> m_pData->header.Ring_Difference;                //  10: Ring_Difference
-  stream >> m_pData->header.Scale_Factor;                  //  12: Scale_Factor
-  stream >> m_pData->header.Norm_Min;                      //  16: Norm_Min
-  stream >> m_pData->header.Norm_Max;                      //  20: Norm_Max
-  stream >> m_pData->header.FOV_Source_Width;              //  24: FOV_Source_Width
-  stream >> m_pData->header.Norm_Quality_Factor;            //  28: Norm_Quality_Factor
-  stream >> m_pData->header.Norm_Quality_Factor_Code;      //  32: Norm_Quality_Factor_Code
-  stream >> m_pData->header.Storage_Order;                  //  34: Storage_Order
-  stream >> m_pData->header.Span;                          //  36: Span
-  for(int i=0; i < 64; i++)
-    stream >> m_pData->header.Z_Elements[i];                //  38: Z_Elements
-  for(int i=0; i < 123; i++)
-    stream >> m_pData->header.CTI_reserved[i];              // 123: CTI_reserved
-  for(int i=0; i < 50; i++)
-    stream >> m_pData->header.User_Reserved[i];            // 412: User_Reserved
+    for(int i=0; i < 123; i++)
+      BSWAP_16(m_pData->header.CTI_reserved[i]);
+
+    for(int i=0; i < 50; i++)
+      BSWAP_16(m_pData->header.User_Reserved[i]);
+  }
 
   // some more debug output
 #if defined(DEBUG)
   D("ECAT7 Normalization SubHeader loaded:");
   D("------------------------------------");
   D("Data_Type                 : %d",        m_pData->header.Data_Type);
-  D("Num_Dimensions             : %d",        m_pData->header.Num_Dimensions);
-  D("Num_R_Elements             : %d",        m_pData->header.Num_R_Elements);
+  D("Num_Dimensions            : %d",        m_pData->header.Num_Dimensions);
+  D("Num_R_Elements            : %d",        m_pData->header.Num_R_Elements);
   D("Num_Angles                : %d",        m_pData->header.Num_Angles);
   D("Num_Z_Elements            : %d",        m_pData->header.Num_Z_Elements);
   D("Ring_Difference           : %d",        m_pData->header.Ring_Difference);
   D("Scale_Factor              : %f",        m_pData->header.Scale_Factor);
   D("Norm_Min                  : %f",        m_pData->header.Norm_Min);
   D("Norm_Max                  : %f",        m_pData->header.Norm_Max);
-  D("FOV_Source_Width          : %f cm",    m_pData->header.FOV_Source_Width);
+  D("FOV_Source_Width          : %f cm",     m_pData->header.FOV_Source_Width);
   D("Norm_Quality_Factor       : %f",        m_pData->header.Norm_Quality_Factor);
   D("Norm_Quality_Factor_Code  : %d",        m_pData->header.Norm_Quality_Factor_Code);
   D("Storage_Order             : %d",        m_pData->header.Storage_Order);
   D("Span                      : %d",        m_pData->header.Span);
   for(int i=0; i < 64; i++)
-  {
     D("Z_Elements              [%d]: %f", i+1, m_pData->header.Z_Elements[i]);
-  }
 #endif
 
   RETURN(true);
@@ -221,46 +220,54 @@ bool CECAT7SubHeaderNorm::save(void) const
 
   SHOWVALUE(m_pMedIOData->pos());
 
-  // we write to a buffer first and write out later directly to the file
-  QByteArray buffer(rawDataSize(), 0);
-  QDataStream stream(&buffer, QIODevice::WriteOnly);
+  ASSERT(sizeof(m_pData->header) == SUBHEADER_SIZE);
+  struct CECAT7SubHeaderNormPrivate::HeaderData* header = NULL;
+  if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+  {
+    header = new CECAT7SubHeaderNormPrivate::HeaderData;
 
-  // we have to set the QDataStream version to the Qt4.5 version
-  // because with Qt4.6 the floating point precision changed and
-  // otherwise causes our streaming to fail
-  stream.setVersion(QDataStream::Qt_4_5);
-  
-  // lets write out each single data element of our
-  // data structure to maintain the correct endianess of the
-  // data
-  stream << m_pData->header.Data_Type;                      //   0: Data_Type
-  stream << m_pData->header.Num_Dimensions;                //   2: Num_Dimensions
-  stream << m_pData->header.Num_R_Elements;                //   4: Num_R_Elements
-  stream << m_pData->header.Num_Angles;                    //   6: Num_Angles
-  stream << m_pData->header.Num_Z_Elements;                //   8: Num_Z_Elements
-  stream << m_pData->header.Ring_Difference;                //  10: Ring_Difference
-  stream << m_pData->header.Scale_Factor;                  //  12: Scale_Factor
-  stream << m_pData->header.Norm_Min;                      //  16: Norm_Min
-  stream << m_pData->header.Norm_Max;                      //  20: Norm_Max
-  stream << m_pData->header.FOV_Source_Width;              //  24: FOV_Source_Width
-  stream << m_pData->header.Norm_Quality_Factor;            //  28: Norm_Quality_Factor
-  stream << m_pData->header.Norm_Quality_Factor_Code;      //  32: Norm_Quality_Factor_Code
-  stream << m_pData->header.Storage_Order;                  //  34: Storage_Order
-  stream << m_pData->header.Span;                          //  36: Span
-  for(int i=0; i < 64; i++)
-    stream << m_pData->header.Z_Elements[i];                //  38: Z_Elements
-  for(int i=0; i < 123; i++)
-    stream << m_pData->header.CTI_reserved[i];              // 123: CTI_reserved
-  for(int i=0; i < 50; i++)
-    stream << m_pData->header.User_Reserved[i];            // 412: User_Reserved
+    // copy the current m_pData->header to beHeader
+    memcpy(header, &m_pData->header, sizeof(m_pData->header));
+
+    // we only swap non-char elements of the header
+    BSWAP_16(header->Data_Type);
+    BSWAP_16(header->Num_Dimensions);
+    BSWAP_16(header->Num_R_Elements);
+    BSWAP_16(header->Num_Angles);
+    BSWAP_16(header->Num_Z_Elements);
+    BSWAP_16(header->Ring_Difference);
+    BSWAP_FLT(header->Scale_Factor);
+    BSWAP_FLT(header->Norm_Min);
+    BSWAP_FLT(header->Norm_Max);
+    BSWAP_FLT(header->FOV_Source_Width);
+    BSWAP_FLT(header->Norm_Quality_Factor);
+    BSWAP_16(header->Norm_Quality_Factor_Code);
+    BSWAP_16(header->Storage_Order);
+    BSWAP_16(header->Span);
+    for(int i=0; i < 64; i++)
+      BSWAP_16(header->Z_Elements[i]);
+
+    for(int i=0; i < 123; i++)
+      BSWAP_16(header->CTI_reserved[i]);
+
+    for(int i=0; i < 50; i++)
+      BSWAP_16(header->User_Reserved[i]);
+  }
+  else
+    header = &m_pData->header;
 
   // now write out to our outStream
   bool result = false;
-  if(m_pMedIOData->write(buffer) != -1)
+  if(m_pMedIOData->write(reinterpret_cast<char*>(header), sizeof(m_pData->header)) == SUBHEADER_SIZE)
   {
     m_pDirItem->subHeaderWritten(*this);
     result = true;
   }
+
+  // if we byte swapped we have to delete the
+  // temporary byte swapped header structures
+  if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+    delete header;
 
   RETURN(result);
   return result;
