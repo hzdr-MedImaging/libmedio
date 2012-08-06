@@ -16,16 +16,18 @@ struct PhilipsBinHeader2
 };
 */
 
+#pragma pack(1)
 struct PhilipsBinHeader1
 {
-    quint32 magicNumber;   // Identifies this as a bin file
-    quint32 headerVersion;
-    quint32 headerWords;   // Header size, in 4-byte words
-    quint32 dataType;
-    quint32 zDim;          // zDim
-    quint32 yDim;          // yDim
-    quint32 xDim;          // xDim
+  quint32 magicNumber;   // Identifies this as a bin file
+  quint32 headerVersion;
+  quint32 headerWords;   // Header size, in 4-byte words
+  quint32 dataType;
+  quint32 zDim;          // zDim
+  quint32 yDim;          // yDim
+  quint32 xDim;          // xDim
 };
+#pragma pack()
 
 class CPhilipsBinFile : public CMedIOData
 {

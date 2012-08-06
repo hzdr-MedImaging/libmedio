@@ -139,6 +139,7 @@ unsigned int CPhilipsBinFile::numberOfElements() const
 void CPhilipsBinFile::swap(char*& data)
 {
   ENTER();
+
   if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
   {
     switch(m_header.dataType)
@@ -146,31 +147,37 @@ void CPhilipsBinFile::swap(char*& data)
       case UnsignedInt16:
       case SignedInt16:
       {
-        quint16* data16 = reinterpret_cast<quint16*>(data);
-
-        for(unsigned int i = 0; i < numberOfElements(); ++i)
-          BSWAP_16(data16[i]);
+        bswap_matrix<quint16>(reinterpret_cast<const quint16*>(data), numberOfElements()*sizeof(quint16), reinterpret_cast<quint16*>(data));
       }
       break;
 
       case UnsignedInt32:
       case SignedInt32:
-      case Float32:
       {
-        quint32* data32 = reinterpret_cast<quint32*>(data);
-
-        for(unsigned int i = 0; i < numberOfElements(); ++i)
-          BSWAP_32(data32[i]);
+        bswap_matrix<quint32>(reinterpret_cast<const quint32*>(data), numberOfElements()*sizeof(quint32), reinterpret_cast<quint32*>(data));
       }
       break;
 
-#warning Float64 not handled int swap()
+      case Float32:
+      {
+        float* data_flt = reinterpret_cast<float*>(data);
 
-      default:
-        // nothing
+        for(quint32 i = 0; i < numberOfElements(); ++i)
+          BSWAP_FLT(data_flt[i]);
+      }
+      break;
+
+      case Float64:
+      {
+        double* data_dbl = reinterpret_cast<double*>(data);
+
+        for(quint32 i = 0; i < numberOfElements(); ++i)
+          BSWAP_DBL(data_dbl[i]);
+      }
       break;
     }
   }
+
   LEAVE();
 }
 

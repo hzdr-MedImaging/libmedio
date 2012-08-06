@@ -49,6 +49,7 @@
 // macro for byteswapping float (32bit) values using
 // a GNU extension
 #define bswap_flt(x) ({ union { quint32 i; float f;} u; u.f = x; u.i = bswap_32(u.i); u.f; })
+#define bswap_dbl(x) ({ union { quint64 i; double d;} u; u.d = x; u.i = bswap_64(u.i); u.d; })
 
 // common BSWAP_X() macros replacing the same
 // variable which is going to be swapped
@@ -57,6 +58,7 @@
 #define BSWAP_32(x)  ((x) = bswap_32(x))
 #define BSWAP_64(x)  ((x) = bswap_64(x))
 #define BSWAP_FLT(x) ((x) = bswap_flt(x))
+#define BSWAP_DBL(x) ((x) = bswap_dbl(x))
 
 // common rotate left macros
 #define rol16(word, shift)  ((word) << (shift)) | ((word) >> (16 - (shift)))
