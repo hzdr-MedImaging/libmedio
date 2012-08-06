@@ -25,8 +25,6 @@
 #ifndef CPHILIPSDIRECTORYITEM_H
 #define CPHILIPSDIRECTORYITEM_H
 
-#include <QDataStream>
-
 #ifndef __MEDIO_PRIVATE__
 #include <CPhilipsSubHeader>
 #else
@@ -42,7 +40,7 @@
 #define PHILIPS_POS_MAINDIR      2    // the MainDir is always at block 2
 #define PhilipsBlock2FilePos(v)  (((v)-1)*PHILIPS_BLOCKSIZE)
 #define FilePos2PhilipsBlock(v)  ((v)/PHILIPS_BLOCKSIZE+1)
-#define PHILIPS_EXTENDED_HEADER 0x7FFFFFFF // matrixID for the extended header
+#define PHILIPS_EXTENDED_HEADER  0x7FFFFFFF // matrixID for the extended header
 #endif
 
 // special macros to convert the MatrixID to their respect
@@ -95,16 +93,15 @@ class CPhilipsDirectoryItem
     short slice() const;
     short tilt() const;
 
-    // // mutator methods
+    // mutator methods
+    void setMatrixID(const quint32 matrixID);
     void setDataBlock_Start(const qint64 offset);
     void setDataBlock_End(const qint64 offset);
+    void setCompressionFlag(const CompressionFlag flag);
     void setContentFlag(const ContentFlag flag);
-    // void setDataBlock_Status(const AccessStatus status);
-    // void setFrame(const short f);
-    // void setPlane(const short p);
-    // void setGate(const short g);
-    // void setBed(const short b);
-    // void setData(const short d);
+    void setFrame(const short f);
+    void setSlice(const short s);
+    void setTilt(const short t);
 
     // read i/o methods
     bool readSubHeader(CPhilipsSubHeader*& subHeader);
@@ -121,10 +118,6 @@ class CPhilipsDirectoryItem
     bool writeMatrix(const char* data, unsigned int len, CPhilipsSubHeader::Data_Type type);
     bool writeMatrix(const QByteArray& data, const CPhilipsSubHeader& subHeader);
     bool writeMatrix(const char* data, unsigned int len, const CPhilipsSubHeader& subHeader);
-
-    // our QDataStream operators
-    friend QDataStream& operator<<(QDataStream& stream, const CPhilipsDirectoryItem& item);
-    friend QDataStream& operator>>(QDataStream& stream, CPhilipsDirectoryItem& item);
 
     // internal methods to sync specific data with our headers
     void subHeaderWritten(const CPhilipsSubHeader& subHeader);

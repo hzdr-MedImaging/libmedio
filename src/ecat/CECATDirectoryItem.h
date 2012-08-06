@@ -25,8 +25,6 @@
 #ifndef CECATDIRECTORYITEM_H
 #define CECATDIRECTORYITEM_H
 
-#include <QDataStream>
-
 #ifndef __MEDIO_PRIVATE__
 #include <CECATSubHeader>
 #else
@@ -37,7 +35,7 @@
 // the directorylist are refered in this format starting
 // from 1.
 #define ECAT_BLOCKSIZE        512
-#define ECAT_POS_MAINHEADER    1    // the MainHeader is always at block 1
+#define ECAT_POS_MAINHEADER   1    // the MainHeader is always at block 1
 #define ECAT_POS_MAINDIR      2    // the MainDir is always at block 2
 #define ECATBlock2FilePos(v)  (((v)-1)*ECAT_BLOCKSIZE)
 #define FilePos2ECATBlock(v)  ((v)/ECAT_BLOCKSIZE+1)
@@ -46,15 +44,15 @@
 
 // special macros to convert the MatrixID to their respect
 // frame/plane/gate/bed and data representation
-#define matrixID2Frame(x)  ((x) & 0x1FF)
-#define matrixID2Plane(x)  ((((x)>>16) & 0xFF) + ((((x)>>9) & 0x3)<<8))
+#define matrixID2Frame(x) ((x) & 0x1FF)
+#define matrixID2Plane(x) ((((x)>>16) & 0xFF) + ((((x)>>9) & 0x3)<<8))
 #define matrixID2Gate(x)  (((x)>>24) & 0x3F)
-#define matrixID2Bed(x)    (((x)>>12) & 0xF)
+#define matrixID2Bed(x)   (((x)>>12) & 0xF)
 #define matrixID2Data(x)  ((((x)>>9) & 0x4) | (((x)>>30) & 0x3))
-#define frame2MatrixID(x)  ((x) & 0x1FF)
-#define plane2MatrixID(x)  ((((x) & 0xFF)<<16) | ((((x) & 0x300)>>8)<<9))
+#define frame2MatrixID(x) ((x) & 0x1FF)
+#define plane2MatrixID(x) ((((x) & 0xFF)<<16) | ((((x) & 0x300)>>8)<<9))
 #define gate2MatrixID(x)  (((x) & 0x3F)<<24)
-#define bed2MatrixID(x)    (((x) & 0xF)<<12)
+#define bed2MatrixID(x)   (((x) & 0xF)<<12)
 #define data2MatrixID(x)  ((((x) & 0x3)<<30) | (((x) & 0x4)<<9))
 
 #define convertToMatrixID(f, p, g, b, d) ( frame2MatrixID(f) | \
@@ -95,6 +93,7 @@ class CECATDirectoryItem
     short data(void) const;
 
     // mutator methods
+    void setMatrixID(const quint32 matrixID);
     void setDataBlock_Start(const qint64 offset);
     void setDataBlock_End(const qint64 offset);
     void setDataBlock_Status(const AccessStatus status);
@@ -119,10 +118,6 @@ class CECATDirectoryItem
     bool writeMatrix(const char* data, unsigned int len, CECATSubHeader::Data_Type type);
     bool writeMatrix(const QByteArray& data, const CECATSubHeader& subHeader);
     bool writeMatrix(const char* data, unsigned int len, const CECATSubHeader& subHeader);
-
-    // our QDataStream operators
-    friend QDataStream& operator<<(QDataStream& stream, const CECATDirectoryItem& item);
-    friend QDataStream& operator>>(QDataStream& stream, CECATDirectoryItem& item);
 
     // internal methods to sync specific data with our headers
     void subHeaderWritten(const CECATSubHeader& subHeader);

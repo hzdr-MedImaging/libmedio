@@ -49,6 +49,7 @@
 #define MATRIX_SIZE        (MATRIX_DIMENSION*sizeof(quint16))
 //#define ADDITIONAL_FRAMES  33
 #define ADDITIONAL_FRAMES  126
+//#define ADDITIONAL_FRAMES 0
 
 using namespace std;
 
@@ -397,7 +398,7 @@ int main(int argc, char* argv[])
       cout << "successfully read matrix data from frame 1" << endl;
       
       // let us compare the data
-      cout << "read " << len << " bytes of data" << endl;
+      cout << "read " << dec << len << " bytes of data" << endl;
       cout << "comparing read data with written data..." << endl;
       
       unsigned int i=0;
@@ -410,7 +411,7 @@ int main(int argc, char* argv[])
       if(i < MATRIX_DIMENSION)
       {
         cout << "read MatrixData != written MatrixData at position " << i << endl;
-        cout << "read: " << hex << uppercase << readBuf[i] << "- written: " << matrixData_frame1[i] << endl;
+        cout << "read: " << hex << uppercase << readBuf[i] << " - written: " << matrixData_frame1[i] << endl;
       }
       else
         cout << "successfully compared read with written matrixData!" << endl;
@@ -450,9 +451,9 @@ int main(int argc, char* argv[])
 
     // for testing that the directory list stuff works above > 31 frames we read out
     // the additional subheaders and matrix data and compare it against the written ones
-    cout << "reading the data of the " << ADDITIONAL_FRAMES << " frames";
+    cout << "reading the data of the " << ADDITIONAL_FRAMES*2 << " frames";
     bool success = true;
-    for(int i=0; i < ADDITIONAL_FRAMES; i++)
+    for(int i=0; i < ADDITIONAL_FRAMES*2; i++)
     {
       cout << ".";
       CECATSubHeader* subHeader = NULL;

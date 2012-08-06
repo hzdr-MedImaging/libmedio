@@ -79,7 +79,7 @@ class CECAT7SubHeaderImagePrivate
       quint16  Filter_Order;               // 112: Filter_Order
       float    Filter_Scatter_Fraction;    // 116: Filter_Scatter_Fraction
       float    Filter_Scatter_Slope;       // 120: Filter_Scatter_Slope
-      char    Annotation[40];              // 122: Annotation
+      char     Annotation[40];             // 122: Annotation
       float    MT_1_1;                     // 162: MT_1_1
       float    MT_1_2;                     // 166: MT_1_2
       float    MT_1_3;                     // 170: MT_1_3
@@ -188,6 +188,8 @@ bool CECAT7SubHeaderImage::load(void)
     RETURN(false);
     return false;
   }
+
+  SHOWVALUE(m_pMedIOData->pos());
 
   // we read in all data at once using read()
   ASSERT(sizeof(m_pData->header) == SUBHEADER_SIZE);

@@ -28,7 +28,10 @@
 
 #include <QMap>
 #include <QVector>
+
 #include <rtdebug.h>
+
+#include "bswap.h"
 
 // some very own defines specifying the boundaries
 // of a philips directory list
@@ -38,6 +41,7 @@
 #define PHILIPS_DIRLIST_SIZE (PHILIPS_DIRHEAD_SIZE+PHILIPS_DIRITEM_NUM*PHILIPS_DIRITEM_SIZE)
 
 // the RAW structures used in the philips directory blocks
+#pragma pack(1)
 struct Philips_DirHead          // should be 16 bytes
 {
   quint32 freeItems;
@@ -52,7 +56,7 @@ struct Philips_DirItem          // should be 16 bytes
   quint32 dataBlock_Start;      // start position of the subHeader
   quint32 dataBlock_End;        // end position of the last data block
   quint16 compressionFlag;      // 0x0001: uncompressed, 0x0101: compressed
-  quint16 contentFlag;          // 0xFFFE: header, 0xFFFF: removed, 0x0000: unused, 0x0001: used
+  qint16 contentFlag;           // 0xFFFE: header, 0xFFFF: removed, 0x0000: unused, 0x0001: used
 };
 
 struct Philips_DirList // should be 512 bytes
@@ -60,6 +64,7 @@ struct Philips_DirList // should be 512 bytes
   struct Philips_DirHead head;
   struct Philips_DirItem items[PHILIPS_DIRITEM_NUM];
 };
+#pragma pack()
 
 // macro for quickly checking if the frame/plane/gate/bed/data
 // matrix parameters are between bounds or not
@@ -188,9 +193,9 @@ bool CPhilipsDirectory::load()
     SHOWVALUE(m_pData->file->pos());
     m_pData->filePositions.append(m_pData->file->pos());
 
-    // we use a ByteArray buffer to speed up the endianess decoding
-    QByteArray buffer(PHILIPS_DIRLIST_SIZE, 0);
-    if(m_pData->file->read(buffer.data(), buffer.size()) != PHILIPS_DIRLIST_SIZE) 
+    // read in the whole dirlist at once
+    ASSERT(sizeof(dList) == PHILIPS_DIRLIST_SIZE);
+    if(m_pData->file->read(reinterpret_cast<char*>(&dList), sizeof(dList)) != PHILIPS_DIRLIST_SIZE)
     {
       E("An error occurred while reading data");
 
@@ -198,16 +203,16 @@ bool CPhilipsDirectory::load()
       break;
     }
 
-    // now we generate a QDataStream on our buffer so that we can read
-    // out of the buffer instead of the raw file (> speed)
-    QDataStream stream(buffer);
+    // now we swap the data fields of the dirlist header in case this is
+    // not a big endian machine
+    if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+    {
+      BSWAP_32(dList.head.freeItems);
+      BSWAP_32(dList.head.nextDirectory);
+      BSWAP_32(dList.head.prevDirectory);
+      BSWAP_32(dList.head.itemsToFollow);
+    }
 
-    // read out the dirHead first
-    stream >> dList.head.freeItems;
-    stream >> dList.head.nextDirectory;
-    stream >> dList.head.prevDirectory;
-    stream >> dList.head.itemsToFollow;
-    
     // output some debug information on the head of the dirList.
     D("DirHead.freeItems   : %d", dList.head.freeItems);
     D("DirHead.next        : %d", dList.head.nextDirectory);
@@ -216,13 +221,50 @@ bool CPhilipsDirectory::load()
 
     // now we know how many item will follow in the Directory, so we
     // can populate our Directory here.
-    unsigned int iItemsInserted = 0;
-    for(unsigned int i=0; i < dList.head.itemsToFollow; i++)
+    quint32 iItemsInserted = 0;
+    for(quint32 i=0; i < dList.head.itemsToFollow; i++)
     {
       CPhilipsDirectoryItem* pNewDirItem = new CPhilipsDirectoryItem(m_pData->file);
 
-      // let us read out our information directly from the stream
-      stream >> *pNewDirItem;
+      // lets byteswap the data of thir dir item before
+      // assigning it to the dir item object
+      if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+      {
+        BSWAP_32(dList.items[i].matrixID);
+        BSWAP_32(dList.items[i].dataBlock_Start);
+        BSWAP_32(dList.items[i].dataBlock_End);
+        BSWAP_16(dList.items[i].compressionFlag);
+        BSWAP_16(dList.items[i].contentFlag);
+      }
+
+      // set all attributes of the directory item
+      pNewDirItem->setMatrixID(dList.items[i].matrixID);
+      pNewDirItem->setDataBlock_Start(PhilipsBlock2FilePos(dList.items[i].dataBlock_Start));
+      pNewDirItem->setDataBlock_End(PhilipsBlock2FilePos(dList.items[i].dataBlock_End));
+      pNewDirItem->setCompressionFlag(static_cast<CPhilipsDirectoryItem::CompressionFlag>(dList.items[i].compressionFlag));
+      pNewDirItem->setContentFlag(static_cast<CPhilipsDirectoryItem::ContentFlag>(dList.items[i].contentFlag));
+
+      // output some debug information.
+      #if defined(DEBUG)
+      if(dItem.isExtendedHeader())
+      {
+        D("DItem.Matrix_ID       : %08x (extended header)", pNewDirItem->matrixID());
+        D("DItem.DataBlock_Start : %lld (%lld)", pNewDirItem->dataBlock_Start(), FilePos2PhilipsBlock(pNewDirItem->dataBlock_Start()));
+        D("DItem.DataBlock_End   : %lld (%lld)", pNewDirItem->dataBlock_End(), FilePos2PhilipsBlock(pNewDirIiem->dataBlock_End()));
+      }
+      else
+      {
+        D("DItem.Matrix_ID       : %08x (%d/%d/%d)", pNewDirItem->matrixID(),
+                                                     pNewDirItem->slice(),
+                                                     pNewDirItem->frame(),
+                                                     pNewDirItem->tilt());
+
+        D("DItem.DataBlock_Start : %d (%ld)", pNewDirItem->dataBlock_Start(), FilePos2PhilipsBlock(pNewDirItem->dataBlock_Start()));
+        D("DItem.DataBlock_End   : %d (%ld)", pNewDirItem->dataBlock_End(), FilePos2PhilipsBlock(pNewDirItem->dataBlock_End()));
+        D("DItem.compressionFlag : %04x", pNewDirItem->compressionFlag());
+        D("DItem.contentFlag     : %04x", pNewDirItem->contentFlag());
+      }
+      #endif
 
       // before we add the item to the directory we check if the
       // values are somehow valid
@@ -249,9 +291,7 @@ bool CPhilipsDirectory::load()
 
     #if defined(DEBUG)
     if(dList.head.itemsToFollow != iItemsInserted)
-    {
       W("ItemsToFollow:%ld != iItemsInserted:%ld", dList.head.itemsToFollow, iItemsInserted);
-    }
     #endif
 
     if(m_pData->file->seek(PhilipsBlock2FilePos(dList.head.nextDirectory)) == false)
@@ -273,34 +313,31 @@ bool CPhilipsDirectory::save() const
   bool result = true;
 
   // only go on if the device is writeable at all
-  if(m_pData->file->isWritable() == false)
+  if(m_pData->file == NULL ||
+     m_pData->file->isWritable() == false)
   {
     RETURN(false);
     return false;
   }
+
   // we need to populate the dirList a bit ordered
   // frame->plane->gate->bed->data
   // even if the Philips standard doesn't define a ordering, but some
   // stupid software seems to require it.
-  struct Philips_DirHead dirHead;
+  struct Philips_DirList dirList;
 
   // before we start we have to link the first dirList to itself
-  memset(&dirHead, 0, sizeof(struct Philips_DirHead)); // clear it first
-  dirHead.freeItems  = PHILIPS_DIRITEM_NUM;
-  dirHead.nextDirectory = PHILIPS_POS_MAINDIR;
-
-  // we use two buffers. one for storing the dirHead of the Philips and
-  // one for the 31 dirItems.
-  QByteArray dirItemBuffer(PHILIPS_DIRITEM_NUM*PHILIPS_DIRITEM_SIZE, 0);
-  QDataStream dirItemStream(&dirItemBuffer, QIODevice::WriteOnly);
+  memset(&dirList, 0, sizeof(dirList)); // clear it first
+  dirList.head.freeItems     = PHILIPS_DIRITEM_NUM;
+  dirList.head.nextDirectory = PHILIPS_POS_MAINDIR;
 
   // now we have to go through our directory and stream all items
   // in 31 chunks as the directory list can only have 31 items plus
   // 1 chunk for the header
-  unsigned int currentDirPos = PHILIPS_POS_MAINDIR;
-  unsigned int processedDirItems = 0;
-  unsigned short curDirList = 0;
-  quint32 nextDirPos;
+  quint32 currentDirPos = PHILIPS_POS_MAINDIR;
+  quint32 processedDirItems = 0;
+  quint16 curDirList = 0;
+  quint32 nextDirPos = currentDirPos;
   qint64 lastDirListPos = 0;
 
   // now iterate through our sorted QMap and write out the
@@ -313,6 +350,7 @@ bool CPhilipsDirectory::save() const
     CPhilipsDirectoryItem* pDirItem = it.value();
     if(pDirItem)
     {
+      quint32 i = dirList.head.itemsToFollow;
       processedDirItems++;
 
       D("found DirItem: %d/%d/%d", pDirItem->slice(), 
@@ -326,54 +364,90 @@ bool CPhilipsDirectory::save() const
         pDirItem->setDataBlock_Start(lastDirListPos+PHILIPS_DIRLIST_SIZE);
       else
         lastDirListPos = 0;
-      
-      // stream in the directory Item information
-      dirItemStream << *pDirItem;
+   
+      // populate the diritem
+      dirList.items[i].matrixID = pDirItem->matrixID();
+      dirList.items[i].dataBlock_Start = FilePos2PhilipsBlock(pDirItem->dataBlock_Start());
+      dirList.items[i].dataBlock_End = FilePos2PhilipsBlock(pDirItem->dataBlock_End());
+      dirList.items[i].compressionFlag = static_cast<quint16>(pDirItem->compressionFlag());
+      dirList.items[i].contentFlag = static_cast<qint16>(pDirItem->contentFlag());
+
+      D("DItem.Matrix_ID       : %08x (%d/%d/%d)", pDirItem->matrixID(),
+                                                   pDirItem->slice(),
+                                                   pDirItem->frame(),
+                                                   pDirItem->tilt());
+
+      D("DItem.DataBlock_Start : %lld (%lld)", FilePos2PhilipsBlock(pDirItem->dataBlock_Start()), pDirItem->dataBlock_Start());
+      D("DItem.DataBlock_End   : %lld (%lld)", FilePos2PhilipsBlock(pDirItem->dataBlock_End()), pDirItem->dataBlock_End());
+      D("DItem.compressionFlag : %d", pDirItem->compressionFlag());
+      D("DItem.contentFlag     : %d", pDirItem->contentFlag());
+
+      // now we need to byteswap the data if this is no big endian machine
+      if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+      {
+        BSWAP_32(dirList.items[i].matrixID);
+        BSWAP_32(dirList.items[i].dataBlock_Start);
+        BSWAP_32(dirList.items[i].dataBlock_End);
+        BSWAP_16(dirList.items[i].compressionFlag);
+        BSWAP_16(dirList.items[i].contentFlag);
+      }
 
       // increment the itemsToFollow value and decrement the 
       // freeItems
-      dirHead.itemsToFollow++;
-      dirHead.freeItems--;
+      dirList.head.itemsToFollow++;
+      dirList.head.freeItems--;
       
       // first we check wheter the dirList is filled up (>=31 items)
       // and then write it out separate first.
-      if(dirHead.itemsToFollow == PHILIPS_DIRITEM_NUM && 
-         processedDirItems < count())
+      if((dirList.head.itemsToFollow == PHILIPS_DIRITEM_NUM && processedDirItems < count()) ||
+         it.hasNext() == false)
       {
-        qint64 appendPos;
+        // check if were are here because there is no
+        // futher directory item to be added
+        if(it.hasNext() == true)
+        {
+          qint64 appendPos;
 
-        // get the position where the next directorylist will start
-        // so we look into our filePositions ValueVector and if there is
-        // another entry we use it or we create a new directoryList
-        if(m_pData->filePositions.count()-1 == curDirList)
-        {      
-          appendPos = m_pData->lastDirItemOffset()+PHILIPS_BLOCKSIZE;
+          // get the position where the next directorylist will start
+          // so we look into our filePositions ValueVector and if there is
+          // another entry we use it or we create a new directoryList
+          if(m_pData->filePositions.count()-1 == curDirList)
+          {      
+            appendPos = m_pData->lastDirItemOffset()+PHILIPS_BLOCKSIZE;
 
-          // append the position to our FilePositions for DirLists
-          m_pData->filePositions.append(appendPos);
-          
-          D("appended new DirList #%d @ %lld (%lld)", curDirList+1, FilePos2PhilipsBlock(appendPos), appendPos);
+            // append the position to our FilePositions for DirLists
+            m_pData->filePositions.append(appendPos);
+            
+            D("appended new DirList #%d @ %lld (%lld)", curDirList+1, FilePos2PhilipsBlock(appendPos), appendPos);
 
-          lastDirListPos = appendPos;
+            lastDirListPos = appendPos;
+          }
+          else
+            appendPos = m_pData->filePositions[curDirList+1];
+
+          // calculate the block position where the next directory list
+          // starts (the current endsize of the Philips file substracted by one
+          // Philips blocksize [512 bytes])
+          nextDirPos = FilePos2PhilipsBlock(appendPos);
+          dirList.head.nextDirectory = nextDirPos;
         }
         else
-          appendPos = m_pData->filePositions[curDirList+1];
+          dirList.head.nextDirectory = PHILIPS_POS_MAINDIR;
 
-        // calculate the block position where the next directory list
-        // starts (the current endsize of the Philips file substracted by one
-        // Philips blocksize [512 bytes])
-        nextDirPos = FilePos2PhilipsBlock(appendPos);
-        dirHead.nextDirectory = nextDirPos;
+        D("DirHead%d.Position     : %d (%d)", curDirList, FilePos2PhilipsBlock(m_pData->file->pos()), m_pData->filePositions[curDirList]);
+        D("DirHead%d.freeItems    : %d", curDirList, dirHead.freeItems);
+        D("DirHead%d.nextDirectory: %d", curDirList, dirHead.nextDirectory);
+        D("DirHead%d.prevDirectory: %d", curDirList, dirHead.prevDirectory);
+        D("DirHead%d.itemsToFollow: %d", curDirList, dirHead.itemsToFollow);
 
-        // now we can write out the whole directory List to the file
-        // where we first write out the dirHead and then the 31 dirItems
-        QByteArray dirHeadBuffer(PHILIPS_DIRHEAD_SIZE, 0);
-        QDataStream dirHeadStream(&dirHeadBuffer, QIODevice::WriteOnly);
-
-        dirHeadStream << dirHead.freeItems;
-        dirHeadStream << dirHead.nextDirectory;
-        dirHeadStream << dirHead.prevDirectory;
-        dirHeadStream << dirHead.itemsToFollow;
+        // lets byteswap the directory header as we have finished it now
+        if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+        {
+          BSWAP_32(dirList.head.freeItems);
+          BSWAP_32(dirList.head.nextDirectory);
+          BSWAP_32(dirList.head.prevDirectory);
+          BSWAP_32(dirList.head.itemsToFollow);
+        }
           
         // now we can seek to the file position of the DirList
         // in the file.
@@ -384,15 +458,9 @@ bool CPhilipsDirectory::save() const
           break;
         }
           
-        D("DirHead%d.Position     : %d (%d)", curDirList, FilePos2PhilipsBlock(m_pData->file->pos()), m_pData->filePositions[curDirList]);
-        D("DirHead%d.freeItems    : %d", curDirList, dirHead.freeItems);
-        D("DirHead%d.nextDirectory         : %d", curDirList, dirHead.nextDirectory);
-        D("DirHead%d.prevDirectory         : %d", curDirList, dirHead.prevDirectory);
-        D("DirHead%d.itemsToFollow: %d", curDirList, dirHead.itemsToFollow);
-
-        // write out everything
-        if(m_pData->file->write(dirHeadBuffer) != PHILIPS_DIRHEAD_SIZE ||
-           m_pData->file->write(dirItemBuffer) != PHILIPS_DIRITEM_NUM*PHILIPS_DIRITEM_SIZE)
+        // write out the whole dirlist in one write() operation
+        ASSERT(sizeof(dirList) == PHILIPS_DIRLIST_SIZE);
+        if(m_pData->file->write(reinterpret_cast<char*>(&dirList), sizeof(dirList)) != PHILIPS_DIRLIST_SIZE)
         {
           E("Error while writing DirList");
           result = false;
@@ -403,70 +471,20 @@ bool CPhilipsDirectory::save() const
                                                               FilePos2PhilipsBlock(m_pData->file->pos()-PHILIPS_DIRLIST_SIZE),
                                                               m_pData->file->pos()-PHILIPS_DIRLIST_SIZE);
 
-        // clear the dirHead so that we can immediately reuse it
-        dirHead.freeItems      = PHILIPS_DIRITEM_NUM;
-        dirHead.nextDirectory          = PHILIPS_POS_MAINDIR;
-        dirHead.prevDirectory          = currentDirPos;
-        dirHead.itemsToFollow = 0;
-        currentDirPos          = nextDirPos;
-
-        // clear also the DirItem buffer
-        memset(dirItemBuffer.data(), 0, dirItemBuffer.size());
-        if(dirItemStream.device()->seek(0) == false)
-        {
-          E("couldn't seek to dirItemStream position #0");
-          result = false;
-          break;
-        }
+        // clear the dirList so that we can immediately reuse it
+        memset(&dirList, 0, sizeof(dirList)); // clear it first
+        dirList.head.freeItems     = PHILIPS_DIRITEM_NUM;
+        dirList.head.nextDirectory = PHILIPS_POS_MAINDIR;
+        dirList.head.prevDirectory = currentDirPos;
+        dirList.head.itemsToFollow = 0;
+  
+        // lets point the currentDirPos to the nextDirPos now that
+        // we added a new dirList
+        currentDirPos = nextDirPos;
 
         // iterate to the next dirList
         curDirList++;
       }
-    }
-  }
-
-  // now we make sure that even not fully filled up directory lists
-  // get written out at the end
-  if(result == true &&
-     m_pData->filePositions.count()-1 == curDirList)
-  {
-    // now we can write out the whole directory List to the file
-    // where we first write out the dirHead and then the 31 dirItems
-    QByteArray dirHeadBuffer(PHILIPS_DIRHEAD_SIZE, 0);
-    QDataStream dirHeadStream(&dirHeadBuffer, QIODevice::WriteOnly);
-
-    dirHeadStream << dirHead.freeItems;
-    dirHeadStream << dirHead.nextDirectory;
-    dirHeadStream << dirHead.prevDirectory;
-    dirHeadStream << dirHead.itemsToFollow;
-      
-    // now we can seek to the file position of the DirList
-    // in the file.
-    if(m_pData->file->seek(m_pData->filePositions[curDirList]) == false)
-    {
-      E("Error while seeking to DirList position: %d", m_pData->filePositions[curDirList]);
-      
-      result = false;
-    }
-    else
-    {
-      D("DirHead%d.Position     : %lld (%lld)", curDirList, FilePos2PhilipsBlock(m_pData->file->pos()), m_pData->filePositions[curDirList]);
-      D("DirHead%d.freeItems    : %d", curDirList, dirHead.freeItems);
-      D("DirHead%d.nextDirectory         : %d", curDirList, dirHead.nextDirectory);
-      D("DirHead%d.prevDirectory         : %d", curDirList, dirHead.prevDirectory);
-      D("DirHead%d.itemsToFollow: %d", curDirList, dirHead.itemsToFollow);
-
-      // write out everything
-      if(m_pData->file->write(dirHeadBuffer) != PHILIPS_DIRHEAD_SIZE ||
-         m_pData->file->write(dirItemBuffer) != PHILIPS_DIRITEM_NUM*PHILIPS_DIRITEM_SIZE)
-      {
-        E("Error while writing DirList #%d at %lld", curDirList, m_pData->file->pos());
-        result = false;
-      }
-      else
-        D("DirList #%d successfully written @ %lld (%lld)", curDirList, 
-                                                            FilePos2PhilipsBlock(m_pData->file->pos()-PHILIPS_DIRLIST_SIZE),
-                                                            m_pData->file->pos()-PHILIPS_DIRLIST_SIZE);
     }
   }
 

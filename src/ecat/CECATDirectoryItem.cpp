@@ -35,8 +35,6 @@
 
 #include "bswap.h"
 
-#include <QDataStream>
-
 #include <rtdebug.h>
 
 // we define the private inline class of that one so that we
@@ -134,12 +132,12 @@ CECATDirectoryItem& CECATDirectoryItem::operator=(const CECATDirectoryItem& src)
   {
     m_pData->frame            = src.m_pData->frame;
     m_pData->plane            = src.m_pData->plane;
-    m_pData->gate              = src.m_pData->gate;
+    m_pData->gate             = src.m_pData->gate;
     m_pData->bed              = src.m_pData->bed;
-    m_pData->data              = src.m_pData->data;
+    m_pData->data             = src.m_pData->data;
     m_pData->dataBlock_Start  = src.m_pData->dataBlock_Start;
     m_pData->dataBlock_End    = src.m_pData->dataBlock_End;
-    m_pData->status            = src.m_pData->status;
+    m_pData->status           = src.m_pData->status;
   }
 
   LEAVE();
@@ -196,6 +194,15 @@ short CECATDirectoryItem::data(void) const
 }
 
 // mutator methods
+void CECATDirectoryItem::setMatrixID(const quint32 matrixID)
+{
+  m_pData->frame = matrixID2Frame(matrixID);
+  m_pData->plane = matrixID2Plane(matrixID);
+  m_pData->gate  = matrixID2Gate(matrixID);
+  m_pData->bed   = matrixID2Bed(matrixID);
+  m_pData->data  = matrixID2Data(matrixID);
+}
+
 void CECATDirectoryItem::setDataBlock_Start(const qint64 offset)
 { 
   m_pData->dataBlock_Start = offset;
@@ -986,83 +993,4 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
 
   RETURN(result);
   return result;
-}
-
-QDataStream& operator<<(QDataStream& stream, const CECATDirectoryItem& dItem)
-{
-  ENTER();
-
-  // first convert and write out the matrixID
-  quint32 matrixID = convertToMatrixID(dItem.m_pData->frame,
-                                       dItem.m_pData->plane,
-                                       dItem.m_pData->gate,
-                                       dItem.m_pData->bed,
-                                       dItem.m_pData->data);
-  stream << matrixID;
-  
-  // then we read out the rest
-  quint32 dataBlock_Start = FilePos2ECATBlock(dItem.m_pData->dataBlock_Start);
-  stream << dataBlock_Start;
-
-  quint32 dataBlock_End = FilePos2ECATBlock(dItem.m_pData->dataBlock_End);
-  stream << dataBlock_End;
-  
-  qint32 matrixStatus = static_cast<qint32>(dItem.m_pData->status);
-  stream << matrixStatus;
-
-  D("DItem.Matrix_ID       : %08lx (%d/%d/%d/%d/%d)", matrixID,
-                                                      dItem.m_pData->frame,
-                                                      dItem.m_pData->plane,
-                                                      dItem.m_pData->gate,
-                                                      dItem.m_pData->bed,
-                                                      dItem.m_pData->data);
-
-  D("DItem.DataBlock_Start : %lld (%lld)", FilePos2ECATBlock(dItem.m_pData->dataBlock_Start), dItem.m_pData->dataBlock_Start);
-  D("DItem.DataBlock_End   : %lld (%lld)", FilePos2ECATBlock(dItem.m_pData->dataBlock_End), dItem.m_pData->dataBlock_End);
-  D("DItem.DataBlock_Status: %d", dItem.m_pData->status);
-  
-  LEAVE();
-  return stream;
-}
-
-QDataStream& operator>>(QDataStream& stream, CECATDirectoryItem& dItem)
-{
-  ENTER();
-
-  // first read and convert the matrixID
-  quint32 matrixID;
-  stream >> matrixID;
-  dItem.m_pData->frame = matrixID2Frame(matrixID);
-  dItem.m_pData->plane = matrixID2Plane(matrixID);
-  dItem.m_pData->gate  = matrixID2Gate(matrixID);
-  dItem.m_pData->bed   = matrixID2Bed(matrixID);
-  dItem.m_pData->data  = matrixID2Data(matrixID);
-
-  // then we read out the rest
-  quint32 dataBlock_Start;
-  stream >> dataBlock_Start;
-  dItem.m_pData->dataBlock_Start = ECATBlock2FilePos(dataBlock_Start);
-
-  quint32 dataBlock_End;
-  stream >> dataBlock_End;
-  dItem.m_pData->dataBlock_End = ECATBlock2FilePos(dataBlock_End);
-
-  qint32 matrixStatus;
-  stream >> matrixStatus;
-  dItem.m_pData->status = static_cast<CECATDirectoryItem::AccessStatus>(matrixStatus);
-
-  // output some debug information.
-  D("DItem.Matrix_ID       : %08lx (%d/%d/%d/%d/%d)", matrixID,
-                                                      dItem.m_pData->frame,
-                                                      dItem.m_pData->plane,
-                                                      dItem.m_pData->gate,
-                                                      dItem.m_pData->bed,
-                                                      dItem.m_pData->data);
-
-  D("DItem.DataBlock_Start : %ld (%ld)", dItem.m_pData->dataBlock_Start, FilePos2ECATBlock(dItem.m_pData->dataBlock_Start));
-  D("DItem.DataBlock_End   : %ld (%ld)", dItem.m_pData->dataBlock_End, FilePos2ECATBlock(dItem.m_pData->dataBlock_End));
-  D("DItem.DataBlock_Status: %d", dItem.m_pData->status);
-  
-  LEAVE();
-  return stream;
 }

@@ -194,6 +194,13 @@ short CPhilipsDirectoryItem::tilt() const
   return m_pData->tilt;
 }
 
+void CPhilipsDirectoryItem::setMatrixID(const quint32 matrixID)
+{
+  m_pData->frame = matrixID2Frame(matrixID);
+  m_pData->slice = matrixID2Slice(matrixID);
+  m_pData->tilt  = matrixID2Tilt(matrixID);
+}
+
 void CPhilipsDirectoryItem::setDataBlock_Start(const qint64 offset)
 { 
   m_pData->dataBlock_Start = offset;
@@ -202,6 +209,31 @@ void CPhilipsDirectoryItem::setDataBlock_Start(const qint64 offset)
 void CPhilipsDirectoryItem::setDataBlock_End(const qint64 offset)
 { 
   m_pData->dataBlock_End = offset;
+}
+
+void CPhilipsDirectoryItem::setCompressionFlag(const CPhilipsDirectoryItem::CompressionFlag flag)
+{
+  m_pData->compressionFlag = flag;
+}
+
+void CPhilipsDirectoryItem::setContentFlag(const CPhilipsDirectoryItem::ContentFlag flag)
+{
+  m_pData->contentFlag = flag;
+}
+
+void CPhilipsDirectoryItem::setFrame(const short frame)
+{ 
+  m_pData->frame = frame;
+}
+
+void CPhilipsDirectoryItem::setSlice(const short slice)
+{ 
+  m_pData->slice = slice;
+}
+
+void CPhilipsDirectoryItem::setTilt(const short tilt)
+{ 
+  m_pData->tilt = tilt;
 }
 
 bool CPhilipsDirectoryItem::readSubHeader(CPhilipsSubHeader*& subHeader)
@@ -867,100 +899,4 @@ bool CPhilipsDirectoryItem::writeMatrix(const char* matrixData, unsigned int mat
 
   RETURN(result);
   return result;
-}
-
-
-QDataStream& operator<<(QDataStream& stream, const CPhilipsDirectoryItem& dItem)
-{
-  ENTER();
-
-  // first convert and write out the matrixID
-  quint32 matrixID = convertToMatrixID(dItem.m_pData->slice,
-                                       dItem.m_pData->frame,
-                                       dItem.m_pData->tilt);
-  stream << matrixID;
-  
-  // then we read out the rest
-  quint32 dataBlock_Start = FilePos2PhilipsBlock(dItem.m_pData->dataBlock_Start);
-  stream << dataBlock_Start;
-
-  quint32 dataBlock_End = FilePos2PhilipsBlock(dItem.m_pData->dataBlock_End);
-  stream << dataBlock_End;
-  
-  qint16 compressionFlag = static_cast<qint16>(dItem.m_pData->compressionFlag);
-  stream << compressionFlag;
-
-  qint16 contentFlag = static_cast<qint16>(dItem.m_pData->contentFlag);
-  stream << contentFlag;
-
-  D("DItem.Matrix_ID       : %08x (%d/%d/%d)", matrixID,
-                                                      dItem.m_pData->slice,
-                                                      dItem.m_pData->frame,
-                                                      dItem.m_pData->tilt);
-
-  D("DItem.DataBlock_Start : %lld (%lld)", FilePos2PhilipsBlock(dItem.m_pData->dataBlock_Start), dItem.m_pData->dataBlock_Start);
-  D("DItem.DataBlock_End   : %lld (%lld)", FilePos2PhilipsBlock(dItem.m_pData->dataBlock_End), dItem.m_pData->dataBlock_End);
-  D("DItem.compressionFlag : %d", dItem.m_pData->compressionFlag);
-  D("DItem.contentFlag     : %d", dItem.m_pData->contentFlag);
-  
-  LEAVE();
-  return stream;
-}
-
-QDataStream& operator>>(QDataStream& stream, CPhilipsDirectoryItem& dItem)
-{
-  ENTER();
-
-  // first read and convert the matrixID
-  quint32 matrixID;
-  stream >> matrixID;
-  dItem.m_pData->frame = matrixID2Frame(matrixID);
-  dItem.m_pData->slice = matrixID2Slice(matrixID);
-  dItem.m_pData->tilt  = matrixID2Tilt(matrixID);
-
-  // then we read out the rest
-  quint32 dataBlock_Start;
-  stream >> dataBlock_Start;
-  dItem.m_pData->dataBlock_Start = PhilipsBlock2FilePos(dataBlock_Start);
-
-  quint32 dataBlock_End;
-  stream >> dataBlock_End;
-  dItem.m_pData->dataBlock_End = PhilipsBlock2FilePos(dataBlock_End);
-
-  qint16 compressionFlag;
-  stream >> compressionFlag;
-  dItem.m_pData->compressionFlag = static_cast<CPhilipsDirectoryItem::CompressionFlag>(compressionFlag);
-
-  qint16 contentFlag;
-  stream >> contentFlag;
-  dItem.m_pData->contentFlag = static_cast<CPhilipsDirectoryItem::ContentFlag>(contentFlag);
-
-  // output some debug information.
-#if defined(DEBUG)
-  if(dItem.isExtendedHeader())
-  {
-    D("DItem.Matrix_ID       : %08x (extended header)", matrixID);
-    D("DItem.DataBlock_Start : %lld (%lld)", dItem.m_pData->dataBlock_Start, FilePos2PhilipsBlock(dItem.m_pData->dataBlock_Start));
-    D("DItem.DataBlock_End   : %lld (%lld)", dItem.m_pData->dataBlock_End, FilePos2PhilipsBlock(dItem.m_pData->dataBlock_End));
-  }
-  else
-  {
-    D("DItem.Matrix_ID       : %08x (%d/%d/%d)", matrixID,
-                                                  dItem.m_pData->slice,
-                                                  dItem.m_pData->frame,
-                                                  dItem.m_pData->tilt);
-
-    D("DItem.DataBlock_Start : %d (%ld)", dItem.m_pData->dataBlock_Start, FilePos2PhilipsBlock(dItem.m_pData->dataBlock_Start));
-    D("DItem.DataBlock_End   : %d (%ld)", dItem.m_pData->dataBlock_End, FilePos2PhilipsBlock(dItem.m_pData->dataBlock_End));
-    D("DItem.compressionFlag : %04x", dItem.m_pData->compressionFlag);
-    D("DItem.contentFlag     : %04x", dItem.m_pData->contentFlag);
-  }
-#endif
-  LEAVE();
-  return stream;
-}
-
-void CPhilipsDirectoryItem::setContentFlag(const CPhilipsDirectoryItem::ContentFlag flag)
-{
-  m_pData->contentFlag = flag;
 }
