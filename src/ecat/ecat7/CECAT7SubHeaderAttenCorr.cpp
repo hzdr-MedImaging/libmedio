@@ -316,6 +316,8 @@ bool CECAT7SubHeaderAttenCorr::save(void) const
     for(int i=0; i < 50; i++)
       BSWAP_16(header->CTI_Reserved[i]);
   }
+  else
+    header = &m_pData->header;
 
   // now write out to our outStream
   bool result = false;
