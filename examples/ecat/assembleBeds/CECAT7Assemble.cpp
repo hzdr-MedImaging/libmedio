@@ -10,10 +10,13 @@
 
 #include <math.h>
 
+#define FOV (0.2425*63)
+
 CECAT7Assemble::CECAT7Assemble()
   : m_pInputECAT7File(NULL),
     m_pInputECAT7Header(NULL),
     m_pOutputECAT7File(NULL),
+    m_iFrames(0),
     m_iGates(0),
     m_iBeds(0),
     m_iXDim(0),
@@ -90,9 +93,10 @@ bool CECAT7Assemble::assemble()
         m_pInputECAT7Header = static_cast<CECAT7MainHeader*>(inputEcatMainHeader);
         if(m_pInputECAT7Header)
         {
+          m_iFrames = m_pInputECAT7Header->num_Frames();
           m_iGates = m_pInputECAT7Header->num_Gates();
           m_iBeds = m_pInputECAT7Header->num_Bed_Pos();
-          D("numBeds: %d, numGates: %d", m_iBeds, m_iGates);
+          D("numBeds: %d, numGates: %d, numFrames: %d", m_iBeds, m_iGates, m_iFrames);
         }
         else
         {
@@ -145,15 +149,20 @@ bool CECAT7Assemble::assemble()
 
     if(bResult)
     {
-      for(int i = 1; i <= m_iGates; i++)
+      for(int frame = 1; frame <= m_iFrames; frame++)
       {
-        bResult = checkSubHeaders(i);
-        if(!bResult)
-          break;
-        calcOverlap();
-        bResult = assembleImage(i);
-        if(!bResult)
-          break;
+        for(int gate = 1; gate <= m_iGates; gate++)
+        {
+          bResult = checkSubHeaders(frame, gate);
+          if(!bResult)
+            break;
+
+          calcOverlap();
+
+          bResult = assembleImage(frame, gate);
+          if(!bResult)
+            break;
+        }
       }
     }
 
@@ -171,14 +180,14 @@ bool CECAT7Assemble::assemble()
   return bResult;
 }
 
-bool CECAT7Assemble::checkSubHeaders(short iGate)
+bool CECAT7Assemble::checkSubHeaders(short iFrame, short iGate)
 {
   ENTER();
   bool bResult = true;
 
   // init values with first bed
   CECATSubHeader* pSubHeader = NULL;
-  if(m_pInputECAT7File->readSubHeader(pSubHeader, 1, 1, iGate, 0, 0))
+  if(m_pInputECAT7File->readSubHeader(pSubHeader, iFrame, 1, iGate, 0, 0))
   {
     // we already checked if it is an ecat7 image subheader so we just do a cast
     CECAT7SubHeaderImage* pECAT7ImageSubHeader = static_cast<CECAT7SubHeaderImage*>(pSubHeader);
@@ -195,7 +204,7 @@ bool CECAT7Assemble::checkSubHeaders(short iGate)
   }
   else
   {
-    E("ERROR: could not read subheader (1,1,%d,0,0) of inputfile.", iGate);
+    E("ERROR: could not read subheader (%d,1,%d,0,0) of inputfile.", iFrame, iGate);
     bResult = false;
   }
 
@@ -204,7 +213,7 @@ bool CECAT7Assemble::checkSubHeaders(short iGate)
     // now looping over all other beds and check if dimension, zoom and pixelsize is equal
     for(int i = 1; i < m_iBeds+1; i++)
     {
-      if(m_pInputECAT7File->readSubHeader(pSubHeader, 1, 1, iGate, i, 0))
+      if(m_pInputECAT7File->readSubHeader(pSubHeader, iFrame, 1, iGate, i, 0))
       {
         // we already checked if it is an ecat7 image subheader so we just do a cast
         CECAT7SubHeaderImage* pECAT7ImageSubHeader = static_cast<CECAT7SubHeaderImage*>(pSubHeader);
@@ -237,7 +246,7 @@ bool CECAT7Assemble::checkSubHeaders(short iGate)
       }
       else
       {
-        E("ERROR: could not read subheader (1,1,%d,%d,0) of inputfile.", iGate, i);
+        E("ERROR: could not read subheader (%d,1,%d,%d,0) of inputfile.", iFrame, iGate, i);
         bResult = false;
         break;
       }
@@ -249,6 +258,7 @@ bool CECAT7Assemble::checkSubHeaders(short iGate)
 
 void CECAT7Assemble::resetValues()
 {
+  m_iFrames = 0;
   m_iGates = 0;
   m_iBeds = 0;
   m_iXDim = 0;
@@ -317,7 +327,7 @@ void CECAT7Assemble::calcOverlap()
   LEAVE();
 }
 
-bool CECAT7Assemble::assembleImage(short iGate)
+bool CECAT7Assemble::assembleImage(short iFrame, short iGate)
 {
   ENTER();
   bool bResult = true;
@@ -393,7 +403,7 @@ bool CECAT7Assemble::assembleImage(short iGate)
 
   if(bResult)
   {
-    if((bResult=m_pInputECAT7File->readSubHeader(pSubHeader, 1, 1, iGate, 0, 0)) != true)
+    if((bResult=m_pInputECAT7File->readSubHeader(pSubHeader, iFrame, 1, iGate, 0, 0)) != true)
     {
       E("Error: could not read sub header of inputfile!");
       bResult = false;
@@ -514,7 +524,7 @@ bool CECAT7Assemble::assembleImage(short iGate)
   {
     for(int i = 0; i < m_iBeds+1; i++)
     {
-      bResult = loadMatrix(inputMatrices[i], 1, 1, iGate, i, 0);
+      bResult = loadMatrix(inputMatrices[i], iFrame, 1, iGate, i, 0);
       if(!bResult)
         break;
     }
@@ -577,7 +587,7 @@ bool CECAT7Assemble::assembleImage(short iGate)
     CECATSubHeader* pSubHeader = NULL;
     CECATSubHeader* pDestSubHeader = NULL;
     QByteArray* pImageData = NULL;
-    if(m_pInputECAT7File->readSubHeader(pSubHeader, 1, 1, iGate, 0, 0))
+    if(m_pInputECAT7File->readSubHeader(pSubHeader, iFrame, 1, iGate, 0, 0))
     {
       pDestSubHeader = m_pOutputECAT7File->createEmptySubHeader();
       *pDestSubHeader = *pSubHeader;
@@ -622,7 +632,7 @@ bool CECAT7Assemble::assembleImage(short iGate)
           pECAT7ImageSubHeader->setImage_Max((short)ceil(fMaxValue*fScaleFactor));
           pECAT7ImageSubHeader->setImage_Min(-32768);
         }
-        if((bResult = m_pOutputECAT7File->writeSubHeader(*pECAT7ImageSubHeader, 1, 1, iGate, 0, 0)) != true)
+        if((bResult = m_pOutputECAT7File->writeSubHeader(*pECAT7ImageSubHeader, iFrame, 1, iGate, 0, 0)) != true)
         {
           E("Error: can not write subheader to output file!");
           bResult = false;
@@ -630,7 +640,7 @@ bool CECAT7Assemble::assembleImage(short iGate)
 
         if(bResult)
         {
-          if((bResult = m_pOutputECAT7File->writeMatrix(*pImageData, 1, 1, iGate, 0, 0)) != true)
+          if((bResult = m_pOutputECAT7File->writeMatrix(*pImageData, iFrame, 1, iGate, 0, 0)) != true)
           {
             E("Error: can not write matrix data to output file!");
             bResult = false;

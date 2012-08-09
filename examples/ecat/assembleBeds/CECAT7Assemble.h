@@ -3,7 +3,6 @@
 
 #include <QString>
 
-#define FOV 0.2425*63
 #define MAX_BEDS 15
 
 // forward declarations
@@ -31,10 +30,10 @@ class CECAT7Assemble
 
   private:
     // methods
-    bool checkSubHeaders(short iGate);
+    bool checkSubHeaders(short iFrame, short iGate);
     void resetValues();
     void calcOverlap();
-    bool assembleImage(short iGate);
+    bool assembleImage(short iFrame, short iGate);
     bool loadMatrix(C3DArray<float>*& pMatrix, int iFrame, int iPlane, int iGate, int iBed, int iData);
     bool unifyPixelSize(C3DArray<float>*& pOutMatrix, C3DArray<float>* pInMatrix, float fOldZPixelSize, float fNewZPixelSize);
 
@@ -45,6 +44,7 @@ class CECAT7Assemble
     CECATFile*        m_pInputECAT7File;
     CECAT7MainHeader* m_pInputECAT7Header;
     CECATFile*        m_pOutputECAT7File;
+    short             m_iFrames;
     short             m_iGates;
     short             m_iBeds;
     short             m_iXDim;
