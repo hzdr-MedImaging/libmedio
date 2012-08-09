@@ -298,18 +298,18 @@ void CECAT7Assemble::calcOverlap()
     }
 
     if (m_bedPositions[0] >= 0) 
-      m_overlap[0]= FLOAT_2_UINT((FOV - m_bedPositions[0]) / (m_fZPixelSize));
+      m_overlap[0]= qRound((FOV - m_bedPositions[0]) / (m_fZPixelSize));
     else 
-      m_overlap[0]= FLOAT_2_UINT((FOV + m_bedPositions[0]) / (m_fZPixelSize));
+      m_overlap[0]= qRound((FOV + m_bedPositions[0]) / (m_fZPixelSize));
 
     D("OVERLAP[%d]: %f", 0, m_overlap[0]);
 
     for (int i = 1; i < m_iBeds+1; i++)
     {
       if (m_bedPositions[i] - m_bedPositions[i - 1] > 0) 
-        m_overlap[i] = FLOAT_2_UINT((FOV + m_bedPositions[i-1] - m_bedPositions[i]) / (m_fZPixelSize));
+        m_overlap[i] = qRound((FOV + m_bedPositions[i-1] - m_bedPositions[i]) / (m_fZPixelSize));
       else
-        m_overlap[i] = FLOAT_2_UINT((FOV - m_bedPositions[i-1] + m_bedPositions[i]) / (m_fZPixelSize));
+        m_overlap[i] = qRound((FOV - m_bedPositions[i-1] + m_bedPositions[i]) / (m_fZPixelSize));
       D("OVERLAP[%d]: %f", i, m_overlap[i]);
     }
   }
@@ -360,7 +360,7 @@ bool CECAT7Assemble::assembleImage(short iGate)
   D("MaxBedPosition: %f", fBedPosMax);
   SHOWVALUE(iMaxBedPosition);
 
-  int iOutputMatrixSizeZ = FLOAT_2_UINT((fabs((fInitBedPos + fBedPosMax)-(fInitBedPos + fBedPosMin)) + FOV) / m_fZPixelSize ) - 1;
+  int iOutputMatrixSizeZ = qRound((fabs((fInitBedPos + fBedPosMax)-(fInitBedPos + fBedPosMin)) + FOV) / m_fZPixelSize ) - 1;
   SHOWVALUE(iOutputMatrixSizeZ);
 
   if(bResult)
@@ -420,9 +420,9 @@ bool CECAT7Assemble::assembleImage(short iGate)
     {
       unsigned int iStartPlane = 0;
       if (iOrientation == CECAT7MainHeader::HF_Supine || iOrientation == CECAT7MainHeader::HF_Prone)
-        iStartPlane = FLOAT_2_UINT((bedPosition[i] - fBedPosMin) / (m_fZPixelSize));
+        iStartPlane = qRound((bedPosition[i] - fBedPosMin) / (m_fZPixelSize));
       else if (iOrientation == CECAT7MainHeader::FF_Supine || iOrientation == CECAT7MainHeader::FF_Prone)
-        iStartPlane = FLOAT_2_UINT((fBedPosMax - bedPosition[i]) / (m_fZPixelSize));
+        iStartPlane = qRound((fBedPosMax - bedPosition[i]) / (m_fZPixelSize));
       SHOWVALUE(iStartPlane);
       int iOverlap = m_overlap[i];
       int iCutValue = 2; // skip first and last two planes from overlap area
@@ -571,7 +571,7 @@ bool CECAT7Assemble::assembleImage(short iGate)
   if(bResult)
   {
     float fNewPixelSize = m_fXPixelSize;
-    int iNewZDim = FLOAT_2_UINT(iOutputMatrixSizeZ * m_fZPixelSize / fNewPixelSize);
+    int iNewZDim = qRound(iOutputMatrixSizeZ * m_fZPixelSize / fNewPixelSize);
     unifyPixelSize(pOutputMatrix, pAssembleMatrix, m_fZPixelSize, fNewPixelSize);
 
     CECATSubHeader* pSubHeader = NULL;
@@ -828,7 +828,7 @@ bool CECAT7Assemble::unifyPixelSize(C3DArray<float>*& pOutMatrix, C3DArray<float
 
   int iOutputMatrixSizeZ = pInMatrix->firstLength()-1;
   SHOWVALUE(iOutputMatrixSizeZ);
-  int iNewZDim = FLOAT_2_UINT(iOutputMatrixSizeZ * fOldZPixelSize / fNewZPixelSize);
+  int iNewZDim = qRound(iOutputMatrixSizeZ * fOldZPixelSize / fNewZPixelSize);
   SHOWVALUE(iNewZDim);
 
   try

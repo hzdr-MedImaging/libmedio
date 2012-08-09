@@ -6,13 +6,6 @@
 #define FOV 0.2425*63
 #define MAX_BEDS 15
 
-#define FLOAT_2_SHORT(X) ((short int)(((X)>=0)?((X)+0.5):((X)-0.5)))           ///< float to signed short
-#define FLOAT_2_USHORT(X) ((unsigned short int)(((X)>=0)?((X)+0.5):((X)-0.5))) ///< float to unsigned short
-#define FLOAT_2_INT(X)   ((int)(((X)>=0)?((X)+0.5):((X)-0.5)))                 ///< float to signed int
-#define FLOAT_2_UINT(X)   ((unsigned int)(((X)>=0)?((X)+0.5):((X)-0.5)))       ///< float to unsigned int
-#define FLOAT_2_LONG(X)  ((long)(((X)>=0)?((X)+0.5):((X)-0.5)))                ///< float to singed long
-#define FLOAT_2_ULONG(X)  ((unsigned long)(((X)>=0)?((X)+0.5):((X)-0.5)))      ///< float to unsigned long
-
 // forward declarations
 class CECATFile;
 class CECAT7MainHeader;
