@@ -1785,7 +1785,7 @@ AC_DEFUN([AC_PATH_QT4_LIB],
     LIB_QT="$ac_qt_libname"
   else
     if test "$HOST_OS" = "Darwin"; then
-      ac_qt_libname="libQtCore.dylib"
+      ac_qt_libname="QtCore.framework"
     else
       ac_qt_libname="libQtCore.so"
     fi
@@ -1795,7 +1795,7 @@ AC_DEFUN([AC_PATH_QT4_LIB],
   for qt_dir in $qt_library_dirs; do
     if test -r "$qt_dir/$ac_qt_libname"; then
       ac_qt_libdir="$qt_dir"
-      break;
+      break
     else
       echo "tried $qt_dir" >&AC_FD_CC 
     fi
