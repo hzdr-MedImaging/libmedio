@@ -26,8 +26,8 @@ QT = core
 DEPENDPATH += .
 INCLUDEPATH += . /usr/local/petlib/include/medio
 INCLUDEPATH += /usr/local/petlib/include/rtdebug
-LIBS *= /usr/local/petlib/lib/libmedio.so.2
-LIBS *= /usr/local/petlib/lib/librtdebug.so
+LIBS *= /usr/local/petlib/lib/libmedio.a
+LIBS *= /usr/local/petlib/lib/librtdebug.a
 
 DEFINES *= DEBUG
 
