@@ -153,17 +153,9 @@ void CPhilipsBinFile::swap(char*& data)
 
       case UnsignedInt32:
       case SignedInt32:
-      {
-        bswap_matrix<quint32>(reinterpret_cast<const quint32*>(data), numberOfElements()*sizeof(quint32), reinterpret_cast<quint32*>(data));
-      }
-      break;
-
       case Float32:
       {
-        float* data_flt = reinterpret_cast<float*>(data);
-
-        for(quint32 i = 0; i < numberOfElements(); ++i)
-          BSWAP_FLT(data_flt[i]);
+        bswap_matrix<quint32>(reinterpret_cast<const quint32*>(data), numberOfElements()*sizeof(quint32), reinterpret_cast<quint32*>(data));
       }
       break;
 
