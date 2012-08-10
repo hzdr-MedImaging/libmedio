@@ -142,6 +142,15 @@ static inline T* bswap_matrix(const T* matrixData, quint32 matrixSize, T* dstMat
     }
     break;
 
+    case sizeof(quint64):
+    {
+      const quint64* matrixData64 = reinterpret_cast<const quint64*>(matrixData);
+      quint64* swappedMatrixData64 = reinterpret_cast<quint64*>(swappedMatrixData);
+      for(quint32 i=0; i < (matrixSize/sizeof(quint64)); i++)
+        swappedMatrixData64[i] = bswap_64(matrixData64[i]);
+    }
+    break;
+
     default:
       E("unsupported type passed: %d", sizeof(T));
     break;

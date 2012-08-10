@@ -161,10 +161,7 @@ void CPhilipsBinFile::swap(char*& data)
 
       case Float64:
       {
-        double* data_dbl = reinterpret_cast<double*>(data);
-
-        for(quint32 i = 0; i < numberOfElements(); ++i)
-          BSWAP_DBL(data_dbl[i]);
+        bswap_matrix<quint64>(reinterpret_cast<const quint64*>(data), numberOfElements()*sizeof(quint64), reinterpret_cast<quint64*>(data));
       }
       break;
     }
