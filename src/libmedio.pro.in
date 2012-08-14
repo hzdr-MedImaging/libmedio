@@ -134,7 +134,7 @@ SOURCES  = CMedIO.cpp \
            philips/CPhilipsSubHeaderSyntegra.cpp \
            philips/CPhilipsSubHeaderListmode.cpp
 
-DEPENDPATH   = . ecat ecat/ecat6 ecat/ecat7 micropet philips
+DEPENDPATH   = . ecat ecat/ecat6 ecat/ecat7 include micropet philips
 INCLUDEPATH  = . include ecat ecat/ecat6 ecat/ecat7 micropet philips helpers
 
 # find out the host os/cpu

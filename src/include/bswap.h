@@ -73,7 +73,7 @@ static inline T* bswap_matrix(const T* matrixData, quint32 matrixSize, T* dstMat
 
   // create a new array
   T* swappedMatrixData;
-  
+
   if(dstMatrix == NULL)
     swappedMatrixData = reinterpret_cast<T*>(new char[matrixSize]);
   else
@@ -84,17 +84,16 @@ static inline T* bswap_matrix(const T* matrixData, quint32 matrixSize, T* dstMat
   {
     case sizeof(quint8):
     {
+      quint32 offset = 0;
       if((matrixSize % sizeof(quint16)) != 0)
       {
         *swappedMatrixData = bswap_8(*matrixData);
-        matrixData++;
-        swappedMatrixData++;
-        matrixSize -= sizeof(quint8);
+        offset = 1;
       }
 
       const quint16* matrixData16 = reinterpret_cast<const quint16*>(matrixData);
       quint16* swappedMatrixData16 = reinterpret_cast<quint16*>(swappedMatrixData);
-      for(quint32 i=0; i < (matrixSize/sizeof(quint16)); i++)
+      for(quint32 i=offset; i < (matrixSize/sizeof(quint16)); i++)
       {
         quint16 tmp = bswap_16(matrixData16[i]);
         swappedMatrixData16[i] = rol16(tmp, 8);
@@ -104,17 +103,16 @@ static inline T* bswap_matrix(const T* matrixData, quint32 matrixSize, T* dstMat
 
     case sizeof(quint16):
     {
+      quint32 offset = 0;
       if((matrixSize % sizeof(quint32)) != 0)
       {
         *swappedMatrixData = bswap_16(*matrixData);
-        matrixData++;
-        swappedMatrixData++;
-        matrixSize -= sizeof(quint16);
+        offset = 1;
       }
 
       const quint32* matrixData32 = reinterpret_cast<const quint32*>(matrixData);
       quint32* swappedMatrixData32 = reinterpret_cast<quint32*>(swappedMatrixData);
-      for(quint32 i=0; i < (matrixSize/sizeof(quint32)); i++)
+      for(quint32 i=offset; i < (matrixSize/sizeof(quint32)); i++)
       {
         quint32 tmp = bswap_32(matrixData32[i]);
         swappedMatrixData32[i] = rol32(tmp, 16);
@@ -124,17 +122,16 @@ static inline T* bswap_matrix(const T* matrixData, quint32 matrixSize, T* dstMat
 
     case sizeof(quint32):
     {
+      quint32 offset = 0;
       if((matrixSize % sizeof(quint64)) != 0)
       {
         *swappedMatrixData = bswap_32(*matrixData);
-        matrixData++;
-        swappedMatrixData++;
-        matrixSize -= sizeof(quint32);
+        offset = 1;
       }
 
       const quint64* matrixData64 = reinterpret_cast<const quint64*>(matrixData);
       quint64* swappedMatrixData64 = reinterpret_cast<quint64*>(swappedMatrixData);
-      for(quint32 i=0; i < (matrixSize/sizeof(quint64)); i++)
+      for(quint32 i=offset; i < (matrixSize/sizeof(quint64)); i++)
       {
         quint64 tmp = bswap_64(matrixData64[i]);
         swappedMatrixData64[i] = rol64(tmp, 32);
