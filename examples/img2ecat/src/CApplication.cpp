@@ -137,8 +137,8 @@ void CApplication::showUsage(int, char* argv[])
   // output usage information on the console.
   cout << "Usage: " << argv[0] << " <options> <file.img>" << endl
        << "Options:" << endl
-       << "  -o <file>    : ECAT image (*.v) to which the philips image is converted" << endl
-       << "  -e           : reverse operation (create ECAT from img file)" << endl
+       << "  -o <file>    : output file to which the image is converted to" << endl
+       << "  -e           : reverse operation (create img from ECAT file)" << endl
 //       << "  -p           : preserve data type as is and do not convert to short values" << endl
 //       << "                 (this will give you the highest precision on cost of space)" << endl
        << "  -r           : walk the specified directory recursively and convert all *.img" << endl
