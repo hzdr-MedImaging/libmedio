@@ -868,7 +868,7 @@ short CPhilipsDirectory::minTilt() const
       if(i.value()->tilt() < tiltMin)
       {
         tiltMin = i.value()->tilt();
-        ASSERT(tiltMin > 0 && tiltMin <= 15);
+        ASSERT(tiltMin >= 0 && tiltMin <= 15);
       }
     }
   }
