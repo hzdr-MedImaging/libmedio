@@ -492,6 +492,73 @@ bool CPhilipsDirectory::save() const
   return result;
 }
 
+bool CPhilipsDirectory::loadFake()
+{
+  ENTER();
+
+  // only go on if the device is readable at all
+  if(m_pData->file == NULL ||
+     m_pData->file->isReadable() == false)
+  {
+    RETURN(false);
+    return false;
+  }
+
+  // let us clear our filePositions ValueVector as we are going
+  // to create a fake dir list
+  m_pData->filePositions.clear();
+  m_pData->dirItems.clear();
+
+  // we create a new entry which contains the position of the extended main header
+  CPhilipsDirectoryItem* pNewExtItem = new CPhilipsDirectoryItem(m_pData->file,
+                                                                 PHILIPS_EXTENDED_HEADER);
+
+  // The extended main header begins at the 3rd 512 byte block.
+  // A philips listmode file is structured as follows:
+  //  +-------------------------------------*
+  //  | listview header (512 byte),         |
+  //  | main header (512 byte),             |
+  //  | extended main header (16*512 bytes) |
+  //  | sub header (512 bytes),             |
+  //  | listmode data (rest)                |
+  //  +-------------------------------------*
+  pNewExtItem->setDataBlock_Start(PhilipsBlock2FilePos(3));
+  pNewExtItem->setDataBlock_End(PhilipsBlock2FilePos(3+15));
+  pNewExtItem->setCompressionFlag(CPhilipsDirectoryItem::Uncompressed);
+  pNewExtItem->setContentFlag(CPhilipsDirectoryItem::Header);
+  m_pData->dirItems.insert(pNewExtItem->matrixID(), pNewExtItem);
+
+  D("Fake item for extended header:");
+  D("----------------------------------------------");
+  D("DItem.Matrix_ID       : %08x (extended header)", pNewExtItem->matrixID());
+  D("DItem.DataBlock_Start : %lld (%lld)", pNewExtItem->dataBlock_Start(), FilePos2PhilipsBlock(pNewExtItem->dataBlock_Start()));
+  D("DItem.DataBlock_End   : %lld (%lld)", pNewExtItem->dataBlock_End(), FilePos2PhilipsBlock(pNewExtItem->dataBlock_End()));
+
+  // next we create the fake entry for the sub header
+  CPhilipsDirectoryItem* pNewItem = new CPhilipsDirectoryItem(m_pData->file);
+  pNewItem->setMatrixID(convertToMatrixID(1, 1, 0));
+  pNewItem->setDataBlock_Start(PhilipsBlock2FilePos(3+16));
+  pNewItem->setDataBlock_End(PhilipsBlock2FilePos(3+16));
+  pNewItem->setCompressionFlag(CPhilipsDirectoryItem::Uncompressed);
+  pNewItem->setContentFlag(CPhilipsDirectoryItem::Used);
+  m_pData->dirItems.insert(pNewItem->matrixID(), pNewItem);
+
+  D("Fake item for the sub header header:");
+  D("----------------------------------------------");
+  D("DItem.Matrix_ID       : %08x (%d/%d/%d)", pNewItem->matrixID(),
+                                               pNewItem->slice(),
+                                               pNewItem->frame(),
+                                               pNewItem->tilt());
+
+  D("DItem.DataBlock_Start : %lld (%lld)", FilePos2PhilipsBlock(pNewItem->dataBlock_Start()), pNewItem->dataBlock_Start());
+  D("DItem.DataBlock_End   : %lld (%lld)", FilePos2PhilipsBlock(pNewItem->dataBlock_End()), pNewItem->dataBlock_End());
+  D("DItem.compressionFlag : %d", pNewItem->compressionFlag());
+  D("DItem.contentFlag     : %d", pNewItem->contentFlag());
+
+  RETURN(true);
+  return true;
+}
+
 bool CPhilipsDirectory::isEmpty() const
 { 
   return m_pData->dirItems.isEmpty();

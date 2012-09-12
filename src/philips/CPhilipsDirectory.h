@@ -50,6 +50,10 @@ class CPhilipsDirectory
     bool load();
     bool save() const;
 
+    // load function to support the philips listmode format
+    // which has no directory
+    bool loadFake();
+
     // accessor methods
     bool isEmpty() const;
     unsigned int count() const;

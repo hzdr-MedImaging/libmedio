@@ -534,6 +534,8 @@ public:
   } extHeader;
   #pragma pack()
 
+  int mainHeaderPosition;
+
   // convert functions
   bool ecat2philipsSex(const CECAT7MainHeader::Patient_Sex sex);
   bool ecat2philipsIsotope(const QString& isotop);
@@ -542,7 +544,8 @@ public:
 };
 
 CPhilipsMainHeader::CPhilipsMainHeader(CPhilipsFile* file,
-                                       CPhilipsMainHeader::File_Type fileType)
+                                       CPhilipsMainHeader::File_Type fileType,
+                                       int mainHeaderPosition)
   : CMedIOHeader(file)
 {
   ENTER();
@@ -552,7 +555,7 @@ CPhilipsMainHeader::CPhilipsMainHeader(CPhilipsFile* file,
   // this constructor creates a empty EPhilipsMainHeader
   // with prefilled data that is always the same for a philips main header
   clear();
-
+  m_pData->mainHeaderPosition = mainHeaderPosition;
   setFiltyp(fileType);
 
   LEAVE();
@@ -650,7 +653,7 @@ bool CPhilipsMainHeader::load()
   // only go on if the device is readable at all
   if(m_pMedIOData == NULL ||
      m_pMedIOData->isReadable() == false ||
-     m_pMedIOData->seek(0) == false)
+     m_pMedIOData->seek(m_pData->mainHeaderPosition) == false)
   {
     RETURN(false);
     return false;

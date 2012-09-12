@@ -336,7 +336,8 @@ class CPhilipsMainHeader : public CMedIOHeader
 
     // constructors
     CPhilipsMainHeader(CPhilipsFile* file,
-                       CPhilipsMainHeader::File_Type = CPhilipsMainHeader::Unknown);
+                       CPhilipsMainHeader::File_Type = CPhilipsMainHeader::Unknown,
+                       int mainHeaderPosition = 0);
     ~CPhilipsMainHeader();
 
     // copy constructor and default assignment operator

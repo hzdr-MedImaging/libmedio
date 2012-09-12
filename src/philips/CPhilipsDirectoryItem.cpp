@@ -34,7 +34,6 @@
 
 #include <QDataStream>
 #include <rtdebug.h>
-#include <iostream>
 
 #include "bswap.h"
 
@@ -294,6 +293,10 @@ bool CPhilipsDirectoryItem::readSubHeader(CPhilipsSubHeader*& subHeader)
 
         case CPhilipsSubHeader::Sinogram:
           subHeader = new CPhilipsSubHeaderSinogram(m_pData->file, this);
+        break;
+
+        case CPhilipsSubHeader::Listmode:
+          subHeader = new CPhilipsSubHeaderListmode(m_pData->file, this);
         break;
 
         default:

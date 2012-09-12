@@ -27,6 +27,7 @@
 #include "CPhilipsDirectory.h"
 #include "CPhilipsSubHeaderImage.h"
 #include "CPhilipsSubHeaderSinogram.h"
+#include "CPhilipsListviewHeader.h"
 
 #include <QDataStream>
 #include <rtdebug.h>
@@ -38,6 +39,7 @@ class CPhilipsFilePrivate
 {
   public:
     bool isPhilipsFile(CMedIOData* file) const;
+    bool isPhilipsListModeFile(CPhilipsFile *file) const;
 
     CPhilipsMainHeader::File_Type fileType;
     CPhilipsDirectory* directory;
@@ -46,9 +48,11 @@ class CPhilipsFilePrivate
 
 bool CPhilipsFilePrivate::isPhilipsFile(CMedIOData* file) const
 {
+  ENTER();
   bool isValidPhilipsFile = false;
 
-  if(file == NULL) return false;
+  if(file == NULL)
+    return false;
 
   if(file->isReadable())
   {
@@ -75,6 +79,32 @@ bool CPhilipsFilePrivate::isPhilipsFile(CMedIOData* file) const
 
   RETURN(isValidPhilipsFile);
   return isValidPhilipsFile;
+}
+
+bool CPhilipsFilePrivate::isPhilipsListModeFile(CPhilipsFile *file) const
+{
+  ENTER();
+  bool result = false;
+
+  if(file == NULL)
+    return false;
+
+  if(file->isReadable())
+  {
+    CPhilipsListviewHeader lvHeader(file);
+
+    if(lvHeader.load())
+    {
+      QString magicNr = lvHeader.magicNumber();
+
+      result = ((magicNr == "Xtal") ||
+                (magicNr == "LOR4") ||
+                (magicNr == "LOR8"));
+    }
+  }
+
+  RETURN(result);
+  return result;
 }
 
 CPhilipsFile::CPhilipsFile(const QString& filename, CPhilipsMainHeader::File_Type fileType)
@@ -243,6 +273,29 @@ bool CPhilipsFile::open(QIODevice::OpenModeFlag mode)
         }
         else
           W("directory loading failed");
+      }
+      else if(m_pData->isPhilipsListModeFile(this))
+      {
+        D("Found philips format header (listmode file)");
+
+        // The listmode format doesn't contain a directory structure.
+        // In order be able to read the main/sub header from such a file
+        // we have to create a fake directory.
+        m_pData->directory = new CPhilipsDirectory(this);
+        if(m_pData->directory->loadFake())
+        {
+          D("Fake directory created");
+          m_pData->cachedMainHeader = new CPhilipsMainHeader(this,
+                                                             CPhilipsMainHeader::Listmode,
+                                                             512); // offset to the main header
+
+          if(m_pData->cachedMainHeader->load())
+            result = true;
+          else
+            W("main header loading failed");
+        }
+        else
+          W("creation of the fake directory failed");
       }
       else
         D("No philips format header found.");
