@@ -75,6 +75,7 @@ PUB_HEADER =  CMedIO.h \
               micropet/CConcordeSinogram.h \
               micropet/CConcordeImage.h \
               philips/CPhilipsFile.h \
+              philips/CPhilipsListviewHeader.h \
               philips/CPhilipsBinFile.h \
               philips/CPhilipsMainHeader.h \
               philips/CPhilipsDirectory.h \
@@ -124,6 +125,7 @@ SOURCES  = CMedIO.cpp \
            micropet/CConcordeSinogram.cpp \
            micropet/CConcordeImage.cpp \
            philips/CPhilipsFile.cpp \
+           philips/CPhilipsListviewHeader.cpp \
            philips/CPhilipsBinFile.cpp \
            philips/CPhilipsMainHeader.cpp \
            philips/CPhilipsDirectory.cpp \
