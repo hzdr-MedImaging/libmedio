@@ -246,11 +246,11 @@ bool CPhilipsDirectory::load()
 
       // output some debug information.
       #if defined(DEBUG)
-      if(dItem.isExtendedHeader())
+      if(pNewDirItem->isExtendedHeader())
       {
         D("DItem.Matrix_ID       : %08x (extended header)", pNewDirItem->matrixID());
         D("DItem.DataBlock_Start : %lld (%lld)", pNewDirItem->dataBlock_Start(), FilePos2PhilipsBlock(pNewDirItem->dataBlock_Start()));
-        D("DItem.DataBlock_End   : %lld (%lld)", pNewDirItem->dataBlock_End(), FilePos2PhilipsBlock(pNewDirIiem->dataBlock_End()));
+        D("DItem.DataBlock_End   : %lld (%lld)", pNewDirItem->dataBlock_End(), FilePos2PhilipsBlock(pNewDirItem->dataBlock_End()));
       }
       else
       {
@@ -435,10 +435,10 @@ bool CPhilipsDirectory::save() const
           dirList.head.nextDirectory = PHILIPS_POS_MAINDIR;
 
         D("DirHead%d.Position     : %d (%d)", curDirList, FilePos2PhilipsBlock(m_pData->file->pos()), m_pData->filePositions[curDirList]);
-        D("DirHead%d.freeItems    : %d", curDirList, dirHead.freeItems);
-        D("DirHead%d.nextDirectory: %d", curDirList, dirHead.nextDirectory);
-        D("DirHead%d.prevDirectory: %d", curDirList, dirHead.prevDirectory);
-        D("DirHead%d.itemsToFollow: %d", curDirList, dirHead.itemsToFollow);
+        D("DirHead%d.freeItems    : %d", curDirList, dirList.head.freeItems);
+        D("DirHead%d.nextDirectory: %d", curDirList, dirList.head.nextDirectory);
+        D("DirHead%d.prevDirectory: %d", curDirList, dirList.head.prevDirectory);
+        D("DirHead%d.itemsToFollow: %d", curDirList, dirList.head.itemsToFollow);
 
         // lets byteswap the directory header as we have finished it now
         if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
