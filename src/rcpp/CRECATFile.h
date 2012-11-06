@@ -8,20 +8,23 @@
 
 class CRECATFile : public CECATFile
 {
-public:
-  CRECATFile(const QString& filename,
-             CECATMainHeader::Type fileType = CECATMainHeader::Unknown);
+  public:
+    CRECATFile(const QString& filename,
+               CECATMainHeader::Type fileType = CECATMainHeader::Unknown);
+    CRECATFile(CECATMainHeader::Type fileType = CECATMainHeader::Unknown);
 
-  bool readMainHeader_Rcpp(Rcpp::List& mainHeader);
+    // read methods
+    bool readMainHeader(Rcpp::List& mainHeader);
+    bool readSubHeader(Rcpp::List& subHeader,
+                       short frame, short plane=1, short gate=1, short bed=0, short data=0);
 
-  bool readSubHeader_Rcpp(Rcpp::List& subHeader,
-                          short frame, short plane=1, short gate=1, short bed=0, short data=0);
+    // write methods
+    bool writeMainHeader(Rcpp::List& mainHeader);
+    bool writeSubHeader(Rcpp::List& subHeader,
+                        short frame, short plane=1, short gate=1, short bed=0, short data=0);
 
-  bool writeSubHeader_Rcpp(Rcpp::List& subHeader,
-                           short frame, short plane=1, short gate=1, short bed=0, short data=0);
-
-  bool writeMainHeader_Rcpp(Rcpp::List& mainHeader);
-
-  CECATMainHeader* createMainHeaderFromRcppMainHeader(Rcpp::List& rMainHeader);
+    CECATMainHeader* createMainHeader(Rcpp::List& rMainHeader);
+    Rcpp::List createEmptyMainHeader(void);
+    Rcpp::List createEmptySubHeader(void);
 };
 #endif

@@ -48,7 +48,7 @@ RcppExport SEXP readEcat(SEXP vfile,
   {
     Rcpp::List mhead;
 
-    if(inputFile.readMainHeader_Rcpp(mhead) == true)
+    if(inputFile.readMainHeader(mhead) == true)
     {
       int num_frames = Rcpp::as<int>(mhead["num_frames"]);
       int num_gates = Rcpp::as<int>(mhead["num_gates"]);
@@ -134,7 +134,7 @@ RcppExport SEXP readEcat(SEXP vfile,
           case BEDS: bed = *it - 1; break; // numbering of beds starts at 0
         }
 
-        if(inputFile.readSubHeader_Rcpp(subHeader, frame, 1, gate, bed, 0) == true)
+        if(inputFile.readSubHeader(subHeader, frame, 1, gate, bed, 0) == true)
         {
           int data_type = Rcpp::as<int>(subHeader["data_type"]);
           short x_dimension = Rcpp::as<short>(subHeader["x_dimension"]);
@@ -331,6 +331,10 @@ RcppExport SEXP writeEcat(SEXP ecat, SEXP vfilename, SEXP overwrite)
   QString outputFileName;
   bool overwriteFile;
 
+  Rcpp::List mhead;
+  Rcpp::List shead;
+  Rcpp::NumericVector frame_midpoint;
+
   if(Rcpp::RObject(vfilename).isNULL())
   {
     cerr << "ERROR: no output file name given." << endl;
@@ -341,12 +345,70 @@ RcppExport SEXP writeEcat(SEXP ecat, SEXP vfilename, SEXP overwrite)
 
   if(Rcpp::RObject(ecat).isNULL())
   {
-    cerr << "ERROR: no ecat data given." << endl;
+    cerr << "ERROR: no volume data given." << endl;
     result = false;
   }
   else
   {
-    RcppEcatFile = Rcpp::as<Rcpp::List>(ecat);
+    // now we check whether 'ecat' is an object of class 'Ecat' or not
+    if(Rcpp::RObject(ecat).inherits("Ecat"))
+    {
+      // create a copy (clone) of the R object or otherwise we are
+      // modifying the original object during our processing
+      RcppEcatFile = clone(Rcpp::as<Rcpp::List>(ecat));
+    }
+    else
+    {
+      // convert the ecat object to a numeric vector. We have to use clone() here
+      // or otherwise we are going to convert the original object in R as well.
+      Rcpp::NumericVector matrixData = clone(Rcpp::as<Rcpp::NumericVector>(ecat));
+
+      // create a temp object
+      CRECATFile ecatFile(CECATMainHeader::ECAT7_Volume16);
+
+      // we create an empty main and sub header here
+      Rcpp::List mhead = Rcpp::as<Rcpp::List>(ecatFile.createEmptyMainHeader());
+      Rcpp::List shead = Rcpp::as<Rcpp::List>(ecatFile.createEmptySubHeader());
+
+      // lets fill the main header with sensible data
+      mhead["original_file_name"] = vfilename;
+      mhead["isotope_name"] = "F-18";
+      mhead["isotope_halflife"] = 6586.2;
+      mhead["radiopharmaceutical"] = "F-18 FDG";
+      mhead["num_frames"] = 1;
+      mhead["ecat_calibration_factor"] = 1.0;
+      mhead["patient_orientation"] = static_cast<short>(CECAT7MainHeader::HF_Prone);
+
+      // lets fill the sub header with sensible data
+      shead["data_type"] = static_cast<short>(CECATSubHeader::SunShort);
+      shead["num_dimensions"] = 3;
+      shead["recon_zoom"] = 1;
+      Rcpp::Dimension dim = Rcpp::as<Rcpp::Dimension>(matrixData.attr("dim"));
+      shead["x_dimension"] = dim[1]; // y -> x
+      shead["y_dimension"] = dim[0]; // x -> y
+      shead["z_dimension"] = dim[2]; // z -> z
+      mhead["bin_size"] = dim[2];
+      Rcpp::NumericVector voxsiz = Rcpp::as<Rcpp::NumericVector>(matrixData.attr("voxsiz"));
+      shead["x_pixelsize"] = voxsiz[1]; // y -> x
+      shead["y_pixelsize"] = voxsiz[0]; // x -> y
+      shead["z_pixelsize"] = voxsiz[2]; // z -> z
+      shead["num_r_elements"] = 288;
+      shead["num_angles"] = 144;
+
+      // convert the volume data to a numericvector
+      matrixData.attr("class") = Rcpp::StringVector::create("Volume", "array");
+      matrixData.attr("shead") = shead;
+
+      // add the converted matrixData to our Ecat class
+      RcppEcatFile.push_back(matrixData, "f1");
+
+      // if not we construct a dummy Ecat object instead and use that instead
+      RcppEcatFile.attr("class") = "Ecat";
+      RcppEcatFile.attr("mhead") = mhead;
+      frame_midpoint.push_back(0.0);
+      frame_midpoint.attr("names") = Rcpp::StringVector::create("f1");
+      RcppEcatFile.attr("frame_midpoint") = frame_midpoint;
+    }
   }
 
   if(Rcpp::RObject(overwrite).isNULL())
@@ -356,16 +418,19 @@ RcppExport SEXP writeEcat(SEXP ecat, SEXP vfilename, SEXP overwrite)
     overwriteFile = false;
   }
   else
-  {
     overwriteFile = Rcpp::as<bool>(overwrite);
-  }
 
   if(result == true)
   {
-    if((overwriteFile == false) && QFileInfo(outputFileName).exists())
+    if(QFileInfo(outputFileName).exists())
     {
-      cerr << "ERROR: output file already exists." << endl;
-      result = false;
+      if(overwriteFile == false)
+      {
+        cerr << "ERROR: output file '" << outputFileName.toAscii().constData() << "' already exists. Use 'owrite=TRUE'." << endl;
+        result = false;
+      }
+      else
+        QFile(outputFileName).remove();
     }
   }
 
@@ -378,7 +443,7 @@ RcppExport SEXP writeEcat(SEXP ecat, SEXP vfilename, SEXP overwrite)
       Rcpp::List RcppMainHeader = RcppEcatFile.attr("mhead");
       //int file_type = Rcpp::as<int>(RcppMainHeader("file_type"));
 
-      if(outputFile.writeMainHeader_Rcpp(RcppMainHeader) == false)
+      if(outputFile.writeMainHeader(RcppMainHeader) == false)
       {
         cerr << "ERROR: could not write destination main header." << endl;
         outputFile.remove();
@@ -441,9 +506,7 @@ RcppExport SEXP writeEcat(SEXP ecat, SEXP vfilename, SEXP overwrite)
             // search for the new min and max values
             for(int index = 0; index < dataSize; ++index)
             {
-              volumeVector[index] /= ecat_calibration_factor;
-              float voxel = volumeVector[index];
-
+              float voxel = volumeVector[index] / ecat_calibration_factor;
               newMin = qMin(newMin, voxel);
               newMax = qMax(newMax, voxel);
             }
@@ -452,15 +515,19 @@ RcppExport SEXP writeEcat(SEXP ecat, SEXP vfilename, SEXP overwrite)
             float maxValue = qMax(qAbs(newMax), qAbs(newMin));
             float newScaleFactor = maxValue / static_cast<float>(SHRT_MAX);
 
-            // now we scale and copy the image data   
+            // now we iterate through our volumeVector. But we do this
+            // here in a fashion that is compatible to the way the ECAT format
+            // stores the volume data.
             for(int z = 0; z < z_dimension; ++z)
             {
               for(int y = 0; y < y_dimension; ++y)
               {
                 for(int x = 0; x < x_dimension; ++x)
                 {
-                  int index = x * x_dimension + y + plane_size * z;
-                  float voxel = volumeVector[index] / newScaleFactor;
+                  int index = x * y_dimension + y + (z * x_dimension * y_dimension);
+
+                  // calculate the voxel value which we store in the cat file
+                  float voxel = volumeVector[index] / newScaleFactor / ecat_calibration_factor;
 
                   qint16 voxelInt16 = static_cast<qint16>(qRound(voxel));
                   stream << voxelInt16;
@@ -472,7 +539,7 @@ RcppExport SEXP writeEcat(SEXP ecat, SEXP vfilename, SEXP overwrite)
             rSubHeader["image_min"] = static_cast<short>(qRound(newMin / newScaleFactor));
             rSubHeader["image_max"] = static_cast<short>(qRound(newMax / newScaleFactor));
 
-            if(outputFile.writeSubHeader_Rcpp(rSubHeader, frame, 1, gate, bed))
+            if(outputFile.writeSubHeader(rSubHeader, frame, 1, gate, bed))
             {
               if(outputFile.writeMatrix(*matrixData, frame, 1, gate, bed) == false)
               {
@@ -519,7 +586,10 @@ RcppExport SEXP writeEcat(SEXP ecat, SEXP vfilename, SEXP overwrite)
     }
   }
 
-  return Rcpp::wrap(result);
+  if(result == true)
+    return Rcpp::wrap(RcppEcatFile);
+  else
+    return Rcpp::wrap(0);
 
   END_RCPP
 }

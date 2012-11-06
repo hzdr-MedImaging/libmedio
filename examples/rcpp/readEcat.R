@@ -1,6 +1,16 @@
-readEcat <- function(vfile, nv = NULL, rows = NULL, cols = NULL, planes = NULL)
+readEcat <- function(fname, nv = NULL, rows = NULL, cols = NULL, planes = NULL)
 {
-  dyn.load("/usr/local/petlib/lib/libmedio.so.2.7")
-  v = .Call("readEcat", vfile, nv, rows, cols, planes);
+  # we use the libmedio Rcpp interface if the library can be loaded
+  if(file.exists("/usr/local/petlib/lib/libmedio.so"))
+  {
+    dyn.load("/usr/local/petlib/lib/libmedio.so")
+    v = .Call("readEcat", fname, nv, rows, cols, planes, PACKAGE="libmedio")
+  }
+  else
+  {
+    cat("libmedio library not found. Please make sure to properly install libmedio in '/usr/local/petlib/lib'\n")
+    v = NULL
+  }
+
   v
 }

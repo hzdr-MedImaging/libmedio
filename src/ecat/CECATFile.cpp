@@ -50,7 +50,7 @@ class CECATFilePrivate
     CECATFile::ECATFormat  iECATformat;
     CECATDirectory*        directory;
     CECATMainHeader::Type  iMainHeaderType;
-    CECATMainHeader*      cachedMainHeader; // for speed reasons we cache the loaded main header
+    CECATMainHeader*       cachedMainHeader; // for speed reasons we cache the loaded main header
 };    
 
 CECATFile::CECATFile(const QString& filename, CECATMainHeader::Type fileType)
@@ -62,11 +62,9 @@ CECATFile::CECATFile(const QString& filename, CECATMainHeader::Type fileType)
   m_pData = new CECATFilePrivate();
   m_pData->iECATformat = CECATFile::Undefined;
   m_pData->directory = NULL;
-  m_pData->iMainHeaderType = fileType;
   m_pData->cachedMainHeader = NULL;
 
-  if(fileType != CECATMainHeader::Unknown)
-    setFileType(fileType);
+  setFileType(fileType);
 
   LEAVE();
 }
@@ -83,8 +81,7 @@ CECATFile::CECATFile(CECATMainHeader::Type fileType)
   m_pData->iMainHeaderType = fileType;
   m_pData->cachedMainHeader = NULL;
 
-  if(fileType != CECATMainHeader::Unknown)
-    setFileType(fileType);
+  setFileType(fileType);
 
   LEAVE();
 }
@@ -387,8 +384,10 @@ CECATMainHeader::Type CECATFile::fileType(void)
     {
       delete mainHeader;
 
-      RETURN(CECATMainHeader::Unknown);
-      return CECATMainHeader::Unknown;
+      // if we couldn't query the file type
+      // from the main header we return it right away
+      RETURN(m_pData->iMainHeaderType);
+      return m_pData->iMainHeaderType;
     }
   }
 
@@ -550,7 +549,6 @@ CECATSubHeader::Type CECATFile::subHeaderType(CECATMainHeader::Type fileType)
 bool CECATFile::setFileType(CECATMainHeader::Type fileType)
 {
   ENTER();
-
   bool result = false;
   
   // we first make sure the file isn't open right now so that
@@ -573,17 +571,16 @@ bool CECATFile::setFileType(CECATMainHeader::Type fileType)
       case CECATMainHeader::ECAT7_Normalization:    
       case CECATMainHeader::ECAT7_Normalization_3D:
       case CECATMainHeader::ECAT7_PolarMap:
-      {
         m_pData->iECATformat  = ECAT7;
-      }
       break;
 
       default:
-      {
         m_pData->iECATformat  = Undefined;
-      }
       break;
     }
+
+    // lets remember the new main header type
+    m_pData->iMainHeaderType = fileType;
 
     result = true;
   }
@@ -1057,22 +1054,20 @@ CECATMainHeader* CECATFile::createEmptyMainHeader(void)
 {
   ENTER();
   CECATMainHeader* pEmptyMainHeader = NULL;
-  if(isOpen())
+
+  switch(m_pData->iECATformat)
   {
-      switch(m_pData->iECATformat)
-      {
-        case CECATFile::ECAT7:
-          pEmptyMainHeader = new CECAT7MainHeader(this, m_pData->iMainHeaderType);
-        break;
+    case CECATFile::ECAT7:
+      pEmptyMainHeader = new CECAT7MainHeader(this, m_pData->iMainHeaderType);
+    break;
 
-        case CECATFile::ECAT6:
-          pEmptyMainHeader = new CECAT6MainHeader(this, m_pData->iMainHeaderType);
-        break;
+    case CECATFile::ECAT6:
+      pEmptyMainHeader = new CECAT6MainHeader(this, m_pData->iMainHeaderType);
+    break;
 
-      default:
-        // nothing
-      break;
-    }
+    default:
+      // nothing
+    break;
   }
 
   RETURN(pEmptyMainHeader);
