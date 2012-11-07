@@ -240,6 +240,9 @@ bool CPhilipsSubHeader::load(void)
     return false;
   }
 
+  D("about to read sub header");
+  SHOWVALUE(m_pMedIOData->pos());
+
   // we read in all data at once using read()
   if(m_pMedIOData->read(reinterpret_cast<char*>(&m_pData->header), sizeof(m_pData->header)) != sizeof(m_pData->header))
   {
@@ -430,6 +433,92 @@ bool CPhilipsSubHeader::save(void) const
     RETURN(false);
     return false;
   }
+
+  D("about to write sub header");
+
+ // some more debug output
+#if defined(DEBUG)
+  D("Philips Image SubHeader:");
+  D("-----------------------");
+  D("magic_number            : %02x%02x", (quint32)m_pData->header.magic_number[0], (quint32)m_pData->header.magic_number[1]);
+  D("version                 : %d", m_pData->header.version);
+  D("atten_corr              : %s", m_pData->header.atten_corr);
+  D("actual_bedpos           : %f", m_pData->header.actual_bedpos);
+  D("orientation[0]          : %f", m_pData->header.orientation1[0]);
+  D("orientation[1]          : %f", m_pData->header.orientation1[1]);
+  D("orientation[2]          : %f", m_pData->header.orientation1[2]);
+  D("orientation[3]          : %f", m_pData->header.orientation2[0]);
+  D("orientation[4]          : %f", m_pData->header.orientation2[1]);
+  D("orientation[5]          : %f", m_pData->header.orientation2[2]);
+  D("card_fr_time            : %d", m_pData->header.card_fr_time);
+  D("card_high_rr            : %d", m_pData->header.card_high_rr);
+  D("card_low_rr             : %d", m_pData->header.card_low_rr);
+  D("card_high_rr            : %d", m_pData->header.card_tr_time);
+  D("scatter_corr            : %s", m_pData->header.scatter_corr);
+  D("deadtime_corr           : %d", m_pData->header.deadtime_corr);
+  D("randoms_corr            : %d", m_pData->header.randoms_corr);
+  D("det_norm                : %d", m_pData->header.det_norm);
+  D("nu_radsamp_corr         : %d", m_pData->header.nu_radsamp_corr);
+  D("pat_mot_corr            : %d", m_pData->header.pat_mot_corr);
+  D("echo_time               : %f", m_pData->header.echo_time);
+  D("exposure_time           : %f", m_pData->header.exposure_time);
+  D("img_pos_x               : %f", m_pData->header.img_pos_x);
+  D("img_pos_y               : %f", m_pData->header.img_pos_y);
+  D("img_pos_z               : %f", m_pData->header.img_pos_z);
+  D("datype                  : %d", m_pData->header.datype);
+  D("xdim                    : %d", m_pData->header.xdim);
+  D("ydim                    : %d", m_pData->header.ydim);
+  D("slcnum                  : %d", m_pData->header.slcnum);
+  D("tiltnum                 : %d", m_pData->header.tiltnum);
+  D("gatint                  : %d", m_pData->header.gatint);
+  D("cntloss_corr            : %d", m_pData->header.cntloss_corr);
+  D("pix_spacing_x           : %f", m_pData->header.pix_spacing_x);
+  D("pix_spacing_y           : %f", m_pData->header.pix_spacing_y);
+  D("xray_current            : %f", m_pData->header.xray_current);
+  D("suvscl                  : %f", m_pData->header.suvscl);
+  D("kvp                     : %f", m_pData->header.kvp);
+  D("Dslice_loc              : %f", m_pData->header.Dslice_loc);
+  D("magfac                  : %f", m_pData->header.magfac);
+  D("imgscl                  : %f", m_pData->header.imgscl);
+  D("imgmin                  : %d", m_pData->header.imgmin);
+  D("imgmax                  : %d", m_pData->header.imgmax);
+  D("scnscl                  : %f", m_pData->header.scnscl);
+  D("scnmin                  : %d", m_pData->header.scnmin);
+  D("scnmax                  : %d", m_pData->header.scnmax);
+  D("scnsum                  : %f", m_pData->header.scnsum);
+  D("decay_corr              : %d", m_pData->header.decay_corr);
+  D("strhr                   : %d", m_pData->header.strhr);
+  D("strmin                  : %d", m_pData->header.strmin);
+  D("strsec                  : %d", m_pData->header.strsec);
+  D("endhr                   : %d", m_pData->header.endhr);
+  D("endmin                  : %d", m_pData->header.endmin);
+  D("endsec                  : %d", m_pData->header.endsec);
+  D("midtim                  : %d", m_pData->header.midtim);
+  D("mseclen                 : %d", m_pData->header.mseclen);
+  D("scnlen                  : %d", m_pData->header.scnlen);
+  D("imgsum                  : %f", m_pData->header.imgsum);
+  D("bgdelrt                 : %f", m_pData->header.bgdelrt);
+  D("enddelrt                : %f", m_pData->header.enddelrt);
+  D("bgsngrt                 : %f", m_pData->header.bgsngrt);
+  D("bgcoincrt               : %f", m_pData->header.bgcoincrt);
+  D("endsngrt                : %f", m_pData->header.endsngrt);
+  D("endcoincrt              : %f", m_pData->header.endcoincrt);
+  D("deadtimefac             : %f", m_pData->header.deadtimefac);
+  D("bedpos                  : %d", m_pData->header.bedpos);
+  D("deadtime_bgsub          : %f", m_pData->header.deadtime_bgsub);
+  D("sop_uid                 : %s", m_pData->header.sop_uid);
+  D("recon_method            : %s", m_pData->header.recon_method);
+  D("start_date_time         : %s", QDateTime::fromTime_t(m_pData->header.start_date_time).toString().toAscii().constData());
+  D("end_date_time           : %s", QDateTime::fromTime_t(m_pData->header.end_date_time).toString().toAscii().constData());
+  D("laterality              : %d", m_pData->header.laterality);
+  D("anatomy                 : %d", m_pData->header.anatomy);
+  D("frame_ref_date_time     : %s", QDateTime::fromTime_t(m_pData->header.frame_ref_date_time).toString().toAscii().constData());
+  D("card_rr_time            : %ld", m_pData->header.card_rr_time);
+  D("resp_int_time           : %ld", m_pData->header.resp_int_time);
+  D("start_date_time_msec    : %d", m_pData->header.start_date_time_msec);
+  D("end_date_time_msec      : %d", m_pData->header.end_date_time_msec);
+  D("frame_ref_date_time_msec: %d", m_pData->header.frame_ref_date_time_msec);
+#endif
 
   SHOWVALUE(m_pMedIOData->pos());
 

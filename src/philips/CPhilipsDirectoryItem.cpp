@@ -81,7 +81,7 @@ CPhilipsDirectoryItem::CPhilipsDirectoryItem(CPhilipsFile* pFile,
     m_pData->frame = matrixID2Frame(matrixID);
     m_pData->tilt  = matrixID2Tilt(matrixID);
 
-    if(matrixID == PHILIPS_EXTENDED_HEADER)
+    if(matrixID == PHILIPS_EXT_HEADER_ID)
     {
       D("created new DirItem (%08lx) (extended main header)", matrixID);
       m_pData->contentFlag = Header;
@@ -155,7 +155,7 @@ quint32 CPhilipsDirectoryItem::matrixID() const
 bool CPhilipsDirectoryItem::isExtendedHeader() const
 {
   return ((m_pData->contentFlag == Header) &&
-          (matrixID() == PHILIPS_EXTENDED_HEADER));
+          (matrixID() == PHILIPS_EXT_HEADER_ID));
 }
 
 qint64 CPhilipsDirectoryItem::dataBlock_Start() const
@@ -766,6 +766,7 @@ bool CPhilipsDirectoryItem::writeMatrix(const char* matrixData, unsigned int mat
     return false;
   }
 
+  D("about to write matrix data");
   SHOWVALUE(m_pData->file->pos());
 
   // now we find out if this machine requires byte swapping or

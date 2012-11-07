@@ -709,6 +709,7 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
             
             pPhilipsSubHeaderImage->setImgmin(imgMinValue);
             pPhilipsSubHeaderImage->setImgmax(imgMaxValue);
+            pPhilipsSubHeaderImage->setSlcnum(z*pPhilipsMainHeader->slcthk());
 
             cout << "about to write slice: " << z*pPhilipsMainHeader->slcthk() << endl;
             pPhilipsFile->writeMatrix(p, matrixSize, *pPhilipsSubHeaderImage, frame, z*pPhilipsMainHeader->slcthk());

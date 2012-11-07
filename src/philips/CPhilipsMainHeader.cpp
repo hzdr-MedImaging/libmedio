@@ -252,7 +252,7 @@ public:
   #pragma pack()
 
   // the extended header data structure
-  #define EXTHEADER_SIZE 2048
+  #define EXTHEADER_SIZE (2048+5632)
   #pragma pack(1)
   struct ExtHeaderData
   {
@@ -531,6 +531,7 @@ public:
     char empty11[6];                      // 1786: empty
     char coil_type[16];                   // 1792: 16 byte fields indicating MR coils that are in position during the scan. Each contains a coil type number of the MR coil.
     char empty12[240];                    // 1808: empty
+    char reserved[5632];                  // 2048: RESERVED
   } extHeader;
   #pragma pack()
 
@@ -1212,6 +1213,7 @@ bool CPhilipsMainHeader::save(void) const
     return false;
   }
 
+  D("about to write main header");
   SHOWVALUE(m_pMedIOData->pos());
 
   // check that the sizes are absolutely correct
@@ -1479,6 +1481,9 @@ bool CPhilipsMainHeader::save(void) const
       CPhilipsDirectoryItem* extHeaderItem = philipsDirectory->extendedMainHeaderItem();
       if(extHeaderItem != NULL)
       {
+        D("about to write extended main header");
+        SHOWVALUE(m_pMedIOData->pos());
+
         // now we have the extendedheader diritem. so lets get the header out of it
         if(m_pMedIOData->seek(extHeaderItem->dataBlock_Start()) == true &&
            m_pMedIOData->write(reinterpret_cast<char*>(extHeader), sizeof(m_pData->extHeader)) == EXTHEADER_SIZE)
@@ -2871,15 +2876,15 @@ bool CPhilipsMainHeaderPrivate::ecat2philipsSex(const CECAT7MainHeader::Patient_
   switch(sex)
   {
     case CECAT7MainHeader::Sex_Male:
-      extHeader.sex = 'm';
+      extHeader.sex = 'M';
     break;
 
     case CECAT7MainHeader::Sex_Female:
-      extHeader.sex = 'f';
+      extHeader.sex = 'F';
     break;
 
     case CECAT7MainHeader::Sex_Unknown:
-      extHeader.sex = 'u';
+      extHeader.sex = 'U';
     break;
  }
 

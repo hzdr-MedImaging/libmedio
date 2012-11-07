@@ -340,15 +340,64 @@ bool CPhilipsDirectory::save() const
   quint32 nextDirPos = currentDirPos;
   qint64 lastDirListPos = 0;
 
+  // with the Philips file format we have the special situation that
+  // the extended header has a special matrix ID and has to be always stored
+  // right after the main header, thus it should be the first directory
+  // item. So we have to treat it special here.
+  CPhilipsDirectoryItem* pDirItem = extendedMainHeaderItem();
+  if(pDirItem != NULL)
+  {
+    D("found DirItem: %d/%d/%d (extended Header)", pDirItem->slice(), 
+                                                   pDirItem->frame(), 
+                                                   pDirItem->tilt());
+
+    // populate the diritem
+    dirList.items[0].matrixID = pDirItem->matrixID();
+    dirList.items[0].dataBlock_Start = FilePos2PhilipsBlock(pDirItem->dataBlock_Start());
+    dirList.items[0].dataBlock_End = FilePos2PhilipsBlock(pDirItem->dataBlock_End());
+    dirList.items[0].compressionFlag = static_cast<quint16>(pDirItem->compressionFlag());
+    dirList.items[0].contentFlag = static_cast<qint16>(pDirItem->contentFlag());
+
+    D("DItem.Matrix_ID       : %08x (%d/%d/%d)", pDirItem->matrixID(),
+                                                 pDirItem->slice(),
+                                                 pDirItem->frame(),
+                                                 pDirItem->tilt());
+
+    D("DItem.DataBlock_Start : %lld (%lld)", FilePos2PhilipsBlock(pDirItem->dataBlock_Start()), pDirItem->dataBlock_Start());
+    D("DItem.DataBlock_End   : %lld (%lld)", FilePos2PhilipsBlock(pDirItem->dataBlock_End()), pDirItem->dataBlock_End());
+    D("DItem.compressionFlag : %d", pDirItem->compressionFlag());
+    D("DItem.contentFlag     : %d", pDirItem->contentFlag());
+
+    // now we need to byteswap the data if this is no big endian machine
+    if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
+    {
+      BSWAP_32(dirList.items[0].matrixID);
+      BSWAP_32(dirList.items[0].dataBlock_Start);
+      BSWAP_32(dirList.items[0].dataBlock_End);
+      BSWAP_16(dirList.items[0].compressionFlag);
+      BSWAP_16(dirList.items[0].contentFlag);
+    }
+
+    // increment the itemsToFollow value and decrement the 
+    // freeItems
+    dirList.head.itemsToFollow++;
+    dirList.head.freeItems--;
+    processedDirItems++;
+  }
+
   // now iterate through our sorted QMap and write out the
   // data sorted as well.
   QMapIterator<quint32, CPhilipsDirectoryItem*> it(m_pData->dirItems);
   while(it.hasNext())
   {
     it.next();
-    
-    CPhilipsDirectoryItem* pDirItem = it.value();
-    if(pDirItem)
+
+    // get the directory item from the QMap
+    pDirItem = it.value();
+
+    // check that the directory item is valid and not an extended header
+    // item which we treat special (see above)
+    if(pDirItem != NULL && pDirItem->isExtendedHeader() == false)
     {
       quint32 i = dirList.head.itemsToFollow;
       processedDirItems++;
@@ -400,11 +449,11 @@ bool CPhilipsDirectory::save() const
       // first we check wheter the dirList is filled up (>=31 items)
       // and then write it out separate first.
       if((dirList.head.itemsToFollow == PHILIPS_DIRITEM_NUM && processedDirItems < count()) ||
-         it.hasNext() == false)
+         (it.hasNext() == false || it.peekNext().key() == PHILIPS_EXT_HEADER_ID))
       {
         // check if were are here because there is no
-        // futher directory item to be added
-        if(it.hasNext() == true)
+        // further directory item to be added
+        if(it.hasNext() == true && it.peekNext().key() != PHILIPS_EXT_HEADER_ID)
         {
           qint64 appendPos;
 
@@ -511,7 +560,7 @@ bool CPhilipsDirectory::loadFake()
 
   // we create a new entry which contains the position of the extended main header
   CPhilipsDirectoryItem* pNewExtItem = new CPhilipsDirectoryItem(m_pData->file,
-                                                                 PHILIPS_EXTENDED_HEADER);
+                                                                 PHILIPS_EXT_HEADER_ID);
 
   // The extended main header begins at the 3rd 512 byte block.
   // A philips listmode file is structured as follows:
@@ -522,8 +571,8 @@ bool CPhilipsDirectory::loadFake()
   //  | sub header (512 bytes),             |
   //  | listmode data (rest)                |
   //  +-------------------------------------*
-  pNewExtItem->setDataBlock_Start(PhilipsBlock2FilePos(3));
-  pNewExtItem->setDataBlock_End(PhilipsBlock2FilePos(3+15));
+  pNewExtItem->setDataBlock_Start(PhilipsBlock2FilePos(PHILIPS_EXT_HEADER_POS));
+  pNewExtItem->setDataBlock_End(PhilipsBlock2FilePos(PHILIPS_EXT_HEADER_END));
   pNewExtItem->setCompressionFlag(CPhilipsDirectoryItem::Uncompressed);
   pNewExtItem->setContentFlag(CPhilipsDirectoryItem::Header);
   m_pData->dirItems.insert(pNewExtItem->matrixID(), pNewExtItem);
@@ -537,8 +586,8 @@ bool CPhilipsDirectory::loadFake()
   // next we create the fake entry for the sub header
   CPhilipsDirectoryItem* pNewItem = new CPhilipsDirectoryItem(m_pData->file);
   pNewItem->setMatrixID(convertToMatrixID(1, 1, 0));
-  pNewItem->setDataBlock_Start(PhilipsBlock2FilePos(3+16));
-  pNewItem->setDataBlock_End(PhilipsBlock2FilePos(3+16));
+  pNewItem->setDataBlock_Start(PhilipsBlock2FilePos(PHILIPS_EXT_HEADER_END+1));
+  pNewItem->setDataBlock_End(PhilipsBlock2FilePos(PHILIPS_EXT_HEADER_END+1));
   pNewItem->setCompressionFlag(CPhilipsDirectoryItem::Uncompressed);
   pNewItem->setContentFlag(CPhilipsDirectoryItem::Used);
   m_pData->dirItems.insert(pNewItem->matrixID(), pNewItem);
@@ -595,33 +644,47 @@ CPhilipsDirectoryItem* CPhilipsDirectory::item(short frame, short slice, short t
 CPhilipsDirectoryItem* CPhilipsDirectoryPrivate::newDirItem(quint32 matrixID)
 {
   ENTER();
+
+  // create a new directory item with the supplied matrixID
   CPhilipsDirectoryItem* pNewDItem = new CPhilipsDirectoryItem(file, matrixID);
 
-  // now that we generated a new directory item we want to put
-  // in our directory immediately, we have to first check at which
-  // dataposition it should be placed
-  qint64 dataOffset = lastDirItemOffset();
+  // check if we are supposed to create an extended header or not
+  if(matrixID == PHILIPS_EXT_HEADER_ID)
+  {
+    pNewDItem->setDataBlock_Start(PhilipsBlock2FilePos(PHILIPS_EXT_HEADER_POS));
+    pNewDItem->setDataBlock_End(PhilipsBlock2FilePos(PHILIPS_EXT_HEADER_END));
+    pNewDItem->setContentFlag(CPhilipsDirectoryItem::Header);
 
-  // modify the Start offset of the item now. So if this is the first
-  // one we place it directly behind the maindirectory, which should
-  // be block 3. If this is not the first one we place it behind the
-  // lastDirItemOffset...
-  if(dataOffset > 0)
-    pNewDItem->setDataBlock_Start(dataOffset+PHILIPS_BLOCKSIZE);
+    // insert the new directory item into the directory now.
+    dirItems.insert(matrixID, pNewDItem);
+  }
   else
-    pNewDItem->setDataBlock_Start(PhilipsBlock2FilePos(PHILIPS_POS_MAINDIR+1));
+  {
+    // now that we generated a new directory item we want to put
+    // in our directory immediately, we have to first check at which
+    // dataposition it should be placed
+    qint64 dataOffset = lastDirItemOffset();
+
+    // modify the Start offset of the item now. So if this is the first
+    // one we place it directly behind the maindirectory, which should
+    // be block 3. If this is not the first one we place it behind the
+    // lastDirItemOffset...
+    if(dataOffset > 0)
+      pNewDItem->setDataBlock_Start(dataOffset+PHILIPS_BLOCKSIZE);
+    else
+      pNewDItem->setDataBlock_Start(PhilipsBlock2FilePos(PHILIPS_POS_MAINDIR+1));
+
+    // insert the new directory item into the directory now.
+    dirItems.insert(matrixID, pNewDItem);
+
+    // now that we have created a new directory item we have to
+    // sync our main header again
+    // we do not sync if the new diritem is an extended main header
+    file->reWriteMainHeader();
+  }
 
   D("created new diritem with datablock start @ %lld (%lld)", FilePos2PhilipsBlock(pNewDItem->dataBlock_Start()),
                                                               pNewDItem->dataBlock_Start());       
-
-  // insert the new directory item into the directory now.
-  dirItems.insert(matrixID, pNewDItem);
-
-  // now that we have created a new directory item we have to
-  // sync our main header again
-  // we do not sync if the new diritem is an extended main header
-  if(pNewDItem->isExtendedHeader() == false)
-    file->reWriteMainHeader();
 
   RETURN(pNewDItem);
   return pNewDItem;
@@ -650,6 +713,11 @@ qint64 CPhilipsDirectoryPrivate::lastDirItemOffset(void) const
       offset = filePositions[i];
   }
 
+  // in the philips file format we have to make sure we are not lower than
+  // the end position of the extended main header as we always write it
+  if(offset < PhilipsBlock2FilePos(PHILIPS_EXT_HEADER_END))
+    offset = PhilipsBlock2FilePos(PHILIPS_EXT_HEADER_END);
+
   RETURN(offset);
   return offset;
 }
@@ -665,6 +733,7 @@ short CPhilipsDirectory::maxFrame() const
   while(i.hasNext())
   {
     i.next();
+
     // skip extended header
     if(i.value()->isExtendedHeader() == false)
     {
@@ -691,6 +760,7 @@ short CPhilipsDirectory::minFrame() const
   while(i.hasNext())
   {
     i.next();
+
     // skip extended header
     if(i.value()->isExtendedHeader() == false)
     {
@@ -722,6 +792,7 @@ short CPhilipsDirectory::numFrames() const
   while(i.hasNext())
   {
     i.next();
+
     // skip extended header
     if(i.value()->isExtendedHeader() == false)
     {
@@ -931,11 +1002,8 @@ CPhilipsDirectoryItem* CPhilipsDirectory::extendedMainHeaderItem() const
   // if we still didn't find any extened main header item in the
   // directory we simply create one.
   if(item == NULL)
-  {
-    item = m_pData->newDirItem(PHILIPS_EXTENDED_HEADER);
-    item->setContentFlag(CPhilipsDirectoryItem::Header);
-  }
-  
+    item = m_pData->newDirItem(PHILIPS_EXT_HEADER_ID);
+ 
   RETURN(item);
   return item;
 }
@@ -1288,7 +1356,7 @@ bool CPhilipsDirectory::writeMatrix(const char* matrixData, unsigned int size, c
     // form the MatrixID from the supplied data and create a new
     // DirectoryItem (or replace an existing one)
     quint32 mID = convertToMatrixID(slice, frame, tilt);
-    D("Generated MatrixID: %08lx", mID);
+    D("Generated MatrixID: %08x", mID);
 
     // see if we already have an item with the same matrixID in our
     // dictonary and if so we reuse that one and place a new subheader at
@@ -1296,10 +1364,12 @@ bool CPhilipsDirectory::writeMatrix(const char* matrixData, unsigned int size, c
     CPhilipsDirectoryItem* pNewDItem = m_pData->dirItems.value(mID);
     if(pNewDItem == NULL)
     {
+      D("about to create new dir item");
       // create a new DirectoryItem which we put in this Directory
       pNewDItem = m_pData->newDirItem(mID);
     }
 
+      D("about to write matrix");
     // then we make sure the subheader is written to the Philips file.
     result = pNewDItem->writeMatrix(matrixData, size, subHeader);
     if(result)
