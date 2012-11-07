@@ -2,6 +2,7 @@
 #define CARRAY_H
 
 #include <QVarLengthArray>
+#include <float.h>
 
 class QByteArray;
 
@@ -10,14 +11,16 @@ template<class T> class CDataArray : public QVarLengthArray<T>
   public:
     // constructors | destructors
     CDataArray(QByteArray* pArray, int iNumElements);
-    T minValue();
-    T maxValue();
-    T maxDistance();
+    float minValue();
+    float maxValue();
+    float maxDistance();
+    float sumValue();
 
   protected:
-    T m_minValue;
-    T m_maxValue;
-    T m_maxDistance;
+    float m_minValue;
+    float m_maxValue;
+    float m_maxDistance;
+    float m_sumValue;
 };
 
 #include <rtdebug.h>
@@ -29,14 +32,22 @@ template<class T> CDataArray<T>::CDataArray(QByteArray* pArray, int iNumElements
 {
   ENTER();
   T* pData = (T*)pArray->constData();
-  m_minValue = m_maxValue = *pData;
+
+  m_minValue = FLT_MAX;
+  m_maxValue = -FLT_MAX;
+  m_sumValue = 0;
+
   for(int i = 0; i < iNumElements; i++, pData++)
   {
     this->operator[](i) = *pData;
-    if(m_maxValue < *pData)
+
+    if(*pData > m_maxValue)
       m_maxValue = *pData;
-    if(m_minValue > *pData)
+
+    if(*pData < m_minValue)
       m_minValue = *pData;
+
+    m_sumValue += *pData;
   }
 
   // calculate the value range between min<>max
@@ -45,24 +56,29 @@ template<class T> CDataArray<T>::CDataArray(QByteArray* pArray, int iNumElements
   else
     m_maxDistance = fabs(m_minValue);
 
-  D("minValue: %g, maxValue: %g, maxDistance: %g", (float)m_minValue, (float)m_maxValue, (float)m_maxDistance);
+  D("minValue: %g, maxValue: %g, maxDistance: %g, sumValue: %g", m_minValue, m_maxValue, m_maxDistance, m_sumValue);
 
   LEAVE();
 }
 
-template<class T> T CDataArray<T>::minValue()
+template<class T> float CDataArray<T>::minValue()
 {
   return m_minValue;
 }
 
-template<class T> T CDataArray<T>::maxValue()
+template<class T> float CDataArray<T>::maxValue()
 {
   return m_maxValue;
 }
 
-template<class T> T CDataArray<T>::maxDistance()
+template<class T> float CDataArray<T>::maxDistance()
 {
   return m_maxDistance;
+}
+
+template<class T> float CDataArray<T>::sumValue()
+{
+  return m_sumValue;
 }
 
 #endif // CARRAY_H //

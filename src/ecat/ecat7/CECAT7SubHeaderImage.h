@@ -242,6 +242,9 @@ class CECAT7SubHeaderImage : public CECATSubHeader
     void setRecon_Views(const short views);
     void setCTI_Reserved(const short i, const short n);
     void setUser_Reserved(const short i, const short n);
+
+    // special conversion routines
+    float suv_Scale_Factor(bool& ok) const;
     
   private:
     CECAT7SubHeaderImagePrivate* m_pData;

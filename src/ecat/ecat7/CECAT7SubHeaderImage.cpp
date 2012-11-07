@@ -23,12 +23,15 @@
  **************************************************************************/
 
 #include "CECAT7SubHeaderImage.h"
+#include "CECAT7MainHeader.h"
 #include "CECATDirectoryItem.h"
 #include "CECATFile.h"
 #include "CConcordeMainHeader.h"
 #include "CConcordeFrameHeader.h"
 #include "CPhilipsMainHeader.h"
 #include "CPhilipsSubHeaderImage.h"
+
+#include <QtCore/qmath.h>
 
 #include <rtdebug.h>
 
@@ -602,7 +605,22 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead1, const CMedIOH
         setScatter_Type(CECAT7SubHeaderImage::None);
     
       setRecon_Type(CECAT7SubHeaderImage::IterativeCPURecon);
-  
+
+      short processing_code = CECAT7SubHeaderImage::NotProcessed;
+      if(head->det_norm() == 1)
+        processing_code |= CECAT7SubHeaderImage::Normalized;
+
+      if(QString(head->atten_corr()).contains("AC"))
+        processing_code |= CECAT7SubHeaderImage::MeasuredAttenCorr;
+
+      if(QString(head->scatter_corr()).contains("SIMUL"))
+        processing_code |= CECAT7SubHeaderImage::Scatter2DCorr;
+
+      if(head->decay_corr() == 1)
+        processing_code |= CECAT7SubHeaderImage::DecayCorrection;
+
+      setProcessing_Code(processing_code);
+        
       // check for additional information
       if(pHead2)
       {
@@ -1310,4 +1328,50 @@ void CECAT7SubHeaderImage::setCTI_Reserved(const short i, const short n)
 void CECAT7SubHeaderImage::setUser_Reserved(const short i, const short n)            
 {
   m_pData->header.User_Reserved[i] = n;
+}
+
+float CECAT7SubHeaderImage::suv_Scale_Factor(bool& ok) const
+{
+  ENTER();
+
+  float suvScaleFactor = 1.0f;
+  ok = false;
+
+  // check if the SUV scaling factor has been set
+  // in the subheader.
+  if(scale_Factor() > 0.0f)
+  {
+    if(m_pMedIOData->isReadable())
+    {
+      CECATMainHeader* mainHeader = NULL;
+      CECATFile* file = static_cast<CECATFile*>(m_pMedIOData);
+
+      if(file->readMainHeader(mainHeader))
+      {
+        CECAT7MainHeader* e7MainHeader = static_cast<CECAT7MainHeader*>(mainHeader);
+
+        // now calculate the scale factor
+        float dosage = e7MainHeader->dosage(); // Bq
+        float deltaT = static_cast<float>(e7MainHeader->scan_Start_Time() -
+                                          e7MainHeader->dose_Start_Time()); // s
+        float halfLife = e7MainHeader->isotope_Halflife(); // s
+        float patientWeight = e7MainHeader->patient_Weight() * 1000.0f; // g
+
+        if(patientWeight != 0 && halfLife != 0 &&
+           dosage != 0)
+        {
+          // calculate the suv scaling factor by using dosage, deltaT, halfLife and
+          // patient weight to get the suv scale factor commonly used with the philips
+          // file formats.
+          suvScaleFactor = scale_Factor() / (dosage * qExp(-qLn(2) * (deltaT/halfLife)) / patientWeight);
+          ok = true;
+        }
+
+        delete e7MainHeader;
+      }
+    }
+  }
+
+  RETURN(suvScaleFactor);
+  return suvScaleFactor;
 }

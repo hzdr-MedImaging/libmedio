@@ -698,16 +698,47 @@ bool CPhilipsSubHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHead
           }
           setDatype(dtype);
 
-          setSuvscl(header->scale_Factor());
-          setImgmin(header->image_Min());
-          setImgmax(header->image_Max());
+          // we have to calculate the suv scaling factor
+          bool ok = false;
+          float fact = header->suv_Scale_Factor(ok);
+
+          if(ok == true)
+            setSuvscl(fact);
+          else
+            setSuvscl(1.0);
+
+          setImgscl(1.0f);
           setXdim(header->x_Dimension());
           setYdim(header->y_Dimension());
           setPix_spacing_x(header->x_Pixel_Size() * 10.0f); // cm -> mm
           setPix_spacing_y(header->y_Pixel_Size() * 10.0f); // cm -> mm
-          setScnlen(header->frame_Duration()/1000);
+          setScnlen(header->frame_Duration()/1000.0f); // ms -> s
           setMseclen(header->frame_Duration() % 1000);
+
+          if((header->processing_Code() & CECAT7SubHeaderImage::DecayCorrection) == CECAT7SubHeaderImage::DecayCorrection)
+            setDecay_corr(CPhilipsSubHeader::Acqstart);
+
+          if((header->processing_Code() & CECAT7SubHeaderImage::Normalized) == CECAT7SubHeaderImage::Normalized)
+            setDet_norm(1);
+
+          if((header->processing_Code() & CECAT7SubHeaderImage::MeasuredAttenCorr) == CECAT7SubHeaderImage::MeasuredAttenCorr)
+            setAtten_corr("MRAC");
+
+          setDeadtime_corr(1);
+          setRandoms_corr(CPhilipsSubHeader::Delayed);
+          setNu_radsamp_corr(1);
+          setCntloss_corr(1);
           
+          if(header->scatter_Type() == CECAT7SubHeaderImage::Deconvolution)
+            setScatter_corr("SS-SIMUL");
+
+          if(header->recon_Type() == CECAT7SubHeaderImage::FilteredBackProjection)
+            setRecon_method("FBP");
+          else if(header->recon_Type() == CECAT7SubHeaderImage::BasicOsem)
+            setRecon_method("OSEM");
+          else if(header->recon_Type() == CECAT7SubHeaderImage::IterativeCPURecon)
+            setRecon_method("Iterative");
+
           bResult = true;
         }
         break;

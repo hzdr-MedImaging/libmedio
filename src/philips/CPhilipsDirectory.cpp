@@ -28,6 +28,7 @@
 
 #include <QMap>
 #include <QVector>
+#include <QtAlgorithms>
 
 #include <rtdebug.h>
 
@@ -85,6 +86,9 @@ class CPhilipsDirectoryPrivate
     // some private methods 
     CPhilipsDirectoryItem* newDirItem(quint32 matrixID);
     qint64 lastDirItemOffset(void) const;
+
+    // static method for sorting our QMap by value
+    static bool itemIsLessThan(CPhilipsDirectoryItem* s1, CPhilipsDirectoryItem* s2);
 };
 
 CPhilipsDirectory::CPhilipsDirectory(CPhilipsFile* philipsFile)
@@ -340,64 +344,25 @@ bool CPhilipsDirectory::save() const
   quint32 nextDirPos = currentDirPos;
   qint64 lastDirListPos = 0;
 
-  // with the Philips file format we have the special situation that
-  // the extended header has a special matrix ID and has to be always stored
-  // right after the main header, thus it should be the first directory
-  // item. So we have to treat it special here.
-  CPhilipsDirectoryItem* pDirItem = extendedMainHeaderItem();
-  if(pDirItem != NULL)
-  {
-    D("found DirItem: %d/%d/%d (extended Header)", pDirItem->slice(), 
-                                                   pDirItem->frame(), 
-                                                   pDirItem->tilt());
+  // before we iterate through our qmap (which is sorted by keys per default) we 
+  // have to extract the values and sort the QList by values instead and iterate over
+  // that instead
+  QList<CPhilipsDirectoryItem*> itemList = m_pData->dirItems.values();
 
-    // populate the diritem
-    dirList.items[0].matrixID = pDirItem->matrixID();
-    dirList.items[0].dataBlock_Start = FilePos2PhilipsBlock(pDirItem->dataBlock_Start());
-    dirList.items[0].dataBlock_End = FilePos2PhilipsBlock(pDirItem->dataBlock_End());
-    dirList.items[0].compressionFlag = static_cast<quint16>(pDirItem->compressionFlag());
-    dirList.items[0].contentFlag = static_cast<qint16>(pDirItem->contentFlag());
+  // now sort that list by our internal criterias
+  qSort(itemList.begin(), itemList.end(), m_pData->itemIsLessThan);
 
-    D("DItem.Matrix_ID       : %08x (%d/%d/%d)", pDirItem->matrixID(),
-                                                 pDirItem->slice(),
-                                                 pDirItem->frame(),
-                                                 pDirItem->tilt());
-
-    D("DItem.DataBlock_Start : %lld (%lld)", FilePos2PhilipsBlock(pDirItem->dataBlock_Start()), pDirItem->dataBlock_Start());
-    D("DItem.DataBlock_End   : %lld (%lld)", FilePos2PhilipsBlock(pDirItem->dataBlock_End()), pDirItem->dataBlock_End());
-    D("DItem.compressionFlag : %d", pDirItem->compressionFlag());
-    D("DItem.contentFlag     : %d", pDirItem->contentFlag());
-
-    // now we need to byteswap the data if this is no big endian machine
-    if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
-    {
-      BSWAP_32(dirList.items[0].matrixID);
-      BSWAP_32(dirList.items[0].dataBlock_Start);
-      BSWAP_32(dirList.items[0].dataBlock_End);
-      BSWAP_16(dirList.items[0].compressionFlag);
-      BSWAP_16(dirList.items[0].contentFlag);
-    }
-
-    // increment the itemsToFollow value and decrement the 
-    // freeItems
-    dirList.head.itemsToFollow++;
-    dirList.head.freeItems--;
-    processedDirItems++;
-  }
-
-  // now iterate through our sorted QMap and write out the
+  // now iterate through our sorted QList and write out the
   // data sorted as well.
-  QMapIterator<quint32, CPhilipsDirectoryItem*> it(m_pData->dirItems);
+  QListIterator<CPhilipsDirectoryItem*> it(itemList);
   while(it.hasNext())
   {
-    it.next();
-
-    // get the directory item from the QMap
-    pDirItem = it.value();
+    // get the directory item from the QList
+    CPhilipsDirectoryItem* pDirItem = it.next();
 
     // check that the directory item is valid and not an extended header
     // item which we treat special (see above)
-    if(pDirItem != NULL && pDirItem->isExtendedHeader() == false)
+    if(pDirItem != NULL)
     {
       quint32 i = dirList.head.itemsToFollow;
       processedDirItems++;
@@ -449,11 +414,11 @@ bool CPhilipsDirectory::save() const
       // first we check wheter the dirList is filled up (>=31 items)
       // and then write it out separate first.
       if((dirList.head.itemsToFollow == PHILIPS_DIRITEM_NUM && processedDirItems < count()) ||
-         (it.hasNext() == false || it.peekNext().key() == PHILIPS_EXT_HEADER_ID))
+         it.hasNext() == false)
       {
         // check if were are here because there is no
         // further directory item to be added
-        if(it.hasNext() == true && it.peekNext().key() != PHILIPS_EXT_HEADER_ID)
+        if(it.hasNext() == true)
         {
           qint64 appendPos;
 
@@ -720,6 +685,38 @@ qint64 CPhilipsDirectoryPrivate::lastDirItemOffset(void) const
 
   RETURN(offset);
   return offset;
+}
+
+bool CPhilipsDirectoryPrivate::itemIsLessThan(CPhilipsDirectoryItem* s1, CPhilipsDirectoryItem* s2)
+{
+  ENTER();
+  bool result = false;
+
+  // sort items with the following priority:
+  // 1. extended header always first
+  // 2. tilt
+  // 3. frame
+  // 4. slice
+
+  if(s1->isExtendedHeader())
+    result = true;
+  else if(s2->isExtendedHeader())
+    result = false;
+  else if(s1->tilt() < s2->tilt())
+    result = true;
+  else if(s1->tilt() > s2->tilt())
+    result = false;
+  else if(s1->frame() < s2->frame())
+    result = true;
+  else if(s1->frame() > s2->frame())
+    result = false;
+  else if(s1->slice() < s2->slice())
+    result = true;
+  else if(s1->slice() > s2->slice())
+    result = false;
+
+  RETURN(result);
+  return result;
 }
 
 short CPhilipsDirectory::maxFrame() const

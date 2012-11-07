@@ -702,42 +702,21 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
           {
             // before writing the matrix to the file we need to calculate the image min/max
             // and the new scale factor
-            QByteArray buffer = QByteArray::fromRawData(pImageData, xDim*yDim);
+            QByteArray buffer = QByteArray::fromRawData(p, xDim*yDim);
             CDataArray<qint16> dataArray(&buffer, xDim*yDim);
             short imgMinValue = dataArray.minValue();
             short imgMaxValue = dataArray.maxValue();
             
             pPhilipsSubHeaderImage->setImgmin(imgMinValue);
             pPhilipsSubHeaderImage->setImgmax(imgMaxValue);
+            pPhilipsSubHeaderImage->setImgsum(dataArray.sumValue());
             pPhilipsSubHeaderImage->setSlcnum(z*pPhilipsMainHeader->slcthk());
 
-            cout << "about to write slice: " << z*pPhilipsMainHeader->slcthk() << endl;
             pPhilipsFile->writeMatrix(p, matrixSize, *pPhilipsSubHeaderImage, frame, z*pPhilipsMainHeader->slcthk());
   
             // now advance p
             p += matrixSize;
           }
-
-          //bool ok;
-          //pEcat7SubHeaderImage->setScale_Factor(pPhilipsSubHeaderImage->scale_Factor(ok));
-          //if(ok == true)
-          //{
-          //  pEcat7ImageHeader->setCalibration_Units(CECAT7MainHeader::Calibrated);
-          //  pEcat7ImageHeader->setCalibration_Factor(1.0f);
-          //  pEcat7ImageHeader->setData_Units("Bq/cc");
-          //}
-          //else
-          //{
-          //  pEcat7ImageHeader->setCalibration_Units(CECAT7MainHeader::Uncalibrated);
-          //  pEcat7ImageHeader->setData_Units("N/A");
-          //}
-
-          //// put in an annotation about being converted by mp2ecat
-          //pEcat7SubHeaderImage->setAnnotation("converted by " PACKAGE_NAME " " PACKAGE_VERSION);
-
-          //pEcat7Image->writeSubHeader(*pEcat7SubHeaderImage, frame);
-          //pEcat7Image->writeMatrix(pImageData, len, frame);
-          //delete pEcat7SubHeaderImage;
         }
 
         delete pECATSubHeaderImage;
