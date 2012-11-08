@@ -1356,14 +1356,16 @@ float CECAT7SubHeaderImage::suv_Scale_Factor(bool& ok) const
                                           e7MainHeader->dose_Start_Time()); // s
         float halfLife = e7MainHeader->isotope_Halflife(); // s
         float patientWeight = e7MainHeader->patient_Weight() * 1000.0f; // g
+        float calibrationFactor = e7MainHeader->calibration_Factor();
 
         if(patientWeight != 0 && halfLife != 0 &&
-           dosage != 0)
+           dosage != 0 && calibrationFactor != 0)
         {
           // calculate the suv scaling factor by using dosage, deltaT, halfLife and
           // patient weight to get the suv scale factor commonly used with the philips
           // file formats.
-          suvScaleFactor = scale_Factor() / (dosage * qExp(-qLn(2) * (deltaT/halfLife)) / patientWeight);
+          suvScaleFactor = scale_Factor() / (dosage * qExp(-qLn(2) * (deltaT/halfLife)) / patientWeight) * calibrationFactor;
+
           ok = true;
         }
 
