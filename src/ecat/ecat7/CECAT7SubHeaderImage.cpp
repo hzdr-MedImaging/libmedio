@@ -631,7 +631,7 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead1, const CMedIOH
             const CPhilipsMainHeader* mainHeader = static_cast<const CPhilipsMainHeader*>(pHead2);
 
             setZ_Dimension(mainHeader->nslice());
-            setZ_Pixel_Size(static_cast<float>(mainHeader->slcthk()) / 10.0f); // mm -> cm
+            setZ_Pixel_Size(mainHeader->Dslice_thick() / 10.0f); // mm -> cm
 
             if(head->pix_spacing_x() == 0)
               setX_Pixel_Size(static_cast<float>(mainHeader->dmax()) / static_cast<float>(head->xdim()) / 10.0f); // mm -> cm
