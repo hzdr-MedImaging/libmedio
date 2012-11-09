@@ -354,8 +354,10 @@ class CPhilipsMainHeader : public CMedIOHeader
     CMedIOHeader::Format headerFormat() const;
 
     // clone methods
-    virtual bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL);
     virtual CMedIOHeader* clone() const;
+
+    // convert methods
+    virtual bool convertFrom(const CMedIOHeader* pHead);
 
     // data acess methods
     short file_fmt() const;

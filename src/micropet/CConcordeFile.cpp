@@ -115,7 +115,7 @@ CConcordeFile& CConcordeFile::operator=(const CConcordeFile&)
   return *this;
 }
 
-int CConcordeFile::rtti() const 
+CMedIOData::Format CConcordeFile::dataFormat() const 
 { 
   return CMedIOData::ConcordeMicropet;
 }

@@ -264,7 +264,7 @@ bool CPhilipsDirectory::load()
                                                      pNewDirItem->tilt());
 
         D("DItem.DataBlock_Start : %d (%ld)", pNewDirItem->dataBlock_Start(), FilePos2PhilipsBlock(pNewDirItem->dataBlock_Start()));
-        D("DItem.DataBlock_End   : %d (%ld)", pNewDirItem->dataBlock_End(), FilePos2PhilipsBlock(pNewDirItem->dataBlock_End()));
+        D("DItem.DataBlock_End   : %d (%ld) (%ld)", pNewDirItem->dataBlock_End(), FilePos2PhilipsBlock(pNewDirItem->dataBlock_End()), FilePos2PhilipsBlock(pNewDirItem->dataBlock_End())-FilePos2PhilipsBlock(pNewDirItem->dataBlock_Start()));
         D("DItem.compressionFlag : %04x", pNewDirItem->compressionFlag());
         D("DItem.contentFlag     : %04x", pNewDirItem->contentFlag());
       }
@@ -391,8 +391,8 @@ bool CPhilipsDirectory::save() const
                                                    pDirItem->frame(),
                                                    pDirItem->tilt());
 
-      D("DItem.DataBlock_Start : %lld (%lld)", FilePos2PhilipsBlock(pDirItem->dataBlock_Start()), pDirItem->dataBlock_Start());
-      D("DItem.DataBlock_End   : %lld (%lld)", FilePos2PhilipsBlock(pDirItem->dataBlock_End()), pDirItem->dataBlock_End());
+      D("DItem.DataBlock_Start : %ld (%ld)", FilePos2PhilipsBlock(pDirItem->dataBlock_Start()), pDirItem->dataBlock_Start());
+      D("DItem.DataBlock_End   : %ld (%ld) (%ld)", FilePos2PhilipsBlock(pDirItem->dataBlock_End()), pDirItem->dataBlock_End(), pDirItem->dataBlock_End()-pDirItem->dataBlock_Start());
       D("DItem.compressionFlag : %d", pDirItem->compressionFlag());
       D("DItem.contentFlag     : %d", pDirItem->contentFlag());
 

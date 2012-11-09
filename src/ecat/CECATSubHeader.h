@@ -89,8 +89,8 @@ class CECATSubHeader : public CMedIOHeader
     void setDirectoryItem(CECATDirectoryItem* dItem);
 
     // try to convert the given medio header in this header type
-    virtual bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL) = 0;
-    
+    virtual bool convertFrom(const CMedIOHeader* pHead) = 0;
+
     // create a new medio header of the same type as pSrc and
     // copy all meta information
     virtual CMedIOHeader* clone() const = 0;

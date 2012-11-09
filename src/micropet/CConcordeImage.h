@@ -57,13 +57,11 @@ class CConcordeImage : public CConcordeFile
     
     //! @brief run time typeinformation  
     //! @return specific class type at runtime
-    int fileType() const;
+    CConcordeFile::FileType fileType() const;
 
     //! @brief loads a given file
     //! @return true if loading is succesful otherwise false
     bool open(QIODevice::OpenModeFlag mode);
-
-  private:
 };
 
 #endif

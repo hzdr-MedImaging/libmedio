@@ -346,11 +346,11 @@ CECATSubHeader::Type CECAT7SubHeaderAttenCorr::subHeaderType(void) const
   return CECATSubHeader::ECAT7_AttenCorr;
 }
 
-bool CECAT7SubHeaderAttenCorr::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader*) 
+bool CECAT7SubHeaderAttenCorr::convertFrom(const CMedIOHeader* pHead1) 
 {
   ENTER();
-
   bool bResult = false;
+
   // depending on the MedIOHeader format we do have to 
   // distinguish between our copy operations.
   switch(pHead1->headerFormat())

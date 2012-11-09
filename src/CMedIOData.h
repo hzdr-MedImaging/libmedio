@@ -77,9 +77,12 @@ class CMedIOData : public QFile
     //! @return true if saving is succesful otherwise false
     virtual void close(void) = 0;
     
+    //! @brief returns the data format of the mediodata
+    virtual CMedIOData::Format dataFormat() const = 0;
+
     //! @brief run time typeinformation  
     //! @return specific class type at runtime
-    virtual int rtti() const = 0;
+    int userRtti() const;
  
     //! @brief for querying error status information
     //! @return integer value for the specific error reason

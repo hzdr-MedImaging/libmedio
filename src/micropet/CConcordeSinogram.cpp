@@ -93,7 +93,7 @@ bool CConcordeSinogram::open(QIODevice::OpenModeFlag mode)
   return result;
 }
 
-int CConcordeSinogram::fileType() const
+CConcordeFile::FileType CConcordeSinogram::fileType() const
 { 
   return CConcordeFile::ConcordeMicropet_Sinogram;
 }

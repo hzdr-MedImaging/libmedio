@@ -58,7 +58,7 @@ class CECATFile : public CMedIOData
     static CMedIOData* createFromFile(const QString& fileName);
 
     // runtime type information
-    int rtti() const;
+    CMedIOData::Format dataFormat() const;
   
     // the file open/close methods
     bool open(QIODevice::OpenModeFlag mode);

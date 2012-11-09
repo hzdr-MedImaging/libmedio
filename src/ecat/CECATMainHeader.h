@@ -87,8 +87,8 @@ class CECATMainHeader : public CMedIOHeader
     virtual int rtti() const = 0;
     CMedIOHeader::Format headerFormat() const;
 
-    // try to convert the given medio header in this header type
-    virtual bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL) = 0;
+    // conversion methods
+    virtual bool convertFrom(const CMedIOHeader* pHead) = 0;
     
     // create a new medio header of the same type as pSrc and
     // copy all meta information

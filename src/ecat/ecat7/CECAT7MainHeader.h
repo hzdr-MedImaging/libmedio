@@ -101,8 +101,10 @@ class CECAT7MainHeader : public CECATMainHeader
     int rtti() const;
 
     // clone methods
-    virtual bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL);
-    virtual CMedIOHeader* clone() const;
+    CMedIOHeader* clone() const;
+
+    // conversion methods
+    bool convertFrom(const CMedIOHeader* pHead);
 
     // accessor Methods
     const char* magic_Number(void) const;

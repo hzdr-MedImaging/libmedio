@@ -97,7 +97,7 @@ CECATFile::~CECATFile()
   LEAVE();
 }
 
-int CECATFile::rtti() const
+CMedIOData::Format CECATFile::dataFormat() const
 { 
   return CMedIOData::ECAT;
 }

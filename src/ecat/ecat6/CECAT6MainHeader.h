@@ -68,8 +68,10 @@ class CECAT6MainHeader : public CECATMainHeader
     int rtti() const;
 
     // clone methods
-    bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL);
     CMedIOHeader* clone() const;
+
+    // conversion methods
+    bool convertFrom(const CMedIOHeader* pHead);
 
     // accessor Methods
     const char* original_File_Name(void) const;

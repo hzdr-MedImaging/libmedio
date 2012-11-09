@@ -49,7 +49,12 @@ class CConcordeMainHeaderSinogram : public CConcordeMainHeader
     CConcordeMainHeaderSinogram(CConcordeFile* file = NULL);
 
     unsigned int frameSize();
+
+    // clone methods
     CMedIOHeader* clone() const;
+
+    // conversion methods
+    bool convertFrom(const CMedIOHeader* pHead);
 };
 
 #endif

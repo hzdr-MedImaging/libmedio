@@ -42,7 +42,6 @@
 CMedIOData::CMedIOData(const QString& fileName)
   : QFile(fileName)
 {
-  //m_pHeader = NULL;
   m_iErrStatus = MERR_Ok;
 }
 
@@ -54,8 +53,7 @@ CMedIOData::CMedIOData(const QString& fileName)
 ////////////////////////////////////////////////////////////////////////////////
 CMedIOData::~CMedIOData()
 {
-  //if(m_pHeader)
-  //  delete m_pHeader;
+
 }
 
 //! @brief for querying error status information
@@ -63,4 +61,12 @@ CMedIOData::~CMedIOData()
 int CMedIOData::errorStatus(void) const
 { 
   return m_iErrStatus;
+}
+
+int CMedIOData::userRtti() const
+{
+  ENTER();
+
+  RETURN(-1);
+  return -1;
 }

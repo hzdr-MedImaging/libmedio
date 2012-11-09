@@ -837,6 +837,7 @@ bool CPhilipsDirectoryItem::writeMatrix(const char* matrixData, unsigned int mat
     STOPCLOCK("byteswap");
   }
 
+#if 1
   // we always compress the data before we write it out to the file
   STARTCLOCK("compress");
 
@@ -844,7 +845,7 @@ bool CPhilipsDirectoryItem::writeMatrix(const char* matrixData, unsigned int mat
   QByteArray uncompressedData = QByteArray::fromRawData(matrixData, matrixSize);
 
   // lets compress the data
-  QByteArray compressedData = qCompress(uncompressedData);
+  QByteArray compressedData = qCompress(uncompressedData, 1);
 
   // the qCompress() of Qt4 adds the final size of the uncompressed
   // data to the first 4 bytes of the compressedData array. We need
@@ -858,6 +859,11 @@ bool CPhilipsDirectoryItem::writeMatrix(const char* matrixData, unsigned int mat
   m_pData->compressionFlag = CPhilipsDirectoryItem::Compressed;
 
   STOPCLOCK("compress");
+#else
+
+  QByteArray compressedData = QByteArray::fromRawData(matrixData, matrixSize);
+
+#endif
  
   // finally we write out the whole matrixData in one single run.
   if(m_pData->file->write(compressedData) == (qint64)matrixSize)
@@ -880,7 +886,7 @@ bool CPhilipsDirectoryItem::writeMatrix(const char* matrixData, unsigned int mat
       char fillData[fillLen];
 
       memset(fillData, 0, fillLen*sizeof(char));
-
+W("before: %ld", m_pData->file->pos());
       if(m_pData->file->write(fillData, fillLen) != (qint64)fillLen)
       {
         result = false;
@@ -888,8 +894,8 @@ bool CPhilipsDirectoryItem::writeMatrix(const char* matrixData, unsigned int mat
       }
       else
       {
-        matrixSize += fillLen;
         W("matrixSize(%d) %% PHILIPS_BLOCKSIZE(%d) != 0 - added %d NULL bytes", matrixSize, PHILIPS_BLOCKSIZE, fillLen);
+        matrixSize += fillLen;
       }
     }
 
@@ -897,6 +903,7 @@ bool CPhilipsDirectoryItem::writeMatrix(const char* matrixData, unsigned int mat
     {
       // at the end of our operation we calculate the new EndPosition
       m_pData->dataBlock_End = m_pData->dataBlock_Start+subHeader.rawDataSize()+matrixSize-PHILIPS_BLOCKSIZE;
+      W("pos: %ld %ld %ld", m_pData->file->pos(), m_pData->dataBlock_End, subHeader.rawDataSize());
       m_pData->contentFlag = CPhilipsDirectoryItem::Used;
     }
   }

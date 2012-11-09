@@ -476,57 +476,46 @@ CMedIOHeader* CConcordeFrameHeader::clone() const
   return pTmp;
 }
 
-bool CConcordeFrameHeader::convertFrom(const CMedIOHeader* srcMainHeader, const CMedIOHeader*)
+bool CConcordeFrameHeader::convertFrom(const CMedIOHeader* pHead)
 {
-  bool bResult = false;
-  if(srcMainHeader)
-    bResult = copyData(srcMainHeader);
-  return bResult;
-}
-
-bool CConcordeFrameHeader::copyData(const CMedIOHeader* src)
-{
-  bool bResult = false;
   ENTER();
-  if(src)
+  bool bResult = false;
+
+  if(pHead != NULL)
   {
-    switch(src->headerFormat())
+    switch(pHead->headerFormat())
     {
       case CMedIOHeader::ConcordeMicroPetFrameHeader:
       {
-        m_pData->header.frame = static_cast<const CConcordeFrameHeader*>(src)->m_pData->header.frame;
-        m_pData->header.event_type = static_cast<const CConcordeFrameHeader*>(src)->m_pData->header.event_type;
-        m_pData->header.gate = static_cast<const CConcordeFrameHeader*>(src)->m_pData->header.gate;
-        m_pData->header.bed = static_cast<const CConcordeFrameHeader*>(src)->m_pData->header.bed;
-        m_pData->header.bed_offset = static_cast<const CConcordeFrameHeader*>(src)->m_pData->header.bed_offset;
-        m_pData->header.ending_bed_offset = static_cast<const CConcordeFrameHeader*>(src)->m_pData->header.ending_bed_offset;
-        m_pData->header.vertical_bed_offset = static_cast<const CConcordeFrameHeader*>(src)->m_pData->header.vertical_bed_offset;
-        m_pData->header.data_file_pointer = static_cast<const CConcordeFrameHeader*>(src)->m_pData->header.data_file_pointer;
-        m_pData->header.frame_start = static_cast<const CConcordeFrameHeader*>(src)->m_pData->header.frame_start;
-        m_pData->header.frame_duration = static_cast<const CConcordeFrameHeader*>(src)->m_pData->header.frame_duration;
-        m_pData->header.scale_factor = static_cast<const CConcordeFrameHeader*>(src)->m_pData->header.scale_factor;
-        m_pData->header.minimum = static_cast<const CConcordeFrameHeader*>(src)->m_pData->header.minimum;
-        m_pData->header.maximum = static_cast<const CConcordeFrameHeader*>(src)->m_pData->header.maximum;
-        m_pData->header.deadtime_correction = static_cast<const CConcordeFrameHeader*>(src)->m_pData->header.deadtime_correction;
-        m_pData->header.decay_correction = static_cast<const CConcordeFrameHeader*>(src)->m_pData->header.decay_correction;
-        m_pData->header.prompts = static_cast<const CConcordeFrameHeader*>(src)->m_pData->header.prompts;
-        m_pData->header.delays = static_cast<const CConcordeFrameHeader*>(src)->m_pData->header.delays;
-        m_pData->header.trues = static_cast<const CConcordeFrameHeader*>(src)->m_pData->header.trues;
-        m_pData->header.prompts_rate = static_cast<const CConcordeFrameHeader*>(src)->m_pData->header.prompts_rate;
-        m_pData->header.delays_rate = static_cast<const CConcordeFrameHeader*>(src)->m_pData->header.delays_rate;
-        memcpy(m_pData->header.singles, static_cast<const CConcordeFrameHeader*>(src)->m_pData->header.singles, 168*sizeof(float));
-        memcpy(m_pData->header.rawsingles, static_cast<const CConcordeFrameHeader*>(src)->m_pData->header.rawsingles, 168*sizeof(float));
+        m_pData->header.frame = static_cast<const CConcordeFrameHeader*>(pHead)->m_pData->header.frame;
+        m_pData->header.event_type = static_cast<const CConcordeFrameHeader*>(pHead)->m_pData->header.event_type;
+        m_pData->header.gate = static_cast<const CConcordeFrameHeader*>(pHead)->m_pData->header.gate;
+        m_pData->header.bed = static_cast<const CConcordeFrameHeader*>(pHead)->m_pData->header.bed;
+        m_pData->header.bed_offset = static_cast<const CConcordeFrameHeader*>(pHead)->m_pData->header.bed_offset;
+        m_pData->header.ending_bed_offset = static_cast<const CConcordeFrameHeader*>(pHead)->m_pData->header.ending_bed_offset;
+        m_pData->header.vertical_bed_offset = static_cast<const CConcordeFrameHeader*>(pHead)->m_pData->header.vertical_bed_offset;
+        m_pData->header.data_file_pointer = static_cast<const CConcordeFrameHeader*>(pHead)->m_pData->header.data_file_pointer;
+        m_pData->header.frame_start = static_cast<const CConcordeFrameHeader*>(pHead)->m_pData->header.frame_start;
+        m_pData->header.frame_duration = static_cast<const CConcordeFrameHeader*>(pHead)->m_pData->header.frame_duration;
+        m_pData->header.scale_factor = static_cast<const CConcordeFrameHeader*>(pHead)->m_pData->header.scale_factor;
+        m_pData->header.minimum = static_cast<const CConcordeFrameHeader*>(pHead)->m_pData->header.minimum;
+        m_pData->header.maximum = static_cast<const CConcordeFrameHeader*>(pHead)->m_pData->header.maximum;
+        m_pData->header.deadtime_correction = static_cast<const CConcordeFrameHeader*>(pHead)->m_pData->header.deadtime_correction;
+        m_pData->header.decay_correction = static_cast<const CConcordeFrameHeader*>(pHead)->m_pData->header.decay_correction;
+        m_pData->header.prompts = static_cast<const CConcordeFrameHeader*>(pHead)->m_pData->header.prompts;
+        m_pData->header.delays = static_cast<const CConcordeFrameHeader*>(pHead)->m_pData->header.delays;
+        m_pData->header.trues = static_cast<const CConcordeFrameHeader*>(pHead)->m_pData->header.trues;
+        m_pData->header.prompts_rate = static_cast<const CConcordeFrameHeader*>(pHead)->m_pData->header.prompts_rate;
+        m_pData->header.delays_rate = static_cast<const CConcordeFrameHeader*>(pHead)->m_pData->header.delays_rate;
+        memcpy(m_pData->header.singles, static_cast<const CConcordeFrameHeader*>(pHead)->m_pData->header.singles, 168*sizeof(float));
+        memcpy(m_pData->header.rawsingles, static_cast<const CConcordeFrameHeader*>(pHead)->m_pData->header.rawsingles, 168*sizeof(float));
+
         bResult = true;
-      }
-      break;
-      default:
-      {
-        E("File format not supported yet");
-        bResult = false;
       }
       break;
     }
   }
+
   RETURN(bResult);
   return bResult;
 }

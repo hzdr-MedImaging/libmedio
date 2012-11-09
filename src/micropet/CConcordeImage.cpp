@@ -67,7 +67,7 @@ bool CConcordeImage::open(QIODevice::OpenModeFlag mode)
   return result;
 }
 
-int CConcordeImage::fileType() const
+CConcordeFile::FileType CConcordeImage::fileType() const
 {
   return CConcordeFile::ConcordeMicropet_Image;
 }

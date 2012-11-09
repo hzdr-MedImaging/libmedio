@@ -96,9 +96,9 @@ class CConcordeFile : public CMedIOData
 
     //! @brief run time typeinformation  
     //! @return specific class type at runtime
-    int rtti() const;
+    CMedIOData::Format dataFormat() const;
 
-    virtual int fileType() const = 0;
+    virtual CConcordeFile::FileType fileType() const = 0;
 
     //! @brief checks format of file  
     //! @return specific format or Unknown if unknown or error

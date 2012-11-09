@@ -49,7 +49,12 @@ class CConcordeMainHeaderImage : public CConcordeMainHeader
     CConcordeMainHeaderImage(CConcordeFile* file);
 
     unsigned int frameSize();
+
+    // clone methods
     CMedIOHeader* clone() const;
+
+    // conversion methods
+    bool convertFrom(const CMedIOHeader* pHead);
 };
 
 #endif

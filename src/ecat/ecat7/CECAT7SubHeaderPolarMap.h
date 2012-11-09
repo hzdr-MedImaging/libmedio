@@ -75,8 +75,10 @@ class CECAT7SubHeaderPolarMap : public CECATSubHeader
     CECATSubHeader::Type subHeaderType(void) const;
 
     // clone methods
-    bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL);
     CMedIOHeader* clone() const;
+
+    // conversion methods
+    bool convertFrom(const CMedIOHeader* pHead);
   
     // data access methods
     CECATSubHeader::Data_Type data_Type(void) const;

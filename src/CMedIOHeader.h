@@ -85,7 +85,10 @@ class CMedIOHeader
 
     //! @brief try to convert the given medio header in this header type
     //! @return true for success; false for failure
-    virtual bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL) = 0;
+    virtual bool convertFrom(const CMedIOHeader* pHead) = 0;
+
+    //! @brief for conversion based on an input file
+    virtual bool convertFrom(CMedIOData* pData);
 
     //! @brief user defined rtti
     //! @return user defined rtti if defined else -1

@@ -361,7 +361,6 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
     cout << "OutputFile: " << QFileInfo(m_sOutputFileName).absoluteFilePath().toAscii().constData() << endl;
 
     pEcat7ImageHeader = static_cast<CECAT7MainHeader*>(pEcat7Image->createEmptyMainHeader());
-
     if(pEcat7ImageHeader != NULL)
     {
       CPhilipsSubHeader* pPhilipsSubHeader = NULL;
@@ -370,8 +369,9 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
       // for converting the main header
       pPhilipsFile->readSubHeader(pPhilipsSubHeader);
 
-      // convert the philips main header into an ECAT main header
-      pEcat7ImageHeader->convertFrom(pPhilipsMainHeader, pPhilipsSubHeader);
+      // convert the philips main header into an ECAT main header using
+      // the link to the file
+      static_cast<CMedIOHeader*>(pEcat7ImageHeader)->convertFrom(pPhilipsFile);
 
       // delete the sub header right away
       delete pPhilipsSubHeader;
@@ -472,7 +472,9 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
         {
           CECAT7SubHeaderImage* pEcat7SubHeaderImage;
           pEcat7SubHeaderImage = static_cast<CECAT7SubHeaderImage*>(pEcat7Image->createEmptySubHeader());
-          pEcat7SubHeaderImage->convertFrom(pPhilipsSubHeaderImage, pPhilipsMainHeader);
+
+          // convert the philips data into a working ecat sub header
+          static_cast<CMedIOHeader*>(pEcat7SubHeaderImage)->convertFrom(pPhilipsFile);
 
           D("imgMin: %d", imgMinValue);
           D("imgMax: %d", imgMaxValue);
@@ -598,7 +600,25 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
     pPhilipsMainHeader = pPhilipsFile->createEmptyMainHeader();
     if(pPhilipsMainHeader != NULL)
     {
-      pPhilipsMainHeader->convertFrom(pEcat7ImageHeader);
+      // convert the ecat image into a working philips main header
+      static_cast<CMedIOHeader*>(pPhilipsMainHeader)->convertFrom(pEcat7Image);
+
+          CPhilipsFile file2("lor_uncompress.img");
+          file2.open(QIODevice::ReadOnly);
+          CPhilipsMainHeader* fileHeader;
+          file2.readMainHeader(fileHeader);
+
+          //*pPhilipsMainHeader = *fileHeader;
+
+          // copy some tags which might be missing
+          pPhilipsMainHeader->setNumray(144);
+          pPhilipsMainHeader->setNumang(144);
+          //pPhilipsMainHeader->setDmax(576);
+          //pPhilipsMainHeader->setDline(576);
+          //pPhilipsMainHeader->setAngmax(10.0);
+
+          file2.close();
+
 
       int numFrames = pEcat7Image->numFrames();
       if(numFrames > NUMFRAMESLIMIT)
@@ -657,7 +677,9 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
 
           // now convert the subheader
           CPhilipsSubHeaderImage* pPhilipsSubHeaderImage = static_cast<CPhilipsSubHeaderImage*>(pPhilipsFile->createEmptySubHeader());
-          pPhilipsSubHeaderImage->convertFrom(pECATSubHeaderImage, pEcat7ImageHeader);
+
+          // convert the ECAT data into a sensible philips sub header
+          static_cast<CMedIOHeader*>(pPhilipsSubHeaderImage)->convertFrom(pEcat7Image);
 
           // get dimensions of data
           short xDim = pECATSubHeaderImage->x_Dimension();

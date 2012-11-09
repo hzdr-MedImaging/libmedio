@@ -175,7 +175,7 @@ CMedIOData* CPhilipsFile::createFromFile(const QString& fileName)
   return mData;
 }
 
-int CPhilipsFile::rtti() const
+CMedIOData::Format CPhilipsFile::dataFormat() const
 {
   return CMedIOData::Philips;
 }

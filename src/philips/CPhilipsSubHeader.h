@@ -116,7 +116,7 @@ class CPhilipsSubHeader : public CMedIOHeader
     virtual CPhilipsSubHeader::Type subHeaderType(void) const = 0;
 
     // convertFrom() method
-    bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2);
+    bool convertFrom(const CMedIOHeader* pHead);
 
     // internal method to set the directory Item of a subHeader
     void setDirectoryItem(CPhilipsDirectoryItem* dItem);

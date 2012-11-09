@@ -205,7 +205,7 @@ void CPhilipsSubHeader::clear()
   m_pData->header.magic_number[10] = 0x00;
   m_pData->header.magic_number[11] = 0x3E;
   m_pData->header.magic_number[12] = 0x00;
-  m_pData->header.magic_number[13] = 0x3F;
+  m_pData->header.magic_number[13] = 0x4F;
 
   m_pData->header.dummy1[0] = 0x00;
   m_pData->header.dummy1[1] = 0x25;
@@ -642,18 +642,18 @@ bool CPhilipsSubHeader::save(void) const
   return result;
 }
 
-bool CPhilipsSubHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2)
+bool CPhilipsSubHeader::convertFrom(const CMedIOHeader* pHead)
 {
   ENTER();
   bool bResult = false;
 
   // depending on the MedIOHeader format we do have to 
   // distinguish between our copy operations.
-  switch(pHead1->headerFormat())
+  switch(pHead->headerFormat())
   {
     case CMedIOHeader::ECATSubHeader:
     {
-      const CECATSubHeader* eSubHeader = static_cast<const CECATSubHeader*>(pHead1);
+      const CECATSubHeader* eSubHeader = static_cast<const CECATSubHeader*>(pHead);
 
       // depending on the source type we have to copy either every data or just 
       // some data of the src header
@@ -662,10 +662,7 @@ bool CPhilipsSubHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHead
         // if the source header is an ECAT7 image subheader we convert as much as possible
         case CECATSubHeader::ECAT7_Image:
         {
-          const CECAT7SubHeaderImage* header = static_cast<const CECAT7SubHeaderImage*>(pHead1);
-
-          // clear up anything
-          clear();
+          const CECAT7SubHeaderImage* header = static_cast<const CECAT7SubHeaderImage*>(pHead);
 
           // convert now
           CPhilipsSubHeader::Data_Type dtype = CPhilipsSubHeader::UnknownDataType;

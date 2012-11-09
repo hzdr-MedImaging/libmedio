@@ -1530,18 +1530,18 @@ CMedIOHeader::Format CPhilipsMainHeader::headerFormat() const
   return CMedIOHeader::PhilipsMainHeader;
 }
 
-bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2) 
+bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* pHead) 
 {
   ENTER();
   bool bResult = false;
 
   // depending on the MedIOHeader format we do have to 
   // distinguish between our copy operations.
-  switch(pHead1->headerFormat())
+  switch(pHead->headerFormat())
   {
     case CMedIOHeader::ECATMainHeader:
     {
-      const CECATMainHeader* eMainHeader = static_cast<const CECATMainHeader*>(pHead1);
+      const CECATMainHeader* eMainHeader = static_cast<const CECATMainHeader*>(pHead);
 
       // depending on the source type we have to copy either every data or just 
       // some data of the src header
@@ -1551,10 +1551,7 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* pHead1, const CMedIOHea
         // via a simple memcpy()
         case CECATMainHeader::ECAT7MainHeader:
         {
-          const CECAT7MainHeader* header = static_cast<const CECAT7MainHeader*>(pHead1);
-
-          // clear everything first
-          clear();
+          const CECAT7MainHeader* header = static_cast<const CECAT7MainHeader*>(pHead);
 
           // now convert
           CPhilipsMainHeader::File_Type fileType = CPhilipsMainHeader::Unknown;
@@ -2884,7 +2881,7 @@ bool CPhilipsMainHeaderPrivate::ecat2philipsSex(const CECAT7MainHeader::Patient_
     break;
 
     case CECAT7MainHeader::Sex_Unknown:
-      extHeader.sex = 'U';
+      extHeader.sex = 'O';
     break;
  }
 

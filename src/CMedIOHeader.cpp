@@ -24,12 +24,14 @@
 
 //! @file CMedIOHeader.cpp
 //! @brief contains the implementation of the class CMedIOHeader
-//! @author Hagen Moelle
 
 #include "CMedIOHeader.h"
 #include "CMedIOData.h"
+#include "CECATFile.h"
+#include "CPhilipsFile.h"
 
 #include <rtdebug.h>
+#include <iostream>
 
 CMedIOHeader::CMedIOHeader(CMedIOData* data)
   : m_pMedIOData(data)
@@ -86,4 +88,62 @@ int CMedIOHeader::userRtti() const
  
   RETURN(-1);
   return -1;
+}
+
+bool CMedIOHeader::convertFrom(CMedIOData* pData)
+{
+  ENTER();
+  bool result = false;
+
+  // check if the file opened for reading, if not do it
+  if(pData->isReadable())
+  {
+    switch(pData->dataFormat())
+    {
+      case CMedIOData::ECAT:
+      {
+        CECATFile* ecatFile = static_cast<CECATFile*>(pData);
+
+        // convert the main header
+        CECATMainHeader* mainHeader;
+        if(ecatFile->readMainHeader(mainHeader))
+          convertFrom(mainHeader);
+
+        // convert the sub header
+        CECATSubHeader* subHeader;
+        if(ecatFile->readSubHeader(subHeader, 1))
+          convertFrom(subHeader);
+
+        delete mainHeader;
+        delete subHeader;
+
+        result = true;
+      }
+      break;
+
+      case CMedIOData::Philips:
+      {
+        CPhilipsFile* philipsFile = static_cast<CPhilipsFile*>(pData);
+
+        // convert the main header
+        CPhilipsMainHeader* mainHeader;
+        if(philipsFile->readMainHeader(mainHeader))
+          convertFrom(mainHeader);
+
+        // convert the sub header
+        CPhilipsSubHeader* subHeader;
+        if(philipsFile->readSubHeader(subHeader))
+          convertFrom(subHeader);
+
+        delete mainHeader;
+        delete subHeader;
+
+        result = true;
+      }
+      break;
+    }
+  }
+
+  RETURN(result);
+  return result;
 }

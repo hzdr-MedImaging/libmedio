@@ -74,8 +74,10 @@ class CECAT7SubHeaderScan3D : public CECATSubHeader
     CECATSubHeader::Type subHeaderType(void) const;
 
     // clone methods
-    bool convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader* pHead2 = NULL);
     CMedIOHeader* clone() const;
+
+    // conversion methods
+    bool convertFrom(const CMedIOHeader* pHead);
     
     // methods to access elements of the SubHeader
     CECATSubHeader::Data_Type data_Type(void)  const;

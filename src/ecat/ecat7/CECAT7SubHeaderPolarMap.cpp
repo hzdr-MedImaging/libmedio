@@ -333,18 +333,18 @@ CECATSubHeader::Type CECAT7SubHeaderPolarMap::subHeaderType(void) const
   return CECATSubHeader::ECAT7_PolarMap;
 }
 
-bool CECAT7SubHeaderPolarMap::convertFrom(const CMedIOHeader* pHead1, const CMedIOHeader*) 
+bool CECAT7SubHeaderPolarMap::convertFrom(const CMedIOHeader* pHead) 
 {
   ENTER();
-
   bool bResult = false;
+
   // depending on the MedIOHeader format we do have to 
   // distinguish between our copy operations.
-  switch(pHead1->headerFormat())
+  switch(pHead->headerFormat())
   {
     case CMedIOHeader::ECATSubHeader:
     {
-      const CECATSubHeader* eSubHeader = static_cast<const CECATSubHeader*>(pHead1);
+      const CECATSubHeader* eSubHeader = static_cast<const CECATSubHeader*>(pHead);
 
       // depending on the source type we have to copy either every data or just 
       // some data of the src header
@@ -356,7 +356,7 @@ bool CECAT7SubHeaderPolarMap::convertFrom(const CMedIOHeader* pHead1, const CMed
         {
           // we use the assignment operator which will do the convertation
           // for us.
-          *this = *static_cast<const CECAT7SubHeaderPolarMap*>(pHead1);
+          *this = *static_cast<const CECAT7SubHeaderPolarMap*>(pHead);
 
           bResult = true;
         }
