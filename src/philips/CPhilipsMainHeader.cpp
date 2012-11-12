@@ -1530,18 +1530,18 @@ CMedIOHeader::Format CPhilipsMainHeader::headerFormat() const
   return CMedIOHeader::PhilipsMainHeader;
 }
 
-bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* pHead) 
+bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOHeader* subHeader) 
 {
   ENTER();
   bool bResult = false;
 
   // depending on the MedIOHeader format we do have to 
   // distinguish between our copy operations.
-  switch(pHead->headerFormat())
+  switch(mainHeader->headerFormat())
   {
     case CMedIOHeader::ECATMainHeader:
     {
-      const CECATMainHeader* eMainHeader = static_cast<const CECATMainHeader*>(pHead);
+      const CECATMainHeader* eMainHeader = static_cast<const CECATMainHeader*>(mainHeader);
 
       // depending on the source type we have to copy either every data or just 
       // some data of the src header
@@ -1551,7 +1551,7 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* pHead)
         // via a simple memcpy()
         case CECATMainHeader::ECAT7MainHeader:
         {
-          const CECAT7MainHeader* header = static_cast<const CECAT7MainHeader*>(pHead);
+          const CECAT7MainHeader* header = static_cast<const CECAT7MainHeader*>(mainHeader);
 
           // now convert
           CPhilipsMainHeader::File_Type fileType = CPhilipsMainHeader::Unknown;

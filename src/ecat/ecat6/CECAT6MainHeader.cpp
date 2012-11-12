@@ -444,18 +444,18 @@ int CECAT6MainHeader::rtti() const
   return CECATMainHeader::ECAT6MainHeader;
 }
 
-bool CECAT6MainHeader::convertFrom(const CMedIOHeader* pHead)
+bool CECAT6MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOHeader* subHeader)
 {
   ENTER();
   bool bResult = false;
 
   // depending on the MedIOHeader format we do have to 
   // distinguish between our copy operations.
-  switch(pHead->headerFormat())
+  switch(mainHeader->headerFormat())
   {
     case CMedIOHeader::ECATMainHeader:
     {
-      const CECATMainHeader* eMainHeader = static_cast<const CECATMainHeader*>(pHead);
+      const CECATMainHeader* eMainHeader = static_cast<const CECATMainHeader*>(mainHeader);
 
       // depending on the source type we have to copy either every data or just 
       // some data of the src header
@@ -467,7 +467,7 @@ bool CECAT6MainHeader::convertFrom(const CMedIOHeader* pHead)
         {
           // we use the assignment operator which will do the convertation
           // for us.
-          *this = *static_cast<const CECAT6MainHeader*>(pHead);
+          *this = *static_cast<const CECAT6MainHeader*>(mainHeader);
 
           bResult = true;
         }
@@ -477,7 +477,7 @@ bool CECAT6MainHeader::convertFrom(const CMedIOHeader* pHead)
         // some information is missing in one of the headers.
         case CECATMainHeader::ECAT7MainHeader:
         {
-          const CECAT7MainHeader* e7src = static_cast<const CECAT7MainHeader*>(pHead);
+          const CECAT7MainHeader* e7src = static_cast<const CECAT7MainHeader*>(mainHeader);
           clear();
           setOriginal_File_Name(e7src->original_File_Name());
           setSystem_Type(e7src->system_Type());

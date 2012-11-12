@@ -29,6 +29,9 @@
 #include "CMedIOData.h"
 #include "CECATFile.h"
 #include "CPhilipsFile.h"
+#include "CConcordeFile.h"
+#include "CConcordeMainHeader.h"
+#include "CConcordeFrameHeader.h"
 
 #include <rtdebug.h>
 #include <iostream>
@@ -103,16 +106,18 @@ bool CMedIOHeader::convertFrom(CMedIOData* pData)
       case CMedIOData::ECAT:
       {
         CECATFile* ecatFile = static_cast<CECATFile*>(pData);
-
-        // convert the main header
         CECATMainHeader* mainHeader;
-        if(ecatFile->readMainHeader(mainHeader))
-          convertFrom(mainHeader);
-
-        // convert the sub header
         CECATSubHeader* subHeader;
-        if(ecatFile->readSubHeader(subHeader, 1))
-          convertFrom(subHeader);
+
+        // read the main and sub header
+        ecatFile->readMainHeader(mainHeader);
+        ecatFile->readSubHeader(subHeader);
+
+        // convert in one operation
+        if(isMainHeader())
+          convertFrom(mainHeader, subHeader);
+        else
+          convertFrom(subHeader, mainHeader);
 
         delete mainHeader;
         delete subHeader;
@@ -124,16 +129,41 @@ bool CMedIOHeader::convertFrom(CMedIOData* pData)
       case CMedIOData::Philips:
       {
         CPhilipsFile* philipsFile = static_cast<CPhilipsFile*>(pData);
-
-        // convert the main header
         CPhilipsMainHeader* mainHeader;
-        if(philipsFile->readMainHeader(mainHeader))
-          convertFrom(mainHeader);
-
-        // convert the sub header
         CPhilipsSubHeader* subHeader;
-        if(philipsFile->readSubHeader(subHeader))
-          convertFrom(subHeader);
+
+        // read the main and subheader
+        philipsFile->readMainHeader(mainHeader);
+        philipsFile->readSubHeader(subHeader);
+
+        // convert in one operation
+        if(isMainHeader())
+          convertFrom(mainHeader, subHeader);
+        else
+          convertFrom(subHeader, mainHeader);
+
+        delete mainHeader;
+        delete subHeader;
+
+        result = true;
+      }
+      break;
+
+      case CMedIOData::ConcordeMicropet:
+      { 
+        CConcordeFile* concordeFile = static_cast<CConcordeFile*>(pData);
+        CConcordeMainHeader* mainHeader;
+        CConcordeFrameHeader* subHeader;
+
+        // read the main and subheader
+        concordeFile->readMainHeader(mainHeader);
+        concordeFile->readSubHeader(subHeader, 1);
+
+        // convert in one operation
+        if(isMainHeader())
+          convertFrom(mainHeader, subHeader);
+        else
+          convertFrom(subHeader, mainHeader);
 
         delete mainHeader;
         delete subHeader;
@@ -144,6 +174,35 @@ bool CMedIOHeader::convertFrom(CMedIOData* pData)
     }
   }
 
+  RETURN(result);
+  return result;
+}
+
+bool CMedIOHeader::isMainHeader(void) const
+{
+  ENTER();
+  bool result = false;
+
+  switch(headerFormat())
+  {
+    case CMedIOHeader::Unknown:
+      // nothing
+    break;
+
+    case CMedIOHeader::ConcordeMicroPetMainHeader:
+    case CMedIOHeader::ECATMainHeader:
+    case CMedIOHeader::PhilipsMainHeader:
+      result = true;
+    break;
+    
+    case CMedIOHeader::ConcordeMicroPetFrameHeader:
+    case CMedIOHeader::ECATSubHeader:
+    case CMedIOHeader::PhilipsSubHeader:
+    case CMedIOHeader::PhilipsListviewHeader:
+      result = false;
+    break;
+  }
+  
   RETURN(result);
   return result;
 }

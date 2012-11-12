@@ -802,18 +802,18 @@ int CECAT7MainHeader::rtti() const
   return CECATMainHeader::ECAT7MainHeader;
 }
 
-bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead) 
+bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOHeader* subHeader)
 {
   ENTER();
   bool bResult = false;
 
   // depending on the MedIOHeader format we do have to 
   // distinguish between our copy operations.
-  switch(pHead->headerFormat())
+  switch(mainHeader->headerFormat())
   {
     case CMedIOHeader::ECATMainHeader:
     {
-      const CECATMainHeader* eMainHeader = static_cast<const CECATMainHeader*>(pHead);
+      const CECATMainHeader* eMainHeader = static_cast<const CECATMainHeader*>(mainHeader);
 
       // depending on the source type we have to copy either every data or just 
       // some data of the src header
@@ -825,7 +825,7 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead)
         {
           // we use the assignment operator which will do the convertation
           // for us.
-          *this = *static_cast<const CECAT7MainHeader*>(pHead);
+          *this = *static_cast<const CECAT7MainHeader*>(mainHeader);
           
           bResult = true;
         }
@@ -835,7 +835,7 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead)
         // some information is missing in one of the headers.
         case CECATMainHeader::ECAT6MainHeader:
         {
-          const CECAT6MainHeader* e6src = static_cast<const CECAT6MainHeader*>(pHead);
+          const CECAT6MainHeader* e6src = static_cast<const CECAT6MainHeader*>(mainHeader);
           clear();
           setOriginal_File_Name(e6src->original_File_Name());
           setSystem_Type(e6src->system_Type());
@@ -857,10 +857,12 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead)
 
     case CMedIOHeader::ConcordeMicroPetMainHeader:
     {
+      const CConcordeMainHeader* head = static_cast<const CConcordeMainHeader*>(mainHeader);
+      const CConcordeFrameHeader* frame = static_cast<const CConcordeFrameHeader*>(subHeader);
+
       // we have to save the filetype
       CECAT7MainHeader::File_Type ft = file_Type();
-      const CConcordeMainHeader* head = static_cast<const CConcordeMainHeader*>(pHead);
-      clear();
+
       // now set the old filetype again
       setFile_Type(ft);
       setOriginal_File_Name(QFileInfo(head->fileName()).fileName().toAscii());
@@ -906,14 +908,6 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead)
       setData_Units(m_pData->concorde2ECAT7dataUnits(head->calibrationUnits()).toAscii());
       setCalibration_Units(m_pData->concorde2ECAT7calibrationUnits(head->calibrationUnits()));
       
-      bResult = true;
-    }
-    break;
-
-    case CMedIOHeader::ConcordeMicroPetFrameHeader:
-    {
-      const CConcordeFrameHeader* frame = static_cast<const CConcordeFrameHeader*>(pHead);
-      
       setInit_Bed_Position(frame->bedOffset());
       setBed_Elevation(frame->verticalBedOffset());
 
@@ -924,11 +918,9 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead)
     case CMedIOHeader::PhilipsMainHeader:
     {
       // we have to save the filetype
+      const CPhilipsMainHeader* head = static_cast<const CPhilipsMainHeader*>(mainHeader);
+      const CPhilipsSubHeaderImage* subHead = static_cast<const CPhilipsSubHeaderImage*>(subHeader);
       CECAT7MainHeader::File_Type ft = file_Type();
-      const CPhilipsMainHeader* head = static_cast<const CPhilipsMainHeader*>(pHead);
-
-      // clear the main header first
-      clear();
 
       // now set the old filetype again
       setFile_Type(ft);
@@ -1001,17 +993,9 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead)
       setDose_Start_Time(head->injection_date_time());
       setDosage(head->activity() * 1000000.0f);      // MBq -> Bq
 
-      setData_Units("N/A");
+      setData_Units("");
       setCalibration_Units(CECAT7MainHeader::Uncalibrated);
 
-      bResult = true;
-    }
-    break;
-
-    case CMedIOHeader::PhilipsSubHeader:
-    {
-      const CPhilipsSubHeaderImage* subHead = static_cast<const CPhilipsSubHeaderImage*>(pHead);
-    
       if(subHead->suvscl() != 0.0f)
       {
         setData_Units("Bq/ml");
@@ -1020,7 +1004,7 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* pHead)
       }
       else
       {
-        setData_Units("N/A");
+        setData_Units("");
         setCalibration_Units(CECAT7MainHeader::Uncalibrated);
       }
 

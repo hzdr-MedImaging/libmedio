@@ -52,9 +52,6 @@ class CConcordeMainHeaderImage : public CConcordeMainHeader
 
     // clone methods
     CMedIOHeader* clone() const;
-
-    // conversion methods
-    bool convertFrom(const CMedIOHeader* pHead);
 };
 
 #endif

@@ -346,18 +346,18 @@ CECATSubHeader::Type CECAT7SubHeaderAttenCorr::subHeaderType(void) const
   return CECATSubHeader::ECAT7_AttenCorr;
 }
 
-bool CECAT7SubHeaderAttenCorr::convertFrom(const CMedIOHeader* pHead1) 
+bool CECAT7SubHeaderAttenCorr::convertFrom(const CMedIOHeader* subHeader, const CMedIOHeader* mainHeader) 
 {
   ENTER();
   bool bResult = false;
 
   // depending on the MedIOHeader format we do have to 
   // distinguish between our copy operations.
-  switch(pHead1->headerFormat())
+  switch(subHeader->headerFormat())
   {
     case CMedIOHeader::ECATSubHeader:
     {
-      const CECATSubHeader* eSubHeader = static_cast<const CECATSubHeader*>(pHead1);
+      const CECATSubHeader* eSubHeader = static_cast<const CECATSubHeader*>(subHeader);
 
       // depending on the source type we have to copy either every data or just 
       // some data of the src header
@@ -369,7 +369,7 @@ bool CECAT7SubHeaderAttenCorr::convertFrom(const CMedIOHeader* pHead1)
         {
           // we use the assignment operator which will do the convertation
           // for us.
-          *this = *static_cast<const CECAT7SubHeaderAttenCorr*>(pHead1);
+          *this = *static_cast<const CECAT7SubHeaderAttenCorr*>(subHeader);
           
           bResult = true;
         }
@@ -385,6 +385,7 @@ bool CECAT7SubHeaderAttenCorr::convertFrom(const CMedIOHeader* pHead1)
 
     case CMedIOHeader::ECATMainHeader:
     case CMedIOHeader::ConcordeMicroPetMainHeader:
+    case CMedIOHeader::PhilipsMainHeader:
       // copying a main header into a sub header doesn't make much sense, so we
       // do nothing here
     break;

@@ -40,6 +40,7 @@ class CPhilipsFilePrivate
   public:
     bool isPhilipsFile(CMedIOData* file) const;
     bool isPhilipsListModeFile(CPhilipsFile *file) const;
+    bool syncMainHeader(CPhilipsFile *file) const;
 
     CPhilipsMainHeader::File_Type fileType;
     CPhilipsDirectory* directory;
@@ -101,6 +102,32 @@ bool CPhilipsFilePrivate::isPhilipsListModeFile(CPhilipsFile *file) const
                 (magicNr == "LOR4") ||
                 (magicNr == "LOR8"));
     }
+  }
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsFilePrivate::syncMainHeader(CPhilipsFile* file) const
+{
+  ENTER();
+  bool result = false;
+
+  CPhilipsMainHeader* mainHeader = NULL;
+  if(file->readMainHeader(mainHeader))
+  {
+    if(mainHeader->minfrm() != file->minFrame() ||
+       mainHeader->maxfrm() != file->maxFrame() ||
+       mainHeader->minslc() != file->minSlice() ||
+       mainHeader->maxslc() != file->maxSlice() ||
+       mainHeader->ntilt()  != file->numTilts())
+    {
+      result = file->writeMainHeader(*mainHeader);
+    }
+    else
+      result = true;
+
+    delete mainHeader;
   }
 
   RETURN(result);
@@ -728,22 +755,7 @@ bool CPhilipsFile::writeSubHeader(const CPhilipsSubHeader& subHeader,
   {
     // make sure the slice/frame/tilt parameters in the mainheader
     // are in sync
-    CPhilipsMainHeader* mainHeader = NULL;
-    if(readMainHeader(mainHeader))
-    {
-      if(mainHeader->minfrm() > frame ||
-         mainHeader->maxfrm() < frame ||
-         mainHeader->minslc() > slice ||
-         mainHeader->maxslc() < slice ||
-         mainHeader->ntilt() < tilt)
-      {
-        result = writeMainHeader(*mainHeader);
-      }
-      else
-        result = true;
-
-      delete mainHeader;
-    }
+    result = m_pData->syncMainHeader(this);
   }
 
   RETURN(result);
@@ -765,22 +777,7 @@ bool CPhilipsFile::writeMatrix(const QByteArray& matrixData,
   {
     // make sure the frames/planes/gates/bedpos parameters in the mainheader
     // are in sync
-    CPhilipsMainHeader* mainHeader = NULL;
-    if(readMainHeader(mainHeader))
-    {
-      if(mainHeader->minfrm() > frame ||
-         mainHeader->maxfrm() < frame ||
-         mainHeader->minslc() > slice ||
-         mainHeader->maxslc() < slice ||
-         mainHeader->ntilt() < tilt)
-      {
-        result = writeMainHeader(*mainHeader);
-      }
-      else
-        result = true;
-
-      delete mainHeader;
-    }
+    result = m_pData->syncMainHeader(this);
   }
 
   RETURN(result);
@@ -802,22 +799,7 @@ bool CPhilipsFile::writeMatrix(const char* matrixData, unsigned int size,
   {
     // make sure the frames/planes/gates/bedpos parameters in the mainheader
     // are in sync
-    CPhilipsMainHeader* mainHeader = NULL;
-    if(readMainHeader(mainHeader))
-    {
-      if(mainHeader->minfrm() > frame ||
-         mainHeader->maxfrm() < frame ||
-         mainHeader->minslc() > slice ||
-         mainHeader->maxslc() < slice ||
-         mainHeader->ntilt() < tilt)
-      {
-        result = writeMainHeader(*mainHeader);
-      }
-      else
-        result = true;
-
-      delete mainHeader;
-    }
+    result = m_pData->syncMainHeader(this);
   }
 
   RETURN(result);
@@ -839,22 +821,7 @@ bool CPhilipsFile::writeMatrix(const QByteArray& matrixData, const CPhilipsSubHe
   {
     // make sure the frames/planes/gates/bedpos parameters in the mainheader
     // are in sync
-    CPhilipsMainHeader* mainHeader = NULL;
-    if(readMainHeader(mainHeader))
-    {
-      if(mainHeader->minfrm() > frame ||
-         mainHeader->maxfrm() < frame ||
-         mainHeader->minslc() > slice ||
-         mainHeader->maxslc() < slice ||
-         mainHeader->ntilt() < tilt)
-      {
-        result = writeMainHeader(*mainHeader);
-      }
-      else
-        result = true;
-
-      delete mainHeader;
-    }
+    result = m_pData->syncMainHeader(this);
   }
 
   RETURN(result);
@@ -876,22 +843,7 @@ bool CPhilipsFile::writeMatrix(const char* matrixData, unsigned int size, const 
   {
     // make sure the frames/planes/gates/bedpos parameters in the mainheader
     // are in sync
-    CPhilipsMainHeader* mainHeader = NULL;
-    if(readMainHeader(mainHeader))
-    {
-      if(mainHeader->minfrm() > frame ||
-         mainHeader->maxfrm() < frame ||
-         mainHeader->minslc() > slice ||
-         mainHeader->maxslc() < slice ||
-         mainHeader->ntilt() < tilt)
-      {
-        result = writeMainHeader(*mainHeader);
-      }
-      else
-        result = true;
-
-      delete mainHeader;
-    }
+    result = m_pData->syncMainHeader(this);
   }
 
   RETURN(result);
@@ -913,22 +865,7 @@ bool CPhilipsFile::writeMatrix(const QByteArray& matrixData, CPhilipsSubHeader::
   {
     // make sure the frames/planes/gates/bedpos parameters in the mainheader
     // are in sync
-    CPhilipsMainHeader* mainHeader = NULL;
-    if(readMainHeader(mainHeader))
-    {
-      if(mainHeader->minfrm() > frame ||
-         mainHeader->maxfrm() < frame ||
-         mainHeader->minslc() > slice ||
-         mainHeader->maxslc() < slice ||
-         mainHeader->ntilt() < tilt)
-      {
-        result = writeMainHeader(*mainHeader);
-      }
-      else
-        result = true;
-
-      delete mainHeader;
-    }
+    result = m_pData->syncMainHeader(this);
   }
 
   RETURN(result);
@@ -950,22 +887,7 @@ bool CPhilipsFile::writeMatrix(const char* matrixData, unsigned int size, CPhili
   {
     // make sure the frames/planes/gates/bedpos parameters in the mainheader
     // are in sync
-    CPhilipsMainHeader* mainHeader = NULL;
-    if(readMainHeader(mainHeader))
-    {
-      if(mainHeader->minfrm() > frame ||
-         mainHeader->maxfrm() < frame ||
-         mainHeader->minslc() > slice ||
-         mainHeader->maxslc() < slice ||
-         mainHeader->ntilt() < tilt)
-      {
-        result = writeMainHeader(*mainHeader);
-      }
-      else
-        result = true;
-
-      delete mainHeader;
-    }
+    result = m_pData->syncMainHeader(this);
   }
 
   RETURN(result);

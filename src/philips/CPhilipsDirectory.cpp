@@ -67,11 +67,19 @@ struct Philips_DirList // should be 512 bytes
 };
 #pragma pack()
 
+// defines for checking if parameters are in bounds
+#define MIN_FRAME 0
+#define MAX_FRAME 100
+#define MIN_SLICE 0
+#define MAX_SLICE 4095
+#define MIN_TILT  0
+#define MAX_TILT  15
+
 // macro for quickly checking if the frame/plane/gate/bed/data
 // matrix parameters are between bounds or not
-#define matrixParamsValid(s, f, t) ((s) >= 0 && (s) < 4095 && \
-                                    (f) >= 0 && (f) < 100 && \
-                                    (t) >= 0 && (t) < 15)
+#define matrixParamsValid(f, s, t) ((f) >= MIN_FRAME && (f) < MAX_FRAME && \
+                                    (s) >= MIN_SLICE && (s) < MAX_SLICE && \
+                                    (t) >= MIN_TILT  && (t) < MAX_TILT)
 
 class CPhilipsDirectoryPrivate
 {
@@ -592,7 +600,7 @@ CPhilipsDirectoryItem* CPhilipsDirectory::item(short frame, short slice, short t
   if(slice == -1) slice = minSlice();
   if(tilt == -1) tilt = minTilt();
 
-  if(matrixParamsValid(slice, frame, tilt))
+  if(matrixParamsValid(frame, slice, tilt))
   {
     // form the MatrixID from the supplied data and
     // process a find in the QIntDict
@@ -737,7 +745,7 @@ short CPhilipsDirectory::maxFrame() const
       if(i.value()->frame() > framesMax)
       {
         framesMax = i.value()->frame();
-        ASSERT(framesMax > 0 && framesMax <= 100);
+        ASSERT(framesMax >= MIN_FRAME && framesMax < MAX_FRAME);
       }
     }
   }
@@ -749,7 +757,7 @@ short CPhilipsDirectory::maxFrame() const
 short CPhilipsDirectory::minFrame() const
 {
   ENTER();
-  short framesMin = 101;
+  short framesMin = SHRT_MAX;
 
   // we iterate through our dictionary looking for the lowest available
   // frame number
@@ -764,15 +772,15 @@ short CPhilipsDirectory::minFrame() const
       if(i.value()->frame() < framesMin)
       {
         framesMin = i.value()->frame();
-        ASSERT(framesMin > 0 && framesMin <= 100);
+        ASSERT(framesMin >= MIN_FRAME && framesMin < MAX_FRAME);
       }
     }
   }
 
   // if framesMin is still 101, there are no frames in the map
   // in this case we have to set the min Value to 0
-  if(framesMin == 101)
-    framesMin = 0;
+  if(framesMin == SHRT_MAX)
+    framesMin = MIN_FRAME;
   
   RETURN(framesMin);
   return framesMin;
@@ -783,24 +791,10 @@ short CPhilipsDirectory::numFrames() const
   ENTER();
   short framesNum = 0;
 
-  // we iterate through our dictionary looking for the highest available
-  // frame number
-  QMapIterator<quint32, CPhilipsDirectoryItem*> i(m_pData->dirItems);
-  while(i.hasNext())
-  {
-    i.next();
+  // we use maxFrame() as the max frame number defines
+  // more or less how many frames the file has
+  framesNum = maxFrame();
 
-    // skip extended header
-    if(i.value()->isExtendedHeader() == false)
-    {
-      if(i.value()->frame() > framesNum)
-      {
-        framesNum = i.value()->frame();
-        ASSERT(framesNum > 0 && framesNum <= 100);
-      }
-    }
-  }
-  
   RETURN(framesNum);
   return framesNum;
 }
@@ -823,7 +817,7 @@ short CPhilipsDirectory::maxSlice() const
       if(i.value()->slice() > slicesMax)
       {
         slicesMax = i.value()->slice();
-        ASSERT(slicesMax > 0 && slicesMax <= 4095);
+        ASSERT(slicesMax >= MIN_SLICE && slicesMax < MAX_SLICE);
       }
     }
   }
@@ -835,7 +829,7 @@ short CPhilipsDirectory::maxSlice() const
 short CPhilipsDirectory::minSlice() const
 {
   ENTER();
-  short slicesMin = 4096;
+  short slicesMin = SHRT_MAX;
 
   // we iterate through our dictionary looking for the lowest
   // available slice number
@@ -850,15 +844,15 @@ short CPhilipsDirectory::minSlice() const
       if(i.value()->slice() < slicesMin)
       {
         slicesMin = i.value()->slice();
-        ASSERT(slicesMin > 0 && slicesMin <= 4095);
+        ASSERT(slicesMin >= MIN_SLICE && slicesMin < MAX_SLICE);
       }
     }
   }
 
   // if slicesMin is still 4096, there are no slices in the map
   // in this case we have to set the min Value to 0
-  if(slicesMin == 4096)
-    slicesMin = 0;
+  if(slicesMin == SHRT_MAX)
+    slicesMin = MIN_SLICE;
 
   RETURN(slicesMin);
   return slicesMin;
@@ -909,7 +903,7 @@ short CPhilipsDirectory::maxTilt() const
       if(i.value()->tilt() > tiltMax)
       {
         tiltMax = i.value()->tilt();
-        ASSERT(tiltMax > 0 && tiltMax <= 15);
+        ASSERT(tiltMax >= MIN_TILT && tiltMax < MAX_TILT);
       }
     }
   }
@@ -921,7 +915,7 @@ short CPhilipsDirectory::maxTilt() const
 short CPhilipsDirectory::minTilt() const
 {
   ENTER();
-  short tiltMin = 15;
+  short tiltMin = SHRT_MAX;
 
   // we iterate through our dictionary looking for the lowest
   // available slice number
@@ -936,15 +930,15 @@ short CPhilipsDirectory::minTilt() const
       if(i.value()->tilt() < tiltMin)
       {
         tiltMin = i.value()->tilt();
-        ASSERT(tiltMin >= 0 && tiltMin <= 15);
+        ASSERT(tiltMin >= MIN_TILT && tiltMin < MAX_TILT);
       }
     }
   }
 
   // if slicesMin is still 4096, there are no slices in the map
   // in this case we have to set the min Value to 0
-  if(tiltMin == 15)
-    tiltMin = 0;
+  if(tiltMin == SHRT_MAX)
+    tiltMin = MIN_TILT;
 
   RETURN(tiltMin);
   return tiltMin;
@@ -956,24 +950,10 @@ short CPhilipsDirectory::numTilts() const
   ENTER();
   short tiltsNum = 0;
 
-  // we iterate through our dictionary looking for the highest available
-  // tilt number
-  QMapIterator<quint32, CPhilipsDirectoryItem*> i(m_pData->dirItems);
-  while(i.hasNext())
-  {
-    i.next();
+  // we use maxFrame() as the max frame number defines
+  // more or less how many frames the file has
+  tiltsNum = maxTilt();
 
-    // skip extended header
-    if(i.value()->isExtendedHeader() == false)
-    {
-      if(i.value()->tilt() > tiltsNum)
-      {
-        tiltsNum = i.value()->tilt();
-        ASSERT(tiltsNum > 0 && tiltsNum <= 15);
-      }
-    }
-  }
-  
   RETURN(tiltsNum);
   return tiltsNum;
 }
@@ -1015,7 +995,7 @@ bool CPhilipsDirectory::readSubHeader(CPhilipsSubHeader*& subHeader,
   if(slice == -1) slice = minSlice();
   if(tilt == -1) tilt = minTilt();
 
-  if(matrixParamsValid(slice, frame, tilt))
+  if(matrixParamsValid(frame, slice, tilt))
   {
     // get the directoryItem so that we can query the matrix from it
     CPhilipsDirectoryItem* pDirItem = m_pData->dirItems.value(convertToMatrixID(slice, frame, tilt));
@@ -1038,7 +1018,7 @@ bool CPhilipsDirectory::readMatrix(QByteArray*& matrixData,
   if(slice == -1) slice = minSlice();
   if(tilt == -1) tilt = minTilt();
 
-  if(matrixParamsValid(slice, frame, tilt))
+  if(matrixParamsValid(frame, slice, tilt))
   {
     // get the directoryItem so that we can query the matrix from it
     CPhilipsDirectoryItem* pDirItem = m_pData->dirItems.value(convertToMatrixID(slice, frame, tilt));
@@ -1061,7 +1041,7 @@ bool CPhilipsDirectory::readMatrix(char*& matrixData, unsigned int& len,
   if(slice == -1) slice = minSlice();
   if(tilt == -1) tilt = minTilt();
 
-  if(matrixParamsValid(slice, frame, tilt))
+  if(matrixParamsValid(frame, slice, tilt))
   {
     // get the directoryItem so that we can query the matrix from it
     CPhilipsDirectoryItem* pDirItem = m_pData->dirItems.value(convertToMatrixID(slice, frame, tilt));
@@ -1084,7 +1064,7 @@ bool CPhilipsDirectory::readMatrix(QByteArray*& matrixData, CPhilipsSubHeader*& 
   if(slice == -1) slice = minSlice();
   if(tilt == -1) tilt = minTilt();
 
-  if(matrixParamsValid(slice, frame, tilt))
+  if(matrixParamsValid(frame, slice, tilt))
   {
     // get the directoryItem so that we can query the matrix from it
     CPhilipsDirectoryItem* pDirItem = m_pData->dirItems.value(convertToMatrixID(slice, frame, tilt));
@@ -1107,7 +1087,7 @@ bool CPhilipsDirectory::readMatrix(char*& matrixData, unsigned int& len, CPhilip
   if(slice == -1) slice = minSlice();
   if(tilt == -1) tilt = minTilt();
 
-  if(matrixParamsValid(slice, frame, tilt))
+  if(matrixParamsValid(frame, slice, tilt))
   {
     // get the directoryItem so that we can query the matrix from it
     CPhilipsDirectoryItem* pDirItem = m_pData->dirItems.value(convertToMatrixID(slice, frame, tilt));
@@ -1130,7 +1110,7 @@ bool CPhilipsDirectory::writeSubHeader(const CPhilipsSubHeader& subHeader,
   if(slice == -1) slice = minSlice();
   if(tilt == -1) tilt = minTilt();
 
-  if(matrixParamsValid(slice, frame, tilt))
+  if(matrixParamsValid(frame, slice, tilt))
   {
     quint32 mID = convertToMatrixID(slice, frame, tilt);
     D("Generated MatrixID: %08lx", mID);
@@ -1162,7 +1142,7 @@ bool CPhilipsDirectory::writeMatrix(const QByteArray& matrixData,
   if(slice == -1) slice = minSlice();
   if(tilt == -1) tilt = minTilt();
 
-  if(matrixParamsValid(slice, frame, tilt))
+  if(matrixParamsValid(frame, slice, tilt))
   {
     // form the MatrixID from the supplied data and create a new
     // DirectoryItem (or replace an existing one)
@@ -1199,7 +1179,7 @@ bool CPhilipsDirectory::writeMatrix(const char* matrixData, unsigned int size,
   if(slice == -1) slice = minSlice();
   if(tilt == -1) tilt = minTilt();
 
-  if(matrixParamsValid(slice, frame, tilt))
+  if(matrixParamsValid(frame, slice, tilt))
   {  
     // form the MatrixID from the supplied data and create a new
     // DirectoryItem (or replace an existing one)
@@ -1236,7 +1216,7 @@ bool CPhilipsDirectory::writeMatrix(const QByteArray& matrixData, CPhilipsSubHea
   if(slice == -1) slice = minSlice();
   if(tilt == -1) tilt = minTilt();
 
-  if(matrixParamsValid(slice, frame, tilt))
+  if(matrixParamsValid(frame, slice, tilt))
   {
     // form the MatrixID from the supplied data and create a new
     // DirectoryItem (or replace an existing one)
@@ -1274,7 +1254,7 @@ bool CPhilipsDirectory::writeMatrix(const char* matrixData, unsigned int size,
   if(slice == -1) slice = minSlice();
   if(tilt == -1) tilt = minTilt();
 
-  if(matrixParamsValid(slice, frame, tilt))
+  if(matrixParamsValid(frame, slice, tilt))
   {
     // form the MatrixID from the supplied data and create a new
     // DirectoryItem (or replace an existing one)
@@ -1311,7 +1291,7 @@ bool CPhilipsDirectory::writeMatrix(const QByteArray& matrixData, const CPhilips
   if(slice == -1) slice = minSlice();
   if(tilt == -1) tilt = minTilt();
 
-  if(matrixParamsValid(slice, frame, tilt))
+  if(matrixParamsValid(frame, slice, tilt))
   {  
     // form the MatrixID from the supplied data and create a new
     // DirectoryItem (or replace an existing one)
@@ -1348,7 +1328,7 @@ bool CPhilipsDirectory::writeMatrix(const char* matrixData, unsigned int size, c
   if(slice == -1) slice = minSlice();
   if(tilt == -1) tilt = minTilt();
 
-  if(matrixParamsValid(slice, frame, tilt))
+  if(matrixParamsValid(frame, slice, tilt))
   {  
     // form the MatrixID from the supplied data and create a new
     // DirectoryItem (or replace an existing one)

@@ -68,9 +68,6 @@ class CECAT7SubHeaderNorm : public CECATSubHeader
     // clone methods
     CMedIOHeader* clone() const;
 
-    // conversion methods
-    bool convertFrom(const CMedIOHeader* pHead);
-
     // data access methods
     CECATSubHeader::Data_Type data_Type(void) const;
     short num_Dimensions(void) const;
@@ -108,6 +105,10 @@ class CECAT7SubHeaderNorm : public CECATSubHeader
     void setZ_Elements(const short i, const short n);
     void setCTI_Reserved(const short i, const short n);
     void setUser_Reserved(const short i, const short n);
+
+  protected:
+    // conversion methods
+    bool convertFrom(const CMedIOHeader* subHeader, const CMedIOHeader* mainHeader=NULL);
 
   private:
     CECAT7SubHeaderNormPrivate* m_pData;

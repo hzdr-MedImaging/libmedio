@@ -77,9 +77,6 @@ class CECAT7SubHeaderPolarMap : public CECATSubHeader
     // clone methods
     CMedIOHeader* clone() const;
 
-    // conversion methods
-    bool convertFrom(const CMedIOHeader* pHead);
-  
     // data access methods
     CECATSubHeader::Data_Type data_Type(void) const;
     short polar_Map_Type(void) const;
@@ -135,6 +132,10 @@ class CECAT7SubHeaderPolarMap : public CECATSubHeader
     void setDatabase_Name(const char* str);
     void setCTI_Reserved(const short i, const short n);
     void setUser_Reserved(const short i, const short n);
+
+  protected:
+    // conversion methods
+    bool convertFrom(const CMedIOHeader* subHeader, const CMedIOHeader* mainHeader=NULL);
 
   private:
     CECAT7SubHeaderPolarMapPrivate* m_pData;

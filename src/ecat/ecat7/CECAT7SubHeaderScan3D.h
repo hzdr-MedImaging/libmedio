@@ -76,9 +76,6 @@ class CECAT7SubHeaderScan3D : public CECATSubHeader
     // clone methods
     CMedIOHeader* clone() const;
 
-    // conversion methods
-    bool convertFrom(const CMedIOHeader* pHead);
-    
     // methods to access elements of the SubHeader
     CECATSubHeader::Data_Type data_Type(void)  const;
     short num_Dimensions(void) const;
@@ -148,6 +145,10 @@ class CECAT7SubHeaderScan3D : public CECATSubHeader
     void setCTI_Reserved(const short i, const short value);
     void setUser_Reserved(const short i, const short value);
     void setUncor_Singles(const short b, const float value);
+
+  protected:
+    // conversion methods
+    bool convertFrom(const CMedIOHeader* subHeader, const CMedIOHeader* mainHeader=NULL);
 
   private:
     CECAT7SubHeaderScan3DPrivate* m_pData;

@@ -87,12 +87,13 @@ class CECATMainHeader : public CMedIOHeader
     virtual int rtti() const = 0;
     CMedIOHeader::Format headerFormat() const;
 
-    // conversion methods
-    virtual bool convertFrom(const CMedIOHeader* pHead) = 0;
-    
     // create a new medio header of the same type as pSrc and
     // copy all meta information
     virtual CMedIOHeader* clone() const = 0;
+
+  protected:
+    // conversion methods
+    virtual bool convertFrom(const CMedIOHeader* mainHeader, const CMedIOHeader* subHeader=NULL) = 0;
 };
 
 #endif // CECATMAINHEADER_H

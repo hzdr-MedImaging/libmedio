@@ -88,12 +88,13 @@ class CECATSubHeader : public CMedIOHeader
     // internal method to set the directory Item of a subHeader
     void setDirectoryItem(CECATDirectoryItem* dItem);
 
-    // try to convert the given medio header in this header type
-    virtual bool convertFrom(const CMedIOHeader* pHead) = 0;
-
     // create a new medio header of the same type as pSrc and
     // copy all meta information
     virtual CMedIOHeader* clone() const = 0;
+
+  protected:
+    // try to convert the given medio header in this header type
+    virtual bool convertFrom(const CMedIOHeader* subHeader, const CMedIOHeader* mainHeader=NULL) = 0;
 
   protected:
     CECATDirectoryItem* m_pDirItem; // the directory item to which this

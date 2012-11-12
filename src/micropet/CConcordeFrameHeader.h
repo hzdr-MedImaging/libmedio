@@ -74,7 +74,6 @@ class CConcordeFrameHeader : public CMedIOHeader
     bool save() const;
     CMedIOHeader::Format headerFormat() const;
     CMedIOHeader* clone() const;
-    bool convertFrom(const CMedIOHeader* pHead);
 
     //accessor methods
     int frame(void) const;
@@ -121,6 +120,9 @@ class CConcordeFrameHeader : public CMedIOHeader
     void setTrues(const QString value);
     void setPromptsRate(const int value);
     void setDelaysRate(const int value);
+
+  protected:
+    bool convertFrom(const CMedIOHeader* subHeader, const CMedIOHeader* mainHeader=NULL);
 
   private:
     CConcordeFrameHeaderPrivate* m_pData;

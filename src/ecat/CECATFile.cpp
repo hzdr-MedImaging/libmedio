@@ -51,6 +51,9 @@ class CECATFilePrivate
     CECATDirectory*        directory;
     CECATMainHeader::Type  iMainHeaderType;
     CECATMainHeader*       cachedMainHeader; // for speed reasons we cache the loaded main header
+
+    // methods
+    bool syncMainHeader(CECATFile* file) const;
 };    
 
 CECATFile::CECATFile(const QString& filename, CECATMainHeader::Type fileType)
@@ -107,9 +110,29 @@ CECATFile::ECATFormat CECATFile::format(void) const
   return m_pData->iECATformat;
 }
 
+short CECATFile::maxFrame(void) const
+{ 
+  return m_pData->directory->maxFrame();
+}
+
+short CECATFile::minFrame(void) const
+{ 
+  return m_pData->directory->minFrame();
+}
+
 short CECATFile::numFrames(void) const
 { 
   return m_pData->directory->numFrames();
+}
+
+short CECATFile::maxPlane(void) const
+{ 
+  return m_pData->directory->maxPlane();
+}
+
+short CECATFile::minPlane(void) const
+{ 
+  return m_pData->directory->minPlane();
 }
 
 short CECATFile::numPlanes(void) const
@@ -117,14 +140,49 @@ short CECATFile::numPlanes(void) const
   return m_pData->directory->numPlanes();
 }
 
+short CECATFile::maxGate(void) const
+{ 
+  return m_pData->directory->maxGate();
+}
+
+short CECATFile::minGate(void) const
+{ 
+  return m_pData->directory->minGate();
+}
+
 short CECATFile::numGates(void) const
 { 
   return m_pData->directory->numGates();
 }
 
+short CECATFile::maxBedPos(void) const
+{ 
+  return m_pData->directory->maxBedPos();
+}
+
+short CECATFile::minBedPos(void) const
+{ 
+  return m_pData->directory->minBedPos();
+}
+
 short CECATFile::numBedPos(void) const
 { 
   return m_pData->directory->numBedPos();
+}
+
+short CECATFile::maxData(void) const
+{ 
+  return m_pData->directory->maxData();
+}
+
+short CECATFile::minData(void) const
+{ 
+  return m_pData->directory->minData();
+}
+
+short CECATFile::numData(void) const
+{ 
+  return m_pData->directory->numData();
 }
 
 CECATDirectory* CECATFile::directory(void) const
@@ -813,21 +871,7 @@ bool CECATFile::writeSubHeader(const CECATSubHeader& subHeader, short frame,
   {
     // make sure the frames/planes/gates/bedpos parameters in the mainheader
     // are in sync
-    CECATMainHeader* mainHeader = NULL;
-    if(readMainHeader(mainHeader))
-    {
-      if(mainHeader->num_Frames() < frame ||
-         mainHeader->num_Planes() < plane ||
-         mainHeader->num_Gates()  < gate  ||
-         mainHeader->num_Bed_Pos()< bed)
-      {
-        result = writeMainHeader(*mainHeader);
-      }
-      else
-        result = true;
-      
-      delete mainHeader;
-    }
+    result = m_pData->syncMainHeader(this);
   }
 
   RETURN(result);
@@ -849,21 +893,7 @@ bool CECATFile::writeMatrix(const QByteArray& matrixData,
   {
     // make sure the frames/planes/gates/bedpos parameters in the mainheader
     // are in sync
-    CECATMainHeader* mainHeader = NULL;
-    if(readMainHeader(mainHeader))
-    {
-      if(mainHeader->num_Frames() < frame ||
-         mainHeader->num_Planes() < plane ||
-         mainHeader->num_Gates()  < gate  ||
-         mainHeader->num_Bed_Pos()< bed)
-      {
-        result = writeMainHeader(*mainHeader);
-      }
-      else
-        result = true;
-
-      delete mainHeader;
-    }
+    result = m_pData->syncMainHeader(this);
   }
 
   RETURN(result);
@@ -885,21 +915,7 @@ bool CECATFile::writeMatrix(const char* matrixData, unsigned int size,
   {
     // make sure the frames/planes/gates/bedpos parameters in the mainheader
     // are in sync
-    CECATMainHeader* mainHeader = NULL;
-    if(readMainHeader(mainHeader))
-    {
-      if(mainHeader->num_Frames() < frame ||
-         mainHeader->num_Planes() < plane ||
-         mainHeader->num_Gates()  < gate  ||
-         mainHeader->num_Bed_Pos()< bed)
-      {
-        result = writeMainHeader(*mainHeader);
-      }
-      else
-        result = true;
-
-      delete mainHeader;
-    }
+    result = m_pData->syncMainHeader(this);
   }
 
   RETURN(result);
@@ -921,21 +937,7 @@ bool CECATFile::writeMatrix(const QByteArray& matrixData, const CECATSubHeader& 
   {
     // make sure the frames/planes/gates/bedpos parameters in the mainheader
     // are in sync
-    CECATMainHeader* mainHeader = NULL;
-    if(readMainHeader(mainHeader))
-    {
-      if(mainHeader->num_Frames() < frame ||
-         mainHeader->num_Planes() < plane ||
-         mainHeader->num_Gates()  < gate  ||
-         mainHeader->num_Bed_Pos()< bed)
-      {
-        result = writeMainHeader(*mainHeader);
-      }
-      else
-        result = true;
-
-      delete mainHeader;
-    }
+    result = m_pData->syncMainHeader(this);
   }
 
   RETURN(result);
@@ -957,21 +959,7 @@ bool CECATFile::writeMatrix(const char* matrixData, unsigned int size, const CEC
   {
     // make sure the frames/planes/gates/bedpos parameters in the mainheader
     // are in sync
-    CECATMainHeader* mainHeader = NULL;
-    if(readMainHeader(mainHeader))
-    {
-      if(mainHeader->num_Frames() < frame ||
-         mainHeader->num_Planes() < plane ||
-         mainHeader->num_Gates()  < gate  ||
-         mainHeader->num_Bed_Pos()< bed)
-      {
-        result = writeMainHeader(*mainHeader);
-      }
-      else
-        result = true;
-
-      delete mainHeader;
-    }
+    result = m_pData->syncMainHeader(this);
   }
 
   RETURN(result);
@@ -993,21 +981,7 @@ bool CECATFile::writeMatrix(const QByteArray& matrixData, CECATSubHeader::Data_T
   {
     // make sure the frames/planes/gates/bedpos parameters in the mainheader
     // are in sync
-    CECATMainHeader* mainHeader = NULL;
-    if(readMainHeader(mainHeader))
-    {
-      if(mainHeader->num_Frames() < frame ||
-         mainHeader->num_Planes() < plane ||
-         mainHeader->num_Gates()  < gate  ||
-         mainHeader->num_Bed_Pos()< bed)
-      {
-        result = writeMainHeader(*mainHeader);
-      }
-      else
-        result = true;
-
-      delete mainHeader;
-    }
+    result = m_pData->syncMainHeader(this);
   }
 
   RETURN(result);
@@ -1029,21 +1003,7 @@ bool CECATFile::writeMatrix(const char* matrixData, unsigned int size, CECATSubH
   {
     // make sure the frames/planes/gates/bedpos parameters in the mainheader
     // are in sync
-    CECATMainHeader* mainHeader = NULL;
-    if(readMainHeader(mainHeader))
-    {
-      if(mainHeader->num_Frames() < frame ||
-         mainHeader->num_Planes() < plane ||
-         mainHeader->num_Gates()  < gate  ||
-         mainHeader->num_Bed_Pos()< bed)
-      {
-        result = writeMainHeader(*mainHeader);
-      }
-      else
-        result = true;
-
-      delete mainHeader;
-    }
+    result = m_pData->syncMainHeader(this);
   }
 
   RETURN(result);
@@ -1189,3 +1149,31 @@ bool CECATFile::reWriteMainHeader(void)
   RETURN(result);
   return result;
 }
+
+bool CECATFilePrivate::syncMainHeader(CECATFile* file) const
+{
+  ENTER();
+  bool result = false;
+
+  // make sure the frames/planes/gates/bedpos parameters in the mainheader
+  // are in sync
+  CECATMainHeader* mainHeader = NULL;
+  if(file->readMainHeader(mainHeader))
+  {
+    if(mainHeader->num_Frames()  != file->numFrames() ||
+       mainHeader->num_Planes()  != file->numPlanes() ||
+       mainHeader->num_Gates()   != file->numGates()  ||
+       mainHeader->num_Bed_Pos() != file->numBedPos())
+    {
+      result = file->writeMainHeader(*mainHeader);
+    }
+    else
+      result = true;
+      
+    delete mainHeader;
+  }
+
+  RETURN(result);
+  return result;
+}
+ 

@@ -1278,18 +1278,18 @@ void CConcordeMainHeaderPrivate::init()
   parser.addKey("water_access", &header.water_access);
 }
 
-bool CConcordeMainHeader::convertFrom(const CMedIOHeader* srcHeader1, const CMedIOHeader*)
+bool CConcordeMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOHeader* subHeader)
 {
   ENTER();
   bool bResult = false;
 
-  if(srcHeader1)
+  if(mainHeader)
   {
-    switch(srcHeader1->headerFormat())
+    switch(mainHeader->headerFormat())
     {
       case CMedIOHeader::ConcordeMicroPetMainHeader:
       {
-        const CConcordeMainHeader* head = static_cast<const CConcordeMainHeader*>(srcHeader1);
+        const CConcordeMainHeader* head = static_cast<const CConcordeMainHeader*>(mainHeader);
 
         // use the assignment operator to copy everything
         *this = *head;

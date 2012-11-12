@@ -103,9 +103,6 @@ class CECAT7MainHeader : public CECATMainHeader
     // clone methods
     CMedIOHeader* clone() const;
 
-    // conversion methods
-    bool convertFrom(const CMedIOHeader* pHead);
-
     // accessor Methods
     const char* magic_Number(void) const;
     const char* original_File_Name(void) const;
@@ -239,6 +236,10 @@ class CECAT7MainHeader : public CECATMainHeader
     void setPatient_Birth_Date_Qt(const QDate& date);
     void setScan_Start_Time_Qt(const QDateTime& dateTime);
     void setDose_Start_Time_Qt(const QDateTime& dateTime);
+
+  protected:
+    // conversion methods
+    bool convertFrom(const CMedIOHeader* mainHeader, const CMedIOHeader* subHeader=NULL);
 
   private:
     CECAT7MainHeaderPrivate*  m_pData;

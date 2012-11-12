@@ -115,9 +115,6 @@ class CPhilipsSubHeader : public CMedIOHeader
     CMedIOHeader::Format headerFormat() const;
     virtual CPhilipsSubHeader::Type subHeaderType(void) const = 0;
 
-    // convertFrom() method
-    bool convertFrom(const CMedIOHeader* pHead);
-
     // internal method to set the directory Item of a subHeader
     void setDirectoryItem(CPhilipsDirectoryItem* dItem);
 
@@ -283,6 +280,9 @@ class CPhilipsSubHeader : public CMedIOHeader
     void setScnmin(const short scnmin);
     void setScnmax(const short scnmax);
     void setScnsum(const float scnsum);
+
+    // convertFrom() method
+    bool convertFrom(const CMedIOHeader* subHeader, const CMedIOHeader* mainHeader=NULL);
 
   protected:
     CPhilipsDirectoryItem* m_pDirItem; // the directory item to which this

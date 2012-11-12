@@ -116,9 +116,6 @@ class CECAT7SubHeaderImage : public CECATSubHeader
     // clone methods
     CMedIOHeader* clone() const;
 
-    // conversion methods
-    bool convertFrom(const CMedIOHeader* pHead);
-
     // data acess methods
     CECATSubHeader::Data_Type data_Type(void) const;
     short num_Dimensions(void) const;
@@ -248,6 +245,10 @@ class CECAT7SubHeaderImage : public CECATSubHeader
     // special conversion routines
     float suv_Scale_Factor(bool& ok) const;
     
+  protected:
+    // conversion methods
+    bool convertFrom(const CMedIOHeader* subHeader, const CMedIOHeader* mainHeader=NULL);
+
   private:
     CECAT7SubHeaderImagePrivate* m_pData;
 };

@@ -102,8 +102,8 @@ class CConcordeMainHeader : public CMedIOHeader
     //! @return framesize of a sinogram in bytes
     virtual unsigned int frameSize() = 0;
 
+    // clone methods
     virtual CMedIOHeader* clone() const = 0;
-    bool convertFrom(const CMedIOHeader* srcMainHeader, const CMedIOHeader* srcSubHeader = NULL);
 
     int model(void) const;
     QString institution(void) const;
@@ -269,6 +269,10 @@ class CConcordeMainHeader : public CMedIOHeader
     void setOtherDrugs(const QString value);
     void setFoodAccess(const QString value);
     void setWaterAccess(const QString value);
+
+  protected:
+    // convert methods
+    bool convertFrom(const CMedIOHeader* mainHeader, const CMedIOHeader* subHeader=NULL);
 
   private:
     CConcordeMainHeaderPrivate* m_pData;

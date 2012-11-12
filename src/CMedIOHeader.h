@@ -83,10 +83,6 @@ class CMedIOHeader
     //! @return specific header format at runtime
     virtual CMedIOHeader::Format headerFormat() const = 0;
 
-    //! @brief try to convert the given medio header in this header type
-    //! @return true for success; false for failure
-    virtual bool convertFrom(const CMedIOHeader* pHead) = 0;
-
     //! @brief for conversion based on an input file
     virtual bool convertFrom(CMedIOData* pData);
 
@@ -102,6 +98,14 @@ class CMedIOHeader
     //! @brief provid a facility to set the MedIOData object
     //!        which is in fact used by some subHeader implementation
     virtual void setMedIOData(CMedIOData* data);
+
+  protected:
+    //! @brief try to convert the given medio header in this header type
+    //! @return true for success; false for failure
+    virtual bool convertFrom(const CMedIOHeader* header1, const CMedIOHeader* header2=NULL) = 0;
+
+    //! @return true if header is a main header
+    bool isMainHeader(void) const;
 
   protected:
     CMedIOData* m_pMedIOData; //!< the associated MedIOData this header belongs to

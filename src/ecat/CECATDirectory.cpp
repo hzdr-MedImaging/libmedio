@@ -65,13 +65,25 @@ struct ECAT_DirList // should be 512 bytes
 };
 #pragma pack()
 
+// defines for checking if parameters are in bounds
+#define MIN_FRAME   0
+#define MAX_FRAME   512
+#define MIN_PLANE   1
+#define MAX_PLANE   1024
+#define MIN_GATE    1
+#define MAX_GATE    64
+#define MIN_BEDPOS  0
+#define MAX_BEDPOS  16
+#define MIN_DATA    0
+#define MAX_DATA    8
+
 // macro for quickly checking if the frame/plane/gate/bed/data
 // matrix parameters are between bounds or not
-#define matrixParamsValid(f, p, g, b, d) ((f) >= 0 && (f) < 512  && \
-                                          (p) >= 0 && (p) < 1024 && \
-                                          (g) >= 0 && (g) < 64   && \
-                                          (b) >= 0 && (b) < 16   && \
-                                          (d) >= 0 && (d) < 8)
+#define matrixParamsValid(f, p, g, b, d) ((f) >= MIN_FRAME  && (f) < MAX_FRAME  && \
+                                          (p) >= MIN_PLANE  && (p) < MAX_PLANE  && \
+                                          (g) >= MIN_GATE   && (g) < MAX_GATE   && \
+                                          (b) >= MIN_BEDPOS && (b) < MAX_BEDPOS && \
+                                          (d) >= MIN_DATA   && (d) < MAX_DATA)
 
 // we define the private inline class of that one so that we
 // are able to hide the private methods & data of that class in the
@@ -79,12 +91,12 @@ struct ECAT_DirList // should be 512 bytes
 class CECATDirectoryPrivate
 {
   public:
-    CECATFile* file;  // ptr to our associated ECATFile
+    CECATFile* file; // ptr to our associated ECATFile
     QMap<quint32, CECATDirectoryItem*> dirItems; // value map of dirItems
-    QVector<qint64>   filePositions; // for each DirList we
-                                    // may have different file
-                                    // positions which we have
-                                    // to store
+    QVector<qint64> filePositions; // for each DirList we
+                                   // may have different file
+                                   // positions which we have
+                                   // to store
 
     // some private methods 
     CECATDirectoryItem* newDirItem(quint32 matrixID);
@@ -496,10 +508,16 @@ unsigned int CECATDirectory::count() const
 }
 
 CECATDirectoryItem* CECATDirectory::item(short frame, short plane,
-                                          short gate, short bed, short data)
+                                         short gate, short bed, short data)
 {
   ENTER();
   CECATDirectoryItem* dirItem = NULL;
+
+  if(frame == -1) frame = minFrame();
+  if(plane == -1) plane = minPlane();
+  if(gate == -1)  gate = minGate();
+  if(bed == -1)   bed = minBedPos();
+  if(data == -1)  data = minData();
 
   if(matrixParamsValid(frame, plane, gate, bed, data))
   {
@@ -577,10 +595,10 @@ qint64 CECATDirectoryPrivate::lastDirItemOffset(void) const
   return offset;
 }
 
-short CECATDirectory::numFrames(void) const
+short CECATDirectory::maxFrame() const
 {
   ENTER();
-  short framesNum = 0;
+  short framesMax = 0;
 
   // we iterate through our dictionary looking for the highest available
   // frame number
@@ -588,20 +606,63 @@ short CECATDirectory::numFrames(void) const
   while(i.hasNext())
   {
     i.next();
-    if(i.value()->frame() > framesNum)
+
+    if(i.value()->frame() > framesMax)
     {
-      framesNum = i.value()->frame();
-      ASSERT(framesNum > 0 && framesNum <= 256);
+      framesMax = i.value()->frame();
+      ASSERT(framesMax >= MIN_FRAME && framesMax < MAX_FRAME);
     }
   }
+
+  RETURN(framesMax);
+  return framesMax;
+}
+
+short CECATDirectory::minFrame() const
+{
+  ENTER();
+  short framesMin = SHRT_MAX;
+
+  // we iterate through our dictionary looking for the highest available
+  // frame number
+  QMapIterator<quint32, CECATDirectoryItem*> i(m_pData->dirItems);
+  while(i.hasNext())
+  {
+    i.next();
+
+    if(i.value()->frame() < framesMin)
+    {
+      framesMin = i.value()->frame();
+      ASSERT(framesMin >= MIN_FRAME && framesMin < MAX_FRAME);
+    }
+  }
+
+  // if framesMin is still SHRT_MAX there are no frames in the map
+  // in this case we have to set the min value to 0
+  if(framesMin == SHRT_MAX)
+    framesMin = MIN_FRAME;
+
+  RETURN(framesMin);
+  return framesMin;
+}
+
+short CECATDirectory::numFrames(void) const
+{
+  ENTER();
+  short framesNum = 0;
+
+  // we use maxFrame() as the max frame number defines
+  // more or less how many frames the file has
+  framesNum = maxFrame();
   
   RETURN(framesNum);
   return framesNum;
 }
 
-short CECATDirectory::numPlanes(void) const
+short CECATDirectory::maxPlane() const
 {
-  short planesNum = 0;
+  ENTER();
+  short planeMax = 0;
 
   // we iterate through our dictionary looking for the highest available
   // plane number
@@ -609,62 +670,262 @@ short CECATDirectory::numPlanes(void) const
   while(i.hasNext())
   {
     i.next();
-    if(i.value()->plane() > planesNum)
+
+    if(i.value()->plane() > planeMax)
+    { 
+      planeMax = i.value()->plane();
+      ASSERT(planeMax >= MIN_PLANE && planeMax < MAX_PLANE);
+    } 
+  } 
+  
+  RETURN(planeMax);
+  return planeMax;
+} 
+
+short CECATDirectory::minPlane() const
+{
+  ENTER();
+  short planeMin = SHRT_MAX;
+
+  // we iterate through our dictionary looking for the lowest available
+  // plane number
+  QMapIterator<quint32, CECATDirectoryItem*> i(m_pData->dirItems);
+  while(i.hasNext())
+  {
+    i.next();
+
+    if(i.value()->plane() < planeMin)
+    { 
+      planeMin = i.value()->plane();
+      ASSERT(planeMin >= MIN_PLANE && planeMin < MAX_PLANE);
+    } 
+  } 
+ 
+  // if planeMin is still SHRT_MAX there are no planes in the map
+  // in this case we have to set the min value to 0
+  if(planeMin == SHRT_MAX)
+    planeMin = MIN_PLANE;
+ 
+  RETURN(planeMin);
+  return planeMin;
+}
+
+short CECATDirectory::numPlanes(void) const
+{
+  ENTER();
+  short planesNum = 0;
+
+  // we use maxPlane() as the max plane number defines
+  // more or less how many frames the file has
+  planesNum = maxPlane();
+
+  RETURN(planesNum);
+  return planesNum;
+}
+
+short CECATDirectory::maxGate() const
+{
+  ENTER();
+  short gateMax = 0;
+
+  // we iterate through our dictionary looking for the highest available
+  // gate number
+  QMapIterator<quint32, CECATDirectoryItem*> i(m_pData->dirItems);
+  while(i.hasNext())
+  {
+    i.next();
+
+    if(i.value()->gate() > gateMax)
     {
-      planesNum = i.value()->plane();
-      ASSERT(planesNum > 0 && planesNum <= 256);
+      gateMax = i.value()->gate();
+      ASSERT(gateMax >= MIN_GATE && gateMax < MAX_GATE);
     }
   }
-  
-  return planesNum;
+
+  RETURN(gateMax);
+  return gateMax;
+}
+
+short CECATDirectory::minGate() const
+{
+  ENTER();
+  short gateMin = SHRT_MAX;
+
+  // we iterate through our dictionary looking for the lowest available
+  // gate number
+  QMapIterator<quint32, CECATDirectoryItem*> i(m_pData->dirItems);
+  while(i.hasNext())
+  {
+    i.next();
+
+    if(i.value()->gate() > gateMin)
+    {
+      gateMin = i.value()->gate();
+      ASSERT(gateMin >= MIN_GATE && gateMin < MAX_GATE);
+    }
+  }
+
+  // if gateMin is still SHRT_MAX there are no gates in the map
+  // in this case we have to set the min value to 0
+  if(gateMin == SHRT_MAX)
+    gateMin = MIN_GATE;
+
+  RETURN(gateMin);
+  return gateMin;
 }
 
 short CECATDirectory::numGates(void) const
 {
+  ENTER();
   short gatesNum = 0;
 
-  // we iterate through our dictionary looking for the highest available
-  // gates number
-  QMapIterator<quint32, CECATDirectoryItem*> i(m_pData->dirItems);
-  while(i.hasNext())
-  {
-    i.next();
-    if(i.value()->gate() > gatesNum)
-    {
-      gatesNum = i.value()->gate();
-      ASSERT(gatesNum > 0 && gatesNum <= 256);
-    }
-  }
+  // we use maxGate() as the max plane number defines
+  // more or less how many frames the file has
+  gatesNum = maxGate();
 
+  RETURN(gatesNum);
   return gatesNum;
 }  
 
-short CECATDirectory::numBedPos(void) const
+short CECATDirectory::maxBedPos() const
 {
-  short bedsNum = 0;
+  ENTER();
+  short bedPosMax = 0;
 
   // we iterate through our dictionary looking for the highest available
-  // plane number
+  // bedpos number
   QMapIterator<quint32, CECATDirectoryItem*> i(m_pData->dirItems);
   while(i.hasNext())
   {
     i.next();
-    if(i.value()->bed() > bedsNum)
+
+    if(i.value()->bed() > bedPosMax)
     {
-      bedsNum = i.value()->bed();
-      ASSERT(bedsNum >= 0 && bedsNum < 256);
+      bedPosMax = i.value()->bed();
+      ASSERT(bedPosMax >= MIN_BEDPOS && bedPosMax < MAX_BEDPOS);
     }
   }
 
+  RETURN(bedPosMax);
+  return bedPosMax;
+}
+
+short CECATDirectory::minBedPos() const
+{
+  ENTER();
+  short bedPosMin = SHRT_MAX;
+
+  // we iterate through our dictionary looking for the lowest available
+  // gate number
+  QMapIterator<quint32, CECATDirectoryItem*> i(m_pData->dirItems);
+  while(i.hasNext())
+  {
+    i.next();
+
+    if(i.value()->bed() > bedPosMin)
+    {
+      bedPosMin = i.value()->bed();
+      ASSERT(bedPosMin >= MIN_BEDPOS && bedPosMin < MAX_BEDPOS);
+    }
+  }
+
+  // if bedPosMin is still SHRT_MAX there are no bedpos in the map
+  // in this case we have to set the min value to 0
+  if(bedPosMin == SHRT_MAX)
+    bedPosMin = MIN_BEDPOS;
+
+  RETURN(bedPosMin);
+  return bedPosMin;
+}
+
+short CECATDirectory::numBedPos(void) const
+{
+  ENTER();
+  short bedsNum = 0;
+
+  // we use maxBedPos() as the max bedpos number defines
+  // more or less how many bedpos the file has
+  bedsNum = maxBedPos();
+
+  RETURN(bedsNum);
   return bedsNum;
 }  
 
+short CECATDirectory::maxData() const
+{
+  ENTER();
+  short dataMax = 0;
+
+  // we iterate through our dictionary looking for the highest available
+  // bedpos number
+  QMapIterator<quint32, CECATDirectoryItem*> i(m_pData->dirItems);
+  while(i.hasNext())
+  {
+    i.next();
+
+    if(i.value()->data() > dataMax)
+    {
+      dataMax = i.value()->data();
+      ASSERT(dataMax >= MIN_DATA && dataMax < MAX_DATA);
+    }
+  }
+
+  RETURN(dataMax);
+  return dataMax;
+}
+
+short CECATDirectory::minData() const
+{
+  ENTER();
+  short dataMin = SHRT_MAX;
+
+  // we iterate through our dictionary looking for the lowest available
+  // gate number
+  QMapIterator<quint32, CECATDirectoryItem*> i(m_pData->dirItems);
+  while(i.hasNext())
+  {
+    i.next();
+
+    if(i.value()->data() > dataMin)
+    {
+      dataMin = i.value()->data();
+      ASSERT(dataMin >= MIN_DATA && dataMin < MAX_DATA);
+    }
+  }
+
+  // if dataMin is still SHRT_MAX there are no data entries in the map
+  // in this case we have to set the min value to 0
+  if(dataMin == SHRT_MAX)
+    dataMin = MIN_DATA;
+
+  RETURN(dataMin);
+  return dataMin;
+}
+
+short CECATDirectory::numData(void) const
+{
+  ENTER();
+  short dataNum = 0;
+
+  // we use maxData() as the max data number defines
+  // more or less how many data entries the file has
+  dataNum = maxData();
+
+  RETURN(dataNum);
+  return dataNum;
+}
 
 bool CECATDirectory::readSubHeader(CECATSubHeader*& subHeader, short frame, short plane,
                                    short gate, short bed, short data)
 {
   ENTER();
   bool result = false;
+
+  if(frame == -1) frame = minFrame();
+  if(plane == -1) plane = minPlane();
+  if(gate == -1)  gate = minGate();
+  if(bed == -1)   bed = minBedPos();
+  if(data == -1)  data = minData();
 
   if(matrixParamsValid(frame, plane, gate, bed, data))
   {
@@ -685,6 +946,12 @@ bool CECATDirectory::readMatrix(QByteArray*& matrixData, short frame, short plan
   ENTER();
   bool result = false;
 
+  if(frame == -1) frame = minFrame();
+  if(plane == -1) plane = minPlane();
+  if(gate == -1)  gate = minGate();
+  if(bed == -1)   bed = minBedPos();
+  if(data == -1)  data = minData();
+
   if(matrixParamsValid(frame, plane, gate, bed, data))
   {
     // get the directoryItem so that we can query the matrix from it
@@ -703,6 +970,12 @@ bool CECATDirectory::readMatrix(char*& matrixData, unsigned int& len, short fram
 {
   ENTER();
   bool result = false;
+
+  if(frame == -1) frame = minFrame();
+  if(plane == -1) plane = minPlane();
+  if(gate == -1)  gate = minGate();
+  if(bed == -1)   bed = minBedPos();
+  if(data == -1)  data = minData();
 
   if(matrixParamsValid(frame, plane, gate, bed, data))
   {
@@ -723,6 +996,12 @@ bool CECATDirectory::readMatrix(QByteArray*& matrixData, CECATSubHeader*& subHea
   ENTER();
   bool result = false;
 
+  if(frame == -1) frame = minFrame();
+  if(plane == -1) plane = minPlane();
+  if(gate == -1)  gate = minGate();
+  if(bed == -1)   bed = minBedPos();
+  if(data == -1)  data = minData();
+
   if(matrixParamsValid(frame, plane, gate, bed, data))
   {
     // get the directoryItem so that we can query the matrix from it
@@ -742,6 +1021,12 @@ bool CECATDirectory::readMatrix(char*& matrixData, unsigned int& len, CECATSubHe
   ENTER();
   bool result = false;
 
+  if(frame == -1) frame = minFrame();
+  if(plane == -1) plane = minPlane();
+  if(gate == -1)  gate = minGate();
+  if(bed == -1)   bed = minBedPos();
+  if(data == -1)  data = minData();
+
   if(matrixParamsValid(frame, plane, gate, bed, data))
   {
     // get the directoryItem so that we can query the matrix from it
@@ -760,6 +1045,12 @@ bool CECATDirectory::writeSubHeader(const CECATSubHeader& subHeader, short frame
 {
   ENTER();
   bool result = false;
+
+  if(frame == -1) frame = minFrame();
+  if(plane == -1) plane = minPlane();
+  if(gate == -1)  gate = minGate();
+  if(bed == -1)   bed = minBedPos();
+  if(data == -1)  data = minData();
 
   if(matrixParamsValid(frame, plane, gate, bed, data))
   {  
@@ -794,6 +1085,12 @@ bool CECATDirectory::writeMatrix(const QByteArray& matrixData,
   ENTER();
   bool result = false;
 
+  if(frame == -1) frame = minFrame();
+  if(plane == -1) plane = minPlane();
+  if(gate == -1)  gate = minGate();
+  if(bed == -1)   bed = minBedPos();
+  if(data == -1)  data = minData();
+
   if(matrixParamsValid(frame, plane, gate, bed, data))
   {
     // form the MatrixID from the supplied data and create a new
@@ -827,6 +1124,12 @@ bool CECATDirectory::writeMatrix(const char* matrixData, unsigned int size,
   ENTER();
   bool result = false;
 
+  if(frame == -1) frame = minFrame();
+  if(plane == -1) plane = minPlane();
+  if(gate == -1)  gate = minGate();
+  if(bed == -1)   bed = minBedPos();
+  if(data == -1)  data = minData();
+
   if(matrixParamsValid(frame, plane, gate, bed, data))
   {  
     // form the MatrixID from the supplied data and create a new
@@ -859,6 +1162,12 @@ bool CECATDirectory::writeMatrix(const QByteArray& matrixData, CECATSubHeader::D
 {
   ENTER();
   bool result = false;
+
+  if(frame == -1) frame = minFrame();
+  if(plane == -1) plane = minPlane();
+  if(gate == -1)  gate = minGate();
+  if(bed == -1)   bed = minBedPos();
+  if(data == -1)  data = minData();
 
   if(matrixParamsValid(frame, plane, gate, bed, data))
   {
@@ -894,6 +1203,12 @@ bool CECATDirectory::writeMatrix(const char* matrixData, unsigned int size,
   ENTER();
   bool result = false;
 
+  if(frame == -1) frame = minFrame();
+  if(plane == -1) plane = minPlane();
+  if(gate == -1)  gate = minGate();
+  if(bed == -1)   bed = minBedPos();
+  if(data == -1)  data = minData();
+
   if(matrixParamsValid(frame, plane, gate, bed, data))
   {
     // form the MatrixID from the supplied data and create a new
@@ -927,6 +1242,12 @@ bool CECATDirectory::writeMatrix(const QByteArray& matrixData, const CECATSubHea
   ENTER();
   bool result = false;
 
+  if(frame == -1) frame = minFrame();
+  if(plane == -1) plane = minPlane();
+  if(gate == -1)  gate = minGate();
+  if(bed == -1)   bed = minBedPos();
+  if(data == -1)  data = minData();
+
   if(matrixParamsValid(frame, plane, gate, bed, data))
   {  
     // form the MatrixID from the supplied data and create a new
@@ -959,6 +1280,12 @@ bool CECATDirectory::writeMatrix(const char* matrixData, unsigned int size, cons
 {
   ENTER();
   bool result = false;
+
+  if(frame == -1) frame = minFrame();
+  if(plane == -1) plane = minPlane();
+  if(gate == -1)  gate = minGate();
+  if(bed == -1)   bed = minBedPos();
+  if(data == -1)  data = minData();
 
   if(matrixParamsValid(frame, plane, gate, bed, data))
   {  

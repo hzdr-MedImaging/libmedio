@@ -333,18 +333,18 @@ CECATSubHeader::Type CECAT7SubHeaderPolarMap::subHeaderType(void) const
   return CECATSubHeader::ECAT7_PolarMap;
 }
 
-bool CECAT7SubHeaderPolarMap::convertFrom(const CMedIOHeader* pHead) 
+bool CECAT7SubHeaderPolarMap::convertFrom(const CMedIOHeader* subHeader, const CMedIOHeader* mainHeader) 
 {
   ENTER();
   bool bResult = false;
 
   // depending on the MedIOHeader format we do have to 
   // distinguish between our copy operations.
-  switch(pHead->headerFormat())
+  switch(subHeader->headerFormat())
   {
     case CMedIOHeader::ECATSubHeader:
     {
-      const CECATSubHeader* eSubHeader = static_cast<const CECATSubHeader*>(pHead);
+      const CECATSubHeader* eSubHeader = static_cast<const CECATSubHeader*>(subHeader);
 
       // depending on the source type we have to copy either every data or just 
       // some data of the src header
@@ -356,7 +356,7 @@ bool CECAT7SubHeaderPolarMap::convertFrom(const CMedIOHeader* pHead)
         {
           // we use the assignment operator which will do the convertation
           // for us.
-          *this = *static_cast<const CECAT7SubHeaderPolarMap*>(pHead);
+          *this = *static_cast<const CECAT7SubHeaderPolarMap*>(subHeader);
 
           bResult = true;
         }
@@ -372,6 +372,7 @@ bool CECAT7SubHeaderPolarMap::convertFrom(const CMedIOHeader* pHead)
 
     case CMedIOHeader::ECATMainHeader:
     case CMedIOHeader::ConcordeMicroPetMainHeader:
+    case CMedIOHeader::PhilipsMainHeader:
       // copying a main header into a sub header doesn't make much sense, so we
       // do nothing here
     break;

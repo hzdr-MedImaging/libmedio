@@ -25,6 +25,7 @@
 #include "CPhilipsSubHeader.h"
 #include "CPhilipsDirectoryItem.h"
 #include "CECATSubHeader.h"
+#include "CECAT7MainHeader.h"
 #include "CECAT7SubHeaderImage.h"
 #include "CMedIOData.h"
 
@@ -642,18 +643,18 @@ bool CPhilipsSubHeader::save(void) const
   return result;
 }
 
-bool CPhilipsSubHeader::convertFrom(const CMedIOHeader* pHead)
+bool CPhilipsSubHeader::convertFrom(const CMedIOHeader* subHeader, const CMedIOHeader* mainHeader)
 {
   ENTER();
   bool bResult = false;
 
   // depending on the MedIOHeader format we do have to 
   // distinguish between our copy operations.
-  switch(pHead->headerFormat())
+  switch(subHeader->headerFormat())
   {
     case CMedIOHeader::ECATSubHeader:
     {
-      const CECATSubHeader* eSubHeader = static_cast<const CECATSubHeader*>(pHead);
+      const CECATSubHeader* eSubHeader = static_cast<const CECATSubHeader*>(subHeader);
 
       // depending on the source type we have to copy either every data or just 
       // some data of the src header
@@ -662,11 +663,12 @@ bool CPhilipsSubHeader::convertFrom(const CMedIOHeader* pHead)
         // if the source header is an ECAT7 image subheader we convert as much as possible
         case CECATSubHeader::ECAT7_Image:
         {
-          const CECAT7SubHeaderImage* header = static_cast<const CECAT7SubHeaderImage*>(pHead);
+          const CECAT7SubHeaderImage* sh = static_cast<const CECAT7SubHeaderImage*>(subHeader);
+          const CECAT7MainHeader* mh = static_cast<const CECAT7MainHeader*>(mainHeader);
 
           // convert now
           CPhilipsSubHeader::Data_Type dtype = CPhilipsSubHeader::UnknownDataType;
-          switch(header->data_Type())
+          switch(sh->data_Type())
           {
             case CECATSubHeader::UnknownDataType:
               W("Unknown DataType found while converting");
@@ -695,30 +697,48 @@ bool CPhilipsSubHeader::convertFrom(const CMedIOHeader* pHead)
           }
           setDatype(dtype);
 
-          // we have to calculate the suv scaling factor
-          bool ok = false;
-          float fact = header->suv_Scale_Factor(ok);
+          // if the header is marked as being calibrated we go
+          // and set the SUV scaling factor, otherwise we set it to 0 to signal
+          // that the values are uncalibrated.
+          bool calibrated = false;
+          if(mh->calibration_Units() != CECAT7MainHeader::Uncalibrated)
+          {
+            // we have to calculate the suv scaling factor
+            float fact = sh->suv_Scale_Factor(calibrated);
 
-          if(ok == true)
-            setSuvscl(fact);
-          else
-            setSuvscl(1.0);
+            // if the conversion worked out fine we can assume the
+            // suv scale factor to be correct. so we set the img scale
+            // factor to 1.0f
+            if(calibrated == true)
+            {
+              setSuvscl(fact);
+              setImgscl(1.0f);
+            }
+          }
 
-          setImgscl(1.0f);
-          setXdim(header->x_Dimension());
-          setYdim(header->y_Dimension());
-          setPix_spacing_x(header->x_Pixel_Size() * 10.0f); // cm -> mm
-          setPix_spacing_y(header->y_Pixel_Size() * 10.0f); // cm -> mm
-          setScnlen(header->frame_Duration()/1000.0f); // ms -> s
-          setMseclen(header->frame_Duration() % 1000);
+          // if we end up in having identified the file to be uncalibrated
+          // we go and set the suvscl factor to 0.0f and the img scale factor
+          // to the value of the main header of the ECAT file
+          if(calibrated == false)
+          {
+            setSuvscl(0.0f);
+            setImgscl(sh->scale_Factor());
+          }
 
-          if((header->processing_Code() & CECAT7SubHeaderImage::DecayCorrection) == CECAT7SubHeaderImage::DecayCorrection)
+          setXdim(sh->x_Dimension());
+          setYdim(sh->y_Dimension());
+          setPix_spacing_x(sh->x_Pixel_Size() * 10.0f); // cm -> mm
+          setPix_spacing_y(sh->y_Pixel_Size() * 10.0f); // cm -> mm
+          setScnlen(sh->frame_Duration()/1000.0f); // ms -> s
+          setMseclen(sh->frame_Duration() % 1000);
+
+          if((sh->processing_Code() & CECAT7SubHeaderImage::DecayCorrection) == CECAT7SubHeaderImage::DecayCorrection)
             setDecay_corr(CPhilipsSubHeader::Acqstart);
 
-          if((header->processing_Code() & CECAT7SubHeaderImage::Normalized) == CECAT7SubHeaderImage::Normalized)
+          if((sh->processing_Code() & CECAT7SubHeaderImage::Normalized) == CECAT7SubHeaderImage::Normalized)
             setDet_norm(1);
 
-          if((header->processing_Code() & CECAT7SubHeaderImage::MeasuredAttenCorr) == CECAT7SubHeaderImage::MeasuredAttenCorr)
+          if((sh->processing_Code() & CECAT7SubHeaderImage::MeasuredAttenCorr) == CECAT7SubHeaderImage::MeasuredAttenCorr)
             setAtten_corr("MRAC");
 
           setDeadtime_corr(1);
@@ -726,14 +746,14 @@ bool CPhilipsSubHeader::convertFrom(const CMedIOHeader* pHead)
           setNu_radsamp_corr(1);
           setCntloss_corr(1);
           
-          if(header->scatter_Type() == CECAT7SubHeaderImage::Deconvolution)
+          if(sh->scatter_Type() == CECAT7SubHeaderImage::Deconvolution)
             setScatter_corr("SS-SIMUL");
 
-          if(header->recon_Type() == CECAT7SubHeaderImage::FilteredBackProjection)
+          if(sh->recon_Type() == CECAT7SubHeaderImage::FilteredBackProjection)
             setRecon_method("FBP");
-          else if(header->recon_Type() == CECAT7SubHeaderImage::BasicOsem)
+          else if(sh->recon_Type() == CECAT7SubHeaderImage::BasicOsem)
             setRecon_method("OSEM");
-          else if(header->recon_Type() == CECAT7SubHeaderImage::IterativeCPURecon)
+          else if(sh->recon_Type() == CECAT7SubHeaderImage::IterativeCPURecon)
             setRecon_method("Iterative");
 
           bResult = true;

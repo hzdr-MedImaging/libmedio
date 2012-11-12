@@ -463,19 +463,18 @@ CECATSubHeader::Type CECAT7SubHeaderImage::subHeaderType(void) const
   return CECATSubHeader::ECAT7_Image;
 }
 
-bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead) 
+bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* subHeader, const CMedIOHeader* mainHeader) 
 {
   ENTER();
-
   bool bResult = false;
 
   // depending on the MedIOHeader format we do have to 
   // distinguish between our copy operations.
-  switch(pHead->headerFormat())
+  switch(subHeader->headerFormat())
   {
     case CMedIOHeader::ECATSubHeader:
     {
-      const CECATSubHeader* eSubHeader = static_cast<const CECATSubHeader*>(pHead);
+      const CECATSubHeader* eSubHeader = static_cast<const CECATSubHeader*>(subHeader);
 
       // depending on the source type we have to copy either every data or just 
       // some data of the src header
@@ -487,7 +486,7 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead)
         {
           // we use the assignment operator which will do the convertation
           // for us.
-          *this = *static_cast<const CECAT7SubHeaderImage*>(pHead);
+          *this = *static_cast<const CECAT7SubHeaderImage*>(subHeader);
           
           bResult = true;
         }
@@ -502,45 +501,40 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead)
     }
 
     case CMedIOHeader::ECATMainHeader:
+    case CMedIOHeader::ConcordeMicroPetMainHeader:
+    case CMedIOHeader::PhilipsMainHeader:
       // copying a main header into a sub header doesn't make much sense, so we
       // do nothing here
     break;
 
     case CMedIOHeader::ConcordeMicroPetFrameHeader:
     {
-      const CConcordeFrameHeader* head = static_cast<const CConcordeFrameHeader*>(pHead);
+      const CConcordeFrameHeader* sh = static_cast<const CConcordeFrameHeader*>(subHeader);
+      const CConcordeMainHeader* mh = static_cast<const CConcordeMainHeader*>(mainHeader);
 
       // now convert 
       setData_Type(CECATSubHeader::SunShort);
       setNum_Dimensions(3);
       setRecon_Zoom(1.0);
-      setScale_Factor(head->scaleFactor());
-      setImage_Min(static_cast<short>(head->minimum()));
-      setImage_Max(static_cast<short>(head->maximum()));
-      setFrame_Duration(static_cast<int>(head->frameDuration()*1000.0));
-      setFrame_Start_Time(static_cast<int>(head->frameStart()*1000.0));
-      setDecay_Corr_Fctr(head->decayCorrection());
+      setScale_Factor(sh->scaleFactor());
+      setImage_Min(static_cast<short>(sh->minimum()));
+      setImage_Max(static_cast<short>(sh->maximum()));
+      setFrame_Duration(static_cast<int>(sh->frameDuration()*1000.0));
+      setFrame_Start_Time(static_cast<int>(sh->frameStart()*1000.0));
+      setDecay_Corr_Fctr(sh->decayCorrection());
       setGate_Duration(0);
 
-      bResult = true;
-    }
-    break;
-
-    case CMedIOHeader::ConcordeMicroPetMainHeader:
-    {
-      const CConcordeMainHeader* mainHeader = static_cast<const CConcordeMainHeader*>(pHead);
-
-      setX_Dimension(mainHeader->xDimension());
-      setY_Dimension(mainHeader->yDimension());
-      setZ_Dimension(mainHeader->zDimension());
-      setX_Pixel_Size(mainHeader->pixelSize());
-      setY_Pixel_Size(mainHeader->pixelSize());
+      setX_Dimension(mh->xDimension());
+      setY_Dimension(mh->yDimension());
+      setZ_Dimension(mh->zDimension());
+      setX_Pixel_Size(mh->pixelSize());
+      setY_Pixel_Size(mh->pixelSize());
       //since microPET header 1.711 axial_plane_size does not exist
       //anymore -> use axial_crystal_pitch/2: works for older header
       //versions too
-      setZ_Pixel_Size(mainHeader->axialCrystalPitch()/2.0F);
-      setNum_R_Elements(mainHeader->yDimension());
-      setNum_Angles(mainHeader->xDimension());
+      setZ_Pixel_Size(mh->axialCrystalPitch()/2.0F);
+      setNum_R_Elements(mh->yDimension());
+      setNum_Angles(mh->xDimension());
 
       bResult = true;
     }
@@ -548,11 +542,12 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead)
 
     case CMedIOHeader::PhilipsSubHeader:
     {
-      const CPhilipsSubHeaderImage* head = static_cast<const CPhilipsSubHeaderImage*>(pHead);
+      const CPhilipsSubHeaderImage* sh = static_cast<const CPhilipsSubHeaderImage*>(subHeader);
+      const CPhilipsMainHeader* mh = static_cast<const CPhilipsMainHeader*>(mainHeader);
 
       // now convert
       CECATSubHeader::Data_Type dtype = CECATSubHeader::UnknownDataType;
-      switch(head->datype())
+      switch(sh->datype())
       {
         case CPhilipsSubHeader::UnknownDataType:
           W("Unknown DataType found while converting");
@@ -575,23 +570,28 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead)
       setData_Type(dtype);
 
       setNum_Dimensions(3);
-      setX_Dimension(head->xdim());
-      setY_Dimension(head->ydim());
+      setX_Dimension(sh->xdim());
+      setY_Dimension(sh->ydim());
       setRecon_Zoom(1.0);
 
-      if(head->suvscl() != 0.0f)
-        setScale_Factor(head->suvscl());
+      if(sh->suvscl() != 0.0f)
+        setScale_Factor(sh->suvscl());
       else
-        setScale_Factor(head->imgscl());
+        setScale_Factor(sh->imgscl());
 
-      setImage_Min(head->imgmin());
-      setImage_Max(head->imgmax());
-      setX_Pixel_Size(head->pix_spacing_x() / 10.0f); // mm -> cm
-      setY_Pixel_Size(head->pix_spacing_y() / 10.0f); // mm -> cm
-      setFrame_Duration((head->scnlen() * 1000) + head->mseclen());
+      setImage_Min(sh->imgmin());
+      setImage_Max(sh->imgmax());
+
+      if(sh->pix_spacing_x() != 0.0f)
+        setX_Pixel_Size(sh->pix_spacing_x() / 10.0f); // mm -> cm
+
+      if(sh->pix_spacing_y() != 0.0f)
+        setY_Pixel_Size(sh->pix_spacing_y() / 10.0f); // mm -> cm
+
+      setFrame_Duration((sh->scnlen() * 1000) + sh->mseclen());
 
       setGate_Duration(0);
-      if(QString(head->scatter_corr()).contains("SIMUL"))
+      if(QString(sh->scatter_corr()).contains("SIMUL"))
         setScatter_Type(CECAT7SubHeaderImage::Simulated);
       else
         setScatter_Type(CECAT7SubHeaderImage::None);
@@ -599,39 +599,31 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead)
       setRecon_Type(CECAT7SubHeaderImage::IterativeCPURecon);
 
       short processing_code = CECAT7SubHeaderImage::NotProcessed;
-      if(head->det_norm() == 1)
+      if(sh->det_norm() == 1)
         processing_code |= CECAT7SubHeaderImage::Normalized;
 
-      if(QString(head->atten_corr()).contains("AC"))
+      if(QString(sh->atten_corr()).contains("AC"))
         processing_code |= CECAT7SubHeaderImage::MeasuredAttenCorr;
 
-      if(QString(head->scatter_corr()).contains("SIMUL"))
+      if(QString(sh->scatter_corr()).contains("SIMUL"))
         processing_code |= CECAT7SubHeaderImage::Scatter2DCorr;
 
-      if(head->decay_corr() == 1)
+      if(sh->decay_corr() == 1)
         processing_code |= CECAT7SubHeaderImage::DecayCorrection;
 
       setProcessing_Code(processing_code);
-        
-      bResult = true;
-    }
-    break;
+      
+      setZ_Dimension(mh->nslice());
+      setZ_Pixel_Size(mh->Dslice_thick() / 10.0f); // mm -> cm
 
-    case CMedIOHeader::PhilipsMainHeader:
-    {
-      const CPhilipsMainHeader* mainHeader = static_cast<const CPhilipsMainHeader*>(pHead);
+      if(x_Pixel_Size() == 0.0f)
+        setX_Pixel_Size(static_cast<float>(mh->dmax()) / static_cast<float>(x_Dimension()) / 10.0f); // mm -> cm
 
-      setZ_Dimension(mainHeader->nslice());
-      setZ_Pixel_Size(mainHeader->Dslice_thick() / 10.0f); // mm -> cm
-
-      if(x_Pixel_Size() == 0)
-        setX_Pixel_Size(static_cast<float>(mainHeader->dmax()) / static_cast<float>(x_Dimension()) / 10.0f); // mm -> cm
-
-      if(y_Pixel_Size() == 0)
-        setY_Pixel_Size(static_cast<float>(mainHeader->dmax()) / static_cast<float>(y_Dimension()) / 10.0f); // mm -> cm
+      if(y_Pixel_Size() == 0.0f)
+        setY_Pixel_Size(static_cast<float>(mh->dmax()) / static_cast<float>(y_Dimension()) / 10.0f); // mm -> cm
 
       CECAT7SubHeaderImage::Filter_Code fcode = CECAT7SubHeaderImage::NoFilter;
-      switch(mainHeader->fltr_type())
+      switch(mh->fltr_type())
       {
         case CPhilipsMainHeader::Undefined_Fltr:
         case CPhilipsMainHeader::No_Fltr:
@@ -657,22 +649,21 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* pHead)
       setFilter_Code(fcode);
 
       // set the frame start time relative to the acq_date_time
-      //setFrame_Start_Time((head->start_date_time() - mainHeader->acq_date_time()) * 1000); // s -> ms
-      #warning HOWTO set FrameStartTime?
+      setFrame_Start_Time((sh->start_date_time() - mh->acq_date_time()) * 1000); // s -> ms
 
       // R_elements/Angles are usually only relevant for sinograms
       // however, we fill the stuff in for consistency reasons
-      if(mainHeader->dmax() == 576)
+      if(mh->dmax() == 576)
         setNum_R_Elements(291);
-      else if(mainHeader->dmax() == 265)
+      else if(mh->dmax() == 265)
         setNum_R_Elements(193);
 
-      if(mainHeader->phiMashing() == CPhilipsMainHeader::Mashing2)
+      if(mh->phiMashing() == CPhilipsMainHeader::Mashing2)
         setNum_Angles(336/2);
       else
         setNum_Angles(336);
 
-      if(mainHeader->decay_corr() == 1)
+      if(mh->decay_corr() == 1)
         setDecay_Corr_Fctr(1.0f);
       else
         setDecay_Corr_Fctr(0.0f);

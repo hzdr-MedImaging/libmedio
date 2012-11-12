@@ -54,43 +54,54 @@ class CECATDirectory
     bool isEmpty() const;
     unsigned int count() const;
     CECATDirectoryItem* operator[](unsigned int num) const;
-    CECATDirectoryItem* item(short frame, short plane=1,
-                             short gate=1, short bed=0, short data=0);
+    CECATDirectoryItem* item(short frame=-1, short plane=-1,
+                             short gate=-1, short bed=-1, short data=-1);
 
     // methods to calculate the real amount
     // of frame/plane/gate numbers carried in the directory.
+    short maxFrame(void) const;
+    short minFrame(void) const;
     short numFrames(void) const;
+    short maxPlane(void) const;
+    short minPlane(void) const;
     short numPlanes(void) const;
+    short maxGate(void) const;
+    short minGate(void) const;
     short numGates(void) const;
+    short maxBedPos(void) const;
+    short minBedPos(void) const;
     short numBedPos(void) const;
+    short maxData(void) const;
+    short minData(void) const;
+    short numData(void) const;
 
     // read methods
     bool readSubHeader(CECATSubHeader*& subHeader,
-                       short frame, short plane=1, short gate=1, short bed=0, short data=0);
+                       short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);
     bool readMatrix(QByteArray*& matrixData,
-                    short frame, short plane=1, short gate=1, short bed=0, short data=0);
+                    short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);
     bool readMatrix(char*& matrixData, unsigned int& len,
-                    short frame, short plane=1, short gate=1, short bed=0, short data=0);
+                    short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);
     bool readMatrix(QByteArray*& matrixData, CECATSubHeader*& subHeader,
-                    short frame, short plane=1, short gate=1, short bed=0, short data=0);
+                    short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);
     bool readMatrix(char*& matrixData, unsigned int& len, CECATSubHeader*& subHeader,
-                    short frame, short plane=1, short gate=1, short bed=0, short data=0);  
+                    short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);  
   
     // write methods
     bool writeSubHeader(const CECATSubHeader& subHeader,
-                        short frame, short plane=1, short gate=1, short bed=0, short data=0);
+                        short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);
     bool writeMatrix(const QByteArray& matrix,
-                     short frame, short plane=1, short gate=1, short bed=0, short data=0);
+                     short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);
     bool writeMatrix(const char* matrix, unsigned int size,
-                     short frame, short plane=1, short gate=1, short bed=0, short data=0);
+                     short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);
     bool writeMatrix(const QByteArray& matrix, CECATSubHeader::Data_Type type,
-                     short frame, short plane=1, short gate=1, short bed=0, short data=0);
+                     short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);
     bool writeMatrix(const char* matrix, unsigned int size, CECATSubHeader::Data_Type type,
-                     short frame, short plane=1, short gate=1, short bed=0, short data=0);    
+                     short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);    
     bool writeMatrix(const QByteArray& matrix, const CECATSubHeader& subHeader,
-                     short frame, short plane=1, short gate=1, short bed=0, short data=0);
+                     short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);
     bool writeMatrix(const char* matrix, unsigned int size, const CECATSubHeader& subHeader,
-                     short frame, short plane=1, short gate=1, short bed=0, short data=0);
+                     short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);
 
   private:
     CECATDirectoryPrivate* m_pData;

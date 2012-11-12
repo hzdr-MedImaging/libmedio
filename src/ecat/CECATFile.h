@@ -74,40 +74,51 @@ class CECATFile : public CMedIOData
 
     // methods to calculate the real amount
     // of frame/plane/gate numbers carried in the directory.
+    short maxFrame(void) const;
+    short minFrame(void) const;
     short numFrames(void) const;
+    short maxPlane(void) const;
+    short minPlane(void) const;
     short numPlanes(void) const;
+    short maxGate(void) const;
+    short minGate(void) const;
     short numGates(void) const;
+    short maxBedPos(void) const;
+    short minBedPos(void) const;
     short numBedPos(void) const;
+    short maxData(void) const;
+    short minData(void) const;
+    short numData(void) const;
 
     // interface methods to read out specific data from the ECAT files
     bool readMainHeader(CECATMainHeader*& mainHeader);
     bool readSubHeader(CECATSubHeader*& subHeader,
-                       short frame, short plane=1, short gate=1, short bed=0, short data=0);
+                       short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);
     bool readMatrix(QByteArray*& matrixData,
-                    short frame, short plane=1, short gate=1, short bed=0, short data=0);
+                    short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);
     bool readMatrix(char*& matrixData, unsigned int& len,
-                    short frame, short plane=1, short gate=1, short bed=0, short data=0);
+                    short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);
     bool readMatrix(QByteArray*& matrixData, CECATSubHeader*& subHeader,
-                    short frame, short plane=1, short gate=1, short bed=0, short data=0);
+                    short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);
     bool readMatrix(char*& matrixData, unsigned int& len, CECATSubHeader*& subHeader,
-                    short frame, short plane=1, short gate=1, short bed=0, short data=0);
+                    short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);
 
     // methods to write out headers/data to the file.
     bool writeMainHeader(CECATMainHeader& mainHeader);
     bool writeSubHeader(const CECATSubHeader& subHeader,
-                        short frame, short plane=1, short gate=1, short bed=0, short data=0);
+                        short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);
     bool writeMatrix(const QByteArray& matrixData,
-                     short frame, short plane=1, short gate=1, short bed=0, short data=0);
+                     short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);
     bool writeMatrix(const char* matrixData, unsigned int size,
-                     short frame, short plane=1, short gate=1, short bed=0, short data=0);
+                     short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);
     bool writeMatrix(const QByteArray& matrixData, const CECATSubHeader& subHeader,
-                     short frame, short plane=1, short gate=1, short bed=0, short data=0);
+                     short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);
     bool writeMatrix(const char* matrixData, unsigned int size, const CECATSubHeader& subHeader,
-                     short frame, short plane=1, short gate=1, short bed=0, short data=0);    
+                     short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);    
     bool writeMatrix(const QByteArray& matrixData, CECATSubHeader::Data_Type type, 
-                     short frame, short plane=1, short gate=1, short bed=0, short data=0);
+                     short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);
     bool writeMatrix(const char* matrixData, unsigned int size, CECATSubHeader::Data_Type type,
-                     short frame, short plane=1, short gate=1, short bed=0, short data=0);
+                     short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);
 
     // methods to generate some objects just for convienence
     CECATMainHeader* createEmptyMainHeader(void);
