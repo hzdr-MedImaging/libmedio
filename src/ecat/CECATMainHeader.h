@@ -91,7 +91,6 @@ class CECATMainHeader : public CMedIOHeader
     // copy all meta information
     virtual CMedIOHeader* clone() const = 0;
 
-  protected:
     // conversion methods
     virtual bool convertFrom(const CMedIOHeader* mainHeader, const CMedIOHeader* subHeader=NULL) = 0;
 };

@@ -70,6 +70,9 @@ class CECAT6MainHeader : public CECATMainHeader
     // clone methods
     CMedIOHeader* clone() const;
 
+    // conversion methods
+    bool convertFrom(const CMedIOHeader* mainHeader, const CMedIOHeader* subHeader=NULL);
+
     // accessor Methods
     const char* original_File_Name(void) const;
     short sw_Version(void) const;
@@ -89,10 +92,6 @@ class CECAT6MainHeader : public CECATMainHeader
     void setNum_Frames(const short num);
     void setNum_Gates(const short num);
     void setNum_Bed_Pos(const short num);
-
-  protected:
-    // conversion methods
-    bool convertFrom(const CMedIOHeader* mainHeader, const CMedIOHeader* subHeader=NULL);
 
   private:
     CECAT6MainHeaderPrivate* m_pData;

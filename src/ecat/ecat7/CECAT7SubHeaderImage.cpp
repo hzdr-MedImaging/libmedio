@@ -578,10 +578,11 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* subHeader, const CMed
       setY_Dimension(sh->ydim());
       setRecon_Zoom(1.0);
 
-      if(sh->suvscl() != 0.0f)
-        setScale_Factor(sh->suvscl());
-      else
-        setScale_Factor(sh->imgscl());
+      bool convertOk = false;
+      setScale_Factor(sh->scale_Factor(convertOk));
+
+      if(convertOk == false)
+        setScale_Factor(1.0f);
 
       setImage_Min(sh->imgmin());
       setImage_Max(sh->imgmax());

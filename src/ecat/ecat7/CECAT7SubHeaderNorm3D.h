@@ -68,6 +68,9 @@ class CECAT7SubHeaderNorm3D : public CECATSubHeader
     // clone methods
     CMedIOHeader* clone() const;
 
+    // conversion methods
+    bool convertFrom(const CMedIOHeader* subHeader, const CMedIOHeader* mainHeader=NULL);
+
     // access methods to get directly data out of
     // the SubHeader
     CECATSubHeader::Data_Type data_Type(void) const;
@@ -108,10 +111,6 @@ class CECAT7SubHeaderNorm3D : public CECATSubHeader
     void setMax_Ring_Diff(const short n);
     void setCTI_Reserved(const short i, const short n);
     void setUser_Reserved(const short i, const short n);
-
-  protected:
-    // conversion methods
-    bool convertFrom(const CMedIOHeader* subHeader, const CMedIOHeader* mainHeader=NULL);
 
   private:
     CECAT7SubHeaderNorm3DPrivate* m_pData;

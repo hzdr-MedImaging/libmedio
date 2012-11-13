@@ -86,6 +86,10 @@ class CMedIOHeader
     //! @brief for conversion based on an input file
     virtual bool convertFrom(CMedIOData* pData);
 
+    //! @brief try to convert the given medio header in this header type
+    //! @return true for success; false for failure
+    virtual bool convertFrom(const CMedIOHeader* header1, const CMedIOHeader* header2=NULL) = 0;
+
     //! @brief user defined rtti
     //! @return user defined rtti if defined else -1
     virtual int userRtti() const;
@@ -104,10 +108,6 @@ class CMedIOHeader
     virtual void setMedIOData(CMedIOData* data);
 
   protected:
-    //! @brief try to convert the given medio header in this header type
-    //! @return true for success; false for failure
-    virtual bool convertFrom(const CMedIOHeader* header1, const CMedIOHeader* header2=NULL) = 0;
-
     //! @return true if header is a main header
     bool isMainHeader(void) const;
 

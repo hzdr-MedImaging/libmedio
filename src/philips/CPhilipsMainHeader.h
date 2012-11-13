@@ -356,6 +356,9 @@ class CPhilipsMainHeader : public CMedIOHeader
     // clone methods
     virtual CMedIOHeader* clone() const;
 
+    // convert methods
+    bool convertFrom(const CMedIOHeader* mainHeader, const CMedIOHeader* subHeader=NULL);
+
     // data acess methods
     short file_fmt() const;
     short scan_geom() const;
@@ -875,10 +878,6 @@ class CPhilipsMainHeader : public CMedIOHeader
     void setFile_create_date_time_Qt(const QDateTime& datetime);
     QDateTime recon_date_time_Qt() const;
     void setRecon_date_time_Qt(const QDateTime& datetime);
-
-  protected:
-    // convert methods
-    bool convertFrom(const CMedIOHeader* mainHeader, const CMedIOHeader* subHeader=NULL);
 
   private:
     CPhilipsMainHeaderPrivate* m_pData;

@@ -33,6 +33,7 @@
 #include "CMedIOHeader.h"
 #include "CMedIOData.h"
 #include "CECAT7MainHeader.h"
+#include "CECAT7SubHeaderImage.h"
 
 #include <rtdebug.h>
 
@@ -1554,6 +1555,7 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
         case CECATMainHeader::ECAT7MainHeader:
         {
           const CECAT7MainHeader* header = static_cast<const CECAT7MainHeader*>(mainHeader);
+          const CECAT7SubHeaderImage* sh = static_cast<const CECAT7SubHeaderImage*>(subHeader);
 
           // now convert
           CPhilipsMainHeader::File_Type fileType = CPhilipsMainHeader::Unknown;
@@ -1603,6 +1605,9 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
           setAbundance(header->branching_Fraction() * 1000.0f); // 1.0 = 100%
           setTable_height(header->bed_Elevation());
           setReferring_physician(header->physician_Name());
+
+          setNumray(sh->x_Dimension());
+          setNumang(sh->y_Dimension());
 
           bResult = true;
         }

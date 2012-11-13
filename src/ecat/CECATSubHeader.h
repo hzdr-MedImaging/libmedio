@@ -92,7 +92,6 @@ class CECATSubHeader : public CMedIOHeader
     // copy all meta information
     virtual CMedIOHeader* clone() const = 0;
 
-  protected:
     // try to convert the given medio header in this header type
     virtual bool convertFrom(const CMedIOHeader* subHeader, const CMedIOHeader* mainHeader=NULL) = 0;
 

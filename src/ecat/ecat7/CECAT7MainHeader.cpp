@@ -836,7 +836,7 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
         case CECATMainHeader::ECAT6MainHeader:
         {
           const CECAT6MainHeader* e6src = static_cast<const CECAT6MainHeader*>(mainHeader);
-          clear();
+
           setOriginal_File_Name(e6src->original_File_Name());
           setSystem_Type(e6src->system_Type());
 
@@ -994,9 +994,6 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
       setBranching_Fraction(static_cast<float>(head->abundance()) / 1000.0f); // 1.0 = 100%
       setDose_Start_Time(head->injection_date_time());
       setDosage(head->activity() * 1000000.0f);      // MBq -> Bq
-
-      setData_Units("");
-      setCalibration_Units(CECAT7MainHeader::Uncalibrated);
 
       if(subHead->suvscl() != 0.0f)
       {

@@ -363,18 +363,9 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
     pEcat7ImageHeader = static_cast<CECAT7MainHeader*>(pEcat7Image->createEmptyMainHeader());
     if(pEcat7ImageHeader != NULL)
     {
-      CPhilipsSubHeader* pPhilipsSubHeader = NULL;
-
-      // get the philips subheader of the first frame because we need it
-      // for converting the main header
-      pPhilipsFile->readSubHeader(pPhilipsSubHeader);
-
       // convert the philips main header into an ECAT main header using
       // the link to the file
       static_cast<CMedIOHeader*>(pEcat7ImageHeader)->convertFrom(pPhilipsFile);
-
-      // delete the sub header right away
-      delete pPhilipsSubHeader;
 
       int numFrames = pPhilipsFile->numFrames();
       if(numFrames > NUMFRAMESLIMIT)
@@ -474,19 +465,13 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
           pEcat7SubHeaderImage = static_cast<CECAT7SubHeaderImage*>(pEcat7Image->createEmptySubHeader());
 
           // convert the philips data into a working ecat sub header
-          static_cast<CMedIOHeader*>(pEcat7SubHeaderImage)->convertFrom(pPhilipsFile);
-
-          D("imgMin: %d", imgMinValue);
-          D("imgMax: %d", imgMaxValue);
+          pEcat7SubHeaderImage->convertFrom(pPhilipsSubHeaderImage, pPhilipsMainHeader);
 
           pEcat7SubHeaderImage->setImage_Min(imgMinValue);
           pEcat7SubHeaderImage->setImage_Max(imgMaxValue);
 
-          bool ok = false;
-          pEcat7SubHeaderImage->setScale_Factor(pPhilipsSubHeaderImage->scale_Factor(ok));
-
-          if(ok == true && pPhilipsSubHeaderImage->suvscl() != 0.0f)
-            pEcat7ImageHeader->setData_Units("Bq/cc");
+          D("imgMin: %d", imgMinValue);
+          D("imgMax: %d", imgMaxValue);
 
           // put in an annotation about being converted by mp2ecat
           pEcat7SubHeaderImage->setAnnotation("converted by " PACKAGE_NAME " " PACKAGE_VERSION);
@@ -603,23 +588,6 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
       // convert the ecat image into a working philips main header
       static_cast<CMedIOHeader*>(pPhilipsMainHeader)->convertFrom(pEcat7Image);
 
-          CPhilipsFile file2("lor_uncompress.img");
-          file2.open(QIODevice::ReadOnly);
-          CPhilipsMainHeader* fileHeader;
-          file2.readMainHeader(fileHeader);
-
-          //*pPhilipsMainHeader = *fileHeader;
-
-          // copy some tags which might be missing
-          pPhilipsMainHeader->setNumray(144);
-          pPhilipsMainHeader->setNumang(144);
-          //pPhilipsMainHeader->setDmax(576);
-          //pPhilipsMainHeader->setDline(576);
-          //pPhilipsMainHeader->setAngmax(10.0);
-
-          file2.close();
-
-
       int numFrames = pEcat7Image->numFrames();
       if(numFrames > NUMFRAMESLIMIT)
       {
@@ -675,12 +643,6 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
           D("imgMin: %d", imgMinValue);
           D("imgMax: %d", imgMaxValue);
 
-          // now convert the subheader
-          CPhilipsSubHeaderImage* pPhilipsSubHeaderImage = static_cast<CPhilipsSubHeaderImage*>(pPhilipsFile->createEmptySubHeader());
-
-          // convert the ECAT data into a sensible philips sub header
-          static_cast<CMedIOHeader*>(pPhilipsSubHeaderImage)->convertFrom(pEcat7Image);
-
           // get dimensions of data
           short xDim = pECATSubHeaderImage->x_Dimension();
           short yDim = pECATSubHeaderImage->y_Dimension();
@@ -714,6 +676,12 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
             break;
           }
 
+          // create a new subheader now
+          CPhilipsSubHeaderImage* pPhilipsSubHeaderImage = static_cast<CPhilipsSubHeaderImage*>(pPhilipsFile->createEmptySubHeader());
+
+          // fill it using the ECAT header info
+          pPhilipsSubHeaderImage->convertFrom(pECATSubHeaderImage, pEcat7ImageHeader);
+ 
           // in the philips file format each slice is saved separately in a matrix
           // in the ecat format (in volume mode), however, the whole volume is saved
           // as a 3D matrix instead. So we have to split the volume now into slices
@@ -728,17 +696,22 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
             CDataArray<qint16> dataArray(&buffer, xDim*yDim);
             short imgMinValue = dataArray.minValue();
             short imgMaxValue = dataArray.maxValue();
-            
+          
+            // set some additional things only known here
             pPhilipsSubHeaderImage->setImgmin(imgMinValue);
             pPhilipsSubHeaderImage->setImgmax(imgMaxValue);
             pPhilipsSubHeaderImage->setImgsum(dataArray.sumValue());
             pPhilipsSubHeaderImage->setSlcnum(z*pPhilipsMainHeader->slcthk());
 
+            // write the data and the subheader accordingly.
             pPhilipsFile->writeMatrix(p, matrixSize, *pPhilipsSubHeaderImage, frame, z*pPhilipsMainHeader->slcthk());
   
             // now advance p
             p += matrixSize;
+
           }
+
+          delete pPhilipsSubHeaderImage;
         }
 
         delete pECATSubHeaderImage;
