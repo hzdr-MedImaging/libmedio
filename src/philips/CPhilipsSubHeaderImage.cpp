@@ -66,10 +66,13 @@ float CPhilipsSubHeaderImage::scale_Factor(bool& ok) const
   // in the subheader.
   if(suvscl() > 0.0f)
   {
-    if(m_pMedIOData->isReadable())
+    CMedIOData* mData = medIOData();
+
+    if(mData != NULL &&
+       mData->isReadable())
     {
       CPhilipsMainHeader* mainHeader = NULL;
-      CPhilipsFile* file = static_cast<CPhilipsFile*>(m_pMedIOData);
+      CPhilipsFile* file = static_cast<CPhilipsFile*>(mData);
 
       if(file->readMainHeader(mainHeader))
       {

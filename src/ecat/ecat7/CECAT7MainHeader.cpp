@@ -327,11 +327,12 @@ void CECAT7MainHeaderPrivate::updateMagicNumber(void)
 bool CECAT7MainHeader::load(void)
 {
   ENTER();
+  CMedIOData* mData = medIOData();
 
   // only go on if the device is readable at all
-  if(m_pMedIOData == NULL ||
-     m_pMedIOData->isReadable() == false ||
-     m_pMedIOData->seek(0) == false)
+  if(mData == NULL ||
+     mData->isReadable() == false ||
+     mData->seek(0) == false)
   {
     RETURN(false);
     return false;
@@ -339,7 +340,7 @@ bool CECAT7MainHeader::load(void)
 
   // we read in all data at once using read()
   ASSERT(sizeof(m_pData->header) == MAINHEADER_SIZE);
-  if(m_pMedIOData->read(reinterpret_cast<char*>(&m_pData->header), sizeof(m_pData->header)) != MAINHEADER_SIZE)
+  if(mData->read(reinterpret_cast<char*>(&m_pData->header), sizeof(m_pData->header)) != MAINHEADER_SIZE)
   {
     RETURN(false);
     return false;
@@ -667,19 +668,18 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
 bool CECAT7MainHeader::save(void) const
 {
   ENTER();
-
-  SHOWPOINTER(m_pMedIOData);
+  CMedIOData* mData = medIOData();
 
   // only go on if the device is writeable at all
-  if(m_pMedIOData == NULL ||
-     m_pMedIOData->isWritable() == false ||
-     m_pMedIOData->seek(0) == false)
+  if(mData == NULL ||
+     mData->isWritable() == false ||
+     mData->seek(0) == false)
   {
     RETURN(false);
     return false;
   }
 
-  SHOWVALUE(m_pMedIOData->pos());
+  SHOWVALUE(mData->pos());
 
   // check that the sizes are absolutely correct
   ASSERT(sizeof(m_pData->header) == MAINHEADER_SIZE);
@@ -690,7 +690,7 @@ bool CECAT7MainHeader::save(void) const
   // Please note that we do not specify any PLANES here as in ECAT7 the
   // planes are normally integrated in one matrix file. So we have to
   // allow the user to specify the planes himself.
-  CECATFile* ecatFile = static_cast<CECATFile*>(m_pMedIOData);
+  CECATFile* ecatFile = static_cast<CECATFile*>(mData);
   m_pData->header.Num_Frames = ecatFile->numFrames();
   m_pData->header.Num_Gates = ecatFile->numGates();
   m_pData->header.Num_Bed_Pos = ecatFile->numBedPos();
@@ -777,7 +777,7 @@ bool CECAT7MainHeader::save(void) const
 
   // now write out the main header to the file
   bool result = false;
-  if(m_pMedIOData->write(reinterpret_cast<char*>(header), sizeof(m_pData->header)) == MAINHEADER_SIZE)
+  if(mData->write(reinterpret_cast<char*>(header), sizeof(m_pData->header)) == MAINHEADER_SIZE)
   {
     ecatFile->mainHeaderWritten(*this);
     result = true;
@@ -927,6 +927,8 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
 
       // now convert as much as possible
       setSystem_Type(0); // 0 means unknown system type
+      if(head->medIOData() != NULL)
+        setOriginal_File_Name(head->medIOData()->fileName().toAscii().constData());
       setSerial_Number(head->Dserial_number());
       setScan_Start_Time(head->acq_date_time());
       setIsotope_Name(m_pData->philips2Ecat7Isotop(head->isotop()).toAscii().constData());

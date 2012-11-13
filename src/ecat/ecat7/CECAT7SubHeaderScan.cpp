@@ -141,13 +141,14 @@ void CECAT7SubHeaderScan::clear()
 bool CECAT7SubHeaderScan::load(void)
 {
   ENTER();
+  CMedIOData* mData = medIOData();
 
   // check if the stream is readable and if we can seek to the
   // expected position of the subheader
-  if(m_pMedIOData == NULL ||
-     m_pMedIOData->isReadable() == false ||
+  if(mData == NULL ||
+     mData->isReadable() == false ||
      m_pDirItem->dataBlock_Start() == 0 ||
-     m_pMedIOData->seek(m_pDirItem->dataBlock_Start()) == false)
+     mData->seek(m_pDirItem->dataBlock_Start()) == false)
   {
     RETURN(false);
     return false;
@@ -155,7 +156,7 @@ bool CECAT7SubHeaderScan::load(void)
 
   // we read in all data at once using read()
   ASSERT(sizeof(m_pData->header) == SUBHEADER_SIZE);
-  if(m_pMedIOData->read(reinterpret_cast<char*>(&m_pData->header), sizeof(m_pData->header)) != SUBHEADER_SIZE)
+  if(mData->read(reinterpret_cast<char*>(&m_pData->header), sizeof(m_pData->header)) != SUBHEADER_SIZE)
   {
     RETURN(false);
     return false;
@@ -266,17 +267,18 @@ bool CECAT7SubHeaderScan::load(void)
 bool CECAT7SubHeaderScan::save(void) const
 {
   ENTER();
+  CMedIOData* mData = medIOData();
 
   // check if this stream is writeable or not
-  if(m_pMedIOData == NULL || m_pMedIOData->isWritable() == false ||
+  if(mData == NULL || mData->isWritable() == false ||
      m_pDirItem == NULL || m_pDirItem->dataBlock_Start() == 0 ||
-     m_pMedIOData->seek(m_pDirItem->dataBlock_Start()) == false)
+     mData->seek(m_pDirItem->dataBlock_Start()) == false)
   {
     RETURN(false);
     return false;
   }
 
-  SHOWVALUE(m_pMedIOData->pos());
+  SHOWVALUE(mData->pos());
 
   ASSERT(sizeof(m_pData->header) == SUBHEADER_SIZE);
   struct CECAT7SubHeaderScanPrivate::HeaderData* header = NULL;
@@ -334,7 +336,7 @@ bool CECAT7SubHeaderScan::save(void) const
 
   // now write out to our outStream
   bool result = false;
-  if(m_pMedIOData->write(reinterpret_cast<char*>(header), sizeof(m_pData->header)) == SUBHEADER_SIZE)
+  if(mData->write(reinterpret_cast<char*>(header), sizeof(m_pData->header)) == SUBHEADER_SIZE)
   {
     m_pDirItem->subHeaderWritten(*this);
     result = true;

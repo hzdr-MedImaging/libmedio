@@ -228,24 +228,25 @@ void CPhilipsSubHeader::clear()
 bool CPhilipsSubHeader::load(void)
 {
   ENTER();
+  CMedIOData* mData = medIOData();
 
   // check if the stream is readable or not and
   // set our MedIOData to the correct file position so that we can
   // read the subheader  
-  if(m_pMedIOData == NULL ||
-     m_pMedIOData->isReadable() == false ||
+  if(mData == NULL ||
+     mData->isReadable() == false ||
      m_pDirItem->dataBlock_Start() == 0 ||
-     m_pMedIOData->seek(m_pDirItem->dataBlock_Start()) == false)
+     mData->seek(m_pDirItem->dataBlock_Start()) == false)
   {
     RETURN(false);
     return false;
   }
 
   D("about to read sub header");
-  SHOWVALUE(m_pMedIOData->pos());
+  SHOWVALUE(mData->pos());
 
   // we read in all data at once using read()
-  if(m_pMedIOData->read(reinterpret_cast<char*>(&m_pData->header), sizeof(m_pData->header)) != sizeof(m_pData->header))
+  if(mData->read(reinterpret_cast<char*>(&m_pData->header), sizeof(m_pData->header)) != sizeof(m_pData->header))
   {
     RETURN(false);
     return false;
@@ -425,11 +426,12 @@ bool CPhilipsSubHeader::save(void) const
 {
   ENTER();
   bool result = false;
+  CMedIOData* mData = medIOData();
 
   // check if this stream is writeable or not
-  if(m_pMedIOData == NULL || m_pMedIOData->isWritable() == false ||
+  if(mData == NULL || mData->isWritable() == false ||
      m_pDirItem == NULL || m_pDirItem->dataBlock_Start() == 0 ||
-     m_pMedIOData->seek(m_pDirItem->dataBlock_Start()) == false)
+     mData->seek(m_pDirItem->dataBlock_Start()) == false)
   {
     RETURN(false);
     return false;
@@ -521,7 +523,7 @@ bool CPhilipsSubHeader::save(void) const
   D("frame_ref_date_time_msec: %d", m_pData->header.frame_ref_date_time_msec);
 #endif
 
-  SHOWVALUE(m_pMedIOData->pos());
+  SHOWVALUE(mData->pos());
 
   // now that we have streamed in all data in one run we
   // have to take care of correct endianness in the non-char
@@ -611,13 +613,13 @@ bool CPhilipsSubHeader::save(void) const
     BSWAP_16(beHeader.frame_ref_date_time_msec);
 
     // now write out beHeader
-    if(m_pMedIOData->write((char *)&beHeader, sizeof(beHeader)) == sizeof(beHeader))
+    if(mData->write((char *)&beHeader, sizeof(beHeader)) == sizeof(beHeader))
       result = true;
   }
   else
   {
     // now write out to our outStream
-    if(m_pMedIOData->write((char *)&m_pData->header, sizeof(m_pData->header)) == sizeof(m_pData->header))
+    if(mData->write((char *)&m_pData->header, sizeof(m_pData->header)) == sizeof(m_pData->header))
       result = true;
   }
 
@@ -628,7 +630,7 @@ bool CPhilipsSubHeader::save(void) const
     {
       QByteArray nulArray(PHILIPS_BLOCKSIZE-sizeof(m_pData->header), 0);
 
-      if(m_pMedIOData->write(nulArray) != nulArray.length())
+      if(mData->write(nulArray) != nulArray.length())
       {
         result = false;
         E("Error while writing %d NUL data", nulArray.length());

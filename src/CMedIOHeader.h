@@ -33,6 +33,7 @@
 
 // forward declarations
 class CMedIOData;
+class CMedIOHeaderPrivate;
 
 //! @class CMedIOHeader
 //! @brief an abstract class which provides an interface for header information of medical data
@@ -58,11 +59,10 @@ class CMedIOHeader
     };
 
     // constructors
-    CMedIOHeader(CMedIOData* data=NULL);
-    virtual ~CMedIOHeader();
-
-    // copy constructor
+    CMedIOHeader();
     CMedIOHeader(const CMedIOHeader& src);
+    CMedIOHeader(CMedIOData* data);
+    virtual ~CMedIOHeader();
 
     //! @brief default assignment operator which enforces that m_pMedIOData
     //!        is NOT copied as well.
@@ -95,6 +95,10 @@ class CMedIOHeader
     //! @return the new created CMedIOHeader object
     virtual CMedIOHeader* clone() const = 0;
 
+    //! @brief allow to query the mediodata object to which this header
+    //!        belongs
+    virtual CMedIOData* medIOData(void) const;
+
     //! @brief provid a facility to set the MedIOData object
     //!        which is in fact used by some subHeader implementation
     virtual void setMedIOData(CMedIOData* data);
@@ -107,8 +111,8 @@ class CMedIOHeader
     //! @return true if header is a main header
     bool isMainHeader(void) const;
 
-  protected:
-    CMedIOData* m_pMedIOData; //!< the associated MedIOData this header belongs to
+  private:
+    CMedIOHeaderPrivate* m_pData; //!< private data object carrying all data
 };
 
 #endif

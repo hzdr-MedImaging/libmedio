@@ -36,11 +36,47 @@
 #include <rtdebug.h>
 #include <iostream>
 
+// we define the private inline class of that one so that we
+// are able to hide the private methods & data of that class in the
+// public headers
+class CMedIOHeaderPrivate
+{
+  public:
+    CMedIOData* medIOData;
+};
+ 
+CMedIOHeader::CMedIOHeader()
+{
+  ENTER();
+
+  // allocate data from our private instance class
+  m_pData = new CMedIOHeaderPrivate();
+  m_pData->medIOData = NULL;
+
+  LEAVE();
+}
+
+CMedIOHeader::CMedIOHeader(const CMedIOHeader& src)
+{
+  ENTER();
+
+  // allocate data from our private instance class
+  m_pData = new CMedIOHeaderPrivate();
+  m_pData->medIOData = src.medIOData();
+
+  LEAVE();
+}
+
 CMedIOHeader::CMedIOHeader(CMedIOData* data)
-  : m_pMedIOData(data)
 { 
   ENTER();
-  
+
+  // allocate data from our private instance class
+  m_pData = new CMedIOHeaderPrivate();
+
+  // assign the mediodata pointer to our private class
+  m_pData->medIOData = data;
+ 
   LEAVE();
 }
 
@@ -53,15 +89,8 @@ CMedIOHeader::CMedIOHeader(CMedIOData* data)
 CMedIOHeader::~CMedIOHeader()
 {
   ENTER();
-  LEAVE();
-}
 
-CMedIOHeader::CMedIOHeader(const CMedIOHeader&)
-  : m_pMedIOData(NULL)
-{
-  ENTER();
-
-  // do nothing
+  delete m_pData;
 
   LEAVE();
 }
@@ -76,11 +105,17 @@ CMedIOHeader& CMedIOHeader::operator=(const CMedIOHeader& src)
   return *this;
 }
 
+CMedIOData* CMedIOHeader::medIOData(void) const
+{
+  return m_pData->medIOData;
+}
+
 void CMedIOHeader::setMedIOData(CMedIOData* data)
 {
   ENTER();
 
-  m_pMedIOData = data;
+  m_pData->medIOData = data;
+  SHOWPOINTER(m_pData->medIOData);
   
   LEAVE();
 }

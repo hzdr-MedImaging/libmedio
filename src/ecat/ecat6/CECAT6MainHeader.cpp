@@ -170,11 +170,12 @@ void CECAT6MainHeader::clear()
 bool CECAT6MainHeader::load(void)
 {
   ENTER();
+  CMedIOData* mData = medIOData();
 
   // only go on if the device is readable at all
-  if(m_pMedIOData == NULL ||
-     m_pMedIOData->seek(0) == false ||
-     m_pMedIOData->isReadable() == false)
+  if(mData == NULL ||
+     mData->seek(0) == false ||
+     mData->isReadable() == false)
   {
     RETURN(false);
     return false;
@@ -183,7 +184,7 @@ bool CECAT6MainHeader::load(void)
   // we use a ByteArray buffer to speed up the endianess
   // decoding
   QByteArray buffer(rawDataSize(), 0);
-  if(m_pMedIOData->read(buffer.data(), buffer.size()) != rawDataSize())
+  if(mData->read(buffer.data(), buffer.size()) != rawDataSize())
   {
     RETURN(false);
     return false;
@@ -334,11 +335,12 @@ bool CECAT6MainHeader::load(void)
 bool CECAT6MainHeader::save(void) const
 {
   ENTER();
+  CMedIOData* mData = medIOData();
 
   // only go on if the device is writeable at all
-  if(m_pMedIOData == NULL ||
-     m_pMedIOData->isWritable() == false ||
-     m_pMedIOData->seek(0) == false)
+  if(mData == NULL ||
+     mData->isWritable() == false ||
+     mData->seek(0) == false)
   {
     RETURN(false);
     return false;
@@ -347,7 +349,7 @@ bool CECAT6MainHeader::save(void) const
   // before we can start reading out some data we have to collect some
   // out data beforehand which we use instead of the data stored in our
   // data structure (such as frames/planes/gates etc.)
-  CECATFile* ecatFile = static_cast<CECATFile*>(m_pMedIOData);
+  CECATFile* ecatFile = static_cast<CECATFile*>(mData);
   quint16 numPlanes = ecatFile->numPlanes();
   quint16 numFrames = ecatFile->numFrames();
   quint16 numGates  = ecatFile->numGates();
@@ -424,7 +426,7 @@ bool CECAT6MainHeader::save(void) const
 
   // now write out to our outStream
   bool result = false;
-  if(m_pMedIOData->write(buffer) != -1)
+  if(mData->write(buffer) != -1)
   {
     ecatFile->mainHeaderWritten(*this);
     result = true;

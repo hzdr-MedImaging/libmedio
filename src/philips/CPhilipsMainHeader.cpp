@@ -650,11 +650,12 @@ void CPhilipsMainHeader::clear()
 bool CPhilipsMainHeader::load()
 {
   ENTER();
+  CMedIOData* mData = medIOData();
 
   // only go on if the device is readable at all
-  if(m_pMedIOData == NULL ||
-     m_pMedIOData->isReadable() == false ||
-     m_pMedIOData->seek(m_pData->mainHeaderPosition) == false)
+  if(mData == NULL ||
+     mData->isReadable() == false ||
+     mData->seek(m_pData->mainHeaderPosition) == false)
   {
     RETURN(false);
     return false;
@@ -662,7 +663,7 @@ bool CPhilipsMainHeader::load()
 
   // read in the main header in one read() operation
   ASSERT(sizeof(m_pData->header) == MAINHEADER_SIZE);
-  if(m_pMedIOData->read(reinterpret_cast<char*>(&m_pData->header), sizeof(m_pData->header)) != MAINHEADER_SIZE)
+  if(mData->read(reinterpret_cast<char*>(&m_pData->header), sizeof(m_pData->header)) != MAINHEADER_SIZE)
   {
     RETURN(false);
     return false;
@@ -672,7 +673,7 @@ bool CPhilipsMainHeader::load()
   // for the directory item of the extended header so that we can set the file
   // to the right position.
   ASSERT(sizeof(m_pData->extHeader) == EXTHEADER_SIZE);
-  CPhilipsFile* philipsFile = static_cast<CPhilipsFile*>(m_pMedIOData);
+  CPhilipsFile* philipsFile = static_cast<CPhilipsFile*>(mData);
   CPhilipsDirectory* philipsDirectory = philipsFile->directory();
   bool extendedHeaderFound = false;
   if(philipsDirectory != NULL)
@@ -686,8 +687,8 @@ bool CPhilipsMainHeader::load()
       if(extHeaderItem != NULL)
       {
         // now we have the extendedheader diritem. so lets get the header out of it
-        if(m_pMedIOData->seek(extHeaderItem->dataBlock_Start()) == false ||
-           m_pMedIOData->read((char*)&m_pData->extHeader, sizeof(m_pData->extHeader)) != EXTHEADER_SIZE)
+        if(mData->seek(extHeaderItem->dataBlock_Start()) == false ||
+           mData->read((char*)&m_pData->extHeader, sizeof(m_pData->extHeader)) != EXTHEADER_SIZE)
         {
           E("Error while trying to seek&load extended main header data");
 
@@ -1201,20 +1202,21 @@ bool CPhilipsMainHeader::save(void) const
 {
   ENTER();
   bool result = false;
+  CMedIOData* mData = medIOData();
 
-  SHOWPOINTER(m_pMedIOData);
+  SHOWPOINTER(mData);
 
   // only go on if the device is writeable at all
-  if(m_pMedIOData == NULL ||
-     m_pMedIOData->isWritable() == false ||
-     m_pMedIOData->seek(0) == false)
+  if(mData == NULL ||
+     mData->isWritable() == false ||
+     mData->seek(0) == false)
   {
     RETURN(false);
     return false;
   }
 
   D("about to write main header");
-  SHOWVALUE(m_pMedIOData->pos());
+  SHOWVALUE(mData->pos());
 
   // check that the sizes are absolutely correct
   ASSERT(sizeof(m_pData->header) == MAINHEADER_SIZE);
@@ -1223,7 +1225,7 @@ bool CPhilipsMainHeader::save(void) const
   // before we can start reading out some data we have to collect some
   // out data beforehand which we use instead of the data stored in our
   // data structure (such as frames/slices/tilts etc.)
-  CPhilipsFile* philipsFile = static_cast<CPhilipsFile*>(m_pMedIOData);
+  CPhilipsFile* philipsFile = static_cast<CPhilipsFile*>(mData);
   m_pData->header.minfrm = philipsFile->minFrame();
   m_pData->header.maxfrm = philipsFile->maxFrame();
   m_pData->header.nframe = philipsFile->numFrames();
@@ -1470,11 +1472,11 @@ bool CPhilipsMainHeader::save(void) const
   }
 
   // now write out the main header to the file
-  if(m_pMedIOData->write(reinterpret_cast<char*>(header), sizeof(m_pData->header)) == MAINHEADER_SIZE)
+  if(mData->write(reinterpret_cast<char*>(header), sizeof(m_pData->header)) == MAINHEADER_SIZE)
   {
     // now we have to check/create the extended main header part which
     // is part of the directory
-    CPhilipsFile* phFile = static_cast<CPhilipsFile*>(m_pMedIOData);
+    CPhilipsFile* phFile = static_cast<CPhilipsFile*>(mData);
     CPhilipsDirectory* philipsDirectory = phFile->directory();
     if(philipsDirectory != NULL)
     {
@@ -1482,11 +1484,11 @@ bool CPhilipsMainHeader::save(void) const
       if(extHeaderItem != NULL)
       {
         D("about to write extended main header");
-        SHOWVALUE(m_pMedIOData->pos());
+        SHOWVALUE(mData->pos());
 
         // now we have the extendedheader diritem. so lets get the header out of it
-        if(m_pMedIOData->seek(extHeaderItem->dataBlock_Start()) == true &&
-           m_pMedIOData->write(reinterpret_cast<char*>(extHeader), sizeof(m_pData->extHeader)) == EXTHEADER_SIZE)
+        if(mData->seek(extHeaderItem->dataBlock_Start()) == true &&
+           mData->write(reinterpret_cast<char*>(extHeader), sizeof(m_pData->extHeader)) == EXTHEADER_SIZE)
         {
           // make sure to set the DataBlock_End()
           extHeaderItem->setDataBlock_End(extHeaderItem->dataBlock_Start() + EXTHEADER_SIZE);

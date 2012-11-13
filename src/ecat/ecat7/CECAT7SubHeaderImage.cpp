@@ -179,24 +179,25 @@ void CECAT7SubHeaderImage::clear()
 bool CECAT7SubHeaderImage::load(void)
 {
   ENTER();
+  CMedIOData* mData = medIOData();
 
   // check if the stream is readable or not and
   // set our MedIOData to the correct file position so that we can
   // read the subheader  
-  if(m_pMedIOData == NULL ||
-     m_pMedIOData->isReadable() == false ||
+  if(mData == NULL ||
+     mData->isReadable() == false ||
      m_pDirItem->dataBlock_Start() == 0 ||
-     m_pMedIOData->seek(m_pDirItem->dataBlock_Start()) == false)
+     mData->seek(m_pDirItem->dataBlock_Start()) == false)
   {
     RETURN(false);
     return false;
   }
 
-  SHOWVALUE(m_pMedIOData->pos());
+  SHOWVALUE(mData->pos());
 
   // we read in all data at once using read()
   ASSERT(sizeof(m_pData->header) == SUBHEADER_SIZE);
-  if(m_pMedIOData->read(reinterpret_cast<char*>(&m_pData->header), sizeof(m_pData->header)) != SUBHEADER_SIZE)
+  if(mData->read(reinterpret_cast<char*>(&m_pData->header), sizeof(m_pData->header)) != SUBHEADER_SIZE)
   {
     RETURN(false);
     return false;
@@ -346,17 +347,20 @@ bool CECAT7SubHeaderImage::load(void)
 bool CECAT7SubHeaderImage::save(void) const
 {
   ENTER();
+  CMedIOData* mData = medIOData();
+
+  SHOWPOINTER(mData);
 
   // check if this stream is writeable or not
-  if(m_pMedIOData == NULL || m_pMedIOData->isWritable() == false ||
+  if(mData == NULL || mData->isWritable() == false ||
      m_pDirItem == NULL || m_pDirItem->dataBlock_Start() == 0 ||
-     m_pMedIOData->seek(m_pDirItem->dataBlock_Start()) == false)
+     mData->seek(m_pDirItem->dataBlock_Start()) == false)
   {
     RETURN(false);
     return false;
   }
 
-  SHOWVALUE(m_pMedIOData->pos());
+  SHOWVALUE(mData->pos());
 
   ASSERT(sizeof(m_pData->header) == SUBHEADER_SIZE);
   struct CECAT7SubHeaderImagePrivate::HeaderData* header = NULL;
@@ -437,7 +441,7 @@ bool CECAT7SubHeaderImage::save(void) const
 
   // now write out to our outStream
   bool result = false;
-  if(m_pMedIOData->write(reinterpret_cast<char*>(header), sizeof(m_pData->header)) == SUBHEADER_SIZE)
+  if(mData->write(reinterpret_cast<char*>(header), sizeof(m_pData->header)) == SUBHEADER_SIZE)
   {
     m_pDirItem->subHeaderWritten(*this);
     result = true;
@@ -1316,10 +1320,12 @@ float CECAT7SubHeaderImage::suv_Scale_Factor(bool& ok) const
   // in the subheader.
   if(scale_Factor() > 0.0f)
   {
-    if(m_pMedIOData->isReadable())
+    CMedIOData* mData = medIOData();
+
+    if(mData != NULL && mData->isReadable())
     {
       CECATMainHeader* mainHeader = NULL;
-      CECATFile* file = static_cast<CECATFile*>(m_pMedIOData);
+      CECATFile* file = static_cast<CECATFile*>(mData);
 
       if(file->readMainHeader(mainHeader))
       {

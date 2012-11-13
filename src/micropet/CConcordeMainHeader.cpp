@@ -1122,18 +1122,19 @@ void CConcordeMainHeader::clear()
 
 bool CConcordeMainHeader::load()
 {
-  bool result = false;
-  //unset function should be used !!!
   ENTER();
-  if(!m_pMedIOData)
+  bool result = false;
+  CMedIOData* mData = medIOData();
+
+  if(mData != NULL)
   {
-    D("Something wrong with m_pMedIOData");
-    LEAVE();
-    return false;  
+    QString File = mData->fileName() + ".hdr";
+
+    result = load(File);
   }
-  QString File = m_pMedIOData->fileName() + ".hdr";
-  
-  result = load(File);
+  else
+    D("Something wrong with mData");
+
   RETURN(result);
   return result;
 }
