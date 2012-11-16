@@ -441,7 +441,7 @@ int CECAT6MainHeader::rawDataSize() const
   return 1*ECAT_BLOCKSIZE;
 }
 
-int CECAT6MainHeader::rtti() const
+CECATMainHeader::HeaderType CECAT6MainHeader::mainHeaderType() const
 { 
   return CECATMainHeader::ECAT6MainHeader;
 }
@@ -461,7 +461,7 @@ bool CECAT6MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
 
       // depending on the source type we have to copy either every data or just 
       // some data of the src header
-      switch(eMainHeader->rtti())
+      switch(eMainHeader->mainHeaderType())
       {
         // if the source header is also an ECAT6 one we can copy it in whole
         // via a simple memcpy()

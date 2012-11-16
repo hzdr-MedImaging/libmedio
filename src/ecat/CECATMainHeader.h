@@ -84,8 +84,8 @@ class CECATMainHeader : public CMedIOHeader
     virtual void setNum_Bed_Pos(short num)  = 0;
 
     // runtime type information methods
-    virtual int rtti() const = 0;
     CMedIOHeader::Format headerFormat() const;
+    virtual CECATMainHeader::HeaderType mainHeaderType() const = 0;
 
     // create a new medio header of the same type as pSrc and
     // copy all meta information

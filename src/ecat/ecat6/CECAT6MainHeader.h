@@ -65,7 +65,7 @@ class CECAT6MainHeader : public CECATMainHeader
     int rawDataSize() const;
 
     // runtime type information methods
-    int rtti() const;
+    CECATMainHeader::HeaderType mainHeaderType() const;
 
     // clone methods
     CMedIOHeader* clone() const;

@@ -1548,7 +1548,7 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
 
       // depending on the source type we have to copy either every data or just 
       // some data of the src header
-      switch(eMainHeader->rtti())
+      switch(eMainHeader->mainHeaderType())
       {
         // if the source header is also an ECAT7 one we can copy it in whole
         // via a simple memcpy()

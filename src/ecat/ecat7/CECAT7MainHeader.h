@@ -98,7 +98,7 @@ class CECAT7MainHeader : public CECATMainHeader
     friend QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader);
     
     // runtime type information methods
-    int rtti() const;
+    CECATMainHeader::HeaderType mainHeaderType() const;
 
     // clone methods
     CMedIOHeader* clone() const;

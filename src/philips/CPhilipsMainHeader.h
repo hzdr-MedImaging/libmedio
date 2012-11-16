@@ -351,6 +351,7 @@ class CPhilipsMainHeader : public CMedIOHeader
     bool load();
     bool save() const;
 
+    // runtime type information
     CMedIOHeader::Format headerFormat() const;
 
     // clone methods
