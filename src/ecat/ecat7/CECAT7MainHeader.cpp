@@ -975,7 +975,7 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
       setNum_Frames(head->nframe());
       setNum_Gates(1);
       setNum_Bed_Pos(0);
-      setInit_Bed_Position(head->min_bed_pos() / 10.0f); // mm -> cm
+      setInit_Bed_Position(subHead->actual_bedpos() / 10.0f); // mm -> cm
       setPlane_Separation(head->Dslice_thick() / 10.0f); // mm -> cm
 
       if(head->hw_config() & CPhilipsMainHeader::PETMR)

@@ -734,6 +734,12 @@ bool CPhilipsSubHeader::convertFrom(const CMedIOHeader* subHeader, const CMedIOH
           setScnlen(sh->frame_Duration()/1000.0f); // ms -> s
           setMseclen(sh->frame_Duration() % 1000);
 
+          // set the frame start_date_time and end_date_time
+          setStart_date_time(mh->scan_Start_Time() + sh->frame_Start_Time() / 1000);
+          setStart_date_time_msec(sh->frame_Start_Time() % 1000);
+          setEnd_date_time(start_date_time() + scnlen());
+          setEnd_date_time_msec(sh->frame_Start_Time() % 1000);
+
           if((sh->processing_Code() & CECAT7SubHeaderImage::DecayCorrection) == CECAT7SubHeaderImage::DecayCorrection)
             setDecay_corr(CPhilipsSubHeader::Acqstart);
 
@@ -1420,11 +1426,25 @@ void CPhilipsSubHeader::setRecon_method(const char* str)
 void CPhilipsSubHeader::setStart_date_time(const time_t start_date_time)
 {
   m_pData->header.start_date_time = start_date_time;
+
+  // we also set strhr/strmin/strsec as it should always be in sync with
+  // the start_date_time
+  QDateTime dtime = start_date_time_Qt();
+  m_pData->header.strhr = dtime.time().hour();
+  m_pData->header.strmin = dtime.time().minute();
+  m_pData->header.strsec = dtime.time().second();
 }
 
 void CPhilipsSubHeader::setEnd_date_time(const time_t end_date_time)
 {
   m_pData->header.end_date_time = end_date_time;
+
+  // we also set strhr/strmin/strsec as it should always be in sync with
+  // the end_date_time
+  QDateTime dtime = end_date_time_Qt();
+  m_pData->header.endhr = dtime.time().hour();
+  m_pData->header.endmin = dtime.time().minute();
+  m_pData->header.endsec = dtime.time().second();
 }
 
 void CPhilipsSubHeader::setLaterality(const CPhilipsSubHeader::Laterality_Type laterality)
