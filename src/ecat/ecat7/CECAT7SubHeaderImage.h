@@ -34,6 +34,7 @@
 #endif
 
 // forward declarations
+class CECAT7MainHeader;
 class CECAT7SubHeaderImagePrivate;
 class CECATFile;
 class CECATDirectoryItem;
@@ -246,7 +247,7 @@ class CECAT7SubHeaderImage : public CECATSubHeader
     void setUser_Reserved(const short i, const short n);
 
     // special conversion routines
-    float suv_Scale_Factor(bool& ok) const;
+    float suv_Scale_Factor(bool& ok, const CECAT7MainHeader* mainHeader=NULL) const;
     
   private:
     CECAT7SubHeaderImagePrivate* m_pData;

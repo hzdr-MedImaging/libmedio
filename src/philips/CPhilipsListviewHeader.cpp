@@ -185,7 +185,7 @@ void CPhilipsListviewHeader::setNumberOfEventsPerBuffer(const int n)
 
 void CPhilipsListviewHeader::setMagicNumber(const QString &magicNumber)
 {
-  strncpy(m_pData->header.magicNumber, magicNumber.toAscii().constData(), sizeof(m_pData->header.magicNumber));
+  strncpy(m_pData->header.magicNumber, magicNumber.toAscii().constData(), sizeof(m_pData->header.magicNumber)-1);
 }
 
 void CPhilipsListviewHeader::setFileFormat(const CPhilipsListviewHeader::File_Format format)
@@ -215,5 +215,5 @@ void CPhilipsListviewHeader::setSubHeaderSize(const short size)
 
 void CPhilipsListviewHeader::setComment(const QString &comment)
 {
-  strncpy(m_pData->header.comment, comment.toAscii().constData(), sizeof(m_pData->header.comment));
+  strncpy(m_pData->header.comment, comment.toAscii().constData(), sizeof(m_pData->header.comment)-1);
 }

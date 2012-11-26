@@ -155,7 +155,6 @@ else {
   CONFIG -= debug
   CONFIG *= release
   DEBUG =
-  QMAKE_LINK *= -s
 }
 
 QMAKE_EXTRA_VARIABLES = DEBUG

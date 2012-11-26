@@ -59,7 +59,6 @@ class CPhilipsSubHeaderImage : public CPhilipsSubHeader
     short imgmin() const;
     short imgmax() const;
     float imgsum() const;
-    float scale_Factor(bool& ok) const;
 
     // methods to modify elements of the SubHeader  
     void setSuvscl(const float suvscl);
@@ -67,6 +66,9 @@ class CPhilipsSubHeaderImage : public CPhilipsSubHeader
     void setImgmin(const short imgmin);
     void setImgmax(const short imgmax);
     void setImgsum(const float imgsum);
+
+    // methods to calculate
+    float ecat_Scale_Factor(bool& ok, const CPhilipsMainHeader* mainHeader=NULL) const;
 };
 
 #endif // CPHILIPSSUBHEADERIMAGE_H

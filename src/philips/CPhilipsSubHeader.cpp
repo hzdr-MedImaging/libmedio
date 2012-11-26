@@ -706,7 +706,7 @@ bool CPhilipsSubHeader::convertFrom(const CMedIOHeader* subHeader, const CMedIOH
           if(mh->calibration_Units() != CECAT7MainHeader::Uncalibrated)
           {
             // we have to calculate the suv scaling factor
-            float fact = sh->suv_Scale_Factor(calibrated);
+            float fact = sh->suv_Scale_Factor(calibrated, mh);
 
             // if the conversion worked out fine we can assume the
             // suv scale factor to be correct. so we set the img scale
@@ -739,6 +739,7 @@ bool CPhilipsSubHeader::convertFrom(const CMedIOHeader* subHeader, const CMedIOH
           setStart_date_time_msec(sh->frame_Start_Time() % 1000);
           setEnd_date_time(start_date_time() + scnlen());
           setEnd_date_time_msec(sh->frame_Start_Time() % 1000);
+          setFrame_ref_date_time(mh->scan_Start_Time() + sh->frame_Start_Time() / 1000);
 
           if((sh->processing_Code() & CECAT7SubHeaderImage::DecayCorrection) == CECAT7SubHeaderImage::DecayCorrection)
             setDecay_corr(CPhilipsSubHeader::Acqstart);
@@ -747,22 +748,37 @@ bool CPhilipsSubHeader::convertFrom(const CMedIOHeader* subHeader, const CMedIOH
             setDet_norm(1);
 
           if((sh->processing_Code() & CECAT7SubHeaderImage::MeasuredAttenCorr) == CECAT7SubHeaderImage::MeasuredAttenCorr)
-            setAtten_corr("MRAC");
+          {
+            // 97 seems to be PET/MR
+            if(mh->system_Type() == 97)
+              setAtten_corr("MRAC");
+            else
+              setAtten_corr("AC");
+          }
 
           setDeadtime_corr(1);
           setRandoms_corr(CPhilipsSubHeader::Delayed);
           setNu_radsamp_corr(1);
           setCntloss_corr(1);
           
-          if(sh->scatter_Type() == CECAT7SubHeaderImage::Deconvolution)
+          if(sh->scatter_Type() == CECAT7SubHeaderImage::Simulated)
             setScatter_corr("SS-SIMUL");
 
-          if(sh->recon_Type() == CECAT7SubHeaderImage::FilteredBackProjection)
-            setRecon_method("FBP");
-          else if(sh->recon_Type() == CECAT7SubHeaderImage::BasicOsem)
-            setRecon_method("OSEM");
-          else if(sh->recon_Type() == CECAT7SubHeaderImage::IterativeCPURecon)
-            setRecon_method("Iterative");
+          if(QString(sh->annotation()).isEmpty() == false)
+            setRecon_method(sh->annotation());
+          else
+          {
+            if(sh->recon_Type() == CECAT7SubHeaderImage::FilteredBackProjection)
+              setRecon_method("FBP");
+            else if(sh->recon_Type() == CECAT7SubHeaderImage::BasicOsem)
+              setRecon_method("OSEM");
+            else if(sh->recon_Type() == CECAT7SubHeaderImage::IterativeCPURecon)
+              setRecon_method("Iterative");
+            else
+              setRecon_method("Unknown");
+          }
+
+          setActual_bedpos(mh->init_Bed_Position() * 10.0f); // cm -> mm
 
           bResult = true;
         }
@@ -1135,12 +1151,12 @@ void CPhilipsSubHeader::setVersion(const short version)
 
 void CPhilipsSubHeader::setAtten_corr(const char* str)
 {
-  strncpy(m_pData->header.atten_corr, str, 16);
+  strncpy(m_pData->header.atten_corr, str, sizeof(m_pData->header.atten_corr)-1);
 }
 
 void CPhilipsSubHeader::setActual_bedpos(const float bedpos)
 {
-  m_pData->header.bedpos = bedpos;
+  m_pData->header.actual_bedpos = bedpos;
 }
 
 void CPhilipsSubHeader::setOrientation(const short i, const float orientation)
@@ -1175,7 +1191,7 @@ void CPhilipsSubHeader::setCard_tr_time(const int card_high_rr)
 
 void CPhilipsSubHeader::setScatter_corr(const char* str)
 {
-  strncpy(m_pData->header.scatter_corr, str, 16);
+  strncpy(m_pData->header.scatter_corr, str, sizeof(m_pData->header.scatter_corr)-1);
 }
 
 void CPhilipsSubHeader::setDeadtime_corr(const short deadtime_corr)
@@ -1415,12 +1431,12 @@ void CPhilipsSubHeader::setDeadtime_bgsub(const float deadtime_bgsub)
 
 void CPhilipsSubHeader::setSop_uid(const char* str)
 {
-  strncpy(m_pData->header.sop_uid, str, 64);
+  strncpy(m_pData->header.sop_uid, str, sizeof(m_pData->header.sop_uid)-1);
 }
 
 void CPhilipsSubHeader::setRecon_method(const char* str)
 {
-  strncpy(m_pData->header.recon_method, str, 16);
+  strncpy(m_pData->header.recon_method, str, sizeof(m_pData->header.recon_method)-1);
 }
 
 void CPhilipsSubHeader::setStart_date_time(const time_t start_date_time)
@@ -1542,7 +1558,7 @@ QDateTime CPhilipsSubHeader::start_date_time_Qt() const
 void CPhilipsSubHeader::setStart_date_time_Qt(const QDateTime& datetime)
 {
   QDateTime Jan1970(QDate(1970, 1, 1), QTime(), Qt::UTC);
-  m_pData->header.start_date_time = Jan1970.secsTo(datetime.toUTC());
+  setStart_date_time(Jan1970.secsTo(datetime.toUTC()));
 }
 
 QDateTime CPhilipsSubHeader::end_date_time_Qt() const
@@ -1555,7 +1571,7 @@ QDateTime CPhilipsSubHeader::end_date_time_Qt() const
 void CPhilipsSubHeader::setEnd_date_time_Qt(const QDateTime& datetime)
 {
   QDateTime Jan1970(QDate(1970, 1, 1), QTime(), Qt::UTC);
-  m_pData->header.end_date_time = Jan1970.secsTo(datetime.toUTC());
+  setEnd_date_time(Jan1970.secsTo(datetime.toUTC()));
 }
 
 QDateTime CPhilipsSubHeader::frame_ref_date_time_Qt() const
@@ -1568,5 +1584,5 @@ QDateTime CPhilipsSubHeader::frame_ref_date_time_Qt() const
 void CPhilipsSubHeader::setFrame_ref_date_time_Qt(const QDateTime& datetime)
 {
   QDateTime Jan1970(QDate(1970, 1, 1), QTime(), Qt::UTC);
-  m_pData->header.frame_ref_date_time = Jan1970.secsTo(datetime.toUTC());
+  setFrame_ref_date_time(Jan1970.secsTo(datetime.toUTC()));
 }

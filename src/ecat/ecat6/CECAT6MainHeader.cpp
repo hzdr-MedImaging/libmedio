@@ -569,7 +569,7 @@ short CECAT6MainHeader::num_Bed_Pos(void) const
 // mutator methods
 void CECAT6MainHeader::setOriginal_File_Name(const char* name)
 { 
-  strncpy(m_pData->header.Original_File_Name, name, 20);
+  strncpy(m_pData->header.Original_File_Name, name, sizeof(m_pData->header.Original_File_Name)-1);
 }
 
 void CECAT6MainHeader::setSW_Version(const short ver)

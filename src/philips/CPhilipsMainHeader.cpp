@@ -543,6 +543,7 @@ public:
   bool ecat2philipsIsotope(const QString& isotop);
   bool ecat2philipsOrientation(const CECAT7MainHeader::Patient_Orientation eOrientation);
   bool ecat2philipsAcquisitionType(const CECAT7MainHeader::Acquisition_Type acqType);
+  bool ecat2philipsPharm(const QString& radiopharmaceutial);
 };
 
 CPhilipsMainHeader::CPhilipsMainHeader(CPhilipsFile* file,
@@ -644,6 +645,8 @@ void CPhilipsMainHeader::clear()
 
   // set some default values for the new Main Header
   m_pData->header.file_fmt = MAINHEADER_VERSION;
+  m_pData->header.shdtyp = CPhilipsMainHeader::UGM;
+  m_pData->extHeader.series_number = 1; // always one for PETview images
 
   LEAVE();
 }
@@ -1578,6 +1581,21 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
 
           setFiltyp(fileType);
           setPatient_name(header->patient_Name());
+
+          // if sex is selected as unknown in the ecat header we
+          // set the patient type to test (phantom) in Philips
+          if(header->patient_Sex() == CECAT7MainHeader::Sex_Unknown)
+            setPattyp(CPhilipsMainHeader::Test);
+          else
+            setPattyp(CPhilipsMainHeader::Patient);
+
+          // set some static information for which info in the
+          // ECAT format is missing
+          setShdtyp(CPhilipsMainHeader::UGM);
+          setRoute(CPhilipsMainHeader::Intravenous);
+          setAngmax(10.0f);
+
+          setDuratn(sh->frame_Duration() / 1000); // ms -> s
           setSsn(header->patient_ID());
           setWeight(header->patient_Weight() * 1000.0f); // kg -> g
           setPatient_Birth_Date_Qt(header->patient_Birth_Date_Qt());
@@ -1585,6 +1603,7 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
           setNslice(header->num_Planes());
           setNframe(header->num_Frames());
           setSlcthk(header->plane_Separation() * 10.0f); // cm -> mm
+          setSlcsep(1.0f); // always 1.0 for PETview files
           setDslice_thick(header->plane_Separation() * 10.0f); // cm -> mm
           m_pData->ecat2philipsIsotope(header->isotope_Name());
           setHalfLife(header->isotope_Halflife() / 60.0f); // sec -> min
@@ -1596,16 +1615,77 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
           QString patientName(header->patient_Name());
           setDpat_name(patientName.replace(", ", "^").toAscii().constData());
           setSeries_desc(header->study_Description());
-          setInjection_date_time(header->dose_Start_Time());
+          setInjection_date_time_Qt(header->dose_Start_Time_Qt());
           setAcq_date_time(header->scan_Start_Time());
           setRadiopharm_name(header->radiopharmaceutical());
+          setDserial_number(header->serial_Number());
+          setScan_geom(header->system_Type());
+
+          // depending on the scan_geom and operator_Name (which we reused)
+          // we try to identify the right scanner type
+          if(scan_geom() == 97)
+          {
+            setDmanufacture_model_name("Ingenuity TF PET/MR");
+            setHw_config(6769);
+            setMr_valid(true);
+            setPetct_valid(CPhilipsMainHeader::PETCT_Valid);
+            setCoil_type(header->user_Process_Code());
+          }
+          else
+          {
+            QString operatorName = header->operator_Name();
+
+            if(operatorName.contains("PET/CT", Qt::CaseInsensitive))
+            {
+              setPetct_valid(CPhilipsMainHeader::PETCT_Valid);
+              setDmanufacture_model_name(header->operator_Name());
+            }
+            else if(operatorName.contains("MR", Qt::CaseInsensitive))
+            {
+              setMr_valid(true);
+              setPetct_valid(CPhilipsMainHeader::PETCT_Valid);
+              setCoil_type(header->user_Process_Code());
+              setDmanufacture_model_name(header->operator_Name());
+            }
+            else if(operatorName.contains("PET", Qt::CaseInsensitive))
+              setDmanufacture_model_name(header->operator_Name());
+          }
+
+          m_pData->ecat2philipsPharm(header->radiopharmaceutical());
           m_pData->ecat2philipsSex(header->patient_Sex());
           setDpat_id(header->patient_ID());
           setHeight(header->patient_Height() * 10.0f); // cm -> mm
           setAbundance(header->branching_Fraction() * 1000.0f); // 1.0 = 100%
-          setTable_height(header->bed_Elevation());
           setReferring_physician(header->physician_Name());
+          setTable_height(header->bed_Elevation());
+         
+          // convert scan start time to file create and acq datetime
+          setAcq_date_time_Qt(header->scan_Start_Time_Qt());
+          setStudy_date_time_Qt(header->scan_Start_Time_Qt());
+          setFile_create_date_time_Qt(header->scan_Start_Time_Qt());
 
+          // set the table direction based on the bed offset being negative or positive
+          setTbl_direction(header->bed_Offset(0) < 0 ? CPhilipsMainHeader::Out : CPhilipsMainHeader::In);
+          switch(tbl_direction())
+          {
+            case CPhilipsMainHeader::Out:
+              setMax_bed_pos(qRound(header->init_Bed_Position() * 10.0f)); // cm -> mm
+            break;
+
+            case CPhilipsMainHeader::In:
+              setMin_bed_pos(qRound(header->init_Bed_Position() * 10.0f)); // cm -> mm
+            break;
+
+            case CPhilipsMainHeader::UnknownDirection:
+              // nothing
+            break;
+          }
+
+          setAxialFov(header->distance_Scanned() * 10.0f); // cm -> mm
+          setScanner_maxslice(header->distance_Scanned() * 10.0f); // cm -> mm
+          setDmax(header->transaxial_FOV() * 10.0f); // cm -> mm
+          setDline(header->transaxial_FOV() * 10.0f); // cm -> mm
+          setPhiMashing(header->angular_Compression() == CECAT7MainHeader::Mash2 ? CPhilipsMainHeader::Mashing2 : CPhilipsMainHeader::NoMashing);
           setNumray(sh->x_Dimension());
           setNumang(sh->y_Dimension());
 
@@ -2437,7 +2517,7 @@ void CPhilipsMainHeader::setBthyr(const short year)
 
 void CPhilipsMainHeader::setSsn(const char* id)
 {
-  strncpy(m_pData->header.ssn, id, sizeof(m_pData->header.ssn));
+  strncpy(m_pData->header.ssn, id, sizeof(m_pData->header.ssn)-1);
 }
 
 void CPhilipsMainHeader::setNtilt(const short num)
@@ -2562,7 +2642,7 @@ void CPhilipsMainHeader::setOrient_hf(const CPhilipsMainHeader::Patient_Orientat
 
 void CPhilipsMainHeader::setScan_swrel(const char* str)
 {
-  strncpy(m_pData->header.scan_swrel, str, sizeof(m_pData->header.scan_swrel));
+  strncpy(m_pData->header.scan_swrel, str, sizeof(m_pData->header.scan_swrel)-1);
 }
 
 void CPhilipsMainHeader::setPetct_sepdist(const short sepdist)
@@ -2672,22 +2752,22 @@ void CPhilipsMainHeader::setPetct_valid(const CPhilipsMainHeader::PETCT_Valid_Ty
 
 void CPhilipsMainHeader::setFctrfil(const char* str)
 {
-  strncpy(m_pData->header.fctrfil, str, sizeof(m_pData->header.fctrfil));
+  strncpy(m_pData->header.fctrfil, str, sizeof(m_pData->header.fctrfil)-1);
 }
 
 void CPhilipsMainHeader::setBaselin(const char* str)
 {
-  strncpy(m_pData->header.baselin, str, sizeof(m_pData->header.baselin));
+  strncpy(m_pData->header.baselin, str, sizeof(m_pData->header.baselin)-1);
 }
 
 void CPhilipsMainHeader::setDstpkfl(const char* str)
 {
-  strncpy(m_pData->header.dstpkfl, str, sizeof(m_pData->header.dstpkfl));
+  strncpy(m_pData->header.dstpkfl, str, sizeof(m_pData->header.dstpkfl)-1);
 }
 
 void CPhilipsMainHeader::setAqprotocol_name(const char* str)
 {
-  strncpy(m_pData->header.aqprotocol_name, str, sizeof(m_pData->header.aqprotocol_name));
+  strncpy(m_pData->header.aqprotocol_name, str, sizeof(m_pData->header.aqprotocol_name)-1);
 }
 
 void CPhilipsMainHeader::setAqprotocol_type(const CPhilipsMainHeader::Acquisition_Protocol_Type aqprotocol_type)
@@ -2697,7 +2777,7 @@ void CPhilipsMainHeader::setAqprotocol_type(const CPhilipsMainHeader::Acquisitio
 
 void CPhilipsMainHeader::setPatient_name(const char* str)
 {
-  strncpy(m_pData->header.patient_name, str, sizeof(m_pData->header.patient_name));
+  strncpy(m_pData->header.patient_name, str, sizeof(m_pData->header.patient_name)-1);
 }
 
 void CPhilipsMainHeader::setReslice_ang1(const float reslice_ang1)
@@ -2747,12 +2827,12 @@ void CPhilipsMainHeader::setRebin_type(const Rebin_Type rebin_type)
 
 void CPhilipsMainHeader::setScnOrigin(const char *str)
 {
-  strncpy(m_pData->header.scnOrigin, str, sizeof(m_pData->header.scnOrigin));
+  strncpy(m_pData->header.scnOrigin, str, sizeof(m_pData->header.scnOrigin)-1);
 }
 
 void CPhilipsMainHeader::setAccNum(const char *str)
 {
-  strncpy(m_pData->header.accNum, str, sizeof(m_pData->header.accNum));
+  strncpy(m_pData->header.accNum, str, sizeof(m_pData->header.accNum)-1);
 }
 
 void CPhilipsMainHeader::setMovementCoinc(const short movementCoinc)
@@ -2804,7 +2884,7 @@ QDateTime CPhilipsMainHeader::petct_align_timestamp_Qt() const
 void CPhilipsMainHeader::setPetct_align_timestamp_Qt(const QDateTime& datetime)
 {
   QDateTime Jan1970(QDate(1970, 1, 1), QTime(), Qt::UTC);
-  m_pData->header.petct_align_timestamp = Jan1970.secsTo(datetime.toUTC());
+  setPetct_align_timestamp(Jan1970.secsTo(datetime.toUTC()));
 }
 
 QDateTime CPhilipsMainHeader::acq_date_time_Qt() const
@@ -2817,7 +2897,7 @@ QDateTime CPhilipsMainHeader::acq_date_time_Qt() const
 void CPhilipsMainHeader::setAcq_date_time_Qt(const QDateTime& datetime)
 {
   QDateTime Jan1970(QDate(1970, 1, 1), QTime(), Qt::UTC);
-  m_pData->extHeader.acq_date_time = Jan1970.secsTo(datetime.toUTC());
+  setAcq_date_time(Jan1970.secsTo(datetime.toUTC()));
 }
 
 QDateTime CPhilipsMainHeader::study_date_time_Qt() const
@@ -2830,7 +2910,7 @@ QDateTime CPhilipsMainHeader::study_date_time_Qt() const
 void CPhilipsMainHeader::setStudy_date_time_Qt(const QDateTime& datetime)
 {
   QDateTime Jan1970(QDate(1970, 1, 1), QTime(), Qt::UTC);
-  m_pData->extHeader.study_date_time = Jan1970.secsTo(datetime.toUTC());
+  setStudy_date_time(Jan1970.secsTo(datetime.toUTC()));
 }
 
 QDateTime CPhilipsMainHeader::injection_date_time_Qt() const
@@ -2843,7 +2923,7 @@ QDateTime CPhilipsMainHeader::injection_date_time_Qt() const
 void CPhilipsMainHeader::setInjection_date_time_Qt(const QDateTime& datetime)
 {
   QDateTime Jan1970(QDate(1970, 1, 1), QTime(), Qt::UTC);
-  m_pData->extHeader.injection_date_time = Jan1970.secsTo(datetime.toUTC());
+  setInjection_date_time(Jan1970.secsTo(datetime.toUTC()));
 }
 
 QDateTime CPhilipsMainHeader::file_create_date_time_Qt() const
@@ -2856,7 +2936,7 @@ QDateTime CPhilipsMainHeader::file_create_date_time_Qt() const
 void CPhilipsMainHeader::setFile_create_date_time_Qt(const QDateTime& datetime)
 {
   QDateTime Jan1970(QDate(1970, 1, 1), QTime(), Qt::UTC);
-  m_pData->extHeader.file_create_date_time = Jan1970.secsTo(datetime.toUTC());
+  setFile_create_date_time(Jan1970.secsTo(datetime.toUTC()));
 }
 
 QDateTime CPhilipsMainHeader::recon_date_time_Qt() const
@@ -2869,7 +2949,7 @@ QDateTime CPhilipsMainHeader::recon_date_time_Qt() const
 void CPhilipsMainHeader::setRecon_date_time_Qt(const QDateTime& datetime)
 {
   QDateTime Jan1970(QDate(1970, 1, 1), QTime(), Qt::UTC);
-  m_pData->extHeader.recon_date_time = Jan1970.secsTo(datetime.toUTC());
+  setRecon_date_time(Jan1970.secsTo(datetime.toUTC()));
 }
 
 bool CPhilipsMainHeaderPrivate::ecat2philipsSex(const CECAT7MainHeader::Patient_Sex sex)
@@ -3030,6 +3110,7 @@ bool CPhilipsMainHeaderPrivate::ecat2philipsAcquisitionType(const CECAT7MainHead
   bool result = false;
   CPhilipsMainHeader::Acquisition_Protocol_Type ptype = CPhilipsMainHeader::Undefined_Acquisition_Protocol;
   CPhilipsMainHeader::Acquisition_Type atype = CPhilipsMainHeader::UndefinedAcq;
+  QString dimg_type = "original\\primary";
 
   switch(acqType)
   {
@@ -3068,6 +3149,195 @@ bool CPhilipsMainHeaderPrivate::ecat2philipsAcquisitionType(const CECAT7MainHead
 
   header.aqprotocol_type = ptype;
   header.scntyp = atype;
+  strncpy(extHeader.Dimage_type, dimg_type.toAscii().constData(), sizeof(extHeader.Dimage_type)-1);
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsMainHeaderPrivate::ecat2philipsPharm(const QString& rpharm)
+{
+  ENTER();
+  bool result = false;
+  CPhilipsMainHeader::Pharm_Type pharmType = CPhilipsMainHeader::UndefinedPharm;
+
+  // the ECAT format only knows the isotope and radiopharmaceutical. thus we need to
+  // search in the radiopharmaceutical description for the right pharm code used in the
+  // philips format.
+  if(rpharm.contains("FDG", Qt::CaseInsensitive) ||
+     rpharm.contains("glucose", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Fluorodeoxyglucose_F18;
+  }
+  else if(rpharm.contains("DOPA", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Fluoro_L_Dopa_F18;
+  }
+  else if(rpharm.contains("Acetate", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Acetate_C11;
+  }
+  else if(rpharm.contains("Ammonia", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Ammonia_N13;
+  }
+  else if(rpharm.contains("CO2", Qt::CaseInsensitive) ||
+          (rpharm.contains("Carbon", Qt::CaseInsensitive) &&
+           rpharm.contains("Dioxide", Qt::CaseInsensitive)))
+  {
+    pharmType = CPhilipsMainHeader::Carbon_Dioxide_O15;
+  }
+  else if(rpharm.contains("CO") ||
+          (rpharm.contains("Carbon", Qt::CaseInsensitive) &&
+           rpharm.contains("Monoxide", Qt::CaseInsensitive)))
+  {
+    if(rpharm.contains("C11", Qt::CaseInsensitive) ||
+       rpharm.contains("C-11", Qt::CaseInsensitive))
+    {
+      pharmType = CPhilipsMainHeader::Carbon_Monoxide_C11;
+    }
+    else if(rpharm.contains("O15", Qt::CaseInsensitive) ||
+            rpharm.contains("O-15", Qt::CaseInsensitive))
+    {
+      pharmType = CPhilipsMainHeader::Carbon_Monoxide_O15;
+    }
+    else
+      pharmType = CPhilipsMainHeader::OtherPharm;
+  }
+  else if(rpharm.contains("Carfentanil", Qt::CaseInsensitive) ||
+          rpharm.contains("CFN", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Carfentanil_C11;
+  }
+  else if(rpharm.contains("Germanium", Qt::CaseInsensitive) ||
+          rpharm.contains("GE-68", Qt::CaseInsensitive) ||
+          rpharm.contains("GE68", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Germanium_GE68;
+  }
+  else if(rpharm.contains("Glutamate", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Glutamate_N13;
+  }
+  else if(rpharm.contains("Methionine", Qt::CaseInsensitive) ||
+          rpharm.contains("MET", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Methionine_C11;
+  }
+  else if(rpharm.contains("H2O", Qt::CaseInsensitive) ||
+          (rpharm.contains("Oxygen", Qt::CaseInsensitive) &&
+           rpharm.contains("Water", Qt::CaseInsensitive)))
+  {
+    pharmType = CPhilipsMainHeader::Oxygen_Water_O15;
+  }
+  else if(rpharm.contains("Oxygen", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Oxygen_O15;
+  }
+  else if(rpharm.contains("Palmitate", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Palmitate_C11;
+  }
+  else if(rpharm.contains("Raclopride", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Raclopride_C11;
+  }
+  else if(rpharm.contains("Rubidium", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Rubidium_Chloride_RB82;
+  }
+  else if(rpharm.contains("NaF", Qt::CaseInsensitive) ||
+          (rpharm.contains("Sodium", Qt::CaseInsensitive) &&
+           rpharm.contains("Fluoride", Qt::CaseInsensitive)))
+  {
+    pharmType = CPhilipsMainHeader::Sodium_Fluoride_F18;
+  }
+  else if(rpharm.contains("Sodium", Qt::CaseInsensitive))
+  {
+    if(rpharm.contains("Iodide"))
+      pharmType = CPhilipsMainHeader::Sodium_Iodide_I124;
+    else
+      pharmType = CPhilipsMainHeader::Sodium_NA22;
+  }
+  else if(rpharm.contains("Spiperone", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Spiperone_F18;
+  }
+  else if(rpharm.contains("Thymidine", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Thymidine_F18;
+  }
+  else if(rpharm.contains("Atsm", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Atsm_CU64;
+  }
+  else if(rpharm.contains("Butanol", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Butanol_O15;
+  }
+  else if(rpharm.contains("Edta", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Edta_GA68;
+  }
+  else if(rpharm.contains("Flumazenil", Qt::CaseInsensitive))
+  {
+    if(rpharm.contains("C11", Qt::CaseInsensitive) ||
+       rpharm.contains("C-11", Qt::CaseInsensitive))
+    {
+      pharmType = CPhilipsMainHeader::Flumazenil_C11;
+    }
+    else if(rpharm.contains("F18", Qt::CaseInsensitive) ||
+            rpharm.contains("F-18", Qt::CaseInsensitive))
+    {
+      pharmType = CPhilipsMainHeader::Flumazenil_F18;
+    }
+    else
+      pharmType = CPhilipsMainHeader::OtherPharm;
+  }
+  else if(rpharm.contains("Fluoroethyltyrosin", Qt::CaseInsensitive) ||
+          rpharm.contains("FET", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Fluoroethyltyrosin_F18;
+  }
+  else if(rpharm.contains("Fluoromisonidazole", Qt::CaseInsensitive) ||
+          rpharm.contains("MISO", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Fluoromisonidazole_F18;
+  }
+  else if(rpharm.contains("Fluoromethane", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Fluoromethane_F18;
+  }
+  else if(rpharm.contains("Fluorouracil", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Fluorouracil_F18;
+  }
+  else if(rpharm.contains("Fluorobenzothiazole", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Fluorobenzothiazole_F18;
+  }
+  else if(rpharm.contains("Mespiperone", Qt::CaseInsensitive) ||
+          rpharm.contains("MSP", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Mespiperone_C11;
+  }
+  else if(rpharm.contains("Monoclonal", Qt::CaseInsensitive) ||
+          rpharm.contains("MABS", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Monoclonal_Antibody_I124;
+  }
+  else if(rpharm.contains("PTSM", Qt::CaseInsensitive))
+  {
+    pharmType = CPhilipsMainHeader::Ptsm_CU62;
+  }
+  else if(rpharm.isEmpty() == false)
+    pharmType = CPhilipsMainHeader::OtherPharm;
+
+  // set the header
+  extHeader.pharm = pharmType;
+
+  // set the result
+  result = pharmType != CPhilipsMainHeader::UndefinedPharm;
 
   RETURN(result);
   return result;
@@ -3743,32 +4013,32 @@ const char* CPhilipsMainHeader::coil_type() const
 
 void CPhilipsMainHeader::setDpat_name(const char* str)
 {
-  strncpy(m_pData->extHeader.Dpat_name, str, sizeof(m_pData->extHeader.Dpat_name));
+  strncpy(m_pData->extHeader.Dpat_name, str, sizeof(m_pData->extHeader.Dpat_name)-1);
 }
 
 void CPhilipsMainHeader::setDpat_id(const char* str)
 {
-  strncpy(m_pData->extHeader.Dpat_id, str, sizeof(m_pData->extHeader.Dpat_id));
+  strncpy(m_pData->extHeader.Dpat_id, str, sizeof(m_pData->extHeader.Dpat_id)-1);
 }
 
 void CPhilipsMainHeader::setStudy_uid(const char* str)
 {
-  strncpy(m_pData->extHeader.study_uid, str, sizeof(m_pData->extHeader.study_uid));
+  strncpy(m_pData->extHeader.study_uid, str, sizeof(m_pData->extHeader.study_uid)-1);
 }
 
 void CPhilipsMainHeader::setSeries_uid(const char* str)
 {
-  strncpy(m_pData->extHeader.series_uid, str, sizeof(m_pData->extHeader.series_uid));
+  strncpy(m_pData->extHeader.series_uid, str, sizeof(m_pData->extHeader.series_uid)-1);
 }
 
 void CPhilipsMainHeader::setView_code(const char* str)
 {
-  strncpy(m_pData->extHeader.view_code, str, sizeof(m_pData->extHeader.view_code));
+  strncpy(m_pData->extHeader.view_code, str, sizeof(m_pData->extHeader.view_code)-1);
 }
 
 void CPhilipsMainHeader::setSortproto_name(const char* str)
 {
-  strncpy(m_pData->extHeader.sortproto_name, str, sizeof(m_pData->extHeader.sortproto_name));
+  strncpy(m_pData->extHeader.sortproto_name, str, sizeof(m_pData->extHeader.sortproto_name)-1);
 }
 
 void CPhilipsMainHeader::setRoute(const Route_Type route)
@@ -3783,7 +4053,7 @@ void CPhilipsMainHeader::setPharm(const Pharm_Type pharm)
 
 void CPhilipsMainHeader::setReq_phys(const char* str)
 {
-  strncpy(m_pData->extHeader.req_phys, str, sizeof(m_pData->extHeader.req_phys));
+  strncpy(m_pData->extHeader.req_phys, str, sizeof(m_pData->extHeader.req_phys)-1);
 }
 
 void CPhilipsMainHeader::setCard_phstate(const Card_Ph_State state)
@@ -3803,7 +4073,7 @@ void CPhilipsMainHeader::setAssay_time(const int assay_time)
 
 void CPhilipsMainHeader::setSeries_desc(const char* str)
 {
-  strncpy(m_pData->extHeader.series_desc, str, sizeof(m_pData->extHeader.series_desc));
+  strncpy(m_pData->extHeader.series_desc, str, sizeof(m_pData->extHeader.series_desc)-1);
 }
 
 void CPhilipsMainHeader::setHeight(const short height)
@@ -3834,11 +4104,21 @@ void CPhilipsMainHeader::setPetct_realign_hr(const short horizRotation)
 void CPhilipsMainHeader::setAcq_date_time(const time_t date_time)
 {
   m_pData->extHeader.acq_date_time = date_time;
+
+  // we also set acq_date and acq_time
+  QDateTime dtime = acq_date_time_Qt();
+  m_pData->extHeader.dep_acq_date = dtime.toString("yyyyMMdd").toInt(); // YYYYMMDD
+  m_pData->extHeader.dep_acq_time = dtime.time().hour() * 3600 + dtime.time().minute() * 60 + dtime.time().second();
 }
 
 void CPhilipsMainHeader::setStudy_date_time(const time_t date_time)
 {
   m_pData->extHeader.study_date_time = date_time;
+
+  // we also set study_date and study_time
+  QDateTime dtime = study_date_time_Qt();
+  m_pData->extHeader.dep_study_date = dtime.toString("yyyyMMdd").toInt(); // YYYYMMDD
+  m_pData->extHeader.dep_study_time = dtime.time().hour() * 3600 + dtime.time().minute() * 60 + dtime.time().second();
 }
 
 void CPhilipsMainHeader::setInjection_date_time(const time_t date_time)
@@ -3849,6 +4129,15 @@ void CPhilipsMainHeader::setInjection_date_time(const time_t date_time)
 void CPhilipsMainHeader::setFile_create_date_time(const time_t date_time)
 {
   m_pData->extHeader.file_create_date_time = date_time;
+
+  // we also set study_date and study_time
+  QDateTime dtime = file_create_date_time_Qt();
+  m_pData->header.dep_daycre = dtime.date().day();
+  m_pData->header.dep_mocre = dtime.date().month()-1;
+  m_pData->header.dep_yrcre = dtime.date().year();
+  m_pData->header.dep_hrcre = dtime.time().hour();
+  m_pData->header.dep_mincre = dtime.time().minute();
+  m_pData->header.dep_seccre = dtime.time().second();
 }
 
 void CPhilipsMainHeader::setResp_trig_loc(const CPhilipsMainHeader::Respiration_Trigger_Location location)
@@ -3908,12 +4197,12 @@ void CPhilipsMainHeader::setWindow_units(const CPhilipsMainHeader::Window_Units 
 
 void CPhilipsMainHeader::setReferring_physician(const char* str)
 {
-  strncpy(m_pData->extHeader.referring_physician, str, sizeof(m_pData->extHeader.referring_physician));
+  strncpy(m_pData->extHeader.referring_physician, str, sizeof(m_pData->extHeader.referring_physician)-1);
 }
 
 void CPhilipsMainHeader::setStudy_id(const char* str)
 {
-  strncpy(m_pData->extHeader.study_id, str, sizeof(m_pData->extHeader.study_id));
+  strncpy(m_pData->extHeader.study_id, str, sizeof(m_pData->extHeader.study_id)-1);
 }
 
 void CPhilipsMainHeader::setDslice_thick(const float Dslice_thick)
@@ -3943,12 +4232,12 @@ void CPhilipsMainHeader::setCard_fr_type(const CPhilipsMainHeader::Card_Fr_Type 
 
 void CPhilipsMainHeader::setDmanufacture_model_name(const char* str)
 {
-  strncpy(m_pData->extHeader.Dmanufacture_model_name, str, sizeof(m_pData->extHeader.Dmanufacture_model_name));
+  strncpy(m_pData->extHeader.Dmanufacture_model_name, str, sizeof(m_pData->extHeader.Dmanufacture_model_name)-1);
 }
 
 void CPhilipsMainHeader::setDimage_type(const char* str)
 {
-  strncpy(m_pData->extHeader.Dimage_type, str, sizeof(m_pData->extHeader.Dimage_type));
+  strncpy(m_pData->extHeader.Dimage_type, str, sizeof(m_pData->extHeader.Dimage_type)-1);
 }
 
 void CPhilipsMainHeader::setMin_bed_pos(const float min)
@@ -4033,62 +4322,62 @@ void CPhilipsMainHeader::setPvc_threshold(const short threshold)
 
 void CPhilipsMainHeader::setRadiopharm_name(const char* str)
 {
-  strncpy(m_pData->extHeader.radiopharm_name, str, sizeof(m_pData->extHeader.radiopharm_name));
+  strncpy(m_pData->extHeader.radiopharm_name, str, sizeof(m_pData->extHeader.radiopharm_name)-1);
 }
 
 void CPhilipsMainHeader::setDserial_number(const char* str)
 {
-  strncpy(m_pData->extHeader.Dserial_number, str, sizeof(m_pData->extHeader.Dserial_number));
+  strncpy(m_pData->extHeader.Dserial_number, str, sizeof(m_pData->extHeader.Dserial_number)-1);
 }
 
 void CPhilipsMainHeader::setAttncor_label(const char* str)
 {
-  strncpy(m_pData->extHeader.attncor_label, str, sizeof(m_pData->extHeader.attncor_label));
+  strncpy(m_pData->extHeader.attncor_label, str, sizeof(m_pData->extHeader.attncor_label)-1);
 }
 
 void CPhilipsMainHeader::setContr_bolus_agent(const char* str)
 {
-  strncpy(m_pData->extHeader.contr_bolus_agent, str, sizeof(m_pData->extHeader.contr_bolus_agent));
+  strncpy(m_pData->extHeader.contr_bolus_agent, str, sizeof(m_pData->extHeader.contr_bolus_agent)-1);
 }
 
 void CPhilipsMainHeader::setSop_uid(const char* str)
 {
-  strncpy(m_pData->extHeader.sop_uid, str, sizeof(m_pData->extHeader.sop_uid));
+  strncpy(m_pData->extHeader.sop_uid, str, sizeof(m_pData->extHeader.sop_uid)-1);
 }
 
 void CPhilipsMainHeader::setFrame_ref_uid(const char* str)
 {
-  strncpy(m_pData->extHeader.frame_ref_uid, str, sizeof(m_pData->extHeader.frame_ref_uid));
+  strncpy(m_pData->extHeader.frame_ref_uid, str, sizeof(m_pData->extHeader.frame_ref_uid)-1);
 }
 
 void CPhilipsMainHeader::setPps_file(const char* str)
 {
-  strncpy(m_pData->extHeader.pps_file, str, sizeof(m_pData->extHeader.pps_file));
+  strncpy(m_pData->extHeader.pps_file, str, sizeof(m_pData->extHeader.pps_file)-1);
 }
 
 void CPhilipsMainHeader::setWorklist_file(const char* str)
 {
-  strncpy(m_pData->extHeader.worklist_file, str, sizeof(m_pData->extHeader.worklist_file));
+  strncpy(m_pData->extHeader.worklist_file, str, sizeof(m_pData->extHeader.worklist_file)-1);
 }
 
 void CPhilipsMainHeader::setRecon_swrel(const char* str)
 {
-  strncpy(m_pData->extHeader.recon_swrel, str, sizeof(m_pData->extHeader.recon_swrel));
+  strncpy(m_pData->extHeader.recon_swrel, str, sizeof(m_pData->extHeader.recon_swrel)-1);
 }
 
 void CPhilipsMainHeader::setAnaly_swrel(const char* str)
 {
-  strncpy(m_pData->extHeader.analy_swrel, str, sizeof(m_pData->extHeader.analy_swrel));
+  strncpy(m_pData->extHeader.analy_swrel, str, sizeof(m_pData->extHeader.analy_swrel)-1);
 }
 
 void CPhilipsMainHeader::setRecprotocol_name(const char* str)
 {
-  strncpy(m_pData->extHeader.recprotocol_name, str, sizeof(m_pData->extHeader.recprotocol_name));
+  strncpy(m_pData->extHeader.recprotocol_name, str, sizeof(m_pData->extHeader.recprotocol_name)-1);
 }
 
 void CPhilipsMainHeader::setInsinofile(const char* str)
 {
-  strncpy(m_pData->extHeader.insinofile, str, sizeof(m_pData->extHeader.insinofile));
+  strncpy(m_pData->extHeader.insinofile, str, sizeof(m_pData->extHeader.insinofile)-1);
 }
 
 void CPhilipsMainHeader::setSlc_add(const bool add)
@@ -4173,12 +4462,12 @@ void CPhilipsMainHeader::setAttn_coeff(const float coeff)
 
 void CPhilipsMainHeader::setRegfile(const char* file)
 {
-  strncpy(m_pData->extHeader.regfile, file, sizeof(m_pData->extHeader.regfile));
+  strncpy(m_pData->extHeader.regfile, file, sizeof(m_pData->extHeader.regfile)-1);
 }
 
 void CPhilipsMainHeader::setProc_transinofile(const char* file)
 {
-  strncpy(m_pData->extHeader.transinofile, file, sizeof(m_pData->extHeader.transinofile));
+  strncpy(m_pData->extHeader.transinofile, file, sizeof(m_pData->extHeader.transinofile)-1);
 }
   
 void CPhilipsMainHeader::setSkull_comp(const float comp)
@@ -4198,12 +4487,12 @@ void CPhilipsMainHeader::setSmp_norm(const bool norm)
 
 void CPhilipsMainHeader::setAxnfile(const char* file)
 {
-  strncpy(m_pData->extHeader.axnfile, file, sizeof(m_pData->extHeader.axnfile));
+  strncpy(m_pData->extHeader.axnfile, file, sizeof(m_pData->extHeader.axnfile)-1);
 }
 
 void CPhilipsMainHeader::setEffnormfile(const char* file)
 {
-  strncpy(m_pData->extHeader.effnormfile, file, sizeof(m_pData->extHeader.effnormfile));
+  strncpy(m_pData->extHeader.effnormfile, file, sizeof(m_pData->extHeader.effnormfile)-1);
 }
   
 void CPhilipsMainHeader::setGap_comp(const bool norm)
@@ -4258,12 +4547,12 @@ void CPhilipsMainHeader::setDecay_corr(const bool decay)
 
 void CPhilipsMainHeader::setTransinofile(const char* file)
 {
-  strncpy(m_pData->extHeader.transinofile, file, sizeof(m_pData->extHeader.transinofile));
+  strncpy(m_pData->extHeader.transinofile, file, sizeof(m_pData->extHeader.transinofile)-1);
 }
 
 void CPhilipsMainHeader::setBlnksinofile(const char* file)
 {
-  strncpy(m_pData->extHeader.blnksinofile, file, sizeof(m_pData->extHeader.blnksinofile));
+  strncpy(m_pData->extHeader.blnksinofile, file, sizeof(m_pData->extHeader.blnksinofile)-1);
 }
 
 void CPhilipsMainHeader::setTran_ray_fwhm(const float fwhm)
@@ -4369,17 +4658,17 @@ void CPhilipsMainHeader::setGating_type(const short type)
 
 void CPhilipsMainHeader::setRef_attncor_series_uid(const char* str)
 {
-  strncpy(m_pData->extHeader.ref_attncor_series_uid, str, sizeof(m_pData->extHeader.ref_attncor_series_uid));
+  strncpy(m_pData->extHeader.ref_attncor_series_uid, str, sizeof(m_pData->extHeader.ref_attncor_series_uid)-1);
 }
 
 void CPhilipsMainHeader::setRef_gated_qc_image_inst_uid(const char* str)
 {
-  strncpy(m_pData->extHeader.ref_gated_qc_image_inst_uid, str, sizeof(m_pData->extHeader.ref_gated_qc_image_inst_uid));
+  strncpy(m_pData->extHeader.ref_gated_qc_image_inst_uid, str, sizeof(m_pData->extHeader.ref_gated_qc_image_inst_uid)-1);
 }
 
 void CPhilipsMainHeader::setRef_raw_data_inst_uid(const char* str)
 {
-  strncpy(m_pData->extHeader.ref_raw_data_inst_uid, str, sizeof(m_pData->extHeader.ref_raw_data_inst_uid));
+  strncpy(m_pData->extHeader.ref_raw_data_inst_uid, str, sizeof(m_pData->extHeader.ref_raw_data_inst_uid)-1);
 }
 
 void CPhilipsMainHeader::setStart_table_pos_abs(const int pos)
@@ -4399,5 +4688,5 @@ void CPhilipsMainHeader::setMr_valid(const bool valid)
 
 void CPhilipsMainHeader::setCoil_type(const char* str)
 {
-  strncpy(m_pData->extHeader.coil_type, str, sizeof(m_pData->extHeader.coil_type));
+  strncpy(m_pData->extHeader.coil_type, str, sizeof(m_pData->extHeader.coil_type)-1);
 }

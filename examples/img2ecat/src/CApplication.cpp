@@ -688,7 +688,7 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
           // and save them separately.
           char *p = pImageData;
           long matrixSize = xDim*yDim*dataTypeSize;
-          for(int z = 1; z < zDim+1; z++)
+          for(int z = 0; z < zDim; z++)
           {
             // before writing the matrix to the file we need to calculate the image min/max
             // and the new scale factor
@@ -701,10 +701,23 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
             pPhilipsSubHeaderImage->setImgmin(imgMinValue);
             pPhilipsSubHeaderImage->setImgmax(imgMaxValue);
             pPhilipsSubHeaderImage->setImgsum(dataArray.sumValue());
-            pPhilipsSubHeaderImage->setSlcnum(z*pPhilipsMainHeader->slcthk());
+
+            // set slice number based on first bedpos to conform to the
+            // way the philips format uses slice numbers
+            switch(pPhilipsMainHeader->tbl_direction())
+            {
+              case CPhilipsMainHeader::Out:
+                pPhilipsSubHeaderImage->setSlcnum(z*pPhilipsMainHeader->slcthk() + qRound(pPhilipsMainHeader->max_bed_pos()+pPhilipsMainHeader->slcthk()/2));
+              break;
+
+              case CPhilipsMainHeader::In:
+              case CPhilipsMainHeader::UnknownDirection:
+                pPhilipsSubHeaderImage->setSlcnum(z*pPhilipsMainHeader->slcthk() + qRound(pPhilipsMainHeader->min_bed_pos()+pPhilipsMainHeader->slcthk()/2));
+              break;
+            }
 
             // write the data and the subheader accordingly.
-            pPhilipsFile->writeMatrix(p, matrixSize, *pPhilipsSubHeaderImage, frame, z*pPhilipsMainHeader->slcthk());
+            pPhilipsFile->writeMatrix(p, matrixSize, *pPhilipsSubHeaderImage, frame, pPhilipsSubHeaderImage->slcnum());
   
             // now advance p
             p += matrixSize;

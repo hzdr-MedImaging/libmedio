@@ -55,7 +55,7 @@ CPhilipsSubHeader::Type CPhilipsSubHeaderImage::subHeaderType(void) const
   return CPhilipsSubHeader::Image;
 }
 
-float CPhilipsSubHeaderImage::scale_Factor(bool& ok) const
+float CPhilipsSubHeaderImage::ecat_Scale_Factor(bool& ok, const CPhilipsMainHeader* mainHeader) const
 {
   ENTER();
 
@@ -66,35 +66,49 @@ float CPhilipsSubHeaderImage::scale_Factor(bool& ok) const
   // in the subheader.
   if(suvscl() > 0.0f)
   {
-    CMedIOData* mData = medIOData();
+    bool reloadedMainHeader = false;
 
-    if(mData != NULL &&
-       mData->isReadable())
+    // check if the mainHeader was supplied and if so we go
+    // and use that instead of having to load it from the file
+    if(mainHeader == NULL)
     {
-      CPhilipsMainHeader* mainHeader = NULL;
-      CPhilipsFile* file = static_cast<CPhilipsFile*>(mData);
+      CMedIOData* mData = medIOData();
 
-      if(file->readMainHeader(mainHeader))
+      if(mData != NULL && mData->isReadable())
       {
-        // now calculate the scale factor
-        float dosage = mainHeader->activity() * 1000000.0f; // Bq
-        float deltaT = static_cast<float>(mainHeader->acq_date_time() -
-                                          mainHeader->injection_date_time()); // s
-        float halfLife = mainHeader->halfLife() * 60.0f; // s
-        float patientWeight = static_cast<float>(mainHeader->weight()); // g
+        CPhilipsMainHeader* mainHead = NULL;
+        CPhilipsFile* file = static_cast<CPhilipsFile*>(mData);
 
-        if(patientWeight != 0 && halfLife != 0 &&
-           dosage != 0)
+        if(file->readMainHeader(mainHead))
         {
-          // calculate the image scale factor by using dosage, deltaT, halfLife and
-          // patient weight to get the scale factor which should be used scale each
-          // image matrix element to get the real values.
-          scaleFactor = suvscl() * dosage * qExp(-qLn(2) * (deltaT/halfLife)) / patientWeight;
-          ok = true;
+          mainHeader = mainHead;
+          reloadedMainHeader = true;
         }
-
-        delete mainHeader;
       }
+    }
+
+    // check if we have a valid main header now
+    if(mainHeader != NULL)
+    {
+      // now calculate the scale factor
+      float dosage = mainHeader->activity() * 1000000.0f; // Bq
+      float deltaT = static_cast<float>(mainHeader->acq_date_time() -
+                                        mainHeader->injection_date_time()); // s
+      float halfLife = mainHeader->halfLife() * 60.0f; // s
+      float patientWeight = static_cast<float>(mainHeader->weight()); // g
+
+      if(patientWeight != 0 && halfLife != 0 &&
+         dosage != 0)
+      {
+        // calculate the image scale factor by using dosage, deltaT, halfLife and
+        // patient weight to get the scale factor which should be used scale each
+        // image matrix element to get the real values.
+        scaleFactor = suvscl() * dosage * qExp(-qLn(2) * (deltaT/halfLife)) / patientWeight;
+        ok = true;
+      }
+
+      if(reloadedMainHeader)
+        delete mainHeader;
     }
   }
   else

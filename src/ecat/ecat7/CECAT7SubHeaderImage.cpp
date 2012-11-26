@@ -579,7 +579,7 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* subHeader, const CMed
       setRecon_Zoom(1.0);
 
       bool convertOk = false;
-      setScale_Factor(sh->scale_Factor(convertOk));
+      setScale_Factor(sh->ecat_Scale_Factor(convertOk, mh));
 
       if(convertOk == false)
         setScale_Factor(1.0f);
@@ -602,6 +602,7 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* subHeader, const CMed
         setScatter_Type(CECAT7SubHeaderImage::None);
     
       setRecon_Type(CECAT7SubHeaderImage::IterativeCPURecon);
+      setAnnotation(sh->recon_method());
 
       short processing_code = CECAT7SubHeaderImage::NotProcessed;
       if(sh->det_norm() == 1)
@@ -613,7 +614,7 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* subHeader, const CMed
       if(QString(sh->scatter_corr()).contains("SIMUL"))
         processing_code |= CECAT7SubHeaderImage::Scatter2DCorr;
 
-      if(sh->decay_corr() == 1)
+      if(sh->decay_corr() == CPhilipsSubHeader::Acqstart)
         processing_code |= CECAT7SubHeaderImage::DecayCorrection;
 
       setProcessing_Code(processing_code);
@@ -659,16 +660,31 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* subHeader, const CMed
       // R_elements/Angles are usually only relevant for sinograms
       // however, we fill the stuff in for consistency reasons
       if(mh->dmax() == 576)
+      {
         setNum_R_Elements(291);
+        if(mh->phiMashing() == CPhilipsMainHeader::Mashing2)
+          setNum_Angles(336/2);
+        else
+          setNum_Angles(336);
+      }
       else if(mh->dmax() == 265)
+      {
         setNum_R_Elements(193);
+        if(mh->phiMashing() == CPhilipsMainHeader::Mashing2)
+          setNum_Angles(336/2);
+        else
+          setNum_Angles(336);
+      }
+      else if(mh->dmax() == 583)
+      {
+        setNum_R_Elements(288);
+        if(mh->phiMashing() == CPhilipsMainHeader::Mashing2)
+          setNum_Angles(288/2);
+        else
+          setNum_Angles(288);
+      }
 
-      if(mh->phiMashing() == CPhilipsMainHeader::Mashing2)
-        setNum_Angles(336/2);
-      else
-        setNum_Angles(336);
-
-      if(mh->decay_corr() == 1)
+      if(sh->decay_corr() == CPhilipsSubHeader::Acqstart)
         setDecay_Corr_Fctr(1.0f);
       else
         setDecay_Corr_Fctr(0.0f);
@@ -1182,7 +1198,7 @@ void CECAT7SubHeaderImage::setFilter_Scatter_Slope(const float slope)
 
 void CECAT7SubHeaderImage::setAnnotation(const char* str)                          
 {
-  strncpy(m_pData->header.Annotation, str, 40);
+  strncpy(m_pData->header.Annotation, str, sizeof(m_pData->header.Annotation)-1);
 }
 
 void CECAT7SubHeaderImage::setMT_1_1(const float value)            
@@ -1310,7 +1326,7 @@ void CECAT7SubHeaderImage::setUser_Reserved(const short i, const short n)
   m_pData->header.User_Reserved[i] = n;
 }
 
-float CECAT7SubHeaderImage::suv_Scale_Factor(bool& ok) const
+float CECAT7SubHeaderImage::suv_Scale_Factor(bool& ok, const CECAT7MainHeader* mainHeader) const
 {
   ENTER();
 
@@ -1321,38 +1337,51 @@ float CECAT7SubHeaderImage::suv_Scale_Factor(bool& ok) const
   // in the subheader.
   if(scale_Factor() > 0.0f)
   {
-    CMedIOData* mData = medIOData();
+    bool reloadedMainHeader = false;
 
-    if(mData != NULL && mData->isReadable())
+    // check if the mainHeader was supplied and if so we go
+    // and use that instead of having to load it from the file
+    if(mainHeader == NULL)
     {
-      CECATMainHeader* mainHeader = NULL;
-      CECATFile* file = static_cast<CECATFile*>(mData);
+      CMedIOData* mData = medIOData();
 
-      if(file->readMainHeader(mainHeader))
+      if(mData != NULL && mData->isReadable())
       {
-        CECAT7MainHeader* e7MainHeader = static_cast<CECAT7MainHeader*>(mainHeader);
+        CECATMainHeader* mainHead = NULL;
+        CECATFile* file = static_cast<CECATFile*>(mData);
 
-        // now calculate the scale factor
-        float dosage = e7MainHeader->dosage(); // Bq
-        float deltaT = static_cast<float>(e7MainHeader->scan_Start_Time() -
-                                          e7MainHeader->dose_Start_Time()); // s
-        float halfLife = e7MainHeader->isotope_Halflife(); // s
-        float patientWeight = e7MainHeader->patient_Weight() * 1000.0f; // g
-        float calibrationFactor = e7MainHeader->calibration_Factor();
-
-        if(patientWeight != 0 && halfLife != 0 &&
-           dosage != 0 && calibrationFactor != 0)
+        if(file->readMainHeader(mainHead))
         {
-          // calculate the suv scaling factor by using dosage, deltaT, halfLife and
-          // patient weight to get the suv scale factor commonly used with the philips
-          // file formats.
-          suvScaleFactor = scale_Factor() / (dosage * qExp(-qLn(2) * (deltaT/halfLife)) / patientWeight) * calibrationFactor;
-
-          ok = true;
+          mainHeader = static_cast<CECAT7MainHeader*>(mainHead);
+          reloadedMainHeader = true;
         }
-
-        delete e7MainHeader;
       }
+    }
+
+    // check if we have a valid main header now
+    if(mainHeader != NULL)
+    {
+      // now calculate the scale factor
+      float dosage = mainHeader->dosage(); // Bq
+      float deltaT = static_cast<float>(mainHeader->scan_Start_Time() -
+                                        mainHeader->dose_Start_Time()); // s
+      float halfLife = mainHeader->isotope_Halflife(); // s
+      float patientWeight = mainHeader->patient_Weight() * 1000.0f; // g
+      float calibrationFactor = mainHeader->calibration_Factor();
+
+      if(patientWeight != 0 && halfLife != 0 &&
+         dosage != 0 && calibrationFactor != 0)
+      {
+        // calculate the suv scaling factor by using dosage, deltaT, halfLife and
+        // patient weight to get the suv scale factor commonly used with the philips
+        // file formats.
+        suvScaleFactor = scale_Factor() / (dosage * qExp(-qLn(2) * (deltaT/halfLife)) / patientWeight) * calibrationFactor;
+
+        ok = true;
+      }
+
+      if(reloadedMainHeader)
+        delete mainHeader;
     }
   }
 

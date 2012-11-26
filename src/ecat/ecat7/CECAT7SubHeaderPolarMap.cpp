@@ -629,7 +629,7 @@ void CECAT7SubHeaderPolarMap::setQuant_Units(const short n)
 
 void CECAT7SubHeaderPolarMap::setAnnotation(const char* str)
 {
-  strncpy(m_pData->header.Annotation, str, 40);
+  strncpy(m_pData->header.Annotation, str, sizeof(m_pData->header.Annotation)-1);
 }
 
 void CECAT7SubHeaderPolarMap::setGate_Duration(const unsigned int n)
@@ -649,12 +649,12 @@ void CECAT7SubHeaderPolarMap::setNum_Accepted_Beats(const unsigned int n)
 
 void CECAT7SubHeaderPolarMap::setPolar_Map_Protocol(const char* str)
 {
-  strncpy(m_pData->header.Polar_Map_Protocol, str, 20);
+  strncpy(m_pData->header.Polar_Map_Protocol, str, sizeof(m_pData->header.Polar_Map_Protocol)-1);
 }
 
 void CECAT7SubHeaderPolarMap::setDatabase_Name(const char* str)
 {
-  strncpy(m_pData->header.Database_Name, str, 30);
+  strncpy(m_pData->header.Database_Name, str, sizeof(m_pData->header.Database_Name)-1);
 }
 
 void CECAT7SubHeaderPolarMap::setCTI_Reserved(const short i, const short n)
