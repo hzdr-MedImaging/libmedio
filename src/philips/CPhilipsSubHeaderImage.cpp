@@ -64,7 +64,7 @@ float CPhilipsSubHeaderImage::ecat_Scale_Factor(bool& ok, const CPhilipsMainHead
 
   // check if the SUV scaling factor has been set
   // in the subheader.
-  if(suvscl() > 0.0f)
+  if(suvscl() > 0.0f && imgscl() > 0.0f)
   {
     bool reloadedMainHeader = false;
 
@@ -103,7 +103,7 @@ float CPhilipsSubHeaderImage::ecat_Scale_Factor(bool& ok, const CPhilipsMainHead
         // calculate the image scale factor by using dosage, deltaT, halfLife and
         // patient weight to get the scale factor which should be used scale each
         // image matrix element to get the real values.
-        scaleFactor = suvscl() * dosage * qExp(-qLn(2) * (deltaT/halfLife)) / patientWeight;
+        scaleFactor = suvscl() * imgscl() * dosage * qExp(-qLn(2) * (deltaT/halfLife)) / patientWeight;
         ok = true;
       }
 
