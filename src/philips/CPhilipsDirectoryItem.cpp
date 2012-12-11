@@ -330,8 +330,9 @@ bool CPhilipsDirectoryItem::readMatrix(QByteArray*& matrixData)
   // we use our method operating on a raw char pointer
   if(readMatrix(data, dataLen) && dataLen > 0)
   {
-    matrixData = new QByteArray;
-    matrixData->setRawData(data, dataLen);
+    // copy the raw data into a QByteArray
+    matrixData = new QByteArray(data, dataLen);
+    delete [] data;
     result = true;
   }
 
@@ -510,8 +511,9 @@ bool CPhilipsDirectoryItem::readMatrix(QByteArray*& matrixData, CPhilipsSubHeade
   // we use our method operating on a raw char pointer
   if(readMatrix(data, dataLen, subHeader) && dataLen > 0)
   {
-    matrixData = new QByteArray;
-    matrixData->setRawData(data, dataLen);
+    // copy the raw data into a QByteArray
+    matrixData = new QByteArray(data, dataLen);
+    delete [] data;
     result = true;
   }
 
