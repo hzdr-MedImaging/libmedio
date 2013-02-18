@@ -4,7 +4,7 @@ writeEcat <- function(ecat, owrite=FALSE, fname=NULL)
   if(file.exists("/usr/local/petlib/lib/libmedio.so"))
   {
     if(is.null(fname))
-      fname = paste(substitute(ecat), ".v", sep='')
+      fname = paste(make.names(deparse(substitute(ecat))), ".v", sep='')
 
     dyn.load("/usr/local/petlib/lib/libmedio.so")
     res = .Call("writeEcat", ecat, fname, owrite, PACKAGE="libmedio")
