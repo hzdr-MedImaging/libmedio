@@ -1564,6 +1564,7 @@ bool processCommando_Join()
           int iDestGate = 1;
           int iDestBed = 0;
           int iDestData = 0;
+          unsigned int iLastFrameStartTime = 0;
 
           // now copy first directory entry of source files to
           // our destination ecat file
@@ -1591,8 +1592,22 @@ bool processCommando_Join()
                 if(srcEcatFile.readSubHeader(pSrcSubHeader, iSrcFrame, iSrcPlane, iSrcGate, iSrcBed, iSrcData))
                 {
                   *pDestSubHeader = *pSrcSubHeader;
-
                   QByteArray* pSrcMatrixData = NULL;
+
+                  // in case we join frames we have to check and adapt the frame start time
+                  if(g_joinIndex == Frames)
+                  {
+                    CECAT7SubHeaderImage* pE7SubHeader = static_cast<CECAT7SubHeaderImage*>(pDestSubHeader);
+
+                    // only set the frame_Start_Time() of the destination header in
+                    // case the source header is zero
+                    if(pE7SubHeader->frame_Start_Time() == 0)
+                    {
+                      pE7SubHeader->setFrame_Start_Time(iLastFrameStartTime);
+                      iLastFrameStartTime += pE7SubHeader->frame_Duration();
+                    }
+                  }
+
                   // write subheader and matrix
                   if(ecatFile.writeSubHeader(*pDestSubHeader, iDestFrame, iDestPlane, iDestGate, iDestBed, iDestData))
                   {
@@ -2202,7 +2217,7 @@ void showVersionInformation()
 void showHelp(int& argc, char** argv)
 {
   cout << endl;
-  cout << "libmedio ECAT6/7 file utility v2.12" << endl;
+  cout << "libmedio ECAT6/7 file utility v2.13" << endl;
   cout << "-----------------------------------" << endl;
   cout << "Usage: " << argv[0] << " <options> ecatfile" << endl;
   cout << "Options:" << endl;
@@ -2388,7 +2403,7 @@ bool retrieveFilterCode(short iFilterCode, CECAT7SubHeaderImage::Filter_Code &fi
     case 4: fCode = CECAT7SubHeaderImage::Hamming; break;
     case 5: fCode = CECAT7SubHeaderImage::Parzen; break;
     case 6: fCode = CECAT7SubHeaderImage::Shepp; break;
-    case 7: fCode = CECAT7SubHeaderImage::ButterWoth2; break;
+    case 7: fCode = CECAT7SubHeaderImage::Butterworth; break;
     case 8: fCode = CECAT7SubHeaderImage::Gaussian; break;
     case 9: fCode = CECAT7SubHeaderImage::Median; break;
     case 10: fCode = CECAT7SubHeaderImage::Boxcar; break;
