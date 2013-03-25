@@ -205,8 +205,8 @@ void CApplication::showAppInfo()
   ENTER();
   // output some general program information
   cout << endl
-       << PACKAGE_STRING << " - converts philips image files to ECAT files" << endl;
-//       << "(" __DATE__ ") Copyright (c) 2006-2011 by Hagen Moelle, Jens Langner / www.hzdr.de" << endl << endl;
+       << PACKAGE_STRING << " - converts philips image files to ECAT files" << endl
+       << "(" __DATE__ ") Copyright (c) 2011-2013 by Jens Langner, Stan Domula / www.hzdr.de" << endl << endl;
   LEAVE();
   return;
 }
@@ -648,7 +648,7 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
           short yDim = pECATSubHeaderImage->y_Dimension();
           short zDim = pECATSubHeaderImage->z_Dimension();
 
-          int dataTypeSize;
+          int dataTypeSize = sizeof(qint16);
           switch(pECATSubHeaderImage->data_Type())
           {
             case CECATSubHeader::UnknownDataType:

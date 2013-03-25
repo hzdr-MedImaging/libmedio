@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
   // before we start anything serious, we need to initialize our
   // debug class
   #if defined(DEBUG)
-  CRTDebug::instance()->init("mp2ecat");
+  CRTDebug::instance()->init("img2ecat");
   #endif
 
   ENTER();

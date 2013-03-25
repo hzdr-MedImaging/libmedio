@@ -62,9 +62,19 @@ float CPhilipsSubHeaderImage::ecat_Scale_Factor(bool& ok, const CPhilipsMainHead
   float scaleFactor = 1.0f;
   ok = false;
 
+  //
   // check if the SUV scaling factor has been set
-  // in the subheader.
-  if(suvscl() > 0.0f && imgscl() > 0.0f)
+  // in the subheader and if so we only take that scale
+  // factor and no other to scale the raw data values.
+  //
+  // So the latest knowledge about how Philips scale their image data is
+  //
+  // 1. if there is a suvscl() factor use that one to scale to SUV units
+  // 2. if suvscl() == 0 use imgscl() instead to scale to Bq/ml
+  // 3. for sinograms use scnscl() instead of imgscl().
+  //
+
+  if(suvscl() > 0.0f)
   {
     bool reloadedMainHeader = false;
 
@@ -103,7 +113,7 @@ float CPhilipsSubHeaderImage::ecat_Scale_Factor(bool& ok, const CPhilipsMainHead
         // calculate the image scale factor by using dosage, deltaT, halfLife and
         // patient weight to get the scale factor which should be used scale each
         // image matrix element to get the real values.
-        scaleFactor = suvscl() * imgscl() * dosage * qExp(-qLn(2) * (deltaT/halfLife)) / patientWeight;
+        scaleFactor = suvscl() * dosage * qExp(-qLn(2) * (deltaT/halfLife)) / patientWeight;
         ok = true;
       }
 
@@ -111,7 +121,7 @@ float CPhilipsSubHeaderImage::ecat_Scale_Factor(bool& ok, const CPhilipsMainHead
         delete mainHeader;
     }
   }
-  else
+  else if(imgscl() > 0.0f)
   {
     // else we use the imgscl() factor right away.
     scaleFactor = imgscl();

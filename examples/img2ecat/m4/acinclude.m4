@@ -2,7 +2,7 @@ dnl/* -*- mode: m4; tab-width: 2; c-basic-offset: 2; indent-tabs-mode: nil; -*-
 dnl * vim:set ts=2 sw=2 expandtab: *********************************************
 dnl *
 dnl * acinclude.m4 - Common configure macros especially for Qt3/Qt4
-dnl * Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
+dnl * Copyright (C) 2006-2012 by Jens Langner, www.hzdr.de
 dnl *
 dnl * This library is free software; you can redistribute it and/or
 dnl * modify it under the terms of the GNU Lesser General Public
@@ -18,7 +18,7 @@ dnl * You should have received a copy of the GNU Lesser General Public
 dnl * License along with this library; if not, write to the Free Software
 dnl * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
 dnl *
-dnl * $Id:$
+dnl * $Id: acinclude.m4 720 2012-08-09 08:13:19Z langner $
 dnl *
 dnl **************************************************************************/
 
@@ -115,6 +115,33 @@ AC_DEFUN([AC_ENABLE_DEBUG],
   fi
 
   AC_SUBST(COMPILE_LEVEL) 
+])
+
+
+dnl
+dnl AC_ENABLE_DEBUG: provides a switch to enable/disable rinterface
+dnl
+AC_DEFUN([AC_ENABLE_RINTERFACE],
+[
+  AC_MSG_CHECKING(whether to build with rinterface)
+  AC_ARG_ENABLE(rinterface,
+                [AC_HELP_STRING([--enable-rinterface], [turn on the rinterface [default=no]])],
+                [case "${enableval}" in
+                  yes) test_on_enable_rinterface=yes ;;
+                  no)  test_on_enable_rinterface=no  ;;
+                  *)   AC_MSG_ERROR(bad value ${enableval} for --enable-rinterface) ;;
+                esac],
+                [test_on_enable_rinterface=no])
+
+  if test "$test_on_enable_rinterface" = "yes"; then
+    R_INTERFACE="enabled"
+    AC_MSG_RESULT(yes)
+  else
+    R_INTERFACE="disabled"
+    AC_MSG_RESULT(no)
+  fi
+
+  AC_SUBST(R_INTERFACE)
 ])
 
 dnl
@@ -412,6 +439,37 @@ AC_DEFUN([AC_ENABLE_STATIC_MTRACK],
   AC_SUBST(QTLINK_LEVEL) 
 ])
 
+dnl
+dnl AC_ENABLE_STATIC_RCPP: provides a switch to control the link level (static/shared)
+dnl of a linked Rcpp library
+dnl
+AC_DEFUN([AC_ENABLE_STATIC_RCPP],
+[
+  AC_MSG_CHECKING(whether to link the rcpp library static)
+  AC_ARG_ENABLE(static-rcpp,
+                [AC_HELP_STRING([--enable-static-rcpp], [turn on static linkage of rcpp libs [default=no]])],
+                [case "${enableval}" in
+                  yes) test_on_enable_static_rcpp=yes  ;;
+                  no)  test_on_enable_static_rcpp=no ;;
+                  *)   AC_MSG_ERROR(bad value ${enableval} for --enable-static-rcpp) ;;
+                esac],
+                [test_on_enable_static_rcpp=no])
+
+
+  if test "$R_INTERFACE" = "disabled"; then
+    AC_MSG_RESULT([skipping, rinterface disabled]) 
+  elif test "$test_on_enable_static_rcpp" = "yes" -o "$ac_static_build" = "yes"; then
+    QTLINK_LEVEL="${QTLINK_LEVEL} staticrcpp"
+    AC_MSG_RESULT(yes)
+    ac_rcpp_link_level="static"
+  else
+    QTLINK_LEVEL="${QTLINK_LEVEL}"
+    AC_MSG_RESULT(no)
+    ac_rcpp_link_level="shared"
+  fi
+
+  AC_SUBST(QTLINK_LEVEL) 
+])
 
 dnl
 dnl AC_PROG_GCC_VERSION: finds out if the used gcc version is a supported one
@@ -435,7 +493,7 @@ AC_DEFUN([AC_PROG_GCC_VERSION],
        cc_version="v. ?.??, bad"
        cc_verc_fail=yes
        ;;
-     2.95.[2-9]|2.95.[2-9][-.]*|3.[0-9]*|3.[0-9].[0-9]*|4.[0-9].[0-9]*)
+     2.95.[2-9]|2.95.[2-9][-.]*|3.[0-9]*|3.[0-9].[0-9]*|4.[0-9]*)
        _cc_major=`echo $cc_version | cut -d '.' -f 1`
        _cc_minor=`echo $cc_version | cut -d '.' -f 2`
        _cc_mini=`echo $cc_version | cut -d '.' -f 3`
@@ -1706,6 +1764,7 @@ AC_DEFUN([AC_PATH_QT4_LIB],
                      /usr/local/lib \
                      /usr/lib/qt \
                      /usr/lib/qt/lib \
+                     /usr/lib/x86_64-linux-gnu \
                      /usr/local/lib/qt \
                      /usr/X11/lib \
                      /usr/X11/lib/qt \
@@ -1726,7 +1785,7 @@ AC_DEFUN([AC_PATH_QT4_LIB],
     LIB_QT="$ac_qt_libname"
   else
     if test "$HOST_OS" = "Darwin"; then
-      ac_qt_libname="libQtCore.dylib"
+      ac_qt_libname="QtCore.framework"
     else
       ac_qt_libname="libQtCore.so"
     fi
@@ -1736,7 +1795,7 @@ AC_DEFUN([AC_PATH_QT4_LIB],
   for qt_dir in $qt_library_dirs; do
     if test -r "$qt_dir/$ac_qt_libname"; then
       ac_qt_libdir="$qt_dir"
-      break;
+      break
     else
       echo "tried $qt_dir" >&AC_FD_CC 
     fi
@@ -1877,24 +1936,222 @@ dnl should only be available to Windows. We use that function as a fallback for 
 dnl
 AC_DEFUN([AC_CHECK_GETTICKCOUNT],
 [
-	AC_REQUIRE_CPP()
-	AC_MSG_CHECKING(for GetTickCount)
-	
-	AC_LANG_SAVE
-	AC_LANG_CPLUSPLUS
-	save_LDFLAGS="$LDFLAGS"
-	LDFLAGS="-lkernel32"
-	
-	AC_TRY_LINK([#include <windows.h>], GetTickCount();, ac_have_gettickcount="yes", ac_have_gettickcount="no")
-	
-	dnl Define a shell variable for later checks
-	if test "$ac_have_gettickcount" = "no"; then
-		AC_MSG_RESULT([no])
-	else
-		AC_MSG_RESULT([yes])
-		AC_DEFINE(HAVE_GETTICKCOUNT)
-	fi
-	
-	LDFLAGS="$save_LDFLAGS"
-	AC_LANG_RESTORE
+  AC_REQUIRE_CPP()
+  AC_MSG_CHECKING(for GetTickCount)
+  
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+  save_LDFLAGS="$LDFLAGS"
+  LDFLAGS="-lkernel32"
+  
+  AC_TRY_LINK([#include <windows.h>], GetTickCount();, ac_have_gettickcount="yes", ac_have_gettickcount="no")
+  
+  dnl Define a shell variable for later checks
+  if test "$ac_have_gettickcount" = "no"; then
+    AC_MSG_RESULT([no])
+  else
+    AC_MSG_RESULT([yes])
+    AC_DEFINE(HAVE_GETTICKCOUNT)
+  fi
+  
+  LDFLAGS="$save_LDFLAGS"
+  AC_LANG_RESTORE
+])
+
+dnl
+dnl AC_PATH_RCPP: allows to override the default library search path for
+dnl searching for the Rcpp library.
+dnl
+AC_DEFUN([AC_PATH_RCPP],
+[
+  AC_ARG_WITH(rcpp,
+              [AC_HELP_STRING([--with-rcpp], [where the rcpp environment is located.])],
+              [RCPPDIR="$withval"], [RCPPDIR=""])
+])
+
+AC_DEFUN([AC_PATH_RCPP_LIB],
+[
+  AC_REQUIRE_CPP()
+  AC_ARG_WITH(rcpp-lib,
+               [AC_HELP_STRING([--with-rcpp-lib], [where the Rcpp library is located.])],
+               [ac_rcpp_libraries="$withval"], ac_rcpp_libraries="")
+
+  AC_MSG_CHECKING(for Rcpp library)
+
+  
+  AC_CACHE_VAL(ac_cv_lib_rcpplib, [
+
+  rcpp_libdir=
+
+  dnl No they didnt, so lets look for them...
+  dnl If you need to add extra directories to check, add them here.
+  if test -z "$ac_rcpp_libraries"; then
+    rcpp_library_dirs="$RCPPDIR/lib \
+                          $RCPPDIR/lib/Rcpp \
+                          $RCPPDIR \
+                          $HOME/R/library/Rcpp/lib \
+                          /usr/lib/R/site-library/Rcpp/lib"
+  else
+    rcpp_library_dirs="$ac_rcpp_libraries"
+  fi
+
+  dnl for simplicity we simply go and check if
+  dnl we can find the rcpp library in one of
+  dnl our search pathes
+  ac_rcpp_libdir=""
+  if test "$ac_rcpp_link_level" = "static"; then
+    ac_rcpp_libname="libRcpp.a"
+    LIB_RCPP="$ac_rcpp_libname"
+  else
+    if test "$HOST_OS" = "Darwin"; then
+      ac_rcpp_libname="libRcpp.dylib"
+    else
+      ac_rcpp_libname="libRcpp.so"
+    fi
+    LIB_RCPP="-lRcpp"
+  fi
+
+  for rcpp_dir in $rcpp_library_dirs; do
+    if test -r "$rcpp_dir/$ac_rcpp_libname"; then
+      ac_rcpp_libdir="$rcpp_dir"
+      break;
+    else
+      echo "tried $rcpp_dir" >&AC_FD_CC 
+    fi
+  done
+
+  ac_cv_lib_rcpplib="ac_rcpp_libname=$ac_rcpp_libname ac_rcpp_libdir=$ac_rcpp_libdir"
+  
+  ])
+
+  eval "$ac_cv_lib_rcpplib"
+
+  dnl Define a shell variable for later checks
+  if test "$R_INTERFACE" = "disabled"; then
+    have_rcpp_lib="no"
+    AC_MSG_RESULT([skipping, R interface disabled]) 
+  elif test -z "$ac_rcpp_libdir"; then
+    have_rcpp_lib="no"
+    AC_MSG_RESULT([no])
+    AC_MSG_ERROR([Cannot find required $ac_rcpp_link_level rcpp library in linker path.
+Try --with-rcpp-lib to specify the path, manually.])
+  else
+    have_rcpp_lib="yes"
+    AC_MSG_RESULT([yes, $ac_rcpp_libname in $ac_rcpp_libdir found.])
+  fi
+
+  RCPP_LDFLAGS="-L$ac_rcpp_libdir"
+  RCPP_LIBDIR="$ac_rcpp_libdir"
+  AC_SUBST(RCPP_LDFLAGS)
+  AC_SUBST(RCPP_LIBDIR)
+  AC_SUBST(LIB_RCPP)
+])
+
+dnl
+dnl AC_PATH_RCPP_INC: checks the existance of the includes files for successfully
+dnl compiling support for the rcpp library and also allows to override the default
+dnl path to that includes.
+dnl
+AC_DEFUN([AC_PATH_RCPP_INC],
+[
+  AC_REQUIRE_CPP()
+  AC_MSG_CHECKING(for Rcpp includes)
+
+  AC_ARG_WITH(rcpp-inc,
+              [AC_HELP_STRING([--with-rcpp-inc], [where the Rcpp includes are located.])],
+              [rcpp_include_dirs="$withval"], ac_rcpp_includes="")
+
+  AC_CACHE_VAL(ac_cv_header_rcppinc, [
+
+    dnl Did the user give --with-rcpp-includes?
+    if test -z "$rcpp_include_dirs"; then
+
+      dnl No they didn't, so lets look for them...
+      dnl If you need to add extra directores to check, add them here.
+      rcpp_include_dirs="\
+        $RCPPDIR/include \
+        $RCPPDIR/include/Rcpp \
+        $RCPPDIR/include/Rcpp/include \
+        $RCPPDIR \
+        $HOME/R/library/Rcpp/include \
+        /usr/lib/R/site-library/Rcpp/include"
+    fi
+
+    for rcpp_dir in $rcpp_include_dirs; do
+      if test -r "$rcpp_dir/Rcpp.h"; then
+        ac_rcpp_includes=$rcpp_dir
+        break;
+      fi
+    done
+
+    ac_cv_header_rcppinc=$ac_rcpp_includes
+  ])
+
+  if test -z "$ac_cv_header_rcppinc"; then
+    have_rcpp_inc="no"
+    AC_MSG_RESULT([no])
+    AC_MSG_WARN([Rcpp.h include not found, you may run into problems.
+Try --with-rcpp-inc to specify the path, manually.])
+  else
+    have_rcpp_inc="yes"
+    AC_MSG_RESULT([yes, in $ac_cv_header_rcppinc])
+  fi
+
+  RCPP_INCLUDES="-I$ac_cv_header_rcppinc"
+  RCPP_INCDIR="$ac_cv_header_rcppinc"
+  AC_SUBST(RCPP_INCLUDES)
+  AC_SUBST(RCPP_INCDIR)
+])
+
+dnl
+dnl AC_PATH_R_INC: checks the existance of the includes files for successfully
+dnl compiling support for the r library and also allows to override the default
+dnl path to that includes.
+dnl
+AC_DEFUN([AC_PATH_R_INC],
+[
+  AC_REQUIRE_CPP()
+  AC_MSG_CHECKING(for R includes)
+
+  AC_ARG_WITH(r-inc,
+              [AC_HELP_STRING([--with-r-inc], [where the R includes are located.])],
+              [r_include_dirs="$withval"], ac_r_includes="")
+
+  AC_CACHE_VAL(ac_cv_header_rinc, [
+
+    dnl Did the user give --with-r-includes?
+    if test -z "$r_include_dirs"; then
+
+      dnl No they didn't, so lets look for them...
+      dnl If you need to add extra directores to check, add them here.
+      r_include_dirs="\
+        $RDIR/include \
+        $RDIR \
+        /usr/share/R/include"
+    fi
+
+    for r_dir in $r_include_dirs; do
+      if test -r "$r_dir/R.h"; then
+        ac_r_includes=$r_dir
+        break;
+      fi
+    done
+
+    ac_cv_header_rinc=$ac_r_includes
+  ])
+
+  if test -z "$ac_cv_header_rinc"; then
+    have_r_inc="no"
+    AC_MSG_RESULT([no])
+    AC_MSG_WARN([R.h include not found, you may run into problems.
+Try --with-r-inc to specify the path, manually.])
+  else
+    have_r_inc="yes"
+    AC_MSG_RESULT([yes, in $ac_cv_header_rinc])
+  fi
+
+  R_INCLUDES="-I$ac_cv_header_rinc"
+  R_INCDIR="$ac_cv_header_rinc"
+  AC_SUBST(R_INCLUDES)
+  AC_SUBST(R_INCDIR)
 ])
