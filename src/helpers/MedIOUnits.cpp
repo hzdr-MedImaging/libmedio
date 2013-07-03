@@ -341,6 +341,13 @@ void CActivityConcentrationUnit::setUnknownUnitString(const QString & S)
   LEAVE();
 }
 
+QString CActivityConcentrationUnit::unknownUnitString() const
+{
+  ENTER();
+  LEAVE();
+  return m_unknownUnitString;
+}
+
 void CActivityConcentrationUnit::setUnit(const ActivityConcentrationUnits unit)
 {
   ENTER();

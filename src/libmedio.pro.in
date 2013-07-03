@@ -266,12 +266,12 @@ QMAKE_CXXFLAGS_DEBUG *= -O3
 # tune the optimization a bit for each architecture
 !mac {
   contains(HOST_MACHINE, x86_64) {
-    QMAKE_CFLAGS_RELEASE *= -mtune=native
-    QMAKE_CXXFLAGS_RELEASE *= -mtune=native
+    QMAKE_CFLAGS_RELEASE *= -mtune=generic
+    QMAKE_CXXFLAGS_RELEASE *= -mtune=generic
   }
   contains(HOST_MACHINE, i[63]86) {
-    QMAKE_CFLAGS_RELEASE *= -mtune=native
-    QMAKE_CXXFLAGS_RELEASE *= -mtune=native
+    QMAKE_CFLAGS_RELEASE *= -mtune=generic
+    QMAKE_CXXFLAGS_RELEASE *= -mtune=generic
   }
   contains(HOST_MACHINE, sun4u) {
     QMAKE_CFLAGS_RELEASE *= -mcpu=ultrasparc3

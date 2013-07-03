@@ -111,7 +111,7 @@ class CActivityConcentrationUnit
     QString toString() const;
 
     void setUnknownUnitString(const QString & S);
-    QString unknownUnitString() const {return m_unknownUnitString;}
+    QString unknownUnitString() const;
 
     CActivityConcentrationUnit& operator=(const CActivityConcentrationUnit& other);
 
