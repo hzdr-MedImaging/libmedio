@@ -1770,8 +1770,7 @@ AC_DEFUN([AC_PATH_QT4_LIB],
                      /usr/X11/lib/qt \
                      /usr/X11R6/lib \
                      /usr/X11R6/lib/qt \
-                     /Developer/qt4/lib
-                     /Developer/qt/lib"
+                     /Library/Frameworks"
   else
     qt_library_dirs="$ac_qt_libraries"
   fi
@@ -1841,28 +1840,27 @@ AC_DEFUN([AC_PATH_QT4_INC],
     dnl Did the user give --with-qt-includes?
     if test -z "$qt_include_dirs"; then
       qt_include_dirs="\
-        $QT4DIR/include \
-        /usr/include/qt4/ \
-        /usr/local/qt4/include \
-        /usr/lib/qt/include \
-        /usr/include/qt \
-        /usr/local/qt/include \
-        /usr/local/include/qt \
-        /usr/X11/include/qt \
-        /usr/X11/include/X11/qt \
-        /usr/X11R6/include \
-        /usr/X11R6/include/qt \
-        /usr/X11R6/include/X11/qt \
-        /usr/X11/lib/qt/include"
+        $QT4DIR/include/QtCore \
+        /usr/include/qt4/QtCore \
+        /usr/local/qt4/include/QtCore \
+        /usr/lib/qt/include/QtCore \
+        /usr/include/qt/QtCore \
+        /usr/local/qt/include/QtCore \
+        /usr/local/include/qt/QtCore \
+        /usr/X11/include/qt/QtCore \
+        /usr/X11/include/X11/qt/QtCore \
+        /usr/X11R6/include/QtCore \
+        /usr/X11R6/include/qt/QtCore \
+        /usr/X11R6/include/X11/qt/QtCore \
+        /usr/X11/lib/qt/include/QtCore \
+        /Library/Frameworks/QtCore.framework/Headers"
     fi
 
     dnl now we do check for the QtCore subdir and the Qt include
     for qt_dir in $qt_include_dirs; do
-      if test -r "$qt_dir/QtCore"; then
-        if test -r "$qt_dir/QtCore/Qt"; then
-          ac_qt_includes=$qt_dir
-          break;
-        fi
+      if test -r "$qt_dir/Qt"; then
+        ac_qt_includes=$qt_dir
+        break;
       fi
     done
 
@@ -1990,7 +1988,8 @@ AC_DEFUN([AC_PATH_RCPP_LIB],
                           $RCPPDIR/lib/Rcpp \
                           $RCPPDIR \
                           $HOME/R/library/Rcpp/lib \
-                          /usr/lib/R/site-library/Rcpp/lib"
+                          /usr/lib/R/site-library/Rcpp/lib \
+                          /usr/local/petlib/Rlibrary/Rcpp/lib"
   else
     rcpp_library_dirs="$ac_rcpp_libraries"
   fi
@@ -2074,7 +2073,8 @@ AC_DEFUN([AC_PATH_RCPP_INC],
         $RCPPDIR/include/Rcpp/include \
         $RCPPDIR \
         $HOME/R/library/Rcpp/include \
-        /usr/lib/R/site-library/Rcpp/include"
+        /usr/lib/R/site-library/Rcpp/include \
+        /usr/local/petlib/Rlibrary/Rcpp/include"
     fi
 
     for rcpp_dir in $rcpp_include_dirs; do
@@ -2127,7 +2127,8 @@ AC_DEFUN([AC_PATH_R_INC],
       r_include_dirs="\
         $RDIR/include \
         $RDIR \
-        /usr/share/R/include"
+        /usr/share/R/include \
+        /Library/Frameworks/R.framework/Versions/Current/Headers"
     fi
 
     for r_dir in $r_include_dirs; do
