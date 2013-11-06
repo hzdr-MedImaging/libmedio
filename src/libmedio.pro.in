@@ -162,23 +162,6 @@ MAKE_CXXFLAGS *= $(EXPORT_DEBUG)
 QMAKE_CFLAGS *= $(EXPORT_DEBUG)
 QMAKE_CXXFLAGS *= $(EXPORT_DEBUG)
 
-# find out if the R interface should be included
-# and set the source files of the interface
-R_INTERFACE = @R_INTERFACE@
-contains(R_INTERFACE, enabled) {
-
-  PUB_HEADER += rcpp/CRECATFile.h \
-                rcpp/RInterface.h
-
-  HEADER += rcpp/CRECATFile.h \
-            rcpp/RInterface.h
-
-  SOURCES += rcpp/CRECATFile.cpp \
-             rcpp/RInterface.cpp
-
-  DEFINES *= WITH_R_INTERFACE
-}
-
 # UNIX based target platforms installation defines
 # on unix we use configure to define everything like install path
 PREFIX=@prefix@
@@ -232,22 +215,6 @@ contains(DEFINES, DEBUG) {
   else {
     LIBS *= -L@RTDEBUG_LIBDIR@ @LIB_RTDEBUG@
   }
-}
-
-### Rcpp ##################################################################
-INCLUDEPATH *= @RCPP_INCDIR@
-contains(DEFINES, WITH_R_INTERFACE) {
-  staticrcpp {
-    LIBS *= @RCPP_LIBDIR@/@LIB_RCPP@
-  }
-  else {
-    LIBS *= -L@RCPP_LIBDIR@ @LIB_RCPP@ -Wl,-rpath,@RCPP_LIBDIR@
-  }
-}
-
-### R ####################################################################
-contains(DEFINES, WITH_R_INTERFACE) {
-  INCLUDEPATH *= @R_INCDIR@
 }
 
 # for static compilation we define the following so that we
