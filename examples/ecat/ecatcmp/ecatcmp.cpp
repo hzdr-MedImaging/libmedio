@@ -2,7 +2,7 @@
  * vim:set ts=2 sw=2 expandtab: *********************************************
  *
  * libmedio - C++ I/O Library for loading/saving medical data formats
- * Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
+ * Copyright (C) 2006-2013 by Jens Maus <mail@jens-maus.de>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -42,13 +42,13 @@
 
 #include "config.h" // for big/little endianness check
 
-#define VERSION "1.10"
+#define VERSION "1.11"
 
 using namespace std;
 
 // local prototypes
-static void getMinMaxValues(QByteArray* matrixData, CECATSubHeader::Data_Type matrixType, float& minValue, float& maxValue);
-static void getMaxCountValue(QByteArray* matrixData, CECATSubHeader::Data_Type matrixType, float matrixDataScaleFactor);
+static void getMinMaxValues(void* matrixData, unsigned int matrixDataSize, CECATSubHeader::Data_Type matrixType, float& minValue, float& maxValue);
+static void getMaxCountValue(void* matrixData, unsigned int matrixDataSize, CECATSubHeader::Data_Type matrixType, float matrixDataScaleFactor);
 static void compareECAT7MainHeader(CECATMainHeader* mh1, CECATMainHeader* mh2);
 static void compareECAT7Scan3DSubHeaders(CECATSubHeader* subHeader1, CECATSubHeader* subHeader2);
 static void compareECAT7Norm3DSubHeaders(CECATSubHeader* subHeader1, CECATSubHeader* subHeader2);
@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
   ios::sync_with_stdio(false);
 
   cout << "ecatcmp " << VERSION << " - a libmedio ECAT6/7 file/data compare tool" << endl
-       << "(" __DATE__ ")  Copyright (C) 2006-2010 by Jens Langner / www.fzd.de" << endl << endl;
+       << "(" __DATE__ ")  Copyright (C) 2006-2013 Jens Maus, hzdr.de" << endl << endl;
 
   // put all arguments in a temporary MultiHash
   QHash<QString, QString> args;
@@ -167,9 +167,9 @@ int main(int argc, char* argv[])
           {
             if(file2.readMainHeader(header2) == true)
             {
-              cout << "   RTTI: " << header1->rtti() << ":" << header2->rtti() << " ...";
+              //cout << "   RTTI: " << header1->rtti() << ":" << header2->rtti() << " ...";
 
-              if(header1->rtti() == header2->rtti())
+              //if(header1->rtti() == header2->rtti())
               {
                 cout << "ok!" << endl;
 
@@ -181,8 +181,8 @@ int main(int argc, char* argv[])
                 else
                   cout << "WARNING! only mainheader checking of ECAT7 files supported." << endl;
               }
-              else
-                cout << "ERROR!" << endl;
+              //else
+              //  cout << "ERROR!" << endl;
 
               delete header2;
             }
@@ -496,27 +496,80 @@ int main(int argc, char* argv[])
                 delete subHeader2;
 
                 // now we load the data out of each matrix and compare it bytewise.
-                QByteArray* matrixData1;
-                QByteArray* matrixData2;
+                char* matrixData1 = NULL;
+                unsigned int matrixDataLen1 = 0;
+                char* matrixData2 = NULL;
+                unsigned int matrixDataLen2 = 0;
 
                 cout << "     loading data... " << flush;
-                if(dirItem1->readMatrix(matrixData1) == false)
+                if(dirItem1->readMatrix(matrixData1, matrixDataLen1) == false)
                   cout << "ERROR on loading data from file1!";
                 else
                 {
                   cout << "file1 ok, " << flush;
                   
-                  if(dirItem2->readMatrix(matrixData2) == false)
+                  if(dirItem2->readMatrix(matrixData2, matrixDataLen2) == false)
                     cout << "ERROR on loading data from file2!";
                   else
                   {
                     bool compareRawData = false;
+                    unsigned int matrixDataItems1;
+                    unsigned int matrixDataItems2;
 
                     cout << "file2... ok!" << endl;
 
+                    // identify the data type size/width
+                    switch(subHeaderType1)
+                    {
+                      case CECATSubHeader::ByteData:
+                        matrixDataItems1 = matrixDataLen1 / sizeof(qint8);
+                      break;
+
+                      case CECATSubHeader::IEEEFloat:
+                        matrixDataItems1 = matrixDataLen1 / sizeof(float);
+                      break;
+
+                      case CECATSubHeader::SunShort:
+                        matrixDataItems1 = matrixDataLen1 / sizeof(qint16);
+                      break;
+
+                      case CECATSubHeader::SunLong:
+                        matrixDataItems1 = matrixDataLen1 / sizeof(qint32);
+                      break;
+
+                      default:
+                        matrixDataItems1 = 0;
+                        cout << "ERROR: This datatype is currently not supported by ecatcmp!" << endl;
+                      break;
+                    }
+
+                    switch(subHeaderType2)
+                    {
+                      case CECATSubHeader::ByteData:
+                        matrixDataItems2 = matrixDataLen2 / sizeof(qint8);
+                      break;
+
+                      case CECATSubHeader::IEEEFloat:
+                        matrixDataItems2 = matrixDataLen2 / sizeof(float);
+                      break;
+
+                      case CECATSubHeader::SunShort:
+                        matrixDataItems2 = matrixDataLen2 / sizeof(qint16);
+                      break;
+
+                      case CECATSubHeader::SunLong:
+                        matrixDataItems2 = matrixDataLen2 / sizeof(qint32);
+                      break;
+
+                      default:
+                        matrixDataItems2 = 0;
+                        cout << "ERROR: This datatype is currently not supported by ecatcmp!" << endl;
+                      break;
+                    }
+
                     // check the size
-                    cout << "     comparing data size " << matrixData1->size() << ":" << matrixData2->size() << "... " << flush;
-                    if(matrixData1->size() != matrixData2->size())
+                    cout << "     comparing data size " << matrixDataLen1 << ":" << matrixDataLen2 << "... " << flush;
+                    if(matrixDataLen1 != matrixDataLen2)
                     {
                       cout << "ERROR: matrix sizes are not equal!" << endl;
                       compareRawData = true;
@@ -526,7 +579,7 @@ int main(int argc, char* argv[])
 
                     // compare the raw data
                     cout << "     comparing raw data... " << flush;
-                    if(compareRawData == true || *matrixData1 != *matrixData2)
+                    if(compareRawData == true || memcmp(matrixData1, matrixData2, qMax(matrixDataLen1, matrixDataLen2)) != 0)
                     {
                       cout << "ERROR: matrix is not equal!";
 
@@ -536,29 +589,19 @@ int main(int argc, char* argv[])
                         long i;
 
                         cout << endl << "     performing deeper search for differences... " << endl << endl;
+                        cout << "        Pos        Value1        scaled            Value2        scaled          abs. diff.       scaled" << endl;
 
-                        // create DataStreams we are going to use for reading the data
-                        QDataStream stream1(matrixData1, QIODevice::ReadOnly);
-                        QDataStream stream2(matrixData2, QIODevice::ReadOnly);
-
-                        #if !defined(WORDS_BIGENDIAN)
-                        stream1.setByteOrder(QDataStream::LittleEndian);
-                        stream2.setByteOrder(QDataStream::LittleEndian);
-                        #endif
-
-                        cout << "        Pos        Value1          Value2         difference" << endl;
-
-                        // walk through our data streams
-                        for(i=0; stream1.atEnd() == false && stream2.atEnd() == false; i++)
+                        // walk through our matrixData
+                        for(i=0; i < matrixDataItems1 && i < matrixDataItems2; i++)
                         {
                           double val[2];
                           CECATSubHeader::Data_Type subHeaderType[2];
-                          QDataStream* stream[2];
+                          void* mData[2];
                           
                           subHeaderType[0] = subHeaderType1;
                           subHeaderType[1] = subHeaderType2;
-                          stream[0] = &stream1;
-                          stream[1] = &stream2;
+                          mData[0] = matrixData1;
+                          mData[1] = matrixData2;
                           val[0] = 0.0f;
                           val[1] = 0.0f;
 
@@ -566,27 +609,23 @@ int main(int argc, char* argv[])
                           {
                             if(subHeaderType[j] == CECATSubHeader::ByteData)
                             {
-                              qint8 v;
-                              *stream[j] >> v;
-                              val[j] = static_cast<double>(v);
+                              qint8* pint8 = static_cast<qint8*>(mData[j]);
+                              val[j] = static_cast<double>(pint8[i]);
                             }
                             else if(subHeaderType[j] == CECATSubHeader::IEEEFloat)
                             {
-                              float v;
-                              *stream[j] >> v;
-                              val[j] = static_cast<double>(v);
+                              float* pFloat = static_cast<float*>(mData[j]);
+                              val[j] = static_cast<double>(pFloat[i]);
                             }
                             else if(subHeaderType[j] == CECATSubHeader::SunShort)
                             {
-                              qint16 v;
-                              *stream[j] >> v;
-                              val[j] = static_cast<double>(v);
+                              qint16* pint16 = static_cast<qint16*>(mData[j]);
+                              val[j] = static_cast<double>(pint16[i]);
                             }
                             else if(subHeaderType[j] == CECATSubHeader::SunLong)
                             {
-                              qint32 v;
-                              *stream[j] >> v;
-                              val[j] = static_cast<double>(v);
+                              qint32* pint32 = static_cast<qint32*>(mData[j]);
+                              val[j] = static_cast<double>(pint32[i]);
                             }
                             else
                               cout << "ERROR: This datatype is currently not support by ecatcmp!" << endl;
@@ -594,10 +633,14 @@ int main(int argc, char* argv[])
 
                           if(fabs(val[0]-val[1]) >= FLT_EPSILON)
                           {
-                            cout << "     " << setw(8) << setfill('0') << hex << i << "| ";
-                            cout << setfill(' ') << setw(13) << setprecision(6) << scientific << val[0] << " : ";
-                            cout << setfill(' ') << setw(13) << setprecision(6) << scientific << val[1] << " | ";
-                            cout << setw(13) << setprecision(6) << scientific << fabs(val[0]-val[1]) << endl;
+                            cout << "     " << setw(8) << setfill('0') << hex << i << "| "
+                                 << setfill(' ') << setw(13) << setprecision(6) << scientific << val[0]
+                                 << " (" << setfill(' ') << setw(13) << setprecision(6) << scientific << val[0] * matrixDataScaleFactor1 << ") : "
+                                 << setfill(' ') << setw(13) << setprecision(6) << scientific << val[1] 
+                                 << " (" << setfill(' ') << setw(13) << setprecision(6) << scientific << val[1] * matrixDataScaleFactor2 << ") | "
+                                 << setw(13) << setprecision(6) << scientific << fabs(val[0]-val[1])
+                                 << " (" << setw(13) << setprecision(6) << scientific << fabs(val[0]*matrixDataScaleFactor1 - val[1]*matrixDataScaleFactor2) << ")" << endl;
+
                             diffs++;
                           }
                         }
@@ -616,23 +659,24 @@ int main(int argc, char* argv[])
                     float minValue2, maxValue2;
 
                     cout << "       calculating (min:max) of data item #1... " << flush;
-                    getMinMaxValues(matrixData1, subHeaderType1, minValue1, maxValue1);
+                    getMinMaxValues(matrixData1, matrixDataItems1, subHeaderType1, minValue1, maxValue1);
 
                     cout << "       calculating (min:max) of data item #2... " << flush;
-                    getMinMaxValues(matrixData2, subHeaderType2, minValue2, maxValue2);
+                    getMinMaxValues(matrixData2, matrixDataItems2, subHeaderType2, minValue2, maxValue2);
 
                     cout << "       calculating max.count of data item #1... " << flush;
-                    getMaxCountValue(matrixData1, subHeaderType1, matrixDataScaleFactor1);
+                    getMaxCountValue(matrixData1, matrixDataItems1, subHeaderType1, matrixDataScaleFactor1);
 
                     cout << "       calculating max.count of data item #2... " << flush;
-                    getMaxCountValue(matrixData2, subHeaderType2, matrixDataScaleFactor2);
+                    getMaxCountValue(matrixData2, matrixDataItems2, subHeaderType2, matrixDataScaleFactor2);
+
+                    delete[] matrixData2;
                   }
+
+                  delete[] matrixData1;
                 }
 
                 cout << endl;
-
-                delete matrixData1;
-                delete matrixData2;
               }
               else
                 cout << "NOT found in both files" << endl;
@@ -669,44 +713,38 @@ int main(int argc, char* argv[])
   return returnCode;
 }
 
-static void getMinMaxValues(QByteArray* matrixData, CECATSubHeader::Data_Type matrixType,
+static void getMinMaxValues(void* matrixData, unsigned int matrixDataSize, CECATSubHeader::Data_Type matrixType,
                             float& minValue, float& maxValue)
 {
   // reset the min/max values
-  minValue = 0;
-  maxValue = 0;
+  minValue = FLT_MAX;
+  maxValue = -FLT_MAX;
 
   // depending on the datatype we have to do different conversions
   switch(matrixType)
   {
     case CECATSubHeader::ByteData:
     {
-      // now we search through the byte array step by step, outputing all
-      // differences
-      for(unsigned int i=0; i < (unsigned int)matrixData->count(); i++)
+      qint8* pint8 = static_cast<qint8*>(matrixData);
+
+      for(unsigned int i=0; i < matrixDataSize; i++)
       {
-        char c = (*matrixData)[i];
+        float val = static_cast<float>(pint8[i]);
 
         // check for min/max
-        minValue = qMin(static_cast<float>(c), minValue);
-        maxValue = qMax(static_cast<float>(c), maxValue);
+        minValue = qMin(val, minValue);
+        maxValue = qMax(val, maxValue);
       }
     }
     break;
 
     case CECATSubHeader::IEEEFloat:
     {
-      float val;
+      float* pfloat = static_cast<float*>(matrixData);
 
-      QDataStream stream(matrixData, QIODevice::ReadOnly);
-
-      #if !defined(WORDS_BIGENDIAN)
-      stream.setByteOrder(QDataStream::LittleEndian);
-      #endif
-
-      for(int i=0; stream.atEnd() == false; i++)
+      for(unsigned int i=0; i < matrixDataSize; i++)
       {
-        stream >> val;
+        float val = static_cast<float>(pfloat[i]);
 
         // check for min/max
         minValue = qMin(val, minValue);
@@ -717,42 +755,30 @@ static void getMinMaxValues(QByteArray* matrixData, CECATSubHeader::Data_Type ma
 
     case CECATSubHeader::SunShort:
     {
-      qint16 val;
+      qint16* pint16 = static_cast<qint16*>(matrixData);
 
-      QDataStream stream(matrixData, QIODevice::ReadOnly);
-
-      #if !defined(WORDS_BIGENDIAN)
-      stream.setByteOrder(QDataStream::LittleEndian);
-      #endif
-
-      for(int i=0; stream.atEnd() == false; i++)
+      for(unsigned int i=0; i < matrixDataSize; i++)
       {
-        stream >> val;
+        float val = static_cast<float>(pint16[i]);
 
         // check for min/max
-        minValue = qMin(static_cast<float>(val), minValue);
-        maxValue = qMax(static_cast<float>(val), maxValue);
+        minValue = qMin(val, minValue);
+        maxValue = qMax(val, maxValue);
       }
     }
     break;
 
     case CECATSubHeader::SunLong:
     {
-      qint32 val;
+      qint32* pint32 = static_cast<qint32*>(matrixData);
 
-      QDataStream stream(matrixData, QIODevice::ReadOnly);
-
-      #if !defined(WORDS_BIGENDIAN)
-      stream.setByteOrder(QDataStream::LittleEndian);
-      #endif                            
-
-      for(int i=0; stream.atEnd() == false; i++)
+      for(unsigned int i=0; i < matrixDataSize; i++)
       {
-        stream >> val;
+        float val = static_cast<float>(pint32[i]);
 
         // check for min/max
-        minValue = qMin(static_cast<float>(val), minValue);
-        maxValue = qMax(static_cast<float>(val), maxValue);
+        minValue = qMin(val, minValue);
+        maxValue = qMax(val, maxValue);
       }
     }
     break;                          
@@ -766,7 +792,8 @@ static void getMinMaxValues(QByteArray* matrixData, CECATSubHeader::Data_Type ma
        << setfill(' ') << setw(13) << setprecision(6) << scientific << maxValue << endl;
 }
 
-static void getMaxCountValue(QByteArray* matrixData, CECATSubHeader::Data_Type matrixType, float scaleFactor)
+static void getMaxCountValue(void* matrixData, unsigned int matrixDataSize,
+                             CECATSubHeader::Data_Type matrixType, float scaleFactor)
 {
   float minCount = 0;
   float maxCount = 0;
@@ -776,33 +803,27 @@ static void getMaxCountValue(QByteArray* matrixData, CECATSubHeader::Data_Type m
   {
     case CECATSubHeader::ByteData:
     {
-      // now we search through the byte array step by step, outputing all
-      // differences
-      for(unsigned int i=0; i < (unsigned int)matrixData->count(); i++)
-      {
-        char c = (*matrixData)[i];
+      qint8* pint8 = static_cast<qint8*>(matrixData);
 
-        if(c > 0)
-          maxCount += static_cast<float>(c);
+      for(unsigned int i=0; i < matrixDataSize; i++)
+      {
+        float val = static_cast<float>(pint8[i]);
+
+        if(val > 0)
+          maxCount += val;
         else
-          minCount += static_cast<float>(c);
+          minCount += val;
       }
     }
     break;
 
     case CECATSubHeader::IEEEFloat:
     {
-      float val;
+      float* pfloat = static_cast<float*>(matrixData);
 
-      QDataStream stream(matrixData, QIODevice::ReadOnly);
-
-      #if !defined(WORDS_BIGENDIAN)
-      stream.setByteOrder(QDataStream::LittleEndian);
-      #endif
-
-      for(int i=0; stream.atEnd() == false; i++)
+      for(unsigned int i=0; i < matrixDataSize; i++)
       {
-        stream >> val;
+        float val = static_cast<float>(pfloat[i]);
 
         if(val > 0)
           maxCount += val;
@@ -814,17 +835,11 @@ static void getMaxCountValue(QByteArray* matrixData, CECATSubHeader::Data_Type m
 
     case CECATSubHeader::SunShort:
     {
-      qint16 val;
+      qint16* pint16 = static_cast<qint16*>(matrixData);
 
-      QDataStream stream(matrixData, QIODevice::ReadOnly);
-
-      #if !defined(WORDS_BIGENDIAN)
-      stream.setByteOrder(QDataStream::LittleEndian);
-      #endif
-
-      for(int i=0; stream.atEnd() == false; i++)
+      for(unsigned int i=0; i < matrixDataSize; i++)
       {
-        stream >> val;
+        float val = static_cast<float>(pint16[i]);
 
         if(val > 0)
           maxCount += val;
@@ -836,17 +851,11 @@ static void getMaxCountValue(QByteArray* matrixData, CECATSubHeader::Data_Type m
 
     case CECATSubHeader::SunLong:
     {
-      qint32 val;
+      qint32* pint32 = static_cast<qint32*>(matrixData);
 
-      QDataStream stream(matrixData, QIODevice::ReadOnly);
-
-      #if !defined(WORDS_BIGENDIAN)
-      stream.setByteOrder(QDataStream::LittleEndian);
-      #endif                            
-
-      for(int i=0; stream.atEnd() == false; i++)
+      for(unsigned int i=0; i < matrixDataSize; i++)
       {
-        stream >> val;
+        float val = static_cast<float>(pint32[i]);
 
         if(val > 0)
           maxCount += val;
