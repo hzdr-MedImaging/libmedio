@@ -10,6 +10,7 @@
 #include <QStringList>
 #include <QDateTime>
 #include <QMap>
+#include <QtCore>
 
 #include <iostream>
 #include <iomanip>
@@ -1509,6 +1510,7 @@ bool processCommando_Join()
   {
     CECATMainHeader::Type srcFileType = CECATMainHeader::Unknown;
     CECATMainHeader* pSrcMainHeader = NULL;
+    CECATSubHeader* pSrcSubHeader = NULL;
 
     // first we determine the type of our source ecat files / therefore we
     // open the first ecat source file
@@ -1529,6 +1531,13 @@ bool processCommando_Join()
         bResult = false;
       }
 
+      // get the first subheader as well
+      if(!srcEcatFile.readSubHeader(pSrcSubHeader))
+      {
+        cout << "ERROR: can not read first sub header from first source file." << endl;
+        bResult = false;
+      }
+
       srcEcatFile.close();
     }
     else
@@ -1539,6 +1548,13 @@ bool processCommando_Join()
 
     if(bResult)
     {
+      // get last SCAN_START_TIME (for joining frames)
+      QDateTime firstScan_Start_Time = static_cast<CECAT7MainHeader*>(pSrcMainHeader)->scan_Start_Time_Qt();
+      firstScan_Start_Time = firstScan_Start_Time.addSecs(static_cast<CECAT7SubHeaderImage*>(pSrcSubHeader)->frame_Start_Time() / 1000);
+
+      // get the calibration factor of the first file
+      float caliFac = static_cast<CECAT7MainHeader*>(pSrcMainHeader)->calibration_Factor();
+
       // know we know the file type of our source files
       // so we can create a new ecat file of this specific type
       CECATFile ecatFile(g_sECATFileName, srcFileType);
@@ -1588,7 +1604,6 @@ bool processCommando_Join()
  
                 // now copy copy directory entry
                 CECATSubHeader* pDestSubHeader = ecatFile.createEmptySubHeader();
-                CECATSubHeader* pSrcSubHeader = NULL;
                 if(srcEcatFile.readSubHeader(pSrcSubHeader, iSrcFrame, iSrcPlane, iSrcGate, iSrcBed, iSrcData))
                 {
                   *pDestSubHeader = *pSrcSubHeader;
@@ -1598,14 +1613,59 @@ bool processCommando_Join()
                   if(g_joinIndex == Frames)
                   {
                     CECAT7SubHeaderImage* pE7SubHeader = static_cast<CECAT7SubHeaderImage*>(pDestSubHeader);
+                    CECAT7MainHeader* pE7MainHeader = static_cast<CECAT7MainHeader*>(pSrcMainHeader);
+
+                    // lets get the SCAN_START_TIME of the src file
+                    QDateTime curScan_Start_Time = pE7MainHeader->scan_Start_Time_Qt();
+                    curScan_Start_Time = curScan_Start_Time.addSecs(pE7SubHeader->frame_Start_Time() / 1000);
+
+                    int diffsecs = 0;
+                    bool validTimes = false;
+                    if(firstScan_Start_Time.isNull() == false && firstScan_Start_Time.isValid() == true &&
+                       curScan_Start_Time.isNull() == false && curScan_Start_Time.isValid() == true)
+                    {
+                      // calculate the diff in seconds between lastScan_Start_Time and curScan_Start_Time
+                      diffsecs = firstScan_Start_Time.secsTo(curScan_Start_Time);
+                      validTimes = true;
+                    }
 
                     // only set the frame_Start_Time() of the destination header in
                     // case the source header is zero
                     if(pE7SubHeader->frame_Start_Time() == 0)
                     {
-                      pE7SubHeader->setFrame_Start_Time(iLastFrameStartTime);
-                      iLastFrameStartTime += pE7SubHeader->frame_Duration();
+                      if(validTimes == true)
+                      {
+                        iLastFrameStartTime = (diffsecs * 1000);
+                        pE7SubHeader->setFrame_Start_Time(diffsecs * 1000);
+                      }
+                      else
+                      {
+                        pE7SubHeader->setFrame_Start_Time(iLastFrameStartTime);
+                        iLastFrameStartTime += pE7SubHeader->frame_Duration();
+                      }
                     }
+
+                    // adjust the scale factor and thus perform a decay correction of
+                    // the data
+                    float scaleFactor = pE7SubHeader->scale_Factor();
+                    float cf = pE7MainHeader->calibration_Factor();
+                    
+                    // take care of different calibration factors
+                    if(cf > 0 && caliFac > 0)
+                      scaleFactor *= cf / caliFac;
+
+                    float halfLifeTime = pE7MainHeader->isotope_Halflife();
+                    int timeDiff = 0;
+                    
+                    if(validTimes == true)
+                      timeDiff = -diffsecs;
+                    else
+                      timeDiff = -iLastFrameStartTime;
+
+                    // calculate the new scale Factor
+                    scaleFactor *= qExp(-log(2) * timeDiff / halfLifeTime);
+
+                    pE7SubHeader->setScale_Factor(scaleFactor);
                   }
 
                   // write subheader and matrix
@@ -2217,7 +2277,7 @@ void showVersionInformation()
 void showHelp(int& argc, char** argv)
 {
   cout << endl;
-  cout << "libmedio ECAT6/7 file utility v2.13" << endl;
+  cout << "libmedio ECAT6/7 file utility v2.14" << endl;
   cout << "-----------------------------------" << endl;
   cout << "Usage: " << argv[0] << " <options> ecatfile" << endl;
   cout << "Options:" << endl;
