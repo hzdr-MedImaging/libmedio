@@ -291,6 +291,10 @@ bool CPhilipsDirectoryItem::readSubHeader(CPhilipsSubHeader*& subHeader)
           subHeader = new CPhilipsSubHeaderImage(m_pData->file, this);
         break;
 
+        case CPhilipsSubHeader::Syntegra:
+          subHeader = new CPhilipsSubHeaderSyntegra(m_pData->file, this);
+        break;
+
         case CPhilipsSubHeader::Sinogram:
           subHeader = new CPhilipsSubHeaderSinogram(m_pData->file, this);
         break;

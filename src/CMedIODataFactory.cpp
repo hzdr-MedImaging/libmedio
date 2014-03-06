@@ -43,10 +43,12 @@ CMedIOData::Format CMedIODataFactory::identify(const QString& fileName)
 
   CMedIOData::Format result;
 
-//  if(CConcordeFile::isOfType(fileName))
-//    result = CMedIOData::ConcordeMicropet;
   if(CECATFile::isOfType(fileName))
     result = CMedIOData::ECAT;
+  else if(CPhilipsFile::isOfType(fileName))
+    result = CMedIOData::Philips;
+  else if(CConcordeFile::isOfType(fileName))
+    result = CMedIOData::ConcordeMicropet;
   else
     result = CMedIOData::Unknown;  
 

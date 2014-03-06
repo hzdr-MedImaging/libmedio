@@ -7,7 +7,7 @@
 
 void TestCPhilipsSubHeaderSinogram::initTestCase()
 {
-  m_pInputFile = new CPhilipsFile("../../../philipstestsinogram.scn");
+  m_pInputFile = new CPhilipsFile(m_sFileName);
   //m_pOutputFile = new CPhilipsFile("output.img");
 
   QCOMPARE(m_pInputFile->open(QIODevice::ReadOnly), true);
@@ -18,7 +18,7 @@ void TestCPhilipsSubHeaderSinogram::testLoad()
 {
   CPhilipsSubHeader *subHeader = NULL;
 
-  QCOMPARE(m_pInputFile->readSubHeader(subHeader, 2, 1, 1), true);
+  QCOMPARE(m_pInputFile->readSubHeader(subHeader), true);
   QVERIFY(subHeader != NULL);
 }
 

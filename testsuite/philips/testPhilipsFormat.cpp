@@ -8,14 +8,14 @@ int main(int argc, char** argv)
 {
   QCoreApplication app(argc, argv);
 
-  TestCPhilipsFile testCPhilipsFile;
+  TestCPhilipsFile testCPhilipsFile(argv[1]);
   QTest::qExec(&testCPhilipsFile);
 
-  TestCPhilipsSubHeaderImage testCPhilipsSubHeaderImage;
+  TestCPhilipsSubHeaderImage testCPhilipsSubHeaderImage(argv[1]);
   QTest::qExec(&testCPhilipsSubHeaderImage);
 
-  // TestCPhilipsSubHeaderSinogram testCPhilipsSubHeaderSinogram;
-  // QTest::qExec(&testCPhilipsSubHeaderSinogram);
+  TestCPhilipsSubHeaderSinogram testCPhilipsSubHeaderSinogram(argv[1]);
+  QTest::qExec(&testCPhilipsSubHeaderSinogram);
 
   return 0;
 }

@@ -7,7 +7,7 @@
 
 void TestCPhilipsSubHeaderImage::initTestCase()
 {
-  m_pInputFile = new CPhilipsFile("../../../philipstestfile.img");
+  m_pInputFile = new CPhilipsFile(m_sFileName);
   //m_pOutputFile = new CPhilipsFile("output.img");
 
   QCOMPARE(m_pInputFile->open(QIODevice::ReadOnly), true);

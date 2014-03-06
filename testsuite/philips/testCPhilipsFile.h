@@ -6,6 +6,10 @@ class TestCPhilipsFile : public QObject
 {
   Q_OBJECT
 
+  public:
+    TestCPhilipsFile(const QString& file)
+      : m_sFileName(file) { }
+
   private slots:
     void initTestCase();
     void testReadMainHeader();
@@ -20,6 +24,7 @@ class TestCPhilipsFile : public QObject
     void cleanupTestCase();
 
   private:
+    QString m_sFileName;
     CPhilipsFile* m_pInputFile;
     // CPhilipsFile* m_pOutputFile;
 };
