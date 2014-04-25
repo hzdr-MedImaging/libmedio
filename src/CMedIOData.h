@@ -58,8 +58,8 @@ class CMedIOData : public QFile
 
     //! @enum enumeration carrying special IO error codes which
     //!       can be queried with the errorStatus() method.
-    enum errStatus { MERR_Ok = 0,           //!< No Error
-                     MERR_Unspecified = 1, //!< Some unspecified error occurred
+    enum errStatus { MERR_Ok = 0,         //!< No Error
+                     MERR_Unspecified = 1 //!< Some unspecified error occurred
                    };
 
     //! @brief constructor

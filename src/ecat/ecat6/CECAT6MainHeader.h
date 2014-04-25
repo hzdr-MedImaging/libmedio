@@ -42,8 +42,7 @@ class CMedIOHeader;
 class CECAT6MainHeader : public CECATMainHeader
 {
   public:
-    enum File_Type { Unknown=0, // FIXME: Others are missing for the moment
-                   };
+    enum File_Type { Unknown=0 }; // FIXME: Others are missing for the moment
 
     // constructors
     CECAT6MainHeader(CECATFile* ecatFile = NULL,
