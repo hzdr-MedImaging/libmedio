@@ -843,6 +843,7 @@ AC_DEFUN([AC_PATH_GSL_LIB],
                       /usr/local/lib/gsl \
                       /usr/lib \
                       /usr/lib/gsl \
+                      /opt/local/lib \
                       /Developer/gsl/lib"
   else
     gsl_library_dirs="$ac_gsl_libraries"
@@ -923,7 +924,8 @@ AC_DEFUN([AC_PATH_GSL_INC],
         /usr/local/gsl/include \
         /usr/include/ \
         /usr/lib/gsl/include \
-        /usr/local/include/"
+        /usr/local/include/ \
+        /opt/local/include/"
     fi
 
     for gsl_dir in $gsl_include_dirs; do
