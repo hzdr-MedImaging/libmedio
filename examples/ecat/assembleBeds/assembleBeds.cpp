@@ -42,7 +42,9 @@ int main(int argc, char* argv[])
   // Read  http://gcc.gnu.org/onlinedocs/libstdc++/27_io/howto.html#8 for an explanation.
   //ios::sync_with_stdio(false);
 
+  #if defined(DEBUG)
   CRTDebug::init();
+  #endif
 
   // we first parse our command line to check if there are no syntax errors
   if(parseCommandLine(argc, argv))
@@ -51,9 +53,13 @@ int main(int argc, char* argv[])
       bResult = true;
   }
 
+  #if defined(DEBUG)
   CRTDebug::destroy();
+  #endif
+
   if(!bResult)
     iReturnCode = 1;
+
   return iReturnCode;
 }
 
