@@ -924,10 +924,10 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
   // lets perform our highly optimized byte swapping
   if(byteSwapping == true)
   {
-    STARTCLOCK("byteswap");
     char *swappedMatrixData = NULL;
 
     // lets byteswap
+    STARTCLOCK("byteswap");
     switch(dataTypeSize)
     {
       // 32bit data
@@ -944,15 +944,15 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
         E("invalid dataTypeSize: %d", dataTypeSize);
       break;
     }
+    STOPCLOCK("byteswap");
 
     // now write out the data in one run
+    D("writing out %d of swapped data", matrixSize);
     if(m_pData->file->write(swappedMatrixData, matrixSize) == static_cast<qint64>(matrixSize))
       result = true;
 
     // free the data afterwards
     delete[] swappedMatrixData;
-
-    STOPCLOCK("byteswap");
   }
   else
   {
@@ -981,7 +981,7 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
       else
       {
         matrixSize += fillLen;
-        W("matrixsize %% ECAT_BLOCKSIZE != 0. added %d NULL bytes", fillLen);
+        W("matrixsize %% ECAT_BLOCKSIZE != 0 - added %d NULL bytes", fillLen);
       }
     }
 
