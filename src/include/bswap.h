@@ -102,7 +102,7 @@ static inline T* bswap_matrix(const T* matrixData, quint32 matrixSize, T* dstMat
         break;
 
         case sizeof(quint8): // 1
-          swappedMatrixData16[i] = bswap_8(matrixData16[i]);
+          reinterpret_cast<quint8*>(swappedMatrixData)[i*2] = bswap_8(reinterpret_cast<const quint8*>(matrixData)[i*2]);
         break;
 
         default:
@@ -133,7 +133,7 @@ static inline T* bswap_matrix(const T* matrixData, quint32 matrixSize, T* dstMat
         break;
 
         case sizeof(quint16): // 2
-          swappedMatrixData32[i] = bswap_16(matrixData32[i]);
+          reinterpret_cast<quint16*>(swappedMatrixData)[i*2] = bswap_16(reinterpret_cast<const quint16*>(matrixData)[i*2]);
         break;
 
         default:
@@ -164,7 +164,7 @@ static inline T* bswap_matrix(const T* matrixData, quint32 matrixSize, T* dstMat
         break;
 
         case sizeof(quint32): // 4
-          swappedMatrixData64[i] = bswap_32(matrixData64[i]);
+          reinterpret_cast<quint32*>(swappedMatrixData)[i*2] = bswap_32(reinterpret_cast<const quint32*>(matrixData)[i*2]);
         break;
 
         default:
