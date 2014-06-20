@@ -47,11 +47,122 @@
 // defines for managing memory
 #define MATRIX_DIMENSION  (X_DIMENSION*Y_DIMENSION*Z_DIMENSION)
 #define MATRIX_SIZE        (MATRIX_DIMENSION*sizeof(quint16))
-//#define ADDITIONAL_FRAMES  33
+//#define ADDITIONAL_FRAMES  30
 #define ADDITIONAL_FRAMES  126
 //#define ADDITIONAL_FRAMES 0
 
 using namespace std;
+
+void matrixSizeTest(void)
+{
+  QString outFile = "readwritematrix3.v";
+  cout << "writing to " << qPrintable(outFile) << endl;
+
+  CECATFile *pEcatFile = new CECATFile(outFile, CECATMainHeader::ECAT7_Volume16);
+  pEcatFile->open(QIODevice::WriteOnly);
+
+  CECAT7MainHeader * pMainHeader = new CECAT7MainHeader(pEcatFile, CECATMainHeader::ECAT7_Volume16);
+  CECAT7SubHeaderImage * pSubHeader = new CECAT7SubHeaderImage(pEcatFile);
+
+  int Nx = 307;
+  int Ny = 307;
+  int Nz = 155;
+  float voxSize = 0.4;
+
+  //short * matrixData = new short int [Nz * Ny * Nx];
+  unsigned int size = (Nx * Ny * Nz) * sizeof(quint16);
+  quint16 *matrixData = (quint16 *)calloc(1, size);
+
+  float min_activity = 10;
+  float max_activity = 1000;
+
+  float scale_factor = max_activity / 32767;
+
+  int counter = 0;
+  for (int z = 1; z <= Nz; z++)
+  {
+    for (int y = 1; y <= Ny; y++)
+    {
+      for (int x = 1; x <= Nx; x++)
+      {
+        float V = min_activity;
+        if((x+y+z)%2) V = max_activity;
+
+        matrixData[counter] = static_cast<short>(qRound(V / scale_factor));
+        counter++;
+      }
+    }
+  }
+
+  pMainHeader->setNum_Frames(1);
+  pMainHeader->setNum_Gates(1);
+  pMainHeader->setNum_Planes(Nz);
+  pMainHeader->setPlane_Separation(voxSize);
+
+  pSubHeader->setData_Type(CECATSubHeader::SunShort);
+
+  pSubHeader->setX_Dimension(Nx);
+  pSubHeader->setY_Dimension(Ny);
+  pSubHeader->setZ_Dimension(Nz);
+
+  pSubHeader->setX_Pixel_Size(voxSize);
+  pSubHeader->setY_Pixel_Size(voxSize);
+  pSubHeader->setZ_Pixel_Size(voxSize);
+
+  short max = static_cast<short> (qRound(max_activity / scale_factor));
+  short min = static_cast<short> (qRound(min_activity / scale_factor));
+  pSubHeader->setImage_Max(max);
+  pSubHeader->setImage_Min(min);
+  pSubHeader->setScale_Factor(scale_factor);
+
+  bool ok;
+  ok = pEcatFile->writeMatrix((const char *)matrixData, size, CECATSubHeader::SunShort, 1,1,1);
+  cout << "write matrix: ok =  " << ok << " size " << dec << size << endl;
+
+  ok = pEcatFile->writeSubHeader(*pSubHeader, 1,1,1);
+  cout << "write subheader: ok =  " << ok << endl;
+
+  ok = pMainHeader->save();
+  cout << "write mainheader: ok =  " << ok << endl;
+
+  pEcatFile->close();
+  delete pEcatFile;
+  delete pMainHeader;
+  delete pSubHeader;
+
+  // load it again
+  pEcatFile = new CECATFile(outFile);
+  pEcatFile->open(QIODevice::ReadOnly);
+
+  quint16* readBuf = NULL;
+  unsigned int len = 0;
+  pEcatFile->readMatrix((char*&)readBuf, len, 1);
+  cout << "read " << len << " bytes" << endl;
+
+  counter = 0;
+  for (int z = 1; z <= Nz; z++)
+  {
+    for (int y = 1; y <= Ny; y++)
+    {
+      for (int x = 1; x <= Nx; x++)
+      {
+        if(matrixData[counter] != readBuf[counter])
+          cout << "matrixData != readBuf: " << counter << " : " << matrixData[counter] << " != " << readBuf[counter] << endl;
+
+        counter++;
+      }
+    }
+  }
+
+  cout << "counter: " << counter << endl;
+
+  delete[] readBuf;
+
+  pEcatFile->close();
+  delete pEcatFile;
+
+  free(matrixData);
+}
 
 //  Function:    main
 //! 
@@ -97,7 +208,7 @@ int main(int argc, char* argv[])
   {
     // first we write an own main header into the file
     CECATMainHeader* mainHeader = file.createEmptyMainHeader();
-    if(mainHeader->rtti() == CECATMainHeader::ECAT7MainHeader)
+    if(mainHeader->mainHeaderType() == CECATMainHeader::ECAT7MainHeader)
     {
       CECAT7MainHeader* e7mainHeader = static_cast<CECAT7MainHeader*>(mainHeader);
 
@@ -188,7 +299,7 @@ int main(int argc, char* argv[])
 
     cout << "datetime conversion routines check succeeded." << endl;
 
-    // let us write out the data to the file in frame 1
+    // let us write out the data to the file in frame 2
     if(file.writeMatrix((char*)matrixData_frame2, 
                         MATRIX_SIZE, 
                         CECATSubHeader::SunShort, 2) == false)
@@ -308,7 +419,7 @@ int main(int argc, char* argv[])
 
       CECATMainHeader* mainHeader = NULL;
       if(file.readMainHeader(mainHeader) &&
-         mainHeader->rtti() == CECATMainHeader::ECAT7MainHeader)
+         mainHeader->mainHeaderType() == CECATMainHeader::ECAT7MainHeader)
       {
         CECAT7MainHeader* e7mainHeader = static_cast<CECAT7MainHeader*>(mainHeader);
 
@@ -538,6 +649,9 @@ int main(int argc, char* argv[])
 
   delete[] matrixData_frame1;
   delete[] matrixData_frame2;
+
+  // do the matrixSizeTest
+  matrixSizeTest();
 
   return returnCode;
 }
