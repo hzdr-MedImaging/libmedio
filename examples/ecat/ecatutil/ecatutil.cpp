@@ -390,6 +390,18 @@ bool processCommando_Get()
                   case Z_PIXEL_SIZE: cout << pECAT7ImageSubHeader->z_Pixel_Size() << endl; break;
                   case SCALE_FACTOR_IMAGE: cout << pECAT7ImageSubHeader->scale_Factor() << endl; break;
                   case ANNOTATION: cout << pECAT7ImageSubHeader->annotation() << endl; break;
+                  case MT_1_1: cout << pECAT7ImageSubHeader->mt_1_1() << endl; break;
+                  case MT_1_2: cout << pECAT7ImageSubHeader->mt_1_2() << endl; break;
+                  case MT_1_3: cout << pECAT7ImageSubHeader->mt_1_3() << endl; break;
+                  case MT_1_4: cout << pECAT7ImageSubHeader->mt_1_4() << endl; break;
+                  case MT_2_1: cout << pECAT7ImageSubHeader->mt_2_1() << endl; break;
+                  case MT_2_2: cout << pECAT7ImageSubHeader->mt_2_2() << endl; break;
+                  case MT_2_3: cout << pECAT7ImageSubHeader->mt_2_3() << endl; break;
+                  case MT_2_4: cout << pECAT7ImageSubHeader->mt_2_4() << endl; break;
+                  case MT_3_1: cout << pECAT7ImageSubHeader->mt_3_1() << endl; break;
+                  case MT_3_2: cout << pECAT7ImageSubHeader->mt_3_2() << endl; break;
+                  case MT_3_3: cout << pECAT7ImageSubHeader->mt_3_3() << endl; break;
+                  case MT_3_4: cout << pECAT7ImageSubHeader->mt_3_4() << endl; break;
                   default:
                   {
                     cout << "ERROR: sub header entry not supported." << endl;
@@ -972,11 +984,179 @@ bool processCommando_Set()
                     }
                   }
                   break;
+
                   case ANNOTATION:
-                  {
                     pECAT7ImageSubHeader->setAnnotation(g_sValue.toAscii().data());
+                  break;
+
+                  case MT_1_1:
+                  {
+                    bool success = false;
+                    float fValue = g_sValue.toFloat(&success);
+                    if(success)
+                      pECAT7ImageSubHeader->setMT_1_1(fValue);
+                    else
+                    {
+                      cout << "ERROR: can not convert value to float value." << endl;
+                      bResult = false;
+                    }
                   }
                   break;
+
+                  case MT_1_2:
+                  {
+                    bool success = false;
+                    float fValue = g_sValue.toFloat(&success);
+                    if(success)
+                      pECAT7ImageSubHeader->setMT_1_2(fValue);
+                    else
+                    {
+                      cout << "ERROR: can not convert value to float value." << endl;
+                      bResult = false;
+                    }
+                  }
+                  break;
+
+                  case MT_1_3:
+                  {
+                    bool success = false;
+                    float fValue = g_sValue.toFloat(&success);
+                    if(success)
+                      pECAT7ImageSubHeader->setMT_1_3(fValue);
+                    else
+                    {
+                      cout << "ERROR: can not convert value to float value." << endl;
+                      bResult = false;
+                    }
+                  }
+                  break;
+
+                  case MT_1_4:
+                  {
+                    bool success = false;
+                    float fValue = g_sValue.toFloat(&success);
+                    if(success)
+                      pECAT7ImageSubHeader->setMT_1_4(fValue);
+                    else
+                    {
+                      cout << "ERROR: can not convert value to float value." << endl;
+                      bResult = false;
+                    }
+                  }
+                  break;
+
+                  case MT_2_1:
+                  {
+                    bool success = false;
+                    float fValue = g_sValue.toFloat(&success);
+                    if(success)
+                      pECAT7ImageSubHeader->setMT_2_1(fValue);
+                    else
+                    {
+                      cout << "ERROR: can not convert value to float value." << endl;
+                      bResult = false;
+                    }
+                  }
+                  break;
+
+                  case MT_2_2:
+                  {
+                    bool success = false;
+                    float fValue = g_sValue.toFloat(&success);
+                    if(success)
+                      pECAT7ImageSubHeader->setMT_2_2(fValue);
+                    else
+                    {
+                      cout << "ERROR: can not convert value to float value." << endl;
+                      bResult = false;
+                    }
+                  }
+                  break;
+
+                  case MT_2_3:
+                  {
+                    bool success = false;
+                    float fValue = g_sValue.toFloat(&success);
+                    if(success)
+                      pECAT7ImageSubHeader->setMT_2_3(fValue);
+                    else
+                    {
+                      cout << "ERROR: can not convert value to float value." << endl;
+                      bResult = false;
+                    }
+                  }
+                  break;
+
+                  case MT_2_4:
+                  {
+                    bool success = false;
+                    float fValue = g_sValue.toFloat(&success);
+                    if(success)
+                      pECAT7ImageSubHeader->setMT_2_4(fValue);
+                    else
+                    {
+                      cout << "ERROR: can not convert value to float value." << endl;
+                      bResult = false;
+                    }
+                  }
+                  break;
+
+                  case MT_3_1:
+                  {
+                    bool success = false;
+                    float fValue = g_sValue.toFloat(&success);
+                    if(success)
+                      pECAT7ImageSubHeader->setMT_3_1(fValue);
+                    else
+                    {
+                      cout << "ERROR: can not convert value to float value." << endl;
+                      bResult = false;
+                    }
+                  }
+                  break;
+
+                  case MT_3_2:
+                  {
+                    bool success = false;
+                    float fValue = g_sValue.toFloat(&success);
+                    if(success)
+                      pECAT7ImageSubHeader->setMT_3_2(fValue);
+                    else
+                    {
+                      cout << "ERROR: can not convert value to float value." << endl;
+                      bResult = false;
+                    }
+                  }
+                  break;
+
+                  case MT_3_3:
+                  {
+                    bool success = false;
+                    float fValue = g_sValue.toFloat(&success);
+                    if(success)
+                      pECAT7ImageSubHeader->setMT_3_3(fValue);
+                    else
+                    {
+                      cout << "ERROR: can not convert value to float value." << endl;
+                      bResult = false;
+                    }
+                  }
+                  break;
+
+                  case MT_3_4:
+                  {
+                    bool success = false;
+                    float fValue = g_sValue.toFloat(&success);
+                    if(success)
+                      pECAT7ImageSubHeader->setMT_3_4(fValue);
+                    else
+                    {
+                      cout << "ERROR: can not convert value to float value." << endl;
+                      bResult = false;
+                    }
+                  }
+                  break;
+
                   case FILTER_CODE:
                   {
                     bool bSuccess = false;
@@ -2277,7 +2457,7 @@ void showVersionInformation()
 void showHelp(int& argc, char** argv)
 {
   cout << endl;
-  cout << "libmedio ECAT6/7 file utility v2.14" << endl;
+  cout << "libmedio ECAT6/7 file utility v2.15" << endl;
   cout << "-----------------------------------" << endl;
   cout << "Usage: " << argv[0] << " <options> ecatfile" << endl;
   cout << "Options:" << endl;
@@ -2398,6 +2578,18 @@ bool initHeaderMaps()
   ecat7ImageHeaderMap.insert("zpixelsize",Z_PIXEL_SIZE);
   ecat7ImageHeaderMap.insert("scalefactor",SCALE_FACTOR_IMAGE);
   ecat7ImageHeaderMap.insert("annotation",ANNOTATION);
+  ecat7ImageHeaderMap.insert("mt_1_1",MT_1_1);
+  ecat7ImageHeaderMap.insert("mt_1_2",MT_1_2);
+  ecat7ImageHeaderMap.insert("mt_1_3",MT_1_3);
+  ecat7ImageHeaderMap.insert("mt_1_4",MT_1_4);
+  ecat7ImageHeaderMap.insert("mt_2_1",MT_2_1);
+  ecat7ImageHeaderMap.insert("mt_2_2",MT_2_2);
+  ecat7ImageHeaderMap.insert("mt_2_3",MT_2_3);
+  ecat7ImageHeaderMap.insert("mt_2_4",MT_2_4);
+  ecat7ImageHeaderMap.insert("mt_3_1",MT_3_1);
+  ecat7ImageHeaderMap.insert("mt_3_2",MT_3_2);
+  ecat7ImageHeaderMap.insert("mt_3_3",MT_3_3);
+  ecat7ImageHeaderMap.insert("mt_3_4",MT_3_4);
 
   ecat7Scan3DHeaderMap.insert("framestarttime", FRAME_START_TIME_SCAN3D);
   ecat7Scan3DHeaderMap.insert("frameduration", FRAME_DURATION_SCAN3D);
