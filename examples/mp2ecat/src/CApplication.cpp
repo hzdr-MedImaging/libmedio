@@ -196,7 +196,7 @@ void CApplication::showAppInfo()
   // output some general program information
   cout << endl
        << PACKAGE_STRING << " - converts microPET image file to ECAT file" << endl
-       << "(" __DATE__ ") Copyright (c) 2006-2011 by Hagen Moelle, Jens Langner / www.hzdr.de" << endl << endl;
+       << "(" __DATE__ ") Copyright (c) 2006-2014 Jens Maus, Hagen Moelle / www.hzdr.de" << endl << endl;
   LEAVE();
   return;
 }
@@ -294,7 +294,7 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
     pSrcImageVolume = CMedIODataFactory::create(inputFile.filePath());
     if(pSrcImageVolume == NULL)
     {
-      cout << "ERROR: Image source file format is unknown." << endl;
+      cout << "ERROR: Unknown image file format (" << inputFile.filePath().toAscii().constData() << ")." << endl;
       bResult = false;
     }
   }
@@ -302,7 +302,7 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
   if(bResult)
   {
     bool bOpenSource = pSrcImageVolume->open(QIODevice::ReadOnly);
-    if(!bOpenSource || !(pSrcImageVolume->rtti() == CMedIOData::ConcordeMicropet))
+    if(!bOpenSource || !(pSrcImageVolume->userRtti() == CMedIOData::ConcordeMicropet))
     {
       cout << "ERROR: When opening file or file is not from concorde microPET." << endl;
       bResult = false;
