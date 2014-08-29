@@ -15,6 +15,7 @@ template<class T> class CDataArray : public QVarLengthArray<T>
     float maxValue();
     float maxDistance();
     float sumValue();
+    void recalcStats();
 
   protected:
     float m_minValue;
@@ -31,6 +32,7 @@ template<class T> CDataArray<T>::CDataArray(QByteArray* pArray, int iNumElements
   : QVarLengthArray<T>(iNumElements)
 {
   ENTER();
+
   T* pData = (T*)pArray->constData();
 
   m_minValue = FLT_MAX;
@@ -48,6 +50,38 @@ template<class T> CDataArray<T>::CDataArray(QByteArray* pArray, int iNumElements
       m_minValue = *pData;
 
     m_sumValue += *pData;
+  }
+
+  // calculate the value range between min<>max
+  if(fabs(m_maxValue) > fabs(m_minValue))
+    m_maxDistance = fabs(m_maxValue);
+  else
+    m_maxDistance = fabs(m_minValue);
+
+  D("minValue: %g, maxValue: %g, maxDistance: %g, sumValue: %g", m_minValue, m_maxValue, m_maxDistance, m_sumValue);
+
+  LEAVE();
+}
+
+template<class T> void CDataArray<T>::recalcStats()
+{
+  ENTER();
+
+  m_minValue = FLT_MAX;
+  m_maxValue = -FLT_MAX;
+  m_sumValue = 0;
+
+  for(int i = 0; i < this->size(); i++)
+  {
+    T value = this->operator[](i);
+
+    if(value > m_maxValue)
+      m_maxValue = value;
+
+    if(value < m_minValue)
+      m_minValue = value;
+
+    m_sumValue += value;
   }
 
   // calculate the value range between min<>max
