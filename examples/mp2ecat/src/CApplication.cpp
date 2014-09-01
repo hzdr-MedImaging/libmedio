@@ -302,9 +302,9 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
   if(bResult)
   {
     bool bOpenSource = pSrcImageVolume->open(QIODevice::ReadOnly);
-    if(!bOpenSource || !(pSrcImageVolume->userRtti() == CMedIOData::ConcordeMicropet))
+    if(!bOpenSource || !(pSrcImageVolume->dataFormat() == CMedIOData::ConcordeMicropet))
     {
-      cout << "ERROR: When opening file or file is not from concorde microPET." << endl;
+      cout << "ERROR: Couldn't open file or file not a concorde microPET file." << endl;
       bResult = false;
     }
   }
