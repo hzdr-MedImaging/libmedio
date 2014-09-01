@@ -340,13 +340,25 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
     }
   }
 
+  CConcordeFrameHeader* pSrcImgSubHeader = NULL;
+  if(bResult == true &&
+     (((CConcordeFile*)pSrcImageVolume)->readSubHeader(pSrcImgSubHeader, 1) == false ||
+      pSrcImgSubHeader == NULL))
+  {
+    cout << "ERROR: Could not load first sub header for main header conversion." << endl;
+    bResult = false;
+  }
+
   if(bResult)
   {
     cout << "Converting: " << inputFile.absoluteFilePath().toAscii().constData() << endl;
     cout << "OutputFile: " << QFileInfo(m_sOutputFileName).absoluteFilePath().toAscii().constData() << endl;
 
     pEcat7ImgHeader = static_cast<CECAT7MainHeader*>(ecat7Image->createEmptyMainHeader());
-    pEcat7ImgHeader->convertFrom(pSrcImageHeader);
+    pEcat7ImgHeader->convertFrom(pSrcImageHeader, pSrcImgSubHeader);
+
+    delete pSrcImgSubHeader;
+    pSrcImgSubHeader = NULL;
 
     if(m_sPatientName.isEmpty() == false)
       pEcat7ImgHeader->setPatient_Name(m_sPatientName.toAscii().constData());
@@ -371,7 +383,6 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
     for(int i = 0; i < iNrFrames; i++)
     {
       QByteArray* pImgData = NULL;
-      CConcordeFrameHeader* pSrcImgSubHeader = NULL;
 
       cout << "Converting Frame: " << (i+1) << " of " << iNrFrames;
 
