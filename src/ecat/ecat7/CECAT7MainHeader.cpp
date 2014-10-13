@@ -220,7 +220,7 @@ void CECAT7MainHeader::clear()
   setPatient_Sex(CECAT7MainHeader::Sex_Unknown);
   setPatient_Dexterity(CECAT7MainHeader::Dext_Unknown);
   setPatient_Orientation(CECAT7MainHeader::Orient_Unknown);
-  setStudy_Description((QString("Created with libmedio v") + PACKAGE_VERSION).toAscii().constData());
+  setStudy_Description((QString("Created with libmedio v") + PACKAGE_VERSION).toLatin1().constData());
   setTransm_Source_Type(CECAT7MainHeader::SRC_RING);
   setLwr_True_Thres(350); // [keV]
   setUpr_True_Thres(650); // [keV]
@@ -428,7 +428,7 @@ bool CECAT7MainHeader::load(void)
   D("System_Type             : %d",           m_pData->header.System_Type);
   D("File_Type               : %d",           m_pData->header.File_Type);
   D("Serial_Number           : %s",           m_pData->header.Serial_Number);
-  D("Scan_Start_Time         : %s (%d)",      scan_Start_Time_Qt().toString().toAscii().constData(), m_pData->header.Scan_Start_Time);
+  D("Scan_Start_Time         : %s (%d)",      scan_Start_Time_Qt().toString().toLatin1().constData(), m_pData->header.Scan_Start_Time);
   D("Isotope Name            : %s",           m_pData->header.Isotope_Name);
   D("Isotope Halflife        : %f sec",       m_pData->header.Isotope_Halflife);
   D("Radiopharmaca           : %s",           m_pData->header.Radiopharmaceutical);
@@ -455,7 +455,7 @@ bool CECAT7MainHeader::load(void)
   D("Patient Age             : %f years",     m_pData->header.Patient_Age);
   D("Patient Height          : %f cm",        m_pData->header.Patient_Height);
   D("Patient Weight          : %f kg",        m_pData->header.Patient_Weight);
-  D("Patient Birthdate       : %s (%d)",      patient_Birth_Date_Qt().toString().toAscii().constData(), m_pData->header.Patient_Birth_Date);
+  D("Patient Birthdate       : %s (%d)",      patient_Birth_Date_Qt().toString().toLatin1().constData(), m_pData->header.Patient_Birth_Date);
   D("Physician Name          : %s",           m_pData->header.Physician_Name);
   D("Operator Name           : %s",           m_pData->header.Operator_Name);
   D("Study Description       : %s",           m_pData->header.Study_Description);
@@ -477,7 +477,7 @@ bool CECAT7MainHeader::load(void)
   D("Acquisition Mode        : %d",           m_pData->header.Acquisition_Mode);
   D("Bin Size                : %f cm",        m_pData->header.Bin_Size);
   D("Branching Fraction      : %f",           m_pData->header.Branching_Fraction);
-  D("Dose start time         : %s (%d)",      dose_Start_Time_Qt().toString().toAscii().constData(), m_pData->header.Dose_Start_Time);
+  D("Dose start time         : %s (%d)",      dose_Start_Time_Qt().toString().toLatin1().constData(), m_pData->header.Dose_Start_Time);
   D("Dosage                  : %f Bq/cc",     m_pData->header.Dosage);
   D("Well counter corr factor: %f",           m_pData->header.Well_Counter_Corr_Factor);
   D("Data units              : %s",           m_pData->header.Data_Units);
@@ -515,9 +515,9 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
       // lets check if the typeString matches one of our known
       // types
       if(typeString == "MAGIC_NUMBER")
-        strncpy(mHeader.m_pData->header.Magic_Number, dataString.toAscii(), sizeof(mHeader.m_pData->header.Magic_Number)-1);
+        strncpy(mHeader.m_pData->header.Magic_Number, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Magic_Number)-1);
       else if(typeString == "ORIGINAL_FILE_NAME")
-        strncpy(mHeader.m_pData->header.Original_File_Name, dataString.toAscii(), sizeof(mHeader.m_pData->header.Original_File_Name)-1);
+        strncpy(mHeader.m_pData->header.Original_File_Name, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Original_File_Name)-1);
       else if(typeString == "SW_VERSION")
         mHeader.m_pData->header.SW_Version = dataString.toShort(&convertSuccess);
       else if(typeString == "SYSTEM_TYPE")
@@ -525,15 +525,15 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
       else if(typeString == "FILE_TYPE")
         mHeader.m_pData->header.File_Type = dataString.toShort(&convertSuccess);
       else if(typeString == "SERIAL_NUMBER")
-        strncpy(mHeader.m_pData->header.Serial_Number, dataString.toAscii(), sizeof(mHeader.m_pData->header.Serial_Number)-1);
+        strncpy(mHeader.m_pData->header.Serial_Number, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Serial_Number)-1);
       else if(typeString == "SCAN_START_TIME")
         mHeader.m_pData->header.Scan_Start_Time = dataString.toInt(&convertSuccess);
       else if(typeString == "ISOTOPE_NAME")
-        strncpy(mHeader.m_pData->header.Isotope_Name, dataString.toAscii(), sizeof(mHeader.m_pData->header.Isotope_Name)-1);
+        strncpy(mHeader.m_pData->header.Isotope_Name, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Isotope_Name)-1);
       else if(typeString == "ISOTOPE_HALFLIFE")
         mHeader.m_pData->header.Isotope_Halflife = dataString.toFloat(&convertSuccess);
       else if(typeString == "RADIOPHARMACEUTICAL")
-        strncpy(mHeader.m_pData->header.Radiopharmaceutical, dataString.toAscii(), sizeof(mHeader.m_pData->header.Radiopharmaceutical)-1);
+        strncpy(mHeader.m_pData->header.Radiopharmaceutical, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Radiopharmaceutical)-1);
       else if(typeString == "GANTRY_TILT")
         mHeader.m_pData->header.Gantry_Tilt = dataString.toFloat(&convertSuccess);
       else if(typeString == "ROTATION_TILT")
@@ -565,15 +565,15 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
       else if(typeString == "COMPRESSION_CODE")
         mHeader.m_pData->header.Compression_Code = dataString.toShort(&convertSuccess);
       else if(typeString == "STUDY_TYPE")
-        strncpy(mHeader.m_pData->header.Study_Type, dataString.toAscii(), sizeof(mHeader.m_pData->header.Study_Type)-1);
+        strncpy(mHeader.m_pData->header.Study_Type, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Study_Type)-1);
       else if(typeString == "PATIENT_ID")
-        strncpy(mHeader.m_pData->header.Patient_ID, dataString.toAscii(), sizeof(mHeader.m_pData->header.Patient_ID)-1);
+        strncpy(mHeader.m_pData->header.Patient_ID, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Patient_ID)-1);
       else if(typeString == "PATIENT_NAME")
-        strncpy(mHeader.m_pData->header.Patient_Name, dataString.toAscii(), sizeof(mHeader.m_pData->header.Patient_Name)-1);
+        strncpy(mHeader.m_pData->header.Patient_Name, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Patient_Name)-1);
       else if(typeString == "PATIENT_SEX")
-        mHeader.m_pData->header.Patient_Sex[0] = dataString.toAscii()[0];
+        mHeader.m_pData->header.Patient_Sex[0] = dataString.toLatin1()[0];
       else if(typeString == "PATIENT_DEXTERITY")
-        mHeader.m_pData->header.Patient_Dexterity[0] = dataString.toAscii()[0];
+        mHeader.m_pData->header.Patient_Dexterity[0] = dataString.toLatin1()[0];
       else if(typeString == "PATIENT_AGE")
         mHeader.m_pData->header.Patient_Age = dataString.toFloat(&convertSuccess);
       else if(typeString == "PATIENT_HEIGHT")
@@ -583,17 +583,17 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
       else if(typeString == "PATIENT_BIRTH_DATE")
         mHeader.m_pData->header.Patient_Birth_Date = dataString.toInt(&convertSuccess);
       else if(typeString == "PHYSICIAN_NAME")
-        strncpy(mHeader.m_pData->header.Physician_Name, dataString.toAscii(), sizeof(mHeader.m_pData->header.Physician_Name)-1);
+        strncpy(mHeader.m_pData->header.Physician_Name, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Physician_Name)-1);
       else if(typeString == "OPERATOR_NAME")
-        strncpy(mHeader.m_pData->header.Operator_Name, dataString.toAscii(), sizeof(mHeader.m_pData->header.Operator_Name)-1);
+        strncpy(mHeader.m_pData->header.Operator_Name, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Operator_Name)-1);
       else if(typeString == "STUDY_DESCRIPTION")
-        strncpy(mHeader.m_pData->header.Study_Description, dataString.toAscii(), sizeof(mHeader.m_pData->header.Study_Description)-1);
+        strncpy(mHeader.m_pData->header.Study_Description, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Study_Description)-1);
       else if(typeString == "ACQUISITION_TYPE")
         mHeader.m_pData->header.Acquisition_Type = dataString.toShort(&convertSuccess);
       else if(typeString == "PATIENT_ORIENTATION")
         mHeader.m_pData->header.Patient_Orientation = dataString.toShort(&convertSuccess);
       else if(typeString == "FACILITY_NAME")
-        strncpy(mHeader.m_pData->header.Facility_Name, dataString.toAscii(), sizeof(mHeader.m_pData->header.Facility_Name)-1);
+        strncpy(mHeader.m_pData->header.Facility_Name, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Facility_Name)-1);
       else if(typeString == "NUM_PLANES")
         mHeader.m_pData->header.Num_Planes = dataString.toShort(&convertSuccess);
       else if(typeString == "NUM_FRAMES")
@@ -624,7 +624,7 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
       else if(typeString == "UPR_TRUE_THRES")
         mHeader.m_pData->header.Upr_True_Thres = dataString.toShort(&convertSuccess);
       else if(typeString == "USER_PROCESS_CODE")
-        strncpy(mHeader.m_pData->header.User_Process_Code, dataString.toAscii(), sizeof(mHeader.m_pData->header.User_Process_Code)-1);
+        strncpy(mHeader.m_pData->header.User_Process_Code, dataString.toLatin1(), sizeof(mHeader.m_pData->header.User_Process_Code)-1);
       else if(typeString == "ACQUISITION_MODE")
         mHeader.m_pData->header.Acquisition_Mode = dataString.toShort(&convertSuccess);
       else if(typeString == "BIN_SIZE")
@@ -638,7 +638,7 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
       else if(typeString == "WELL_COUNTER_CORR_FACTOR")
         mHeader.m_pData->header.Well_Counter_Corr_Factor = dataString.toFloat(&convertSuccess);
       else if(typeString == "DATA_UNITS")
-        strncpy(mHeader.m_pData->header.Data_Units, dataString.toAscii(), sizeof(mHeader.m_pData->header.Data_Units)-1);
+        strncpy(mHeader.m_pData->header.Data_Units, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Data_Units)-1);
       else if(typeString == "SEPTA_STATE")
         mHeader.m_pData->header.Septa_State = dataString.toShort(&convertSuccess);
       else if(typeString == "FILL")
@@ -655,7 +655,7 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
 
       if(convertSuccess == false)
       {
-        E("'%s' - error while converting string '%s' to a numerical value.", typeString.toAscii().constData(), dataString.toAscii().constData());
+        E("'%s' - error while converting string '%s' to a numerical value.", typeString.toLatin1().constData(), dataString.toLatin1().constData());
         success = false;
       }
     }
@@ -865,35 +865,35 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
 
       // now set the old filetype again
       setFile_Type(ft);
-      setOriginal_File_Name(QFileInfo(head->fileName()).fileName().toAscii());
+      setOriginal_File_Name(QFileInfo(head->fileName()).fileName().toLatin1());
       setSystem_Type(static_cast<short>(head->model()));
       setScan_Start_Time(head->scanTime());
-      setIsotope_Name(head->isotope().toAscii());
+      setIsotope_Name(head->isotope().toLatin1());
       setIsotope_Halflife(head->isotopeHalfTime());
-      setRadiopharmaceutical(head->injectedCompound().toAscii());
+      setRadiopharmaceutical(head->injectedCompound().toLatin1());
       
       setDistance_Scanned(head->radialFov());
       setTransaxial_FOV(head->radialFov());
       setCoin_Samp_Mode(CECAT7MainHeader::NetTrues);
       setCalibration_Factor(head->calibrationFactor());
 
-      setStudy_Type(head->study().toAscii());
-      setPatient_ID(head->subjectIdentifier().toAscii());
-      setPatient_Name(head->subjectIdentifier().toAscii());
+      setStudy_Type(head->study().toLatin1());
+      setPatient_ID(head->subjectIdentifier().toLatin1());
+      setPatient_Name(head->subjectIdentifier().toLatin1());
       setPatient_Sex(m_pData->concorde2ECAT7Sex(head->subjectGenus()));
       
       setPatient_Height(m_pData->concorde2ECAT7Height(head->subjectLength(), head->subjectLengthUnits()));
       setPatient_Weight(m_pData->concorde2ECAT7Weight(head->subjectWeight(), head->subjectWeightUnits()));
       
-      setPhysician_Name(head->investigatorName().toAscii());
-      setOperator_Name(head->operatorName().toAscii());
-      setStudy_Description(head->study().toAscii());
+      setPhysician_Name(head->investigatorName().toLatin1());
+      setOperator_Name(head->operatorName().toLatin1());
+      setStudy_Description(head->study().toLatin1());
       if(head->acquisitionMode() == CConcordeMainHeader::Emission)
         setAcquisition_Type(CECAT7MainHeader::StaticEmission);
       else
         setAcquisition_Type(CECAT7MainHeader::DynamicEmission);
       setPatient_Orientation((m_pData->concorde2ECAT7Orientation(head->subjectOrientation())));
-      setFacility_Name(head->institution().toAscii());
+      setFacility_Name(head->institution().toLatin1());
       setNum_Planes(head->zDimension());
       setNum_Frames(head->totalFrames());
       setNum_Gates(1);
@@ -905,7 +905,7 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
 
       setDose_Start_Time(head->injectionTime());
       setDosage(m_pData->concorde2ECAT7dosage(head->dose(), head->doseUnits()));
-      setData_Units(m_pData->concorde2ECAT7dataUnits(head->calibrationUnits()).toAscii());
+      setData_Units(m_pData->concorde2ECAT7dataUnits(head->calibrationUnits()).toLatin1());
       setCalibration_Units(m_pData->concorde2ECAT7calibrationUnits(head->calibrationUnits()));
       
       setInit_Bed_Position(frame->bedOffset());
@@ -928,10 +928,10 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
       // now convert as much as possible
       setSystem_Type(head->scan_geom()); // 0 means unknown system type
       if(head->medIOData() != NULL)
-        setOriginal_File_Name(head->medIOData()->fileName().toAscii().constData());
+        setOriginal_File_Name(head->medIOData()->fileName().toLatin1().constData());
       setSerial_Number(head->Dserial_number());
       setScan_Start_Time(head->acq_date_time());
-      setIsotope_Name(m_pData->philips2Ecat7Isotop(head->isotop()).toAscii().constData());
+      setIsotope_Name(m_pData->philips2Ecat7Isotop(head->isotop()).toLatin1().constData());
       setIsotope_Halflife(head->halfLife() * 60.0f); // min -> sec
       setRadiopharmaceutical(head->radiopharm_name());
       setBed_Elevation(head->table_height());
@@ -942,7 +942,7 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
       setCalibration_Factor(1.0f);
       setStudy_Type(head->aqprotocol_name());
       setPatient_ID(head->Dpat_id());
-      setPatient_Name(QString(head->Dpat_name()).replace("^", ", ").toAscii().constData());
+      setPatient_Name(QString(head->Dpat_name()).replace("^", ", ").toLatin1().constData());
       setPatient_Sex(m_pData->philips2Ecat7Sex(head->sex()));
       setPatient_Height(head->height() / 10.0f); // mm -> cm
       setPatient_Weight(head->weight() / 1000.0f); // g -> kg
@@ -1747,7 +1747,7 @@ QDateTime CECAT7MainHeader::dose_Start_Time_Qt(void) const
 void CECAT7MainHeader::setPatient_Birth_Date_Qt(const QDate& birthDate)
 {
   QDateTime Jan1970(QDate(1970, 1, 1), QTime(), Qt::UTC);
-  SHOWSTRING(birthDate.toString().toAscii().constData());
+  SHOWSTRING(birthDate.toString().toLatin1().constData());
   setPatient_Birth_Date(Jan1970.secsTo(QDateTime(birthDate, QTime())));
 }
 
@@ -1776,7 +1776,7 @@ QString CECAT7MainHeaderPrivate::concorde2ECAT7dataUnits(CConcordeMainHeader::Ca
   }
   QString E7u = calUnit.unitAsString();
 
-  RETURN(E7u.toAscii().data());
+  RETURN(E7u.toLatin1().data());
   return E7u;
 }
 
@@ -1945,7 +1945,7 @@ QString CECAT7MainHeaderPrivate::philips2Ecat7Isotop(const CPhilipsMainHeader::I
     case CPhilipsMainHeader::TI45: isotopString = "TI-45";  break;
   }
 
-  RETURN(isotopString.toAscii().constData());
+  RETURN(isotopString.toLatin1().constData());
   return isotopString;
 }
 

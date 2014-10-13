@@ -170,8 +170,8 @@ bool CApplication::checkOutputFile(const QFileInfo& inputFile)
     if(outputFile.exists())
     {
       bResult = false;
-      cout << "ERROR: can't convert '" << inputFile.fileName().toAscii().constData() 
-           << "' as output file '" << outputFile.fileName().toAscii().constData() << "' already exists" << endl;
+      cout << "ERROR: can't convert '" << inputFile.fileName().toLatin1().constData() 
+           << "' as output file '" << outputFile.fileName().toLatin1().constData() << "' already exists" << endl;
     }
   }
   else
@@ -242,9 +242,9 @@ void CApplication::showVersion()
                   << "  Copyright (c) 2006-2011 Nokia Corporation" << endl << endl
 
        // libmedio version information
-       << "  libmedio " << CMedIO::version().toAscii().constData() <<  " ("
-       << CMedIO::buildDate().toAscii().constData() << ")" << endl
-       << "  " << CMedIO::copyright().toAscii().constData() << endl;
+       << "  libmedio " << CMedIO::version().toLatin1().constData() <<  " ("
+       << CMedIO::buildDate().toLatin1().constData() << ")" << endl
+       << "  " << CMedIO::copyright().toLatin1().constData() << endl;
 
   LEAVE();
   return;
@@ -273,7 +273,7 @@ bool CApplication::process()
       }
       else
       {
-        cout << "ERROR: file " << fileName.toAscii().constData()
+        cout << "ERROR: file " << fileName.toLatin1().constData()
              << " doesn't exist. Skipping file." << endl;
       }
     }
@@ -319,7 +319,7 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
     bool bOpenPhilipsFile = pPhilipsFile->open(QIODevice::ReadOnly);
     if(bOpenPhilipsFile == false)
     {
-      cout << "ERROR: Can't open file " << inputFile.absoluteFilePath().toAscii().constData() << "." << endl;
+      cout << "ERROR: Can't open file " << inputFile.absoluteFilePath().toLatin1().constData() << "." << endl;
       result = false;
     }
   }
@@ -346,7 +346,7 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
 
   if(result)
   {
-    D("Creating empty ecat image: '%s'", m_sOutputFileName.toAscii().data());
+    D("Creating empty ecat image: '%s'", m_sOutputFileName.toLatin1().data());
     pEcat7Image = new CECATFile(m_sOutputFileName, CECATMainHeader::ECAT7_Volume16);
     if(pEcat7Image->open(QIODevice::WriteOnly) == false)
     {
@@ -357,8 +357,8 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
 
   if(result)
   {
-    cout << "Converting: " << inputFile.absoluteFilePath().toAscii().constData() << endl;
-    cout << "OutputFile: " << QFileInfo(m_sOutputFileName).absoluteFilePath().toAscii().constData() << endl;
+    cout << "Converting: " << inputFile.absoluteFilePath().toLatin1().constData() << endl;
+    cout << "OutputFile: " << QFileInfo(m_sOutputFileName).absoluteFilePath().toLatin1().constData() << endl;
 
     pEcat7ImageHeader = static_cast<CECAT7MainHeader*>(pEcat7Image->createEmptyMainHeader());
     if(pEcat7ImageHeader != NULL)
@@ -591,7 +591,7 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
   {
     if(pEcat7Image->open(QIODevice::ReadOnly) == false)
     {
-      cout << "ERROR: Can't open file " << inputFile.absoluteFilePath().toAscii().constData() << "." << endl;
+      cout << "ERROR: Can't open file " << inputFile.absoluteFilePath().toLatin1().constData() << "." << endl;
       result = false;
     }
   }
@@ -620,7 +620,7 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
 
   if(result)
   {
-    D("Creating empty philips image: '%s'", m_sOutputFileName.toAscii().data());
+    D("Creating empty philips image: '%s'", m_sOutputFileName.toLatin1().data());
     pPhilipsFile = new CPhilipsFile(m_sOutputFileName, CPhilipsMainHeader::Image);
     if(pPhilipsFile->open(QIODevice::WriteOnly) == false)
     {
@@ -631,8 +631,8 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
 
   if(result)
   {
-    cout << "Converting: " << inputFile.absoluteFilePath().toAscii().constData() << endl;
-    cout << "OutputFile: " << QFileInfo(m_sOutputFileName).absoluteFilePath().toAscii().constData() << endl;
+    cout << "Converting: " << inputFile.absoluteFilePath().toLatin1().constData() << endl;
+    cout << "OutputFile: " << QFileInfo(m_sOutputFileName).absoluteFilePath().toLatin1().constData() << endl;
 
     pPhilipsMainHeader = pPhilipsFile->createEmptyMainHeader();
     if(pPhilipsMainHeader != NULL)

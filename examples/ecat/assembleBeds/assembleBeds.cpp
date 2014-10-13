@@ -115,7 +115,7 @@ bool parseCommandLine(int& argc, char** argv)
       QFileInfo fileInfo(g_sInputFile);
       if(!(fileInfo.exists() && fileInfo.isFile() && fileInfo.isReadable()))
       {
-        cout << "ERROR: couldn't read inputfile '" << g_sInputFile.toAscii().constData() << "'." << endl;
+        cout << "ERROR: couldn't read inputfile '" << g_sInputFile.toLatin1().constData() << "'." << endl;
         bResult = false;
       }
     }
@@ -140,13 +140,13 @@ bool parseCommandLine(int& argc, char** argv)
             // check if outputfile is a file and it is writeable
             if(!(fileInfo.isFile() && fileInfo.isWritable()))
             {
-              cout << "ERROR: can't overwrite outputfile '" << g_sOutputFile.toAscii().constData() << "'." << endl;
+              cout << "ERROR: can't overwrite outputfile '" << g_sOutputFile.toLatin1().constData() << "'." << endl;
               bResult = false;
             }
           }
           else
           {
-            cout << "ERROR: outputfile already exists '" << g_sOutputFile.toAscii().constData() << "'." << endl;
+            cout << "ERROR: outputfile already exists '" << g_sOutputFile.toLatin1().constData() << "'." << endl;
             bResult = false;
           }
         }
@@ -206,9 +206,9 @@ void showVersionInformation()
        << "  Qt " << qVersion() << endl
                   << "  Copyright (c) 2006-2009 Trolltech Inc." << endl << endl
 
-       << "  libmedio " << CMedIO::version().toAscii().constData() <<  " ("
-                        << CMedIO::buildDate().toAscii().constData() << ")" << endl
-                        << "  " << CMedIO::copyright().toAscii().constData() << endl;
+       << "  libmedio " << CMedIO::version().toLatin1().constData() <<  " ("
+                        << CMedIO::buildDate().toLatin1().constData() << ")" << endl
+                        << "  " << CMedIO::copyright().toLatin1().constData() << endl;
 }
 
 void showHelp(int& argc, char** argv)

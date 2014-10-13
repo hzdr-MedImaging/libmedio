@@ -23,6 +23,214 @@ dnl *
 dnl **************************************************************************/
 
 dnl
+dnl AC_PATH_QT5: allows to override the default library search path for
+dnl searching for the Qt5 libraries/binaries and stuff.
+dnl
+AC_DEFUN([AC_PATH_QT5],
+[
+  AC_ARG_WITH(qt5, [AC_HELP_STRING([--with-qt5], [where the Qt5 environment is located.])],
+									 [QT5DIR="$withval" ])
+])
+
+dnl
+dnl AC_PATH_QT5_QMAKE: tries to find out if the "qmake" binary of Qt5 is reachable or not and
+dnl allows to override the default path to it
+dnl
+AC_DEFUN([AC_PATH_QT5_QMAKE],
+[
+  AC_ARG_WITH(qt5-qmake,[AC_HELP_STRING([--with-qt5-qmake], [where the Qt5 qmake binary is located.])],
+                        [ac_qt_qmake="$withval"], ac_qt_qmake="")
+
+  if test -z "$QT5DIR" && test -z "$ac_qt_make"; then
+    AC_PATH_PROG(
+      QMAKE_PATH,
+      qmake,
+      qmake,
+      /usr/lib/x86_64-linux-gnu/qt5/bin:/usr/local/qt5/bin:/usr/lib/qt5/bin:/usr/bin:/usr/X11R6/bin:/usr/lib/qt/bin:/usr/local/qt/bin:$PATH
+    )
+  fi
+
+  if test -z "$QMAKE_PATH"; then
+    AC_MSG_CHECKING(for qmake)
+
+    if test -f "$ac_qt_qmake" && test -x "$ac_qt_qmake"; then
+      QMAKE_PATH=$ac_qt_qmake
+    else
+      if test -f "$QT5DIR/bin/qmake" && test -x "$QT5DIR/bin/qmake"; then
+        QMAKE_PATH="$QT5DIR/bin/qmake"
+      else
+        AC_MSG_ERROR(couldn't find Qt5 qmake. Please use --with-qt5-qmake)
+      fi
+    fi
+
+    AC_MSG_RESULT($QMAKE_PATH)
+  fi
+
+  dnl Check if we have the right qmake by outputing the version
+	dnl information
+	qmake_vers=`"$QMAKE_PATH" -v 2>&1 | grep "Qt version 5"`
+  if test -z "$qmake_vers"; then
+    AC_MSG_ERROR([didn't find the correct Qt5 version of qmake, Please use --with-qt5-qmake])
+  fi
+
+  AC_SUBST(QMAKE_PATH)
+])
+
+
+dnl
+dnl AC_PATH_QT5_INC: checks for the existance of the Qt5 includes and provides means
+dnl to override the default search pathes to it
+dnl
+AC_DEFUN([AC_PATH_QT5_INC],
+[
+  AC_REQUIRE_CPP()
+  AC_MSG_CHECKING(for Qt5 includes)
+
+  AC_ARG_WITH(qt5-inc, [AC_HELP_STRING([--with-qt5-inc], [where the Qt5 includes are located.])],
+                      [qt_include_dirs="$withval"], qt_include_dirs="")
+
+  AC_CACHE_VAL(ac_cv_header_qtinc, [
+
+    dnl Did the user give --with-qt-includes?
+    if test -z "$qt_include_dirs"; then
+      qt_include_dirs="\
+        $QT5DIR/include \
+			  /usr/include/qt5/ \
+				/usr/local/qt5/include \
+        /usr/lib/qt/include \
+        /usr/include/qt \
+        /usr/local/qt/include \
+        /usr/local/include/qt \
+        /usr/X11/include/qt \
+        /usr/X11/include/X11/qt \
+        /usr/X11R6/include \
+        /usr/X11R6/include/qt \
+        /usr/X11R6/include/X11/qt \
+        /usr/X11/lib/qt/include"
+    fi
+
+		dnl now we do check for the QtCore subdir and the Qt include
+    for qt_dir in $qt_include_dirs; do
+      if test -r "$qt_dir/QtCore"; then
+        if test -r "$qt_dir/QtCore/Qt"; then
+          ac_qt_includes=$qt_dir
+          break;
+        fi
+      fi
+    done
+
+    ac_cv_header_qtinc=$ac_qt_includes
+
+  ])
+
+  if test -z "$ac_cv_header_qtinc"; then
+    have_qt_inc="no"
+    AC_MSG_RESULT([no])
+    AC_MSG_WARN([Qt5 include $qt_dir $QT5DIR directory not found, you may run into problems.
+Try --with-qt5-inc to specify the path, manually.])
+  else
+    have_qt_inc="yes"
+    AC_MSG_RESULT([yes, in $ac_cv_header_qtinc])
+  fi
+
+  QT_INCLUDES="-I$ac_cv_header_qtinc"
+  QT_INCDIR="$ac_cv_header_qtinc"
+  AC_SUBST(QT_INCLUDES)
+  AC_SUBST(QT_INCDIR)
+])
+
+dnl
+dnl AC_PATH_QT5_LIB: checks if the Qt5 libraries are reachable and provides means
+dnl of overriding the default search path
+dnl
+AC_DEFUN([AC_PATH_QT5_LIB],
+[
+  AC_REQUIRE_CPP()
+  AC_ARG_WITH(qt5-lib,[AC_HELP_STRING([--with-qt5-lib], [where the Qt5 libraries are located.])],
+                      [ac_qt_libraries="$withval"], ac_qt_libraries="")
+
+  AC_MSG_CHECKING(for Qt5 libraries)
+
+  AC_CACHE_VAL(ac_cv_lib_qtlib, [
+
+  qt_libdir=
+
+  dnl No they didnt, so lets look for them...
+  dnl If you need to add extra directories to check, add them here.
+  if test -z "$ac_qt_libraries"; then
+      qt_library_dirs="$QT5DIR/lib \
+      /usr/lib/x86_64-linux-gnu
+                     /usr/lib/qt5 \
+										 /usr/local/qt5/lib \
+										 /usr/local/qt/lib \
+                     /usr/local/lib/qt5 \
+                     /usr/local/lib/qt \
+                     /usr/lib \
+                     /usr/local/lib \
+                     /usr/lib/qt \
+                     /usr/lib/qt/lib \
+                     /usr/local/lib/qt \
+                     /usr/X11/lib \
+                     /usr/X11/lib/qt \
+                     /usr/X11R6/lib \
+                     /usr/X11R6/lib/qt" 
+  else
+    qt_library_dirs="$ac_qt_libraries"
+  fi
+
+  dnl for simplicity we simply go and check if
+	dnl we can find the QtCore library in one of
+	dnl our search pathes
+  ac_qt_libdir=""
+  if test "$ac_qt_link_level" = "static"; then
+	  ac_qt_libname="libQt5Core.a"
+		LIB_QT="$ac_qt_libname"
+	else
+		if test "$HOST_OS" = "Darwin"; then
+			ac_qt_libname="Qt5Core.framework"
+      else 
+			ac_qt_libname="libQt5Core.so"
+		fi
+		LIB_QT="-lQtCore"
+	fi
+
+  for qt_dir in $qt_library_dirs; do
+		if test -r "$qt_dir/$ac_qt_libname"; then
+      ac_qt_libdir="$qt_dir"
+      break
+    else
+      echo "tried $qt_dir" >&AC_FD_CC 
+    fi
+  done
+
+  ac_cv_lib_qtlib="ac_qt_libname=$ac_qt_libname ac_qt_libdir=$ac_qt_libdir"
+  ])
+
+  eval "$ac_cv_lib_qtlib"
+
+  dnl Define a shell variable for later checks
+  if test -z "$ac_qt_libdir"; then
+    have_qt_lib="no"
+    AC_MSG_RESULT([no])
+    AC_MSG_ERROR([Cannot find required $ac_qt_link_level Qt5 libraries in linker path.
+Try --with-qt5-lib to specify the path, manually.])
+  else
+    have_qt_lib="yes"
+    AC_MSG_RESULT([yes, $ac_qt_libname in $ac_qt_libdir found.])
+  fi
+
+  QT_LDFLAGS="-L$ac_qt_libdir"
+  QT_LIBDIR="$ac_qt_libdir"
+  AC_SUBST(QT_LDFLAGS)
+  AC_SUBST(QT_LIBDIR)
+  AC_SUBST(LIB_QT)
+])
+
+
+###################################################################################################
+
+
+dnl
 dnl AC_CXX_NAMESPACES: checks for proper C++ namespaces compatibility
 dnl
 AC_DEFUN([AC_CXX_NAMESPACES],

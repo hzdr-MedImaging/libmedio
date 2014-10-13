@@ -98,7 +98,7 @@ bool CKeyParser::parse(const QString Filename)
   QFile file( Filename );
   if(!file.open(QIODevice::ReadOnly))
   {
-    E("Opening of file %s failed!", Filename.toAscii().data());
+    E("Opening of file %s failed!", Filename.toLatin1().data());
     return false;
   }
 
@@ -210,8 +210,8 @@ bool CKeyParser::processLine(QString& Line)
       break;  
     }
       }
-  //D("Line : %s", Line.toAscii().data());
-  //D("Keyword : %s : Value : %s", Keyword.toAscii().data(), Value.toAscii().data());
+  //D("Line : %s", Line.toLatin1().data());
+  //D("Keyword : %s : Value : %s", Keyword.toLatin1().data(), Value.toLatin1().data());
   if(Keyword == 0 || Value == 0)
     return false;
 

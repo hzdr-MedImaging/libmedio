@@ -280,7 +280,7 @@ bool processCommando_Get()
   QFileInfo fileInfo(g_sECATFileName);
   if(!(fileInfo.exists() && fileInfo.isFile() && fileInfo.isReadable()))
   {
-    cout << "ERROR: couldn't read ecatfile'" << g_sECATFileName.toAscii().constData() << "'." << endl;
+    cout << "ERROR: couldn't read ecatfile'" << g_sECATFileName.toLatin1().constData() << "'." << endl;
     bResult = false;
   }
 
@@ -345,7 +345,7 @@ bool processCommando_Get()
               case RADIOPHARMACEUTICAL: cout << pECAT7MainHeader->radiopharmaceutical() << endl; break;
               case ECAT_CALIBRATION_FACTOR: cout << pECAT7MainHeader->calibration_Factor() << endl; break;
               case CALIBRATION_UNITS: cout << pECAT7MainHeader->calibration_Units() << endl; break;
-              case PATIENT_BIRTH_DATE: cout << pECAT7MainHeader->patient_Birth_Date_Qt().toString("dd MMM yyyy").toAscii().data() << endl; break;
+              case PATIENT_BIRTH_DATE: cout << pECAT7MainHeader->patient_Birth_Date_Qt().toString("dd MMM yyyy").toLatin1().data() << endl; break;
               case PATIENT_NAME: cout << pECAT7MainHeader->patient_Name() << endl; break;
               case DOSAGE: cout << pECAT7MainHeader->dosage() << endl; break;
               case BRANCHING_FRACTION: cout << pECAT7MainHeader->branching_Fraction() << endl; break;
@@ -360,13 +360,13 @@ bool processCommando_Get()
           }
           else
           {
-            cout << "ERROR: no ecat7 main header '" << g_sECATFileName.toAscii().constData() << "'" << endl;
+            cout << "ERROR: no ecat7 main header '" << g_sECATFileName.toLatin1().constData() << "'" << endl;
             bResult = false;
           }
         }
         else
         {
-          cout << "ERROR: couldn't read main header '" << g_sECATFileName.toAscii().constData() << "'" << endl;
+          cout << "ERROR: couldn't read main header '" << g_sECATFileName.toLatin1().constData() << "'" << endl;
           bResult = false;
         }
       }
@@ -411,7 +411,7 @@ bool processCommando_Get()
               }
               else
               {
-                cout << "ERROR: no ecat7 image header '" << g_sECATFileName.toAscii().constData() << "'" << endl;
+                cout << "ERROR: no ecat7 image header '" << g_sECATFileName.toLatin1().constData() << "'" << endl;
                 bResult = false;
               }
             }
@@ -425,7 +425,7 @@ bool processCommando_Get()
         }
         else
         {
-          cout << "ERROR: couldn't read subheader '" << g_sECATFileName.toAscii().constData() << "'" << endl;
+          cout << "ERROR: couldn't read subheader '" << g_sECATFileName.toLatin1().constData() << "'" << endl;
           bResult = false;
         }
       }
@@ -454,7 +454,7 @@ bool processCommando_Set()
   QFileInfo fileInfo(g_sECATFileName);
   if(!(fileInfo.exists() && fileInfo.isFile() && fileInfo.isReadable() && fileInfo.isWritable()))
   {
-    cout << "ERROR: couldn't read/write ecatfile'" << g_sECATFileName.toAscii().constData() << "'." << endl;
+    cout << "ERROR: couldn't read/write ecatfile'" << g_sECATFileName.toLatin1().constData() << "'." << endl;
     bResult = false;
   }
 
@@ -551,7 +551,7 @@ bool processCommando_Set()
               break;
               case ISOTOPE_NAME:
               {
-                pECAT7MainHeader->setIsotope_Name(g_sValue.toAscii().data());
+                pECAT7MainHeader->setIsotope_Name(g_sValue.toLatin1().data());
               }
               break;
               case ISOTOPE_HALFLIFE:
@@ -569,7 +569,7 @@ bool processCommando_Set()
               break;
               case RADIOPHARMACEUTICAL:
               {
-                pECAT7MainHeader->setRadiopharmaceutical(g_sValue.toAscii().data());
+                pECAT7MainHeader->setRadiopharmaceutical(g_sValue.toLatin1().data());
               }
               break;
               case ECAT_CALIBRATION_FACTOR:
@@ -587,7 +587,7 @@ bool processCommando_Set()
               break;
               case ORIGINAL_FILE_NAME:
               {
-                pECAT7MainHeader->setOriginal_File_Name(g_sValue.toAscii().data());
+                pECAT7MainHeader->setOriginal_File_Name(g_sValue.toLatin1().data());
               }
               break;
               case ANGULAR_COMPRESSION:
@@ -677,7 +677,7 @@ bool processCommando_Set()
 
               case PATIENT_NAME:
               {
-                pECAT7MainHeader->setPatient_Name(g_sValue.toAscii().constData());
+                pECAT7MainHeader->setPatient_Name(g_sValue.toLatin1().constData());
               }
               break;
 
@@ -748,7 +748,7 @@ bool processCommando_Set()
               break;
               case DATA_UNITS:
               {
-                pECAT7MainHeader->setData_Units(g_sValue.toAscii().data());
+                pECAT7MainHeader->setData_Units(g_sValue.toLatin1().data());
               }
               break;
               case DOSE_START_TIME:
@@ -908,13 +908,13 @@ bool processCommando_Set()
           }
           else
           {
-            cout << "ERROR: no ecat7 main header '" << g_sECATFileName.toAscii().constData() << "'" << endl;
+            cout << "ERROR: no ecat7 main header '" << g_sECATFileName.toLatin1().constData() << "'" << endl;
             bResult = false;
           }
         }
         else
         {
-          cout << "ERROR: couldn't read main header '" << g_sECATFileName.toAscii().constData() << "'" << endl;
+          cout << "ERROR: couldn't read main header '" << g_sECATFileName.toLatin1().constData() << "'" << endl;
           bResult = false;
         }
       }
@@ -986,7 +986,7 @@ bool processCommando_Set()
                   break;
 
                   case ANNOTATION:
-                    pECAT7ImageSubHeader->setAnnotation(g_sValue.toAscii().data());
+                    pECAT7ImageSubHeader->setAnnotation(g_sValue.toLatin1().data());
                   break;
 
                   case MT_1_1:
@@ -1300,7 +1300,7 @@ bool processCommando_Set()
               }
               else
               {
-                cout << "ERROR: no ecat7 image header '" << g_sECATFileName.toAscii().constData() << "'" << endl;
+                cout << "ERROR: no ecat7 image header '" << g_sECATFileName.toLatin1().constData() << "'" << endl;
                 bResult = false;
               }
             }
@@ -1361,7 +1361,7 @@ bool processCommando_Set()
         }
         else
         {
-          cout << "ERROR: couldn't read subheader '" << g_sECATFileName.toAscii().constData() << "'" << endl;
+          cout << "ERROR: couldn't read subheader '" << g_sECATFileName.toLatin1().constData() << "'" << endl;
           bResult = false;
         }
       }
@@ -1387,7 +1387,7 @@ bool processCommando_Copy()
   {
     if(!(fileInfo.isFile() && fileInfo.isReadable() && fileInfo.isWritable()))
     {
-      cout << "ERROR: couldn't read/write ecatfile'" << g_sECATFileName.toAscii().constData() << "'." << endl;
+      cout << "ERROR: couldn't read/write ecatfile'" << g_sECATFileName.toLatin1().constData() << "'." << endl;
       bResult = false;
     }
   }
@@ -1408,7 +1408,7 @@ bool processCommando_Copy()
   QFileInfo srcFileInfo(g_sSrcFileNames.first());
   if(!(srcFileInfo.exists() && srcFileInfo.isFile() && srcFileInfo.isReadable()))
   {
-    cout << "ERROR: couldn't read source file'" << g_sSrcFileNames.first().toAscii().constData() << "'." << endl;
+    cout << "ERROR: couldn't read source file'" << g_sSrcFileNames.first().toLatin1().constData() << "'." << endl;
     bResult = false;
   }
 
@@ -1666,7 +1666,7 @@ bool processCommando_Join()
     QFileInfo fileInfo(srcFileName);
     if(!(fileInfo.exists() && fileInfo.isFile() && fileInfo.isReadable()))
     {
-      cout << "ERROR: couldn't read ecatfile'" << srcFileName.toAscii().constData() << "'." << endl;
+      cout << "ERROR: couldn't read ecatfile'" << srcFileName.toLatin1().constData() << "'." << endl;
       bResult = false;
     }
   }
@@ -1675,7 +1675,7 @@ bool processCommando_Join()
   QFileInfo fileInfo(g_sECATFileName);
   if(fileInfo.exists())
   {
-    cout << "ERROR: ecatfile already exists '" << g_sECATFileName.toAscii().constData() << "'." << endl;
+    cout << "ERROR: ecatfile already exists '" << g_sECATFileName.toLatin1().constData() << "'." << endl;
     bResult = false;
   }
 
@@ -1778,7 +1778,7 @@ bool processCommando_Join()
                 // get the main header for later use
                 if(srcEcatFile.readMainHeader(pSrcMainHeader) == false)
                 {
-                  cout << "ERROR: can not read main header of source file '" << sSrcFileName.toAscii().constData() << "'" << endl;
+                  cout << "ERROR: can not read main header of source file '" << sSrcFileName.toLatin1().constData() << "'" << endl;
                   bResult = false;
                 }
  
@@ -1879,7 +1879,7 @@ bool processCommando_Join()
               }
               else
               {
-                cout << "ERROR: source \"" << sSrcFileName.toAscii().data() << "\" does not match destination file format." << endl;
+                cout << "ERROR: source \"" << sSrcFileName.toLatin1().data() << "\" does not match destination file format." << endl;
                 bResult = false;
               }
               srcEcatFile.close();
@@ -1961,7 +1961,7 @@ bool processCommando_Delete()
   QFileInfo fileInfo(g_sECATFileName);
   if(fileInfo.exists())
   {
-    cout << "ERROR: can not read/write ecat file'" << g_sECATFileName.toAscii().constData() << "'." << endl;
+    cout << "ERROR: can not read/write ecat file'" << g_sECATFileName.toLatin1().constData() << "'." << endl;
     bResult = false;
   }
 
@@ -2014,7 +2014,7 @@ bool processCommando_New()
   QFileInfo fileInfo(g_sECATFileName);
   if(fileInfo.exists())
   {
-    cout << "ERROR: ecatfile already exists '" << g_sECATFileName.toAscii().constData() << "'." << endl;
+    cout << "ERROR: ecatfile already exists '" << g_sECATFileName.toLatin1().constData() << "'." << endl;
     bResult = false;
   }
 
@@ -2029,7 +2029,7 @@ bool processCommando_New()
   QFileInfo srcFileInfo(g_sSrcFileNames.first());
   if(!(srcFileInfo.exists() && srcFileInfo.isFile() && srcFileInfo.isReadable()))
   {
-    cout << "ERROR: couldn't read ecatfile'" << g_sSrcFileNames.first().toAscii().constData() << "'." << endl;
+    cout << "ERROR: couldn't read ecatfile'" << g_sSrcFileNames.first().toLatin1().constData() << "'." << endl;
     bResult = false;
   }
 
@@ -2446,12 +2446,12 @@ void showVersionInformation()
        << endl << endl
  
        // Qt version information
-       << "  Qt " << CMedIO::qtVersion().toAscii().constData() << " (" << qVersion() << ")" << endl
+       << "  Qt " << CMedIO::qtVersion().toLatin1().constData() << " (" << qVersion() << ")" << endl
                   << "  Copyright (C) 2006-2011 Nokia Corporation" << endl << endl       
 
-       << "  libmedio " << CMedIO::version().toAscii().constData() <<  " ("
-                        << CMedIO::buildDate().toAscii().constData() << ")" << endl
-                        << "  " << CMedIO::copyright().toAscii().constData() << endl;
+       << "  libmedio " << CMedIO::version().toLatin1().constData() <<  " ("
+                        << CMedIO::buildDate().toLatin1().constData() << ")" << endl
+                        << "  " << CMedIO::copyright().toLatin1().constData() << endl;
 }
 
 void showHelp(int& argc, char** argv)
@@ -2513,7 +2513,7 @@ void showMainHeaderEntries()
   cout << "Supported MainHeaderEntries:" << endl;
   cout << "----------------------------------" << endl;
   while(it.hasNext())
-    cout << it.next().toAscii().data() << endl;
+    cout << it.next().toLatin1().data() << endl;
   cout << endl;
 }
 
@@ -2525,7 +2525,7 @@ void showSubHeaderEntries()
   cout << "Supported ImageHeaderEntries:" << endl;
   cout << "----------------------------------" << endl;
   while(imageIt.hasNext())
-    cout << imageIt.next().toAscii().data() << endl;
+    cout << imageIt.next().toLatin1().data() << endl;
   cout << endl;
 
   QList<QString> scan3DKeys = ecat7Scan3DHeaderMap.uniqueKeys();
@@ -2534,7 +2534,7 @@ void showSubHeaderEntries()
   cout << "Supported Scan3DHeaderEntries:" << endl;
   cout << "----------------------------------" << endl;
   while(scan3DIt.hasNext())
-    cout << scan3DIt.next().toAscii().data() << endl;
+    cout << scan3DIt.next().toLatin1().data() << endl;
   cout << endl;
 }
 
@@ -2635,7 +2635,7 @@ bool retrieveMatrixIDValues(QString sMatrixID, int &iFrame, int &iPlane, int &iG
 
     if(i == -1)
     {
-      cout << "ERROR: on converting supplied new matrix ID: '" << sMatrixID.toAscii().constData() << "'" << endl;
+      cout << "ERROR: on converting supplied new matrix ID: '" << sMatrixID.toLatin1().constData() << "'" << endl;
       bResult = false;
     }
   }

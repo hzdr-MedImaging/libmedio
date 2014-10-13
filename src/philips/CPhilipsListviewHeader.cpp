@@ -145,7 +145,7 @@ int CPhilipsListviewHeader::numberOfEventsPerBuffer() const
 
 QString CPhilipsListviewHeader::magicNumber() const
 {
-  return QString::fromAscii(m_pData->header.magicNumber, sizeof(m_pData->header.magicNumber));
+  return QString::fromLatin1(m_pData->header.magicNumber, sizeof(m_pData->header.magicNumber));
 }
 
 CPhilipsListviewHeader::File_Format CPhilipsListviewHeader::listModeFormat() const
@@ -175,7 +175,7 @@ short CPhilipsListviewHeader::subHeaderSize() const
 
 QString CPhilipsListviewHeader::comment() const
 {
-  return QString::fromAscii(m_pData->header.comment, sizeof(m_pData->header.comment));
+  return QString::fromLatin1(m_pData->header.comment, sizeof(m_pData->header.comment));
 }
 
 void CPhilipsListviewHeader::setNumberOfEventsPerBuffer(const int n)
@@ -185,7 +185,7 @@ void CPhilipsListviewHeader::setNumberOfEventsPerBuffer(const int n)
 
 void CPhilipsListviewHeader::setMagicNumber(const QString &magicNumber)
 {
-  strncpy(m_pData->header.magicNumber, magicNumber.toAscii().constData(), sizeof(m_pData->header.magicNumber)-1);
+  strncpy(m_pData->header.magicNumber, magicNumber.toLatin1().constData(), sizeof(m_pData->header.magicNumber)-1);
 }
 
 void CPhilipsListviewHeader::setFileFormat(const CPhilipsListviewHeader::File_Format format)
@@ -215,5 +215,5 @@ void CPhilipsListviewHeader::setSubHeaderSize(const short size)
 
 void CPhilipsListviewHeader::setComment(const QString &comment)
 {
-  strncpy(m_pData->header.comment, comment.toAscii().constData(), sizeof(m_pData->header.comment)-1);
+  strncpy(m_pData->header.comment, comment.toLatin1().constData(), sizeof(m_pData->header.comment)-1);
 }
