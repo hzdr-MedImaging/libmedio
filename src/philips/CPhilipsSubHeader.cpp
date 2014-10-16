@@ -779,7 +779,9 @@ bool CPhilipsSubHeader::convertFrom(const CMedIOHeader* subHeader, const CMedIOH
           }
 
           setActual_bedpos(mh->init_Bed_Position() * 10.0f); // cm -> mm
+          setBedpos(mh->init_Bed_Position() * 10.0f); // cm -> mm
           setDslice_loc(mh->init_Bed_Position() * 10.0f); // cm -> mm
+          setImg_pos_z(mh->init_Bed_Position() * 10.0f); // cm -> mm
 
           bResult = true;
         }
