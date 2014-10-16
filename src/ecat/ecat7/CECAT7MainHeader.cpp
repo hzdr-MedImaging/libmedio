@@ -482,7 +482,8 @@ bool CECAT7MainHeader::load(void)
   D("Well counter corr factor: %f",           m_pData->header.Well_Counter_Corr_Factor);
   D("Data units              : %s",           m_pData->header.Data_Units);
   D("Septa state             : %d",           m_pData->header.Septa_State);
-  D("CTI reserved            : %lx",          m_pData->header.CTI_Reserved[0]);
+  for(int i=0; i < 6; i++)
+    D("CTI reserved        [%2d]: %lx", i,    m_pData->header.CTI_Reserved[i]);
 #endif
 
   RETURN(true);
@@ -1013,9 +1014,16 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
         setCalibration_Units(CECAT7MainHeader::Uncalibrated);
       }
 
-      // encode the coil type
+      // encode the coil type in the CTI_Reserved data field
       if(head->mr_valid())
-        setUser_Process_Code(head->coil_type());
+      {
+        setCTI_Reserved(0, 0x6d72); // hex code for 'mr'
+        setCTI_Reserved(1, head->coil_type(0));
+        setCTI_Reserved(2, head->coil_type(1));
+        setCTI_Reserved(3, head->coil_type(2));
+        setCTI_Reserved(4, head->coil_type(3));
+        setCTI_Reserved(5, head->coil_type(4));
+      }
 
       bResult = true;
     }
@@ -1336,7 +1344,10 @@ CECAT7MainHeader::Septa_State CECAT7MainHeader::septa_State(void) const
 
 short CECAT7MainHeader::cti_Reserved(const short i) const                    
 {
-  return m_pData->header.CTI_Reserved[i];
+  if(i >= 0 && i <= 5)
+    return m_pData->header.CTI_Reserved[i];
+  else
+    return -1;
 }
 
 
@@ -1639,7 +1650,8 @@ void CECAT7MainHeader::setSepta_State(const Septa_State state)
 
 void CECAT7MainHeader::setCTI_Reserved(const short i, const short val)                
 { 
-  m_pData->header.CTI_Reserved[i] = val;
+  if(i >= 0 && i <= 5)
+    m_pData->header.CTI_Reserved[i] = val;
 }
 
 QTextStream& operator<<(QTextStream& stream, const CECAT7MainHeader& mHeader)

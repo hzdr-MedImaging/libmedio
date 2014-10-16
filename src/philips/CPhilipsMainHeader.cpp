@@ -1192,7 +1192,21 @@ bool CPhilipsMainHeader::load()
     D("start_table_pos_abs        : %d", start_table_pos_abs());
     D("start_table_pos_rel        : %d", start_table_pos_rel());
     D("mr_valid                   : %d", mr_valid());
-    D("coil_type                  : '%s'", coil_type());
+    D("coil_type[0]               : %d", coil_type(0));
+    D("coil_type[1]               : %d", coil_type(1));
+    D("coil_type[2]               : %d", coil_type(2));
+    D("coil_type[3]               : %d", coil_type(3));
+    D("coil_type[4]               : %d", coil_type(4));
+    D("coil_type[5]               : %d", coil_type(5));
+    D("coil_type[6]               : %d", coil_type(6));
+    D("coil_type[7]               : %d", coil_type(7));
+    D("coil_type[8]               : %d", coil_type(8));
+    D("coil_type[9]               : %d", coil_type(9));
+    D("coil_type[10]              : %d", coil_type(10));
+    D("coil_type[11]              : %d", coil_type(11));
+    D("coil_type[12]              : %d", coil_type(12));
+    D("coil_type[13]              : %d", coil_type(13));
+    D("coil_type[14]              : %d", coil_type(14));
   }
   else
     W("no extended header found");
@@ -1629,7 +1643,6 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
             setHw_config(6769);
             setMr_valid(true);
             setPetct_valid(CPhilipsMainHeader::PETCT_Valid);
-            setCoil_type(header->user_Process_Code());
           }
           else
           {
@@ -1644,11 +1657,21 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
             {
               setMr_valid(true);
               setPetct_valid(CPhilipsMainHeader::PETCT_Valid);
-              setCoil_type(header->user_Process_Code());
               setDmanufacture_model_name(header->operator_Name());
             }
             else if(operatorName.contains("PET", Qt::CaseInsensitive))
               setDmanufacture_model_name(header->operator_Name());
+          }
+
+          // check if cti_Reserved() is set to mr_valid mode
+          if(header->cti_Reserved(0) == 0x6d72) // hex-code for 'mr', if set mr_valid can be extracted
+          {
+            setMr_valid(true);
+            setCoil_type(0, header->cti_Reserved(1));
+            setCoil_type(1, header->cti_Reserved(2));
+            setCoil_type(2, header->cti_Reserved(3));
+            setCoil_type(3, header->cti_Reserved(4));
+            setCoil_type(4, header->cti_Reserved(5));
           }
 
           m_pData->ecat2philipsPharm(header->radiopharmaceutical());
@@ -4006,9 +4029,12 @@ bool CPhilipsMainHeader::mr_valid() const
   return m_pData->extHeader.mr_valid == 1;
 }
 
-const char* CPhilipsMainHeader::coil_type() const
+char CPhilipsMainHeader::coil_type(const short i) const
 {
-  return m_pData->extHeader.coil_type;
+  if(i >= 0 && i <= 14)
+    return m_pData->extHeader.coil_type[i];
+  else
+    return 0;
 }
 
 void CPhilipsMainHeader::setDpat_name(const char* str)
@@ -4686,7 +4712,8 @@ void CPhilipsMainHeader::setMr_valid(const bool valid)
   m_pData->extHeader.mr_valid = (valid == true) ? 1 : 0;
 }
 
-void CPhilipsMainHeader::setCoil_type(const char* str)
+void CPhilipsMainHeader::setCoil_type(const short i, const char type)
 {
-  strncpy(m_pData->extHeader.coil_type, str, sizeof(m_pData->extHeader.coil_type)-1);
+  if(i >= 0 && i <= 14)
+    m_pData->extHeader.coil_type[i] = type;
 }
