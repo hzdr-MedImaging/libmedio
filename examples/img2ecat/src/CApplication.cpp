@@ -337,7 +337,8 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
   if(result)
   {
     // check if it's an image file
-    if(pPhilipsMainHeader->filtyp() != CPhilipsMainHeader::Image)
+    if(pPhilipsMainHeader->filtyp() != CPhilipsMainHeader::Image &&
+       pPhilipsMainHeader->filtyp() != CPhilipsMainHeader::Syntegra)
     {
       cout << "ERROR: Input file is not an image file" << endl;
       result = false;
