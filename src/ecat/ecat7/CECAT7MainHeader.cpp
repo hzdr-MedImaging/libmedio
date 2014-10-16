@@ -977,7 +977,14 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
       setNum_Frames(head->nframe());
       setNum_Gates(1);
       setNum_Bed_Pos(0);
-      setInit_Bed_Position(subHead->actual_bedpos() / 10.0f); // mm -> cm
+
+      if(subHead->actual_bedpos() != 0.0f)
+        setInit_Bed_Position(subHead->actual_bedpos() / 10.0f); // mm -> cm
+      else if(subHead->bedpos() != 0.0f)
+        setInit_Bed_Position(subHead->bedpos() / 10.0f); // mm -> cm
+      else
+        setInit_Bed_Position(head->max_bed_pos() / 10.0f); // mm -> cm
+
       setPlane_Separation(head->Dslice_thick() / 10.0f); // mm -> cm
 
       if(head->hw_config() == 0 && head->scan_geom() == 962)
