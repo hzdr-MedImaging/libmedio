@@ -978,12 +978,12 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
       setNum_Gates(1);
       setNum_Bed_Pos(0);
 
-      if(subHead->actual_bedpos() != 0.0f)
-        setInit_Bed_Position(subHead->actual_bedpos() / 10.0f); // mm -> cm
-      else if(subHead->bedpos() != 0.0f)
-        setInit_Bed_Position(subHead->bedpos() / 10.0f); // mm -> cm
-      else
-        setInit_Bed_Position(head->max_bed_pos() / 10.0f); // mm -> cm
+      // now we convert the absolute position of the start of the measurement (first slice)
+      // to init_bed_position in ecat format
+      if(subHead->Dslice_loc() != 0.0f)
+        setInit_Bed_Position(subHead->Dslice_loc());
+      else if(subHead->img_pos_z() != 0.0f)
+        setInit_Bed_Position(subHead->img_pos_z());
 
       setPlane_Separation(head->Dslice_thick() / 10.0f); // mm -> cm
 
