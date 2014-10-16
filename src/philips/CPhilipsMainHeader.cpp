@@ -1688,15 +1688,19 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
           setFile_create_date_time_Qt(header->scan_Start_Time_Qt());
 
           // set the table direction based on the bed offset being negative or positive
-          setTbl_direction(header->bed_Offset(0) < 0 ? CPhilipsMainHeader::Out : CPhilipsMainHeader::In);
+          if(header->bed_Offset(0) != 0)
+            setTbl_direction(header->bed_Offset(0) < 0 ? CPhilipsMainHeader::Out : CPhilipsMainHeader::In);
+          else 
+            setTbl_direction(header->init_Bed_Position() < 0 ? CPhilipsMainHeader::Out : CPhilipsMainHeader::In);
+
           switch(tbl_direction())
           {
             case CPhilipsMainHeader::Out:
-              setMax_bed_pos(qRound(header->init_Bed_Position() * 10.0f)); // cm -> mm
+              setMax_bed_pos(header->init_Bed_Position() * 10.0f); // cm -> mm
             break;
 
             case CPhilipsMainHeader::In:
-              setMin_bed_pos(qRound(header->init_Bed_Position() * 10.0f)); // cm -> mm
+              setMin_bed_pos(header->init_Bed_Position() * 10.0f); // cm -> mm
             break;
 
             case CPhilipsMainHeader::UnknownDirection:
