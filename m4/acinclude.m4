@@ -187,7 +187,7 @@ AC_DEFUN([AC_PATH_QT5_LIB],
 		LIB_QT="$ac_qt_libname"
 	else
 		if test "$HOST_OS" = "Darwin"; then
-			ac_qt_libname="Qt5Core.framework"
+			ac_qt_libname="QtCore.framework"
       else 
 			ac_qt_libname="libQt5Core.so"
 		fi
