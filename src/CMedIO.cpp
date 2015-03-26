@@ -27,22 +27,22 @@
 
 unsigned int CMedIO::majorVersion()
 {
-  return QString(PACKAGE_VERSION).section('.', 0, 0).toUInt();
+  return QString(PROJECT_VERSION).section('.', 0, 0).toUInt();
 }
 
 unsigned int CMedIO::minorVersion()
 {
-  return QString(PACKAGE_VERSION).section('.', 1, 1).toUInt();
+  return QString(PROJECT_VERSION).section('.', 1, 1).toUInt();
 }
 
 unsigned int CMedIO::buildVersion()
 {
-  return QString(PACKAGE_VERSION).section('.', 2, 2).toUInt();
+  return QString(PROJECT_VERSION).section('.', 2, 2).toUInt();
 }
 
 QString CMedIO::version()
 {
-  return QString(PACKAGE_VERSION);
+  return QString(PROJECT_VERSION);
 }
 
 QString CMedIO::buildDate()
@@ -52,7 +52,7 @@ QString CMedIO::buildDate()
 
 QString CMedIO::copyright()
 {
-  return QString("Copyright (C) 2006-2011 by Jens Langner <Jens.Langner@light-speed.de>");
+  return QString("Copyright (C) 2006-2015 Jens Maus <mail@jens-maus.de>");
 }
 
 unsigned int CMedIO::qtMajorVersion()

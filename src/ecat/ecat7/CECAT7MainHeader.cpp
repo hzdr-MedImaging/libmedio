@@ -220,7 +220,7 @@ void CECAT7MainHeader::clear()
   setPatient_Sex(CECAT7MainHeader::Sex_Unknown);
   setPatient_Dexterity(CECAT7MainHeader::Dext_Unknown);
   setPatient_Orientation(CECAT7MainHeader::Orient_Unknown);
-  setStudy_Description((QString("Created with libmedio v") + PACKAGE_VERSION).toLatin1().constData());
+  setStudy_Description((QString("Created with libmedio v") + PROJECT_VERSION).toLatin1().constData());
   setTransm_Source_Type(CECAT7MainHeader::SRC_RING);
   setLwr_True_Thres(350); // [keV]
   setUpr_True_Thres(650); // [keV]
