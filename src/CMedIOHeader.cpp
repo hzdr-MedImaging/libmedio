@@ -206,6 +206,10 @@ bool CMedIOHeader::convertFrom(CMedIOData* pData)
         result = true;
       }
       break;
+
+      case CMedIOData::Unknown:
+        result = false;
+      break;
     }
   }
 

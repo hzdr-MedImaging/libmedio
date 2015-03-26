@@ -5,13 +5,13 @@
 void CDate::parseKeyValue(QString KeyValue)
 {
   KeyValue = KeyValue.trimmed();
-  E("String: %s", KeyValue.toAscii().data());
+  E("String: %s", KeyValue.toLatin1().data());
   if(!KeyValue.isEmpty() && !KeyValue.isNull())
   {
     QDateTime tempDate = QDateTime::fromString(KeyValue);
     if(tempDate.isValid())
     {
-      E("DateTime: %s", tempDate.toString().toAscii().data());
+      E("DateTime: %s", tempDate.toString().toLatin1().data());
       this->setTime_t(tempDate.toTime_t());
     }
     else

@@ -26,16 +26,16 @@
 #define CPHILIPSSUBHEADERSYNTEGRA_H
 
 #ifndef __MEDIO_PRIVATE__
-#include <CPhilipsSubHeader>
+#include <CPhilipsSubHeaderImage>
 #else
-#include <CPhilipsSubHeader.h>
+#include <CPhilipsSubHeaderImage.h>
 #endif
 
 // forward declarations
 class CPhilipsFile;
 class CPhilipsDirectoryItem;
 
-class CPhilipsSubHeaderSyntegra : public CPhilipsSubHeader
+class CPhilipsSubHeaderSyntegra : public CPhilipsSubHeaderImage
 {
   public:
     // constructors

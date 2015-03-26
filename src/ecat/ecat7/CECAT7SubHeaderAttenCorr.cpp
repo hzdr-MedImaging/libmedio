@@ -70,7 +70,7 @@ class CECAT7SubHeaderAttenCorrPrivate
       quint16  Storage_Order;              // 108: Storage_Order
       quint16  Span;                       // 110: Span
       quint16  Z_Elements[64];             // 112: Z_Elements (64)                                      
-      quint16  Unused[90];                 // 240: Unused (90)
+      quint16  Unused[86];                 // 240: Unused (86)
       quint16  CTI_Reserved[50];           // 412: CTI_Reserved (50)
     } header; 
     #pragma pack()
@@ -203,7 +203,7 @@ bool CECAT7SubHeaderAttenCorr::load(void)
     for(int i=0; i < 64; i++)
       BSWAP_16(m_pData->header.Z_Elements[i]);
 
-    for(int i=0; i < 90; i++)
+    for(int i=0; i < 86; i++)
       BSWAP_16(m_pData->header.Unused[i]);
 
     for(int i=0; i < 50; i++)
@@ -312,7 +312,7 @@ bool CECAT7SubHeaderAttenCorr::save(void) const
     for(int i=0; i < 64; i++)
       BSWAP_16(header->Z_Elements[i]);
 
-    for(int i=0; i < 90; i++)
+    for(int i=0; i < 86; i++)
       BSWAP_16(header->Unused[i]);
 
     for(int i=0; i < 50; i++)

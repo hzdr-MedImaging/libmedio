@@ -1,6 +1,8 @@
 #ifndef CARRAY_H
 #define CARRAY_H
 
+#include <math.h>
+
 #include <QVarLengthArray>
 
 class QByteArray;

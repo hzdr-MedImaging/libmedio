@@ -56,7 +56,7 @@ bool CPhilipsBinFile::open(QIODevice::OpenModeFlag mode)
 quint32 CPhilipsBinFile::readVersion()
 {
   ENTER();
-  quint32 version = -1;
+  quint32 version = 0;
 
   if(isOpen() &&
      isReadable())

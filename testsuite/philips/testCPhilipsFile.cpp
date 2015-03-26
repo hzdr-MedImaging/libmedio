@@ -2,12 +2,15 @@
 
 #include <CPhilipsFile.h>
 #include <CPhilipsSubHeaderImage.h>
+#include <CPhilipsSubHeaderSyntegra.h>
+#include <CPhilipsSubHeaderSinogram.h>
+#include <CPhilipsSubHeaderListmode.h>
 
 #include <iostream>
 
 void TestCPhilipsFile::initTestCase()
 {
-  m_pInputFile = new CPhilipsFile("../../../philipstestfile.img");
+  m_pInputFile = new CPhilipsFile(m_sFileName);
   // m_pOutputFile = new CPhilipsFile("output.img");
 
   QCOMPARE(m_pInputFile->open(QIODevice::ReadOnly), true);
@@ -40,7 +43,7 @@ void TestCPhilipsFile::testReadMainHeader()
      std::cout << "Can't open file" << std::endl;
 
   QVERIFY(mainHeader != NULL);
-  QCOMPARE(mainHeader->filtyp(), CPhilipsMainHeader::Image);
+  QVERIFY(mainHeader->filtyp() != CPhilipsMainHeader::Unknown);
   
   delete mainHeader;
 }
@@ -48,39 +51,52 @@ void TestCPhilipsFile::testReadMainHeader()
 void TestCPhilipsFile::testGetFileType()
 {
   CPhilipsMainHeader::File_Type fileType = CPhilipsMainHeader::Unknown;
-
   fileType = m_pInputFile->fileType();
 
-  QCOMPARE(fileType, CPhilipsMainHeader::Image);
+  QVERIFY(fileType != CPhilipsMainHeader::Unknown);
 }
 
 void TestCPhilipsFile::testGetSubHeaderType()
 {
   CPhilipsSubHeader::Type subHeaderType = CPhilipsSubHeader::Unknown;
-
   subHeaderType = m_pInputFile->subHeaderType();
 
-  QCOMPARE(subHeaderType, CPhilipsSubHeader::Image);
+  QVERIFY(subHeaderType != CPhilipsSubHeader::Unknown);
 }
 
 void TestCPhilipsFile::testReadMatrixDataQByteArray()
 {
   QByteArray* matrixData = NULL;
   CPhilipsSubHeader* subHeader = NULL;
-  bool ok = m_pInputFile->readMatrix(matrixData, subHeader, 1000, 1);
-  
-  CPhilipsSubHeaderImage* sHead = static_cast<CPhilipsSubHeaderImage*>(subHeader);
-
-  std::cout << "scale_factor: " << sHead->imgscl();
-
+  bool ok = m_pInputFile->readMatrix(matrixData, subHeader);
+ 
+  if(m_pInputFile->subHeaderType() == CPhilipsSubHeader::Image)
+  {
+    CPhilipsSubHeaderImage* sHead = static_cast<CPhilipsSubHeaderImage*>(subHeader);
+    std::cout << "scale_factor: " << sHead->imgscl();
+  }
+  else if(m_pInputFile->subHeaderType() == CPhilipsSubHeader::Syntegra)
+  {
+    CPhilipsSubHeaderSyntegra* sHead = static_cast<CPhilipsSubHeaderSyntegra*>(subHeader);
+    std::cout << "scale_factor: " << sHead->imgscl();
+  }
+  else if(m_pInputFile->subHeaderType() == CPhilipsSubHeader::Sinogram)
+  {
+    CPhilipsSubHeaderSinogram* sHead = static_cast<CPhilipsSubHeaderSinogram*>(subHeader);
+    std::cout << "scale_factor: " << sHead->scnscl();
+  }
+  else if(m_pInputFile->subHeaderType() == CPhilipsSubHeader::Listmode)
+  {
+    CPhilipsSubHeaderListmode* sHead = static_cast<CPhilipsSubHeaderListmode*>(subHeader);
+    std::cout << "actual_bedpos: " << sHead->actual_bedpos();
+  }
 
   QVERIFY(ok != false);
   QVERIFY(matrixData != NULL);
   QVERIFY(subHeader != NULL);
-  if(matrixData)
-    delete matrixData;
-  if(subHeader)
-    delete subHeader;
+
+  delete matrixData;
+  delete subHeader;
 }
 
 void TestCPhilipsFile::testReadMatrixDataChar()

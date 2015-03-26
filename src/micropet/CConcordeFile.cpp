@@ -216,48 +216,22 @@ bool CConcordeFile::readSubHeader(CConcordeFrameHeader*& subHeader, int frame)
 //! 
 //! @return type of file or unknown if unknown or error
 ////////////////////////////////////////////////////////////////////////////////
-CConcordeFile::FileType CConcordeFile::isOfType(const QString& file)
+bool CConcordeFile::isOfType(const QString& file)
 {
-  //try to initialise the header 
-  //check if it is a CConcordeFile
-  //return the specific type
-  //return CData::Unknwon - if it is not a concorde type 
   ENTER();
-  D("Check if file is a specific concorde file");
+  bool result = false;
+
   // try to get Headerinfo on Sinogramfile
-  QString hfile(file+".hdr");
-
   CConcordeMainHeaderSinogram head(file+".hdr");
-
-  CConcordeFile::FileType result;
-  //file type = 2 -> Sinogram
-  //file type = 3 -> Normalisation
-  //file type = 4 -> Attenuation (transmission)
-  //file type = 5 -> Image
-  //file type = 8 -> Mu map ( also image )
-  // since attenuationfile/Normalisation is a sinogram we could define it as one 
   switch(head.fileType())
   {
     case CConcordeMainHeader::Sinogram:
     case CConcordeMainHeader::Normalization:
     case CConcordeMainHeader::Attenuation:
-    {
-      D("File is a concorde sinogram");
-      result = CConcordeFile::ConcordeMicropet_Sinogram;
-    }
-    break;
     case CConcordeMainHeader::Image:
     case CConcordeMainHeader::MuMap:
-    {
-      D("File is an concorde image");
-      result = CConcordeFile::ConcordeMicropet_Image;
-    }
+      result = true;
     break;
-    default:
-    {
-      D("File is not from Concorde");
-      result = CConcordeFile::Unknown;
-    }
   }
 
   RETURN(result);
@@ -267,35 +241,55 @@ CConcordeFile::FileType CConcordeFile::isOfType(const QString& file)
 CMedIOData* CConcordeFile::createFromFile(const QString& fileName)
 {
   ENTER();
-  CMedIOData* data = NULL;  
-  switch(CConcordeFile::isOfType(fileName))
+  CMedIOData* mData = NULL;  
+  CConcordeFile::FileType ftype = CConcordeFile::Unknown;
+
+  // try to get Headerinfo on Sinogramfile
+  CConcordeMainHeaderSinogram head(fileName+".hdr");
+  switch(head.fileType())
+  {
+    case CConcordeMainHeader::Sinogram:
+    case CConcordeMainHeader::Normalization:
+    case CConcordeMainHeader::Attenuation:
+      ftype = CConcordeFile::ConcordeMicropet_Sinogram;
+    break;
+
+    case CConcordeMainHeader::Image:
+    case CConcordeMainHeader::MuMap:
+      ftype = CConcordeFile::ConcordeMicropet_Image;
+    break;
+
+    case CConcordeMainHeader::Unknown:
+      ftype = CConcordeFile::Unknown;
+    break;
+  }
+
+  switch(ftype)
   {
     case CConcordeFile::ConcordeMicropet_Sinogram:
     {
       D("Creating concorde microPET sinogram");
-      data = new CConcordeSinogram(fileName);
-      if(data == NULL) 
-        D("An error occured when creating sinogram");
-      else
-        D("Done with creating sinogram");
+      mData = new CConcordeSinogram(fileName);
     }
     break;
+
     case CConcordeFile::ConcordeMicropet_Image:
     {
       D("Creating concorde microPET image");
-      data = new CConcordeImage(fileName);
-      if(data == NULL) 
-        D("An error occured when creating image");
-      else
-        D("Done with creating image");
+      mData = new CConcordeImage(fileName);
     }
     break;
-    default:
-    data = NULL;
+
+    case CConcordeFile::Unknown:
+      W("ConcordeFile Format could not be identified.");
+    break;
   }
 
-  RETURN(data);
-  return data;
+  if(mData == NULL) 
+    D("An error occured when creating image");
+
+  RETURN(mData);
+  return mData;
 }
 
 bool CConcordeFile::readMatrix(QByteArray*& matrixData, short frame)

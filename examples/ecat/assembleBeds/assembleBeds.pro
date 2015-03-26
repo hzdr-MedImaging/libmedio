@@ -29,7 +29,7 @@ INCLUDEPATH += /usr/local/petlib/include/rtdebug
 LIBS *= /usr/local/petlib/lib/libmedio.a
 LIBS *= /usr/local/petlib/lib/librtdebug.a
 
-DEFINES *= DEBUG
+#DEFINES *= DEBUG
 
 # Input
 HEADERS += CECAT7Assemble.h \

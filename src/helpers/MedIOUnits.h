@@ -95,7 +95,7 @@ class CActivityConcentrationUnit
     enum ActivityConcentrationUnits { Unknown_units = 0,
                                       BequerelsPerCubiccentimeter_units,
                                       BequerelsPerMilliliter_units,
-                                      NanoCuriesPerCubiccentimeter_units,
+                                      NanoCuriesPerCubiccentimeter_units
                                     };
 
     CActivityConcentrationUnit(const ActivityConcentrationUnits u = Unknown_units);

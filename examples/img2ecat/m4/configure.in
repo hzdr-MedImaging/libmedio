@@ -1,8 +1,8 @@
 #/* -*- mode: c++; tab-width: 2; c-basic-offset: 2; indent-tabs-mode: nil; -*- */
 
 AC_PREREQ(2.57)
-AC_INIT(img2ecat, 1.1, j.langner@hzdr.de)
-AC_COPYRIGHT(Copyright (C) 2011-2013 by Jens Langner <jens.langner@light-speed.de>)
+AC_INIT(img2ecat, 1.2, j.maus@hzdr.de)
+AC_COPYRIGHT(Copyright (C) 2011-2014 Jens Maus <mail@jens-maus.de>)
 #AC_REVISION($Revision $)
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_HEADER([src/includes/config.h])

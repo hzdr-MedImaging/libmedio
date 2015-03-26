@@ -170,8 +170,8 @@ bool CApplication::checkOutputFile(const QFileInfo& inputFile)
     if(outputFile.exists())
     {
       bResult = false;
-      cout << "ERROR: can't convert '" << inputFile.fileName().toAscii().constData() 
-           << "' as output file '" << outputFile.fileName().toAscii().constData() << "' already exists" << endl;
+      cout << "ERROR: can't convert '" << inputFile.fileName().toLatin1().constData() 
+           << "' as output file '" << outputFile.fileName().toLatin1().constData() << "' already exists" << endl;
     }
   }
   else
@@ -206,7 +206,7 @@ void CApplication::showAppInfo()
   // output some general program information
   cout << endl
        << PACKAGE_STRING << " - converts philips image files to ECAT files" << endl
-       << "(" __DATE__ ") Copyright (c) 2011-2013 by Jens Langner, Stan Domula / www.hzdr.de" << endl << endl;
+       << "(" __DATE__ ") Copyright (c) 2011-2014 Jens Maus, Stan Domula / www.hzdr.de" << endl << endl;
   LEAVE();
   return;
 }
@@ -242,9 +242,9 @@ void CApplication::showVersion()
                   << "  Copyright (c) 2006-2011 Nokia Corporation" << endl << endl
 
        // libmedio version information
-       << "  libmedio " << CMedIO::version().toAscii().constData() <<  " ("
-       << CMedIO::buildDate().toAscii().constData() << ")" << endl
-       << "  " << CMedIO::copyright().toAscii().constData() << endl;
+       << "  libmedio " << CMedIO::version().toLatin1().constData() <<  " ("
+       << CMedIO::buildDate().toLatin1().constData() << ")" << endl
+       << "  " << CMedIO::copyright().toLatin1().constData() << endl;
 
   LEAVE();
   return;
@@ -273,7 +273,7 @@ bool CApplication::process()
       }
       else
       {
-        cout << "ERROR: file " << fileName.toAscii().constData()
+        cout << "ERROR: file " << fileName.toLatin1().constData()
              << " doesn't exist. Skipping file." << endl;
       }
     }
@@ -319,7 +319,7 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
     bool bOpenPhilipsFile = pPhilipsFile->open(QIODevice::ReadOnly);
     if(bOpenPhilipsFile == false)
     {
-      cout << "ERROR: Can't open file " << inputFile.absoluteFilePath().toAscii().constData() << "." << endl;
+      cout << "ERROR: Can't open file " << inputFile.absoluteFilePath().toLatin1().constData() << "." << endl;
       result = false;
     }
   }
@@ -337,7 +337,8 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
   if(result)
   {
     // check if it's an image file
-    if(pPhilipsMainHeader->filtyp() != CPhilipsMainHeader::Image)
+    if(pPhilipsMainHeader->filtyp() != CPhilipsMainHeader::Image &&
+       pPhilipsMainHeader->filtyp() != CPhilipsMainHeader::Syntegra)
     {
       cout << "ERROR: Input file is not an image file" << endl;
       result = false;
@@ -346,7 +347,7 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
 
   if(result)
   {
-    D("Creating empty ecat image: '%s'", m_sOutputFileName.toAscii().data());
+    D("Creating empty ecat image: '%s'", m_sOutputFileName.toLatin1().data());
     pEcat7Image = new CECATFile(m_sOutputFileName, CECATMainHeader::ECAT7_Volume16);
     if(pEcat7Image->open(QIODevice::WriteOnly) == false)
     {
@@ -357,8 +358,8 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
 
   if(result)
   {
-    cout << "Converting: " << inputFile.absoluteFilePath().toAscii().constData() << endl;
-    cout << "OutputFile: " << QFileInfo(m_sOutputFileName).absoluteFilePath().toAscii().constData() << endl;
+    cout << "Converting: " << inputFile.absoluteFilePath().toLatin1().constData() << endl;
+    cout << "OutputFile: " << QFileInfo(m_sOutputFileName).absoluteFilePath().toLatin1().constData() << endl;
 
     pEcat7ImageHeader = static_cast<CECAT7MainHeader*>(pEcat7Image->createEmptyMainHeader());
     if(pEcat7ImageHeader != NULL)
@@ -416,6 +417,59 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
           break;
         }
 
+        // unfortunately the Philips file format contains a slice wise scaling factor
+        // imgscl() which requires that we walk through the array again and rescale
+        // the data accordingly. Better would be to redesign libmedio of course to allow
+        // to directly return a float volume rather than each application having to do
+        // scaling on their own.
+        int minslc = pPhilipsFile->minSlice();
+        int maxslc = pPhilipsFile->maxSlice();
+        int incr = (maxslc-minslc) / (pPhilipsFile->numSlices(frame) - 1);
+        int curSlice = minslc;
+        CPhilipsSubHeader *pSubHeadImg = NULL;
+        for(int z=0; z <= pPhilipsFile->numSlices() && curSlice <= maxslc; ++z, curSlice += incr)
+        {
+          if(pPhilipsFile->readSubHeader(pSubHeadImg, frame, curSlice))
+          {
+            float imgscl = static_cast<CPhilipsSubHeaderImage*>(pSubHeadImg)->imgscl();
+
+            if(imgscl > 1.0f)
+            {
+              for(int y=0; y <= pSubHeadImg->ydim(); ++y)
+              {
+                for(int x=0; x <= pSubHeadImg->xdim(); ++x)
+                {
+                  int idx = z * (pSubHeadImg->ydim() * pSubHeadImg->xdim()) + y * pSubHeadImg->xdim() + x;
+
+                  switch(pSubHeadImg->datype())
+                  {
+                    case CPhilipsSubHeader::SignedShort:
+                      static_cast<qint16*>((void *)pImageData)[idx] = qRound(static_cast<float>(static_cast<qint16*>((void *)pImageData)[idx]) * imgscl);
+                    break;
+
+                    case CPhilipsSubHeader::UnsignedShort:
+                      static_cast<quint16*>((void *)pImageData)[idx] = qRound(static_cast<float>(static_cast<quint16*>((void *)pImageData)[idx]) * imgscl);
+                    break;
+
+                    case CPhilipsSubHeader::Float:
+                      static_cast<float*>((void *)pImageData)[idx] = qRound(static_cast<float*>((void *)pImageData)[idx] * imgscl);
+                    break;
+
+                    default:
+                    {
+                      cout << "ERROR: Could not handle datatype " << pSubHeadImg->datype() << " of philips image file." << endl;
+                      bUnknownDataType = true;
+                    }
+                  }
+                }
+              }
+            }
+
+            delete pSubHeadImg;
+            pSubHeadImg = NULL;
+          }
+        }
+
         short imgMaxValue = 0;
         short imgMinValue = SHRT_MAX;
         CPhilipsSubHeaderImage* pPhilipsSubHeaderImage = static_cast<CPhilipsSubHeaderImage*>(pPhilipsSubHeader);
@@ -424,7 +478,6 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
           case CPhilipsSubHeader::SignedShort:
           {
             int numElements = len/sizeof(qint16);
-
             QByteArray buffer = QByteArray::fromRawData(pImageData, len);
             CDataArray<qint16> dataArray(&buffer, numElements);
             imgMaxValue = dataArray.maxValue();
@@ -454,7 +507,7 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
 
           default:
           {
-            cout << "ERROR: Could not handle datatype of philips image file." << endl;
+            cout << "ERROR: Could not handle datatype " << pPhilipsSubHeaderImage->datype() << " of philips image file." << endl;
             bUnknownDataType = true;
           }
         }
@@ -539,7 +592,7 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
   {
     if(pEcat7Image->open(QIODevice::ReadOnly) == false)
     {
-      cout << "ERROR: Can't open file " << inputFile.absoluteFilePath().toAscii().constData() << "." << endl;
+      cout << "ERROR: Can't open file " << inputFile.absoluteFilePath().toLatin1().constData() << "." << endl;
       result = false;
     }
   }
@@ -568,7 +621,7 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
 
   if(result)
   {
-    D("Creating empty philips image: '%s'", m_sOutputFileName.toAscii().data());
+    D("Creating empty philips image: '%s'", m_sOutputFileName.toLatin1().data());
     pPhilipsFile = new CPhilipsFile(m_sOutputFileName, CPhilipsMainHeader::Image);
     if(pPhilipsFile->open(QIODevice::WriteOnly) == false)
     {
@@ -579,8 +632,8 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
 
   if(result)
   {
-    cout << "Converting: " << inputFile.absoluteFilePath().toAscii().constData() << endl;
-    cout << "OutputFile: " << QFileInfo(m_sOutputFileName).absoluteFilePath().toAscii().constData() << endl;
+    cout << "Converting: " << inputFile.absoluteFilePath().toLatin1().constData() << endl;
+    cout << "OutputFile: " << QFileInfo(m_sOutputFileName).absoluteFilePath().toLatin1().constData() << endl;
 
     pPhilipsMainHeader = pPhilipsFile->createEmptyMainHeader();
     if(pPhilipsMainHeader != NULL)
@@ -638,10 +691,12 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
 
         if(result != false)
         {
+          #if defined(DEBUG)
           short imgMaxValue = pECATSubHeaderImage->image_Max();
           short imgMinValue = pECATSubHeaderImage->image_Min();
           D("imgMin: %d", imgMinValue);
           D("imgMax: %d", imgMaxValue);
+          #endif
 
           // get dimensions of data
           short xDim = pECATSubHeaderImage->x_Dimension();
@@ -701,6 +756,7 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
             pPhilipsSubHeaderImage->setImgmin(imgMinValue);
             pPhilipsSubHeaderImage->setImgmax(imgMaxValue);
             pPhilipsSubHeaderImage->setImgsum(dataArray.sumValue());
+            pPhilipsSubHeaderImage->setImgscl(1.0f); // make sure imgscl() is always 1.0
 
             // set slice number based on first bedpos to conform to the
             // way the philips format uses slice numbers

@@ -72,7 +72,7 @@ class CConcordeFile : public CMedIOData
     CConcordeFile& operator=(const CConcordeFile& src);
     
     // static methods for the MedIOData interface
-    static FileType isOfType(const QString& fileName);
+    static bool isOfType(const QString& fileName);
     static CMedIOData* createFromFile(const QString& fileName);
 
     //! @brief loads a given file 
@@ -99,10 +99,6 @@ class CConcordeFile : public CMedIOData
     CMedIOData::Format dataFormat() const;
 
     virtual CConcordeFile::FileType fileType() const = 0;
-
-    //! @brief checks format of file  
-    //! @return specific format or Unknown if unknown or error
-    static int isoftype(QString file);
 
     bool readMatrix(QByteArray*& matrixData, short frame);
     bool readMatrix(QByteArray*& matrixData, CConcordeFrameHeader*& subHeader, short frame);

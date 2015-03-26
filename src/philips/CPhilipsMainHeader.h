@@ -610,7 +610,7 @@ class CPhilipsMainHeader : public CMedIOHeader
     int start_table_pos_abs() const;
     int start_table_pos_rel() const;
     bool mr_valid() const;
-    const char* coil_type() const;
+    char coil_type(const short i) const;
 
     // methods to modify elements of the MainHeader  
     void setFile_fmt(const short format);
@@ -862,7 +862,7 @@ class CPhilipsMainHeader : public CMedIOHeader
     void setStart_table_pos_abs(const int pos);
     void setStart_table_pos_rel(const int pos);
     void setMr_valid(const bool valid);
-    void setCoil_type(const char* str);
+    void setCoil_type(const short i, const char type);
 
     // special Qt-based methods
     QDate patient_Birth_Date_Qt() const;

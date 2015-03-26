@@ -545,6 +545,22 @@ CECATDirectoryItem* CECATDirectoryPrivate::newDirItem(quint32 matrixID)
   // dataposition it should be placed
   qint64 dataOffset = lastDirItemOffset();
 
+  D("num dir lists available: %d", filePositions.count());
+  D("num items in directory: %d", dirItems.count());
+  
+  // now we check wheter we have enough directory items available for the
+  // amount of dirItems we want to store and if not we add an additional
+  // file position for locking this one.
+  if((static_cast<float>(dirItems.count()+1) / ECAT_DIRITEM_NUM) > filePositions.count())
+  {
+    dataOffset += ECAT_BLOCKSIZE;
+
+    // append the position to our FilePositions for DirLists
+    filePositions.append(dataOffset);
+          
+    D("appended new DirList #%d @ %lld (%lld)", filePositions.count(), FilePos2ECATBlock(dataOffset), dataOffset);
+  }
+
   // modify the Start offset of the item now. So if this is the first
   // one we place it directly behind the maindirectory, which should
   // be block 3. If this is not the first one we place it behind the

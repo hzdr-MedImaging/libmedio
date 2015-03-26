@@ -32,7 +32,7 @@
 
 CPhilipsSubHeaderSyntegra::CPhilipsSubHeaderSyntegra(CPhilipsFile* philipsFile,
                                                      CPhilipsDirectoryItem* pDirItem)
-  : CPhilipsSubHeader(philipsFile, pDirItem)
+  : CPhilipsSubHeaderImage(philipsFile, pDirItem)
 {
   ENTER();
 
@@ -40,7 +40,7 @@ CPhilipsSubHeaderSyntegra::CPhilipsSubHeaderSyntegra(CPhilipsFile* philipsFile,
 }
 
 CPhilipsSubHeaderSyntegra::CPhilipsSubHeaderSyntegra(const CPhilipsSubHeaderSyntegra& src)
-  : CPhilipsSubHeader(src)
+  : CPhilipsSubHeaderImage(src)
 {
   ENTER();
 

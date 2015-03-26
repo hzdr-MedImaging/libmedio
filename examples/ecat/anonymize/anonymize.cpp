@@ -254,18 +254,18 @@ int main(int argc, char* argv[])
           CECAT7MainHeader* mHeader = static_cast<CECAT7MainHeader*>(mainHeader);
 
           // we first make sure we anonymize all must have items
-          mHeader->setOriginal_File_Name(replaceString.toAscii());
-          mHeader->setStudy_Type(replaceString.toAscii());
-          mHeader->setPatient_Name(replaceString.toAscii());
+          mHeader->setOriginal_File_Name(replaceString.toLatin1());
+          mHeader->setStudy_Type(replaceString.toLatin1());
+          mHeader->setPatient_Name(replaceString.toLatin1());
           mHeader->setPatient_Birth_Date(0);
-          mHeader->setPhysician_Name(replaceString.toAscii());
-          mHeader->setOperator_Name(replaceString.toAscii());
-          mHeader->setStudy_Description(replaceString.toAscii());
+          mHeader->setPhysician_Name(replaceString.toLatin1());
+          mHeader->setOperator_Name(replaceString.toLatin1());
+          mHeader->setStudy_Description(replaceString.toLatin1());
 
           // anonymize more data
           if(anonymizeMore == true || anonymizeAll == true)
           {
-            mHeader->setPatient_ID(replaceString.toAscii());
+            mHeader->setPatient_ID(replaceString.toLatin1());
             mHeader->setPatient_Age(0);
             mHeader->setPatient_Sex(CECAT7MainHeader::Sex_Unknown);
             mHeader->setPatient_Dexterity(CECAT7MainHeader::Dext_Unknown);
@@ -276,7 +276,7 @@ int main(int argc, char* argv[])
             // strip of as much study/patient relevant data as possible
             if(anonymizeAll == true)
             {
-              mHeader->setFacility_Name(replaceString.toAscii());
+              mHeader->setFacility_Name(replaceString.toLatin1());
               mHeader->setScan_Start_Time(0);
               mHeader->setDose_Start_Time(0);
               mHeader->setDosage(0.0f);
@@ -290,8 +290,8 @@ int main(int argc, char* argv[])
             returnCode = 2;
           }
           else
-            cout << "successfully anonymized file '" << inputFileName.toAscii().constData() << "' to '" << 
-                                                        outputFileName.toAscii().constData() << "'" << endl;
+            cout << "successfully anonymized file '" << inputFileName.toLatin1().constData() << "' to '" << 
+                                                        outputFileName.toLatin1().constData() << "'" << endl;
 
           delete mHeader;
         }

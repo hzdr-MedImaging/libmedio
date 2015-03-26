@@ -1010,7 +1010,7 @@ bool CPhilipsMainHeader::load()
   D("scan_swrel           : '%s'", scan_swrel());
   D("petct_sepdist        : %d", petct_sepdist());
   D("petct_landmrk        : %d", petct_landmrk());
-  D("petct_align_timestamp: %s", QDateTime::fromTime_t(petct_align_timestamp()).toString().toAscii().constData());
+  D("petct_align_timestamp: %s", QDateTime::fromTime_t(petct_align_timestamp()).toString().toLatin1().constData());
   D("tbl_direction        : %d", tbl_direction());
   D("orient_ps            : %d", orient_ps());
   D("petct_align_zoffset  : %d", petct_align_zoffset());
@@ -1074,10 +1074,10 @@ bool CPhilipsMainHeader::load()
     D("petct_realign_x            : %d", petct_realign_x());
     D("petct_realign_y            : %d", petct_realign_y());
     D("petct_realign_hr           : %d", petct_realign_hr());
-    D("acq_date_time              : %s", QDateTime::fromTime_t(acq_date_time()).toString().toAscii().constData());
-    D("study_date_time            : %s", QDateTime::fromTime_t(study_date_time()).toString().toAscii().constData());
-    D("injection_date_time        : %s", QDateTime::fromTime_t(injection_date_time()).toString().toAscii().constData());
-    D("file_create_date_time      : %s", QDateTime::fromTime_t(file_create_date_time()).toString().toAscii().constData());
+    D("acq_date_time              : %s", QDateTime::fromTime_t(acq_date_time()).toString().toLatin1().constData());
+    D("study_date_time            : %s", QDateTime::fromTime_t(study_date_time()).toString().toLatin1().constData());
+    D("injection_date_time        : %s", QDateTime::fromTime_t(injection_date_time()).toString().toLatin1().constData());
+    D("file_create_date_time      : %s", QDateTime::fromTime_t(file_create_date_time()).toString().toLatin1().constData());
     D("resp_trig_loc              : %d", resp_trig_loc());
     D("card_arrhythmia_rej_tech   : %d", card_arrhythmia_rej_tech());
     D("window_center              : %f", window_center());
@@ -1184,7 +1184,7 @@ bool CPhilipsMainHeader::load()
     D("ramla_blrad                : %f", ramla_blrad());
     D("ramla_blalpha              : %f", ramla_blalpha());
     D("ramla_bcc_rsz              : %f", ramla_bcc_rsz());
-    D("recon_date_time            : %s", QDateTime::fromTime_t(recon_date_time()).toString().toAscii().constData());
+    D("recon_date_time            : %s", QDateTime::fromTime_t(recon_date_time()).toString().toLatin1().constData());
     D("gating_type                : %d", gating_type());
     D("ref_attncor_series_uid     : '%s'", ref_attncor_series_uid());
     D("ref_gated_qc_image_inst_uid: '%s'", ref_gated_qc_image_inst_uid());
@@ -1192,7 +1192,21 @@ bool CPhilipsMainHeader::load()
     D("start_table_pos_abs        : %d", start_table_pos_abs());
     D("start_table_pos_rel        : %d", start_table_pos_rel());
     D("mr_valid                   : %d", mr_valid());
-    D("coil_type                  : '%s'", coil_type());
+    D("coil_type[0]               : %d", coil_type(0));
+    D("coil_type[1]               : %d", coil_type(1));
+    D("coil_type[2]               : %d", coil_type(2));
+    D("coil_type[3]               : %d", coil_type(3));
+    D("coil_type[4]               : %d", coil_type(4));
+    D("coil_type[5]               : %d", coil_type(5));
+    D("coil_type[6]               : %d", coil_type(6));
+    D("coil_type[7]               : %d", coil_type(7));
+    D("coil_type[8]               : %d", coil_type(8));
+    D("coil_type[9]               : %d", coil_type(9));
+    D("coil_type[10]              : %d", coil_type(10));
+    D("coil_type[11]              : %d", coil_type(11));
+    D("coil_type[12]              : %d", coil_type(12));
+    D("coil_type[13]              : %d", coil_type(13));
+    D("coil_type[14]              : %d", coil_type(14));
   }
   else
     W("no extended header found");
@@ -1613,7 +1627,7 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
           setScnOrigin(header->facility_Name());
 
           QString patientName(header->patient_Name());
-          setDpat_name(patientName.replace(", ", "^").toAscii().constData());
+          setDpat_name(patientName.replace(", ", "^").toLatin1().constData());
           setSeries_desc(header->study_Description());
           setInjection_date_time_Qt(header->dose_Start_Time_Qt());
           setAcq_date_time(header->scan_Start_Time());
@@ -1629,7 +1643,6 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
             setHw_config(6769);
             setMr_valid(true);
             setPetct_valid(CPhilipsMainHeader::PETCT_Valid);
-            setCoil_type(header->user_Process_Code());
           }
           else
           {
@@ -1644,11 +1657,21 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
             {
               setMr_valid(true);
               setPetct_valid(CPhilipsMainHeader::PETCT_Valid);
-              setCoil_type(header->user_Process_Code());
               setDmanufacture_model_name(header->operator_Name());
             }
             else if(operatorName.contains("PET", Qt::CaseInsensitive))
               setDmanufacture_model_name(header->operator_Name());
+          }
+
+          // check if cti_Reserved() is set to mr_valid mode
+          if(header->cti_Reserved(0) == 0x6d72) // hex-code for 'mr', if set mr_valid can be extracted
+          {
+            setMr_valid(true);
+            setCoil_type(0, header->cti_Reserved(1));
+            setCoil_type(1, header->cti_Reserved(2));
+            setCoil_type(2, header->cti_Reserved(3));
+            setCoil_type(3, header->cti_Reserved(4));
+            setCoil_type(4, header->cti_Reserved(5));
           }
 
           m_pData->ecat2philipsPharm(header->radiopharmaceutical());
@@ -1665,15 +1688,19 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
           setFile_create_date_time_Qt(header->scan_Start_Time_Qt());
 
           // set the table direction based on the bed offset being negative or positive
-          setTbl_direction(header->bed_Offset(0) < 0 ? CPhilipsMainHeader::Out : CPhilipsMainHeader::In);
+          if(header->bed_Offset(0) != 0)
+            setTbl_direction(header->bed_Offset(0) < 0 ? CPhilipsMainHeader::Out : CPhilipsMainHeader::In);
+          else 
+            setTbl_direction(header->init_Bed_Position() < 0 ? CPhilipsMainHeader::Out : CPhilipsMainHeader::In);
+
           switch(tbl_direction())
           {
             case CPhilipsMainHeader::Out:
-              setMax_bed_pos(qRound(header->init_Bed_Position() * 10.0f)); // cm -> mm
+              setMax_bed_pos(header->init_Bed_Position() * 10.0f); // cm -> mm
             break;
 
             case CPhilipsMainHeader::In:
-              setMin_bed_pos(qRound(header->init_Bed_Position() * 10.0f)); // cm -> mm
+              setMin_bed_pos(header->init_Bed_Position() * 10.0f); // cm -> mm
             break;
 
             case CPhilipsMainHeader::UnknownDirection:
@@ -3149,7 +3176,7 @@ bool CPhilipsMainHeaderPrivate::ecat2philipsAcquisitionType(const CECAT7MainHead
 
   header.aqprotocol_type = ptype;
   header.scntyp = atype;
-  strncpy(extHeader.Dimage_type, dimg_type.toAscii().constData(), sizeof(extHeader.Dimage_type)-1);
+  strncpy(extHeader.Dimage_type, dimg_type.toLatin1().constData(), sizeof(extHeader.Dimage_type)-1);
 
   RETURN(result);
   return result;
@@ -4006,9 +4033,12 @@ bool CPhilipsMainHeader::mr_valid() const
   return m_pData->extHeader.mr_valid == 1;
 }
 
-const char* CPhilipsMainHeader::coil_type() const
+char CPhilipsMainHeader::coil_type(const short i) const
 {
-  return m_pData->extHeader.coil_type;
+  if(i >= 0 && i <= 14)
+    return m_pData->extHeader.coil_type[i];
+  else
+    return 0;
 }
 
 void CPhilipsMainHeader::setDpat_name(const char* str)
@@ -4686,7 +4716,8 @@ void CPhilipsMainHeader::setMr_valid(const bool valid)
   m_pData->extHeader.mr_valid = (valid == true) ? 1 : 0;
 }
 
-void CPhilipsMainHeader::setCoil_type(const char* str)
+void CPhilipsMainHeader::setCoil_type(const short i, const char type)
 {
-  strncpy(m_pData->extHeader.coil_type, str, sizeof(m_pData->extHeader.coil_type)-1);
+  if(i >= 0 && i <= 14)
+    m_pData->extHeader.coil_type[i] = type;
 }

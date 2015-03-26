@@ -1149,7 +1149,7 @@ bool CConcordeMainHeader::load()
 bool CConcordeMainHeader::load(const QString& File)
 {
   ENTER();
-  D("Start Parsing File %s", File.toAscii().data());
+  D("Start Parsing File %s", File.toLatin1().data());
   if(m_pData->parser.parse(File))
   {
     D("Parsing of mainheader seems to be ok");
@@ -1162,7 +1162,7 @@ bool CConcordeMainHeader::load(const QString& File)
   }
   else
   {
-    D("Headerfile %s not found !", File.toAscii().data());
+    D("Headerfile %s not found !", File.toLatin1().data());
     return false;
   }
   RETURN(true);

@@ -143,8 +143,8 @@ bool CApplication::checkOutputFile(const QFileInfo& inputFile)
     if(outputFile.exists())
     {
       bResult = false;
-      cout << "ERROR: can't convert '" << inputFile.fileName().toAscii().constData() 
-           << "' as output file '" << outputFile.fileName().toAscii().constData() << "' already exists" << endl;
+      cout << "ERROR: can't convert '" << inputFile.fileName().toLatin1().constData() 
+           << "' as output file '" << outputFile.fileName().toLatin1().constData() << "' already exists" << endl;
     }
   }
   else
@@ -196,7 +196,7 @@ void CApplication::showAppInfo()
   // output some general program information
   cout << endl
        << PACKAGE_STRING << " - converts microPET image file to ECAT file" << endl
-       << "(" __DATE__ ") Copyright (c) 2006-2011 by Hagen Moelle, Jens Langner / www.hzdr.de" << endl << endl;
+       << "(" __DATE__ ") Copyright (c) 2006-2014 Jens Maus, Hagen Moelle / www.hzdr.de" << endl << endl;
   LEAVE();
   return;
 }
@@ -233,9 +233,9 @@ void CApplication::showVersion()
                   << "  Copyright (c) 2006-2007 Trolltech Inc." << endl << endl
 
        // libmedio version information
-       << "  libmedio " << CMedIO::version().toAscii().constData() <<  " ("
-       << CMedIO::buildDate().toAscii().constData() << ")" << endl
-       << "  " << CMedIO::copyright().toAscii().constData() << endl;
+       << "  libmedio " << CMedIO::version().toLatin1().constData() <<  " ("
+       << CMedIO::buildDate().toLatin1().constData() << ")" << endl
+       << "  " << CMedIO::copyright().toLatin1().constData() << endl;
 
   LEAVE();
   return;
@@ -294,7 +294,7 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
     pSrcImageVolume = CMedIODataFactory::create(inputFile.filePath());
     if(pSrcImageVolume == NULL)
     {
-      cout << "ERROR: Image source file format is unknown." << endl;
+      cout << "ERROR: Unknown image file format (" << inputFile.filePath().toLatin1().constData() << ")." << endl;
       bResult = false;
     }
   }
@@ -302,9 +302,9 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
   if(bResult)
   {
     bool bOpenSource = pSrcImageVolume->open(QIODevice::ReadOnly);
-    if(!bOpenSource || !(pSrcImageVolume->rtti() == CMedIOData::ConcordeMicropet))
+    if(!bOpenSource || !(pSrcImageVolume->dataFormat() == CMedIOData::ConcordeMicropet))
     {
-      cout << "ERROR: When opening file or file is not from concorde microPET." << endl;
+      cout << "ERROR: Couldn't open file or file not a concorde microPET file." << endl;
       bResult = false;
     }
   }
@@ -331,7 +331,7 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
 
   if(bResult)
   {
-    D("Creating empty ecat image: '%s'", m_sOutputFileName.toAscii().data());
+    D("Creating empty ecat image: '%s'", m_sOutputFileName.toLatin1().data());
     ecat7Image = new CECATFile(m_sOutputFileName, CECATMainHeader::ECAT7_Volume16);
     if(!ecat7Image->open(QIODevice::WriteOnly))
     {
@@ -340,19 +340,31 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
     }
   }
 
+  CConcordeFrameHeader* pSrcImgSubHeader = NULL;
+  if(bResult == true &&
+     (((CConcordeFile*)pSrcImageVolume)->readSubHeader(pSrcImgSubHeader, 1) == false ||
+      pSrcImgSubHeader == NULL))
+  {
+    cout << "ERROR: Could not load first sub header for main header conversion." << endl;
+    bResult = false;
+  }
+
   if(bResult)
   {
-    cout << "Converting: " << inputFile.absoluteFilePath().toAscii().constData() << endl;
-    cout << "OutputFile: " << QFileInfo(m_sOutputFileName).absoluteFilePath().toAscii().constData() << endl;
+    cout << "Converting: " << inputFile.absoluteFilePath().toLatin1().constData() << endl;
+    cout << "OutputFile: " << QFileInfo(m_sOutputFileName).absoluteFilePath().toLatin1().constData() << endl;
 
     pEcat7ImgHeader = static_cast<CECAT7MainHeader*>(ecat7Image->createEmptyMainHeader());
-    pEcat7ImgHeader->convertFrom(pSrcImageHeader);
+    pEcat7ImgHeader->convertFrom(pSrcImageHeader, pSrcImgSubHeader);
+
+    delete pSrcImgSubHeader;
+    pSrcImgSubHeader = NULL;
 
     if(m_sPatientName.isEmpty() == false)
-      pEcat7ImgHeader->setPatient_Name(m_sPatientName.toAscii().constData());
+      pEcat7ImgHeader->setPatient_Name(m_sPatientName.toLatin1().constData());
 
     if(QString(pEcat7ImgHeader->study_Description()).trimmed().isEmpty())
-      pEcat7ImgHeader->setStudy_Description(inputFile.fileName().toAscii().constData());
+      pEcat7ImgHeader->setStudy_Description(inputFile.fileName().toLatin1().constData());
     
     int iNrFrames = pSrcImageHeader->totalFrames();
     if(iNrFrames > NUMFRAMESLIMIT)
@@ -371,7 +383,6 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
     for(int i = 0; i < iNrFrames; i++)
     {
       QByteArray* pImgData = NULL;
-      CConcordeFrameHeader* pSrcImgSubHeader = NULL;
 
       cout << "Converting Frame: " << (i+1) << " of " << iNrFrames;
 
