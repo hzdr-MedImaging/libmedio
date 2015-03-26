@@ -197,7 +197,7 @@ void CConcordeFrameHeaderPrivate::init()
   int real_frame_in_file = header.frame;
   QString tmp("frame ");
   tmp = tmp + QString::number(real_frame_in_file);
-  D("Frame: %s", tmp.toAscii().data());
+  D("Frame: %s", tmp.toLatin1().data());
   parser.addStartSymbol(tmp);
   parser.addStopSymbol("end_of_header");
   
@@ -234,7 +234,7 @@ void CConcordeFrameHeaderPrivate::init()
 ////////////////////////////////////////////////////////////////////////////////
 bool CConcordeFrameHeader::load()
 {
-  D("Start Parsing File %s for Frame: %d", m_pData->fileName.toAscii().data(), m_pData->header.frame);
+  D("Start Parsing File %s for Frame: %d", m_pData->fileName.toLatin1().data(), m_pData->header.frame);
   if(m_pData->parser.parse(m_pData->fileName))
     return true;
   else

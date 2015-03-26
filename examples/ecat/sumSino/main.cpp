@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
   QFileInfo fi(inputFileNames[0]);
   if(fi.exists() == false)
   {
-    cerr << "ERROR: required input file '" << inputFileNames[0].toAscii().constData() << "' does not exist." << endl;
+    cerr << "ERROR: required input file '" << inputFileNames[0].toLatin1().constData() << "' does not exist." << endl;
     return 1;
   }
 

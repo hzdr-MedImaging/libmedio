@@ -1010,7 +1010,7 @@ bool CPhilipsMainHeader::load()
   D("scan_swrel           : '%s'", scan_swrel());
   D("petct_sepdist        : %d", petct_sepdist());
   D("petct_landmrk        : %d", petct_landmrk());
-  D("petct_align_timestamp: %s", QDateTime::fromTime_t(petct_align_timestamp()).toString().toAscii().constData());
+  D("petct_align_timestamp: %s", QDateTime::fromTime_t(petct_align_timestamp()).toString().toLatin1().constData());
   D("tbl_direction        : %d", tbl_direction());
   D("orient_ps            : %d", orient_ps());
   D("petct_align_zoffset  : %d", petct_align_zoffset());
@@ -1074,10 +1074,10 @@ bool CPhilipsMainHeader::load()
     D("petct_realign_x            : %d", petct_realign_x());
     D("petct_realign_y            : %d", petct_realign_y());
     D("petct_realign_hr           : %d", petct_realign_hr());
-    D("acq_date_time              : %s", QDateTime::fromTime_t(acq_date_time()).toString().toAscii().constData());
-    D("study_date_time            : %s", QDateTime::fromTime_t(study_date_time()).toString().toAscii().constData());
-    D("injection_date_time        : %s", QDateTime::fromTime_t(injection_date_time()).toString().toAscii().constData());
-    D("file_create_date_time      : %s", QDateTime::fromTime_t(file_create_date_time()).toString().toAscii().constData());
+    D("acq_date_time              : %s", QDateTime::fromTime_t(acq_date_time()).toString().toLatin1().constData());
+    D("study_date_time            : %s", QDateTime::fromTime_t(study_date_time()).toString().toLatin1().constData());
+    D("injection_date_time        : %s", QDateTime::fromTime_t(injection_date_time()).toString().toLatin1().constData());
+    D("file_create_date_time      : %s", QDateTime::fromTime_t(file_create_date_time()).toString().toLatin1().constData());
     D("resp_trig_loc              : %d", resp_trig_loc());
     D("card_arrhythmia_rej_tech   : %d", card_arrhythmia_rej_tech());
     D("window_center              : %f", window_center());
@@ -1184,7 +1184,7 @@ bool CPhilipsMainHeader::load()
     D("ramla_blrad                : %f", ramla_blrad());
     D("ramla_blalpha              : %f", ramla_blalpha());
     D("ramla_bcc_rsz              : %f", ramla_bcc_rsz());
-    D("recon_date_time            : %s", QDateTime::fromTime_t(recon_date_time()).toString().toAscii().constData());
+    D("recon_date_time            : %s", QDateTime::fromTime_t(recon_date_time()).toString().toLatin1().constData());
     D("gating_type                : %d", gating_type());
     D("ref_attncor_series_uid     : '%s'", ref_attncor_series_uid());
     D("ref_gated_qc_image_inst_uid: '%s'", ref_gated_qc_image_inst_uid());
@@ -1627,7 +1627,7 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
           setScnOrigin(header->facility_Name());
 
           QString patientName(header->patient_Name());
-          setDpat_name(patientName.replace(", ", "^").toAscii().constData());
+          setDpat_name(patientName.replace(", ", "^").toLatin1().constData());
           setSeries_desc(header->study_Description());
           setInjection_date_time_Qt(header->dose_Start_Time_Qt());
           setAcq_date_time(header->scan_Start_Time());
@@ -3176,7 +3176,7 @@ bool CPhilipsMainHeaderPrivate::ecat2philipsAcquisitionType(const CECAT7MainHead
 
   header.aqprotocol_type = ptype;
   header.scntyp = atype;
-  strncpy(extHeader.Dimage_type, dimg_type.toAscii().constData(), sizeof(extHeader.Dimage_type)-1);
+  strncpy(extHeader.Dimage_type, dimg_type.toLatin1().constData(), sizeof(extHeader.Dimage_type)-1);
 
   RETURN(result);
   return result;

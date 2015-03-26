@@ -23,7 +23,7 @@
 # **************************************************************************/
 
 AC_PREREQ(2.57)
-AC_INIT(libmedio, 2.9.9, mail@jens-maus.de)
+AC_INIT(libmedio, 3.0.0, mail@jens-maus.de)
 AC_COPYRIGHT(Copyright (C) 2006-2015 Jens Maus <mail@jens-maus.de>)
 AC_REVISION($Revision$)
 AC_CONFIG_SRCDIR([src])
@@ -59,10 +59,10 @@ AC_ENABLE_SHARED_LIB
 
 # Check for the Qt4 libraries
 AC_ENABLE_STATIC_QT
-AC_PATH_QT4
-AC_PATH_QT4_INC
-AC_PATH_QT4_LIB
-AC_PATH_QT4_QMAKE
+AC_PATH_QT5
+AC_PATH_QT5_INC
+AC_PATH_QT5_LIB
+AC_PATH_QT5_QMAKE
 
 # Check for the runtime debug library
 AC_ENABLE_DEBUG
