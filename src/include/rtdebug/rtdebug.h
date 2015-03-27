@@ -24,6 +24,10 @@
 #ifndef RTDEBUG_H
 #define RTDEBUG_H
 
+#if defined(DEBUG)
+#error DEBUG mode enabled but incorrect rtdebug.h included
+#endif
+
 // This header is just a plain dummy to please libmedio in case there
 // is no librtdebug installation found at all. It will be put in the
 // include path and if loaded by the compiler takes precedence over the

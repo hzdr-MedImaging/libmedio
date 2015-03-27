@@ -51,16 +51,25 @@ set(PROJECT_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 
-# Configure Qt
-find_package(Qt5Core REQUIRED)
+# set the cmake modules path
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
-if (NOT MSVC)
-  # Enable the C++11 standard
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+# if /usr/local/petlib is found use that one for install and search prefix
+if(EXISTS "/usr/local/petlib/")
+  set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "/usr/local/petlib")
+  if(CMAKE_INSTALL_PREFIX STREQUAL "/usr/local")
+    set(CMAKE_INSTALL_PREFIX "/usr/local/petlib")
+  endif()
 endif()
 
-# Testing configuration
-enable_testing()
-set(TEST_LINK_LIBRARIES Qt5::Test)
+# Configure third party packages
+find_package(Qt5Core REQUIRED)
+find_package(rtdebug REQUIRED)
+
+# Set some better optimization options
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=generic -std=c++11")
+set(CMAKE_CXX_FLAGS_RELEASE, "${CMAKE_CXX_FLAGS_RELEASE} -O3 -fomit-frame-pointer")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO, "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -O3 -g -fomit-frame-pointer")
+set(CMAKE_CXX_FLAGS_DEBUG, "${CMAKE_CXX_FLAGS_RELEASE} -O0")
 
 add_subdirectory(src)

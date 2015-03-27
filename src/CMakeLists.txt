@@ -33,14 +33,58 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/config.h.in
 # specify include directories
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include
                     ${CMAKE_CURRENT_SOURCE_DIR}/include
-                    ${CMAKE_CURRENT_SOURCE_DIR}/include/rtdebug
                     ${CMAKE_CURRENT_SOURCE_DIR}/ecat
                     ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat6
                     ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat7
                     ${CMAKE_CURRENT_SOURCE_DIR}/micropet
                     ${CMAKE_CURRENT_SOURCE_DIR}/philips
                     ${CMAKE_CURRENT_SOURCE_DIR}/helpers
+                    ${LIBRTDEBUG_INCLUDE_DIR}
+                    ${CMAKE_CURRENT_SOURCE_DIR}/include/rtdebug
 )
+
+# specify the public includes to be installed as well
+set(PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/CMedIO.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/CMedIOHeader.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/CMedIOData.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/CMedIODataFactory.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/ecat/CECATDirectory.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/ecat/CECATDirectoryItem.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/ecat/CECATFile.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/ecat/CECATMainHeader.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/ecat/CECATSubHeader.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat6/CECAT6MainHeader.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat7/CECAT7MainHeader.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat7/CECAT7SubHeaderAttenCorr.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat7/CECAT7SubHeaderImage.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat7/CECAT7SubHeaderNorm.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat7/CECAT7SubHeaderNorm3D.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat7/CECAT7SubHeaderPolarMap.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat7/CECAT7SubHeaderScan.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat7/CECAT7SubHeaderScan3D.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/micropet/CConcordeMainHeader.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/micropet/CConcordeMainHeaderSinogram.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/micropet/CConcordeMainHeaderImage.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/micropet/CConcordeFrameHeader.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/micropet/CConcordeFile.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/micropet/CConcordeSinogram.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/micropet/CConcordeImage.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/philips/CPhilipsFile.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/philips/CPhilipsListviewHeader.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/philips/CPhilipsBinFile.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/philips/CPhilipsMainHeader.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/philips/CPhilipsDirectory.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/philips/CPhilipsDirectoryItem.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/philips/CPhilipsSubHeader.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/philips/CPhilipsSubHeaderImage.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/philips/CPhilipsSubHeaderSinogram.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/philips/CPhilipsSubHeaderSyntegra.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/philips/CPhilipsSubHeaderListmode.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/helpers/MedIOUnits.h
+)
+
+# consider all files in the stubs directory
+file(GLOB STUB_FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/stubs/*)
 
 # consider all *.ccp files found to be actual code files
 file(GLOB_RECURSE CODE_FILES *.cpp)
@@ -57,8 +101,8 @@ set_target_properties(${CMAKE_PROJECT_NAME}.so PROPERTIES OUTPUT_NAME medio
                                                           SOVERSION ${PROJECT_VERSION_MAJOR})
 
 # define link libraries dependencies
-target_link_libraries(${CMAKE_PROJECT_NAME}.a Qt5::Core)
-target_link_libraries(${CMAKE_PROJECT_NAME}.so Qt5::Core)
+target_link_libraries(${CMAKE_PROJECT_NAME}.a Qt5::Core ${LIBRTDEBUG_STATIC_LIBRARY})
+target_link_libraries(${CMAKE_PROJECT_NAME}.so Qt5::Core ${LIBRTDEBUG_SHARED_LIBRARY})
 
 # definition of install targets
 install(TARGETS ${CMAKE_PROJECT_NAME}.a
@@ -70,4 +114,8 @@ install(TARGETS ${CMAKE_PROJECT_NAME}.so
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
         COMPONENT library
+)
+install(FILES ${PUBLIC_HEADER} 
+              ${STUB_FILES}
+        DESTINATION include/medio
 )
