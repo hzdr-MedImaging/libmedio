@@ -39,7 +39,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/include
                     ${CMAKE_CURRENT_SOURCE_DIR}/micropet
                     ${CMAKE_CURRENT_SOURCE_DIR}/philips
                     ${CMAKE_CURRENT_SOURCE_DIR}/helpers
-                    ${LIBRTDEBUG_INCLUDE_DIR}
+                    ${RTDEBUG_INCLUDES}
                     ${CMAKE_CURRENT_SOURCE_DIR}/include/rtdebug
 )
 
@@ -101,8 +101,8 @@ set_target_properties(${CMAKE_PROJECT_NAME}.so PROPERTIES OUTPUT_NAME medio
                                                           SOVERSION ${PROJECT_VERSION_MAJOR})
 
 # define link libraries dependencies
-target_link_libraries(${CMAKE_PROJECT_NAME}.a Qt5::Core ${LIBRTDEBUG_STATIC_LIBRARY})
-target_link_libraries(${CMAKE_PROJECT_NAME}.so Qt5::Core ${LIBRTDEBUG_SHARED_LIBRARY})
+target_link_libraries(${CMAKE_PROJECT_NAME}.a Qt5::Core ${RTDEBUG_STATIC_LIB})
+target_link_libraries(${CMAKE_PROJECT_NAME}.so Qt5::Core ${RTDEBUG_SHARED_LIB})
 
 # definition of install targets
 install(TARGETS ${CMAKE_PROJECT_NAME}.a

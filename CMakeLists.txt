@@ -64,7 +64,7 @@ endif()
 
 # Configure third party packages
 find_package(Qt5Core REQUIRED)
-find_package(rtdebug REQUIRED)
+find_package(RTDEBUG REQUIRED)
 
 # Set some better optimization options
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=generic -std=c++11")
