@@ -1,6 +1,1 @@
-#include <qglobal.h>
-#if QT_VERSION >= 0x040000
-#include "./2/CECAT7SubHeaderScan3D.h"
-#else
-#include "./1/CECAT7SubHeaderScan3D.h"
-#endif
+#include "CECAT7SubHeaderScan3D.h"

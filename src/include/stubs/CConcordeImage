@@ -1,6 +1,1 @@
-#include <qglobal.h>
-#if QT_VERSION >= 0x040000
-#include "./2/CConcordeImage.h"
-#else
-#include "./1/CConcordeImage.h"
-#endif
+#include "CConcordeImage.h"

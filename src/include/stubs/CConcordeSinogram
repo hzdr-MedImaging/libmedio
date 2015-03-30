@@ -1,6 +1,1 @@
-#include <qglobal.h>
-#if QT_VERSION >= 0x040000
-#include "./2/CConcordeSinogram.h"
-#else
-#include "./1/CConcordeSinogram.h"
-#endif
+#include "CConcordeSinogram.h"
