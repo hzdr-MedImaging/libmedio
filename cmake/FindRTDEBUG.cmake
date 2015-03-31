@@ -24,14 +24,15 @@ if(CMAKE_BUILD_TYPE MATCHES Debug)
   find_library(RTDEBUG_SHARED_LIB NAMES librtdebug.so rtdebug
                PATH_SUFFIXES lib
   )
-  
+ 
   # set the global DEBUG define while compiling
   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 
   # handle the QUIETLY and REQUIRED arguments and set RTDEBUG_FOUND to TRUE if
   # all listed variables are TRUE
   include(FindPackageHandleStandardArgs)
-  find_package_handle_standard_args(RTDEBUG DEFAULT_MSG RTDEBUG_STATIC_LIB RTDEBUG_SHARED_LIB RTDEBUG_INCLUDES)
+  set(RTDEBUG_LIBS ${RTDEBUG_STATIC_LIB} ${RTDEBUG_SHARED_LIB})
+  find_package_handle_standard_args(RTDEBUG DEFAULT_MSG RTDEBUG_LIBS RTDEBUG_INCLUDES)
   
   mark_as_advanced(RTDEBUG_STATIC_LIB RTDEBUG_SHARED_LIB RTDEBUG_INCLUDES)
 
