@@ -99,7 +99,7 @@ MKDIR   = mkdir -p
 
 # Common Directories
 PREFIX    = ./
-BUILDDIR  = $(PREFIX)build/$(OS)
+BUILDDIR  = $(PREFIX)build-$(OS)
 
 ###################
 # main target
@@ -115,7 +115,7 @@ $(BUILDDIR):
 .NOTPARALLEL: $(BUILDDIR)/Makefile
 $(BUILDDIR)/Makefile:
 	@echo "  CMAKE $@"
-	@(cd $(BUILDDIR) ; $(CMAKE) ../../)
+	@(cd $(BUILDDIR) ; $(CMAKE) ..)
 
 .PHONY: build
 .NOTPARALLEL: build
@@ -135,12 +135,13 @@ clean:
 	@echo "  CLEAN"
 	@$(MAKE) -C $(BUILDDIR) clean
 
-cleanall: clean
+.PHONY: cleanall
+cleanall:
 	@echo "  CLEANALL"
 	@$(RMDIR) $(BUILDDIR)/*
 
 # clean all stuff, including our autotools
 .PHONY: distclean
-distclean: cleanall
+distclean:
 	@echo "  DISTCLEAN"
-	@$(RMDIR) $(BUILDDIR)
+	@$(RMDIR) $(PREFIX)build-*

@@ -85,4 +85,8 @@ elseif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "i[63]86")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__i386__")
 endif()
 
+# enable @rpath in the install name for any shared library being built
+# note: it is planned that a future version of CMake will enable this by default
+set(CMAKE_MACOSX_RPATH 1)
+
 add_subdirectory(src)
