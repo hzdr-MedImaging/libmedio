@@ -110,7 +110,10 @@ ifeq ($(OS), w64)
   ##############################
   # Windows 64-bit static
   ifneq ($(HOST), Windows64)
-    CMAKE_TOOLCHAIN_FILE = "-DCMAKE_TOOLCHAIN_FILE=$(MXEDIR)/usr/x86_64-w64-mingw32.shared/share/cmake/mxe-conf.cmake"
+    MXEDIR = /usr/local/mxe/usr/x86_64-w64-mingw32.shared
+    CMAKE_TOOLCHAIN_FILE = "-DCMAKE_TOOLCHAIN_FILE=$(MXEDIR)/share/cmake/mxe-conf.cmake"
+    CMAKE_PREFIX_PATH = "-DCMAKE_PREFIX_PATH=$(MXEDIR)"
+    CMAKE_INSTALL_PREFIX = "-DCMAKE_INSTALL_PREFIX=/usr/local/petlib/$(OS)/"
   endif
 endif
 
@@ -118,7 +121,10 @@ ifeq ($(OS), w64s)
   ##############################
   # Windows 64-bit static
   ifneq ($(HOST), Windows64)
-    CMAKE_TOOLCHAIN_FILE = "-DCMAKE_TOOLCHAIN_FILE=$(MXEDIR)/usr/x86_64-w64-mingw32.static/share/cmake/mxe-conf.cmake"
+    MXEDIR = /usr/local/mxe/usr/x86_64-w64-mingw32.static
+    CMAKE_TOOLCHAIN_FILE = "-DCMAKE_TOOLCHAIN_FILE=$(MXEDIR)/share/cmake/mxe-conf.cmake"
+    CMAKE_PREFIX_PATH = "-DCMAKE_PREFIX_PATH=$(MXEDIR)"
+    CMAKE_INSTALL_PREFIX = "-DCMAKE_INSTALL_PREFIX=/usr/local/petlib/$(OS)/"
   endif
 endif
 
@@ -126,7 +132,10 @@ ifeq ($(OS), w32)
   ##############################
   # Windows 32-bit static
   ifneq ($(HOST), Windows64)
-    CMAKE_TOOLCHAIN_FILE = "-DCMAKE_TOOLCHAIN_FILE=$(MXEDIR)/usr/i686-w64-mingw32.shared/share/cmake/mxe-conf.cmake"
+    MXEDIR = /usr/local/mxe/usr/i686-w64-mingw32.shared
+    CMAKE_TOOLCHAIN_FILE = "-DCMAKE_TOOLCHAIN_FILE=$(MXEDIR)/share/cmake/mxe-conf.cmake"
+    CMAKE_PREFIX_PATH = "-DCMAKE_PREFIX_PATH=$(MXEDIR)"
+    CMAKE_INSTALL_PREFIX = "-DCMAKE_INSTALL_PREFIX=/usr/local/petlib/$(OS)/"
   endif
 endif
 
@@ -134,12 +143,15 @@ ifeq ($(OS), w32s)
   ##############################
   # Windows 32-bit static
   ifneq ($(HOST), Windows64)
-    CMAKE_TOOLCHAIN_FILE = "-DCMAKE_TOOLCHAIN_FILE=$(MXEDIR)/usr/i686-w64-mingw32.static/share/cmake/mxe-conf.cmake"
+    MXEDIR = /usr/local/mxe/usr/i686-w64-mingw32.static
+    CMAKE_TOOLCHAIN_FILE = "-DCMAKE_TOOLCHAIN_FILE=$(MXEDIR)/share/cmake/mxe-conf.cmake"
+    CMAKE_PREFIX_PATH = "-DCMAKE_PREFIX_PATH=$(MXEDIR)"
+    CMAKE_INSTALL_PREFIX = "-DCMAKE_INSTALL_PREFIX=/usr/local/petlib/$(OS)/"
   endif
 endif
 
 # combine all cmake relevant options to one string
-CMAKE_OPTIONS := "$(CMAKE_TOOLCHAIN_FILE)"
+CMAKE_OPTIONS := $(CMAKE_TOOLCHAIN_FILE) $(CMAKE_PREFIX_PATH) $(CMAKE_INSTALL_PREFIX)
 
 ###################
 # main target
