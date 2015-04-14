@@ -100,6 +100,20 @@ MKDIR   = mkdir -p
 # Common Directories
 PREFIX    = ./
 BUILDDIR  = $(PREFIX)build-$(OS)
+MXEDIR    = /usr/local/mxe
+
+#############################################
+# lets identify if we are going to cross
+# compile and if so we add some options to
+# the cmake call
+ifeq ($(OS), w64)
+  ##############################
+  # Windows 64-bit static
+  ifneq ($(HOST), Windows64)
+    CMAKE_TOOLCHAIN = "-DCMAKE_TOOLCHAIN_FILE=$(MXEDIR)/usr/x86_64-w64-mingw32.static/share/cmake/mxe-conf.cmake"
+  endif
+endif
+
 
 ###################
 # main target
@@ -115,7 +129,7 @@ $(BUILDDIR):
 .NOTPARALLEL: $(BUILDDIR)/Makefile
 $(BUILDDIR)/Makefile:
 	@echo "  CMAKE $@"
-	@(cd $(BUILDDIR) ; $(CMAKE) ..)
+	@(cd $(BUILDDIR) ; $(CMAKE) $(CMAKE_TOOLCHAIN) ..)
 
 .PHONY: build
 .NOTPARALLEL: build
