@@ -91,26 +91,35 @@ file(GLOB_RECURSE CODE_FILES *.cpp)
 
 # specify that we are creating a shared and static library at the
 # same time
-add_library(${CMAKE_PROJECT_NAME}.a  STATIC ${CODE_FILES})
-add_library(${CMAKE_PROJECT_NAME}.so SHARED ${CODE_FILES})
-set_target_properties(${CMAKE_PROJECT_NAME}.a PROPERTIES OUTPUT_NAME medio 
-                                                         VERSION ${PROJECT_VERSION} 
-                                                         SOVERSION ${PROJECT_VERSION_MAJOR})
-set_target_properties(${CMAKE_PROJECT_NAME}.so PROPERTIES OUTPUT_NAME medio 
-                                                          VERSION ${PROJECT_VERSION} 
-                                                          SOVERSION ${PROJECT_VERSION_MAJOR})
+add_library(${CMAKE_PROJECT_NAME}-static STATIC ${CODE_FILES})
+add_library(${CMAKE_PROJECT_NAME}-shared SHARED ${CODE_FILES})
+set_target_properties(${CMAKE_PROJECT_NAME}-static PROPERTIES OUTPUT_NAME medio 
+                                                              VERSION ${PROJECT_VERSION} 
+                                                              SOVERSION ${PROJECT_VERSION_MAJOR})
+set_target_properties(${CMAKE_PROJECT_NAME}-shared PROPERTIES OUTPUT_NAME medio 
+                                                              VERSION ${PROJECT_VERSION} 
+                                                              SOVERSION ${PROJECT_VERSION_MAJOR})
+
+# add some special libraries in case we are build for windows
+# WARNING: This seems to be a workaround because Qt5 itself should
+# include them?!?!
+if(WIN32)
+  if(${CMAKE_C_COMPILER} MATCHES "static-gcc")
+    set(ADD_LIBS "-lpcre16 -lz -lws2_32 -lsicuuc -lsicudt")
+  endif()
+endif()
 
 # define link libraries dependencies
-target_link_libraries(${CMAKE_PROJECT_NAME}.a Qt5::Core ${RTDEBUG_STATIC_LIB})
-target_link_libraries(${CMAKE_PROJECT_NAME}.so Qt5::Core ${RTDEBUG_SHARED_LIB})
+target_link_libraries(${CMAKE_PROJECT_NAME}-static Qt5::Core ${RTDEBUG_STATIC_LIB})
+target_link_libraries(${CMAKE_PROJECT_NAME}-shared Qt5::Core ${RTDEBUG_SHARED_LIB} ${ADD_LIBS})
 
 # definition of install targets
-install(TARGETS ${CMAKE_PROJECT_NAME}.a
+install(TARGETS ${CMAKE_PROJECT_NAME}-static
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
         COMPONENT library
 )
-install(TARGETS ${CMAKE_PROJECT_NAME}.so
+install(TARGETS ${CMAKE_PROJECT_NAME}-shared
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
         COMPONENT library

@@ -110,10 +110,36 @@ ifeq ($(OS), w64)
   ##############################
   # Windows 64-bit static
   ifneq ($(HOST), Windows64)
-    CMAKE_TOOLCHAIN = "-DCMAKE_TOOLCHAIN_FILE=$(MXEDIR)/usr/x86_64-w64-mingw32.static/share/cmake/mxe-conf.cmake"
+    CMAKE_TOOLCHAIN_FILE = "-DCMAKE_TOOLCHAIN_FILE=$(MXEDIR)/usr/x86_64-w64-mingw32.shared/share/cmake/mxe-conf.cmake"
   endif
 endif
 
+ifeq ($(OS), w64s)
+  ##############################
+  # Windows 64-bit static
+  ifneq ($(HOST), Windows64)
+    CMAKE_TOOLCHAIN_FILE = "-DCMAKE_TOOLCHAIN_FILE=$(MXEDIR)/usr/x86_64-w64-mingw32.static/share/cmake/mxe-conf.cmake"
+  endif
+endif
+
+ifeq ($(OS), w32)
+  ##############################
+  # Windows 32-bit static
+  ifneq ($(HOST), Windows64)
+    CMAKE_TOOLCHAIN_FILE = "-DCMAKE_TOOLCHAIN_FILE=$(MXEDIR)/usr/i686-w64-mingw32.shared/share/cmake/mxe-conf.cmake"
+  endif
+endif
+
+ifeq ($(OS), w32s)
+  ##############################
+  # Windows 32-bit static
+  ifneq ($(HOST), Windows64)
+    CMAKE_TOOLCHAIN_FILE = "-DCMAKE_TOOLCHAIN_FILE=$(MXEDIR)/usr/i686-w64-mingw32.static/share/cmake/mxe-conf.cmake"
+  endif
+endif
+
+# combine all cmake relevant options to one string
+CMAKE_OPTIONS := "$(CMAKE_TOOLCHAIN_FILE)"
 
 ###################
 # main target
@@ -129,7 +155,7 @@ $(BUILDDIR):
 .NOTPARALLEL: $(BUILDDIR)/Makefile
 $(BUILDDIR)/Makefile:
 	@echo "  CMAKE $@"
-	@(cd $(BUILDDIR) ; $(CMAKE) $(CMAKE_TOOLCHAIN) ..)
+	@(cd $(BUILDDIR) ; $(CMAKE) $(CMAKE_OPTIONS) ..)
 
 .PHONY: build
 .NOTPARALLEL: build

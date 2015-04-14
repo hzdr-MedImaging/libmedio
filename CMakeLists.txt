@@ -68,7 +68,7 @@ if(EXISTS "/usr/local/petlib/")
 endif()
 
 # Configure third party packages
-find_package(Qt5Core REQUIRED)
+find_package(Qt5 REQUIRED Core)
 find_package(RTDEBUG REQUIRED)
 
 # Set some better optimization options
@@ -76,14 +76,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=generic -std=c++11")
 set(CMAKE_CXX_FLAGS_RELEASE, "${CMAKE_CXX_FLAGS_RELEASE} -O3 -fomit-frame-pointer")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO, "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -O3 -g -fomit-frame-pointer")
 set(CMAKE_CXX_FLAGS_DEBUG, "${CMAKE_CXX_FLAGS_RELEASE} -O0")
-
-# depending on CMAKE_SYSTEM_PROCESSOR we define some processor specific
-# preprocessor defines
-if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__X86_64__")
-elseif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "i[63]86")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__i386__")
-endif()
 
 # enable @rpath in the install name for any shared library being built
 # note: it is planned that a future version of CMake will enable this by default
