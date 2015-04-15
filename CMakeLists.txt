@@ -33,12 +33,6 @@ if (NOT CMAKE_BUILD_TYPE)
       FORCE)
 endif()
 
-# Install to "dist" directory in Windows for testing and as a staging directory
-# for the installer.
-if (WIN32 AND NOT CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX dist CACHE STRING "Install path prefix.")
-endif()
-
 # define the project and the version number
 project(libmedio)
 set(PROJECT_LONGNAME "libmedio")
@@ -59,11 +53,21 @@ set(CMAKE_AUTOMOC ON)
 # set the cmake modules path
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
+# In case we are cross compiling we have to setup
+# everything for different search paths
+if(CMAKE_CROSS_COMPILING)
+  set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE BOTH)
+  set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY BOTH)
+  set(PETLIB_PATH "/usr/local/petlib/${CROSS_OS}")
+else()
+  set(PETLIB_PATH "/usr/local/petlib")
+endif()
+
 # if /usr/local/petlib is found use that one for install and search prefix
-if(EXISTS "/usr/local/petlib/")
-  set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "/usr/local/petlib")
+if(EXISTS ${PETLIB_PATH})
+  set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${PETLIB_PATH})
   if(CMAKE_INSTALL_PREFIX STREQUAL "/usr/local")
-    set(CMAKE_INSTALL_PREFIX "/usr/local/petlib")
+    set(CMAKE_INSTALL_PREFIX ${PETLIB_PATH})
   endif()
 endif()
 
