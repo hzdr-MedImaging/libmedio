@@ -75,8 +75,18 @@ endif()
 find_package(Qt5 REQUIRED Core)
 find_package(RTDEBUG REQUIRED)
 
+# add some special libraries in case we are build for windows
+# WARNING: This seems to be a workaround because Qt5 itself should
+# include them?!?!
+if(WIN32 AND CMAKE_CROSS_COMPILING)
+  if(${CMAKE_C_COMPILER} MATCHES "static-gcc")
+    set(DEPEND_STATIC_LIB ${Qt5_STATIC_LIB_DEPENDENCIES})
+    set(RTDEBUG_SHARED_LIB ${RTDEBUG_STATIC_LIB})
+  endif()
+endif()
+
 # Set some better optimization options
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=generic -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=generic -std=c++11 -Wall -Wextra")
 set(CMAKE_CXX_FLAGS_RELEASE, "${CMAKE_CXX_FLAGS_RELEASE} -O3 -fomit-frame-pointer")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO, "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -O3 -g -fomit-frame-pointer")
 set(CMAKE_CXX_FLAGS_DEBUG, "${CMAKE_CXX_FLAGS_RELEASE} -O0")

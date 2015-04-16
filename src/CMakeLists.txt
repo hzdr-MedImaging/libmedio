@@ -100,15 +100,6 @@ set_target_properties(${CMAKE_PROJECT_NAME}-shared PROPERTIES OUTPUT_NAME medio
                                                               VERSION ${PROJECT_VERSION} 
                                                               SOVERSION ${PROJECT_VERSION_MAJOR})
 
-# add some special libraries in case we are build for windows
-# WARNING: This seems to be a workaround because Qt5 itself should
-# include them?!?!
-if(WIN32 AND CMAKE_CROSS_COMPILING)
-  if(${CMAKE_C_COMPILER} MATCHES "static-gcc")
-    set(ADD_LIBS ${Qt5_STATIC_LIB_DEPENDENCIES})
-  endif()
-endif()
-
 # define link libraries dependencies
 target_link_libraries(${CMAKE_PROJECT_NAME}-static 
                       Qt5::Core 
@@ -118,7 +109,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}-static
 target_link_libraries(${CMAKE_PROJECT_NAME}-shared 
                       Qt5::Core 
                       ${RTDEBUG_SHARED_LIB}
-                      ${ADD_LIBS}
+                      ${DEPEND_STATIC_LIB}
 )
 
 # definition of install targets
