@@ -31,9 +31,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/config.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/include/config.h)
 
 # specify include directories
-set(MEDIO_LIB_INCLUDES  ${CMAKE_CURRENT_BINARY_DIR}/include
-                        ${CMAKE_CURRENT_SOURCE_DIR}/include
-                        ${CMAKE_CURRENT_SOURCE_DIR}/ecat
+set(MEDIO_LIB_INCLUDES  ${CMAKE_CURRENT_SOURCE_DIR}/ecat
                         ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat6
                         ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat7
                         ${CMAKE_CURRENT_SOURCE_DIR}/micropet
@@ -44,9 +42,13 @@ set(MEDIO_LIB_INCLUDES  ${CMAKE_CURRENT_BINARY_DIR}/include
 set(MEDIO_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR} 
                    ${MEDIO_LIB_INCLUDES} PARENT_SCOPE)
 
-include_directories(${MEDIO_LIB_INCLUDES}
-                    ${RTDEBUG_INCLUDES}
-)
+set(MEDIO_LIB_CONFIG  ${CMAKE_CURRENT_BINARY_DIR}/include
+                      ${CMAKE_CURRENT_SOURCE_DIR}/include )
+
+set(MEDIO_CONFIG ${MEDIO_LIB_CONFIG} PARENT_SCOPE)
+
+include_directories(${MEDIO_LIB_CONFIG}
+                    ${MEDIO_LIB_INCLUDES})
 
 # specify the public includes to be installed as well
 set(PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/CMedIO.h

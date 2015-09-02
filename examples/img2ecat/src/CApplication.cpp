@@ -3,13 +3,13 @@
 
 #include "config.h"
 
-#include <CECATFile>
-#include <CECAT7MainHeader>
-#include <CECAT7SubHeaderImage>
-#include <CPhilipsFile>
-#include <CPhilipsMainHeader>
-#include <CPhilipsSubHeaderImage>
-#include <CMedIO>
+#include <CECATFile.h>
+#include <CECAT7MainHeader.h>
+#include <CECAT7SubHeaderImage.h>
+#include <CPhilipsFile.h>
+#include <CPhilipsMainHeader.h>
+#include <CPhilipsSubHeaderImage.h>
+#include <CMedIO.h>
 
 #include <iostream>
 #include <rtdebug.h>
@@ -205,7 +205,7 @@ void CApplication::showAppInfo()
   ENTER();
   // output some general program information
   cout << endl
-       << PACKAGE_STRING << " - converts philips image files to ECAT files" << endl
+       << PROJECT_LONGNAME << " - converts philips image files to ECAT files" << endl
        << "(" __DATE__ ") Copyright (c) 2011-2014 Jens Maus, Stan Domula / www.hzdr.de" << endl << endl;
   LEAVE();
   return;
@@ -527,7 +527,8 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
           D("imgMax: %d", imgMaxValue);
 
           // put in an annotation about being converted by mp2ecat
-          pEcat7SubHeaderImage->setAnnotation("converted by " PACKAGE_NAME " " PACKAGE_VERSION);
+          QString message = QString("converted by %1 %2").arg(PROJECT_LONGNAME).arg(PROJECT_VERSION);
+          pEcat7SubHeaderImage->setAnnotation(message.toLatin1().data());
 
           pEcat7Image->writeSubHeader(*pEcat7SubHeaderImage, frame);
           pEcat7Image->writeMatrix(pImageData, len, frame);

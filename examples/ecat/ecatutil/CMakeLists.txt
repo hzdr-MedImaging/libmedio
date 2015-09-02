@@ -26,14 +26,9 @@
 # are no users of medio
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__MEDIO_PRIVATE__")
 
-# configure files where variables should be replaced.
-#configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/config.h.in
-#               ${CMAKE_CURRENT_BINARY_DIR}/include/config.h)
-
-message(${MEDIO_INCLUDES})
-
 # specify include directories
 include_directories(${RTDEBUG_INCLUDES}
+                    ${MEDIO_CONFIG}
                     ${MEDIO_INCLUDES}
 )
 

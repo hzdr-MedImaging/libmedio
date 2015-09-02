@@ -22,13 +22,25 @@
 # *
 # **************************************************************************/
 
+set(PROJECT_LONGNAME "img2ecat")
+set(PROJECT_VERSION_MAJOR 1)
+set(PROJECT_VERSION_MINOR 2)
+set(PROJECT_VERSION_PATCH 0)
+set(PROJECT_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
+
 # set __MEDIO_PRIVATE__ to flag that we compile the library and
 # are no users of medio
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__MEDIO_PRIVATE__")
 
+message(${CMAKE_CURRENT_SOURCE_DIR})
+# configure files where variables should be replaced.
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/includes/config.h.in
+               ${CMAKE_CURRENT_BINARY_DIR}/includes/config.h)
+
 # specify include directories
-include_directories(${RTDEBUG_INCLUDES}
-                    ${MEDIO_CONFIG}
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/includes
+                    ${CMAKE_CURRENT_SOURCE_DIR}/includes
+                    ${RTDEBUG_INCLUDES}
                     ${MEDIO_INCLUDES}
 )
 
@@ -38,19 +50,19 @@ list(REMOVE_DUPLICATES CODE_FILES)
 
 
 # specify the executable we are going to build
-add_executable(assembleBeds ${CODE_FILES})
+add_executable(img2ecat ${CODE_FILES})
 
 # define link libraries dependencies
-target_link_libraries(assembleBeds  Qt5::Core 
-                                    ${CMAKE_PROJECT_NAME}-static
-                                    ${RTDEBUG_STATIC_LIB} 
+target_link_libraries(img2ecat  Qt5::Core 
+                                ${CMAKE_PROJECT_NAME}-static
+                                ${RTDEBUG_STATIC_LIB} 
 )
 
 # set target properties so that install only installs with
 # version postfix
-set_target_properties(assembleBeds PROPERTIES OUTPUT_NAME assembleBeds-${PROJECT_VERSION})
+set_target_properties(img2ecat PROPERTIES OUTPUT_NAME img2ecat-${PROJECT_VERSION})
 
 # definition of install targets
-install(TARGETS assembleBeds
+install(TARGETS img2ecat
         RUNTIME DESTINATION bin
 )
