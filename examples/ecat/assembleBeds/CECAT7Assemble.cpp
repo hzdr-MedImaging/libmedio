@@ -2,9 +2,9 @@
 #include <CDataArray.h>
 #include <CMultiDimArray.h>
 
-#include <CECATFile>
-#include <CECAT7MainHeader>
-#include <CECAT7SubHeaderImage>
+#include <CECATFile.h>
+#include <CECAT7MainHeader.h>
+#include <CECAT7SubHeaderImage.h>
 
 #include <rtdebug.h>
 

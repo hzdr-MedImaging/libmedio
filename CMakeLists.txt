@@ -96,3 +96,5 @@ set(CMAKE_CXX_FLAGS_DEBUG, "${CMAKE_CXX_FLAGS_RELEASE} -O0")
 set(CMAKE_MACOSX_RPATH 1)
 
 add_subdirectory(src)
+add_subdirectory(examples/ecat/assembleBeds)
+add_subdirectory(examples/ecat/ecatutil)

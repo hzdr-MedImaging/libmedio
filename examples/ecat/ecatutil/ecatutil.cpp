@@ -1,8 +1,8 @@
-#include <CMedIO>
-#include <CECATFile>
-#include <CECAT7MainHeader>
-#include <CECAT7SubHeaderScan3D>
-#include <CECAT7SubHeaderImage>
+#include <CMedIO.h>
+#include <CECATFile.h>
+#include <CECAT7MainHeader.h>
+#include <CECAT7SubHeaderScan3D.h>
+#include <CECAT7SubHeaderImage.h>
 
 #include <QFileInfo>
 #include <QMultiHash>

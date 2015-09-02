@@ -31,16 +31,21 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/config.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/include/config.h)
 
 # specify include directories
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/include
-                    ${CMAKE_CURRENT_SOURCE_DIR}/include
-                    ${CMAKE_CURRENT_SOURCE_DIR}/ecat
-                    ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat6
-                    ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat7
-                    ${CMAKE_CURRENT_SOURCE_DIR}/micropet
-                    ${CMAKE_CURRENT_SOURCE_DIR}/philips
-                    ${CMAKE_CURRENT_SOURCE_DIR}/helpers
+set(MEDIO_LIB_INCLUDES  ${CMAKE_CURRENT_BINARY_DIR}/include
+                        ${CMAKE_CURRENT_SOURCE_DIR}/include
+                        ${CMAKE_CURRENT_SOURCE_DIR}/ecat
+                        ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat6
+                        ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat7
+                        ${CMAKE_CURRENT_SOURCE_DIR}/micropet
+                        ${CMAKE_CURRENT_SOURCE_DIR}/philips
+                        ${CMAKE_CURRENT_SOURCE_DIR}/helpers
+                        ${CMAKE_CURRENT_SOURCE_DIR}/include/rtdebug )
+
+set(MEDIO_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR} 
+                   ${MEDIO_LIB_INCLUDES} PARENT_SCOPE)
+
+include_directories(${MEDIO_LIB_INCLUDES}
                     ${RTDEBUG_INCLUDES}
-                    ${CMAKE_CURRENT_SOURCE_DIR}/include/rtdebug
 )
 
 # specify the public includes to be installed as well

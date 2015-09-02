@@ -1,6 +1,6 @@
 #include <CECAT7Assemble.h>
 
-#include <CMedIO>
+#include <CMedIO.h>
 
 #include <QString>
 #include <QMultiHash>
