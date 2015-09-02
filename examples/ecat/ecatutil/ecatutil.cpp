@@ -3,6 +3,7 @@
 #include <CECAT7MainHeader.h>
 #include <CECAT7SubHeaderScan3D.h>
 #include <CECAT7SubHeaderImage.h>
+#include <config.h>
 
 #include <QFileInfo>
 #include <QMultiHash>
@@ -2457,7 +2458,7 @@ void showVersionInformation()
 void showHelp(int& argc, char** argv)
 {
   cout << endl;
-  cout << "libmedio ECAT6/7 file utility v2.15" << endl;
+  cout << "libmedio ECAT6/7 file utility v"<<PROJECT_VERSION << endl;
   cout << "-----------------------------------" << endl;
   cout << "Usage: " << argv[0] << " <options> ecatfile" << endl;
   cout << "Options:" << endl;

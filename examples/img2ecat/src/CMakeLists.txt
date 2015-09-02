@@ -32,7 +32,6 @@ set(PROJECT_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_
 # are no users of medio
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__MEDIO_PRIVATE__")
 
-message(${CMAKE_CURRENT_SOURCE_DIR})
 # configure files where variables should be replaced.
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/includes/config.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/includes/config.h)
