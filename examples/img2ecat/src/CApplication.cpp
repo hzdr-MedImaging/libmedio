@@ -206,7 +206,7 @@ void CApplication::showAppInfo()
   // output some general program information
   cout << endl
        << PROJECT_LONGNAME << " - converts philips image files to ECAT files" << endl
-       << "(" __DATE__ ") Copyright (c) 2011-2014 Jens Maus, Stan Domula / www.hzdr.de" << endl << endl;
+       << "(" __DATE__ ") Copyright (c) 2011-2015 Jens Maus, Stan Domula / www.hzdr.de" << endl << endl;
   LEAVE();
   return;
 }
@@ -229,7 +229,7 @@ void CApplication::showVersion()
        << "[ppc]"
        #elif defined(__i386__)
        << "[x86]"
-       #elif defined(__X86_64__)
+       #elif defined(__x86_64__)
        << "[x86_64]"
        #else
        #warning Unknown CPU model
