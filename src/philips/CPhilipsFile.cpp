@@ -27,6 +27,8 @@
 #include "CPhilipsDirectory.h"
 #include "CPhilipsSubHeaderImage.h"
 #include "CPhilipsSubHeaderSinogram.h"
+#include "CPhilipsSubHeaderSyntegra.h"
+#include "CPhilipsSubHeaderListmode.h"
 #include "CPhilipsListviewHeader.h"
 
 #include <QDataStream>
@@ -921,15 +923,19 @@ CPhilipsSubHeader* CPhilipsFile::createEmptySubHeader()
     switch(subHeaderType())
     {
       case CPhilipsSubHeader::Image:
-      {
         pEmptySubHeader = new CPhilipsSubHeaderImage(this);
-      }
       break;
 
       case CPhilipsSubHeader::Sinogram:
-      {
         pEmptySubHeader = new CPhilipsSubHeaderSinogram(this);
-      }
+      break;
+
+      case CPhilipsSubHeader::Syntegra:
+        pEmptySubHeader = new CPhilipsSubHeaderSyntegra(this);
+      break;
+
+      case CPhilipsSubHeader::Listmode:
+        pEmptySubHeader = new CPhilipsSubHeaderListmode(this);
       break;
     }
   }
