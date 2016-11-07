@@ -942,7 +942,7 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
       setAngular_Compression(head->phiMashing() != CPhilipsMainHeader::Mashing2 ? CECAT7MainHeader::No_Mash : CECAT7MainHeader::Mash2);
       setCalibration_Factor(1.0f);
       setStudy_Type(head->aqprotocol_name());
-      setPatient_ID(head->Dpat_id());
+      setPatient_ID(QString(head->Dpat_id()).trimmed().toLatin1().constData());
       setPatient_Name(QString(head->Dpat_name()).replace("^", ", ").toLatin1().constData());
       setPatient_Sex(m_pData->philips2Ecat7Sex(head->sex()));
       setPatient_Height(head->height() / 10.0f); // mm -> cm
