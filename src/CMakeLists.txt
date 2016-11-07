@@ -47,7 +47,8 @@ set(MEDIO_LIB_CONFIG  ${CMAKE_CURRENT_BINARY_DIR}/include
 
 set(MEDIO_CONFIG ${MEDIO_LIB_CONFIG} PARENT_SCOPE)
 
-include_directories(${MEDIO_LIB_CONFIG}
+include_directories(${RTDEBUG_INCLUDES}
+                    ${MEDIO_LIB_CONFIG}
                     ${MEDIO_LIB_INCLUDES})
 
 # specify the public includes to be installed as well
