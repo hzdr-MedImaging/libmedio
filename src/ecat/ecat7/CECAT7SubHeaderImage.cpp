@@ -593,7 +593,10 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* subHeader, const CMed
       if(sh->pix_spacing_y() != 0.0f)
         setY_Pixel_Size(sh->pix_spacing_y() / 10.0f); // mm -> cm
 
-      setFrame_Duration((sh->scnlen() * 1000) + sh->mseclen());
+      // we use end_date_time - start_date_time instead of using scnlen+mseclen
+      // because the date time information is more accurate.
+      setFrame_Duration(((sh->end_date_time() * 1000) + sh->end_date_time_msec()) -
+                        ((sh->start_date_time() * 1000) + sh->start_date_time_msec()));
 
       setGate_Duration(0);
       if(QString(sh->scatter_corr()).contains("SIMUL"))
@@ -655,7 +658,8 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* subHeader, const CMed
       setFilter_Code(fcode);
 
       // set the frame start time relative to the acq_date_time
-      setFrame_Start_Time((sh->start_date_time() - mh->acq_date_time()) * 1000); // s -> ms
+      setFrame_Start_Time(((sh->start_date_time() * 1000) + sh->start_date_time_msec()) -
+                           (mh->acq_date_time() * 1000));
 
       // R_elements/Angles are usually only relevant for sinograms
       // however, we fill the stuff in for consistency reasons
