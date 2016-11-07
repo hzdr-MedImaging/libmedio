@@ -30,8 +30,8 @@
 # # to explicitly compile for Windows-64bit
 # > make OS=w64
 #
-# # to compile for Linux-64bit but without debugging
-# > make OS=l32 DEBUG=
+# # to compile for Linux-32bit with debugging
+# > make OS=l32 CMAKE_OPTIONS=-DCMAKE_BUILD_TYPE=Debug
 #
 
 #############################################
