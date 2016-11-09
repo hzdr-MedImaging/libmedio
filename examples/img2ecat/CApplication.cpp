@@ -427,6 +427,7 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
         int incr = (maxslc-minslc) / (pPhilipsFile->numSlices(frame) - 1);
         int curSlice = minslc;
         CPhilipsSubHeader *pSubHeadImg = NULL;
+        D("numSlices: %d", pPhilipsFile->numSlices());
         for(int z=0; z <= pPhilipsFile->numSlices() && curSlice <= maxslc; ++z, curSlice += incr)
         {
           if(pPhilipsFile->readSubHeader(pSubHeadImg, frame, curSlice))
@@ -465,9 +466,13 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
               }
             }
 
+            D("converted slice %d (%d)", z+1, curSlice);
+
             delete pSubHeadImg;
             pSubHeadImg = NULL;
           }
+          else
+            cout << "ERROR: reading subheader of slice " << curSlice << endl;
         }
 
         short imgMaxValue = 0;
@@ -527,7 +532,7 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
           D("imgMax: %d", imgMaxValue);
 
           // put in an annotation about being converted by mp2ecat
-          QString message = QString("converted by %1 %2").arg(PROJECT_LONGNAME).arg(PROJECT_VERSION);
+          QString message = QString("%1 %2").arg(PROJECT_LONGNAME).arg(PROJECT_VERSION);
           pEcat7SubHeaderImage->setAnnotation(message.toLatin1().data());
 
           pEcat7Image->writeSubHeader(*pEcat7SubHeaderImage, frame);
@@ -655,6 +660,8 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
         numFrames = NUMFRAMESLIMIT;
       }
 
+      cout << "slices: " << pPhilipsMainHeader->nslice() << endl;
+
       for(int frame = 1; frame <= numFrames; ++frame)
       {
          cout << "Converting Frame: " << (frame) << " of " << numFrames << endl;
@@ -744,6 +751,7 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
           // and save them separately.
           char *p = pImageData;
           long matrixSize = xDim*yDim*dataTypeSize;
+          cout << "zDim " << zDim << endl;
           for(int z = 0; z < zDim; z++)
           {
             // before writing the matrix to the file we need to calculate the image min/max
@@ -759,21 +767,14 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
             pPhilipsSubHeaderImage->setImgsum(dataArray.sumValue());
             pPhilipsSubHeaderImage->setImgscl(1.0f); // make sure imgscl() is always 1.0
 
-            // set slice number based on first bedpos to conform to the
-            // way the philips format uses slice numbers
-            switch(pPhilipsMainHeader->tbl_direction())
-            {
-              case CPhilipsMainHeader::Out:
-                pPhilipsSubHeaderImage->setSlcnum(z*pPhilipsMainHeader->slcthk() + qRound(pPhilipsMainHeader->max_bed_pos()+pPhilipsMainHeader->slcthk()/2));
-              break;
-
-              case CPhilipsMainHeader::In:
-              case CPhilipsMainHeader::UnknownDirection:
-                pPhilipsSubHeaderImage->setSlcnum(z*pPhilipsMainHeader->slcthk() + qRound(pPhilipsMainHeader->min_bed_pos()+pPhilipsMainHeader->slcthk()/2));
-              break;
-            }
+            // set slice number based on the way philips is also doing it
+            // (separating by slcthk().
+            pPhilipsSubHeaderImage->setSlcnum(z*pPhilipsMainHeader->slcthk());
 
             // write the data and the subheader accordingly.
+            cout << pPhilipsMainHeader->slcthk() << endl;
+            cout << "max: " << pPhilipsMainHeader->max_bed_pos() << " min: " << pPhilipsMainHeader->min_bed_pos() << endl;
+            cout << "writing matrix of slice " << pPhilipsSubHeaderImage->slcnum() << " (" << z+1 << ")" << endl;
             pPhilipsFile->writeMatrix(p, matrixSize, *pPhilipsSubHeaderImage, frame, pPhilipsSubHeaderImage->slcnum());
   
             // now advance p
