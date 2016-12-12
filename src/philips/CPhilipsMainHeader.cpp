@@ -1594,7 +1594,24 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
           }
 
           setFiltyp(fileType);
-          setPatient_name(header->patient_Name());
+
+          // convert the patient name (convert 'FIRSTNAME, LASTNAME' to 'LASTNAME FIRSTNAME'
+          QString patientName = QString::fromLatin1(header->patient_Name());
+          if(patientName.contains(','))
+          {
+            // split firstname/lastname
+            QStringList splitted = patientName.split(',');
+            
+            if(splitted.size() == 2)
+            {
+              QString newPatientName = splitted[1].trimmed() + " " + splitted[0].trimmed();
+              setPatient_name(newPatientName.toLatin1().constData());
+            }
+            else
+            setPatient_name(header->patient_Name());
+          }
+          else
+            setPatient_name(header->patient_Name());
 
           // if sex is selected as unknown in the ecat header we
           // set the patient type to test (phantom) in Philips
@@ -1626,8 +1643,7 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
           m_pData->ecat2philipsAcquisitionType(header->acquisition_Type());
           setScnOrigin(header->facility_Name());
 
-          QString patientName(header->patient_Name());
-          setDpat_name(patientName.replace(", ", "^").toLatin1().constData());
+          setDpat_name(QString::fromLatin1(header->patient_Name()).replace(", ", "^").toLatin1().constData());
           setSeries_desc(header->study_Description());
           setInjection_date_time_Qt(header->dose_Start_Time_Qt());
           setAcq_date_time(header->scan_Start_Time());
