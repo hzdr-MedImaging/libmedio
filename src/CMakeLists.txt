@@ -112,6 +112,7 @@ set_target_properties(${CMAKE_PROJECT_NAME}-shared PROPERTIES OUTPUT_NAME medio
 target_link_libraries(${CMAKE_PROJECT_NAME}-static 
                       Qt5::Core 
                       ${RTDEBUG_STATIC_LIB}
+                      ${DEPEND_STATIC_LIB}
 )
 
 target_link_libraries(${CMAKE_PROJECT_NAME}-shared 
