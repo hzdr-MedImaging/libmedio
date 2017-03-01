@@ -186,6 +186,7 @@ void showVersionInformation()
        #warning unknown compiler suite
        << "unknown compiler "
        #endif
+       /*
        #if #cpu(sparc)
        << "[sparc]"
        #elif #cpu(sparc64)
@@ -200,6 +201,7 @@ void showVersionInformation()
        #warning Unknown CPU model
        << "[Unknown]"
        #endif
+       */
        << endl << endl
 
        // Qt version information
