@@ -33,6 +33,9 @@
 # # to compile for Linux-32bit with debugging
 # > make OS=l32 CMAKE_OPTIONS=-DCMAKE_BUILD_TYPE=Debug
 #
+# # to install in a different PETLIB_PATH
+# > make CMAKE_OPTIONS=-DPETLIB_PATH=/usr/local/petlib/qt5
+#
 
 #############################################
 # find out the HOST operating system
