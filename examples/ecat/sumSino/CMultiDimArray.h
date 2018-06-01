@@ -20,15 +20,11 @@
 
 using namespace std;
 
-// Exception if one of the lenghts
-// parameter is lower 1
-class CBadLengthsException {};
-
 template<class T, int D>
 class CMultiDimArray
 {
 public:
-  CMultiDimArray(int iStarts[D], int iLengths[D]) throw(std::bad_alloc, CBadLengthsException)
+  CMultiDimArray(int iStarts[D], int iLengths[D])
     :m_size(0),
      m_pData(NULL),
      m_pBase(NULL) 
@@ -42,7 +38,7 @@ public:
     create();
   };
 
-  CMultiDimArray(int iLengths[D]) throw(std::bad_alloc, CBadLengthsException)
+  CMultiDimArray(int iLengths[D])
     :m_size(0),
      m_pData(NULL),
      m_pBase(NULL)
@@ -56,7 +52,7 @@ public:
     create();
   };
 
-  CMultiDimArray(const CMultiDimArray<T, D>&other) throw(std::bad_alloc, CBadLengthsException)
+  CMultiDimArray(const CMultiDimArray<T, D>&other)
     :m_size(0),
      m_pData(NULL),
      m_pBase(NULL)
@@ -69,7 +65,7 @@ public:
     destroy();
   };
 
-  void deepCopy(const CMultiDimArray<T, D>&other) throw(std::bad_alloc, CBadLengthsException)
+  void deepCopy(const CMultiDimArray<T, D>&other)
   {
     // Delete old memory
     destroy();
@@ -209,7 +205,7 @@ protected:
   // so hopefuly the developer give the count of 
   // arguments which corrospond with the count of 
   // dimensions D
-  CMultiDimArray(int iFirstStart, int iFirstLength, ...) throw(std::bad_alloc, CBadLengthsException)
+  CMultiDimArray(int iFirstStart, int iFirstLength, ...)
     :m_size(0),
      m_pData(NULL),
      m_pBase(NULL)
@@ -279,19 +275,16 @@ protected:
   
   // Now, this are methods for creation
   // and destroying the array
-  void create() throw(std::bad_alloc, CBadLengthsException)
+  void create()
   {
     // Some checks
     for(int a = 0; a < D; a++)
       if(m_iLengths[a] < 1)
-        throw CBadLengthsException();
+        return;
     // Precalculate the size
     m_size = m_iLengths[0];
     for(int a = 1; a < D; a++)
       m_size *= m_iLengths[a];
-
-    if (!allocate(NULL))
-      throw std::bad_alloc();;
   };
   
   void destroy()
@@ -343,10 +336,10 @@ template<class T>
 class C1DArray: public CMultiDimArray<T, 1>
 {
 public:
-  C1DArray(int iStart1, int iEnd1) throw(std::bad_alloc, CBadLengthsException)
+  C1DArray(int iStart1, int iEnd1)
     :CMultiDimArray<T, 1>(iStart1, iEnd1 - iStart1 + 1)
   {};
-  C1DArray(int iEnd1) throw(std::bad_alloc, CBadLengthsException)
+  C1DArray(int iEnd1)
     :CMultiDimArray<T, 1>(0, iEnd1 + 1)
   {};
 
@@ -402,12 +395,12 @@ class C2DArray: public CMultiDimArray<T, 2>
 {
 public:
   C2DArray(int iStart1, int iEnd1, 
-           int iStart2, int iEnd2) throw(std::bad_alloc, CBadLengthsException)
+           int iStart2, int iEnd2)
     :CMultiDimArray<T, 2>(iStart1, iEnd1 - iStart1 + 1,
                           iStart2, iEnd2 - iStart2 + 1)
   {};
   C2DArray(int iEnd1, 
-           int iEnd2) throw(std::bad_alloc, CBadLengthsException)
+           int iEnd2)
     :CMultiDimArray<T, 2>(0, iEnd1 + 1,
                           0, iEnd2 + 1)
   {};
@@ -480,14 +473,14 @@ class C3DArray: public CMultiDimArray<T, 3>
 public:
   C3DArray(int iStart1, int iEnd1, 
            int iStart2, int iEnd2, 
-           int iStart3, int iEnd3) throw(std::bad_alloc, CBadLengthsException)
+           int iStart3, int iEnd3)
     :CMultiDimArray<T, 3>(iStart1, iEnd1 - iStart1 + 1, 
                           iStart2, iEnd2 - iStart2 + 1, 
                           iStart3, iEnd3 - iStart3 + 1)
   {};
   C3DArray(int iEnd1, 
            int iEnd2, 
-           int iEnd3) throw(std::bad_alloc, CBadLengthsException)
+           int iEnd3)
     :CMultiDimArray<T, 3>(0, iEnd1 + 1, 
                           0, iEnd2 + 1, 
                           0, iEnd3 + 1)
@@ -527,7 +520,7 @@ public:
   C4DArray(int iStart1, int iEnd1, 
            int iStart2, int iEnd2, 
            int iStart3, int iEnd3,
-           int iStart4, int iEnd4) throw(std::bad_alloc, CBadLengthsException)
+           int iStart4, int iEnd4)
     :CMultiDimArray<T,4>(iStart1, iEnd1 - iStart1 + 1, 
                          iStart2, iEnd2 - iStart2 + 1, 
                          iStart3, iEnd3 - iStart3 + 1,
@@ -536,7 +529,7 @@ public:
   C4DArray(int iEnd1, 
            int iEnd2, 
            int iEnd3,
-           int iEnd4) throw(std::bad_alloc, CBadLengthsException)
+           int iEnd4)
     :CMultiDimArray<T,4>(0, iEnd1 + 1, 
                          0, iEnd2 + 1, 
                          0, iEnd3 + 1,
