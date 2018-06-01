@@ -92,7 +92,7 @@ set(PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/CMedIO.h
 )
 
 # consider all files in the stubs directory
-file(GLOB STUB_FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/stubs/*)
+file(GLOB STUB_FILES LIST_DIRECTORIES false ${CMAKE_CURRENT_SOURCE_DIR}/include/stubs/*)
 
 # consider all *.ccp files found to be actual code files
 file(GLOB_RECURSE CODE_FILES *.cpp)
