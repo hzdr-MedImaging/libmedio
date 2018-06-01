@@ -105,6 +105,9 @@ PREFIX    = ./
 BUILDDIR  = $(PREFIX)build-$(OS)
 MXEDIR    = /usr/local/mxe
 
+# Common variables
+CMAKE_OPT = $(CMAKE_OPTIONS)
+
 #############################################
 # lets identify if we are going to cross
 # compile and if so we add some options to
@@ -144,13 +147,13 @@ endif
 ifeq ($(OS), Windows_NT)
   ##############################
   # native MinGW build?
-  CMAKE_OPTIONS := -G"MSYS Makefiles"
+  CMAKE_OPT += -G"MSYS Makefiles"
 endif
 
 # depending on TARGET_PATH we enable cross compiling 
 # for cmake or not
 ifneq ($(TARGET_PATH),)
-  CMAKE_OPTIONS := -DCMAKE_TOOLCHAIN_FILE=$(TARGET_PATH)/share/cmake/mxe-conf.cmake -DCROSS_OS=$(OS)
+  CMAKE_OPT += -DCMAKE_TOOLCHAIN_FILE=$(TARGET_PATH)/share/cmake/mxe-conf.cmake -DCROSS_OS=$(OS)
 endif
 
 ###################
@@ -167,7 +170,7 @@ $(BUILDDIR):
 .NOTPARALLEL: $(BUILDDIR)/Makefile
 $(BUILDDIR)/Makefile:
 	@echo "  CMAKE $@"
-	@(cd $(BUILDDIR) ; $(CMAKE) $(CMAKE_OPTIONS) ..)
+	@(cd $(BUILDDIR) ; $(CMAKE) $(CMAKE_OPT) ..)
 
 .PHONY: build
 .NOTPARALLEL: build
