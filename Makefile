@@ -114,7 +114,7 @@ CMAKE_OPT = $(CMAKE_OPTIONS)
 # the cmake call
 ifeq ($(OS), w64)
   ##############################
-  # Windows 64-bit static
+  # Windows 64-bit shared
   ifneq ($(HOST), Windows64)
     CMAKE_OPT += -DCROSS_OS=$(OS)
     CMAKE = $(MXEDIR)/usr/bin/x86_64-w64-mingw32.shared-cmake
@@ -132,7 +132,7 @@ endif
 
 ifeq ($(OS), w32)
   ##############################
-  # Windows 32-bit static
+  # Windows 32-bit shared
   ifneq ($(HOST), Windows64)
     CMAKE_OPT += -DCROSS_OS=$(OS)
     CMAKE = $(MXEDIR)/usr/bin/i686-w64-mingw32.shared-cmake
