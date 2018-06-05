@@ -280,11 +280,15 @@ protected:
     // Some checks
     for(int a = 0; a < D; a++)
       if(m_iLengths[a] < 1)
-        return;
+        throw std::bad_alloc();
+
     // Precalculate the size
     m_size = m_iLengths[0];
     for(int a = 1; a < D; a++)
       m_size *= m_iLengths[a];
+
+    if(!allocate(NULL))
+      throw std::bad_alloc();
   };
   
   void destroy()
