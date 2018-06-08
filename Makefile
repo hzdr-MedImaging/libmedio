@@ -31,10 +31,16 @@
 # > make OS=w64
 #
 # # to compile for Linux-32bit with debugging
-# > make OS=l32 CMAKE_OPTIONS=-DCMAKE_BUILD_TYPE=Debug
+# > make OS=l32 DEBUG=1
 #
-# # to install in a different PETLIB_PATH
-# > make CMAKE_OPTIONS=-DPETLIB_PATH=/usr/local/petlib/qt5
+# # to use a different search/install prefix
+# > make PREFIX=/usr/local
+#
+# # to enable verbose compile output
+# > make VERBOSE=1
+#
+# # to supply addition cmake options
+# > make CMAKE_OPTIONS=-DMYOPT=1
 #
 
 #############################################
@@ -101,12 +107,17 @@ RMDIR   = rm -rf
 MKDIR   = mkdir -p
 
 # Common Directories
-PREFIX    = ./
-BUILDDIR  = $(PREFIX)build-$(OS)
+BUILDDIR  = build-$(OS)
 MXEDIR    = /usr/local/mxe
 
 # Common variables
-CMAKE_OPT = $(CMAKE_OPTIONS)
+DEBUG     = 0
+CMAKE_OPT = $(CMAKE_OPTIONS) -DPREFIX_PATH=$(PREFIX)
+
+# check for debug option
+ifeq ($(DEBUG), 1)
+  CMAKE_OPT += -DCMAKE_BUILD_TYPE=Debug
+endif
 
 #############################################
 # lets identify if we are going to cross
@@ -197,4 +208,4 @@ cleanall:
 .PHONY: distclean
 distclean:
 	@echo "  DISTCLEAN"
-	@$(RMDIR) $(PREFIX)build-*
+	@$(RMDIR) ./build-*
