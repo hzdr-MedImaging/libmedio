@@ -120,6 +120,13 @@ ifeq ($(DEBUG), 1)
 endif
 
 #############################################
+# for MacOSX we need to define where to find
+# the Qt5 framework
+ifeq ($(OS), m64)
+  CMAKE_OPT += -DQt5_DIR=/usr/local/Qt/lib/cmake/Qt5
+endif
+
+#############################################
 # lets identify if we are going to cross
 # compile and if so we add some options to
 # the cmake call
