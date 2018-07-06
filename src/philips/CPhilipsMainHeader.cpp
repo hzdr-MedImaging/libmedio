@@ -47,22 +47,48 @@ class CPhilipsMainHeaderPrivate
 public:
   // MainHeader structure (should be 512 bytes)
   #define MAINHEADER_SIZE 512
-  #define MAINHEADER_VERSION 13
+  #define MAINHEADER_VERSION 15
   #pragma pack(1)
   struct HeaderData
   {
-    char magic_number[6];         // 000: identifier
-    qint16 file_fmt;              // 006: file format (mainheader) version number
-    qint16 scan_geom;             // 008: encoding of the scanner geometry
-    qint16 hw_config;             // 010: encoding of hardware used in acquisition
-    char empty1[4];               // 012: empty
-    qint16 edit_flag;             // 016: 1 to indicat that the user has modified mainheader
-    char empty2[30];              // 018: empty
-    char empty3[4];               // 048: empty
-    qint16 filtyp;                // 052: file type
-    qint32 minTransXtalDiff;      // 054: Minimum zone difference in crystal space during all list-mode collections.
-    float tofTstampScale;         // 058: Time-Of-Flight time stamp scale.
-    char empty4[4];               // 062: empty
+    char magic_number[6];         // 000: magic number 1: 0x010000000016
+    qint16 file_fmt;              // 006: file format (mainheader) version number. Refer to Mainheader Version.
+    qint16 scan_geom;             // 008: encoding of the scanner geometry.
+                                  //      0 MH_MODEL_240UP
+                                  //      1 MH_MODEL_240
+                                  //      2 MH_MODEL_300
+                                  //      3 MH_MODEL_180
+                                  //      4 MH_MODEL_CT
+                                  //      5 MH_MODEL_288G - GPET
+                                  //      6 MH_MODEL_432G
+                                  //      7 MH_MODEL_420G - Allegro
+                                  //      8 MH_MODEL_588C
+                                  //      9 MH_MODEL_288M - APET
+                                  //      10 MH_MODEL_420Z - Guardian
+                                  //      11 MH_MODEL_432V - Vanguard
+                                  //      12 MH_MODEL_420R - Raptor
+                                  //      13 MH_MODEL_360S - Select (Popeye)
+                                  //      14 MH_MODEL_DigitalPET - Solid Ѕtate PET
+    qint16 hw_config;             // 010: Encoding of hardware used in acquisition. (Created in initSysConfig().)
+    char magic2[4];               // 012: magic number 2: 0x0040005B
+    qint16 edit_flag;             // 016: 1 to indicate that the if user has modified mainheader
+    qint16 list_byte_ord;         // 018: Byte order of list mode raw data. Does not apply to image pixel data.
+                                  //      The enumerated values are BYTEORDER_BIGENDIAN=0 and BYTEORDER_LITTLEENDIAN=1.
+                                  //      Default is BYTEORDER_BIGENDIAN.
+    char empty2[28];              // 020: empty
+    char magic3[4];               // 048: magic number 3: 0x0007FFFF
+    qint16 filtyp;                // 052: file type: 0 = FILTYP_UND = undefined
+                                  //                 1 = FILTYP_SCN = sinogram (.scn)
+                                  //                 2 = FILTYP_IMG = image (.img)
+                                  //                 3 = FILTYP_VID
+                                  //                 4 = FILTYP_OTHER
+                                  //                 5 = FILTYP_SYN = syntegra (.syn)
+                                  //                 6 = FILTYP_LIST = list mode (.list)
+                                  //                 7 = FILTYP_RAW = raw mode (.raw)
+    qint32 minTransXtalDiff;      // 054: Minimum difference in crystal x-coordinate space during all list-mode collections.
+                                  //      Currently not used by recon.
+    float tofTstampScale;         // 058: Time-Of-Flight time stamp unit in list events.
+    char magic4[4];               // 062: magic number 4: 0x0020FFFF
     qint16 dep_daycre;            // 066: (Deprecated) Day of data acquisition. Note: These fields represent the
                                   //      date/time at which the acquisition process created the data file, not the
                                   //      time at which data was actually acquired. Reconstruction may use these as 
@@ -75,23 +101,26 @@ public:
     qint16 dep_mincre;            // 074: (Deprecated) Minute of data acquisition
     qint16 dep_seccre;            // 076: (Deprecated) Second of data acquisition
     qint16 duratn;                // 078: duration of scan in seconds
-    qint16 shdtyp;                // 080: ImageIO subheader (1) or old subheader format (0)
-    qint16 sngpscl;               // 082: singles prescale, superceded by pscale
+    qint16 shdtyp;                // 080: ImagIO sub-header (1) or original UCLA sub-header (0). (NOTE: PETView ImagIO
+                                  //      library no longer supports the original UCLA sub-header.)
+    qint16 sngpscl;               // 082: singles prescale, superceded by pscale float
     qint16 singopt;               // 084: Singles acquisition option (0=transmission only, 1=trans-ec, 2=ec only), obsoleted
-    float pscale;                 // 086: amount by which the actual singles events is scaled down
+    float pscale;                 // 086: Singles pre-scale, amount by which the actual singles events is scaled down
     float detectorRadius;         // 090: inscribed scanner radius (from middle of opening to detector face) in mm
-    qint16 virtualXtal;           // 094: whether virtual crystals were used in the acquisition to simulate a larger detector
-    qint16 phiMashing;            // 096: whether events from crystal phi values are combined:
-                                  //      0 Undefined/Unknown (assumption is no mashing)
+    qint16 virtualXtal;           // 094: Whether virtual crystals were used in the acquisition to simulate a larger detector.
+                                  //      0=no virtual crystals, 1=yes
+    qint16 phiMashing;            // 096: Whether events from crystal phi values are combined:
+                                  //      0 Undefined/Unknown (assumption is that no mashing was done)
                                   //      1 No mashing
                                   //      2 Events from pairs of consecutive angles have been added together
-    qint16 polygonSides;          // 098: Number of "sides" in the scanner opening (may refer to detectors or PMT modules
-    qint16 xtalsPerSide;          // 100: Number of detectors per opening (polygon) side
+                                  //      List-mode: Meaningless, should be -1 (some old files may have set this field)
+    qint16 polygonSides;          // 098: The number of detectors or PMT modules that form the many-sided polygon of the detector ring
+    qint16 xtalsPerSide;          // 100: Number of detector crystals per opening (polygon) side in the transverse direction
     qint16 nXtalRows;             // 102: Number of crystal rows in the axial (Z) direction
-    float crystalThickness;       // 104: Detetctor crystal thickness in mm
-    float xXtalPitch;             // 108: X crystal pitch in mm
-    float zXtalPitch;             // 112: Z crystal pitch in mm
-    float axialFOV;               // 116: in mm
+    float crystalThickness;       // 104: Detector crystal thickness (in millimeters)
+    float xXtalPitch;             // 108: Detector crystal pitch in the axial (Z) direction (in millimeters)
+    float zXtalPitch;             // 112: Detector crystal pitch in the direction of the circumference of the opening (Y) (in millimeters)
+    float axialFOV;               // 116: Useful axial length of the scanner (in millimeters)
     qint16 rphiType;              // 120: Type of R-Phi rebinning used for acquired data:
                                   //      0 Millimeters in R-Phi table
                                   //      1 Crystal-units in R-Phi table
@@ -100,11 +129,14 @@ public:
                                   //      1 Slices in crystal sum format
                                   //      2 Slices encoded both axial (Z) values of an event
                                   //      3 Slices encode only axial (Z) value of one event (A) - for transmission
+                                  //      4 Slices are SNGANG - for transmission
     qint16 delayType;             // 124: Type of delayed event used in acquiring the primary source of data:
-                                  //      0 No delayed events
-                                  //      1 Only delayed events
-                                  //      2 Delayed events were substracted (online randoms)
-    char empty5[4];               // 126: empty
+                                  //      0 No delays recorded
+                                  //      1 Delayed events were rebinned into a separate sinogram by hardware
+                                  //      2 Delayed events were subtracted from the prompts sinogram in hardware
+                                  //      3 Delayed events were subtracted from the prompts software
+                                  //      4 The delay type is undefined
+    char magic5[4];               // 126: magic number 5: 0x001BFFFF
     qint16 pattyp;                // 130: Patient-style acquisition (1) or a diagnostic-style test (0)
     qint16 scntyp;                // 132: Type of acquisition:
                                   //      0 Data not from an acquisition
@@ -131,39 +163,80 @@ public:
                                   //      Images: Coronal (Y) dimension of the matrix
                                   //      List-mode: Meaningless, should be -1 (some old files had event size in bytes:  4, 8, 12, or 204).
     qint16 slcthk;                // 138: Slice thickness in millimeters
-    qint16 isotop;                // 140: Isotope used
-    float slope;                  // 142: Rescale slope. (Not used)
-    float intcpt;                 // 146: Offset value to data. (Not used)
+    qint16 dep_isotop;            // 140: Isotope used in:
+                                  //      0 Unspecified/no isotope
+                                  //      1 F-18
+                                  //      2 O-15
+                                  //      3 C-11
+                                  //      4 Ga-68
+                                  //      5 N-13
+                                  //      6 Rb-82
+                                  //      7 Cu-62
+                                  //      8 Cs-137
+                                  //      9 Ge-68
+                                  //      10 Other
+                                  //      11 Unknown
+                                  //      12 Cu-64
+                                  //      13 Br-76
+                                  //      14 Na-22
+                                  //      15 O-14
+                                  //      16 Y-86
+                                  //      17 Zn-62
+                                  //      18 Cu-60
+                                  //      19 Cu-61
+                                  //      20 Ga-66
+                                  //      21 Br-75
+                                  //      22 Br-77
+                                  //      23 I-124
+                                  //      24 K-38
+                                  //      25 Mn-52
+                                  //      26 Tc-94m
+                                  //      27 Ti.45
+                                  //      No longer used except when reading files with file_fmt < 15. Do not add new values to
+                                  //      this list
+    float slope;                  // 142: Rescale slope. . nci/ml/cts/pix/min
+    float intcpt;                 // 146: Offset value to data. For PET it is always 0. For AC files it is the offset due to
+                                  //      hounsfield units (usually -1000 or -1024)
     qint16 dep_injtim;            // 150: (Deprecated) Time in seconds between administration of isotope and beginning of acquisition
-    float polygonVertAt0deg;      // 152: Polygon vertex at zero degrees (used by interpolator).
-    qint16 nslice;                // 156: number of slices per frame
-    qint16 nframe;                // 158: number of frames
+    float polygonVertAt0deg;      // 152: Polygon vertex at zero degrees, where the polygon has nXtalModule sides
+    qint16 nslice;                // 156: For reconstructed images: number of slices per frame.
+                                  //      For list files: the total number of possible sinogram slices based on the detector
+                                  //                      geometry. This number will vary based on the number of digital detector rings.
+                                  //      For sinograms: the number will vary based on the number of digital detector rings,
+                                  //                     as well as for dynamic and gated data.
+    qint16 nframe;                // 158: number of frames. Acq calculates from scan length (scan length – fieldOfView) / stepSize + 1.
+                                  //      Acquisition sets to the planned number initially, but updates with the number of
+                                  //      frames actually acquired.
     qint16 bthday;                // 160: Day of patient birth date
     qint16 bthmo;                 // 162: Month of patient birth date
     qint16 bthyr;                 // 164: Year of patient birth date (four digit)
     char ssn[10];                 // 166: Short patient ID, superceded by Dpat_id
-    qint16 ntilt;                 // 176: number of tilts per frame
-    qint16 petnum;                // 178: Account number on PETView File Manager/Management
-    char empty6[4];               // 180: empty
+    qint16 ntilt;                 // 176: Number of tilts per slice (0 for images)
+    qint16 petnum;                // 178: Account number on PETView File Manager/Management.
+                                  //      For imported images (MR or CT) it contains the serial number of the source device
+    char magic6[4];               // 180: magic number 6: 0x0021FFFF
     float activity;               // 184: Amount of isotope, in MBq, administered to patient at the time of isotope administration (injection_date_time)
     qint32 weight;                // 188: Patient weight (in grams)
     qint16 dep_hrinj;             // 192: (Deprecated) Hour of isotope administration
     qint16 dep_mininj;            // 194: (Deprecated) Minute of isotope administration
-    float srcRadius;              // 196: Source radius in mm
-    float srcZpos;                // 200: Source Z position in mm
+    float srcRadius;              // 196: Source radius in mm. Not used.
+    float srcZpos;                // 200: Source Z position in mm. Not used.
     float halfLife;               // 204: Half-life of the isotope in minutes
-    float concfac;                // 208: SUV calibration factor; used in conjunction with dead-time factors to calculate SUVs in reconstruction.
+                                  //      If Halflife is zero, and dep_isotop is set, a default value is assigned by the Imagio library functions
+    float concfac;                // 208: SUV calibration factor; used in conjunction with dead-time factors to calculate SUVs in
+                                  //      reconstruction. Units are nCi/ml/cpm/voxel
     float concfac_bgsub;          // 212: Same as concfac but accounts for the background subtraction correction applied in reconstruction.
+                                  //      Units are nCi/ml/cpm/voxel
     float dmax;                   // 216: Field of view, i.e., diameter of region being imaged (in millimeters)
-    float dline;                  // 220: Same as dmax
+    float dline;                  // 220: Same as dmax. Diameter of the object being imaged (in mm)
     float angmax;                 // 224: Maximum axial acceptance angle
     float x0;                     // 228: Sagittal (X) coordinate of center of volume. Used by CTAC and save image registration in wbd; otherwise set to 0.
     float y0;                     // 232: Coronal (Y) coordinate of center of volume.  Used by CTAC and save image registration in wbd; otherwise set to 0.
     float z0;                     // 236: Transverse (Z) coordinator of center of volume.  Not used.
     float nevent;                 // 240: Number of raw events processed.  Used only by the sampling normalization generation program.
-    float nsino;                  // 244: Number of prompt events collected by the acquisition.
-    qint16 eglob_low;             // 248: Minimum energy accepted in the "global zone" around the event detection.
-    qint16 eglob_up;              // 250: Maximum energy accepted in the "global zone" around the event detection.
+    float nsino;                  // 244: Number of prompt events collected by the acquisition. Reconstruction determines the number of prompt events that were valid
+    qint16 eglob_low;             // 248: No longer used as of Ingenuity TF. Minimum energy accepted in the "global zone" around the event detection.
+    qint16 eglob_up;              // 250: No longer used as of Ingenuity TF. Maximum energy accepted in the "global zone" around the event detection.
     qint16 eloc_low;              // 252: Minimum energy accepted in the "local zone" around the event detection.
     qint16 eloc_up;               // 254: Maximum energy accepted in the "local zone" around the event detection.
     qint16 orient_hf;             // 256: Head/feet first patient orientation:
@@ -171,13 +244,19 @@ public:
                                   //      1 Patient head is closest to gantry when the patient table is retracted
                                   //      2 Patient feet are closest to gantry when the patient table is retracted
     char scan_swrel[6];           // 258: Version of the software that acquired the data. (NOTE: The field should have a length of 7, 6 characters stored in the ImagIO file plus the null terminator.)
-    qint16 petct_sepdist;         // 264: PET separation distance at acq time (1/10mm)
-    qint16 petct_landmrk;         // 266: Landmark position at acq time (1/10mm)
-    qint32 petct_align_timestamp; // 268: Date/Time of alignment calibration (seconds since Jan 1, 1970 [UNIX])
+                                  //      This definition is kept for the ability to process pre-Ingenuity TF images.
+                                  //      The other definition for this field was created for Ingenuity TF going forward. The other definition
+                                  //      is a counter generated by the calibration subsystem to indicate the calibration revision level
+                                  //      starting at 00001. NOTE: The field should have a length of 7, 6 characters stored in the ImagIO
+                                  //      file plus the null terminator.
+    qint16 petct_sepdist;         // 264: PET separation distance at acquisition time (in 1/10 millimeters)
+    qint16 petct_landmrk;         // 266: Landmark position at acquisition time (in 1/10millimeters). Landmark returned from CT times 10,
+                                  //      minus the axial field of view * 10, minus the separation value above.
+    qint32 petct_align_timestamp; // 268: Date and time of alignment calibration (in seconds since January 1, 1970)
     qint16 tbl_direction;         // 272: Patient table direction during acquisition:
                                   //      0 Undefined/Unknown
-                                  //      1 Data acquired while patient table moves from the front to the back of the scanner
-                                  //      2 Data acquired while patient table moves from the back to the front of the scanner
+                                  //      1 In: Data acquired while patient table moves from the front to the back of the scanner (CT->PET)
+                                  //      2 Out: Data acquired while patient table moves from the back to the front of the scanner (PET->CT)
     qint16 orient_ps;             // 274: Patient orientation in relation to gravity:
                                   //      0 Undefined/Unknown
                                   //      1 Patient faces down
@@ -185,33 +264,30 @@ public:
                                   //      3 Patient's left side is lower (left side down)
                                   //      4 Patient's right side is lower (right side down)
     qint16 petct_align_zoffset;   // 276: Not used at this time.
-    qint16 petct_align_xshift;    // 278: shift in x from align-cal in 1/1000mm
-    qint16 petct_align_yshift;    // 280: shift in y from align-cal in 1/1000mm
-    qint16 petct_align_zshift;    // 282: shift in z from align-cal in 1/1000mm
+    qint16 petct_align_xshift;    // 278: Shift in horizontal (X) from the alignment calibration (in 1/100millimeters)
+    qint16 petct_align_yshift;    // 280: Shift in vertical (Y) from the alignment calibration (in 1/100millimeters)
+    qint16 petct_align_zshift;    // 282: Shift in axial (Z) from the alignment calibration (in 1/100millimeters)
     qint16 petct_align_acqflgs;   // 284: Not used at this time.
-    qint16 petct_align_xoffset;   // 286: syn - (0020,0032) Image position x pos
-                                  //      shift in x of the center of the CT FOV    
-                                  //      with respect to the PET FOV in 1/100mm
-    qint16 petct_align_yoffset;   // 288: syn - (0020,0032) Image position y pos
-                                  //      shift in y of the center of the CT FOV
-                                  //      with respect to the PET FOV in 1/100mm
-    qint16 petct_align_axrot;     // 290: rotation about z axis in 1/10,000 deg
-    qint16 petct_align_horzrot;   // 292: rotation about x axis in 1/10,000 deg
-    qint16 petct_align_vertrot;   // 294: rotation about y axis in 1/10,000 deg
-    float frontLeadDiameter;      // 296: The diameter of the front lead in mm.
-    float backLeadDiameter;       // 300: The diameter of the back lead in mm.
-    float leadSeparation;         // 304: The distance between the front and back lead in mm.
-    float ndelays;                // 308: Number of delayed events collected by the acquisition.
+    qint16 petct_align_xoffset;   // 286: Horizontal (X) shift of the center of the CT field of view with respect to PET (in 1/100 millimeters)
+    qint16 petct_align_yoffset;   // 288: Vertical (Y) shift of the center of the CT field of view with respect to PET (in 1/100 millimeters)
+    qint16 petct_align_axrot;     // 290: Rotation about the axial (Z) axis (in 1/10,000 degrees)
+    qint16 petct_align_horzrot;   // 292: Rotation about the horizontal (X) axis (in 1/10,000 degrees)
+    qint16 petct_align_vertrot;   // 294: Rotation about vertical (Y) axis (in 1/10,000 degrees)
+    float frontLeadDiameter;      // 296: The diameter of the front lead (Pb) in mm
+    float backLeadDiameter;       // 300: The diameter of the back lead (Pb) in mm
+    float leadSeparation;         // 304: The distance between the front and back lead (Pb) in mm
+    float ndelays;                // 308: Number of delayed events collected by the acquisition. Reconstruction determines the number of prompt events that were valid
     float slcsep;                 // 312: Physical slice separation.  Always set to 1.0 for PETView files. 
                                   //      Set to the slice spacing (0x0018,0x0088) or, if that is not found,
                                   //      the slice thickness (0x0018,0x0050) if available by the DICOM translator.
-    qint16 petct_valid;           // 316: Whether the file has a valid petct struct
-    char fctrfil[20];             // 318: Factor file name. (PMT gains). was 16
-                                  //      syn - (0008,1090) manufacturer's model name
-    char baselin[20];             // 338: Baseline file name. (DC offsets). was 16
+                                  //      Value is 1 for list files.
+    qint16 petct_valid;           // 316: Whether the file contains a valid PET/CT structure
+    char fctrfil[20];             // 318: PMT gain factor calibration file used when the data was acquired. Not used for Vereos.
+    char baselin[20];             // 338: Scanner baseline calibration file used when the data was acquired. Not used for Vereos.
     char dstpkfl[20];             // 358: Spatial distortion removal calibration name used when the data was acquired.
                                   //      NOTE: This is inadvertently no longer set.
-    char aqprotocol_name[20];     // 378: Name of the protocol (settings) used to acquire the data.
+    char dep_aqprotocol_name[20]; // 378: (Deprecated) Name of the protocol (settings) used to acquire the data. (Gemini TF).
+                                  //      Deprecated for file_fmt >=15 For file_fmt >= 15 please see acqprotocol_name
     qint16 aqprotocol_type;       // 398: Type of acquisition for the primary source of data:
                                   //      0 Undefined/Unknown
                                   //      1 Static emission
@@ -225,26 +301,39 @@ public:
                                   //      9 Gated respiratory
                                   //      10 Gated combined cardiac and respiratory
     char patient_name[30];        // 400: Short patient name, superceded by Dpat_name.
-    float reslice_ang1;           // 430: Rotation around the Sagittal (X) axis applied to the volume.
-    float reslice_ang2;           // 434: Rotation around the Coronal (Y) axis applied to the volume.
-    float reslice_ang3;           // 438: Rotation around the Transverse (Z) axis applied to the volume.
-    qint16 minslc;                // 442: Lowest numbered slice / syn - set to 1
-    qint16 maxslc;                // 444: Highest numbered slice / syn - set to number of slices
+    float reslice_ang1;           // 430: Rotation around the Sagittal (X) axis applied to the volume. No longer used.
+    float reslice_ang2;           // 434: Rotation around the Coronal (Y) axis applied to the volume. No longer used.
+    float reslice_ang3;           // 438: Rotation around the Transverse (Z) axis applied to the volume. No longer used.
+    qint16 minslc;                // 442: For PET image files: recorded in mm, it is the position in the PET coordinate system.
+                                  //                           It is the midpoint of the lowest numbered slice.
+                                  //      For list files: always 0.
+                                  //      In .syn files (e.g. ldCT) it is always 1, and is an ordinal number.
+    qint16 maxslc;                // 444: For PET image files: recorded in mm, it is the position in the PET coordinate system.
+                                  //                           It is the midpoint of the highest numbered slice.
+                                  //      For list files: always 0 + (nslice – 1).
+                                  //      In .syn files (e.g. ldCT) it is always equal to nslice (number of slices), and is an ordinal number.
     qint16 minfrm;                // 446: Lowest numbered frame
     qint16 maxfrm;                // 448: Highest numbered frame
-    qint16 scanner_maxslice;      // 450: Maximum number of slices in a static frame based on the useful axial extent of the scanner. (Set to sysConfig's axial field of view.)
+    qint16 scanner_maxslice;      // 450: Maximum number of 1-mm slices in a static frame based on the useful axial extent of the scanner.
+                                  //      (Set to sysConfig’s axial field of view.)
     char empty7[2];               // 452: empty
     qint16 rebin_type;            // 454: Method of data rebinning prior to storage in a sinogram:
                                   //      0 Single slice (no longer used)
                                   //      1 Multiple slice
                                   //      2 4D, multiple tilts
                                   //      3 Fourier rebinning
-    char scnOrigin[16];           // 456: Indicates origin of data; for PETView this is a combination of the scanner serial number and site name ("patient˝ for scanners with no sites).
-    char accNum[16];              // 472: Optional DICOM accession number. Will eventually be used with DICOM query retrieve.
-                                  //      Initially used to support dicom-send to PACS.
-    qint16 movementCoinc;         // 488: Length of atomic (single) table movement for coincidence acquisition (in mm).
-    qint16 movementSing;          // 490: Length of atomic (single) table movement for singles acquisition (in mm).
-    qint16 crbTstampPeriod;       // 492: Period in msec between CRB timestamps.
+                                  //      No longer used.
+    char scnOrigin[16];           // 456: Indicates origin of data;
+                                  //      Prior to Solothis is a combination of the scanner serial number and site name
+                                  //      ("patient" for scanners with no sites).
+                                  //      For Vereos this is provided from the console as part of reconParams, and the value
+                                  //      comes from information from the SIDS file on the console..
+    char accNum[16];              // 472: Optional DICOM accession number.
+    qint16 movementCoinc;         // 488: Length of table movement between adjacent bed positions for coincidence acquisition (in mm)
+    qint16 movementSing;          // 490: Length of table movement between adjacent bed positions for singles acquisition (in mm)
+    qint16 crbTstampPeriod;       // 492: Period in msec between adjacent time stamps in the List data.
+                                  //      For Gemini TF the source of these timestamps is the Correction and Rebinning Board (CRB). On
+                                  //      Solo the source of these timestamps is the PPC board. On Vereos the source of these timestamps is ???.
     char empty8[10];              // 494: empty
     qint16 trailexists;           // 504: (not used) 1= trailer exists, 0 = no trailer
     quint32 trailbeg;             // 506: (not used) # of bytes from file beginning indicating where the trailer begins
@@ -253,7 +342,7 @@ public:
   #pragma pack()
 
   // the extended header data structure
-  #define EXTHEADER_SIZE (2048+5632)
+  #define EXTHEADER_SIZE (2336+5856) // 8K max size
   #pragma pack(1)
   struct ExtHeaderData
   {
@@ -261,8 +350,8 @@ public:
     char Dpat_id[64];                     // 0064: DICOM patient ID
     char study_uid[64];                   // 0128: DICOM unique study identifier
     char series_uid[64];                  // 0192: DICOM unique series identifier
-    char view_code[20];                   // 0256: DICOM view code value (0008,0100)
-    char sortproto_name[20];              // 0276: sorter protocol name
+    char view_code[20];                   // 0256: DICOM view code value (0008,0100). Not used in Gemini or later.
+    char sortproto_name[20];              // 0276: Sorter protocol name. No longer used as of the Rubik (3.5) release
     qint16 route;                         // 0296: An enumerated value for how the isotope is delivered:
                                           //       0 Undefined
                                           //       1 Intravenous
@@ -284,7 +373,10 @@ public:
                                           //       17 Per rectum
                                           //       18 Vaginal route
                                           //       19 Other
-    qint16 pharm;                         // 0298: An enumerated value for the pharmaceutical used in the study:
+    qint16 dep_pharm;                     // 0298: (Deprecated) Replaced by radiopharm_code_value,
+                                          //       radiopharm_coding_scheme_designator, radiopharm_coding_scheme_version and
+                                          //       radiopharm_code_meaning.
+                                          //       An enumerated value for the pharmaceutical used in the study:
                                           //       0 Undefined
                                           //       1 Acetate (C11)
                                           //       2 Ammonia (N13)
@@ -330,11 +422,24 @@ public:
                                           //       3 Reinjection
                                           //       4 Redistribution
                                           //       5 Delayed Redistribution
+                                          //       Not used.
     qint32 assay_date;                    // 0366: Date of radioactivity measurement. Note: this is currently set to zero and not used.
     qint32 assay_time;                    // 0370: Time of radioactivity measurement (seconds from midnight). Note: this is currently set to zero and not used.
     char series_desc[64];                 // 0374: Series description
+                                          //       For List (raw) data that has been exported via DICOM, the number of segments that
+                                          //       the list file was broken into (including associated calibration files) is appended to the
+                                          //       Series Description.
+                                          //       Acquisition fills in from what operator entered.
+                                          //       For clinical reconstruction protocols: (may differ for service protocols)
+                                          //       Reconstruction prepends series modifier entered by the user for reconstruction
+                                          //       protocol.
+                                          //       Reconstruction prepends an additional series descriptor that is protocol and image-
+                                          //       series dependent (e.g. WB_CTAC, WB_NAC, PREVIEW, BR_CTAC, BR_NAC, etc.).
+                                          //       For List files, DICOM Export appends the number of DICOM objects required to
+                                          //       encapsulate the entire raw data
     qint16 height;                        // 0438: Patient height (in mm) (identical to DICOM Patient Size attribute). Filled in by acquisition.
-    qint16 abundance;                     // 0440: Positron abundance ratio, in tenths of percent, 0 thru 1000, so 1000 is 100%. Filled in by acquisition.
+    qint16 dep_abundance;                 // 0440: (Deprecated). Positron abundance ratio, in tenths of percent, 0 thru 1000, so 1000 is 100%. Filled in by acquisition.
+                                          //       This parameter is replaced by positron_fraction.
     qint16 petct_realign_x;               // 0442: For cardiac realignment. Additional horizontal (x) shift of center of CT
                                           //       FOV w.r.t. PET (in 1/100mm).
     qint16 petct_realign_y;               // 0444: For cardiac realignment. Additional vertical (y) shift of center of CT
@@ -347,25 +452,39 @@ public:
     qint32 file_create_date_time;         // 0460: Replaces daycre, mocre, yrcre, hrcre, mincre and seccre fields. Date and
                                           //       time that the acquisition file was created. Filled in by acquisition.
     qint16 resp_trig_loc;                 // 0464: Respiratory trigger location. Filled in by acquisition. Defined terms are:
-                                          //       0 Unknown
-                                          //       1 Max Inhalation
-                                          //       2 Max Exhalation
-                                          //       3 User Defined
+                                          //       0 Unknown (RESPTRIGLOC_UNKNOWN)
+                                          //       1 Max Inhalation (RESPTRIGLOC_MAX_INHALATION)
+                                          //       2 Max Exhalation (RESPTRIGLOC_MAX_EXHALATION)
+                                          //       3 User Defined (RESPTRIGLOC_MAX_EXHALATION)
     qint16 card_arrhythmia_rej_tech;      // 0466: The cardiac arrhythmia rejection techniques employed. Bit mask bits are defined as:
                                           //       0x0 = no rejection
                                           //       0x1 = Rejection based on deviation from average R-R interval
                                           //       0x2 = Rejection based on deviation from regular QRS loop
                                           //       0x4 = Rejection based on PVC criteria.
+                                          //       Note: this is referred to as card_arrhythm in the memory map diagram above.
     float window_center;                  // 0468: DICOM display center value, i.e. a suggested center value to be used when displaying this image. Filled in by recon.
     float window_width;                   // 0472: DICOM display width value, i.e. a suggested window value to be used when displaying this image. Filled in by recon.
     qint16 petct_realign_zr;              // 0476: For cardiac realignment. Additional rotation about the axial (Z) axis
                                           //       (in 1/1,000 degree).
     qint16 petct_realign_vr;              // 0478: For cardiac realignment. Additional rotation about the vertical (Y) axis
                                           //       (in 1/1,000 degree).
-    char empty1[8];                       // 0480: empty
+    float positron_fraction;              // 0480: The radionuclide positron fraction (fraction of decays that are by positron emission).
+                                          //       Replaces use of abundance parameter
+    qint16 image_org;                     // 0484: This is used to indicate how the slices in this file are organized. It is set by reconstruction and read by
+                                          //       DICOM applications to determine how to encode thiese image in DICOM. Values are:
+                                          //       0 IORG_STATIC = slices constitute a single volume. Examples are WB images, or gated images that have been converted to dynamic or non-gated images.
+                                          //       1 IORG_DYNAMIC = a Dynamic image
+                                          //       2 IORG_CARDGATED = a Cardiac gated image
+                                          //       3 IORG_RESPGATED = a respiratory gated image
+                                          //       4 IORG_CARDRESPGATED = image that is both cardiac and respiratory gated.
+                                          //       5 IORG_UNUSED = unused.
+    qint16 pulmo_trig_of;                 // 0486: Pulmonary Trigger Offset: The delay in the pulmonary trigger from CT, in msec.
     qint16 resp_trig_threshold;           // 0488: Respiratory trigger threshold in percent of the chest expansion relative to the last respiratory peak. Filled in by acquisition.
+                                          //       Note: this is referred to as resp_trig_thr in the memory map diagram above.
     qint16 resp_phase_duration;           // 0490: Respiratory gated:  Duration of this phase in percentage of the respiratory cycle time. Filled in by recon.
+                                          //       Note: this is referred to as resp_phase_du in the memory map diagram above.
     qint16 resp_phase_offset;             // 0492: Respiratory gated: Offset from the trigger to the beginning of the acquisition in percent of the respiratory cycle time. Filled in by recon.
+                                          //       Note: this is referred to as resp_phase_of in the memory map diagram above.
     qint16 petct_realign_z;               // 0494: For cardiac realignment. Additional (z) shift of center of CT
                                           //       FOV w.r.t. PET (in 1/100mm).
     qint16 window_units;                  // 0496: Indicates the units in which the window_center and window_width are specified:
@@ -375,62 +494,105 @@ public:
                                           //       3 % of max
                                           //       4 SUV
                                           //       5 Hounsfield
+                                          //       Note: this is referred to as window_unit in the memory map diagram above
     char empty2[14];                      // 0498: empty
-    char referring_physician[64];         // 0512: Physician who referred the patient for the study
+    char ref_phys[64];                    // 0512: Physician who referred the patient for the study
     char study_id[16];                    // 0576: DICOM study identifier
-    char empty3[2];                       // 0592: empty
-    float Dslice_thick;                   // 0594: DICOM slice thickness; same as slcthk for PETView images.
+    qint16 pt_tbl_vers;                   // 0592: Patient table version.
+    float Dslice_thick;                   // 0594: DICOM slice thickness. Same as slcthk for PET images
     char sex;                             // 0598: Patient sex, 'M', 'F', 'O'
-    float table_height;                   // 0599: Table height
+    float table_height;                   // 0599: Table height in mm. Filled in for imported CT images, not used for PET images
     char empty4[1];                       // 0603: empty
     qint16 card_bt_rej;                   // 0604: Gated cardiac: Whether heart beat duration sorting has been applied (y/n).
-    qint16 card_fr_type;                  // 0606: Gated cardiac:  Description of type of framing performed: forward, backward, or for/backward by percentage.
-    char Dmanufacture_model_name[64];     // 0608: DICOM manufacturer’s model name of the equipment that produced the digital images; same as scanner_geom._str for PETView images.
-    char Dimage_type[64];                 // 0672: DICOM image identification characteristics; for PETView, depends on scntyp:
+                                          //       0=HDR_NO
+                                          //       1=HDR_YES
+    qint16 card_fr_type;                  // 0606: Gated cardiac: Description of type of framing performed: forward, backward, or for/backward by percentage.
+                                          //       CARDFR_UNDEFINED = 0,
+                                          //       CARDFR_FORWARD=1,
+                                          //       CARDFR_BACKWARD=2,
+                                          //       CARDFR_PERCENT=3.
+    char Dmanuf_model[64];                // 0608: DICOM manufacturer’s model name of the equipment that produced the digital images; same as scanner_geom._str for PETView images.
+    char Dimg_type[64];                   // 0672: DICOM image identification characteristics; for PETView, depends on scntyp:
                                           //       scntyp 0-4,9  => 'original\\primary'
                                           //       scntyp 5-8,10 => 'derived\\primary'
-    float min_bed_pos;                    // 0736: Minimum bed position
-    float max_bed_pos;                    // 0740: Maximum bed position
-    qint16 der_filled;                    // 0744: Whether main header derived sub-header fields have been filled
+    float min_bed_pos;                    // 0736: Minimum bed position. Provided by acq., in PET coordinates. Defines leading edge of slice.
+                                          //       Calculated as:
+                                          //       if (TableDir is inward)
+                                          //       {
+                                          //         min_bed_pos = startPos;
+                                          //         max_bed_pos = ((numFrames - 1) * stepSize) + startPos;
+                                          //       }
+                                          //       else
+                                          //       {
+                                          //         max_bed_pos = startPos;
+                                          //         min_bed_pos = startPos - ((numFrames - 1) * stepSize);
+                                          //       }
+                                          //       The "startPos" is passed to HTA in the ScanGetReady message and is converted from CT
+                                          //       coordinates to Pet/Allegro before trying to use it.
+                                          //       Note that for inward scans, min_bed_pos is the same as the start position, while for outward scans
+                                          //       the max_bed_pos is the same as the start position.
+    float max_bed_pos;                    // 0740: Maximum bed position. Provided by acq. See min_bed_pos for explanation.
+    qint16 der_filled;                    // 0744: Whether main header derived sub-header fields have been filled.
+                                          //       0 DERIVED_NOTFILLED
+                                          //       1 DERIVED_FILLED
     qint32 series_number;                 // 0746: DICOM series number; 1 for PETView images (only one image per series).
-    qint32 dep_study_date;                // 0750: (Deprecated) Date study was created
+                                          //       This field is being ignored...series number is generated and stored in the Data-M database.
+    qint32 dep_study_date;                // 0750: (Deprecated) Date study was created (in date_2_int() format)
     qint32 dep_study_time;                // 0754: (Deprecated) Time study was created (seconds from midnight)
     qint32 dep_acq_time;                  // 0758: (Deprecated) Time acquisition was created (seconds from midnight)
-    qint16 card_slc_dir;                  // 0762: For Cardiac images: BASE_TO_APEX or APEX_TO_BASE
+    qint16 card_slc_dir;                  // 0762: For Cardiac images: BASE_TO_APEX or APEX_TO_BASE.
+                                          //       Not used for Gemini and beyond.
     char empty5[4];                       // 0764: empty
-    qint32 card_skip_msec;                // 0768: initial data skipped, in msec
-    qint32 card_skip_counts;              // 0772: initial data skipped, in counts
-    qint32 card_dur_msec;                 // 0776: duration of binned data, in msec
-    qint32 card_dur_counts;               // 0780: duration of binned data, in counts
-    qint32 card_beats_tot;                // 0784: beats occurring during movie
-    qint32 card_beats_acc;                // 0788: beats accepted into movie
+    qint32 card_skip_msec;                // 0768: Delay from acquisition start time to when data is actually processed, in msec
+    qint32 card_skip_counts;              // 0772: Delay from acquisition start time to when data is actually processed, in counts. Not used
+    qint32 card_dur_msec;                 // 0776: Duration of acquisition data to be processed following the card_skip_msec, in msec.
+                                          //       A value of zero means process all data to the end of the acquired frame
+    qint32 card_dur_counts;               // 0780: Duration of acquisition data to be processed following the card_skip_counts, in counts
+    qint32 card_beats_tot;                // 0784: Total number of beats that occurred during the entire acquisition
+    qint32 card_beats_acc;                // 0788: Total number of beats that are accepted by reconstruction
     qint16 card_skip_beats;               // 0792: Number of beats skipped after a detected arrhythmia. Filled in by recon. 
+                                          //       Note: this is referred to as card_skip_b in the memory map diagram above.
     qint16 pvc_threshold;                 // 0794: When PVC rejection is employed, the percent of the r-r interval below which a heart beat is considered to be a PVC. Filled in by recon.
+                                          //       Note: this is referred to as pvc_thresh in the memory map diagram above.
     char empty6[12];                      // 0796: empty
-    qint32 dep_acq_date;                  // 0808: (Deprecated) Date raw data was acquired
+    qint32 dep_acq_date;                  // 0808: (Deprecated) Date raw data was acquired (in date_2_int() format)
     char empty7[4];                       // 0812: empty
-    char radiopharm_name[64];             // 0816: Used when pharm = Other. Used to specify the name of the radiopharmaceutical used.
+    char radiopharm_name[64];             // 0816: Used to specify the name of the radiopharmaceutical used.
     char Dserial_number[16];              // 0880: System serial number + null
     char attncor_label[64];               // 0896: UID assigned to all series that are part of the same acquisition process.
                                           //       For example, the ldCT or MR images, and the PET list and images, that are acquired on a Gemini.
                                           //       Filled in in PET list file by the acquisition, copied to images by recon.
-    char empty8[64];                      // 0960: empty
+    char operator_name[64];               // 0960: The operator’s name, in DICOM format.
     char contr_bolus_agent[64];           // 1024: DICOM contrast bolus agent; for PETView images this is empty.
-    char sop_uid[64];                     // 1088: DICOM SOP instance UID
+    char sop_uid[64];                     // 1088: DICOM SOP instance UID. Prior to file_fmt 11, this was the only sop_uid; post 11,
+                                          //       the PETView image SOP Instance UID is stored in the sub-header and this is used only
+                                          //       for some imported images.
     char frame_ref_uid[64];               // 1152: DICOM frame of reference UID
-    char pps_file[30];                    // 1216: Name of the file containing DICOM Perform Procedure records (generated by DICOM library)
-    char worklist_file[30];               // 1246: Name of the file containing DICOM Worklist records (generated by DICOM library)
+    char pps_file[30];                    // 1216: Name of the file containing DICOM Perform Procedure records (generated by DICOM library). Not used in Ingenuity TF or later.
+    char worklist_file[30];               // 1246: Name of the file containing DICOM Worklist records (generated by DICOM library). No longer used in Solo and later versions.
     char empty9[4];                       // 1276: empty
-    char recon_swrel[6];                  // 1280: Version of the software that produced the image from the acquired data.
-    char analy_swrel[6];                  // 1286: Version of the software that acquired the data.  Set to 1.2 by the cardiac reslicing program, oblc.
+    char recon_swrel[6];                  // 1280: Version of the software that produced the image from the acquired data. Not currently used.
+    char analy_swrel[6];                  // 1286: Display or analysis software release (e.g. PetView). Set to 1.2 by the cardiac reslicing program, oblc. Not currently used.
     char recprotocol_name[19];            // 1292: Name of the protocol (settings) used to produce the image from the acquired data.
-    char insinofile[19];                  // 1311: Primary source of data (sinogram) used to generate the image.
-    qint16 slc_add;                       // 1330: Whether data slices were combined when producing the image (y/n)
-    qint16 slc_space;                     // 1332: The increment between the start of the group of slices that were combined, if any.
-    qint16 slc_thick;                     // 1334: The thickness of the group of slices that were combined, if any.
-    qint16 frame_add;                     // 1336: Whether data frames were combined when producing the image (y/n)
+    char insinofile[19];                  // 1311: Primary source of data (sinogram) used to generate the image. Not used.
+    qint16 slc_add;                       // 1330: Indicates whether or not data slices were combined when producing the image:
+                                          //       0 No
+                                          //       1 Yes
+                                          //       Not used.
+    qint16 slc_space;                     // 1332: The increment between the start of the group of slices that were combined, if any. Defined in units
+                                          //       of slices, and applies only if slc_add is Yes.
+                                          //       No Longer Used.
+    qint16 slc_thick;                     // 1334: The thickness of the group of slices that were combined, if any. Defined in units of slices, and applies
+                                          //       only if slc_add is Yes.
+                                          //       No Longer Used.
+    qint16 frame_add;                     // 1336: Whether data frames were combined when producing the image:
+                                          //       0 No
+                                          //       1 Yes
+                                          //       No Longer Used.
     qint16 frame_space;                   // 1338: The increment between the start of the group of frames that were combined, if any.
+                                          //       No Longer Used.
     qint16 frame_thick;                   // 1340: The thickness of the group of frames that were combined, if any.
+                                          //       No Longer Used.
     qint16 fltr_type;                     // 1342: The filter back projection algorithm used in reconstruction:
                                           //       0 Undefined/Unknown
                                           //       1 None used
@@ -438,12 +600,19 @@ public:
                                           //       3 Hanning
                                           //       4 Gaussian
                                           //       5 Butterworth
+                                          //       No Longer Used.
     qint16 smoth;                         // 1344: Smooth factor used by the Hanning filtered back-projection.
-    qint16 scatcorr_type;                 // 1346: 
-    qint16 edge_exp;                      // 1348: Number of bins to expand edge in background subtraction.
-    qint16 bckang_avg;                    // 1350: Number of angles to average in background subtraction
-    float bck_coeff;                      // 1352: Non-uniform background coefficient background subtraction
-    qint16 bck_wid;                       // 1356: Number of bins for fitting tails radially in background subtraction
+    qint16 scatcorr_type;                 // 1346: Type of scatter correction applied:
+                                          //       0 Undefined
+                                          //       1 None
+                                          //       2 Uniform background subtraction
+                                          //       3 Non-Uniform background subtraction
+                                          //       4 SS Simultaneous
+                                          //       Not currently used.
+    qint16 edge_exp;                      // 1348: Number of bins to expand edge in background subtraction. Not Used.
+    qint16 bckang_avg;                    // 1350: Number of angles to average in background subtraction. Not Used.
+    float bck_coeff;                      // 1352: Non-uniform background coefficient background subtraction. Not Used.
+    qint16 bck_wid;                       // 1356: Number of bins for fitting tails radially in background subtraction. Not Used.
     qint16 attncor_type;                  // 1358: The attenuation correction algorithm used in reconstruction:
                                           //       0 Undefined/Unknown
                                           //       1 None
@@ -452,87 +621,166 @@ public:
                                           //       4 Read from a region of interest file
                                           //       5 Reproject
                                           //       6 CTAC
+                                          //       Not Used. See attnstr.
     qint16 attncor_ecc;                   // 1360: Emission contamination correction used in attenuation correction:
                                           //       0 Undefined/Unknown
                                           //       1 None
                                           //       2 Measured
                                           //       3 Estimated
-    float attn_coeff;                     // 1362: Coefficient in attenuation correction (in centimeters)
-    char regfile[19];                     // 1366: Region of interest file name used in attenuation correction.
-    char proc_transinofile[19];           // 1385: Processed transmission sinogram file of attenuation coefficients used in attenuation correction.
-    float skull_comp;                     // 1404: Skull effect correction factor in attenuation correction.
+                                          //       No Longer Used.
+    float attn_coeff;                     // 1362: Coefficient in attenuation correction (in centimeters). No Longer Used.
+    char regfile[19];                     // 1366: Region of interest file name used in attenuation correction. No Longer Used.
+    char proc_transinofile[19];           // 1385: Processed transmission sinogram file of attenuation coefficients used in attenuation correction. No Longer Used.
+    float skull_comp;                     // 1404: Skull effect correction factor in attenuation correction. No Longer Used.
     qint16 norm_type;                     // 1408: The normalization type used in reconstruction:
                                           //       0 Undefined/Unknown
                                           //       1 None
                                           //       2 Axial
                                           //       3 Efficiency
                                           //       4 Axial efficiency
+                                          //       No Longer Used.
     qint16 smp_norm;                      // 1410: Whether sampling pattern removal is done in normalization:
-    char axnfile[19];                     // 1412: Axial normalization file used in normalization.
-    char effnormfile[19];                 // 1431: Efficiency normalization file used in normalization.
+                                          //       0 No
+                                          //       1 Yes
+                                          //       No Longer Used.
+    char axnfile[19];                     // 1412: Axial normalization file used in normalization. No Longer Used.
+    char effnormfile[19];                 // 1431: Efficiency normalization file used in normalization. No Longer Used.
     qint16 gap_comp;                      // 1450: Whether gap compensation was performed in reconstruction:
+                                          //       0 No
+                                          //       1 Yes
+                                          //       No Longer Used.
     qint16 algtype_em;                    // 1452: The emission algorithm used in reconstruction:
                                           //       0 Undefined/Unknown
                                           //       1 Filter Back Projection
                                           //       2 OSEM
                                           //       3 RAMLA
                                           //       4 3D RAMLA
-    qint16 num_iter;                      // 1454: Number of iterations in gap compensation.
+                                          //       5 FBP_HAN
+                                          //       6 FBP_BW
+                                          //       7 FBP_3DFRP
+                                          //       8 RAMLA_LOR
+                                          //       See recon_str
+    qint16 num_iter;                      // 1454: Number of iterations in gap compensation. No Longer Used.
     qint16 iter_em;                       // 1456: Number of OSEM iterations used in processing the emission data.
     qint16 subset_em;                     // 1458: Number of OSEM subsets used in processing the emission data.
-    qint16 nsmooth_em;                    // 1460: OSEM smoothing used in processing the emission data.
-    qint16 nrepeat_em;                    // 1462: Number of OSEM repetitions used in processing the emission data.
-    qint16 bckslc_avg;                    // 1464: Number of slices to average in background subtraction.
-    qint16 dead_corr;                     // 1466: Whether dead-time correction was applied in processing the data
-    qint16 decay_corr;                    // 1468: Whether decay correction was applied in processing the data
-    char transinofile[19];                // 1470: Transmission sinogram.
-    char blnksinofile[19];                // 1489: Blank scan calibration sinogram.
-    float tran_ray_fwhm;                  // 1508: Gaussian FWHM used for transverse smoothing in transmission data processing.
-    float tran_axl_fwhm;                  // 1512: Gaussian FWHM used for axial smoothing in transmission data processing.
-    qint16 surv_mask;                     // 1516: Number of rays to mask survival probability to 1 in transmission data processing.
+    qint16 nsmooth_em;                    // 1460: OSEM smoothing used in processing the emission data. Not currently used.
+    qint16 nrepeat_em;                    // 1462: Number of OSEM repetitions used in processing the emission data. Not currently used.
+    qint16 bckslc_avg;                    // 1464: Number of slices to average in background subtraction. Not currently used.
+    qint16 dead_corr;                     // 1466: Whether dead-time correction was applied in processing the data:
+                                          //       0 No
+                                          //       1 Yes
+                                          //       Not currently used. See sub-header for a duplicate field.
+    qint16 decay_corr;                    // 1468: Whether decay correction was applied in processing the data:
+                                          //       0 No
+                                          //       1 Yes
+                                          //       Not currently used. See sub-header for a duplicate field.
+    char transinofile[19];                // 1470: Transmission sinogram. Not Used.
+    char blnksinofile[19];                // 1489: Blank scan calibration sinogram. Not Used.
+    float tran_ray_fwhm;                  // 1508: Gaussian FWHM used for transverse smoothing in transmission data processing. Not Used.
+    float tran_axl_fwhm;                  // 1512: Gaussian FWHM used for axial smoothing in transmission data processing. Not Used.
+    qint16 surv_mask;                     // 1516: Number of rays to mask survival probability to 1 in transmission data processing. Not Used.
     qint16 preflt_type;                   // 1518: Pre-filter type used in reconstruction:
                                           //       0 Undefined/Unknown
                                           //       1 None
                                           //       2 Wiener
                                           //       3 Metz
+                                          //       No Longer Used.
     qint16 postflt_type;                  // 1520: Post-filter type used in reconstruction:
                                           //       0 Undefined/Unknown
                                           //       1 None
                                           //       2 Wiener
-                                          //       3 3D PET Filter
+                                          //       3 3D PET Filter (No Longer Used)
+                                          //       4 Gaussian
     qint16 tr_posttyp;                    // 1522: Post-processing done in transmission data processing:
                                           //       0 Undefined/Unknown
                                           //       1 None
                                           //       2 Segmentation
                                           //       3 Remapping
+                                          //       No Longer Used.
     qint16 algtype_tr;                    // 1524: Algorithm used in transmission data processing:
                                           //       0 Undefined/Unknown
                                           //       1 Filter Back Projection
                                           //       2 OSEM
-    qint16 iter_tr;                       // 1526: Number of OSEM iterations used in transmission data processing.
-    qint16 subset_tr;                     // 1528: Number of OSEM subsets used in transmission data processing.
-    qint16 nsmooth_tr;                    // 1530: OSEM smoothing used in transmission data processing.
-    qint16 nrepeat_tr;                    // 1532: Number of OSEM repetitions used in transmission data processing.
-    qint16 attn_corr_3d;                  // 1534: Whether 3D attenuation correction is done.
-    qint16 ramla_no_it;                   // 1536: Number of iterations in RAMLA used in emission data processing.
-    qint16 ramla_sysac;                   // 1538: System attenuation considered in RAMLA used in emission data processing.
-    float ramla_lambda[5];                // 1540: Relaxation parameters for RAMLA used in emission data processing.
-    float ramla_blrad;                    // 1560: Blob radius in RAMLA used in emission data processing.
-    float ramla_blalpha;                  // 1564: Blob alpha in RAMLA used in emission data processing.
-    float ramla_bcc_rsz;                  // 1568: Body centered cubic grid of relative size in RAMLA used in emission data processing.
-    qint32 recon_date_time;               // 1572: Date and time at which reconstruction started. Filled in by recon.
-    qint16 gating_type;                   // 1576: For Respiratory gating, identifies the type of gated image. Filled in by recon. Used to populate private DICOM field (01F1,1039)
+                                          //       No Longer Used.
+    qint16 iter_tr;                       // 1526: Number of OSEM iterations used in transmission data processing. No Longer Used.
+    qint16 subset_tr;                     // 1528: Number of OSEM subsets used in transmission data processing. No Longer Used.
+    qint16 nsmooth_tr;                    // 1530: OSEM smoothing used in transmission data processing. No Longer Used.
+    qint16 nrepeat_tr;                    // 1532: Number of OSEM repetitions used in transmission data processing. No Longer Used.
+    qint16 attn_corr_3d;                  // 1534: Whether 3D attenuation correction is done:
+                                          //       0 No
+                                          //       1 Yes
+                                          //       No Longer Used.
+    qint16 ramla_no_it;                   // 1536: Number of iterations in RAMLA used in emission data processing. No Longer Used.
+    qint16 ramla_sysac;                   // 1538: System attenuation considered in RAMLA used in emission data processing. No Longer Used.
+    float ramla_lambda[5];                // 1540: Relaxation parameters for RAMLA used in emission data processing. No Longer Used.
+    float ramla_blrad;                    // 1560: Blob radius in RAMLA used in emission data processing. No Longer Used.
+    float ramla_blalpha;                  // 1564: Blob alpha in RAMLA used in emission data processing. No Longer Used.
+    float ramla_bcc_rsz;                  // 1568: Body centered cubic grid of relative size in RAMLA used in emission data processing. No Longer Used.
+    qint32 recon_date_time;               // 1572: Date and time at which reconstruction started. Filled in by recon. in UTC
+    qint16 gating_type;                   // 1576: For Respiratory gating, identifies the type of gated image. Filled in by recon.
+                                          //       0 = GATINGTYPE_AVE_IP
+                                          //       1 = GATINGTYPE_PULMO
+                                          //       2 = GATINGTYPE_MIP
+                                          //       3 = GATINGTYPE_MIN_IP
     char empty10[6];                      // 1578: empty
-    char ref_attncor_series_uid[64];      // 1584: Series UID of the images used to perform attenuation correction (e.g. the ldCT images). Filled in by reconstruction.
+    char ref_attncor_series_uid[64];      // 1584: Series UID of the images used to perform attenuation correction (e.g. the ldCT images). Filled in by
+                                          //       reconstruction.
+                                          //       No longer consumed starting with Solo.
     char ref_gated_qc_image_inst_uid[64]; // 1648: The SOP Instance UID of the Secondary Capture image object that contains the picture of the cardiac waveform and trigger levels.
     char ref_raw_data_inst_uid[64];       // 1712: SOP Instance UID of the raw data that was used to create this image. Filled in by recon.
     qint32 start_table_pos_abs;           // 1776: Absolute start table position.
     qint32 start_table_pos_rel;           // 1780: Relative start table position.
     qint16 mr_valid;                      // 1784: Whether the file contains a valid PET/MR struct
     char empty11[6];                      // 1786: empty
-    char coil_type[16];                   // 1792: 16 byte fields indicating MR coils that are in position during the scan. Each contains a coil type number of the MR coil.
-    char empty12[240];                    // 1808: empty
-    char reserved[5632];                  // 2048: RESERVED
+    unsigned char coil_type[16];          // 1792: 16 byte fields indicating MR coils that are in position during the scan. Each contains a coil type number of the MR coil.
+    char ref_raw_data_series_inst_uid[64];// 1808: Series Instance UID of the raw data that was used to create this image.
+    char pet_software_version[19];        // 1872: Blanket PET software version number created for Ingenuity TF and going forward.
+                                          //       (NOTE: The field should have a length of 20,19 characters stored in the ImagIO file plus the null terminator.)
+    char empty12[13];                     // 1891: empty
+    unsigned char num_tile_rings;         // 1904: Number of digital tile rings (z direction). Valid only when model is MH_MODEL_DigitalPET.
+                                          //       Note: This is represented on the memory map in section A.2 as ntr
+    unsigned char num_detector_modules;   // 1905: Number of digital detector modules. Valid only when model is MH_MODEL_DigitalPET.
+                                          //       Note: is represented on the memory map in section A.2 as ndm.
+                                          //       NOTE: Redundant with other fields and can be removed
+    unsigned char num_tiles_per_module_row;// 1906: Number of tiles per detector module row (x direction). Valid only when model is
+                                           //       MH_MODEL_DigitalPET.
+                                           //       Note: This is represented on the memory map in section A.2 as ntmr
+    char empty13[1];                      // 1907:
+    float X_tile_gap;                     // 1908: Distance in mm between adjacent tiles in the x direction
+    float Z_tile_gap;                     // 1912: Distance in mm between adjacent tiles in the z (axial) direction
+    qint16 crystal_type;                  // 1916: Type of crystal
+    char empty14[2];                      // 1918:
+    qint16 psf1;                          // 1920: Identifies whether or not PSF1 was applied.
+    qint16 psf1_iter;                     // 1922: Number of iterations in PSF1 processing. Valid only if psf1 is yes.
+    float psf1_regularization;            // 1924: Regularization value used in PSF1 processing. Valid only if psf1 is yes. The value is in units of mm
+                                          //       representing the full-width half-maximum of the sieve filter kernel.
+    qint16 psf2;                          // 1928: Identifies whether or not PSF2 was applied.
+    qint16 psf2_iter;                     // 1930: Number of iterations in PSF2 processing. Valid only if psf2 is yes.
+    float gaussian_kernel;                // 1932: gaussian kernel width in mm with a range of (0, 12.0]
+    char acqprotocol_name[64];            // 1936: Exam card name
+    quint16 coinc_half_window_bins;       // 2000: For two events to be considered by the system as a coincidence event their timestamps must differ
+                                          //       by less than this number of timing bins.
+                                          //       Added for Vereos.
+                                          //       Note: To convert from timing bins to an actual time value in picoseconds, use the tofTstampScale
+                                          //       field, which is the time in picoseconds per timing bin
+    char empty15[46];                     // 2002: empty
+    char isotope_name[64];                // 2048: A free-form text-based name of the isotope.
+    char isotope_code_value[16];          // 2112: DICOM Code Value identifying the isotope that was used.
+    char isotope_coding_scheme_designator[16]; // 2128: DICOM Coding Scheme Designator that identifies the coding scheme from which the Code Value is taken.
+    char isotope_coding_scheme_version[16];// 2144: Optional DICOM Coding Scheme Version. Identifies the version of the coding scheme
+                                           //       from which the code value is taken. Required only if the value of
+                                           //       isotope_coding_scheme_designator is not sufficient to identify the isotope Code
+                                           //       Value.
+    char isotope_code_meaning[64];        // 2160: DICOM Code Meaning. Code meaning for the isotope Code Value, as defined by
+                                          //       Coding Scheme.
+    char radiopharm_code_value[16];       // 2224: DICOM Code Value identifying the radiopharmaceutical that was used
+    char radiopharm_coding_scheme_designator[16]; // 2240: DICOM Coding Scheme Designator that identifies the coding scheme from which the Code Value is taken
+    char radiopharm_coding_scheme_version[16];// 2256: Optional DICOM Coding Scheme Version. Identifies the version of the coding scheme
+                                              //       from which the code value is taken. Required only if the value of
+                                              //       radiopharm_coding_scheme_designator is not sufficient to identify the radiopharm
+                                              //       Code Value.
+    char radiopharm_code_meaning[64];     // 2272: DICOM Code Meaning. Code meaning for the isotope Code Value, as defined by the Coding Scheme
+    char reserved[5856];                  // 2336: RESERVED till 8K
   } extHeader;
   #pragma pack()
 
@@ -618,30 +866,35 @@ void CPhilipsMainHeader::clear()
   m_pData->header.magic_number[4] = 0x00;
   m_pData->header.magic_number[5] = 0x16;
 
-  m_pData->header.empty1[0] = 0x00;
-  m_pData->header.empty1[1] = 0x40;
-  m_pData->header.empty1[2] = 0x00;
-  m_pData->header.empty1[3] = 0x5B;
+  // magic number 2 @ 012: 0x0040005B
+  m_pData->header.magic2[0] = 0x00;
+  m_pData->header.magic2[1] = 0x40;
+  m_pData->header.magic2[2] = 0x00;
+  m_pData->header.magic2[3] = 0x5B;
 
-  m_pData->header.empty3[0] = 0x00;
-  m_pData->header.empty3[1] = 0x07;
-  m_pData->header.empty3[2] = 0xFF;
-  m_pData->header.empty3[3] = 0xFF;
+  // magic number 3 @ 048: 0x0007FFFF
+  m_pData->header.magic3[0] = 0x00;
+  m_pData->header.magic3[1] = 0x07;
+  m_pData->header.magic3[2] = 0xFF;
+  m_pData->header.magic3[3] = 0xFF;
   
-  m_pData->header.empty4[0] = 0x00;
-  m_pData->header.empty4[1] = 0x20;
-  m_pData->header.empty4[2] = 0xFF;
-  m_pData->header.empty4[3] = 0xFF;
+  // magic number 4 @ 062: 0x0020FFFF
+  m_pData->header.magic4[0] = 0x00;
+  m_pData->header.magic4[1] = 0x20;
+  m_pData->header.magic4[2] = 0xFF;
+  m_pData->header.magic4[3] = 0xFF;
 
-  m_pData->header.empty5[0] = 0x00;
-  m_pData->header.empty5[1] = 0x1B;
-  m_pData->header.empty5[2] = 0xFF;
-  m_pData->header.empty5[3] = 0xFF;
+  // magic number 5 @ 126: 0x001BFFFF
+  m_pData->header.magic5[0] = 0x00;
+  m_pData->header.magic5[1] = 0x1B;
+  m_pData->header.magic5[2] = 0xFF;
+  m_pData->header.magic5[3] = 0xFF;
 
-  m_pData->header.empty6[0] = 0x00;
-  m_pData->header.empty6[1] = 0x21;
-  m_pData->header.empty6[2] = 0xFF;
-  m_pData->header.empty6[3] = 0xFF;
+  // magic number 6 @ 180: 0x0021FFFF
+  m_pData->header.magic6[0] = 0x00;
+  m_pData->header.magic6[1] = 0x21;
+  m_pData->header.magic6[2] = 0xFF;
+  m_pData->header.magic6[3] = 0xFF;
 
   // set some default values for the new Main Header
   m_pData->header.file_fmt = MAINHEADER_VERSION;
@@ -723,6 +976,7 @@ bool CPhilipsMainHeader::load()
     BSWAP_16(m_pData->header.hw_config);           
     BSWAP_16(m_pData->header.edit_flag);           
     BSWAP_16(m_pData->header.filtyp);             
+    BSWAP_16(m_pData->header.list_byte_ord);
     BSWAP_32(m_pData->header.minTransXtalDiff);  
     BSWAP_FLT(m_pData->header.tofTstampScale);  
     BSWAP_16(m_pData->header.dep_daycre);      
@@ -754,7 +1008,7 @@ bool CPhilipsMainHeader::load()
     BSWAP_16(m_pData->header.numray);
     BSWAP_16(m_pData->header.numang);
     BSWAP_16(m_pData->header.slcthk);
-    BSWAP_16(m_pData->header.isotop);
+    BSWAP_16(m_pData->header.dep_isotop);
     BSWAP_FLT(m_pData->header.slope);
     BSWAP_FLT(m_pData->header.intcpt);
     BSWAP_16(m_pData->header.dep_injtim);
@@ -829,12 +1083,12 @@ bool CPhilipsMainHeader::load()
     if(extendedHeaderFound == true)
     {
       BSWAP_16(m_pData->extHeader.route);
-      BSWAP_16(m_pData->extHeader.pharm);
+      BSWAP_16(m_pData->extHeader.dep_pharm);
       BSWAP_16(m_pData->extHeader.card_phstate);
       BSWAP_32(m_pData->extHeader.assay_date);
       BSWAP_32(m_pData->extHeader.assay_time);
       BSWAP_16(m_pData->extHeader.height);   
-      BSWAP_16(m_pData->extHeader.abundance);
+      BSWAP_16(m_pData->extHeader.dep_abundance);
       BSWAP_16(m_pData->extHeader.petct_realign_x);
       BSWAP_16(m_pData->extHeader.petct_realign_y);
       BSWAP_16(m_pData->extHeader.petct_realign_hr);
@@ -848,11 +1102,15 @@ bool CPhilipsMainHeader::load()
       BSWAP_FLT(m_pData->extHeader.window_width);
       BSWAP_16(m_pData->extHeader.petct_realign_zr);
       BSWAP_16(m_pData->extHeader.petct_realign_vr);
+      BSWAP_FLT(m_pData->extHeader.positron_fraction);
+      BSWAP_16(m_pData->extHeader.image_org);
+      BSWAP_16(m_pData->extHeader.pulmo_trig_of);
       BSWAP_16(m_pData->extHeader.resp_trig_threshold);
       BSWAP_16(m_pData->extHeader.resp_phase_duration);
       BSWAP_16(m_pData->extHeader.resp_phase_offset);
       BSWAP_16(m_pData->extHeader.petct_realign_z);
       BSWAP_16(m_pData->extHeader.window_units);
+      BSWAP_16(m_pData->extHeader.pt_tbl_vers);
       BSWAP_FLT(m_pData->extHeader.Dslice_thick);
       BSWAP_FLT(m_pData->extHeader.table_height);
       BSWAP_16(m_pData->extHeader.card_bt_rej);
@@ -930,6 +1188,16 @@ bool CPhilipsMainHeader::load()
       BSWAP_32(m_pData->extHeader.start_table_pos_abs);
       BSWAP_32(m_pData->extHeader.start_table_pos_rel);
       BSWAP_16(m_pData->extHeader.mr_valid);
+      BSWAP_FLT(m_pData->extHeader.X_tile_gap);
+      BSWAP_FLT(m_pData->extHeader.Z_tile_gap);
+      BSWAP_16(m_pData->extHeader.crystal_type);
+      BSWAP_16(m_pData->extHeader.psf1);
+      BSWAP_16(m_pData->extHeader.psf1_iter);
+      BSWAP_FLT(m_pData->extHeader.psf1_regularization);
+      BSWAP_16(m_pData->extHeader.psf2);
+      BSWAP_16(m_pData->extHeader.psf2_iter);
+      BSWAP_FLT(m_pData->extHeader.gaussian_kernel);
+      BSWAP_16(m_pData->extHeader.coinc_half_window_bins);
     }
   }
   
@@ -941,6 +1209,7 @@ bool CPhilipsMainHeader::load()
   D("hw_config            : %d", hw_config());
   D("edit_flag            : %d", edit_flag());
   D("filtyp               : %d", filtyp());
+  D("list_byte_ord        : %d", list_byte_ord());
   D("minTransXtalDiff     : %d", minTransXtalDiff());
   D("tofTstampScale       : %f", tofTstampScale());
   D("dep_daycre           : %d", dep_daycre());
@@ -972,7 +1241,7 @@ bool CPhilipsMainHeader::load()
   D("numray               : %d", numray());
   D("numang               : %d", numang());
   D("slcthk               : %d", slcthk());
-  D("isotop               : %d", isotop());
+  D("dep_isotop           : %d", dep_isotop());
   D("slope                : %f", slope());
   D("intcpt               : %f", intcpt());
   D("dep_injtim           : %d", dep_injtim());
@@ -1032,7 +1301,7 @@ bool CPhilipsMainHeader::load()
   D("fctrfil              : '%s'", fctrfil());
   D("baselin              : '%s'", baselin());
   D("dstpkfl              : '%s'", dstpkfl());
-  D("aqprotocol_name      : '%s'", aqprotocol_name());
+  D("dep_aqprotocol_name  : '%s'", dep_aqprotocol_name());
   D("aqprotocol_type      : %d", aqprotocol_type());
   D("patient_name         : '%s'", patient_name());
   D("reslice_ang1         : %f", reslice_ang1());
@@ -1063,14 +1332,14 @@ bool CPhilipsMainHeader::load()
     D("view_code                  : '%s'", view_code());
     D("sortproto_name             : '%s'", sortproto_name());
     D("route                      : %d", route());
-    D("pharm                      : %d", pharm());
+    D("dep_pharm                  : %d", dep_pharm());
     D("req_phys                   : '%s'", req_phys());
     D("card_phstate               : %d", card_phstate());
     D("assay_date                 : %d", assay_date());
     D("assay_time                 : %d", assay_time());
     D("series_desc                : '%s'", series_desc());
     D("height                     : %d", height());
-    D("abundance                  : %d", abundance());
+    D("dep_abundance              : %d", dep_abundance());
     D("petct_realign_x            : %d", petct_realign_x());
     D("petct_realign_y            : %d", petct_realign_y());
     D("petct_realign_hr           : %d", petct_realign_hr());
@@ -1084,20 +1353,24 @@ bool CPhilipsMainHeader::load()
     D("window_width               : %f", window_width());
     D("petct_realign_zr           : %d", petct_realign_zr());
     D("petct_realign_vr           : %d", petct_realign_vr());
+    D("positron_fraction          : %f", positron_fraction());
+    D("image_org                  : %d", image_org());
+    D("pulmo_trig_of              : %d", pulmo_trig_of());
     D("resp_trig_threshold        : %d", resp_trig_threshold());
     D("resp_phase_duration        : %d", resp_phase_duration());
     D("resp_phase_offset          : %d", resp_phase_offset());
     D("petct_realign_z            : %d", petct_realign_z());
     D("window_units               : %d", window_units());
-    D("referring_physician        : '%s'", referring_physician());
+    D("ref_phys                   : '%s'", ref_phys());
     D("study_id                   : '%s'", study_id());
+    D("pt_tbl_vers                : %d", pt_tbl_vers());
     D("Dslice_thick               : %f", Dslice_thick());
     D("sex                        : %c", sex());
     D("table_height               : %f", table_height());
     D("card_bt_rej                : %d", card_bt_rej());
     D("card_fr_type               : %d", card_fr_type());
-    D("Dmanufacture_model_name    : '%s'", Dmanufacture_model_name());
-    D("Dimage_type                : '%s'", Dimage_type());
+    D("Dmanuf_model               : '%s'", Dmanuf_model());
+    D("Dimg_type                  : '%s'", Dimg_type());
     D("min_bed_pos                : %f", min_bed_pos());
     D("max_bed_pos                : %f", max_bed_pos());
     D("der_filled                 : %d", der_filled());
@@ -1118,6 +1391,7 @@ bool CPhilipsMainHeader::load()
     D("radiopharm_name            : '%s'", radiopharm_name());
     D("Dserial_number             : '%s'", Dserial_number());
     D("attncor_label              : '%s'", attncor_label());
+    D("operator_name              : '%s'", operator_name());
     D("contr_bolus_agent          : '%s'", contr_bolus_agent());
     D("sop_uid                    : '%s'", sop_uid());
     D("frame_ref_uid              : '%s'", frame_ref_uid());
@@ -1207,6 +1481,31 @@ bool CPhilipsMainHeader::load()
     D("coil_type[12]              : %d", coil_type(12));
     D("coil_type[13]              : %d", coil_type(13));
     D("coil_type[14]              : %d", coil_type(14));
+    D("ref_raw_data_series_inst_uid: '%s'", ref_raw_data_series_inst_uid());
+    D("pet_software_version       : '%s'", pet_software_version());
+    D("ntr                        : %c", ntr());
+    D("ndm                        : %c", ndm());
+    D("ntmr                       : %c", ntmr());
+    D("X_tile_gap                 : %f", X_tile_gap());
+    D("Z_tile_gap                 : %f", Z_tile_gap());
+    D("crystal_type               : %d", crystal_type());
+    D("psf1                       : %d", psf1());
+    D("psf1_iter                  : %d", psf1_iter());
+    D("psf1_regularization        : %f", psf1_regularization());
+    D("psf2                       : %d", psf2());
+    D("psf2_iter                  : %d", psf2_iter());
+    D("gaussian_kernel            : %f", gaussian_kernel());
+    D("acqprotocol_name           : '%s'", acqprotocol_name());
+    D("coinc_half_window_bins     : %d", coinc_half_window_bins());
+    D("isotope_name               : '%s'", isotope_name());
+    D("isotope_code_value         : '%s'", isotope_code_value());
+    D("isotope_coding_scheme_designator: '%s'", isotope_coding_scheme_designator());
+    D("isotope_coding_scheme_version   : '%s'", isotope_coding_scheme_version());
+    D("isotope_code_meaning            : '%s'", isotope_code_meaning());
+    D("radiopharm_code_value           : '%s'", radiopharm_code_value());
+    D("radiopharm_coding_scheme_designator: '%s'", radiopharm_coding_scheme_designator());
+    D("radiopharm_coding_scheme_version   : '%s'", radiopharm_coding_scheme_version());
+    D("radiopharm_code_meaning            : '%s'", radiopharm_code_meaning());
   }
   else
     W("no extended header found");
@@ -1271,6 +1570,7 @@ bool CPhilipsMainHeader::save(void) const
     BSWAP_16(header->hw_config);           
     BSWAP_16(header->edit_flag);           
     BSWAP_16(header->filtyp);             
+    BSWAP_16(header->list_byte_ord);
     BSWAP_32(header->minTransXtalDiff);  
     BSWAP_FLT(header->tofTstampScale);  
     BSWAP_16(header->dep_daycre);      
@@ -1302,7 +1602,7 @@ bool CPhilipsMainHeader::save(void) const
     BSWAP_16(header->numray);
     BSWAP_16(header->numang);
     BSWAP_16(header->slcthk);
-    BSWAP_16(header->isotop);
+    BSWAP_16(header->dep_isotop);
     BSWAP_FLT(header->slope);
     BSWAP_FLT(header->intcpt);
     BSWAP_16(header->dep_injtim);
@@ -1381,12 +1681,12 @@ bool CPhilipsMainHeader::save(void) const
 
     // we only swap non-char elements of the header
     BSWAP_16(extHeader->route);
-    BSWAP_16(extHeader->pharm);
+    BSWAP_16(extHeader->dep_pharm);
     BSWAP_16(extHeader->card_phstate);
     BSWAP_32(extHeader->assay_date);
     BSWAP_32(extHeader->assay_time);
     BSWAP_16(extHeader->height);   
-    BSWAP_16(extHeader->abundance);
+    BSWAP_16(extHeader->dep_abundance);
     BSWAP_16(extHeader->petct_realign_x);
     BSWAP_16(extHeader->petct_realign_y);
     BSWAP_16(extHeader->petct_realign_hr);
@@ -1400,11 +1700,13 @@ bool CPhilipsMainHeader::save(void) const
     BSWAP_FLT(extHeader->window_width);
     BSWAP_16(extHeader->petct_realign_zr);
     BSWAP_16(extHeader->petct_realign_vr);
+    BSWAP_FLT(extHeader->positron_fraction);
     BSWAP_16(extHeader->resp_trig_threshold);
     BSWAP_16(extHeader->resp_phase_duration);
     BSWAP_16(extHeader->resp_phase_offset);
     BSWAP_16(extHeader->petct_realign_z);
     BSWAP_16(extHeader->window_units);
+    BSWAP_16(extHeader->pt_tbl_vers);
     BSWAP_FLT(extHeader->Dslice_thick);
     BSWAP_FLT(extHeader->table_height);
     BSWAP_16(extHeader->card_bt_rej);
@@ -1482,6 +1784,16 @@ bool CPhilipsMainHeader::save(void) const
     BSWAP_32(extHeader->start_table_pos_abs);
     BSWAP_32(extHeader->start_table_pos_rel);
     BSWAP_16(extHeader->mr_valid);
+    BSWAP_FLT(extHeader->X_tile_gap);
+    BSWAP_FLT(extHeader->Z_tile_gap);
+    BSWAP_16(extHeader->crystal_type);
+    BSWAP_16(extHeader->psf1);
+    BSWAP_16(extHeader->psf1_iter);
+    BSWAP_FLT(extHeader->psf1_regularization);
+    BSWAP_16(extHeader->psf2);
+    BSWAP_16(extHeader->psf2_iter);
+    BSWAP_FLT(extHeader->gaussian_kernel);
+    BSWAP_16(extHeader->coinc_half_window_bins);
   }
   else
   {
@@ -1639,7 +1951,7 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
           m_pData->ecat2philipsIsotope(header->isotope_Name());
           setHalfLife(header->isotope_Halflife() / 60.0f); // sec -> min
           setActivity(header->dosage() / 1000000.0f); // Bq -> MBq
-          setAqprotocol_name(header->study_Type());
+          setDep_Aqprotocol_name(header->study_Type());
           m_pData->ecat2philipsAcquisitionType(header->acquisition_Type());
           setScnOrigin(header->facility_Name());
 
@@ -1655,7 +1967,7 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
           // we try to identify the right scanner type
           if(scan_geom() == 97)
           {
-            setDmanufacture_model_name("Ingenuity TF PET/MR");
+            setDmanuf_model("Ingenuity TF PET/MR");
             setHw_config(6769);
             setMr_valid(true);
             setPetct_valid(CPhilipsMainHeader::PETCT_Valid);
@@ -1667,16 +1979,16 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
             if(operatorName.contains("PET/CT", Qt::CaseInsensitive))
             {
               setPetct_valid(CPhilipsMainHeader::PETCT_Valid);
-              setDmanufacture_model_name(header->operator_Name());
+              setDmanuf_model(header->operator_Name());
             }
             else if(operatorName.contains("MR", Qt::CaseInsensitive))
             {
               setMr_valid(true);
               setPetct_valid(CPhilipsMainHeader::PETCT_Valid);
-              setDmanufacture_model_name(header->operator_Name());
+              setDmanuf_model(header->operator_Name());
             }
             else if(operatorName.contains("PET", Qt::CaseInsensitive))
-              setDmanufacture_model_name(header->operator_Name());
+              setDmanuf_model(header->operator_Name());
           }
 
           // check if cti_Reserved() is set to mr_valid mode
@@ -1694,8 +2006,9 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
           m_pData->ecat2philipsSex(header->patient_Sex());
           setDpat_id(header->patient_ID());
           setHeight(header->patient_Height() * 10.0f); // cm -> mm
-          setAbundance(header->branching_Fraction() * 1000.0f); // 1.0 = 100%
-          setReferring_physician(header->physician_Name());
+          setDep_abundance(header->branching_Fraction() * 1000.0f); // 1.0 = 100%
+          setPositron_fraction(header->branching_Fraction());
+          setRef_phys(header->physician_Name());
           setTable_height(header->bed_Elevation());
          
           // convert scan start time to file create and acq datetime
@@ -1776,6 +2089,11 @@ short CPhilipsMainHeader::edit_flag() const
 CPhilipsMainHeader::File_Type CPhilipsMainHeader::filtyp() const
 {
   return static_cast<File_Type>(m_pData->header.filtyp);
+}
+
+CPhilipsMainHeader::Byte_Order CPhilipsMainHeader::list_byte_ord() const
+{
+  return static_cast<Byte_Order>(m_pData->header.list_byte_ord);
 }
 
 int CPhilipsMainHeader::minTransXtalDiff() const
@@ -1933,9 +2251,9 @@ short CPhilipsMainHeader::slcthk() const
   return m_pData->header.slcthk;
 }
 
-CPhilipsMainHeader::Isotope CPhilipsMainHeader::isotop() const
+CPhilipsMainHeader::Isotope CPhilipsMainHeader::dep_isotop() const
 {
-  return static_cast<Isotope>(m_pData->header.isotop);
+  return static_cast<Isotope>(m_pData->header.dep_isotop);
 }
 
 float CPhilipsMainHeader::slope() const
@@ -2228,9 +2546,9 @@ const char* CPhilipsMainHeader::dstpkfl() const
   return m_pData->header.dstpkfl;
 }
 
-const char* CPhilipsMainHeader::aqprotocol_name() const
+const char* CPhilipsMainHeader::dep_aqprotocol_name() const
 {
-  return m_pData->header.aqprotocol_name;
+  return m_pData->header.dep_aqprotocol_name;
 }
 
 CPhilipsMainHeader::Acquisition_Protocol_Type CPhilipsMainHeader::aqprotocol_type() const
@@ -2351,6 +2669,11 @@ void CPhilipsMainHeader::setEdit_flag(const short eFlag)
 void CPhilipsMainHeader::setFiltyp(const File_Type fType)
 {
   m_pData->header.filtyp = fType;
+}
+
+void CPhilipsMainHeader::setList_byte_ord(const Byte_Order iOrder)
+{
+  m_pData->header.list_byte_ord = iOrder;
 }
 
 void CPhilipsMainHeader::setMinTransXtalDiff(const int minTransXtalDiff)
@@ -2508,9 +2831,9 @@ void CPhilipsMainHeader::setSlcthk(const short thickness)
   m_pData->header.slcthk = thickness;
 }
 
-void CPhilipsMainHeader::setIsotop(const Isotope isotop)
+void CPhilipsMainHeader::setDep_isotop(const Isotope isotop)
 {
-  m_pData->header.isotop = isotop;
+  m_pData->header.dep_isotop = isotop;
 }
 
 void CPhilipsMainHeader::setSlope(const float slope)
@@ -2808,9 +3131,9 @@ void CPhilipsMainHeader::setDstpkfl(const char* str)
   strncpy(m_pData->header.dstpkfl, str, sizeof(m_pData->header.dstpkfl)-1);
 }
 
-void CPhilipsMainHeader::setAqprotocol_name(const char* str)
+void CPhilipsMainHeader::setDep_Aqprotocol_name(const char* str)
 {
-  strncpy(m_pData->header.aqprotocol_name, str, sizeof(m_pData->header.aqprotocol_name)-1);
+  strncpy(m_pData->header.dep_aqprotocol_name, str, sizeof(m_pData->header.dep_aqprotocol_name)-1);
 }
 
 void CPhilipsMainHeader::setAqprotocol_type(const CPhilipsMainHeader::Acquisition_Protocol_Type aqprotocol_type)
@@ -3026,61 +3349,63 @@ bool CPhilipsMainHeaderPrivate::ecat2philipsIsotope(const QString& isotop)
 
   QString isotope = isotop.toUpper().remove(QChar('-'));
   if(isotope.contains("UNDEFINED"))
-    header.isotop = CPhilipsMainHeader::UndefinedIsotope;
+    header.dep_isotop = CPhilipsMainHeader::UndefinedIsotope;
   else if(isotope.contains("UNKNOWN"))
-    header.isotop = CPhilipsMainHeader::UnknownIsotope;
+    header.dep_isotop = CPhilipsMainHeader::UnknownIsotope;
   else if(isotope.contains("F18"))
-    header.isotop = CPhilipsMainHeader::F18;
+    header.dep_isotop = CPhilipsMainHeader::F18;
   else if(isotope.contains("O15"))
-    header.isotop = CPhilipsMainHeader::O15;
+    header.dep_isotop = CPhilipsMainHeader::O15;
   else if(isotope.contains("C11"))
-    header.isotop = CPhilipsMainHeader::C11;
+    header.dep_isotop = CPhilipsMainHeader::C11;
   else if(isotope.contains("GA68"))
-    header.isotop = CPhilipsMainHeader::GA68;
+    header.dep_isotop = CPhilipsMainHeader::GA68;
   else if(isotope.contains("N13"))
-    header.isotop = CPhilipsMainHeader::N13;
+    header.dep_isotop = CPhilipsMainHeader::N13;
   else if(isotope.contains("RB82"))
-    header.isotop = CPhilipsMainHeader::RB82;
+    header.dep_isotop = CPhilipsMainHeader::RB82;
   else if(isotope.contains("CU62"))
-    header.isotop = CPhilipsMainHeader::CU62;
+    header.dep_isotop = CPhilipsMainHeader::CU62;
   else if(isotope.contains("CS137"))
-    header.isotop = CPhilipsMainHeader::CS137;
+    header.dep_isotop = CPhilipsMainHeader::CS137;
   else if(isotope.contains("GE68"))
-    header.isotop = CPhilipsMainHeader::GE68;
+    header.dep_isotop = CPhilipsMainHeader::GE68;
   else if(isotope.contains("CU64"))
-    header.isotop = CPhilipsMainHeader::CU64;
+    header.dep_isotop = CPhilipsMainHeader::CU64;
   else if(isotope.contains("BR76"))
-    header.isotop = CPhilipsMainHeader::BR76;
+    header.dep_isotop = CPhilipsMainHeader::BR76;
   else if(isotope.contains("NA22"))
-    header.isotop = CPhilipsMainHeader::NA22;
+    header.dep_isotop = CPhilipsMainHeader::NA22;
   else if(isotope.contains("O14"))
-    header.isotop = CPhilipsMainHeader::O14;
+    header.dep_isotop = CPhilipsMainHeader::O14;
   else if(isotope.contains("Y86"))
-    header.isotop = CPhilipsMainHeader::Y86;
+    header.dep_isotop = CPhilipsMainHeader::Y86;
   else if(isotope.contains("ZN62"))
-    header.isotop = CPhilipsMainHeader::ZN62;
+    header.dep_isotop = CPhilipsMainHeader::ZN62;
   else if(isotope.contains("CU60"))
-    header.isotop = CPhilipsMainHeader::CU60;
+    header.dep_isotop = CPhilipsMainHeader::CU60;
   else if(isotope.contains("CU61"))
-    header.isotop = CPhilipsMainHeader::CU61;
+    header.dep_isotop = CPhilipsMainHeader::CU61;
   else if(isotope.contains("GA66"))
-    header.isotop = CPhilipsMainHeader::GA66;
+    header.dep_isotop = CPhilipsMainHeader::GA66;
   else if(isotope.contains("BR75"))
-    header.isotop = CPhilipsMainHeader::BR75;
+    header.dep_isotop = CPhilipsMainHeader::BR75;
   else if(isotope.contains("BR77"))
-    header.isotop = CPhilipsMainHeader::BR77;
+    header.dep_isotop = CPhilipsMainHeader::BR77;
   else if(isotope.contains("I124"))
-    header.isotop = CPhilipsMainHeader::I124;
+    header.dep_isotop = CPhilipsMainHeader::I124;
   else if(isotope.contains("K38"))
-    header.isotop = CPhilipsMainHeader::K38;
+    header.dep_isotop = CPhilipsMainHeader::K38;
   else if(isotop.contains("MN52"))
-    header.isotop = CPhilipsMainHeader::MN52;
+    header.dep_isotop = CPhilipsMainHeader::MN52;
   else if(isotop.contains("TC94M"))
-    header.isotop = CPhilipsMainHeader::TC94M;
+    header.dep_isotop = CPhilipsMainHeader::TC94M;
   else if(isotop.contains("TI45"))
-    header.isotop = CPhilipsMainHeader::TI45;
+    header.dep_isotop = CPhilipsMainHeader::TI45;
   else
-    header.isotop = CPhilipsMainHeader::OtherIsotope;
+    header.dep_isotop = CPhilipsMainHeader::OtherIsotope;
+
+  strncpy(extHeader.isotope_name, isotop.toLatin1().constData(), sizeof(extHeader.isotope_name)-1);
 
   result = true;
 
@@ -3192,7 +3517,7 @@ bool CPhilipsMainHeaderPrivate::ecat2philipsAcquisitionType(const CECAT7MainHead
 
   header.aqprotocol_type = ptype;
   header.scntyp = atype;
-  strncpy(extHeader.Dimage_type, dimg_type.toLatin1().constData(), sizeof(extHeader.Dimage_type)-1);
+  strncpy(extHeader.Dimg_type, dimg_type.toLatin1().constData(), sizeof(extHeader.Dimg_type)-1);
 
   RETURN(result);
   return result;
@@ -3377,7 +3702,8 @@ bool CPhilipsMainHeaderPrivate::ecat2philipsPharm(const QString& rpharm)
     pharmType = CPhilipsMainHeader::OtherPharm;
 
   // set the header
-  extHeader.pharm = pharmType;
+  extHeader.dep_pharm = pharmType;
+  strncpy(extHeader.radiopharm_name, rpharm.toLatin1().constData(), sizeof(extHeader.radiopharm_name)-1);
 
   // set the result
   result = pharmType != CPhilipsMainHeader::UndefinedPharm;
@@ -3421,9 +3747,9 @@ CPhilipsMainHeader::Route_Type CPhilipsMainHeader::route() const
   return static_cast<Route_Type>(m_pData->extHeader.route);
 }
 
-CPhilipsMainHeader::Pharm_Type CPhilipsMainHeader::pharm() const
+CPhilipsMainHeader::Pharm_Type CPhilipsMainHeader::dep_pharm() const
 {
-  return static_cast<Pharm_Type>(m_pData->extHeader.pharm);
+  return static_cast<Pharm_Type>(m_pData->extHeader.dep_pharm);
 }
 
 int CPhilipsMainHeader::assay_date() const
@@ -3446,9 +3772,9 @@ short CPhilipsMainHeader::height() const
   return m_pData->extHeader.height;
 }
 
-short CPhilipsMainHeader::abundance() const
+short CPhilipsMainHeader::dep_abundance() const
 {
-  return m_pData->extHeader.abundance;
+  return m_pData->extHeader.dep_abundance;
 }
 
 short CPhilipsMainHeader::petct_realign_x() const
@@ -3516,6 +3842,21 @@ short CPhilipsMainHeader::petct_realign_vr() const
   return m_pData->extHeader.petct_realign_vr;
 }
 
+float CPhilipsMainHeader::positron_fraction() const
+{
+  return m_pData->extHeader.positron_fraction;
+}
+
+short CPhilipsMainHeader::image_org() const
+{
+  return m_pData->extHeader.image_org;
+}
+
+short CPhilipsMainHeader::pulmo_trig_of() const
+{
+  return m_pData->extHeader.pulmo_trig_of;
+}
+
 short CPhilipsMainHeader::resp_trig_threshold() const
 {
   return m_pData->extHeader.resp_trig_threshold;
@@ -3551,14 +3892,19 @@ CPhilipsMainHeader::Card_Ph_State CPhilipsMainHeader::card_phstate() const
   return static_cast<Card_Ph_State>(m_pData->extHeader.card_phstate);
 }
 
-const char* CPhilipsMainHeader::referring_physician() const
+const char* CPhilipsMainHeader::ref_phys() const
 {
-  return m_pData->extHeader.referring_physician;
+  return m_pData->extHeader.ref_phys;
 }
 
 const char* CPhilipsMainHeader::study_id() const
 {
   return m_pData->extHeader.study_id;
+}
+
+short CPhilipsMainHeader::pt_tbl_vers() const
+{
+  return m_pData->extHeader.pt_tbl_vers;
 }
 
 float CPhilipsMainHeader::Dslice_thick() const
@@ -3586,14 +3932,14 @@ CPhilipsMainHeader::Card_Fr_Type CPhilipsMainHeader::card_fr_type() const
   return static_cast<Card_Fr_Type>(m_pData->extHeader.card_fr_type);
 }
 
-const char* CPhilipsMainHeader::Dmanufacture_model_name() const
+const char* CPhilipsMainHeader::Dmanuf_model() const
 {
-  return m_pData->extHeader.Dmanufacture_model_name;
+  return m_pData->extHeader.Dmanuf_model;
 }
 
-const char* CPhilipsMainHeader::Dimage_type() const
+const char* CPhilipsMainHeader::Dimg_type() const
 {
-  return m_pData->extHeader.Dimage_type;
+  return m_pData->extHeader.Dimg_type;
 }
 
 float CPhilipsMainHeader::min_bed_pos() const
@@ -3694,6 +4040,11 @@ const char* CPhilipsMainHeader::Dserial_number() const
 const char* CPhilipsMainHeader::attncor_label() const
 {
   return m_pData->extHeader.attncor_label;
+}
+
+const char* CPhilipsMainHeader::operator_name() const
+{
+  return m_pData->extHeader.operator_name;
 }
 
 const char* CPhilipsMainHeader::contr_bolus_agent() const
@@ -4049,12 +4400,137 @@ bool CPhilipsMainHeader::mr_valid() const
   return m_pData->extHeader.mr_valid == 1;
 }
 
-char CPhilipsMainHeader::coil_type(const short i) const
+unsigned char CPhilipsMainHeader::coil_type(const short i) const
 {
   if(i >= 0 && i <= 14)
     return m_pData->extHeader.coil_type[i];
   else
     return 0;
+}
+
+const char * CPhilipsMainHeader::ref_raw_data_series_inst_uid() const
+{
+  return m_pData->extHeader.ref_raw_data_series_inst_uid;
+}
+
+const char * CPhilipsMainHeader::pet_software_version() const
+{
+  return m_pData->extHeader.pet_software_version;
+}
+
+unsigned char CPhilipsMainHeader::num_tile_rings() const
+{
+  return m_pData->extHeader.num_tile_rings;
+}
+
+unsigned char CPhilipsMainHeader::num_detector_modules() const
+{
+  return m_pData->extHeader.num_detector_modules;
+}
+
+unsigned char CPhilipsMainHeader::num_tiles_per_module_row() const
+{
+  return m_pData->extHeader.num_tiles_per_module_row;
+}
+
+float CPhilipsMainHeader::X_tile_gap() const
+{
+  return m_pData->extHeader.X_tile_gap;
+}
+
+float CPhilipsMainHeader::Z_tile_gap() const
+{
+  return m_pData->extHeader.Z_tile_gap;
+}
+
+short CPhilipsMainHeader::crystal_type() const
+{
+  return m_pData->extHeader.crystal_type;
+}
+
+short CPhilipsMainHeader::psf1() const
+{
+  return m_pData->extHeader.psf1;
+}
+
+short CPhilipsMainHeader::psf1_iter() const
+{
+  return m_pData->extHeader.psf1_iter;
+}
+
+float CPhilipsMainHeader::psf1_regularization() const
+{
+  return m_pData->extHeader.psf1_regularization;
+}
+
+short CPhilipsMainHeader::psf2() const
+{
+  return m_pData->extHeader.psf2;
+}
+
+short CPhilipsMainHeader::psf2_iter() const
+{
+  return m_pData->extHeader.psf2_iter;
+}
+
+float CPhilipsMainHeader::gaussian_kernel() const
+{
+  return m_pData->extHeader.gaussian_kernel;
+}
+
+const char * CPhilipsMainHeader::acqprotocol_name() const
+{
+  return m_pData->extHeader.acqprotocol_name;
+}
+
+unsigned short CPhilipsMainHeader::coinc_half_window_bins() const
+{
+  return m_pData->extHeader.coinc_half_window_bins;
+}
+
+const char * CPhilipsMainHeader::isotope_name() const
+{
+  return m_pData->extHeader.isotope_name;
+}
+
+const char * CPhilipsMainHeader::isotope_code_value() const
+{
+  return m_pData->extHeader.isotope_code_value;
+}
+
+const char * CPhilipsMainHeader::isotope_coding_scheme_designator() const
+{
+  return m_pData->extHeader.isotope_coding_scheme_designator;
+}
+
+const char * CPhilipsMainHeader::isotope_coding_scheme_version() const
+{
+  return m_pData->extHeader.isotope_coding_scheme_version;
+}
+
+const char * CPhilipsMainHeader::isotope_code_meaning() const
+{
+  return m_pData->extHeader.isotope_code_meaning;
+}
+
+const char * CPhilipsMainHeader::radiopharm_code_value() const
+{
+  return m_pData->extHeader.radiopharm_code_value;
+}
+
+const char * CPhilipsMainHeader::radiopharm_coding_scheme_designator() const
+{
+  return m_pData->extHeader.radiopharm_coding_scheme_designator;
+}
+
+const char * CPhilipsMainHeader::radiopharm_coding_scheme_version() const
+{
+  return m_pData->extHeader.radiopharm_coding_scheme_version;
+}
+
+const char * CPhilipsMainHeader::radiopharm_code_meaning() const
+{
+  return m_pData->extHeader.radiopharm_code_meaning;
 }
 
 void CPhilipsMainHeader::setDpat_name(const char* str)
@@ -4092,9 +4568,9 @@ void CPhilipsMainHeader::setRoute(const Route_Type route)
   m_pData->extHeader.route = static_cast<qint16>(route);
 }
 
-void CPhilipsMainHeader::setPharm(const Pharm_Type pharm)
+void CPhilipsMainHeader::setDep_pharm(const Pharm_Type pharm)
 {
-  m_pData->extHeader.pharm = static_cast<qint16>(pharm);
+  m_pData->extHeader.dep_pharm = static_cast<qint16>(pharm);
 }
 
 void CPhilipsMainHeader::setReq_phys(const char* str)
@@ -4127,9 +4603,9 @@ void CPhilipsMainHeader::setHeight(const short height)
   m_pData->extHeader.height = height;
 }
 
-void CPhilipsMainHeader::setAbundance(const short abundance)
+void CPhilipsMainHeader::setDep_abundance(const short abundance)
 {
-  m_pData->extHeader.abundance = abundance;
+  m_pData->extHeader.dep_abundance = abundance;
 }
 
 void CPhilipsMainHeader::setPetct_realign_x(const short xOffset)
@@ -4216,6 +4692,21 @@ void CPhilipsMainHeader::setPetct_realign_vr(const short vertRotation)
   m_pData->extHeader.petct_realign_vr = vertRotation;
 }
 
+void CPhilipsMainHeader::setPositron_fraction(const float fraction)
+{
+  m_pData->extHeader.positron_fraction = fraction;
+}
+
+void CPhilipsMainHeader::setImage_org(const short value)
+{
+  m_pData->extHeader.image_org = value;
+}
+
+void CPhilipsMainHeader::setPulmo_trig_of(const short value)
+{
+  m_pData->extHeader.pulmo_trig_of = value;
+}
+
 void CPhilipsMainHeader::setResp_trig_threshold(const short resp_trig_threshold)
 {
   m_pData->extHeader.resp_trig_threshold = resp_trig_threshold;
@@ -4241,14 +4732,19 @@ void CPhilipsMainHeader::setWindow_units(const CPhilipsMainHeader::Window_Units 
   m_pData->extHeader.window_units = static_cast<qint16>(window_units);
 }
 
-void CPhilipsMainHeader::setReferring_physician(const char* str)
+void CPhilipsMainHeader::setRef_phys(const char* str)
 {
-  strncpy(m_pData->extHeader.referring_physician, str, sizeof(m_pData->extHeader.referring_physician)-1);
+  strncpy(m_pData->extHeader.ref_phys, str, sizeof(m_pData->extHeader.ref_phys)-1);
 }
 
 void CPhilipsMainHeader::setStudy_id(const char* str)
 {
   strncpy(m_pData->extHeader.study_id, str, sizeof(m_pData->extHeader.study_id)-1);
+}
+
+void CPhilipsMainHeader::setPt_tbl_vers(const short value)
+{
+  m_pData->extHeader.pt_tbl_vers = value;
 }
 
 void CPhilipsMainHeader::setDslice_thick(const float Dslice_thick)
@@ -4276,14 +4772,14 @@ void CPhilipsMainHeader::setCard_fr_type(const CPhilipsMainHeader::Card_Fr_Type 
   m_pData->extHeader.card_fr_type = static_cast<qint16>(type);
 }
 
-void CPhilipsMainHeader::setDmanufacture_model_name(const char* str)
+void CPhilipsMainHeader::setDmanuf_model(const char* str)
 {
-  strncpy(m_pData->extHeader.Dmanufacture_model_name, str, sizeof(m_pData->extHeader.Dmanufacture_model_name)-1);
+  strncpy(m_pData->extHeader.Dmanuf_model, str, sizeof(m_pData->extHeader.Dmanuf_model)-1);
 }
 
-void CPhilipsMainHeader::setDimage_type(const char* str)
+void CPhilipsMainHeader::setDimg_type(const char* str)
 {
-  strncpy(m_pData->extHeader.Dimage_type, str, sizeof(m_pData->extHeader.Dimage_type)-1);
+  strncpy(m_pData->extHeader.Dimg_type, str, sizeof(m_pData->extHeader.Dimg_type)-1);
 }
 
 void CPhilipsMainHeader::setMin_bed_pos(const float min)
@@ -4379,6 +4875,11 @@ void CPhilipsMainHeader::setDserial_number(const char* str)
 void CPhilipsMainHeader::setAttncor_label(const char* str)
 {
   strncpy(m_pData->extHeader.attncor_label, str, sizeof(m_pData->extHeader.attncor_label)-1);
+}
+
+void CPhilipsMainHeader::setOperator_name(const char* str)
+{
+  strncpy(m_pData->extHeader.operator_name, str, sizeof(m_pData->extHeader.operator_name)-1);
 }
 
 void CPhilipsMainHeader::setContr_bolus_agent(const char* str)
@@ -4732,8 +5233,133 @@ void CPhilipsMainHeader::setMr_valid(const bool valid)
   m_pData->extHeader.mr_valid = (valid == true) ? 1 : 0;
 }
 
-void CPhilipsMainHeader::setCoil_type(const short i, const char type)
+void CPhilipsMainHeader::setCoil_type(const short i, const unsigned char type)
 {
   if(i >= 0 && i <= 14)
     m_pData->extHeader.coil_type[i] = type;
+}
+
+void CPhilipsMainHeader::setRef_raw_data_series_inst_uid(const char *str)
+{
+  strncpy(m_pData->extHeader.ref_raw_data_series_inst_uid, str, sizeof(m_pData->extHeader.ref_raw_data_series_inst_uid)-1);
+}
+
+void CPhilipsMainHeader::setPet_software_version(const char *str)
+{
+  strncpy(m_pData->extHeader.pet_software_version, str, sizeof(m_pData->extHeader.pet_software_version));
+}
+
+void CPhilipsMainHeader::setNum_tile_rings(const unsigned char value)
+{
+  m_pData->extHeader.num_tile_rings = value;
+}
+
+void CPhilipsMainHeader::setNum_detector_modules(const unsigned char value)
+{
+  m_pData->extHeader.num_detector_modules = value;
+}
+
+void CPhilipsMainHeader::setNum_tiles_per_module_row(const unsigned char value)
+{
+  m_pData->extHeader.num_tiles_per_module_row = value;
+}
+
+void CPhilipsMainHeader::setX_tile_gap(const float value)
+{
+  m_pData->extHeader.X_tile_gap = value;
+}
+
+void CPhilipsMainHeader::setZ_tile_gap(const float value)
+{
+  m_pData->extHeader.Z_tile_gap = value;
+}
+
+void CPhilipsMainHeader::setCrystal_type(const short value)
+{
+  m_pData->extHeader.crystal_type = value;
+}
+
+void CPhilipsMainHeader::setPsf1(const short value)
+{
+  m_pData->extHeader.psf1 = value;
+}
+
+void CPhilipsMainHeader::setPsf1_iter(const short value)
+{
+  m_pData->extHeader.psf1_iter = value;
+}
+
+void CPhilipsMainHeader::setPsf1_regularization(const short value)
+{
+  m_pData->extHeader.psf1_regularization = value;
+}
+
+void CPhilipsMainHeader::setPsf2(const short value)
+{
+  m_pData->extHeader.psf2 = value;
+}
+
+void CPhilipsMainHeader::setPsf2_iter(const short value)
+{
+  m_pData->extHeader.psf2_iter = value;
+}
+
+void CPhilipsMainHeader::setGaussian_kernel(const float value)
+{
+  m_pData->extHeader.gaussian_kernel = value;
+}
+
+void CPhilipsMainHeader::setAcqprotocol_name(const char *str)
+{
+  strncpy(m_pData->extHeader.acqprotocol_name, str, sizeof(m_pData->extHeader.acqprotocol_name)-1);
+}
+
+void CPhilipsMainHeader::setCoinc_half_window_bins(unsigned short value)
+{
+  m_pData->extHeader.coinc_half_window_bins = value;
+}
+
+void CPhilipsMainHeader::setIsotope_name(const char *str)
+{
+  strncpy(m_pData->extHeader.isotope_name, str, sizeof(m_pData->extHeader.isotope_name)-1);
+}
+
+void CPhilipsMainHeader::setIsotope_code_value(const char *str)
+{
+  strncpy(m_pData->extHeader.isotope_code_value, str, sizeof(m_pData->extHeader.isotope_code_value)-1);
+}
+
+void CPhilipsMainHeader::setIsotope_coding_scheme_designator(const char *str)
+{
+  strncpy(m_pData->extHeader.isotope_coding_scheme_designator, str, sizeof(m_pData->extHeader.isotope_coding_scheme_designator)-1);
+}
+
+void CPhilipsMainHeader::setIsotope_coding_scheme_version(const char *str)
+{
+  strncpy(m_pData->extHeader.isotope_coding_scheme_version, str, sizeof(m_pData->extHeader.isotope_coding_scheme_version));
+}
+
+void CPhilipsMainHeader::setIsotope_code_meaning(const char *str)
+{
+  strncpy(m_pData->extHeader.isotope_code_meaning, str, sizeof(m_pData->extHeader.isotope_code_meaning));
+}
+
+void CPhilipsMainHeader::setRadiopharm_code_value(const char *str)
+{
+  strncpy(m_pData->extHeader.radiopharm_code_value, str, sizeof(m_pData->extHeader.radiopharm_code_value));
+}
+
+void CPhilipsMainHeader::setRadiopharm_coding_scheme_designator(const char *str)
+{
+  strncpy(m_pData->extHeader.radiopharm_coding_scheme_designator, str, sizeof(m_pData->extHeader.radiopharm_coding_scheme_designator));
+}
+
+void CPhilipsMainHeader::setRadiopharm_coding_scheme_version(const char *str)
+{
+  strncpy(m_pData->extHeader.radiopharm_coding_scheme_version, str, sizeof(m_pData->extHeader.radiopharm_coding_scheme_version));
+}
+
+void CPhilipsMainHeader::setRadiopharm_code_meaning(const char *str)
+{
+  strncpy(m_pData->extHeader.radiopharm_code_meaning, str, sizeof(m_pData->extHeader.radiopharm_code_meaning));
 }

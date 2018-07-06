@@ -932,7 +932,10 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
         setOriginal_File_Name(head->medIOData()->fileName().toLatin1().constData());
       setSerial_Number(head->Dserial_number());
       setScan_Start_Time(head->acq_date_time());
-      setIsotope_Name(m_pData->philips2Ecat7Isotop(head->isotop()).toLatin1().constData());
+      if(head->file_fmt() >= 15)
+        setIsotope_Name(head->isotope_name());
+      else
+        setIsotope_Name(m_pData->philips2Ecat7Isotop(head->dep_isotop()).toLatin1().constData());
       setIsotope_Halflife(head->halfLife() * 60.0f); // min -> sec
       setRadiopharmaceutical(head->radiopharm_name());
       setBed_Elevation(head->table_height());
@@ -941,7 +944,10 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
       setTransaxial_FOV(head->dmax() / 10.0f); // mm -> cm
       setAngular_Compression(head->phiMashing() != CPhilipsMainHeader::Mashing2 ? CECAT7MainHeader::No_Mash : CECAT7MainHeader::Mash2);
       setCalibration_Factor(1.0f);
-      setStudy_Type(head->aqprotocol_name());
+      if(head->file_fmt() >= 15)
+        setStudy_Type(head->acqprotocol_name());
+      else
+        setStudy_Type(head->dep_aqprotocol_name());
       setPatient_ID(QString::fromLatin1(head->Dpat_id()).trimmed().toLatin1().constData());
       setPatient_Name(QString::fromLatin1(head->Dpat_name()).replace("^", ", ").toLatin1().constData());
       setPatient_Sex(m_pData->philips2Ecat7Sex(head->sex()));
@@ -967,12 +973,15 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
         setPatient_Age(diffYears > 0 ? diffYears : 0);
       }
   
-      setPhysician_Name(head->referring_physician());
+      setPhysician_Name(head->ref_phys());
       setStudy_Description(head->series_desc());
       setAcquisition_Type(m_pData->philips2ECAT7Acquisition_Type(head->aqprotocol_type(), head->scntyp()));
       setPatient_Orientation(m_pData->philips2ECAT7Orientation(head->orient_hf(), head->orient_ps()));
       setFacility_Name(head->scnOrigin());
-      setOperator_Name(head->Dmanufacture_model_name());
+      if(head->file_fmt() >= 15)
+        setOperator_Name(head->operator_name());
+      else
+        setOperator_Name(head->Dmanuf_model());
       setNum_Planes(head->nslice());
       setNum_Frames(head->nframe());
       setNum_Gates(1);
@@ -1005,7 +1014,10 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
 
       setAcquisition_Mode(CECAT7MainHeader::Windowed);
       setBin_Size(0); // set to zero because we don't have that info
-      setBranching_Fraction(static_cast<float>(head->abundance()) / 1000.0f); // 1.0 = 100%
+      if(head->file_fmt() >= 15)
+        setBranching_Fraction(head->positron_fraction());
+      else
+        setBranching_Fraction(static_cast<float>(head->dep_abundance()) / 1000.0f); // 1.0 = 100%
       setDose_Start_Time(head->injection_date_time());
       setDosage(head->activity() * 1000000.0f);      // MBq -> Bq
 

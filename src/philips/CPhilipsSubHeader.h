@@ -158,12 +158,12 @@ class CPhilipsSubHeader : public CMedIOHeader
     float Dslice_loc() const;
     float magfac() const;
     Decay_Type decay_corr() const;
-    short strhr() const;
-    short strmin() const;
-    short strsec() const;
-    short endhr() const;
-    short endmin() const;
-    short endsec() const;
+    short dep_strhr() const;
+    short dep_strmin() const;
+    short dep_strsec() const;
+    short dep_endhr() const;
+    short dep_endmin() const;
+    short dep_endsec() const;
     int midtim() const;
     short mseclen() const;
     short scnlen() const;
@@ -188,7 +188,10 @@ class CPhilipsSubHeader : public CMedIOHeader
     unsigned short start_date_time_msec() const;
     unsigned short end_date_time_msec() const;
     unsigned short frame_ref_date_time_msec() const;
-
+    double prompt_events_sum() const;
+    double delay_events_sum() const;
+    float scatter_fraction_average() const;
+    
     // methods to modify elements of the SubHeader  
     void setVersion(const short version);
     void setAtten_corr(const char* str);
@@ -223,12 +226,12 @@ class CPhilipsSubHeader : public CMedIOHeader
     void setDslice_loc(const float Dslice_loc);
     void setMagfac(const float magfac);
     void setDecay_corr(const Decay_Type decay_corr);
-    void setStrhr(const short strhr);
-    void setStrmin(const short strmin);
-    void setStrsec(const short strsec);
-    void setEndhr(const short endhr);
-    void setEndmin(const short endmin);
-    void setEndsec(const short endsec);
+    void setDep_strhr(const short strhr);
+    void setDep_strmin(const short strmin);
+    void setDep_strsec(const short strsec);
+    void setDep_endhr(const short endhr);
+    void setDep_endmin(const short endmin);
+    void setDep_endsec(const short endsec);
     void setMidtim(const int midtim);
     void setMseclen(const short mseclen);
     void setScnlen(const short scnlen);
@@ -253,6 +256,9 @@ class CPhilipsSubHeader : public CMedIOHeader
     void setStart_date_time_msec(const unsigned short msec);
     void setEnd_date_time_msec(const unsigned short msec);
     void setFrame_ref_date_time_msec(const unsigned short msec);
+    void setPrompt_events_sum(const double value);
+    void setDelay_events_sum(const double value);
+    void setScatter_fraction_average(const float value);
 
     // special Qt-based methods
     QDateTime start_date_time_Qt() const;

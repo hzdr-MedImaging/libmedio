@@ -42,84 +42,167 @@ class CPhilipsSubHeaderPrivate
   #pragma pack(1)
   struct HeaderData
   {
-    char magic_number[14];            // 000: 14 chars identifying a subheader
+    char magic_number[14];            // 000: 14 chars identifying a subheader (0x010000010016FFFF0019003E003F)
     qint16 version;                   // 014: 0 -> original version (w/ reconinfo), 1 -> no reconinfo; w/ DICOM recon data
-    char atten_corr[16];              // 016: Atten corr used
-    float actual_bedpos;              // 032: Actual bed position for whole body scanning
-    float orientation1[3];            // 036: Image orientation, 0-2
-    char dummy1[4];                   // 048: dummy/padding only
-    float orientation2[3];            // 052: Image orientation, 3-5
-    qint32 card_fr_time;              // 064: Nominal/actual cardiac frame time
-    qint32 card_high_rr;              // 068: R-R interval upper limit, msec
-    qint32 card_low_rr;               // 072: R-R interval lower limit, msec
-    qint32 card_tr_time;              // 076: Msec from trigger to scanning
-    char scatter_corr[16];            // 080: Scatter corr used
-    qint16 deadtime_corr;             // 096: Whether deadtime corr was used (bool)
-    qint16 randoms_corr;              // 098: Type of randoms correction (NONE,DYLD,SING)
-    qint16 det_norm;                  // 100: Whether the detector was normalized (bool)
-    qint16 nu_radsamp_corr;           // 102: Whether non-unif radial samp corr was used (bool)
-    qint16 pat_mot_corr;              // 104: Whether patient motion corr was used (bool)
-    float echo_time;                  // 106: DICOM echo time
-    float exposure_time;              // 110: Exposure time
-    float img_pos_x;                  // 114: mm x coordinate of upper left hand corner
-    float img_pos_y;                  // 118: mm y coordinate of upper left hand corner
-    char dummy2[4];                   // 122: dummy/padding only
-    qint16 datype;                    // 126: Data type (1=byte,2=I*2,4=R*4orI*4,8=R*8)
-    float img_pos_z;                  // 128: mm z coordinate of upper left hand corner
-    qint16 xdim;                      // 132: X dimension
-    qint16 ydim;                      // 134: Y dimension
-    qint16 slcnum;                    // 136: Slice number
-    qint16 tiltnum;                   // 138: Tilt Number
-    qint16 gatint;                    // 140: Gating interval (msec).
-    qint16 cntloss_corr;              // 142: Whether count loss corr was applied (bool)
-    float pix_spacing_x;              // 144: x: mm between ctr of pixel and next row and column
-    float pix_spacing_y;              // 148: y: mm between ctr of pixel and next row and column
-    float xray_current;               // 152: X-ray current in mA
-    float suvscl;                     // 156: SUV scale factor (non-zero only after running suv program)
-    float kvp;                        // 160: peak kilo voltage output of x ray generator
-    float Dslice_loc;                 // 164: relative position of exposure in mm
-    float magfac;                     // 168: Reconstruction magnification (nominally 1)
-    float imgscl;                     // 172: Image scale factor (nominally 1)
-    qint16 imgmin;                    // 176: Minimum value in image
-    qint16 imgmax;                    // 178: Maximum value in image
-    qint16 decay_corr;                // 180: Type of decay correction
-    float scnscl;                     // 182: Sinogram only: Scale factor to be applied to stored values to obtain data values
-    qint16 strhr;                     // 186: (Deprecated - use start_date_time) Starting time of this frame: hour.
-    qint16 strmin;                    // 188: (Deprecated - use start_date_time) Starting time of this frame: minute.
-    qint16 strsec;                    // 190: (Deprecated - use start_date_time) Starting time of this frame: second.
+    char atten_corr[16];              // 016: Description of the attenuation correction used, “NONE” if none used
+                                      //      Note: Strings to be used are defined in attnstr but currently not used by other code. This needs to
+                                      //      be cleared up
+    float actual_bedpos;              // 032: Absolute horizontal table position
+    float orientation1[3];            // 036: Orientation of each slice/image; 1,0,0,0,1,0 for standard head-first, supine recon orientation.
+                                      //      Reslicing applications will either have to set these values to all 0 for the DICOM exporter to claim an
+                                      //      unknown orientation or set the values to the correct orientation.
+                                      //      Specifies the direction cosines of the first row and the first column of the image with respect to the
+                                      //      patient, using the DICOM patient relative coordinate system. Row values for x, y, and z axes
+                                      //      respectively, followed by the column value for the x, y, and z axes respectively.
+    char magic2[4];                   // 048: magic number 2: 0x0025FFFF
+    float orientation2[3];            // 052: see orientation1
+    qint32 card_fr_time;              // 064: Gated cardiac: Individual frame time in msec; nominal if framing type is by percentage or actual
+                                      //      duration if framing type is forward or backward.
+    qint32 card_high_rr;              // 068: Gated cardiac: R-R interval upper limit for beat rejection in msec
+    qint32 card_low_rr;               // 072: Gated cardiac: R-R interval lower limit for beat rejection in msec
+    qint32 card_tr_time;              // 076: Gated cardiac: Msec from the start of the trigger to the beginning of acquisition for this image.
+                                      //      card_tr_time = gateInterval_ - beatPeriod + (myCardGateIndex_ -1) * (beatPeriod_/nCardGateFrames);
+    char scatter_corr[16];            // 080: Description of scatter correction used; “NONE” if none used
+                                      //      Note: Strings to be used are defined in scatter_str but currently not used by other code. This needs
+                                      //      to be cleared up
+    qint16 deadtime_corr;             // 096: Whether dead time correction was applied (0=No, 1=Yes)
+    qint16 randoms_corr;              // 098: Type of randoms correction applied (NONE, DLYD, SING)
+    qint16 det_norm;                  // 100: Indicates whether or not detector normalization was applied
+    qint16 nu_radsamp_corr;           // 102: Indicates whether or not non-uniform radial sampling correction was applied
+    qint16 pat_mot_corr;              // 104: Indicates whether or not patient motion correction was applied
+    float echo_time;                  // 106: DICOM echo time for imported MR images; 0 for PET images.
+    float exposure_time;              // 110: Length of exposure; 0 for PET images.
+    float img_pos_x;                  // 114: DICOM image position (x,y,z) in mm; for PET images: x & y = -fov/2 + pixelSize/2, and z increases
+                                      //      toward the head
+                                      //      For NAC images the z positions start at zero.
+                                      //      If the NAC is created as part of a CTAC and has the same Frame of Reference UID, then the z
+                                      //      positions must still match the CTAC image.
+    float img_pos_y;                  // 118: see img_pos_x
+    char magic3[4];                   // 122: magic number 3: 0x0011FFFF
+    qint16 datype;                    // 126: Type used in data storage
+                                      //      1 (BYTE_IMG) Bytes
+                                      //      2 (SHRT_IMG) Signed shorts (2 bytes)
+                                      //      3 (USHRT_IMG) Unsigned shorts (2 bytes)
+                                      //      4 (FLOT_IMG) Floats (4 bytes)
+                                      //      Value 4 is currently not supported.
+    float img_pos_z;                  // 128: see img_pos_x
+    qint16 xdim;                      // 132: Sagittal (X) dimension. For images, transaxial diameter divided
+                                      //      by the reconstruction voxel size. I.e. Number of voxels in x
+                                      //      direction.
+                                      //      For sinograms, number of rays.
+    qint16 ydim;                      // 134: Coronal (Y) dimension. For images, transaxial diameter
+                                      //      divided by the reconstruction voxel size. I.e. Number of voxels
+                                      //      in y direction.
+                                      //      For sinograms, number of angles (phi).
+    qint16 slcnum;                    // 136: Slice number. For PET images, it is the z-position in mm.
+                                      //      For translated CT images it is a slice number, 1 through n.
+                                      //      What for Sinogram can be from zero to the (number of z-crystals**2 – 1)
+                                      //      Note: Cannot be negative.
+    qint16 tiltnum;                   // 138: Tilt number (0 for images and List file). Filled in for sinograms.
+    qint16 gatint;                    // 140: Gating interval used in gated cardiac acquisition (in milliseconds).
+                                      //      The width of each of the bins into which the cardiac cycle is divided into.
+                                      //      Usually 8 or 16 evenly spaced bins.
+    qint16 cntloss_corr;              // 142: Indicates whether or not count loss correction was applied (correction for count loss in gated time slots)
+    float pix_spacing_x;              // 144: DICOM pixel spacing; for PETView images, dmax / numang. Center-to-center distance, in mm,
+                                      //      between adjacent pixels, in the x (row) and y (column) dimensions.
+    float pix_spacing_y;              // 148: see pix_spacing_x
+    float xray_current;               // 152: DICOM X-ray tube current, in mA; 0 for PET images.
+    float suvscl;                     // 156: Image only: Scale factor to be applied to stored values to obtain SUVs
+    float kvp;                        // 160: DICOM KVP from imported CT images; 0 for PET images.
+    float Dslice_loc;                 // 164: Slice location, in mm. This is the midpoint of the slice in the CT coordinate system.
+    float magfac;                     // 168: Not used; always set to 1.0 in Imagio (wrimg function).
+    float imgscl;                     // 172: Image only: Scale factor to be applied to stored values to obtain data values
+    qint16 imgmin;                    // 176: Image only: Smallest data value
+    qint16 imgmax;                    // 178: Image only: Greatest data value
+    qint16 decay_corr;                // 180: Type of decay correction applied: NONE, START, ADMIN
+    float scnscl;                     // 182: Sinogram only: Scale factor to be applied to stored values to obtain data values. (Scales to use
+                                      //      maximum precision of a short)
+    qint16 dep_strhr;                 // 186: (Deprecated) Hour in which the acquisition for the corresponding time slot or table position began
+    qint16 dep_strmin;                // 188: (Deprecated) Minute in which the acquisition for the corresponding time slot or table position began
+    qint16 dep_strsec;                // 190: (Deprecated) Second in which the acquisition for the corresponding time slot or table position began
     qint16 scnmin;                    // 192: Sinogram only: Smallest data value
     qint16 scnmax;                    // 194: Sinogram only: Greatest data value
-    qint16 endhr;                     // 196: (Deprecated - use end_date_time) Ending time of this frame: hour.
-    qint16 endmin;                    // 198: (Deprecated - use end_date_time) Ending time of this frame: minute.
-    qint16 endsec;                    // 200: (Deprecated - use end_date_time) Ending time of this frame: second.
-    qint32 midtim;                    // 202: Time from start of scan to frame midtime of frame.
-    char dummy3[2];                   // 206: dummy/padding only
-    qint16 mseclen;                   // 208: Duration in millesecs (used for EC scan, e.g.)
-    qint16 scnlen;                    // 210: Scan duration in seconds.
+    qint16 dep_endhr;                 // 196: (Deprecated) Hour in which the acquisition for the corresponding time slot or table position finished
+    qint16 dep_endmin;                // 198: (Deprecated) Minute in which the acquisition for the corresponding time slot or table position finished
+    qint16 dep_endsec;                // 200: (Deprecated) Second in which the acquisition for the corresponding time slot or table position finished
+    qint32 midtim;                    // 202: Time from start of scan to frame midtime of frame. Not used.
+    char empty1[2];                   // 206:
+    qint16 mseclen;                   // 208: The remainder in milliseconds of the acquisition time for the time slot or table position. Note: This
+                                      //      is not set for emission sinograms and therefore not available for emission based images.
+    qint16 scnlen;                    // 210: The acquisition time for the time slot or table position
     float imgsum;                     // 212: Image only: Total number of events (sum of data)
     float scnsum;                     // 216: Sinogram only: total number of events (sum of sinogram)
-    float bgdelrt;                    // 220: Beginning delays rate - all bankpairs
-    float enddelrt;                   // 224: Ending delays rate - all bankpairs
-    float bgsngrt;                    // 228: Beginning singles rate - all detectors
-    float bgcoincrt;                  // 232: Beginning coincidence rate - all bankpairs
-    float endsngrt;                   // 236: Ending singles rate - all detectors
-    float endcoincrt;                 // 240: Ending coincidence rate - all bankpairs
-    float deadtimefac;                // 244: Deadtime Correction Factor default=1.0
-    qint16 bedpos;                    // 248: Bed position for whole body scanning
-    float deadtime_bgsub;             // 250: Deadtime Correction Factor with background subtraction
-    char dummy4[2];                   // 254: dummy/padding only
-    char sop_uid[64];                 // 256: DICOM UID of an image within a series
-    char recon_method[16];            // 320: Recon algorithm used
-    qint32 start_date_time;           // 336: UTC starting date/time of this frame.
-    qint32 end_date_time;             // 340: UTC ending date/time of this frame.
-    qint16 laterality;                // 344: Description of the laterality of (possibly paired) body parts.
-    qint16 anatomy;                   // 346: Identifies the anatomic region of interest
-    qint32 frame_ref_date_time;       // 348: The point in time most representative of when data was acquired for this frame. Use access functions to read/write.
-    qint32 card_rr_time;              // 352: R-R (nominal) peak interval, in msec, from cardiac cycles used to acquire this frame.
-    qint32 resp_int_time;             // 356: Average measured interval time, in msec, from one resp trigger to the next for resp cycles in which this image occurs.
-    qint16 start_date_time_msec;      // 360: Fraction of a second (in msec) to be added to start_date_time to give a more accurate start time.
-    qint16 end_date_time_msec;        // 362: Fraction of a second (in msec) to be added to end_date_time to give a more accurate end time.
-    qint16 frame_ref_date_time_msec;  // 364: The point in time most representative of when data was acquired for this frame.
+    float bgdelrt;                    // 220: Delayed event rate at the beginning of the acquisition for the time slot or table position
+    float enddelrt;                   // 224: Delayed event rate at the end of the acquisition for the time slot or table position
+    float bgsngrt;                    // 228: Singles rate for all detectors at the beginning of the acquisition for the time slot or table position
+    float bgcoincrt;                  // 232: Prompt event rate at the beginning of the acquisition for the time slot or table position
+    float endsngrt;                   // 236: Singles rate for all detectors at the end of the acquisition for the time slot or table position
+    float endcoincrt;                 // 240: Prompt event rate at the end of the acquisition for the time slot or table position
+    float deadtimefac;                // 244: Dead-time correction factor for the slice's singles rate
+    qint16 bedpos;                    // 248: Starting bed position (rounded) of a scan. Used only for whole body scanning; otherwise set to 0.
+    float deadtime_bgsub;             // 250: Dead-time correction factor (accounting for background subtraction) for the slice's singles rate.
+                                      //      Currently not used.
+    char empty2[2];                   // 254:
+    char sop_uid[64];                 // 256: DICOM SOP instance UID of this image (slice).
+                                      //      Currently set internally by ImagIO in function pethdrSbhdrToBuffer().
+    char recon_method[16];            // 320: Description of reconstruction method applied
+    qint32 start_date_time;           // 336: Date and time at which the acquisition for the corresponding time slot or table position began
+                                      //      (in seconds since Jan 1, 1970 UTC). Access functions setStartDateTime() and getStartDateTime() must be used.
+    qint32 end_date_time;             // 340: Date and time at which the acquisition for the corresponding time slot or table position finished 
+                                      //      (in seconds since Jan 1, 1970 UTC). Access functions setEndDateTime() and getEndDateTime() must be used.
+    qint16 laterality;                // 344: Description of the laterality of (possibly paired) body parts imaged:
+                                      //      0 Unknown (Note, not allowed for Enhanced DICOM)
+                                      //      1 Right
+                                      //      2 Left
+                                      //      3 Unpaired
+                                      //      4 Both left and right
+    qint16 anatomy;                   // 346: Identifies the anatomic region of interest in this image (i.e. external anatomy, surface anatomy, or general region of the body):
+                                      //      0 Unknown (Note, not allowed for Enhanced DICOM)
+                                      //      1 Abdomen
+                                      //      2 Abdomen and Pelvis
+                                      //      3 Chest
+                                      //      4 Chest and Abdomen
+                                      //      5 Chest, Abdomen and Pelvis
+                                      //      6 Entire body
+                                      //      7 Head
+                                      //      8 Head and Neck
+                                      //      9 Heart
+                                      //      10 Neck
+                                      //      11 Neck and Chest
+                                      //      12 Neck, Chest and Abdomen
+                                      //      13 Neck, Chest, Abdomen and Pelvis
+                                      //      14 Pelvis
+                                      //      15 Leg
+                                      //      16 Pelvis and lower extremities
+    qint32 frame_ref_date_time;       // 348: The point in time that is most representative of when data was acquired for this frame.
+                                      //      Corresponds to DICOM (0018,9151).
+    qint32 card_rr_time;              // 352: Gated cardiac: Nominal R-R peak interval, in msec, from the cardiac cycles used for the acquisition
+                                      //      of this frame.
+                                      //      card_rr_time = gateIntervalAcceptedSum_/beatsAccepted
+    qint32 resp_int_time;             // 356: Respiratory gated: Average measured interval time in msec from one respiratory trigger to the next
+                                      //      trigger for the respiratory cycles in which this image occurs.
+    qint16 start_date_time_msec;      // 360: start_date_time can only specify a time down to the second. This field, start_date_time_msec, can
+                                      //      be used to specify an additional fraction of a second, in msec, to more accurately represent the time
+                                      //      at which the corresponding time slot or table position began.
+                                      //      Note: this is referred to as start_msec in the memory map diagram above
+                                      //      Access functions setStartDateTime() and getStartDateTime() must be used.
+    qint16 end_date_time_msec;        // 362: end_date_time can only specify a time down to the second. This field, end_date_time_msec, can be
+                                      //      used to specify an additional fraction of a second, in msec, to more accurately represent the time at
+                                      //      which the corresponding time slot or table position finished.
+                                      //      Note: this is referred to as end_msec in the memory map diagram above.
+                                      //      Access functions setEndDateTime() and getEndDateTime() must be used.
+    qint16 frame_ref_date_time_msec;  // 364: fframe_ref_date_time can only specify a time down to the second. This field,
+                                      //      frame_ref_date_time_msec, can be used to specify an additional fraction of a second, in msec, to
+                                      //      more accurately represent the time that is most representative of when data was acquired for this
+                                      //      frame. Filled in by recon.
+                                      //      Note: this is referred to as end_msec in the memory map diagram above.
+    char empty3[2];                   // 366:
+    double prompt_events_sum;         // 368: Actual number of prompt events for this image frame. In a final image, events are summed across all
+                                      //      bed positions used to create the final image.
+    double delay_events_sum;          // 376: Actual number of delay events for this image frame. In a final image, events are summed across all
+                                      //      bed positions used to create the final image.
+    float scatter_fraction_average;   // 384: Scatter Fraction for this image frame. In a final image, the scatter fraction is an average across all bed
+                                      //      positions.
   } header;
   #pragma pack()
 };
@@ -208,15 +291,17 @@ void CPhilipsSubHeader::clear()
   m_pData->header.magic_number[12] = 0x00;
   m_pData->header.magic_number[13] = 0x4F;
 
-  m_pData->header.dummy1[0] = 0x00;
-  m_pData->header.dummy1[1] = 0x25;
-  m_pData->header.dummy1[2] = 0xFF;
-  m_pData->header.dummy1[3] = 0xFF;
+  // magic number 2: 0x0025FFFF
+  m_pData->header.magic2[0] = 0x00;
+  m_pData->header.magic2[1] = 0x25;
+  m_pData->header.magic2[2] = 0xFF;
+  m_pData->header.magic2[3] = 0xFF;
 
-  m_pData->header.dummy2[0] = 0x00;
-  m_pData->header.dummy2[1] = 0x11;
-  m_pData->header.dummy2[2] = 0xFF;
-  m_pData->header.dummy2[3] = 0xFF;
+  // magic number 3: 0x0011FFFF
+  m_pData->header.magic3[0] = 0x00;
+  m_pData->header.magic3[1] = 0x11;
+  m_pData->header.magic3[2] = 0xFF;
+  m_pData->header.magic3[3] = 0xFF;
 
   // set some default values
   m_pData->header.version = 1; // the current version
@@ -300,14 +385,14 @@ bool CPhilipsSubHeader::load(void)
     BSWAP_16(m_pData->header.imgmax);
     BSWAP_16(m_pData->header.decay_corr);
     BSWAP_FLT(m_pData->header.scnscl);
-    BSWAP_16(m_pData->header.strhr);
-    BSWAP_16(m_pData->header.strmin);
-    BSWAP_16(m_pData->header.strsec);
+    BSWAP_16(m_pData->header.dep_strhr);
+    BSWAP_16(m_pData->header.dep_strmin);
+    BSWAP_16(m_pData->header.dep_strsec);
     BSWAP_16(m_pData->header.scnmin);
     BSWAP_16(m_pData->header.scnmax);
-    BSWAP_16(m_pData->header.endhr);
-    BSWAP_16(m_pData->header.endmin);
-    BSWAP_16(m_pData->header.endsec);
+    BSWAP_16(m_pData->header.dep_endhr);
+    BSWAP_16(m_pData->header.dep_endmin);
+    BSWAP_16(m_pData->header.dep_endsec);
     BSWAP_32(m_pData->header.midtim);
     BSWAP_16(m_pData->header.mseclen);
     BSWAP_16(m_pData->header.scnlen);
@@ -332,6 +417,9 @@ bool CPhilipsSubHeader::load(void)
     BSWAP_16(m_pData->header.start_date_time_msec);
     BSWAP_16(m_pData->header.end_date_time_msec);
     BSWAP_16(m_pData->header.frame_ref_date_time_msec);
+    BSWAP_DBL(m_pData->header.prompt_events_sum);
+    BSWAP_DBL(m_pData->header.delay_events_sum);
+    BSWAP_FLT(m_pData->header.scatter_fraction_average);
   }
 
  // some more debug output
@@ -385,12 +473,12 @@ bool CPhilipsSubHeader::load(void)
   D("scnmax                  : %d", m_pData->header.scnmax);
   D("scnsum                  : %f", m_pData->header.scnsum);
   D("decay_corr              : %d", m_pData->header.decay_corr);
-  D("strhr                   : %d", m_pData->header.strhr);
-  D("strmin                  : %d", m_pData->header.strmin);
-  D("strsec                  : %d", m_pData->header.strsec);
-  D("endhr                   : %d", m_pData->header.endhr);
-  D("endmin                  : %d", m_pData->header.endmin);
-  D("endsec                  : %d", m_pData->header.endsec);
+  D("dep_strhr               : %d", m_pData->header.dep_strhr);
+  D("dep_strmin              : %d", m_pData->header.dep_strmin);
+  D("dep_strsec              : %d", m_pData->header.dep_strsec);
+  D("dep_endhr               : %d", m_pData->header.dep_endhr);
+  D("dep_endmin              : %d", m_pData->header.dep_endmin);
+  D("dep_endsec              : %d", m_pData->header.dep_endsec);
   D("midtim                  : %d", m_pData->header.midtim);
   D("mseclen                 : %d", m_pData->header.mseclen);
   D("scnlen                  : %d", m_pData->header.scnlen);
@@ -416,6 +504,9 @@ bool CPhilipsSubHeader::load(void)
   D("start_date_time_msec    : %d", m_pData->header.start_date_time_msec);
   D("end_date_time_msec      : %d", m_pData->header.end_date_time_msec);
   D("frame_ref_date_time_msec: %d", m_pData->header.frame_ref_date_time_msec);
+  D("prompt_events_sum       : %f", m_pData->header.prompt_events_sum);
+  D("delay_events_sum        : %f", m_pData->header.delay_events_sum);
+  D("scatter_fraction_average: %f", m_pData->header.scatter_fraction_average);
 #endif
 
   RETURN(true);
@@ -490,12 +581,12 @@ bool CPhilipsSubHeader::save(void) const
   D("scnmax                  : %d", m_pData->header.scnmax);
   D("scnsum                  : %f", m_pData->header.scnsum);
   D("decay_corr              : %d", m_pData->header.decay_corr);
-  D("strhr                   : %d", m_pData->header.strhr);
-  D("strmin                  : %d", m_pData->header.strmin);
-  D("strsec                  : %d", m_pData->header.strsec);
-  D("endhr                   : %d", m_pData->header.endhr);
-  D("endmin                  : %d", m_pData->header.endmin);
-  D("endsec                  : %d", m_pData->header.endsec);
+  D("dep_strhr               : %d", m_pData->header.dep_strhr);
+  D("dep_strmin              : %d", m_pData->header.dep_strmin);
+  D("dep_strsec              : %d", m_pData->header.dep_strsec);
+  D("dep_endhr               : %d", m_pData->header.dep_endhr);
+  D("dep_endmin              : %d", m_pData->header.dep_endmin);
+  D("dep_endsec              : %d", m_pData->header.dep_endsec);
   D("midtim                  : %d", m_pData->header.midtim);
   D("mseclen                 : %d", m_pData->header.mseclen);
   D("scnlen                  : %d", m_pData->header.scnlen);
@@ -521,6 +612,9 @@ bool CPhilipsSubHeader::save(void) const
   D("start_date_time_msec    : %d", m_pData->header.start_date_time_msec);
   D("end_date_time_msec      : %d", m_pData->header.end_date_time_msec);
   D("frame_ref_date_time_msec: %d", m_pData->header.frame_ref_date_time_msec);
+  D("prompt_events_sum       : %f", m_pData->header.prompt_events_sum);
+  D("delay_events_sum        : %f", m_pData->header.delay_events_sum);
+  D("scatter_fraction_average: %f", m_pData->header.scatter_fraction_average);
 #endif
 
   SHOWVALUE(mData->pos());
@@ -579,14 +673,14 @@ bool CPhilipsSubHeader::save(void) const
     BSWAP_16(beHeader.imgmax);
     BSWAP_16(beHeader.decay_corr);
     BSWAP_FLT(beHeader.scnscl);
-    BSWAP_16(beHeader.strhr);
-    BSWAP_16(beHeader.strmin);
-    BSWAP_16(beHeader.strsec);
+    BSWAP_16(beHeader.dep_strhr);
+    BSWAP_16(beHeader.dep_strmin);
+    BSWAP_16(beHeader.dep_strsec);
     BSWAP_16(beHeader.scnmin);
     BSWAP_16(beHeader.scnmax);
-    BSWAP_16(beHeader.endhr);
-    BSWAP_16(beHeader.endmin);
-    BSWAP_16(beHeader.endsec);
+    BSWAP_16(beHeader.dep_endhr);
+    BSWAP_16(beHeader.dep_endmin);
+    BSWAP_16(beHeader.dep_endsec);
     BSWAP_32(beHeader.midtim);
     BSWAP_16(beHeader.mseclen);
     BSWAP_16(beHeader.scnlen);
@@ -611,6 +705,9 @@ bool CPhilipsSubHeader::save(void) const
     BSWAP_16(beHeader.start_date_time_msec);
     BSWAP_16(beHeader.end_date_time_msec);
     BSWAP_16(beHeader.frame_ref_date_time_msec);
+    BSWAP_DBL(beHeader.prompt_events_sum);
+    BSWAP_DBL(beHeader.delay_events_sum);
+    BSWAP_FLT(beHeader.scatter_fraction_average);
 
     // now write out beHeader
     if(mData->write((char *)&beHeader, sizeof(beHeader)) == sizeof(beHeader))
@@ -991,34 +1088,35 @@ CPhilipsSubHeader::Decay_Type CPhilipsSubHeader::decay_corr() const
 {
   return static_cast<CPhilipsSubHeader::Decay_Type>(m_pData->header.decay_corr);
 }
-short CPhilipsSubHeader::strhr() const
+
+short CPhilipsSubHeader::dep_strhr() const
 {
-  return m_pData->header.strhr;
+  return m_pData->header.dep_strhr;
 }
 
-short CPhilipsSubHeader::strmin() const
+short CPhilipsSubHeader::dep_strmin() const
 {
-  return m_pData->header.strmin;
+  return m_pData->header.dep_strmin;
 }
 
-short CPhilipsSubHeader::strsec() const
+short CPhilipsSubHeader::dep_strsec() const
 {
-  return m_pData->header.strsec;
+  return m_pData->header.dep_strsec;
 }
 
-short CPhilipsSubHeader::endhr() const
+short CPhilipsSubHeader::dep_endhr() const
 {
-  return m_pData->header.endhr;
+  return m_pData->header.dep_endhr;
 }
 
-short CPhilipsSubHeader::endmin() const
+short CPhilipsSubHeader::dep_endmin() const
 {
-  return m_pData->header.endmin;
+  return m_pData->header.dep_endmin;
 }
 
-short CPhilipsSubHeader::endsec() const
+short CPhilipsSubHeader::dep_endsec() const
 {
-  return m_pData->header.endsec;
+  return m_pData->header.dep_endsec;
 }
 
 int CPhilipsSubHeader::midtim() const
@@ -1144,6 +1242,21 @@ unsigned short CPhilipsSubHeader::end_date_time_msec() const
 unsigned short CPhilipsSubHeader::frame_ref_date_time_msec() const
 {
   return m_pData->header.frame_ref_date_time_msec;
+}
+
+double CPhilipsSubHeader::prompt_events_sum() const
+{
+  return m_pData->header.prompt_events_sum;
+}
+
+double CPhilipsSubHeader::delay_events_sum() const
+{
+  return m_pData->header.scatter_fraction_average;
+}
+
+float CPhilipsSubHeader::scatter_fraction_average() const
+{
+  return m_pData->header.scatter_fraction_average;
 }
 
 // methods to modify elements of the SubHeader  
@@ -1337,34 +1450,34 @@ void CPhilipsSubHeader::setDecay_corr(const CPhilipsSubHeader::Decay_Type decay_
   m_pData->header.decay_corr = static_cast<qint16>(decay_corr);
 }
 
-void CPhilipsSubHeader::setStrhr(const short strhr)
+void CPhilipsSubHeader::setDep_strhr(const short strhr)
 {
-  m_pData->header.strhr = strhr;
+  m_pData->header.dep_strhr = strhr;
 }
 
-void CPhilipsSubHeader::setStrmin(const short strmin)
+void CPhilipsSubHeader::setDep_strmin(const short strmin)
 {
-  m_pData->header.strmin = strmin;
+  m_pData->header.dep_strmin = strmin;
 }
 
-void CPhilipsSubHeader::setStrsec(const short strsec)
+void CPhilipsSubHeader::setDep_strsec(const short strsec)
 {
-  m_pData->header.strsec = strsec;
+  m_pData->header.dep_strsec = strsec;
 }
 
-void CPhilipsSubHeader::setEndhr(const short endhr)
+void CPhilipsSubHeader::setDep_endhr(const short endhr)
 {
-  m_pData->header.endhr = endhr;
+  m_pData->header.dep_endhr = endhr;
 }
 
-void CPhilipsSubHeader::setEndmin(const short endmin)
+void CPhilipsSubHeader::setDep_endmin(const short endmin)
 {
-  m_pData->header.endmin = endmin;
+  m_pData->header.dep_endmin = endmin;
 }
 
-void CPhilipsSubHeader::setEndsec(const short endsec)
+void CPhilipsSubHeader::setDep_endsec(const short endsec)
 {
-  m_pData->header.endsec = endsec;
+  m_pData->header.dep_endsec = endsec;
 }
 
 void CPhilipsSubHeader::setMidtim(const int midtim)
@@ -1449,9 +1562,9 @@ void CPhilipsSubHeader::setStart_date_time(const time_t start_date_time)
   // we also set strhr/strmin/strsec as it should always be in sync with
   // the start_date_time
   QDateTime dtime = start_date_time_Qt();
-  m_pData->header.strhr = dtime.time().hour();
-  m_pData->header.strmin = dtime.time().minute();
-  m_pData->header.strsec = dtime.time().second();
+  m_pData->header.dep_strhr = dtime.time().hour();
+  m_pData->header.dep_strmin = dtime.time().minute();
+  m_pData->header.dep_strsec = dtime.time().second();
 }
 
 void CPhilipsSubHeader::setEnd_date_time(const time_t end_date_time)
@@ -1461,9 +1574,9 @@ void CPhilipsSubHeader::setEnd_date_time(const time_t end_date_time)
   // we also set strhr/strmin/strsec as it should always be in sync with
   // the end_date_time
   QDateTime dtime = end_date_time_Qt();
-  m_pData->header.endhr = dtime.time().hour();
-  m_pData->header.endmin = dtime.time().minute();
-  m_pData->header.endsec = dtime.time().second();
+  m_pData->header.dep_endhr = dtime.time().hour();
+  m_pData->header.dep_endmin = dtime.time().minute();
+  m_pData->header.dep_endsec = dtime.time().second();
 }
 
 void CPhilipsSubHeader::setLaterality(const CPhilipsSubHeader::Laterality_Type laterality)
@@ -1504,6 +1617,21 @@ void CPhilipsSubHeader::setEnd_date_time_msec(const unsigned short msec)
 void CPhilipsSubHeader::setFrame_ref_date_time_msec(const unsigned short msec)
 {
   m_pData->header.frame_ref_date_time_msec = msec;
+}
+
+void CPhilipsSubHeader::setPrompt_events_sum(const double value)
+{
+  m_pData->header.prompt_events_sum = value;
+}
+
+void CPhilipsSubHeader::setDelay_events_sum(const double value)
+{
+  m_pData->header.delay_events_sum = value;
+}
+
+void CPhilipsSubHeader::setScatter_fraction_average(const float value)
+{
+  m_pData->header.scatter_fraction_average = value;
 }
 
 int CPhilipsSubHeader::rawDataSize() const
