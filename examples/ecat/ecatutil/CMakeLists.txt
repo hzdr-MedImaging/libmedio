@@ -22,6 +22,8 @@
 # *
 # **************************************************************************/
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+
 # set __MEDIO_PRIVATE__ to flag that we compile the library and
 # are no users of medio
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__MEDIO_PRIVATE__")
