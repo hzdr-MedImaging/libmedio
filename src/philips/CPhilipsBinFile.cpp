@@ -182,7 +182,7 @@ bool CPhilipsBinFile::readMatrix(char*& data, unsigned int& length)
     data = new char[length];
     qint64 bytesRead = 0;
 
-    seek(sizeof(PhilipsBinHeader1));
+    seek(m_header.headerWords * sizeof(quint32));
 
     bytesRead = read(data, length);
 
