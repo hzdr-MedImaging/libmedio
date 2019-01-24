@@ -32,8 +32,22 @@ bool CPhilipsBinFile::open(QIODevice::OpenModeFlag mode)
         BSWAP_32(m_header.xDim);
       }
 
+      D("magicNumber..: %08x", m_header.magicNumber);
+      D("headerVersion: %d", m_header.headerVersion);
+      D("headerWords..: %d", m_header.headerWords);
+      D("dataType.....: %d", m_header.dataType);
+      D("zDim.........: %d", m_header.zDim);
+      D("yDim.........: %d", m_header.yDim);
+      D("xDim.........: %d", m_header.xDim);
+
       if(m_header.magicNumber == BIN_FILE_MAGIC_NUMBER)
       {
+        // if we find a dimension to be 0 we assume 1
+        // to fix potentially broken files
+        if(m_header.zDim < 1) m_header.zDim = 1;
+        if(m_header.yDim < 1) m_header.yDim = 1;
+        if(m_header.xDim < 1) m_header.xDim = 1;
+
         if(m_header.headerVersion == 1)
           returnValue = true;
         else
@@ -178,27 +192,32 @@ bool CPhilipsBinFile::readMatrix(char*& data, unsigned int& length)
   if(isOpen() &&
      isReadable())
   {
-    length = numberOfElements() * elementSize();
-    data = new char[length];
-    qint64 bytesRead = 0;
-
-    seek(m_header.headerWords * sizeof(quint32));
-
-    bytesRead = read(data, length);
-
-    if((bytesRead != -1) &&
-       (bytesRead == static_cast<qint64>(length)))
+    quint32 dataSize = numberOfElements() * elementSize();
+    if(dataSize > 0)
     {
-      swap(data);
-      returnValue = true;
+      data = new char[dataSize];
+      qint64 bytesRead = 0;
+
+      seek(m_header.headerWords * sizeof(quint32));
+      bytesRead = read(data, dataSize);
+      if((bytesRead != -1) &&
+         (bytesRead == static_cast<qint64>(dataSize)))
+      {
+        swap(data);
+
+        length = dataSize;
+        returnValue = true;
+      }
+      else
+      {
+        length = 0;
+        delete [] data;
+        data = NULL;
+        E("reading failed");
+      }
     }
     else
-    {
-      length = 0;
-      delete [] data;
-      data = NULL;
-      E("reading failed");
-    }
+      E("data size <= 0");
   }
 
   RETURN(returnValue);
