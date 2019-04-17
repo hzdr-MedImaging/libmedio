@@ -54,10 +54,8 @@ bool CPhilipsFilePrivate::isPhilipsFile(CMedIOData* file) const
   ENTER();
   bool isValidPhilipsFile = false;
 
-  if(file == NULL)
-    return false;
-
-  if(file->isReadable())
+  if(file != NULL &&
+     file->isReadable())
   {
     QDataStream stream(file);
     
@@ -89,10 +87,8 @@ bool CPhilipsFilePrivate::isPhilipsListModeFile(CPhilipsFile *file) const
   ENTER();
   bool result = false;
 
-  if(file == NULL)
-    return false;
-
-  if(file->isReadable())
+  if(file != NULL &&
+     file->isReadable())
   {
     CPhilipsListviewHeader lvHeader(file);
 

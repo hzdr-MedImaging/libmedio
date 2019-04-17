@@ -1483,9 +1483,9 @@ bool CPhilipsMainHeader::load()
     D("coil_type[14]              : %d", coil_type(14));
     D("ref_raw_data_series_inst_uid: '%s'", ref_raw_data_series_inst_uid());
     D("pet_software_version       : '%s'", pet_software_version());
-    D("ntr                        : %c", ntr());
-    D("ndm                        : %c", ndm());
-    D("ntmr                       : %c", ntmr());
+    D("num_tile_rings             : %c", num_tile_rings());
+    D("num_detector_modules       : %c", num_detector_modules());
+    D("num_tiles_per_module_row   : %c", num_tiles_per_module_row());
     D("X_tile_gap                 : %f", X_tile_gap());
     D("Z_tile_gap                 : %f", Z_tile_gap());
     D("crystal_type               : %d", crystal_type());
