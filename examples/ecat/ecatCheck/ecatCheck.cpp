@@ -40,6 +40,8 @@
 #include <iostream>
 #include <iomanip>
 
+#include <rtdebug.h>
+
 #include "config.h" // for big/little endianness check
 
 using namespace std;
@@ -48,6 +50,7 @@ using namespace std;
 static bool checkBedPositionOffsets(CECATMainHeader* header, bool fix);
 static bool checkBedPositionNumber(CECATMainHeader* header, CECATFile* file, bool fix);
 static bool checkFramesNumber(CECATMainHeader* header, CECATFile* file, bool fix);
+static bool checkDirectoryList(CECATFile* file, bool fix);
 
 //  Function:    main
 //! 
@@ -70,8 +73,18 @@ int main(int argc, char* argv[])
   // Read  http://gcc.gnu.org/onlinedocs/libstdc++/27_io/howto.html#8 for an explanation.
   ios::sync_with_stdio(false);
 
-  cout << "ecatCheck " << PROJECT_VERSION << " - checks & fixes an ECAT file for consistency" << endl
-       << "(" __DATE__ ")  Copyright (C) 2006-2019 by Jens Maus / www.hzdr.de" << endl << endl;
+  // before we start anything serious, we need to initialize our
+  // debug class
+  #if defined(DEBUG)
+  CRTDebug::instance()->init("ecatCheck", true);
+  #else
+  CRTDebug::instance()->init("ecatCheck", false);
+  #endif
+
+  ENTER();
+
+  Info("ecatCheck %s - checks & fixes an ECAT file for consistency", PROJECT_VERSION);
+  Info("(%s) Copyright (C) 2006-2019 by Jens Maus / www.hzdr.de\n", __DATE__);
 
   // put all arguments in a temporary MultiHash
   QHash<QString, QString> args;
@@ -111,7 +124,7 @@ int main(int argc, char* argv[])
     if(file.open(fixMode ? QIODevice::ReadWrite : QIODevice::ReadOnly) && 
        file.format() != CECATFile::Undefined)
     {
-      cout << "checking file: '" << qPrintable(fileName) << "'" << endl;
+      Info("checking file: '%s'", qPrintable(fileName));
 
       // now we are going to check and fix the main header first
       CECATMainHeader* header;
@@ -133,27 +146,32 @@ int main(int argc, char* argv[])
           header->save();
 
         delete header;
+
+        // check if all matrix data can be read
+        processed |= checkDirectoryList(&file, fixMode);
       }
       else
-        cout << "   ERROR! while reading mainheader data of file." << endl;
+        Error("while reading mainheader data of file.");
 
 
       // close the ECAT file
       file.close();
     }
     else
-      cout << "Error on loading file '" << qPrintable(fileName) << "' as an ECAT6/7 file.\n";
+      Error("on loading file '%s' as an ECAT6/7 file.", qPrintable(fileName));
   }
   else
   {
-    cout << "ERROR: incorrect number of arguments" << endl;
+    Error("incorrect number of arguments");
 
-    cout << "Usage: " << argv[0] << " <options> file1" << endl
-         << "Options:" << endl
-         << "  -f : fix found problems as far as possible" << endl
-         << "  -h : this help page." << endl;
+    Info("Usage: %s <options> file1", argv[0]);
+    Info("Options:");
+    Info(" -f : fix found problems as far as possible");
+    Info("  -h : this help page.");
   }
 
+  RETURN(returnCode);
+  CRTDebug::destroy();
   return returnCode;
 }
 
@@ -167,7 +185,7 @@ static bool checkBedPositionOffsets(CECATMainHeader* header, bool fix)
   // bed position to be 116.4 or 135.8
   if(qRound(eh->bed_Offset(0)) == 116 || qRound(eh->bed_Offset(0)) == 136)
   {
-    cout << " found broken bed offset values (in mm):" << endl;
+    Info(" found broken bed offset values (in mm):");
 
     for(int i=0; i < 15; i++)
     {
@@ -177,11 +195,11 @@ static bool checkBedPositionOffsets(CECATMainHeader* header, bool fix)
           eh->setBed_Offset(i, eh->bed_Offset(i)/10.0);
       }
 
-      cout << "  BED_OFFSET[" << setw(2) << i << "]..........: '" << eh->bed_Offset(i) << "'" << endl;
+      Info("  BED_OFFSET[%02d]..........: %.2f", i, eh->bed_Offset(i));
     }
 
     if(fix)
-      cout << "  ... fixed! ok!" << endl;
+      Info("  ... fixed! ok!");
 
     processed = true;
   }
@@ -195,10 +213,10 @@ static bool checkBedPositionNumber(CECATMainHeader* header, CECATFile* file, boo
 
   CECAT7MainHeader* eh = static_cast<CECAT7MainHeader*>(header);
 
+  Info("Number of bed positions: %d", eh->num_Bed_Pos());
+
   if(file->numBedPos() != eh->num_Bed_Pos())
-  {
-    cout << " inconsistent number of bedpos matrices in ECAT file and main header" << endl;
-  }
+    Error(" inconsistent number of bedpos matrices in ECAT file (%d) and main header (%d)", file->numBedPos(), eh->num_Bed_Pos());
 
   return processed;
 }
@@ -209,10 +227,11 @@ static bool checkFramesNumber(CECATMainHeader* header, CECATFile* file, bool fix
 
   CECAT7MainHeader* eh = static_cast<CECAT7MainHeader*>(header);
 
+  Info("Number of frames: %d", eh->num_Frames());
+
   if(file->directory()->count() != eh->num_Frames())
   {
-    cout << " inconsistent number of frames in ECAT file (" << file->directory()->count()
-         << ") and main header (" << eh->num_Frames() << ")" << endl;
+    Info(" inconsistent number of frames in ECAT file (%d) and main header (%d)", file->directory()->count(), eh->num_Frames());
 
     if(fix)
     {
@@ -226,7 +245,7 @@ static bool checkFramesNumber(CECATMainHeader* header, CECATFile* file, bool fix
         {
           int reuseFrame = 0;
 
-          cout << "  frame " << i << " missing" << endl;
+          Info("  frame %d missing", i);
 
           // read the next subheader
           if(file->readSubHeader(subHeader, i+1) == true)
@@ -271,7 +290,7 @@ static bool checkFramesNumber(CECATMainHeader* header, CECATFile* file, bool fix
           }
           else
           {
-            cout << "ERROR: there is no other frame subheader we can reuse to create the new one" << endl;
+            Error("there is no other frame subheader we can reuse to create the new one");
             subHeader = NULL;
           }
 
@@ -289,13 +308,13 @@ static bool checkFramesNumber(CECATMainHeader* header, CECATFile* file, bool fix
               // finally write the new empty frame to the file
               if(file->writeMatrix(data, len, *subHeader, i) == true)
               {
-                cout << "   copying empty clone from frame " << reuseFrame << " as new frame " << i << endl;
+                Info("   copying empty clone from frame %d as new frame %d", reuseFrame, i);
               }
               else
-                cout << "ERROR: error while trying to write new frame " << i << endl;
+                Error("while trying to write new frame %d", i);
             }
             else
-              cout << "ERROR: couldn't load data of frame " << reuseFrame << endl;
+              Error("couldn't load data of frame %d", reuseFrame);
           }
         }
 
@@ -303,6 +322,36 @@ static bool checkFramesNumber(CECATMainHeader* header, CECATFile* file, bool fix
       }
     }
   }
+
+  return processed;
+}
+
+static bool checkDirectoryList(CECATFile* file, bool fix)
+{
+  bool processed = false;
+
+  CECATDirectory* dir = file->directory();
+  if(dir->count() > 0)
+  {
+    for(unsigned int i=0; i < dir->count(); i++)
+    {
+      CECATDirectoryItem* dirItem = (*dir)[i];
+      if(dirItem->dataBlock_Status() != CECATDirectoryItem::Finished)
+      {
+        Warning("directory item %d has not status 'Finished': %d", i, dirItem->dataBlock_Status());
+        if(fix == true)
+        {
+          dirItem->setDataBlock_Status(CECATDirectoryItem::Finished);
+          processed = true;
+        }
+      }
+    }
+
+    if(processed)
+      dir->save();
+  }
+  else
+    Warning("ecat directory is empty");
 
   return processed;
 }

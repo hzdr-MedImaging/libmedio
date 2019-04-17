@@ -528,7 +528,10 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
     }
   }
   else
+  {
+    W("matrix data not flagged as 'finished'");
     result = false;
+  }
 
   RETURN(result);
   return result;
