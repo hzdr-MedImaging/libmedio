@@ -2,7 +2,7 @@
  * vim:set ts=2 sw=2 expandtab: *********************************************
  *
  * libmedio - C++ I/O Library for loading/saving medical data formats
- * Copyright (C) 2006-2010 by Jens Langner <Jens.Langner@light-speed.de>
+ * Copyright (C) 2006-2019 by Jens Maus <mail@jens-maus.de>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -22,14 +22,14 @@
  *
  **************************************************************************/
 
-#include <CECATFile>
-#include <CECAT6MainHeader>
-#include <CECAT7MainHeader>
-#include <CECATDirectory>
-#include <CECAT7SubHeaderScan3D>
-#include <CECAT7SubHeaderNorm3D>
-#include <CECAT7SubHeaderAttenCorr>
-#include <CECAT7SubHeaderImage>
+#include <CECATFile.h>
+#include <CECAT6MainHeader.h>
+#include <CECAT7MainHeader.h>
+#include <CECATDirectory.h>
+#include <CECAT7SubHeaderScan3D.h>
+#include <CECAT7SubHeaderNorm3D.h>
+#include <CECAT7SubHeaderAttenCorr.h>
+#include <CECAT7SubHeaderImage.h>
 
 #include <QHash>
 #include <QStringList>
@@ -70,8 +70,8 @@ int main(int argc, char* argv[])
   // Read  http://gcc.gnu.org/onlinedocs/libstdc++/27_io/howto.html#8 for an explanation.
   ios::sync_with_stdio(false);
 
-  cout << "ecatCheck 1.1 - checks & fixes an ECAT file for consistency" << endl
-       << "(" __DATE__ ")  Copyright (C) 2006-2010 by Jens Langner / www.fzd.de" << endl << endl;
+  cout << "ecatCheck " << PROJECT_VERSION << " - checks & fixes an ECAT file for consistency" << endl
+       << "(" __DATE__ ")  Copyright (C) 2006-2019 by Jens Maus / www.hzdr.de" << endl << endl;
 
   // put all arguments in a temporary MultiHash
   QHash<QString, QString> args;
