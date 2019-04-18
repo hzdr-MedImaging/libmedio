@@ -81,6 +81,7 @@ message("Using Install Prefix: ${CMAKE_INSTALL_PREFIX}")
 
 # Configure third party packages
 find_package(Qt5 REQUIRED COMPONENTS Core)
+find_package(Threads REQUIRED)
 find_package(RTDEBUG REQUIRED)
 
 # add some special libraries in case we are build for windows
