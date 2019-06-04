@@ -1,0 +1,66 @@
+#ifndef COPTION3_HH
+#define COPTION3_HH
+
+// qt includes
+#include <QList>
+#include <QStringList>
+#include <QObject>
+
+class COptions : public QObject
+{
+
+public:
+
+  COptions();
+
+  void read_options(int argc, char **argv);
+
+  QString inputFile() const {return m_InputFile;}
+  QStringList inputFileList() const {return m_InputFileList;}
+  QString outputFile() const {return m_OutputFile;}
+
+  float xDim() const {return m_xDim;}
+  float yDim() const {return m_yDim;}
+  float zDim() const {return m_zDim;}
+
+  float xSize() const {return m_xSize;}
+  float ySize() const {return m_ySize;}
+  float zSize() const {return m_zSize;}
+
+  bool force() const {return m_Force;}
+  bool rgb() const {return m_Rgb;}
+  bool verbose() const {return m_Verbose;} 
+
+  int rescale() const {return m_Rescale;}
+
+  bool block() const {return m_Block;}
+  int pixel() const {return m_Pixel;}
+
+protected:
+
+  QString m_InputFile;
+  QStringList m_InputFileList;
+  QString m_OutputFile;
+
+  float m_xDim;
+  float m_yDim;
+  float m_zDim;
+
+  float m_xSize;
+  float m_ySize;
+  float m_zSize;
+
+  bool m_Force;
+  bool m_Rgb;
+  bool m_Verbose;
+
+  int m_Rescale;
+
+  bool m_Block;
+  int m_Pixel;
+
+  void usage();
+};
+
+
+#endif
