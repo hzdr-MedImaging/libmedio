@@ -7,7 +7,7 @@ using namespace std;
 #include "COptions.h"
 
 // medio incluides
-#include <CMedIO>
+#include <CMedIO.h>
 #include <coreg.hh>
 
 // qt includes
