@@ -2082,7 +2082,7 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
     case CMedIOHeader::PhilipsMainHeader:
     case CMedIOHeader::PhilipsListviewHeader:
     {
-      Error("medio mainheader %d conversion not implemented!", mainHeader->headerFormat());
+      E("medio mainheader %d conversion not implemented!", mainHeader->headerFormat());
     }
     break;
 

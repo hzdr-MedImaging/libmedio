@@ -371,7 +371,7 @@ bool CECAT7SubHeaderPolarMap::convertFrom(const CMedIOHeader* subHeader, const C
         case CECATSubHeader::ECAT7_Scan:
         case CECATSubHeader::ECAT7_Scan3D:
         {
-          Error("medio subheader %d conversion not implemented!", eSubHeader->subHeaderType());
+          E("medio subheader %d conversion not implemented!", eSubHeader->subHeaderType());
         }
         break;
 
@@ -392,7 +392,7 @@ bool CECAT7SubHeaderPolarMap::convertFrom(const CMedIOHeader* subHeader, const C
     case CMedIOHeader::PhilipsSubHeader:
     case CMedIOHeader::PhilipsListviewHeader:
     {
-      Error("medio subheader %d conversion not implemented!", subHeader->headerFormat());
+      E("medio subheader %d conversion not implemented!", subHeader->headerFormat());
     }
     break;
 
