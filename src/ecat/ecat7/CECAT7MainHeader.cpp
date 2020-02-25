@@ -220,7 +220,7 @@ void CECAT7MainHeader::clear()
   setPatient_Sex(CECAT7MainHeader::Sex_Unknown);
   setPatient_Dexterity(CECAT7MainHeader::Dext_Unknown);
   setPatient_Orientation(CECAT7MainHeader::Orient_Unknown);
-  setStudy_Description((QString("Created with libmedio v") + PROJECT_VERSION).toLatin1().constData());
+  setStudy_Description(QString("Created with %1 v%2").arg(PROJECT_LONGNAME).arg(PROJECT_VERSION).toLatin1().constData());
   setTransm_Source_Type(CECAT7MainHeader::SRC_RING);
   setLwr_True_Thres(350); // [keV]
   setUpr_True_Thres(650); // [keV]
@@ -493,7 +493,6 @@ bool CECAT7MainHeader::load(void)
 QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
 {
   ENTER();
-  bool success = true;
   
   // lets iterate through the textstream until
   // we are at the end.
@@ -657,7 +656,6 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
       if(convertSuccess == false)
       {
         E("'%s' - error while converting string '%s' to a numerical value.", typeString.toLatin1().constData(), dataString.toLatin1().constData());
-        success = false;
       }
     }
   }
@@ -841,8 +839,13 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
           setOriginal_File_Name(e6src->original_File_Name());
           setSystem_Type(e6src->system_Type());
 
-          #warning "ECAT6->ECAT7 copy not fully implemented yet!"
           bResult = true;
+        }
+        break;
+
+        case CECATMainHeader::UnknownHeaderType:
+        {
+          // nothing
         }
         break;
       }
@@ -852,6 +855,7 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
     }
 
     case CMedIOHeader::ECATSubHeader:
+    case CMedIOHeader::PhilipsSubHeader:
       // copying a sub header into a main header doesn't make much sense, so we
       // do nothing here
     break;
@@ -1045,6 +1049,13 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
       }
 
       bResult = true;
+    }
+    break;
+
+    case CMedIOHeader::ConcordeMicroPetFrameHeader:
+    case CMedIOHeader::PhilipsListviewHeader:
+    {
+      Error("medio mainheader %d conversion not implemented!", mainHeader->headerFormat());
     }
     break;
 

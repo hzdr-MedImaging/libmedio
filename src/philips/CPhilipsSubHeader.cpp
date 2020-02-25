@@ -884,13 +884,39 @@ bool CPhilipsSubHeader::convertFrom(const CMedIOHeader* subHeader, const CMedIOH
         }
         break;
 
+        case CECATSubHeader::ECAT7_AttenCorr:
+        case CECATSubHeader::ECAT7_Norm:
+        case CECATSubHeader::ECAT7_Norm3D:
+        case CECATSubHeader::ECAT7_PolarMap:
+        case CECATSubHeader::ECAT7_Scan:
+        case CECATSubHeader::ECAT7_Scan3D:
+          E("unsupported subheader type %d", eSubHeader->subHeaderType());
+        break;
+
         case CECATSubHeader::Unknown:
           // for an unknown header type we do nothing
         break;
-        
-        #warning "non Image copy not complete"
       }
     }
+    break;
+
+    case CMedIOHeader::ECATMainHeader:
+    case CMedIOHeader::PhilipsMainHeader:
+      // copying a main header into a sub header doesn't make much sense, so we
+      // do nothing here
+    break;
+
+    case CMedIOHeader::ConcordeMicroPetMainHeader:
+    case CMedIOHeader::ConcordeMicroPetFrameHeader:
+    case CMedIOHeader::PhilipsSubHeader:
+    case CMedIOHeader::PhilipsListviewHeader:
+    {
+      Error("medio subheader %d conversion not implemented!", subHeader->headerFormat());
+    }
+    break;
+
+    case CMedIOHeader::Unknown:
+      // for an unknown header type we do nothing
     break;
   }
  

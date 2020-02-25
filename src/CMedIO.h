@@ -43,6 +43,7 @@ class CMedIO
     static QString version();
     static QString buildDate();
     static QString copyright();    
+    static QString name();
 
     static unsigned int qtMajorVersion();
     static unsigned int qtMinorVersion();

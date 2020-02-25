@@ -232,6 +232,13 @@ bool CConcordeFile::isOfType(const QString& file)
     case CConcordeMainHeader::MuMap:
       result = true;
     break;
+
+    case CConcordeMainHeader::UnknownFile:
+    case CConcordeMainHeader::ListMode:
+    case CConcordeMainHeader::Blank:
+    case CConcordeMainHeader::Scatter:
+      // nothing
+    break;
   }
 
   RETURN(result);
@@ -260,6 +267,9 @@ CMedIOData* CConcordeFile::createFromFile(const QString& fileName)
     break;
 
     case CConcordeMainHeader::Unknown:
+    case CConcordeMainHeader::ListMode:
+    case CConcordeMainHeader::Blank:
+    case CConcordeMainHeader::Scatter:
       ftype = CConcordeFile::Unknown;
     break;
   }

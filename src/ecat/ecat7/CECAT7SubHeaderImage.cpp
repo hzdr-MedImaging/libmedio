@@ -496,11 +496,20 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* subHeader, const CMed
         }
         break;
 
+        case CECATSubHeader::ECAT7_AttenCorr:
+        case CECATSubHeader::ECAT7_Norm:
+        case CECATSubHeader::ECAT7_Norm3D:
+        case CECATSubHeader::ECAT7_PolarMap:
+        case CECATSubHeader::ECAT7_Scan:
+        case CECATSubHeader::ECAT7_Scan3D:
+        {
+          Error("medio subheader %d conversion not implemented!", eSubHeader->subHeaderType());
+        }
+        break;
+
         case CECATSubHeader::Unknown:
           // for an unknown header type we do nothing
         break;
-        
-        #warning "non Image copy not complete"
       }
     }
 
@@ -694,6 +703,12 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* subHeader, const CMed
         setDecay_Corr_Fctr(0.0f);
 
       bResult = true;
+    }
+    break;
+
+    case CMedIOHeader::PhilipsListviewHeader:
+    {
+      Error("medio subheader %d conversion not implemented!", subHeader->headerFormat());
     }
     break;
 

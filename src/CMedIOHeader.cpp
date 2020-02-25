@@ -210,6 +210,11 @@ bool CMedIOHeader::convertFrom(CMedIOData* pData)
       case CMedIOData::Unknown:
         result = false;
       break;
+
+      case CMedIOData::PhilipsBin:
+        Error("medio datatype %d conversion not implemented!", pData->dataFormat());
+        result = false;
+      break;
     }
   }
 

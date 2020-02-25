@@ -476,7 +476,7 @@ CMedIOHeader* CConcordeFrameHeader::clone() const
   return pTmp;
 }
 
-bool CConcordeFrameHeader::convertFrom(const CMedIOHeader* subHeader, const CMedIOHeader* mainHeader)
+bool CConcordeFrameHeader::convertFrom(const CMedIOHeader* subHeader, const CMedIOHeader*)
 {
   ENTER();
   bool bResult = false;
@@ -512,6 +512,25 @@ bool CConcordeFrameHeader::convertFrom(const CMedIOHeader* subHeader, const CMed
 
         bResult = true;
       }
+      break;
+
+      case CMedIOHeader::ECATMainHeader:
+      case CMedIOHeader::ConcordeMicroPetMainHeader:
+      case CMedIOHeader::PhilipsMainHeader:
+        // copying a main header into a sub header doesn't make much sense, so we
+        // do nothing here
+      break;
+
+      case CMedIOHeader::ECATSubHeader:
+      case CMedIOHeader::PhilipsSubHeader:
+      case CMedIOHeader::PhilipsListviewHeader:
+      {
+        Error("medio subheader %d conversion not implemented!", subHeader->headerFormat());
+      }
+      break;
+
+      case CMedIOHeader::Unknown:
+        // for an unknown header type we do nothing
       break;
     }
   }

@@ -5,7 +5,7 @@
 #include <QFile>
 #include <CPhilipsBinFile.h>
 
-int main(int arc, char *argv[])
+int main(int, char *argv[])
 {
   CPhilipsBinFile file(argv[1]);
   if(file.open(QIODevice::ReadOnly))
@@ -24,11 +24,11 @@ int main(int arc, char *argv[])
     if(file.readMatrix(data, length))
     {
       std::cout << "data length: " << length << std::endl;
-      for(int z=0; z < file.header().zDim; z++)
+      for(quint32 z=0; z < file.header().zDim; z++)
       {
-        for(int y=0; y < file.header().yDim; y++)
+        for(quint32 y=0; y < file.header().yDim; y++)
         {
-          for(int x=0; x < file.header().xDim; x++)
+          for(quint32 x=0; x < file.header().xDim; x++)
           {
             std::cout << "data[x:" << std::dec << x << ",y:" 
                                    << std::dec << y << ",z:"

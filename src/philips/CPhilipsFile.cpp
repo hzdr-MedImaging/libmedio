@@ -452,6 +452,12 @@ CPhilipsSubHeader::Type CPhilipsFile::subHeaderType()
       type = CPhilipsSubHeader::Listmode;
     break;
 
+    case CPhilipsMainHeader::VID:
+    case CPhilipsMainHeader::OtherFile:
+    case CPhilipsMainHeader::Rawmode:
+      E("unsupported philips main header type");
+    break;
+
     case CPhilipsMainHeader::Unknown:
       E("unknown philips main header type");
     break;
@@ -932,6 +938,10 @@ CPhilipsSubHeader* CPhilipsFile::createEmptySubHeader()
 
       case CPhilipsSubHeader::Listmode:
         pEmptySubHeader = new CPhilipsSubHeaderListmode(this);
+      break;
+
+      case CPhilipsSubHeader::Unknown:
+        E("unknown subheader type");
       break;
     }
   }

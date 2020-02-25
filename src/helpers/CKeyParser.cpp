@@ -201,12 +201,10 @@ bool CKeyParser::processLine(QString& Line)
     if(start_index != -1)
     {
       //extract keyword -> all characters infront (left of) separator
-      Keyword = Line.left(start_index);
-      Keyword.simplified();
+      Keyword = Line.left(start_index).simplified();
       //extract value -> all characters after (right of) separator
       int start_index_value = start_index + (*it).length();
-      Value = Line.right(Line.length()-start_index_value);
-      Value.simplified();
+      Value = Line.right(Line.length()-start_index_value).simplified();
       break;  
     }
       }

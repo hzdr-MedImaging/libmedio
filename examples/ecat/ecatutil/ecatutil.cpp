@@ -1993,7 +1993,7 @@ bool processCommando_Delete()
           CECATFile ecatFile(g_sECATFileName);
           if(ecatFile.open(QIODevice::ReadWrite) && ecatFile.format() != CECATFile::Undefined)
           {
-            #warning "deleting of directory items is not supported by libmedio"
+            cout << "WARNING: deleting of directory items is not supported by libmedio" << endl;
           }
         }
       }
@@ -2455,7 +2455,7 @@ void showVersionInformation()
                         << "  " << CMedIO::copyright().toLatin1().constData() << endl;
 }
 
-void showHelp(int& argc, char** argv)
+void showHelp(int&, char** argv)
 {
   cout << endl;
   cout << "libmedio ECAT6/7 file utility v"<<PROJECT_VERSION << endl;

@@ -1879,8 +1879,6 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
       // some data of the src header
       switch(eMainHeader->mainHeaderType())
       {
-        // if the source header is also an ECAT7 one we can copy it in whole
-        // via a simple memcpy()
         case CECATMainHeader::ECAT7MainHeader:
         {
           const CECAT7MainHeader* header = static_cast<const CECAT7MainHeader*>(mainHeader);
@@ -1902,6 +1900,19 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
             case CECAT7MainHeader::Sinogram3D_8:
             case CECAT7MainHeader::Sinogram3D_Float:
               fileType = CPhilipsMainHeader::Sinogram;
+            break;
+
+            case CECAT7MainHeader::AttenuationCorr:
+            case CECAT7MainHeader::Normalization:
+            case CECAT7MainHeader::PolarMap:
+            case CECAT7MainHeader::Projection8:
+            case CECAT7MainHeader::Projection16:
+            case CECAT7MainHeader::Normalization_3D:
+              E("unsupported main header type %d", header->file_Type());
+            break;
+
+            case CECAT7MainHeader::Unknown:
+              fileType = CPhilipsMainHeader::Unknown;
             break;
           }
 
@@ -2048,8 +2059,36 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
           bResult = true;
         }
         break;
+
+        case CECATMainHeader::ECAT6MainHeader:
+          E("unsupported main header copy");
+        break;
+
+        case CECATMainHeader::UnknownHeaderType:
+          // nothing
+        break;
       }
     }
+    break;
+
+    case CMedIOHeader::ECATSubHeader:
+    case CMedIOHeader::PhilipsSubHeader:
+      // copying a sub header into a main header doesn't make much sense, so we
+      // do nothing here
+    break;
+   
+    case CMedIOHeader::ConcordeMicroPetMainHeader:
+    case CMedIOHeader::ConcordeMicroPetFrameHeader:
+    case CMedIOHeader::PhilipsMainHeader:
+    case CMedIOHeader::PhilipsListviewHeader:
+    {
+      Error("medio mainheader %d conversion not implemented!", mainHeader->headerFormat());
+    }
+    break;
+
+    case CMedIOHeader::Unknown:
+      // for an unknown header type we do nothing
+    break;
   }
 
   RETURN(bResult);
@@ -5246,7 +5285,7 @@ void CPhilipsMainHeader::setRef_raw_data_series_inst_uid(const char *str)
 
 void CPhilipsMainHeader::setPet_software_version(const char *str)
 {
-  strncpy(m_pData->extHeader.pet_software_version, str, sizeof(m_pData->extHeader.pet_software_version));
+  strncpy(m_pData->extHeader.pet_software_version, str, sizeof(m_pData->extHeader.pet_software_version)-1);
 }
 
 void CPhilipsMainHeader::setNum_tile_rings(const unsigned char value)
@@ -5336,30 +5375,30 @@ void CPhilipsMainHeader::setIsotope_coding_scheme_designator(const char *str)
 
 void CPhilipsMainHeader::setIsotope_coding_scheme_version(const char *str)
 {
-  strncpy(m_pData->extHeader.isotope_coding_scheme_version, str, sizeof(m_pData->extHeader.isotope_coding_scheme_version));
+  strncpy(m_pData->extHeader.isotope_coding_scheme_version, str, sizeof(m_pData->extHeader.isotope_coding_scheme_version)-1);
 }
 
 void CPhilipsMainHeader::setIsotope_code_meaning(const char *str)
 {
-  strncpy(m_pData->extHeader.isotope_code_meaning, str, sizeof(m_pData->extHeader.isotope_code_meaning));
+  strncpy(m_pData->extHeader.isotope_code_meaning, str, sizeof(m_pData->extHeader.isotope_code_meaning)-1);
 }
 
 void CPhilipsMainHeader::setRadiopharm_code_value(const char *str)
 {
-  strncpy(m_pData->extHeader.radiopharm_code_value, str, sizeof(m_pData->extHeader.radiopharm_code_value));
+  strncpy(m_pData->extHeader.radiopharm_code_value, str, sizeof(m_pData->extHeader.radiopharm_code_value)-1);
 }
 
 void CPhilipsMainHeader::setRadiopharm_coding_scheme_designator(const char *str)
 {
-  strncpy(m_pData->extHeader.radiopharm_coding_scheme_designator, str, sizeof(m_pData->extHeader.radiopharm_coding_scheme_designator));
+  strncpy(m_pData->extHeader.radiopharm_coding_scheme_designator, str, sizeof(m_pData->extHeader.radiopharm_coding_scheme_designator)-1);
 }
 
 void CPhilipsMainHeader::setRadiopharm_coding_scheme_version(const char *str)
 {
-  strncpy(m_pData->extHeader.radiopharm_coding_scheme_version, str, sizeof(m_pData->extHeader.radiopharm_coding_scheme_version));
+  strncpy(m_pData->extHeader.radiopharm_coding_scheme_version, str, sizeof(m_pData->extHeader.radiopharm_coding_scheme_version)-1);
 }
 
 void CPhilipsMainHeader::setRadiopharm_code_meaning(const char *str)
 {
-  strncpy(m_pData->extHeader.radiopharm_code_meaning, str, sizeof(m_pData->extHeader.radiopharm_code_meaning));
+  strncpy(m_pData->extHeader.radiopharm_code_meaning, str, sizeof(m_pData->extHeader.radiopharm_code_meaning)-1);
 }

@@ -207,7 +207,7 @@ static bool checkBedPositionOffsets(CECATMainHeader* header, bool fix)
   return processed;
 }
 
-static bool checkBedPositionNumber(CECATMainHeader* header, CECATFile* file, bool fix)
+static bool checkBedPositionNumber(CECATMainHeader* header, CECATFile* file, bool)
 {
   bool processed = false;
 
@@ -229,14 +229,13 @@ static bool checkFramesNumber(CECATMainHeader* header, CECATFile* file, bool fix
 
   Info("Number of frames: %d", eh->num_Frames());
 
-  if(file->directory()->count() != eh->num_Frames())
+  if(static_cast<short>(file->directory()->count()) != eh->num_Frames())
   {
     Info(" inconsistent number of frames in ECAT file (%d) and main header (%d)", file->directory()->count(), eh->num_Frames());
 
     if(fix)
     {
       CECATSubHeader* subHeader = NULL;
-      CECATSubHeader* lastSubHeader = NULL;
 
       // find out which frame is missing
       for(int i=1; i < eh->num_Frames(); i++)
@@ -317,8 +316,6 @@ static bool checkFramesNumber(CECATMainHeader* header, CECATFile* file, bool fix
               Error("couldn't load data of frame %d", reuseFrame);
           }
         }
-
-        lastSubHeader = subHeader;
       }
     }
   }

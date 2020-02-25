@@ -102,7 +102,7 @@ class CECAT6MainHeaderPrivate
 };
 
 CECAT6MainHeader::CECAT6MainHeader(CECATFile* ecatFile,
-                                   CECATMainHeader::Type fileType)
+                                   CECATMainHeader::Type)
   : CECATMainHeader(ecatFile)
 {
   ENTER();
@@ -446,7 +446,7 @@ CECATMainHeader::HeaderType CECAT6MainHeader::mainHeaderType() const
   return CECATMainHeader::ECAT6MainHeader;
 }
 
-bool CECAT6MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOHeader* subHeader)
+bool CECAT6MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOHeader*)
 {
   ENTER();
   bool bResult = false;
@@ -485,7 +485,12 @@ bool CECAT6MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
           setSystem_Type(e7src->system_Type());
 
           bResult = true;
-          #warning "ECAT7->ECAT6 copy not fully implemented yet!"
+        }
+        break;
+
+        case CECATMainHeader::UnknownHeaderType:
+        {
+          // nothing
         }
         break;
       }
@@ -501,8 +506,11 @@ bool CECAT6MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
     break;
 
     case CMedIOHeader::ConcordeMicroPetMainHeader:
+    case CMedIOHeader::PhilipsMainHeader:
+    case CMedIOHeader::PhilipsSubHeader:
+    case CMedIOHeader::PhilipsListviewHeader:
     {
-      #warning "Concorde->ECAT6 copy missing"
+      Error("medio mainheader %d conversion not implemented!", mainHeader->headerFormat());
     }
     break;
 

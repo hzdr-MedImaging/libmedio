@@ -45,6 +45,11 @@ QString CMedIO::version()
   return QString(PROJECT_VERSION);
 }
 
+QString CMedIO::name()
+{
+  return QString(PROJECT_LONGNAME);
+}
+
 QString CMedIO::buildDate()
 {
   return QString(__DATE__) + " " + QString(__TIME__);
@@ -52,7 +57,7 @@ QString CMedIO::buildDate()
 
 QString CMedIO::copyright()
 {
-  return QString("Copyright (C) 2006-2015 Jens Maus <mail@jens-maus.de>");
+  return QString("Copyright (C) 2006-2020 Jens Maus <mail@jens-maus.de>");
 }
 
 unsigned int CMedIO::qtMajorVersion()

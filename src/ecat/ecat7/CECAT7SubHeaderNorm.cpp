@@ -285,7 +285,7 @@ CECATSubHeader::Type CECAT7SubHeaderNorm::subHeaderType(void) const
   return CECATSubHeader::ECAT7_Norm;
 }
 
-bool CECAT7SubHeaderNorm::convertFrom(const CMedIOHeader* subHeader, const CMedIOHeader* mainHeader) 
+bool CECAT7SubHeaderNorm::convertFrom(const CMedIOHeader* subHeader, const CMedIOHeader*)
 {
   ENTER();
   bool bResult = false;
@@ -314,11 +314,20 @@ bool CECAT7SubHeaderNorm::convertFrom(const CMedIOHeader* subHeader, const CMedI
         }
         break;
 
+        case CECATSubHeader::ECAT7_AttenCorr:
+        case CECATSubHeader::ECAT7_Image:
+        case CECATSubHeader::ECAT7_Norm3D:
+        case CECATSubHeader::ECAT7_PolarMap:
+        case CECATSubHeader::ECAT7_Scan:
+        case CECATSubHeader::ECAT7_Scan3D:
+        {
+          Error("medio subheader %d conversion not implemented!", eSubHeader->subHeaderType());
+        }
+        break;
+
         case CECATSubHeader::Unknown:
           // for an unknown header type we do nothing
         break;
-        
-        #warning "non Norm copy not complete"
       }
     }
 
@@ -330,8 +339,10 @@ bool CECAT7SubHeaderNorm::convertFrom(const CMedIOHeader* subHeader, const CMedI
     break;
 
     case CMedIOHeader::ConcordeMicroPetFrameHeader:
+    case CMedIOHeader::PhilipsSubHeader:
+    case CMedIOHeader::PhilipsListviewHeader:
     {
-      #warning "Concorde->ECAT7SubHeader copy missing"
+      Error("medio subheader %d conversion not implemented!", subHeader->headerFormat());
     }
     break;
 
