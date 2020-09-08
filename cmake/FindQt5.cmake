@@ -10,7 +10,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
 macro(Qt_process_prl_file prl_file_location Module_Name)
     if (EXISTS "${prl_file_location}/../${Module_Name}.prl")
-        file(STRINGS "${prl_file_location}/../${Module_Name}.prl" prl_strings REGEX "QMAKE_PRL_LIBS")
+        file(STRINGS "${prl_file_location}/../${Module_Name}.prl" prl_strings REGEX "QMAKE_PRL_LIBS *=")
         if(prl_strings)
           string(REGEX REPLACE "QMAKE_PRL_LIBS *= *([^\\n]*)" "\\1" static_depends ${prl_strings})
           string(STRIP "${static_depends}" static_depends)
