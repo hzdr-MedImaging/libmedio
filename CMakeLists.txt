@@ -70,7 +70,7 @@ if(NOT PREFIX_PATH)
 endif()
 
 if(EXISTS ${PREFIX_PATH})
-  set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${PREFIX_PATH})
+  set(CMAKE_PREFIX_PATH ${PREFIX_PATH})
   set(CMAKE_INSTALL_PREFIX ${PREFIX_PATH})
 else()
   message("WARNING: selected PREFIX path '${PREFIX_PATH}' does not exist")
