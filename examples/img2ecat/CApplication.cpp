@@ -307,6 +307,16 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
   if(checkOutputFile(inputFile) == false)
     result = false;
 
+  // check that the input file is a PhilipsFile
+  if(result)
+  {
+    if(CPhilipsFile::isOfType(inputFile.filePath()) == false)
+    {
+      cout << "ERROR: Specified input file '" << qPrintable(inputFile.absoluteFilePath()) << "' is not a philips file." << endl;
+      result = false;
+    }
+  }
+
   if(result)
   {
     pPhilipsFile = new CPhilipsFile(inputFile.filePath());
@@ -586,6 +596,16 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
   // check if we can create the output file
   if(checkOutputFile(inputFile) == false)
     result = false;
+
+  // check that the input file is an ECAT file
+  if(result)
+  {
+    if(CECATFile::isOfType(inputFile.filePath()) == false)
+    {
+      cout << "ERROR: Specified input file '" << qPrintable(inputFile.absoluteFilePath()) << "' is not a ECAT file." << endl;
+      result = false;
+    }
+  }
 
   if(result)
   {
