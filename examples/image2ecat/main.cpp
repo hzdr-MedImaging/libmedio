@@ -228,6 +228,15 @@ void convert(const QString & imageFile, const QString & ecatFile)
     exit(2);
   }
 
+  if(options.xSize() != 0)
+  {
+    options.setXDim(options.xSize() * image.width());
+  }
+  if(options.ySize() != 0)
+  {
+    options.setYDim(options.ySize() * image.height());
+  }
+
   if(options.xDim() != 0)
   {
     image.setDotsPerMeterX(nint(100 * image.width() / options.xDim()));
@@ -608,7 +617,7 @@ int main(int argc, char **argv)
   QCoreApplication::setOrganizationName("hzdr");
   QCoreApplication::setOrganizationDomain("hzdr.de");
   QCoreApplication::setApplicationName("image2ecat");
-  QCoreApplication::setApplicationVersion("1.0.1");
+  QCoreApplication::setApplicationVersion("1.0.2");
 
   options.read_options(argc, argv);
 

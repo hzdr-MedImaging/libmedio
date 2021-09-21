@@ -20,8 +20,13 @@ public:
   QString outputFile() const {return m_OutputFile;}
 
   float xDim() const {return m_xDim;}
+  void setXDim(float d) {m_xDim = d;}
+
   float yDim() const {return m_yDim;}
+  void setYDim(float d) {m_zDim = d;}
+
   float zDim() const {return m_zDim;}
+  void setZDim(float d) {m_zDim = d;}
 
   float xSize() const {return m_xSize;}
   float ySize() const {return m_ySize;}
