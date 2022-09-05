@@ -18,11 +18,9 @@
 # * License along with this library; if not, write to the Free Software
 # * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
 # *
-# * $Id: README 496 2010-01-11 09:45:23Z langner $
-# *
 # **************************************************************************/
 
-cmake_minimum_required(VERSION 2.8.11)
+cmake_minimum_required(VERSION 2.8.12)
 
 # Default configuration values. These must be before the project command or
 # they won't work in Windows.
@@ -38,7 +36,7 @@ project(libmedio)
 set(PROJECT_LONGNAME "libmedio")
 set(PROJECT_VERSION_MAJOR 3)
 set(PROJECT_VERSION_MINOR 2)
-set(PROJECT_VERSION_PATCH 1)
+set(PROJECT_VERSION_PATCH 2)
 set(PROJECT_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
 
 # change output directory to top-level 'bin' dir.

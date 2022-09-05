@@ -2508,7 +2508,7 @@ void showHelp(int&, char** argv)
 
 void showMainHeaderEntries()
 {
-  QList<QString> keys = ecat7MainHeaderMap.uniqueKeys();
+  QList<QString> keys = ecat7MainHeaderMap.keys();
   QListIterator<QString> it(keys);
   cout << endl;
   cout << "Supported MainHeaderEntries:" << endl;
@@ -2520,7 +2520,7 @@ void showMainHeaderEntries()
 
 void showSubHeaderEntries()
 {
-  QList<QString> imageKeys = ecat7ImageHeaderMap.uniqueKeys();
+  QList<QString> imageKeys = ecat7ImageHeaderMap.keys();
   QListIterator<QString> imageIt(imageKeys);
   cout << endl;
   cout << "Supported ImageHeaderEntries:" << endl;
@@ -2529,7 +2529,7 @@ void showSubHeaderEntries()
     cout << imageIt.next().toLatin1().data() << endl;
   cout << endl;
 
-  QList<QString> scan3DKeys = ecat7Scan3DHeaderMap.uniqueKeys();
+  QList<QString> scan3DKeys = ecat7Scan3DHeaderMap.keys();
   QListIterator<QString> scan3DIt(scan3DKeys);
   cout << endl;
   cout << "Supported Scan3DHeaderEntries:" << endl;

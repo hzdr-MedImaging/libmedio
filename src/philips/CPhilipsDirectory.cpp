@@ -358,7 +358,7 @@ bool CPhilipsDirectory::save() const
   QList<CPhilipsDirectoryItem*> itemList = m_pData->dirItems.values();
 
   // now sort that list by our internal criterias
-  qSort(itemList.begin(), itemList.end(), m_pData->itemIsLessThan);
+  std::sort(itemList.begin(), itemList.end(), m_pData->itemIsLessThan);
 
   // now iterate through our sorted QList and write out the
   // data sorted as well.
