@@ -719,7 +719,7 @@ void CECAT7SubHeaderAttenCorr::setUnused(const short i, const short n)
   m_pData->header.Unused[i] = n;
 }
 
-void CECAT7SubHeaderAttenCorr::setCTI_Reserverd(const short i, const short n)
+void CECAT7SubHeaderAttenCorr::setCTI_Reserved(const short i, const short n)
 {
   m_pData->header.CTI_Reserved[i] = n;
 }

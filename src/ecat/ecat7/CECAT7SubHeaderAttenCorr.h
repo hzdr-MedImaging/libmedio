@@ -133,7 +133,7 @@ class CECAT7SubHeaderAttenCorr : public CECATSubHeader
     void setSpan(const short n);
     void setZ_Elements(const short i, const short n);
     void setUnused(const short i, const short n);
-    void setCTI_Reserverd(const short i, const short n);
+    void setCTI_Reserved(const short i, const short n);
 
   private:
     CECAT7SubHeaderAttenCorrPrivate* m_pData;
