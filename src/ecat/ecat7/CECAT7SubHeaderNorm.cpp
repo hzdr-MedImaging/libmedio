@@ -482,7 +482,7 @@ void CECAT7SubHeaderNorm::setRing_Difference(const short n)
   m_pData->header.Ring_Difference = n;
 }
 
-void CECAT7SubHeaderNorm::SetScale_Factor(const float n)
+void CECAT7SubHeaderNorm::setScale_Factor(const float n)
 {
   m_pData->header.Scale_Factor = n;
 }

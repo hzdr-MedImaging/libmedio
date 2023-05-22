@@ -97,7 +97,7 @@ class CECAT7SubHeaderNorm : public CECATSubHeader
     void setNum_Angles(const short n);
     void setNum_Z_Elements(const short n);
     void setRing_Difference(const short n);
-    void SetScale_Factor(const float n);
+    void setScale_Factor(const float n);
     void setNorm_Min(const float n);
     void setNorm_Max(const float n);
     void setFOV_Source_Width(const float n);
