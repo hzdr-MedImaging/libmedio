@@ -89,10 +89,10 @@ class CECAT7SubHeaderScan3D : public CECATSubHeader
     short ring_Difference(void) const;
     Storage_Order storage_Order(void) const;
     short axial_Compression(void) const;
-    float X_Resolution(void) const;
-    float V_Resolution(void) const;
-    float Z_Resolution(void) const;
-    float W_Resolution(void) const;
+    float x_Resolution(void) const;
+    float v_Resolution(void) const;
+    float z_Resolution(void) const;
+    float w_Resolution(void) const;
     short gate_Reserved(const short i) const;
     unsigned int gate_Duration(void) const;
     unsigned int r_Wave_Offset(void) const;

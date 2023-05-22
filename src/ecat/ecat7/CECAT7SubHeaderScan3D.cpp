@@ -482,22 +482,22 @@ short CECAT7SubHeaderScan3D::axial_Compression(void) const
   return m_pData->header.Axial_Compression;
 }
 
-float CECAT7SubHeaderScan3D::X_Resolution(void) const            
+float CECAT7SubHeaderScan3D::x_Resolution(void) const            
 {
   return m_pData->header.X_Resolution;
 }
 
-float CECAT7SubHeaderScan3D::V_Resolution(void) const            
+float CECAT7SubHeaderScan3D::v_Resolution(void) const            
 {  
   return m_pData->header.V_Resolution;
 }
 
-float CECAT7SubHeaderScan3D::Z_Resolution(void) const            
+float CECAT7SubHeaderScan3D::z_Resolution(void) const            
 {  
   return m_pData->header.Z_Resolution;  
 }
 
-float CECAT7SubHeaderScan3D::W_Resolution(void) const              
+float CECAT7SubHeaderScan3D::w_Resolution(void) const              
 {  
   return m_pData->header.W_Resolution;  
 }
