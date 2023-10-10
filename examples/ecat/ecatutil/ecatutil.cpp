@@ -348,6 +348,8 @@ bool processCommando_Get()
               case CALIBRATION_UNITS: cout << pECAT7MainHeader->calibration_Units() << endl; break;
               case PATIENT_BIRTH_DATE: cout << pECAT7MainHeader->patient_Birth_Date_Qt().toString("dd MMM yyyy").toLatin1().data() << endl; break;
               case PATIENT_NAME: cout << pECAT7MainHeader->patient_Name() << endl; break;
+              case PATIENT_WEIGHT: cout << pECAT7MainHeader->patient_Weight() << endl; break;
+              case PATIENT_HEIGHT: cout << pECAT7MainHeader->patient_Height() << endl; break;
               case DOSAGE: cout << pECAT7MainHeader->dosage() << endl; break;
               case BRANCHING_FRACTION: cout << pECAT7MainHeader->branching_Fraction() << endl; break;
               case NUM_FRAMES: cout << pECAT7MainHeader->num_Frames() << endl; break;
@@ -679,6 +681,24 @@ bool processCommando_Set()
               case PATIENT_NAME:
               {
                 pECAT7MainHeader->setPatient_Name(g_sValue.toLatin1().constData());
+              }
+              break;
+
+              case PATIENT_WEIGHT:
+              {
+                bool bSuccess = false;
+                short iWeight = g_sValue.toInt(&bSuccess);
+                if(bSuccess)
+                  pECAT7MainHeader->setPatient_Weight(iWeight);
+              }
+              break;
+
+              case PATIENT_HEIGHT:
+              {
+                bool bSuccess = false;
+                short iHeight = g_sValue.toInt(&bSuccess);
+                if(bSuccess)
+                  pECAT7MainHeader->setPatient_Height(iHeight);
               }
               break;
 
@@ -2561,6 +2581,8 @@ bool initHeaderMaps()
   ecat7MainHeaderMap.insert("calibrationunits", CALIBRATION_UNITS);
   ecat7MainHeaderMap.insert("patientbirthdate", PATIENT_BIRTH_DATE);
   ecat7MainHeaderMap.insert("patientname", PATIENT_NAME);
+  ecat7MainHeaderMap.insert("patientweight", PATIENT_WEIGHT);
+  ecat7MainHeaderMap.insert("patientheight", PATIENT_HEIGHT);
   ecat7MainHeaderMap.insert("dosage", DOSAGE);
   ecat7MainHeaderMap.insert("branchingfraction", BRANCHING_FRACTION);
   ecat7MainHeaderMap.insert("numframes", NUM_FRAMES);
