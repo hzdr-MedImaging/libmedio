@@ -122,32 +122,52 @@ void init_ecat(py::module_ &m)
               py::arg("gate") = -1,
               py::arg("bed") = -1,
               py::arg("data") = -1)
-          .def("writeMatrix", static_cast<bool (CECATFile::*)(const char*, unsigned int, short, short, short, short, short)>(&CECATFile::writeMatrix),
-              py::arg("matrixData"),
-              py::arg("size"),
+          .def("writeMatrix", [](CECATFile& self, MedIOImage& img, short frame, short plane, short gate, short bed, short data)
+          {
+            return img.ndim();
+          },  py::arg("img"),
               py::arg("frame") = -1,
               py::arg("plane") = -1,
               py::arg("gate") = -1,
               py::arg("bed") = -1,
               py::arg("data") = -1)
-          .def("writeMatrix", static_cast<bool (CECATFile::*)(const char*, unsigned int, const CECATSubHeader&, short, short, short, short, short)>(&CECATFile::writeMatrix),
-              py::arg("matrixData"),
-              py::arg("size"),
-              py::arg("subHeader"),
+          .def("writeMatrix", [](CECATFile& self, py::array_t<float> img, short frame, short plane, short gate, short bed, short data)
+          {
+            py::buffer_info buf = img.request();
+
+            return img.ndim();
+          },  py::arg("img"),
               py::arg("frame") = -1,
               py::arg("plane") = -1,
               py::arg("gate") = -1,
               py::arg("bed") = -1,
               py::arg("data") = -1)
-          .def("writeMatrix", static_cast<bool (CECATFile::*)(const char*, unsigned int, const CECATSubHeader::Data_Type, short, short, short, short, short)>(&CECATFile::writeMatrix),
-              py::arg("matrixData"),
-              py::arg("size"),
-              py::arg("type"),
-              py::arg("frame") = -1,
-              py::arg("plane") = -1,
-              py::arg("gate") = -1,
-              py::arg("bed") = -1,
-              py::arg("data") = -1)
+          //.def("writeMatrix", static_cast<bool (CECATFile::*)(const char*, unsigned int, short, short, short, short, short)>(&CECATFile::writeMatrix),
+          //    py::arg("matrixData"),
+          //    py::arg("size"),
+          //    py::arg("frame") = -1,
+          //    py::arg("plane") = -1,
+          //    py::arg("gate") = -1,
+          //    py::arg("bed") = -1,
+          //    py::arg("data") = -1)
+          //.def("writeMatrix", static_cast<bool (CECATFile::*)(const char*, unsigned int, const CECATSubHeader&, short, short, short, short, short)>(&CECATFile::writeMatrix),
+          //    py::arg("matrixData"),
+          //    py::arg("size"),
+          //    py::arg("subHeader"),
+          //    py::arg("frame") = -1,
+          //    py::arg("plane") = -1,
+          //    py::arg("gate") = -1,
+          //    py::arg("bed") = -1,
+          //    py::arg("data") = -1)
+          //.def("writeMatrix", static_cast<bool (CECATFile::*)(const char*, unsigned int, const CECATSubHeader::Data_Type, short, short, short, short, short)>(&CECATFile::writeMatrix),
+          //    py::arg("matrixData"),
+          //    py::arg("size"),
+          //    py::arg("type"),
+          //    py::arg("frame") = -1,
+          //    py::arg("plane") = -1,
+          //    py::arg("gate") = -1,
+          //    py::arg("bed") = -1,
+          //    py::arg("data") = -1)
           .def("createEmptyMainHeader", &CECATFile::createEmptyMainHeader)
           .def("createEmptySubHeader", &CECATFile::createEmptySubHeader)
           .def("directory", &CECATFile::directory);

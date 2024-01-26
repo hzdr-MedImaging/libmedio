@@ -35,23 +35,17 @@ PYBIND11_MODULE(pymedio, m) {
   // data file and return the medioData object accordingly.
   m.def("read", [](const QString& fileName)
   {
-    CMedIOData* pMedIOData = nullptr;
-    pMedIOData = CMedIODataFactory::create(fileName);
-    if(pMedIOData != nullptr)
-    {
-      if(pMedIOData->open(QIODevice::ReadOnly) == false)
-        pMedIOData = nullptr;
-    }
-    return pMedIOData;
+    return CMedIODataFactory::create(fileName);
   }, py::arg("fileName"));
 
-  // general pymedio.write() function to write out a numpy compatible
-  // 4D array to a medIO compatible format
-  m.def("write", [](const QString& fileName, const MedIOImage& img)
+  // general pymedio.write() function to write out a mediodata
+  // object accordingly.
+  m.def("write", [](const CMedIOData& mdata, const QString& fileName, const bool overwrite)
   {
     return true;
-  }, py::arg("fileName"),
-     py::arg("img"));
+  }, py::arg("mdata"),
+     py::arg("fileName"),
+     py::arg("overwrite") = false);
 
   // general purpose helper "MedIOImage" class to access our PET image
   // volumes using the python buffer protocol interface and in a numpy
@@ -72,11 +66,11 @@ PYBIND11_MODULE(pymedio, m) {
     }))
 
     // accessor methods
-    .def("numdim", &MedIOImage::numdim)
+    .def("ndim", &MedIOImage::numdim)
     .def("xdim", &MedIOImage::xdim)
     .def("ydim", &MedIOImage::ydim)
     .def("zdim", &MedIOImage::zdim)
-    .def("tdim", &MedIOImage::zdim)
+    .def("tdim", &MedIOImage::tdim)
 
     // Bare bones interface
     .def("__getitem__",
