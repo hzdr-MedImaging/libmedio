@@ -1,0 +1,44 @@
+{% set data = load_setup_py_data(setup_file='../setup.py', from_recipe_dir=True) %}
+
+package:
+  name: pymedio
+  version: {{ data.get('version') }}
+
+source:
+  path: ..
+
+build:
+  noarch: python
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --ignore-installed --no-cache-dir
+  number: 0
+
+requirements:
+  build:
+    - python >=3.9
+    - pip
+    - "{{ compiler('cxx') }}"
+    - cmake
+    - ninja
+
+  host:
+    - python >=3.9
+    - pip
+
+  run:
+    - python >=3.9
+
+test:
+  imports:
+    - pymedio
+  requires:
+    - pytest
+  source_files:
+    - tests
+  commands:
+    - pytest tests
+
+about:
+  summary: 'python interface for libmedio'
+  desription: |
+    python interface to support libmedio supported medical imaging data
+  license: Apache-2.0
