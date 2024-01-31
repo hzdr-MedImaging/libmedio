@@ -135,7 +135,7 @@ void init_ecat(py::module_ &m)
           {
             py::buffer_info buf = img.request();
 
-            return img.ndim();
+            return buf.ndim;
           },  py::arg("img"),
               py::arg("frame") = -1,
               py::arg("plane") = -1,
