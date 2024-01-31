@@ -5,6 +5,9 @@
 #include <QString>
 #include <QIODevice>
 
+#define STRINGIFY(x) #x
+#define MACRO_STRINGIFY(x) STRINGIFY(x)
+
 namespace py = pybind11;
 
 // external modules
@@ -18,6 +21,13 @@ PYBIND11_MAKE_OPAQUE(std::vector<short>);
 PYBIND11_MODULE(pymedio, m) {
   // documentation
   m.doc() = "libmedio python interface";
+
+  // specify __version__
+  #ifdef VERSION_INFO
+  m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);
+  #else
+  m.attr("__version__") = "dev";
+  #endif
 
   // CMedIO
   init_medio(m);
