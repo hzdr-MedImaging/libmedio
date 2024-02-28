@@ -122,7 +122,7 @@ void init_ecat(py::module_ &m)
               py::arg("gate") = -1,
               py::arg("bed") = -1,
               py::arg("data") = -1)
-          .def("writeMatrix", [](CECATFile& self, MedIOImage& img, short frame, short plane, short gate, short bed, short data)
+          .def("writeMatrix", [](CECATFile& self, MedIOImage& img, short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1)
           {
             return img.ndim();
           },  py::arg("img"),
@@ -131,7 +131,7 @@ void init_ecat(py::module_ &m)
               py::arg("gate") = -1,
               py::arg("bed") = -1,
               py::arg("data") = -1)
-          .def("writeMatrix", [](CECATFile& self, py::array_t<float> img, short frame, short plane, short gate, short bed, short data)
+          .def("writeMatrix", [](CECATFile& self, py::array_t<float> img, short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1)
           {
             py::buffer_info buf = img.request();
 

@@ -432,7 +432,7 @@ class MedIOImage
     size_t m_ydim;
     size_t m_zdim;
     size_t m_tdim;
-    float *m_data;
+    float* m_data;
 };
 
 // pybind11 type caster from QString <> Python 'str'
