@@ -105,14 +105,18 @@ void init_ecat(py::module_ &m)
               py::arg("gate") = -1,
               py::arg("bed") = -1,
               py::arg("data") = -1)
-         .def("readMatrix", [](CECATFile& self, std::vector<short> volumes={}, std::vector<short> rows={}, std::vector<short> cols={}, std::vector<short> planes={})
+         .def("readMatrix", [](CECATFile& self,
+                               const std::vector<int>& volumes={},
+                               const std::vector<int>& rows={},
+                               const std::vector<int>& cols={},
+                               const std::vector<int>& planes={})
           {
-            MedIOImage medIOImage(&self, volumes, rows, cols, planes);
-            return medIOImage;
-          },  py::arg("volumes") = std::vector<short>(),
-              py::arg("rows") = std::vector<short>(),
-              py::arg("cols") = std::vector<short>(),
-              py::arg("planes") = std::vector<short>())
+            MedIOImage medIOImage(&self);
+            return medIOImage.readImage(volumes, rows, cols, planes);
+          },  py::arg("volumes") = std::vector<int>(),
+              py::arg("rows") = std::vector<int>(),
+              py::arg("cols") = std::vector<int>(),
+              py::arg("planes") = std::vector<int>())
           .def("writeMainHeader", &CECATFile::writeMainHeader,
               py::arg("mainHeader"))
           .def("writeSubHeader", &CECATFile::writeSubHeader,
@@ -122,16 +126,29 @@ void init_ecat(py::module_ &m)
               py::arg("gate") = -1,
               py::arg("bed") = -1,
               py::arg("data") = -1)
-          .def("writeMatrix", [](CECATFile& self, MedIOImage& img, short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1)
+          .def("writeMatrix", [](CECATFile& self,
+                                 const MedIOImage& img,
+                                 short frame=-1,
+                                 short plane=-1,
+                                 short gate=-1,
+                                 short bed=-1,
+                                 short data=-1)
           {
-            return img.ndim();
+            MedIOImage medIOImage(&self, img);
+            return medIOImage.ndim();
           },  py::arg("img"),
               py::arg("frame") = -1,
               py::arg("plane") = -1,
               py::arg("gate") = -1,
               py::arg("bed") = -1,
               py::arg("data") = -1)
-          .def("writeMatrix", [](CECATFile& self, py::array_t<float> img, short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1)
+          .def("writeMatrix", [](CECATFile& self,
+                                 const py::array_t<float>& img,
+                                 short frame=-1,
+                                 short plane=-1,
+                                 short gate=-1,
+                                 short bed=-1,
+                                 short data=-1)
           {
             py::buffer_info buf = img.request();
 

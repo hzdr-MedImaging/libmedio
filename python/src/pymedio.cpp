@@ -7,6 +7,7 @@
 
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
+#define PYBIND11_DETAILED_ERROR_MESSAGES
 
 namespace py = pybind11;
 
@@ -14,8 +15,6 @@ namespace py = pybind11;
 extern void init_medio(py::module_ &);
 extern void init_ecat(py::module_ &);
 extern void init_ecat7(py::module_ &);
-
-PYBIND11_MAKE_OPAQUE(std::vector<short>);
 
 // defines the main entries of the pybind module
 PYBIND11_MODULE(pymedio, m) {
@@ -43,19 +42,55 @@ PYBIND11_MODULE(pymedio, m) {
 
   // general pymedio.read() function to read in MedIO compatible
   // data file and return the medioData object accordingly.
-  m.def("read", [](const QString& fileName)
+  m.def("read", [](const QString& fileName,
+                   const std::vector<int>& volumes = {},
+                   const std::vector<int>& rows = {},
+                   const std::vector<int>& cols = {},
+                   const std::vector<int>& planes = {}
+                  )
   {
-    return CMedIODataFactory::create(fileName);
-  }, py::arg("fileName"));
+    CMedIOData* medioData = CMedIODataFactory::create(fileName);
+    if(medioData != NULL)
+    {
+      MedIOImage medioImage(medioData);
+      return medioImage.readImage(volumes, rows, cols, planes);
+    }
+    else
+    {
+      throw std::runtime_error("invalid/unsupported file supplied");
+    }
+  }, py::arg("fileName"),
+     py::arg("volumes") = std::vector<int>(),
+     py::arg("rows") = std::vector<int>(),
+     py::arg("cols") = std::vector<int>(),
+     py::arg("planes") = std::vector<int>());
 
-  // general pymedio.write() function to write out a mediodata
-  // object accordingly.
-  m.def("write", [](const CMedIOData& mdata, const QString& fileName, const bool overwrite)
+  // general pymedio.write() function to write out a medioimage data
+  m.def("write", [](const MedIOImage& img,
+                    const QString& fileName,
+                    const bool overwrite=false,
+                    const QString& dtype="short",
+                    const QString& format="original")
   {
     return true;
-  }, py::arg("mdata"),
+  }, py::arg("img"),
      py::arg("fileName"),
-     py::arg("overwrite") = false);
+     py::arg("overwrite") = false,
+     py::arg("dtype") = "short",
+     py::arg("format") = "original");
+
+  m.def("write", [](const py::array_t<float>& img,
+                    const QString& fileName,
+                    const bool overwrite=false,
+                    const QString& dtype="short",
+                    const QString& format="ecat7")
+  {
+    return true;
+  }, py::arg("img"),
+     py::arg("fileName"),
+     py::arg("overwrite") = false,
+     py::arg("dtype") = "short",
+     py::arg("format") = "ecat7");
 
   // general purpose helper "MedIOImage" class to access our PET image
   // volumes using the python buffer protocol interface and in a numpy
@@ -85,16 +120,16 @@ PYBIND11_MODULE(pymedio, m) {
     // Bare bones interface
     .def("__getitem__",
       [](const MedIOImage& img, std::tuple<py::ssize_t, py::ssize_t, py::ssize_t, py::ssize_t> i) {
-        if(std::get<0>(i) >= img.xdim() || std::get<1>(i) >= img.ydim() || 
-           std::get<2>(i) >= img.zdim() || std::get<3>(i) >= img.tdim()) {
+        if(std::get<0>(i) >= static_cast<int>(img.xdim()) || std::get<1>(i) >= static_cast<int>(img.ydim()) || 
+           std::get<2>(i) >= static_cast<int>(img.zdim()) || std::get<3>(i) >= static_cast<int>(img.tdim())) {
           throw py::index_error();
         }
         return img(std::get<0>(i), std::get<1>(i), std::get<2>(i), std::get<3>(i));
     })
     .def("__setitem__",
       [](MedIOImage& img, std::tuple<py::ssize_t, py::ssize_t, py::ssize_t, py::ssize_t> i, float v) {
-        if(std::get<0>(i) >= img.xdim() || std::get<1>(i) >= img.ydim() || 
-           std::get<2>(i) >= img.zdim() || std::get<3>(i) >= img.tdim()) {
+        if(std::get<0>(i) >= static_cast<int>(img.xdim()) || std::get<1>(i) >= static_cast<int>(img.ydim()) || 
+           std::get<2>(i) >= static_cast<int>(img.zdim()) || std::get<3>(i) >= static_cast<int>(img.tdim())) {
           throw py::index_error();
         }
         img(std::get<0>(i), std::get<1>(i), std::get<2>(i), std::get<3>(i)) = v;

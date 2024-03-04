@@ -46,7 +46,8 @@ target_link_libraries(pymedio PRIVATE
 # EXAMPLE_VERSION_INFO is defined by setup.py and passed into the C++ code as a
 # define (VERSION_INFO) here.
 target_compile_definitions(pymedio
-                           PRIVATE VERSION_INFO=${EXAMPLE_VERSION_INFO})
+  PRIVATE VERSION_INFO=${EXAMPLE_VERSION_INFO}
+)
 
 # Set some better optimization options
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=generic -std=c++11 -Wall -Wextra")
