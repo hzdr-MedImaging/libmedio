@@ -50,7 +50,7 @@ PYBIND11_MODULE(pymedio, m) {
                   )
   {
     CMedIOData* medioData = CMedIODataFactory::create(fileName);
-    if(medioData != NULL)
+    if(medioData != nullptr)
     {
       MedIOImage medioImage(medioData);
       return medioImage.readImage(volumes, rows, cols, planes);
@@ -66,36 +66,37 @@ PYBIND11_MODULE(pymedio, m) {
      py::arg("planes") = std::vector<int>());
 
   // general pymedio.write() function to write out a medioimage data
-  m.def("write", [](const MedIOImage& img,
+  m.def("write", [](MedIOImage& img,
                     const QString& fileName,
                     const bool overwrite=false,
                     const QString& dtype="short",
-                    const QString& format="original")
+                    const CMedIOData::Format& format=CMedIOData::Unknown)
   {
-    return true;
+    return img.writeImage(fileName, overwrite, dtype, format);
   }, py::arg("img"),
      py::arg("fileName"),
      py::arg("overwrite") = false,
      py::arg("dtype") = "short",
-     py::arg("format") = "original");
+     py::arg("format") = CMedIOData::Unknown);
 
   m.def("write", [](const py::array_t<float>& img,
                     const QString& fileName,
                     const bool overwrite=false,
                     const QString& dtype="short",
-                    const QString& format="ecat7")
+                    const CMedIOData::Format& format=CMedIOData::ECAT)
   {
-    return true;
+    MedIOImage medioImage(img);
+    return medioImage.writeImage(fileName, overwrite, dtype, format);
   }, py::arg("img"),
      py::arg("fileName"),
      py::arg("overwrite") = false,
      py::arg("dtype") = "short",
-     py::arg("format") = "ecat7");
+     py::arg("format") = CMedIOData::ECAT);
 
   // general purpose helper "MedIOImage" class to access our PET image
   // volumes using the python buffer protocol interface and in a numpy
   // compatible fashion
-  pybind11::class_<MedIOImage>(m, "MedIOImage", pybind11::buffer_protocol())
+  pybind11::class_<MedIOImage>(m, "MedIOImage", pybind11::buffer_protocol(), py::dynamic_attr())
     .def(py::init<py::ssize_t, py::ssize_t, py::ssize_t, py::ssize_t>())
 
     // Construct from a buffer
@@ -111,11 +112,13 @@ PYBIND11_MODULE(pymedio, m) {
     }))
 
     // accessor methods
-    .def("ndim", &MedIOImage::numdim)
-    .def("xdim", &MedIOImage::xdim)
-    .def("ydim", &MedIOImage::ydim)
-    .def("zdim", &MedIOImage::zdim)
-    .def("tdim", &MedIOImage::tdim)
+    .def_readonly("ndim", &MedIOImage::m_numdim)
+    .def_readonly("xdim", &MedIOImage::m_xdim)
+    .def_readonly("ydim", &MedIOImage::m_ydim)
+    .def_readonly("zdim", &MedIOImage::m_zdim)
+    .def_readonly("tdim", &MedIOImage::m_tdim)
+    .def_readwrite("mhead", &MedIOImage::m_mhead)
+    .def_readwrite("shead", &MedIOImage::m_shead)
 
     // Bare bones interface
     .def("__getitem__",
