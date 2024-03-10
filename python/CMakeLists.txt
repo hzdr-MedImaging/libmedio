@@ -33,9 +33,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}
 )
 
 pybind11_add_module(pymedio src/pymedio.cpp
-                            src/medio.cpp
-                            src/ecat.cpp
-                            src/ecat7.cpp)
+                            src/medio.cpp)
 
 # define link libraries dependencies
 target_link_libraries(pymedio PRIVATE
@@ -50,7 +48,7 @@ target_compile_definitions(pymedio
 )
 
 # Set some better optimization options
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=generic -std=c++11 -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=generic -std=c++11 -Wall -Wextra -Werror")
 set(CMAKE_CXX_FLAGS_RELEASE, "${CMAKE_CXX_FLAGS_RELEASE} -O3 -fomit-frame-pointer")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO, "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -O3 -g -fomit-frame-pointer")
 set(CMAKE_CXX_FLAGS_DEBUG, "${CMAKE_CXX_FLAGS_RELEASE} -O0")

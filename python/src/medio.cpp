@@ -26,6 +26,7 @@ void init_medio(py::module_ &m)
     .def_static("qtVersion", &CMedIO::qtVersion);
 
   // CMedIOData
+/*
   py::class_<CMedIOData> medioData(m, "MedIOData");
   medioData.def("open", &CMedIOData::open, py::arg("mode"))
            .def("close", &CMedIOData::close)
@@ -74,4 +75,5 @@ void init_medio(py::module_ &m)
     .value("PhilipsSubHeader", CMedIOHeader::PhilipsSubHeader)
     .value("PhilipsListviewHeader", CMedIOHeader::PhilipsListviewHeader)
     .export_values();
+*/
 }
