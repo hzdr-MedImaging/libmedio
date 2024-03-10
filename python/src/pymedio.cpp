@@ -165,11 +165,10 @@ PYBIND11_MODULE(pymedio, m) {
        
         // Create a Python object that will free the allocated
         // memory when destroyed:
-        py::capsule free_when_done(clone, [](void* f) {
+        capsule = py::capsule(clone, [](void* f) {
           float* clone = reinterpret_cast<float*>(f);
           delete[] clone;
         });
-        capsule = free_when_done;
 
         // replace data ptr with clone
         data = clone;
