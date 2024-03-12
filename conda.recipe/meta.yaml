@@ -1,0 +1,24 @@
+package:
+  name: libmedio
+  version: 3.3.0
+
+source:
+  path: ..
+
+requirements:
+  build:
+    - cmake
+    - librtdebug
+
+build:
+
+  # already linked relative to $ORIGIN, so we need to turn
+  # off conda's relocation mechanism because it screws it up
+  binary_relocation: false
+
+about:
+  summary: 'MedIO library'
+  desription: |
+    libmedio supporting medical imaging data
+  home: svn+ssh://fwbfs00/data/petdev/svn/libmedio
+  license: LGPL
