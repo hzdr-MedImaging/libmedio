@@ -1,6 +1,6 @@
 package:
   name: libmedio
-  version: 3.3.0
+  version: {{ environ["PROJECT_VERSION"] }}
 
 source:
   path: ..
