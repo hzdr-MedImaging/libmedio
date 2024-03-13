@@ -8,32 +8,33 @@ source:
   path: ..
 
 build:
-  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --ignore-installed --no-cache-dir
   number: 0
+  script: {{ PYTHON }} -m pip install . -vvv
 
 requirements:
   build:
-    - python >=3.9
-    - pip
     - "{{ compiler('cxx') }}"
+    - python
+    - pip
+    - pybind11
     - cmake
     - ninja
-    - qt
-    - pybind11
+    - qt-main
     - libmedio
 
   host:
-    - python >=3.9
+    - python
     - pip
 
   run:
-    - python >=3.9
+    - python
+    - numpy >=1.18
 
 test:
-  imports:
-    - pmedio
   requires:
     - pytest
+  imports:
+    - pmedio
   source_files:
     - tests
   commands:
@@ -43,4 +44,4 @@ about:
   summary: 'python interface for libmedio'
   desription: |
     python interface to support libmedio supported medical imaging data
-  license: Apache-2.0
+  license: APACHE
