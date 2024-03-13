@@ -35,6 +35,7 @@ class CMakeBuild(build_ext):
 
         debug = int(os.environ.get("DEBUG", 0)) if self.debug is None else self.debug
         cfg = "Debug" if debug else "Release"
+        build_prefix = os.environ.get("BUILD_PREFIX", "")
 
         # CMake lets you override the generator - we need to check this.
         # Can be set with Conda-Build, for example.
@@ -47,6 +48,8 @@ class CMakeBuild(build_ext):
             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}{os.sep}",
             f"-DPYTHON_EXECUTABLE={sys.executable}",
             f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
+            f"-DPREFIX_PATH={build_prefix}",
+            #f"-DCMAKE_FIND_DEBUG_MODE=ON",
         ]
         build_args = []
         # Adding CMake arguments set as environment variable
@@ -125,13 +128,13 @@ class CMakeBuild(build_ext):
 # The information here can also be placed in setup.cfg - better separation of
 # logic and declaration, and simpler if you include description/version in a file.
 setup(
-    name="pymedio",
+    name="pmedio",
     version="0.1.0",
     author="Jens Maus",
     author_email="mail@jens-maus.de",
     description="python interface to support libmedio supported medical imaging data",
     long_description="",
-    ext_modules=[CMakeExtension("pymedio")],
+    ext_modules=[CMakeExtension("pmedio")],
     cmdclass={"build_ext": CMakeBuild},
     zip_safe=False,
     extras_require={"test": ["pytest>=6.0"]},

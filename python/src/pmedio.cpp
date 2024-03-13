@@ -1,4 +1,4 @@
-#include "pymedio.h"
+#include "pmedio.h"
 
 #include <CMedIODataFactory>
 
@@ -16,7 +16,7 @@ extern void init_medio(py::module_ &);
 //extern void init_ecat7(py::module_ &);
 
 // defines the main entries of the pybind module
-PYBIND11_MODULE(pymedio, m) {
+PYBIND11_MODULE(pmedio, m) {
   // documentation
   m.doc() = "libmedio python interface";
 
@@ -206,7 +206,7 @@ PYBIND11_MODULE(pymedio, m) {
       );
     });
 
-  // general pymedio.read() function to read in MedIO compatible
+  // general pmedio.read() function to read in MedIO compatible
   // data file and return the medioData object accordingly.
   m.def("read", [](const QString& fileName,
                    const std::vector<int>& volumes = {},
@@ -231,7 +231,7 @@ PYBIND11_MODULE(pymedio, m) {
      py::arg("cols") = std::vector<int>(),
      py::arg("planes") = std::vector<int>());
 
-  // general pymedio.write() function to write out a medioimage data
+  // general pmedio.write() function to write out a medioimage data
   m.def("write", [](MedIOImage& img,
                     const QString& fileName,
                     const bool overwrite=false,

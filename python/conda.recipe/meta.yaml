@@ -1,14 +1,13 @@
 {% set data = load_setup_py_data(setup_file='../setup.py', from_recipe_dir=True) %}
 
 package:
-  name: pymedio
+  name: pmedio
   version: {{ data.get('version') }}
 
 source:
   path: ..
 
 build:
-  noarch: python
   script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --ignore-installed --no-cache-dir
   number: 0
 
@@ -19,6 +18,8 @@ requirements:
     - "{{ compiler('cxx') }}"
     - cmake
     - ninja
+    - qt
+    - pybind11
     - libmedio
 
   host:
@@ -30,7 +31,7 @@ requirements:
 
 test:
   imports:
-    - pymedio
+    - pmedio
   requires:
     - pytest
   source_files:

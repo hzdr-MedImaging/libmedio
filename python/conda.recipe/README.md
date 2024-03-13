@@ -1,8 +1,8 @@
 ## Conda build
 In order to create conda package:
 1. Run: `conda build -c conda-forge conda.recipe`
-2. Install locally with `conda install -c conda-forge --use-local pymedio` (optional)
-3. Upload to conda cloud: `anaconda upload conda-bld/linux-64/pymedio-<version>-py310_0.tar.bz2`
+2. Install locally with `conda install -c conda-forge --use-local pmedio` (optional)
+3. Upload to conda cloud: `anaconda upload conda-bld/linux-64/pmedio-<version>-py310_0.tar.bz2`
 
 ## Release new version
 1. Make sure that `bumpversion` is installed in your conda env

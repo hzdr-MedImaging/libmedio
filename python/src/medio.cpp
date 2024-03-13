@@ -1,4 +1,4 @@
-#include "pymedio.h"
+#include "pmedio.h"
 
 #include <CMedIO>
 #include <CMedIOData>
