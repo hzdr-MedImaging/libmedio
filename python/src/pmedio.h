@@ -343,16 +343,16 @@ class MedIOImage
         {
           const CECAT7MainHeader* e7MainHeader = static_cast<const CECAT7MainHeader*>(ecatMainHeader);
 
-          std::string magic_number = e7MainHeader->magic_Number();
-          std::string original_file_name = e7MainHeader->original_File_Name();
+          QString magic_number = QLatin1String(e7MainHeader->magic_Number());
+          QString original_file_name = QLatin1String(e7MainHeader->original_File_Name());
           short sw_version = e7MainHeader->sw_Version();
           short system_type = e7MainHeader->system_Type();
           int file_type = e7MainHeader->file_Type();
-          std::string serial_number = e7MainHeader->serial_Number();
+          QString serial_number = QLatin1String(e7MainHeader->serial_Number());
           std::chrono::system_clock::time_point scan_start_time = std::chrono::system_clock::from_time_t(e7MainHeader->scan_Start_Time());
-          std::string isotope_name = e7MainHeader->isotope_Name();
+          QString isotope_name = QLatin1String(e7MainHeader->isotope_Name());
           float isotope_halflife = e7MainHeader->isotope_Halflife();
-          std::string radiopharmaceutical = e7MainHeader->radiopharmaceutical();
+          QString radiopharmaceutical = QLatin1String(e7MainHeader->radiopharmaceutical());
           float gantry_tilt = e7MainHeader->gantry_Tilt();
           float gantry_rotation = e7MainHeader->gantry_Rotation();
           float bed_elevation = e7MainHeader->bed_Elevation();
@@ -369,27 +369,22 @@ class MedIOImage
           int calibration_units_label = e7MainHeader->calibration_Units_Label();
 
           int compression_code = e7MainHeader->compression_Code();
-          std::string study_type = e7MainHeader->study_Type();
-          std::string patient_id = e7MainHeader->patient_ID();
-          std::string patient_name = e7MainHeader->patient_Name();
-    
-          char sex = static_cast<char>(e7MainHeader->patient_Sex());
-          char dexterity = static_cast<char>(e7MainHeader->patient_Dexterity());
-          std::string patient_sex;
-          std::string patient_dexterity;
-          patient_sex = sex;
-          patient_dexterity = dexterity;
+          QString study_type = QLatin1String(e7MainHeader->study_Type());
+          QString patient_id = QLatin1String(e7MainHeader->patient_ID());
+          QString patient_name = QLatin1String(e7MainHeader->patient_Name());
+          QString patient_sex = QString(QLatin1Char(static_cast<char>(e7MainHeader->patient_Sex())));
+          QString patient_dexterity = QString(QLatin1Char(static_cast<char>(e7MainHeader->patient_Dexterity())));
     
           float patient_age = e7MainHeader->patient_Age();
           float patient_height = e7MainHeader->patient_Height();
           float patient_weight = e7MainHeader->patient_Weight();
           std::chrono::system_clock::time_point patient_birth_date = std::chrono::system_clock::from_time_t(e7MainHeader->patient_Birth_Date());
-          std::string physician_name = e7MainHeader->physician_Name();
-          std::string operator_name = e7MainHeader->operator_Name();
-          std::string study_description = e7MainHeader->study_Description();
+          QString physician_name = QLatin1String(e7MainHeader->physician_Name());
+          QString operator_name = QLatin1String(e7MainHeader->operator_Name());
+          QString study_description = QLatin1String(e7MainHeader->study_Description());
           int acquisition_type = e7MainHeader->acquisition_Type();
           int patient_orientation = e7MainHeader->patient_Orientation();
-          std::string facility_name = e7MainHeader->facility_Name();
+          QString facility_name = QLatin1String(e7MainHeader->facility_Name());
           short num_planes = e7MainHeader->num_Planes();
           int num_frames = e7MainHeader->num_Frames();
           int num_gates = e7MainHeader->num_Gates();
@@ -404,14 +399,14 @@ class MedIOImage
           short lwr_sctr_thres = e7MainHeader->lwr_Sctr_Thres();
           short lwr_true_thres = e7MainHeader->lwr_True_Thres();
           short upr_true_thres = e7MainHeader->upr_True_Thres();
-          std::string user_process_code = e7MainHeader->user_Process_Code();
+          QString user_process_code = QLatin1String(e7MainHeader->user_Process_Code());
           int acquisition_mode = e7MainHeader->acquisition_Mode();
           float bin_size = e7MainHeader->bin_Size();
           float branching_fraction = e7MainHeader->branching_Fraction();
           std::chrono::system_clock::time_point dose_start_time = std::chrono::system_clock::from_time_t(e7MainHeader->dose_Start_Time());
           float dosage = e7MainHeader->dosage();
           float well_counter_corr_factor = e7MainHeader->well_Counter_Corr_Factor();
-          std::string data_units = e7MainHeader->data_Units();
+          QString data_units = QLatin1String(e7MainHeader->data_Units());
           int septa_state = e7MainHeader->septa_State();
     
           std::vector<short> cti_reserved(6);
@@ -532,7 +527,7 @@ class MedIOImage
           short filter_order = e7SubHeader->filter_Order();
           float filter_scatter_fraction = e7SubHeader->filter_Scatter_Fraction();
           float filter_scatter_slope = e7SubHeader->filter_Scatter_Slope();
-          std::string annotation = e7SubHeader->annotation();
+          QString annotation = QLatin1String(e7SubHeader->annotation());
           float mt_1_1 = e7SubHeader->mt_1_1();
           float mt_1_2 = e7SubHeader->mt_1_2();
           float mt_1_3 = e7SubHeader->mt_1_3();
@@ -678,16 +673,16 @@ class MedIOImage
             pMainHeader = ecatFile->createEmptyMainHeader();
             CECAT7MainHeader* ecat7MainHeader = static_cast<CECAT7MainHeader*>(pMainHeader);
 
-            std::string magic_number = m_mhead["magic_number"].cast<std::string>();
-            std::string original_file_name = m_mhead["original_file_name"].cast<std::string>();
+            QString magic_number = m_mhead["magic_number"].cast<QString>();
+            QString original_file_name = m_mhead["original_file_name"].cast<QString>();
             short sw_version = m_mhead["sw_version"].cast<short>();
             short system_type = m_mhead["system_type"].cast<short>();
             int file_type = m_mhead["file_type"].cast<int>();
-            std::string serial_number = m_mhead["serial_number"].cast<std::string>();
+            QString serial_number = m_mhead["serial_number"].cast<QString>();
             time_t scan_start_time = std::chrono::system_clock::to_time_t(m_mhead["scan_start_time"].cast<std::chrono::system_clock::time_point>());
-            std::string isotope_name = m_mhead["isotope_name"].cast<std::string>();
+            QString isotope_name = m_mhead["isotope_name"].cast<QString>();
             float isotope_halflife = m_mhead["isotope_halflife"].cast<float>();
-            std::string radiopharmaceutical = m_mhead["radiopharmaceutical"].cast<std::string>();
+            QString radiopharmaceutical = m_mhead["radiopharmaceutical"].cast<QString>();
             float gantry_tilt = m_mhead["gantry_tilt"].cast<float>();
             float gantry_rotation = m_mhead["gantry_rotation"].cast<float>();
             float bed_elevation = m_mhead["bed_elevation"].cast<float>();
@@ -703,13 +698,13 @@ class MedIOImage
             int calibration_units = m_mhead["calibration_units"].cast<int>();
             int calibration_units_label = m_mhead["calibration_units_label"].cast<int>();
             int compression_code = m_mhead["compression_code"].cast<int>();
-            std::string study_type = m_mhead["study_type"].cast<std::string>();
-            std::string patient_id = m_mhead["patient_id"].cast<std::string>();
-            std::string patient_name = m_mhead["patient_name"].cast<std::string>();
+            QString study_type = m_mhead["study_type"].cast<QString>();
+            QString patient_id = m_mhead["patient_id"].cast<QString>();
+            QString patient_name = m_mhead["patient_name"].cast<QString>();
 
-            std::string sex = m_mhead["patient_sex"].cast<std::string>();
+            QString sex = m_mhead["patient_sex"].cast<QString>();
             CECAT7MainHeader::Patient_Sex patient_sex;
-            switch(sex[0])
+            switch(sex[0].toLatin1())
             {
               case 'M': patient_sex = CECAT7MainHeader::Sex_Male; break;
               case 'F': patient_sex = CECAT7MainHeader::Sex_Female; break;
@@ -717,9 +712,9 @@ class MedIOImage
               default: patient_sex = CECAT7MainHeader::Sex_Unknown; break;
             }
 
-            std::string dexterity = m_mhead["patient_dexterity"].cast<std::string>();
+            QString dexterity = m_mhead["patient_dexterity"].cast<QString>();
             CECAT7MainHeader::Patient_Dexterity patient_dexterity;
-            switch(dexterity[0])
+            switch(dexterity[0].toLatin1())
             {
               case 'R': patient_dexterity = CECAT7MainHeader::Dext_RT; break;
               case 'L': patient_dexterity = CECAT7MainHeader::Dext_LF; break;
@@ -731,12 +726,12 @@ class MedIOImage
             float patient_height = m_mhead["patient_height"].cast<float>();
             float patient_weight = m_mhead["patient_weight"].cast<float>();
             time_t patient_birth_datetime = std::chrono::system_clock::to_time_t(m_mhead["patient_birth_date"].cast<std::chrono::system_clock::time_point>());
-            std::string physician_name = m_mhead["physician_name"].cast<std::string>();
-            std::string operator_name = m_mhead["operator_name"].cast<std::string>();
-            std::string study_description = m_mhead["study_description"].cast<std::string>();
+            QString physician_name = m_mhead["physician_name"].cast<QString>();
+            QString operator_name = m_mhead["operator_name"].cast<QString>();
+            QString study_description = m_mhead["study_description"].cast<QString>();
             int acquisition_type = m_mhead["acquisition_type"].cast<int>();
             int patient_orientation = m_mhead["patient_orientation"].cast<int>();
-            std::string facility_name = m_mhead["facility_name"].cast<std::string>();
+            QString facility_name = m_mhead["facility_name"].cast<QString>();
             short num_planes = m_mhead["num_planes"].cast<short>();
             int num_frames = m_mhead["num_frames"].cast<int>();
             int num_gates = m_mhead["num_gates"].cast<int>();
@@ -747,27 +742,27 @@ class MedIOImage
             short lwr_sctr_thres = m_mhead["lwr_sctr_thres"].cast<short>();
             short lwr_true_thres = m_mhead["lwr_true_thres"].cast<short>();
             short upr_true_thres = m_mhead["upr_true_thres"].cast<short>();
-            std::string user_process_code = m_mhead["user_process_code"].cast<std::string>();
+            QString user_process_code = m_mhead["user_process_code"].cast<QString>();
             int acquisition_mode = m_mhead["acquisition_mode"].cast<int>();
             float bin_size = m_mhead["bin_size"].cast<float>();
             float branching_fraction = m_mhead["branching_fraction"].cast<float>();
             time_t dose_start_time = std::chrono::system_clock::to_time_t(m_mhead["dose_start_time"].cast<std::chrono::system_clock::time_point>());
             float dosage = m_mhead["dosage"].cast<float>();
             float well_counter_corr_factor = m_mhead["well_counter_corr_factor"].cast<float>();
-            std::string data_units = m_mhead["data_units"].cast<std::string>();
+            QString data_units = m_mhead["data_units"].cast<QString>();
             int septa_state = m_mhead["septa_state"].cast<int>();
             std::vector<short> cti_reserved = m_mhead["cti_reserved"].cast<std::vector<short> >();
 
-            ecat7MainHeader->setMagic_Number(magic_number.c_str());
-            ecat7MainHeader->setOriginal_File_Name(original_file_name.c_str());
+            ecat7MainHeader->setMagic_Number(magic_number.toLatin1().constData());
+            ecat7MainHeader->setOriginal_File_Name(original_file_name.toLatin1().constData());
             ecat7MainHeader->setSW_Version(sw_version);
             ecat7MainHeader->setSystem_Type(system_type);
             ecat7MainHeader->setFile_Type(static_cast<CECAT7MainHeader::File_Type>(file_type));
-            ecat7MainHeader->setSerial_Number(serial_number.c_str());
+            ecat7MainHeader->setSerial_Number(serial_number.toLatin1().constData());
             ecat7MainHeader->setScan_Start_Time(scan_start_time);
-            ecat7MainHeader->setIsotope_Name(isotope_name.c_str());
+            ecat7MainHeader->setIsotope_Name(isotope_name.toLatin1().constData());
             ecat7MainHeader->setIsotope_Halflife(isotope_halflife);
-            ecat7MainHeader->setRadiopharmaceutical(radiopharmaceutical.c_str());
+            ecat7MainHeader->setRadiopharmaceutical(radiopharmaceutical.toLatin1().constData());
             ecat7MainHeader->setGantry_Tilt(gantry_tilt);
             ecat7MainHeader->setGantry_Rotation(gantry_rotation);
             ecat7MainHeader->setBed_Elevation(bed_elevation);
@@ -783,21 +778,21 @@ class MedIOImage
             ecat7MainHeader->setCalibration_Units(static_cast<CECAT7MainHeader::Calibration_Units>(calibration_units));
             ecat7MainHeader->setCalibration_Units_Label(static_cast<CECAT7MainHeader::Calibration_Units_Label>(calibration_units_label));
             ecat7MainHeader->setCompression_Code(static_cast<CECAT7MainHeader::Compression_Code>(compression_code));
-            ecat7MainHeader->setStudy_Type(study_type.c_str());
-            ecat7MainHeader->setPatient_ID(patient_id.c_str());
-            ecat7MainHeader->setPatient_Name(patient_name.c_str());
+            ecat7MainHeader->setStudy_Type(study_type.toLatin1().constData());
+            ecat7MainHeader->setPatient_ID(patient_id.toLatin1().constData());
+            ecat7MainHeader->setPatient_Name(patient_name.toLatin1().constData());
             ecat7MainHeader->setPatient_Sex(patient_sex);
             ecat7MainHeader->setPatient_Dexterity(patient_dexterity);
             ecat7MainHeader->setPatient_Age(patient_age);
             ecat7MainHeader->setPatient_Height(patient_height);
             ecat7MainHeader->setPatient_Weight(patient_weight);
             ecat7MainHeader->setPatient_Birth_Date(patient_birth_datetime);
-            ecat7MainHeader->setPhysician_Name(physician_name.c_str());
-            ecat7MainHeader->setOperator_Name(operator_name.c_str());
-            ecat7MainHeader->setStudy_Description(study_description.c_str());
+            ecat7MainHeader->setPhysician_Name(physician_name.toLatin1().constData());
+            ecat7MainHeader->setOperator_Name(operator_name.toLatin1().constData());
+            ecat7MainHeader->setStudy_Description(study_description.toLatin1().constData());
             ecat7MainHeader->setAcquisition_Type(static_cast<CECAT7MainHeader::Acquisition_Type>(acquisition_type));
             ecat7MainHeader->setPatient_Orientation(static_cast<CECAT7MainHeader::Patient_Orientation>(patient_orientation));
-            ecat7MainHeader->setFacility_Name(facility_name.c_str());
+            ecat7MainHeader->setFacility_Name(facility_name.toLatin1().constData());
             ecat7MainHeader->setNum_Planes(num_planes);
             ecat7MainHeader->setNum_Frames(num_frames);
             ecat7MainHeader->setNum_Gates(num_gates);
@@ -811,14 +806,14 @@ class MedIOImage
             ecat7MainHeader->setLwr_Sctr_Thres(lwr_sctr_thres);
             ecat7MainHeader->setLwr_True_Thres(lwr_true_thres);
             ecat7MainHeader->setUpr_True_Thres(upr_true_thres);
-            ecat7MainHeader->setUser_Process_Code(user_process_code.c_str());
+            ecat7MainHeader->setUser_Process_Code(user_process_code.toLatin1().constData());
             ecat7MainHeader->setAcquisition_Mode(static_cast<CECAT7MainHeader::Acquisition_Mode>(acquisition_mode));
             ecat7MainHeader->setBin_Size(bin_size);
             ecat7MainHeader->setBranching_Fraction(branching_fraction);
             ecat7MainHeader->setDose_Start_Time(dose_start_time);
             ecat7MainHeader->setDosage(dosage);
             ecat7MainHeader->setWell_Counter_Corr_Factor(well_counter_corr_factor);
-            ecat7MainHeader->setData_Units(data_units.c_str());
+            ecat7MainHeader->setData_Units(data_units.toLatin1().constData());
             ecat7MainHeader->setSepta_State(static_cast<CECAT7MainHeader::Septa_State>(septa_state));
 
             for(unsigned int i=0; i < cti_reserved.size(); ++i)
@@ -918,7 +913,7 @@ class MedIOImage
             short filter_order = shead["filter_order"].cast<short>();
             float filter_scatter_fraction = shead["filter_scatter_fraction"].cast<float>();
             float filter_scatter_slope = shead["filter_scatter_slope"].cast<float>();
-            std::string annotation = shead["annotation"].cast<std::string>();
+            QString annotation = shead["annotation"].cast<QString>();
             float mt_1_1 = shead["mt_1_1"].cast<float>();
             float mt_1_2 = shead["mt_1_2"].cast<float>();
             float mt_1_3 = shead["mt_1_3"].cast<float>();
@@ -981,7 +976,7 @@ class MedIOImage
             ecat7SubHeaderImage->setFilter_Order(filter_order);
             ecat7SubHeaderImage->setFilter_Scatter_Fraction(filter_scatter_fraction);
             ecat7SubHeaderImage->setFilter_Scatter_Slope(filter_scatter_slope);
-            ecat7SubHeaderImage->setAnnotation(annotation.c_str());
+            ecat7SubHeaderImage->setAnnotation(annotation.toLatin1().constData());
             ecat7SubHeaderImage->setMT_1_1(mt_1_1);
             ecat7SubHeaderImage->setMT_1_2(mt_1_2);
             ecat7SubHeaderImage->setMT_1_3(mt_1_3);
