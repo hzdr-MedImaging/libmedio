@@ -950,7 +950,7 @@ static void compareECAT7MainHeader(CECATMainHeader* header1, CECATMainHeader* he
   if(eh1->patient_Birth_Date() != eh2->patient_Birth_Date())
     cout << "     PATIENT_BIRTH_DATE......: '" << eh1->patient_Birth_Date() << "' != '" << eh2->patient_Birth_Date() << "'" << endl;
   if(strcmp(eh1->physician_Name(), eh2->physician_Name()))
-    cout << "     PATIENT_NAME............: '" << eh1->physician_Name() << "' != '" << eh2->physician_Name() << "'" << endl;
+    cout << "     PHYSICIAN_NAME..........: '" << eh1->physician_Name() << "' != '" << eh2->physician_Name() << "'" << endl;
   if(strcmp(eh1->operator_Name(), eh2->operator_Name()))
     cout << "     OPERATOR_NAME...........: '" << eh1->operator_Name() << "' != '" << eh2->operator_Name() << "'" << endl;
   if(strcmp(eh1->study_Description(), eh2->study_Description()))
