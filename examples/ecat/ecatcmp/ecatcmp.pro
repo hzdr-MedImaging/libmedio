@@ -25,7 +25,7 @@ TEMPLATE = app
 QT = core
 DEPENDPATH += .
 INCLUDEPATH += . ../../../src/include /usr/local/petlib/include/medio
-LIBS *= ../../../lib/libmedio.a
+LIBS *= /usr/local/petlib/lib/libmedio.a
 
 mac {
   CONFIG += x86 ppc

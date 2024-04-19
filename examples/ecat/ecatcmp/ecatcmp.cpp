@@ -42,7 +42,7 @@
 
 #include "config.h" // for big/little endianness check
 
-#define VERSION "1.11"
+#define VERSION "1.12"
 
 using namespace std;
 
@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
   ios::sync_with_stdio(false);
 
   cout << "ecatcmp " << VERSION << " - a libmedio ECAT6/7 file/data compare tool" << endl
-       << "(" __DATE__ ")  Copyright (C) 2006-2013 Jens Maus, hzdr.de" << endl << endl;
+       << "(" __DATE__ ")  Copyright (C) 2006-2024 Jens Maus, hzdr.de" << endl << endl;
 
   // put all arguments in a temporary MultiHash
   QHash<QString, QString> args;
@@ -1035,14 +1035,14 @@ static void compareECAT7Scan3DSubHeaders(CECATSubHeader* subHeader1, CECATSubHea
     cout << "     STORAGE_ORDER...........: '" << sh1->storage_Order() << "' != '" << sh2->storage_Order() << "'" << endl;
   if(sh1->axial_Compression() != sh2->axial_Compression())
     cout << "     AXIAL_COMPRESSION.......: '" << sh1->axial_Compression() << "' != '" << sh2->axial_Compression() << "'" << endl;
-  if(sh1->X_Resolution() != sh2->X_Resolution())
-    cout << "     X_RESOLUTION............: '" << sh1->X_Resolution() << "' != '" << sh2->X_Resolution() << "'" << endl;
-  if(sh1->V_Resolution() != sh2->V_Resolution())
-    cout << "     Y_RESOLUTION............: '" << sh1->V_Resolution() << "' != '" << sh2->V_Resolution() << "'" << endl;
-  if(sh1->Z_Resolution() != sh2->Z_Resolution())
-    cout << "     Z_RESOLUTION............: '" << sh1->Z_Resolution() << "' != '" << sh2->Z_Resolution() << "'" << endl;
-  if(sh1->W_Resolution() != sh2->W_Resolution())
-    cout << "     W_RESOLUTION............: '" << sh1->W_Resolution() << "' != '" << sh2->W_Resolution() << "'" << endl;
+  if(sh1->x_Resolution() != sh2->x_Resolution())
+    cout << "     X_RESOLUTION............: '" << sh1->x_Resolution() << "' != '" << sh2->x_Resolution() << "'" << endl;
+  if(sh1->v_Resolution() != sh2->v_Resolution())
+    cout << "     Y_RESOLUTION............: '" << sh1->v_Resolution() << "' != '" << sh2->v_Resolution() << "'" << endl;
+  if(sh1->z_Resolution() != sh2->z_Resolution())
+    cout << "     Z_RESOLUTION............: '" << sh1->z_Resolution() << "' != '" << sh2->z_Resolution() << "'" << endl;
+  if(sh1->w_Resolution() != sh2->w_Resolution())
+    cout << "     W_RESOLUTION............: '" << sh1->w_Resolution() << "' != '" << sh2->w_Resolution() << "'" << endl;
   for(short i=0; i < 6; i++)
   {
     if(sh1->gate_Reserved(i) != sh2->gate_Reserved(i))
