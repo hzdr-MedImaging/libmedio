@@ -43,7 +43,7 @@
 # > make CMAKE_OPTIONS=-DMYOPT=1
 #
 
-VERSION=3.3.0
+VERSION=3.3.1
 
 #############################################
 # find out the HOST operating system
