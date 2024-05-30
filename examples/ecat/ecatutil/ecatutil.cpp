@@ -30,6 +30,7 @@ QString g_sMatrix = 0;
 QString g_sValue = 0;
 QString g_sPosition = 0;
 QString g_sDestMatrix = 0;
+bool g_bDecayCorrection = false;
 
 QMultiHash<QString, QString> g_args;
 enum g_eCommand {Get, Set, Copy, Join, Delete, New};
@@ -1847,26 +1848,29 @@ bool processCommando_Join()
                     }
 
                     // adjust the scale factor and thus perform a decay correction of
-                    // the data
-                    float scaleFactor = pE7SubHeader->scale_Factor();
-                    float cf = pE7MainHeader->calibration_Factor();
-                    
-                    // take care of different calibration factors
-                    if(cf > 0 && caliFac > 0)
-                      scaleFactor *= cf / caliFac;
+                    // the data if the user wants to do that
+                    if(g_bDecayCorrection == true)
+                    {
+                      float scaleFactor = pE7SubHeader->scale_Factor();
+                      float cf = pE7MainHeader->calibration_Factor();
+                      
+                      // take care of different calibration factors
+                      if(cf > 0 && caliFac > 0)
+                        scaleFactor *= cf / caliFac;
 
-                    float halfLifeTime = pE7MainHeader->isotope_Halflife();
-                    int timeDiff = 0;
-                    
-                    if(validTimes == true)
-                      timeDiff = -diffsecs;
-                    else
-                      timeDiff = -iLastFrameStartTime;
+                      float halfLifeTime = pE7MainHeader->isotope_Halflife();
+                      int timeDiff = 0;
+                      
+                      if(validTimes == true)
+                        timeDiff = -diffsecs;
+                      else
+                        timeDiff = -iLastFrameStartTime;
 
-                    // calculate the new scale Factor
-                    scaleFactor *= qExp(-log(2) * timeDiff / halfLifeTime);
+                      // calculate the new scale Factor
+                      scaleFactor *= qExp(-log(2) * timeDiff / halfLifeTime);
 
-                    pE7SubHeader->setScale_Factor(scaleFactor);
+                      pE7SubHeader->setScale_Factor(scaleFactor);
+                    }
                   }
 
                   // write subheader and matrix
@@ -2244,7 +2248,7 @@ bool parseCommandLine(int& argc, char** argv)
 
   // if the user likes have help or versioning info we skip parameter processing
   
-  if(g_args.contains("-h") || g_args.contains("-v"))
+  if(g_args.contains("-h") || g_args.contains("--help") || g_args.contains("-v"))
   {
     bResult = false;
   }
@@ -2413,6 +2417,9 @@ bool parseCommandLine(int& argc, char** argv)
         g_joinIndex = Beds;
     }
 
+    if(g_args.contains("-dc"))
+      g_bDecayCorrection = true;
+
     if(g_args.contains("-showMainHeaderEntries") && g_args.contains("-showSubHeaderEntries"))
     {
       cout << "ERROR: can only show supported main- or subheaderentries." << endl;
@@ -2479,7 +2486,7 @@ void showHelp(int&, char** argv)
 {
   cout << endl;
   cout << "libmedio ECAT6/7 file utility v"<<PROJECT_VERSION << endl;
-  cout << "-----------------------------------" << endl;
+  cout << "------------------------------------" << endl;
   cout << "Usage: " << argv[0] << " <options> ecatfile" << endl;
   cout << "Options:" << endl;
   cout << "  -g                     : get header entry." << endl;
@@ -2500,6 +2507,7 @@ void showHelp(int&, char** argv)
   cout << "  -sf <file1,file2,fileN>: specifies source file(s)." << endl;
   cout << "  -dm <matrixID>         : specific matrix in file with <frame,plane,gate,data,bed>." << endl;
   cout << "  -as <type>             : specifies join type in new file {frames, gates, beds}." << endl;
+  cout << "  -dc                    : perform decay correction when joining files." << endl;
   cout << "  -showMainHeaderEntries : show all supported main header entries." << endl;
   cout << "  -showSubHeaderEntries  : show all supported sub header entries." << endl;
   cout << "  -v                     : show version information." << endl;
