@@ -73,13 +73,7 @@ class MedIOImage
       memcpy(m_data, img.m_data, sizeof(float) * (m_xdim * m_ydim * m_zdim * m_tdim));
     }
 
-    MedIOImage(const py::array_t<float>& img,
-               const CMedIOData::Format& format = CMedIOData::ECAT,
-               const enum dimTypes type = DM_FRAMES)
-     : MedIOImage(img.request(), format, type)
-    { }
-
-    MedIOImage(const py::buffer& img,
+    MedIOImage(const py::array_t<float, py::array::f_style | py::array::forcecast>& img,
                const CMedIOData::Format& format = CMedIOData::ECAT,
                const enum dimTypes type = DM_FRAMES)
      : MedIOImage(img.request(), format, type)
@@ -96,7 +90,7 @@ class MedIOImage
     {
       // check buffer being valid
       if(info.format != py::format_descriptor<float>::format())
-        throw std::runtime_error("incompatible buffer format '" + info.format + "'");
+        throw std::runtime_error("incompatible input data format '" + info.format + "' != float32");
       if(info.ndim < 3)
         throw std::runtime_error("only 3 and 4 dimensional data supported yet");
 

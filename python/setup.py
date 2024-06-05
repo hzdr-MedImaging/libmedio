@@ -129,7 +129,7 @@ class CMakeBuild(build_ext):
 # logic and declaration, and simpler if you include description/version in a file.
 setup(
     name="pmedio",
-    version="0.1.1",
+    version="0.2.0",
     author="Jens Maus",
     author_email="mail@jens-maus.de",
     description="python interface to support libmedio supported medical imaging data",

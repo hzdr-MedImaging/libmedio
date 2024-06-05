@@ -80,7 +80,7 @@ PYBIND11_MODULE(pmedio, m) {
               py::arg("img"))
 
     // Construct from another array
-    .def(py::init<const py::array_t<float>&, 
+    .def(py::init<const py::array_t<float, py::array::f_style | py::array::forcecast>&,
                   const CMedIOData::Format&,
                   const enum dimTypes>(),
               py::arg("img"),
@@ -111,10 +111,10 @@ PYBIND11_MODULE(pmedio, m) {
     .def_property_readonly("shape", [](MedIOImage& self) -> py::tuple {
       return py::make_tuple(self.m_xdim, self.m_ydim, self.m_zdim, self.m_tdim);
     })
-    .def_property_readonly("size", [](MedIOImage& self) -> size_t {
+    .def_property_readonly("size", [](MedIOImage& self) -> ssize_t {
       return self.m_xdim * self.m_ydim * self.m_zdim * self.m_tdim;
     })
-    .def_property_readonly("nbytes", [](MedIOImage& self) -> size_t {
+    .def_property_readonly("nbytes", [](MedIOImage& self) -> ssize_t {
       return self.m_xdim * self.m_ydim * self.m_zdim * self.m_tdim * sizeof(float);
     })
 
@@ -152,15 +152,15 @@ PYBIND11_MODULE(pmedio, m) {
 
     // toarray method to directly return as numpy.array
     .def("toarray",
-      [](MedIOImage& self, const bool copy=false) -> py::array_t<float> {
+      [](MedIOImage& self, const bool copy=false) -> py::array_t<float, py::array::f_style | py::array::forcecast> {
       float* data = self.data();
       py::capsule capsule;
       if(copy == true)
       {
         // create a data clone
-        size_t size = self.m_xdim * self.m_ydim * self.m_zdim * self.m_tdim;
+        ssize_t size = self.m_xdim * self.m_ydim * self.m_zdim * self.m_tdim;
         float* clone = new float[size];
-        for(size_t i = 0; i < size; ++i)
+        for(ssize_t i = 0; i < size; ++i)
           clone[i] = data[i];
        
         // Create a Python object that will free the allocated
@@ -174,7 +174,7 @@ PYBIND11_MODULE(pmedio, m) {
         data = clone;
       }
 
-      return py::array_t<float>(py::buffer_info(
+      return py::array_t<float, py::array::f_style | py::array::forcecast>(py::buffer_info(
         data,                                                     // Pointer to buffer
         sizeof(float),                                            // Size of one scalar
         py::format_descriptor<float>::format(),                   // Python struct-style format descriptor
@@ -247,7 +247,7 @@ PYBIND11_MODULE(pmedio, m) {
      py::arg("dataType") = DT_FLOAT,
      py::arg("format") = CMedIOData::Unknown);
 
-  m.def("write", [](const py::array_t<float>& img,
+  m.def("write", [](const py::array_t<float, py::array::f_style | py::array::forcecast>& img,
                     const QString& fileName,
                     const bool overwrite=false,
                     const enum dimTypes dimType=DM_FRAMES,

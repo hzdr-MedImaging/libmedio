@@ -143,7 +143,7 @@ void init_ecat(py::module_ &m)
               py::arg("bed") = -1,
               py::arg("data") = -1)
           .def("writeMatrix", [](CECATFile& self,
-                                 const py::array_t<float>& img,
+                                 const py::array_t<float, py::array::f_style | py::array::forcecast>& img,
                                  short frame=-1,
                                  short plane=-1,
                                  short gate=-1,
@@ -151,7 +151,6 @@ void init_ecat(py::module_ &m)
                                  short data=-1)
           {
             py::buffer_info buf = img.request();
-
             return buf.ndim;
           },  py::arg("img"),
               py::arg("frame") = -1,
