@@ -134,20 +134,20 @@ PYBIND11_MODULE(pmedio, m) {
 
     // Bare bones interface
     .def("__getitem__",
-      [](const MedIOImage& img, std::tuple<py::ssize_t, py::ssize_t, py::ssize_t, py::ssize_t> i) {
-        if(std::get<0>(i) >= static_cast<int>(img.xdim()) || std::get<1>(i) >= static_cast<int>(img.ydim()) || 
-           std::get<2>(i) >= static_cast<int>(img.zdim()) || std::get<3>(i) >= static_cast<int>(img.tdim())) {
+      [](const MedIOImage& self, std::tuple<py::ssize_t, py::ssize_t, py::ssize_t, py::ssize_t> i) {
+        if(std::get<0>(i) >= static_cast<int>(self.m_xdim) || std::get<1>(i) >= static_cast<int>(self.m_ydim) || 
+           std::get<2>(i) >= static_cast<int>(self.m_zdim) || std::get<3>(i) >= static_cast<int>(self.m_tdim)) {
           throw py::index_error();
         }
-        return img(std::get<0>(i), std::get<1>(i), std::get<2>(i), std::get<3>(i));
+        return self(std::get<0>(i), std::get<1>(i), std::get<2>(i), std::get<3>(i));
     })
     .def("__setitem__",
-      [](MedIOImage& img, std::tuple<py::ssize_t, py::ssize_t, py::ssize_t, py::ssize_t> i, float v) {
-        if(std::get<0>(i) >= static_cast<int>(img.xdim()) || std::get<1>(i) >= static_cast<int>(img.ydim()) || 
-           std::get<2>(i) >= static_cast<int>(img.zdim()) || std::get<3>(i) >= static_cast<int>(img.tdim())) {
+      [](MedIOImage& self, std::tuple<py::ssize_t, py::ssize_t, py::ssize_t, py::ssize_t> i, float v) {
+        if(std::get<0>(i) >= static_cast<int>(self.m_xdim) || std::get<1>(i) >= static_cast<int>(self.m_ydim) || 
+           std::get<2>(i) >= static_cast<int>(self.m_zdim) || std::get<3>(i) >= static_cast<int>(self.m_tdim)) {
           throw py::index_error();
         }
-        img(std::get<0>(i), std::get<1>(i), std::get<2>(i), std::get<3>(i)) = v;
+        self(std::get<0>(i), std::get<1>(i), std::get<2>(i), std::get<3>(i)) = v;
     })
 
     // toarray method to directly return as numpy.array
@@ -178,13 +178,13 @@ PYBIND11_MODULE(pmedio, m) {
         data,                                                     // Pointer to buffer
         sizeof(float),                                            // Size of one scalar
         py::format_descriptor<float>::format(),                   // Python struct-style format descriptor
-        self.numdim(),                                            // Number of dimensions
-        { self.xdim(), self.ydim(), self.zdim(), self.tdim() },   // Buffer dimensions
+        self.m_numdim,                                            // Number of dimensions
+        { self.m_xdim, self.m_ydim, self.m_zdim, self.m_tdim },   // Buffer dimensions
         {                                                         // Strides (in bytes) for each index
           sizeof(float),                                          // X
-          sizeof(float) * self.xdim(),                            // Y
-          sizeof(float) * self.xdim() * self.ydim(),              // Z
-          sizeof(float) * self.xdim() * self.ydim() * self.zdim() // T (frames/gates/bed/data)
+          sizeof(float) * self.m_xdim,                            // Y
+          sizeof(float) * self.m_xdim * self.m_ydim,              // Z
+          sizeof(float) * self.m_xdim * self.m_ydim * self.m_zdim // T (frames/gates/bed/data)
         }
       ), capsule);
     }, py::arg("copy") = false)
@@ -195,13 +195,13 @@ PYBIND11_MODULE(pmedio, m) {
         self.data(),                                              // Pointer to buffer
         sizeof(float),                                            // Size of one scalar
         py::format_descriptor<float>::format(),                   // Python struct-style format descriptor
-        self.numdim(),                                            // Number of dimensions
-        { self.xdim(), self.ydim(), self.zdim(), self.tdim() },   // Buffer dimensions
+        self.m_numdim,                                            // Number of dimensions
+        { self.m_xdim, self.m_ydim, self.m_zdim, self.m_tdim },   // Buffer dimensions
         {                                                         // Strides (in bytes) for each index
           sizeof(float),                                          // X
-          sizeof(float) * self.xdim(),                            // Y
-          sizeof(float) * self.xdim() * self.ydim(),              // Z
-          sizeof(float) * self.xdim() * self.ydim() * self.zdim() // T (frames/gates/bed/data)
+          sizeof(float) * self.m_xdim,                            // Y
+          sizeof(float) * self.m_xdim * self.m_ydim,              // Z
+          sizeof(float) * self.m_xdim * self.m_ydim * self.m_zdim // T (frames/gates/bed/data)
         }
       );
     });
