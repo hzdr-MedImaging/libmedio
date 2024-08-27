@@ -309,12 +309,12 @@ class MedIOImage
 
     float operator()(const size_t x, const size_t y=0, const size_t z=0, const size_t t=0) const
     {
-      return m_data[x * m_xdim + y * m_ydim + z * m_zdim + t * m_tdim];
+      return m_data[x + y * m_xdim + z * m_xdim*m_ydim + t * m_ydim*m_ydim*m_zdim];
     } 
 
     float& operator()(const size_t x, const size_t y=0, const size_t z=0, const size_t t=0)
     {
-      return m_data[x * m_xdim + y * m_ydim + z * m_zdim + t * m_tdim];
+      return m_data[x + y * m_xdim + z * m_xdim*m_ydim + t * m_ydim*m_ydim*m_zdim];
     } 
 
     float* data() { return m_data; }
@@ -1255,8 +1255,8 @@ class MedIOImage
                             {
                               for(size_t x=0; x < m_xdim; ++x)
                               {
-                                size_t srcIndex = x + y * m_ydim + z * planeSize;
-                                size_t dstIndex = (m_xdim-1 - x) + (m_ydim-1 - y) * m_ydim + (m_zdim-1 - z) * planeSize + (m_tdim-1 - t) * volumeSize;
+                                size_t srcIndex = x + y * m_xdim + z * planeSize;
+                                size_t dstIndex = (m_xdim-1 - x) + (m_ydim-1 - y) * m_xdim + (m_zdim-1 - z) * planeSize + (m_tdim-1 - t) * volumeSize;
 
                                 switch(dataType)
                                 {
@@ -1448,7 +1448,7 @@ class MedIOImage
                   {
                     // calculate the srcIndex in our m_data float data vector and the dstIndex
                     // to put the data in an order the ECAT format defines.
-                    size_t srcIndex = (m_xdim-1 - x) + (m_ydim-1 - y) * m_ydim + (m_zdim-1 - z) * planeSize + (m_tdim-1 - t) * volumeSize;
+                    size_t srcIndex = (m_xdim-1 - x) + (m_ydim-1 - y) * m_xdim + (m_zdim-1 - z) * planeSize + (m_tdim-1 - t) * volumeSize;
                     float voxel = m_data[srcIndex] / ecatCalibrationFactor;
                     newMin = qMin(newMin, voxel);
                     newMax = qMax(newMax, voxel);
@@ -1513,8 +1513,8 @@ class MedIOImage
                 {
                   // calculate the srcIndex in our m_data float data vector and the dstIndex
                   // to put the data in an order the ECAT format defines.
-                  size_t srcIndex = (m_xdim-1 - x) + (m_ydim-1 - y) * m_ydim + (m_zdim-1 - z) * planeSize + (m_tdim-1 - t) * volumeSize;
-                  size_t dstIndex = x + y * m_ydim + z * planeSize;
+                  size_t srcIndex = (m_xdim-1 - x) + (m_ydim-1 - y) * m_xdim + (m_zdim-1 - z) * planeSize + (m_tdim-1 - t) * volumeSize;
+                  size_t dstIndex = x + y * m_xdim + z * planeSize;
 
                   // calculate the voxel value which we store in the ecat file
                   float val = m_data[srcIndex] / newScaleFactor / ecatCalibrationFactor;
