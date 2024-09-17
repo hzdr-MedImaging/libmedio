@@ -199,6 +199,9 @@ bool CECATDirectory::load(void)
     return false;
   }
 
+  // check that we seeked correctly
+  ASSERT(m_pData->file->pos() == ECATBlock2FilePos(ECAT_POS_MAINDIR));
+
   // we process the splitted directory list in a do..while loop
   // and jump from one dirlist to another in the ecat file.
   struct ECAT_DirList dList;
@@ -304,6 +307,9 @@ bool CECATDirectory::load(void)
       result = false;
       break;
     }
+
+    // check that we seeked correctly
+    ASSERT(m_pData->file->pos() == ECATBlock2FilePos(dList.head.Next));
   }
   while(dList.head.Next > ECAT_POS_MAINDIR && result == true);
   
@@ -463,6 +469,9 @@ bool CECATDirectory::save(void) const
           break;
         }
           
+        // check that we seeked correctly
+        ASSERT(m_pData->file->pos() == m_pData->filePositions[curDirList]);
+
         // write out the whole dirlist in one write() operation
         ASSERT(sizeof(dirList) == ECAT_DIRLIST_SIZE);
         if(m_pData->file->write(reinterpret_cast<char*>(&dirList), sizeof(dirList)) != ECAT_DIRLIST_SIZE)

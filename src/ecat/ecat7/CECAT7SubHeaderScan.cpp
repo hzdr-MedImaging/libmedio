@@ -154,6 +154,9 @@ bool CECAT7SubHeaderScan::load(void)
     return false;
   }
 
+  // check that we seeked correctly
+  ASSERT(mData->pos() == m_pDirItem->dataBlock_Start());
+
   // we read in all data at once using read()
   ASSERT(sizeof(m_pData->header) == SUBHEADER_SIZE);
   if(mData->read(reinterpret_cast<char*>(&m_pData->header), sizeof(m_pData->header)) != SUBHEADER_SIZE)
@@ -279,6 +282,8 @@ bool CECAT7SubHeaderScan::save(void) const
   }
 
   SHOWVALUE(mData->pos());
+  // check that we seeked correctly
+  ASSERT(mData->pos() == m_pDirItem->dataBlock_Start());
 
   ASSERT(sizeof(m_pData->header) == SUBHEADER_SIZE);
   struct CECAT7SubHeaderScanPrivate::HeaderData* header = NULL;

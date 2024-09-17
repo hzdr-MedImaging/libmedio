@@ -419,6 +419,9 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 
     SHOWVALUE(m_pData->file->pos());
 
+    // check that we seeked correctly
+    ASSERT(m_pData->file->pos() == (m_pData->dataBlock_Start+subHeader->rawDataSize()));
+
     // then we allocate some memory for loading the matrixdata
     // this should be:
     matrixSize = m_pData->dataBlock_End-m_pData->dataBlock_Start-subHeader->rawDataSize()+ECAT_BLOCKSIZE;
@@ -862,6 +865,9 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
   }
 
   SHOWVALUE(m_pData->file->pos());
+
+  // check that we seeked correctly
+  ASSERT(m_pData->file->pos() == (m_pData->dataBlock_Start+subHeader.rawDataSize()));
 
   // now we find out if this machine requires byte swapping or
   // not depending on the input data type and the sysinfo
