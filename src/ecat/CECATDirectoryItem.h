@@ -37,8 +37,8 @@
 #define ECAT_BLOCKSIZE        512
 #define ECAT_POS_MAINHEADER   1    // the MainHeader is always at block 1
 #define ECAT_POS_MAINDIR      2    // the MainDir is always at block 2
-#define ECATBlock2FilePos(v)  (((v)-1)*ECAT_BLOCKSIZE)
-#define FilePos2ECATBlock(v)  ((v)/ECAT_BLOCKSIZE+1)
+#define ECATBlock2FilePos(v)  ((static_cast<qint64>(v)-1)*ECAT_BLOCKSIZE)
+#define FilePos2ECATBlock(v)  (static_cast<qint64>(v)/ECAT_BLOCKSIZE+1)
 
 #endif
 

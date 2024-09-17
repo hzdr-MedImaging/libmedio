@@ -38,8 +38,8 @@
 #define PHILIPS_BLOCKSIZE        512
 #define PHILIPS_POS_MAINHEADER   1    // the MainHeader is always at block 1
 #define PHILIPS_POS_MAINDIR      2    // the MainDir is always at block 2
-#define PhilipsBlock2FilePos(v)  (((v)-1)*PHILIPS_BLOCKSIZE)
-#define FilePos2PhilipsBlock(v)  ((v)/PHILIPS_BLOCKSIZE+1)
+#define PhilipsBlock2FilePos(v)  ((static_cast<qint64>(v)-1)*PHILIPS_BLOCKSIZE)
+#define FilePos2PhilipsBlock(v)  (static_cast<qint64>(v)/PHILIPS_BLOCKSIZE+1)
 #define PHILIPS_EXT_HEADER_ID    0x7FFFFFFF // matrixID for the extended header
 #define PHILIPS_EXT_HEADER_POS   3          // fixed position of extended header
 #define PHILIPS_EXT_HEADER_END   18         // fixed end-position of ext. header
