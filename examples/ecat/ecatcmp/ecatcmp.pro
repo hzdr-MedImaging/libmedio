@@ -26,6 +26,7 @@ QT = core
 DEPENDPATH += .
 INCLUDEPATH += . ../../../src/include /usr/local/petlib/include/medio
 LIBS *= /usr/local/petlib/lib/libmedio.a
+#LIBS *= ../../../build-l64/lib/libmedio.a /usr/local/petlib/lib/librtdebug.so
 
 mac {
   CONFIG += x86 ppc
