@@ -16,8 +16,8 @@ jobs:
         git clone https://github.com/jens-maus/librtdebug.git librtdebug
         cd librtdebug
         [ -f Makefile ] && make distclean
-        make PREFIX=$(pwd)/build all install
+        make all install
     - name: compile+install libmedio
       run: |
         [ -f Makefile ] && make distclean
-        make PREFIX=$(pwd)/build all install
+        make all install
