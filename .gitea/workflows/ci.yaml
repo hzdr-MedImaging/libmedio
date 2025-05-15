@@ -7,6 +7,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    - name: install dependencies
+      run: |
+        apt install cmake
     - name: compile+install librtdebug
       run: |
         git clone https://github.com/jens-maus/librtdebug.git librtdebug
