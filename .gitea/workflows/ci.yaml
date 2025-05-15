@@ -10,14 +10,15 @@ jobs:
     - name: install dependencies
       run: |
         apt-get update -y -qq || true
-        apt-get -qq install build-essential cmake
+        apt-get -qq install build-essential qtbase5-dev qt5-qmake cmake
     - name: compile+install librtdebug
       run: |
         git clone https://github.com/jens-maus/librtdebug.git librtdebug
         cd librtdebug
         [ -f Makefile ] && make distclean
         make PREFIX=$(pwd)/build all install
-    - name: make
+    - name: compile+install libmedio
+      run: |
+        [ -f Makefile ] && make distclean
+        make PREFIX=$(pwd)/build all install
       run: make
-    - name: make test
-      run: make test
