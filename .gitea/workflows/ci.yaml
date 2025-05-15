@@ -9,7 +9,8 @@ jobs:
     - uses: actions/checkout@v4
     - name: install dependencies
       run: |
-        apt install cmake
+        apt-get update -y -qq || true
+        apt-get -qq install build-essential cmake
     - name: compile+install librtdebug
       run: |
         git clone https://github.com/jens-maus/librtdebug.git librtdebug
