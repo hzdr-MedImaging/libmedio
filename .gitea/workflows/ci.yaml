@@ -1,19 +1,18 @@
 name: CI
+run-name: CI
 on: [push]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/checkout@v4
-      with:
-        name: jens-maus/librtdebug
-        ref: refs/heads/release
     - name: compile+install librtdebug
-      run: bash ./configure
+      run: |
+        git clone https://github.com/jens-maus/librtdebug.git librtdebug
+        cd librtdebug
+        [ -f Makefile ] && make distclean
+        make PREFIX=$(pwd)/build all install
     - name: make
       run: make
     - name: make test
