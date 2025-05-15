@@ -21,4 +21,3 @@ jobs:
       run: |
         [ -f Makefile ] && make distclean
         make PREFIX=$(pwd)/build all install
-      run: make
