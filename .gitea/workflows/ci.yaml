@@ -4,7 +4,7 @@ on: [push]
 
 env:
   CR_REGISTRY: fwpgit.fz-rossendorf.de
-  CR_VERSION: 811375c
+  CR_VERSION: b040867
 
 jobs:
   build:
