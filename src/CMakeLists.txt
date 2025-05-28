@@ -129,11 +129,13 @@ target_link_libraries(${CMAKE_PROJECT_NAME}-shared
 install(TARGETS ${CMAKE_PROJECT_NAME}-static
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
+        RUNTIME DESTINATION bin
         COMPONENT library
 )
 install(TARGETS ${CMAKE_PROJECT_NAME}-shared
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
+        RUNTIME DESTINATION bin
         COMPONENT library
 )
 install(FILES ${PUBLIC_HEADER} 
