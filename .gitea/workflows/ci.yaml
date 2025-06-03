@@ -4,7 +4,7 @@ on: [push]
 
 env:
   CR_REGISTRY: fwpgit.fz-rossendorf.de
-  CR_VERSION: b040867
+  CR_VERSION: b1ef9b1
 
 jobs:
   build:
@@ -50,12 +50,12 @@ jobs:
       - name: Compile+Install librtdebug
         run: |
           git clone --depth 1 https://github.com/jens-maus/librtdebug
-          ./dockcross bash -c "cd librtdebug && cmake -Bbuild -S. -DPREFIX_PATH=\$(pwd)/../install && make -C build install"
+          ./dockcross bash -c "cd librtdebug && cmake -Bbuild -S. -DPREFIX_PATH=\$(pwd)/../install && make -C build -j$(nproc) install"
 
       # compile+install libmedio
       - name: Compile+Install libmedio
         run: |
-          ./dockcross bash -c "cd libmedio && cmake -Bbuild -S. -DPREFIX_PATH=\$(pwd)/../install && make -C build install"
+          ./dockcross bash -c "cd libmedio && cmake -Bbuild -S. -DPREFIX_PATH=\$(pwd)/../install && make -C build -j$(nproc) install"
 
       # upload install path as artifact
       - name: Upload artifact archive
