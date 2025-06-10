@@ -75,7 +75,7 @@ if(WIN32)
   if(MINGW_BUNDLEDLLS)
     install(CODE [[
       execute_process(COMMAND
-        mingw-bundledlls $ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/$<TARGET_FILE_NAME:rover> --copy --verbose
+        mingw-bundledlls $ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/$<TARGET_FILE_NAME:image2ecat> --copy --verbose
       )
     ]])
   else()
@@ -85,7 +85,7 @@ if(WIN32)
   if(MINGW_BUNDLEDLLS_WINE)
     install(CODE [[
       execute_process(COMMAND
-        mingw-bundledlls-wine $ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/$<TARGET_FILE_NAME:rover> --copy
+        mingw-bundledlls-wine $ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/$<TARGET_FILE_NAME:image2ecat> --copy
       )
     ]])
   else()
