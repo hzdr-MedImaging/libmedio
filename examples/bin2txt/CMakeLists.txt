@@ -61,3 +61,28 @@ set_target_properties(bin2txt PROPERTIES OUTPUT_NAME bin2txt-${PROJECT_VERSION})
 install(TARGETS bin2txt
         RUNTIME DESTINATION bin
 )
+
+# make sure to bundle all runtime dll libs which the generated
+# executable might require using the 'mingw-bundleddlls-wine" tool
+if(WIN32)
+  find_program(MINGW_BUNDLEDLLS "mingw-bundledlls")
+  if(MINGW_BUNDLEDLLS)
+    install(CODE [[
+      execute_process(COMMAND
+        mingw-bundledlls $ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/$<TARGET_FILE_NAME:rover> --copy --verbose
+      )
+    ]])
+  else()
+    message("WARNING: cannot bundle DLLs (no 'mingw-bundleddlls' found)")
+  endif()
+  find_program(MINGW_BUNDLEDLLS_WINE "mingw-bundledlls-wine")
+  if(MINGW_BUNDLEDLLS_WINE)
+    install(CODE [[
+      execute_process(COMMAND
+        mingw-bundledlls-wine $ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/$<TARGET_FILE_NAME:rover> --copy
+      )
+    ]])
+  else()
+    message("WARNING: cannot bundle DLLs (no 'mingw-bundleddlls-wine' found)")
+  endif()
+endif()
