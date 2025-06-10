@@ -32,7 +32,7 @@ if (NOT CMAKE_BUILD_TYPE)
 endif()
 
 # define the project and the version number
-set(PKG_VERSION 3.3.3)
+set(PKG_VERSION 3.3.4)
 project(libmedio VERSION ${PKG_VERSION})
 set(PROJECT_LONGNAME "libmedio")
 

@@ -1689,77 +1689,77 @@ QTextStream& operator<<(QTextStream& stream, const CECAT7MainHeader& mHeader)
   ENTER();
 
   // save all header data to the textstream
-  stream << qSetRealNumberPrecision(6);
-  stream << "MAGIC_NUMBER "              << mHeader.m_pData->header.Magic_Number              << endl;
-  stream << "ORIGINAL_FILE_NAME "        << mHeader.m_pData->header.Original_File_Name        << endl;
-  stream << "SW_VERSION "                << mHeader.m_pData->header.SW_Version                << endl;
-  stream << "SYSTEM_TYPE "              << mHeader.m_pData->header.System_Type                << endl;
-  stream << "FILE_TYPE "                << mHeader.m_pData->header.File_Type                  << endl;
-  stream << "SERIAL_NUMBER "            << mHeader.m_pData->header.Serial_Number              << endl;
-  stream << "SCAN_START_TIME "          << mHeader.m_pData->header.Scan_Start_Time            << endl;
-  stream << "ISOTOPE_NAME "              << mHeader.m_pData->header.Isotope_Name              << endl;
-  stream << "ISOTOPE_HALFLIFE "          << mHeader.m_pData->header.Isotope_Halflife          << endl;
-  stream << "RADIOPHARMACEUTICAL "      << mHeader.m_pData->header.Radiopharmaceutical        << endl;
-  stream << "GANTRY_TILT "              << mHeader.m_pData->header.Gantry_Tilt                << endl;
-  stream << "ROTATION_TILT "            << mHeader.m_pData->header.Gantry_Rotation            << endl;
-  stream << "BED_ELEVATION "            << mHeader.m_pData->header.Bed_Elevation              << endl;
-  stream << "INTRINSIC_TILT "            << mHeader.m_pData->header.Intrinsic_Tilt            << endl;
-  stream << "WOBBLE_SPEED "              << mHeader.m_pData->header.Wobble_Speed              << endl;
-  stream << "TRANSM_SOURCE_TYPE "        << mHeader.m_pData->header.Transm_Source_Type        << endl;
-  stream << "DISTANCE_SCANNED "          << mHeader.m_pData->header.Distance_Scanned          << endl;
-  stream << "TRANSAXIAL_FOV "            << mHeader.m_pData->header.Transaxial_FOV            << endl;
-  stream << "ANGULAR_COMPRESSION "      << mHeader.m_pData->header.Angular_Compression        << endl;
-  stream << "COIN_SAMP_MODE "            << mHeader.m_pData->header.Coin_Samp_Mode            << endl;
-  stream << "AXIAL_SAMP_MODE "          << mHeader.m_pData->header.Axial_Samp_Mode            << endl;
-  stream << "ECAT_CALIBRATION_FACTOR "  << mHeader.m_pData->header.Calibration_Factor        << endl;
-  stream << "CALIBRATION_UNITS "        << mHeader.m_pData->header.Calibration_Units          << endl;
-  stream << "CALIBRATION_UNITS_LABEL "  << mHeader.m_pData->header.Calibration_Units_Label    << endl;
-  stream << "COMPRESSION_CODE "          << mHeader.m_pData->header.Compression_Code          << endl;
-  stream << "STUDY_TYPE "                << mHeader.m_pData->header.Study_Type                << endl;
-  stream << "PATIENT_ID "                << mHeader.m_pData->header.Patient_ID                << endl;
-  stream << "PATIENT_NAME "              << mHeader.m_pData->header.Patient_Name              << endl;
-  stream << "PATIENT_SEX "              << mHeader.m_pData->header.Patient_Sex[0]            << endl;
-  stream << "PATIENT_DEXTERITY "        << mHeader.m_pData->header.Patient_Dexterity[0]      << endl;
-  stream << "PATIENT_AGE "              << mHeader.m_pData->header.Patient_Age                << endl;
-  stream << "PATIENT_HEIGHT "            << mHeader.m_pData->header.Patient_Height            << endl;
-  stream << "PATIENT_WEIGHT "            << mHeader.m_pData->header.Patient_Weight            << endl;
-  stream << "PATIENT_BIRTH_DATE "        << mHeader.m_pData->header.Patient_Birth_Date        << endl;
-  stream << "PHYSICIAN_NAME "            << mHeader.m_pData->header.Physician_Name            << endl;
-  stream << "OPERATOR_NAME "            << mHeader.m_pData->header.Operator_Name              << endl;
-  stream << "STUDY_DESCRIPTION "        << mHeader.m_pData->header.Study_Description          << endl;
-  stream << "ACQUISITION_TYPE "          << mHeader.m_pData->header.Acquisition_Type          << endl;
-  stream << "PATIENT_ORIENTATION "      << mHeader.m_pData->header.Patient_Orientation        << endl;
-  stream << "FACILITY_NAME "            << mHeader.m_pData->header.Facility_Name              << endl;
-  stream << "NUM_PLANES "                << mHeader.m_pData->header.Num_Planes                << endl;
-  stream << "NUM_FRAMES "                << mHeader.m_pData->header.Num_Frames                << endl;
-  stream << "NUM_GATES "                << mHeader.m_pData->header.Num_Gates                  << endl;
-  stream << "NUM_BED_POS "              << mHeader.m_pData->header.Num_Bed_Pos                << endl;
-  stream << "INIT_BED_POSITION "        << mHeader.m_pData->header.Init_Bed_Position          << endl;
-  stream << "BED_POSITION";
+  stream << qSetRealNumberPrecision(6)
+         << "MAGIC_NUMBER "             << mHeader.m_pData->header.Magic_Number              << Qt::endl
+         << "ORIGINAL_FILE_NAME "       << mHeader.m_pData->header.Original_File_Name        << Qt::endl
+         << "SW_VERSION "               << mHeader.m_pData->header.SW_Version                << Qt::endl
+         << "SYSTEM_TYPE "              << mHeader.m_pData->header.System_Type               << Qt::endl
+         << "FILE_TYPE "                << mHeader.m_pData->header.File_Type                 << Qt::endl
+         << "SERIAL_NUMBER "            << mHeader.m_pData->header.Serial_Number             << Qt::endl
+         << "SCAN_START_TIME "          << mHeader.m_pData->header.Scan_Start_Time           << Qt::endl
+         << "ISOTOPE_NAME "             << mHeader.m_pData->header.Isotope_Name              << Qt::endl
+         << "ISOTOPE_HALFLIFE "         << mHeader.m_pData->header.Isotope_Halflife          << Qt::endl
+         << "RADIOPHARMACEUTICAL "      << mHeader.m_pData->header.Radiopharmaceutical       << Qt::endl
+         << "GANTRY_TILT "              << mHeader.m_pData->header.Gantry_Tilt               << Qt::endl
+         << "ROTATION_TILT "            << mHeader.m_pData->header.Gantry_Rotation           << Qt::endl
+         << "BED_ELEVATION "            << mHeader.m_pData->header.Bed_Elevation             << Qt::endl
+         << "INTRINSIC_TILT "           << mHeader.m_pData->header.Intrinsic_Tilt            << Qt::endl
+         << "WOBBLE_SPEED "             << mHeader.m_pData->header.Wobble_Speed              << Qt::endl
+         << "TRANSM_SOURCE_TYPE "       << mHeader.m_pData->header.Transm_Source_Type        << Qt::endl
+         << "DISTANCE_SCANNED "         << mHeader.m_pData->header.Distance_Scanned          << Qt::endl
+         << "TRANSAXIAL_FOV "           << mHeader.m_pData->header.Transaxial_FOV            << Qt::endl
+         << "ANGULAR_COMPRESSION "      << mHeader.m_pData->header.Angular_Compression       << Qt::endl
+         << "COIN_SAMP_MODE "           << mHeader.m_pData->header.Coin_Samp_Mode            << Qt::endl
+         << "AXIAL_SAMP_MODE "          << mHeader.m_pData->header.Axial_Samp_Mode           << Qt::endl
+         << "ECAT_CALIBRATION_FACTOR "  << mHeader.m_pData->header.Calibration_Factor        << Qt::endl
+         << "CALIBRATION_UNITS "        << mHeader.m_pData->header.Calibration_Units         << Qt::endl
+         << "CALIBRATION_UNITS_LABEL "  << mHeader.m_pData->header.Calibration_Units_Label   << Qt::endl
+         << "COMPRESSION_CODE "         << mHeader.m_pData->header.Compression_Code          << Qt::endl
+         << "STUDY_TYPE "               << mHeader.m_pData->header.Study_Type                << Qt::endl
+         << "PATIENT_ID "               << mHeader.m_pData->header.Patient_ID                << Qt::endl
+         << "PATIENT_NAME "             << mHeader.m_pData->header.Patient_Name              << Qt::endl
+         << "PATIENT_SEX "              << mHeader.m_pData->header.Patient_Sex[0]            << Qt::endl
+         << "PATIENT_DEXTERITY "        << mHeader.m_pData->header.Patient_Dexterity[0]      << Qt::endl
+         << "PATIENT_AGE "              << mHeader.m_pData->header.Patient_Age               << Qt::endl
+         << "PATIENT_HEIGHT "           << mHeader.m_pData->header.Patient_Height            << Qt::endl
+         << "PATIENT_WEIGHT "           << mHeader.m_pData->header.Patient_Weight            << Qt::endl
+         << "PATIENT_BIRTH_DATE "       << mHeader.m_pData->header.Patient_Birth_Date        << Qt::endl
+         << "PHYSICIAN_NAME "           << mHeader.m_pData->header.Physician_Name            << Qt::endl
+         << "OPERATOR_NAME "            << mHeader.m_pData->header.Operator_Name             << Qt::endl
+         << "STUDY_DESCRIPTION "        << mHeader.m_pData->header.Study_Description         << Qt::endl
+         << "ACQUISITION_TYPE "         << mHeader.m_pData->header.Acquisition_Type          << Qt::endl
+         << "PATIENT_ORIENTATION "      << mHeader.m_pData->header.Patient_Orientation       << Qt::endl
+         << "FACILITY_NAME "            << mHeader.m_pData->header.Facility_Name             << Qt::endl
+         << "NUM_PLANES "               << mHeader.m_pData->header.Num_Planes                << Qt::endl
+         << "NUM_FRAMES "               << mHeader.m_pData->header.Num_Frames                << Qt::endl
+         << "NUM_GATES "                << mHeader.m_pData->header.Num_Gates                 << Qt::endl
+         << "NUM_BED_POS "              << mHeader.m_pData->header.Num_Bed_Pos               << Qt::endl
+         << "INIT_BED_POSITION "        << mHeader.m_pData->header.Init_Bed_Position         << Qt::endl
+         << "BED_POSITION";
+
   for(int i=0; i < 15; i++)
-  {
     stream << " " << mHeader.m_pData->header.Bed_Offset[i];
-  }
-  stream << endl;
-  stream << "PLANE_SEPARATION "          << mHeader.m_pData->header.Plane_Separation          << endl;
-  stream << "LWR_SCTR_THRES "            << mHeader.m_pData->header.Lwr_Sctr_Thres            << endl;
-  stream << "LWR_TRUE_THRES "            << mHeader.m_pData->header.Lwr_True_Thres            << endl;
-  stream <<  "UPR_TRUE_THRES "            << mHeader.m_pData->header.Upr_True_Thres            << endl;
-  stream <<  "USER_PROCESS_CODE "        << mHeader.m_pData->header.User_Process_Code          << endl;
-  stream << "ACQUISITION_MODE "          << mHeader.m_pData->header.Acquisition_Mode          << endl;
-  stream << "BIN_SIZE "                  << mHeader.m_pData->header.Bin_Size                  << endl;
-  stream << "BRANCHING_FRACTION "        << mHeader.m_pData->header.Branching_Fraction        << endl;
-  stream << "DOSE_START_TIME "          << mHeader.m_pData->header.Dose_Start_Time            << endl;
-  stream <<  "DOSAGE "                    << mHeader.m_pData->header.Dosage                    << endl;
-  stream <<  "WELL_COUNTER_CORR_FACTOR "  << mHeader.m_pData->header.Well_Counter_Corr_Factor  << endl;
-  stream << "DATA_UNITS "                << mHeader.m_pData->header.Data_Units                << endl;
-  stream <<  "SEPTA_STATE "              << mHeader.m_pData->header.Septa_State                << endl;
-  stream <<  "FILL";
+
+  stream << Qt::endl
+         << "PLANE_SEPARATION "         << mHeader.m_pData->header.Plane_Separation          << Qt::endl
+         << "LWR_SCTR_THRES "           << mHeader.m_pData->header.Lwr_Sctr_Thres            << Qt::endl
+         << "LWR_TRUE_THRES "           << mHeader.m_pData->header.Lwr_True_Thres            << Qt::endl
+         << "UPR_TRUE_THRES "           << mHeader.m_pData->header.Upr_True_Thres            << Qt::endl
+         << "USER_PROCESS_CODE "        << mHeader.m_pData->header.User_Process_Code         << Qt::endl
+         << "ACQUISITION_MODE "         << mHeader.m_pData->header.Acquisition_Mode          << Qt::endl
+         << "BIN_SIZE "                 << mHeader.m_pData->header.Bin_Size                  << Qt::endl
+         << "BRANCHING_FRACTION "       << mHeader.m_pData->header.Branching_Fraction        << Qt::endl
+         << "DOSE_START_TIME "          << mHeader.m_pData->header.Dose_Start_Time           << Qt::endl
+         << "DOSAGE "                   << mHeader.m_pData->header.Dosage                    << Qt::endl
+         << "WELL_COUNTER_CORR_FACTOR " << mHeader.m_pData->header.Well_Counter_Corr_Factor  << Qt::endl
+         << "DATA_UNITS "               << mHeader.m_pData->header.Data_Units                << Qt::endl
+         << "SEPTA_STATE "              << mHeader.m_pData->header.Septa_State               << Qt::endl
+         << "FILL";
+
   for(int i=0; i < 6; i++)
-  {
     stream << " " << mHeader.m_pData->header.CTI_Reserved[i];
-  }
-  stream << endl;
+
+  stream << Qt::endl;
   
   RETURN(&stream);
   return stream;
