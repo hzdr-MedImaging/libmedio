@@ -20,7 +20,7 @@
 # *
 # **************************************************************************/
 
-cmake_minimum_required(VERSION 3.12.0)
+cmake_minimum_required(VERSION 3.17.0)
 
 # Default configuration values. These must be before the project command or
 # they won't work in Windows.
