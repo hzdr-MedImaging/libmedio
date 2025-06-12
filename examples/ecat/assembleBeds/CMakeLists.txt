@@ -60,24 +60,24 @@ install(TARGETS assembleBeds
 # make sure to bundle all runtime dll libs which the generated
 # executable might require using the 'mingw-bundleddlls-wine" tool
 if(WIN32)
-  find_program(MINGW_BUNDLEDLLS "mingw-bundledlls")
-  if(MINGW_BUNDLEDLLS)
-    install(CODE [[
-      execute_process(COMMAND
-        mingw-bundledlls $ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/$<TARGET_FILE_NAME:assembleBeds> --copy --verbose
-      )
-    ]])
-  else()
-    message("WARNING: cannot bundle DLLs (no 'mingw-bundleddlls' found)")
-  endif()
   find_program(MINGW_BUNDLEDLLS_WINE "mingw-bundledlls-wine")
   if(MINGW_BUNDLEDLLS_WINE)
     install(CODE [[
       execute_process(COMMAND
-        mingw-bundledlls-wine $ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/$<TARGET_FILE_NAME:assembleBeds> --copy
+        mingw-bundledlls-wine ${CMAKE_BINARY_DIR}/bin/$<TARGET_FILE_NAME:assembleBeds> --copy $ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin
       )
     ]])
   else()
     message("WARNING: cannot bundle DLLs (no 'mingw-bundleddlls-wine' found)")
+  endif()
+  find_program(MINGW_BUNDLEDLLS "mingw-bundledlls")
+  if(MINGW_BUNDLEDLLS)
+    install(CODE [[
+      execute_process(COMMAND
+        mingw-bundledlls $ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/$<TARGET_FILE_NAME:assembleBeds> --copy
+      )
+    ]])
+  else()
+    message("WARNING: cannot bundle DLLs (no 'mingw-bundleddlls' found)")
   endif()
 endif()
