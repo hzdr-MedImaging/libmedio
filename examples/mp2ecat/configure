@@ -11,7 +11,7 @@
 # This configure script is free software; the Free Software Foundation
 # gives unlimited permission to copy, distribute and modify it.
 #
-# Copyright (C) 2011-2014 Jens Maus <mail@jens-maus.de>
+# Copyright (C) 2011-2014 Jens Maus <j.maus@hzdr.de>
 ## -------------------- ##
 ## M4sh Initialization. ##
 ## -------------------- ##
@@ -1458,7 +1458,7 @@ Copyright (C) 2012 Free Software Foundation, Inc.
 This configure script is free software; the Free Software Foundation
 gives unlimited permission to copy, distribute and modify it.
 
-Copyright (C) 2011-2014 Jens Maus <mail@jens-maus.de>
+Copyright (C) 2011-2014 Jens Maus <j.maus@hzdr.de>
 _ACEOF
   exit
 fi

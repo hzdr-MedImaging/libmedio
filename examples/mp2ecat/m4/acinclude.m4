@@ -1,27 +1,21 @@
-dnl/* -*- mode: m4; tab-width: 2; c-basic-offset: 2; indent-tabs-mode: nil; -*-
-dnl * vim:set ts=2 sw=2 expandtab: *********************************************
-dnl *
-dnl * acinclude.m4 - Common configure macros especially for Qt3/Qt4
-dnl * Copyright (C) 2006-2012 by Jens Langner, www.hzdr.de
-dnl *
-dnl * This library is free software; you can redistribute it and/or
-dnl * modify it under the terms of the GNU Lesser General Public
-dnl * License as published by the Free Software Foundation; either
-dnl * version 2.1 of the License, or (at your option) any later version.
-dnl *
-dnl * This library is distributed in the hope that it will be useful,
-dnl * but WITHOUT ANY WARRANTY; without even the implied warranty of
-dnl * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-dnl * Lesser General Public License for more details.
-dnl *
-dnl * You should have received a copy of the GNU Lesser General Public
-dnl * License along with this library; if not, write to the Free Software
-dnl * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
-dnl *
-dnl * $Id$
-dnl *
-dnl **************************************************************************/
-
+dnl #
+dnl # libmedio - C++ I/O Library for loading/saving medical data formats
+dnl #            https://github.com/hzdr-MedImaging/libmedio
+dnl #
+dnl # Copyright (C) 2004-2025 hzdr.de and contributors
+dnl #
+dnl # Licensed under the Apache License, Version 2.0 (the "License");
+dnl # you may not use this file except in compliance with the License.
+dnl # You may obtain a copy of the License at
+dnl #
+dnl #   http://www.apache.org/licenses/LICENSE-2.0
+dnl #
+dnl # Unless required by applicable law or agreed to in writing, software
+dnl # distributed under the License is distributed on an "AS IS" BASIS,
+dnl # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+dnl # See the License for the specific language governing permissions and
+dnl # limitations under the License.
+dnl #
 dnl
 dnl AC_CXX_NAMESPACES: checks for proper C++ namespaces compatibility
 dnl

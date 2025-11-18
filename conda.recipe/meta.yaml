@@ -18,7 +18,7 @@ build:
 
 about:
   summary: 'MedIO library'
-  desription: |
-    libmedio supporting medical imaging data
-  home: svn+ssh://fwbfs00/data/petdev/svn/libmedio
-  license: LGPL
+  description: |
+    libmedio supporting medical imaging data formats
+  home: https://github.com/hzdr-MedImaging/libmedio
+  license: Apache-2.0
