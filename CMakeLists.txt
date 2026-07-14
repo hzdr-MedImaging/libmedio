@@ -72,7 +72,7 @@ message("Using Search Path: ${CMAKE_PREFIX_PATH}")
 message("Using Install Prefix: ${CMAKE_INSTALL_PREFIX}")
 
 # Configure third party packages
-find_package(Qt5 REQUIRED COMPONENTS Core Gui)
+find_package(Qt5 REQUIRED COMPONENTS Core Gui Test)
 find_package(Threads REQUIRED)
 find_package(RTDEBUG REQUIRED)
 
@@ -108,3 +108,7 @@ add_subdirectory(examples/ecat/ecatcmp)
 add_subdirectory(examples/ecat/ecatutil)
 add_subdirectory(examples/ecat/showheader)
 add_subdirectory(examples/ecat/sumSino)
+
+# Enable CTest support and add the test suite
+enable_testing()
+add_subdirectory(testsuite)

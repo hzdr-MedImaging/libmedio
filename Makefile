@@ -196,6 +196,12 @@ install:
 	@echo "  INSTALL $(BUILDDIR)"
 	@$(MAKE) -C $(BUILDDIR) install
 
+.PHONY: test
+.NOTPARALLEL: test
+test:
+	@echo "  TEST $(BUILDDIR)"
+	@$(MAKE) -C $(BUILDDIR) test
+
 # conda target
 .PHONY: conda
 conda:

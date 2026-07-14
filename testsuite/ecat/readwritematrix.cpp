@@ -629,7 +629,10 @@ int main(int argc, char* argv[])
     cout << endl;
 
     if(success)
+    {
       cout << "NO error on compare detected." << endl;
+      returnCode = 0;
+    }
     else
       cout << "ERROR on compare detected." << endl;
   
