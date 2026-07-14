@@ -19,7 +19,7 @@
 
 #include "CIOTransform.h"
 
-#include <QApplication>
+#include <QCoreApplication>
 #include <QThread>
 #include <QHash>
 #include <QFileInfo>
@@ -42,7 +42,7 @@ void printHelp(const QString& name)
 
 int main(int argc, char *argv[])
 {
-  QApplication app(argc, argv);
+  QCoreApplication app(argc, argv);
 
   // You want this, unless you mix couts output with C output.
   // Read  http://gcc.gnu.org/onlinedocs/libstdc++/27_io/howto.html#8 for an explanation.

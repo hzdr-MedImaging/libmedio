@@ -168,7 +168,7 @@ bool CIOTransform::openInputFile()
   {
     CECATMainHeader* pMainHead = NULL;
     if(file->readMainHeader(pMainHead) &&
-       pMainHead->rtti() == CECATMainHeader::ECAT7MainHeader)
+       pMainHead->mainHeaderType() == CECATMainHeader::ECAT7MainHeader)
     {
       m_pMainHead = static_cast<CECAT7MainHeader*>(pMainHead);
       
