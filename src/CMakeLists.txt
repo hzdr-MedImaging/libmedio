@@ -2,7 +2,7 @@
 # libmedio - C++ I/O Library for loading/saving medical data formats
 #            https://github.com/hzdr-MedImaging/libmedio
 #
-# Copyright (C) 2004-2025 hzdr.de and contributors
+# Copyright (C) 2004-2026 hzdr.de and contributors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,7 +36,8 @@ set(MEDIO_LIB_INCLUDES  ${CMAKE_CURRENT_SOURCE_DIR}/ecat
                         ${CMAKE_CURRENT_SOURCE_DIR}/helpers
                         ${CMAKE_CURRENT_SOURCE_DIR}/include/rtdebug )
 
-set(MEDIO_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR} 
+set(MEDIO_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/include/stubs
                    ${MEDIO_LIB_INCLUDES} PARENT_SCOPE)
 
 set(MEDIO_LIB_CONFIG  ${CMAKE_CURRENT_BINARY_DIR}/include

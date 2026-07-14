@@ -2,7 +2,7 @@
   libmedio - C++ I/O Library for loading/saving medical data formats
              https://github.com/hzdr-MedImaging/libmedio
  
-  Copyright (C) 2004-2025 hzdr.de and contributors
+  Copyright (C) 2004-2026 hzdr.de and contributors
  
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -52,7 +52,7 @@ QString CMedIO::buildDate()
 
 QString CMedIO::copyright()
 {
-  return QString("Copyright (C) 2004-2025 hzdr.de and contributors (Apache-2.0)");
+  return QString("Copyright (C) 2004-2026 hzdr.de and contributors (Apache-2.0)");
 }
 
 unsigned int CMedIO::qtMajorVersion()

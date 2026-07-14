@@ -2,7 +2,7 @@
 # libmedio - C++ I/O Library for loading/saving medical data formats
 #            https://github.com/hzdr-MedImaging/libmedio
 # 
-# Copyright (C) 2004-2025 hzdr.de and contributors
+# Copyright (C) 2004-2026 hzdr.de and contributors
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,11 +33,14 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__MEDIO_PRIVATE__")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/includes/config.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/includes/config.h)
 
+find_package(COREG REQUIRED)
+
 # specify include directories
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/includes
                     ${CMAKE_CURRENT_SOURCE_DIR}/includes
                     ${RTDEBUG_INCLUDES}
                     ${MEDIO_INCLUDES}
+                    ${COREG_INCLUDES}
 )
 
 # consider all *.ccp files found to be actual code files
@@ -49,9 +52,11 @@ list(REMOVE_DUPLICATES CODE_FILES)
 add_executable(image2ecat ${CODE_FILES})
 
 # define link libraries dependencies
-target_link_libraries(image2ecat  Qt5::Core 
+target_link_libraries(image2ecat  Qt5::Core
+                                  Qt5::Gui
                                   ${CMAKE_PROJECT_NAME}-static
-                                  ${RTDEBUG_STATIC_LIB} 
+                                  ${RTDEBUG_STATIC_LIB}
+                                  ${COREG_STATIC_LIB}
 )
 
 # set target properties so that install only installs with

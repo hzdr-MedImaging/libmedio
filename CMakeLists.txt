@@ -2,7 +2,7 @@
 # libmedio - C++ I/O Library for loading/saving medical data formats
 #            https://github.com/hzdr-MedImaging/libmedio
 #
-# Copyright (C) 2004-2025 hzdr.de and contributors
+# Copyright (C) 2004-2026 hzdr.de and contributors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -72,7 +72,7 @@ message("Using Search Path: ${CMAKE_PREFIX_PATH}")
 message("Using Install Prefix: ${CMAKE_INSTALL_PREFIX}")
 
 # Configure third party packages
-find_package(Qt5 REQUIRED COMPONENTS Core)
+find_package(Qt5 REQUIRED COMPONENTS Core Gui)
 find_package(Threads REQUIRED)
 find_package(RTDEBUG REQUIRED)
 
@@ -98,7 +98,8 @@ set(CMAKE_MACOSX_RPATH 1)
 
 add_subdirectory(src)
 add_subdirectory(examples/img2ecat)
-#add_subdirectory(examples/image2ecat)
+add_subdirectory(examples/image2ecat)
+add_subdirectory(examples/mp2ecat)
 add_subdirectory(examples/bin2txt)
 add_subdirectory(examples/ecat/assembleBeds)
 add_subdirectory(examples/ecat/ecatutil)

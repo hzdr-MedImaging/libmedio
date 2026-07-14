@@ -22,3 +22,4 @@ about:
     libmedio supporting medical imaging data formats
   home: https://github.com/hzdr-MedImaging/libmedio
   license: Apache-2.0
+  license_file: ../LICENSE
