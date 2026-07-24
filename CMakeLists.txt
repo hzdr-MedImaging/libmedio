@@ -108,6 +108,7 @@ add_subdirectory(examples/ecat/ecatcmp)
 add_subdirectory(examples/ecat/ecatutil)
 add_subdirectory(examples/ecat/showheader)
 add_subdirectory(examples/ecat/sumSino)
+add_subdirectory(examples/nifti/showheader)
 
 # Enable CTest support and add the test suite
 enable_testing()
