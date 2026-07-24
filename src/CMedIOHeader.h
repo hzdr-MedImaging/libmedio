@@ -49,7 +49,8 @@ class CMedIOHeader
       ECATSubHeader,                //!< sub header of ECAT6/7 PET scanners
       PhilipsMainHeader,            //!< main header of philips scanners
       PhilipsSubHeader,             //!< sub header of philips scanners
-      PhilipsListviewHeader         //!< listview header of philips scanners
+      PhilipsListviewHeader,        //!< listview header of philips scanners
+      NIFTIMainHeader               //!< main header of NIfTI1/2 data format
     };
 
     // constructors

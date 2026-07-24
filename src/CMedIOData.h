@@ -47,7 +47,8 @@ class CMedIOData : public QFile
       ConcordeMicropet,  //!< data produced by a concorde micropet scanner  
       ECAT,              //!< ECAT6/7 format
       Philips,           //!< data produced by a philips PET/MR scanner
-      PhilipsBin
+      PhilipsBin,
+      NIFTI              //!< NIfTI format
     };
 
     //! @enum enumeration carrying special IO error codes which
