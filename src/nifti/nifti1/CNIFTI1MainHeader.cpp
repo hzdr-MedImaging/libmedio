@@ -18,9 +18,11 @@
 */
 
 #include "CNIFTI1MainHeader.h"
-#include "CNIFTI1MainHeader.h"
 #include "CNIFTIFile.h"
 #include "CECATMainHeader.h"
+#include "CECAT7MainHeader.h"
+#include "CECAT7SubHeaderImage.h"
+#include "CECATSubHeader.h"
 #include "CConcordeFrameHeader.h"
 #include "CPhilipsMainHeader.h"
 #include "CPhilipsSubHeaderImage.h"
@@ -32,7 +34,9 @@
 #include <QDateTime>
 #include <QFileInfo>
 #include <QTextStream>
-
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QByteArray>
 #include <time.h>
 #include <unistd.h>
 
@@ -61,7 +65,7 @@ class CNIFTI1MainHeaderPrivate { // private class to add private variables to th
       char    Regular;                    //  38: Regular -> unused
       char    Dim_Info;                   //  39: Dim_Info -> MRI slice ordering
 
-      quint16 Dim[8];                     //  40: Dim (8) -> data array for dimensions
+      quint16 Dim[8];                     //  40: Dim (8) -> data array for dimensions => number of voxels in each dimension (x, y, z, time, etc.)
       float   Intent_P1;                  //  56: Intent_P1
 
       float   Intent_P2;                  //  60: Intent_P2
@@ -70,7 +74,7 @@ class CNIFTI1MainHeaderPrivate { // private class to add private variables to th
 
       quint16 Intent_Code;                //  68: Intent_Code 
       quint16 DataType;                  //  70: Data_Type -> defines the data type of the image data (unsigned char, signed short, float, etc.)
-      quint16 Bit_Pix;                    //  72: Bit_Pix
+      quint16 Bit_Pix;                    //  72: Bit_Pix -> Number of bits/voxel (dimension of the data type in bits)
       quint16 Slice_Start;                //  74: Slice_Start -> first slice index (0, ..., N-1) for 3D+time data
       float   Pix_Dim[8];                 //  76: Pix_Dim (8)
       float   Vox_Offset;                 // 108: Vox_Offset -> offset into .nii file for image data
@@ -106,11 +110,6 @@ class CNIFTI1MainHeaderPrivate { // private class to add private variables to th
     #pragma pack(pop) // restore the previous packing alignment
 };
 
-
-
-//==============================================================================================
-// Header extension
-// after the main header, the extension is 4 bytes long 
 
 //==============================================================================================
 // Constructors
@@ -179,7 +178,7 @@ bool CNIFTI1MainHeader::load(void) {
 
   D("Dimensione struct HeaderData: %lu", sizeof(m_pData->header));
   D("MAINHEADER_SIZE definito: %d", MAINHEADER_SIZE);
-std::cout << "blah2:" << MAINHEADER_SIZE << ":" << sizeof(m_pData->header) << std::endl;
+  //std::cout << "blah2:" << MAINHEADER_SIZE << ":" << sizeof(m_pData->header) << std::endl;
   ENTER();
   CMedIOData* mData = medIOData();
 
@@ -187,17 +186,16 @@ std::cout << "blah2:" << MAINHEADER_SIZE << ":" << sizeof(m_pData->header) << st
   if(mData == NULL ||
      mData->isReadable() == false ||
      mData->seek(0) == false) {
-std::cout << "blah3" << std::endl;
-    RETURN(false);
-    return false;
-
+      //std::cout << "blah3" << std::endl;
+      RETURN(false);
+      return false;
   }
 
   // we read in all data at once using read()
   ASSERT(sizeof(m_pData->header) == MAINHEADER_SIZE);
 
   if(mData->read(reinterpret_cast<char*>(&m_pData->header), sizeof(m_pData->header)) != MAINHEADER_SIZE) {
-    std::cout << "blah4" << std::endl;
+    //std::cout << "blah4" << std::endl;
     RETURN(false);
     return false;
   }
@@ -448,7 +446,15 @@ bool CNIFTI1MainHeader::save(void) const {
 
   CNIFTIFile* niftiFile = static_cast<CNIFTIFile*>(mData);
   
-  struct CNIFTI1MainHeaderPrivate::HeaderData* header = NULL;
+  //struct CNIFTI1MainHeaderPrivate::HeaderData* header = NULL;
+
+  CNIFTI1MainHeaderPrivate::HeaderData* header = new CNIFTI1MainHeaderPrivate::HeaderData;
+  memcpy(header, &m_pData->header, sizeof(m_pData->header));
+
+  header->Sizeof_Hdr = 348; 
+  if (header->Vox_Offset == 0.0f) {
+      header->Vox_Offset = 352.0f;
+  }
 
 //------------------------------------------------------------------------------------
   if(QSysInfo::ByteOrder != QSysInfo::LittleEndian) {
@@ -498,10 +504,11 @@ bool CNIFTI1MainHeader::save(void) const {
         BSWAP_FLT(header->Srow_Z[i]);
     }
   }
+  /*
   else {
     header = &m_pData->header;
   }
-
+*/
 //------------------------------------------------------------------------------------
   // Write out the main header to the file
   bool result = false;
@@ -510,9 +517,18 @@ bool CNIFTI1MainHeader::save(void) const {
     result = true;
   }
 
+  /*
   // Delete the temporary byte-swapped header structure
   if(QSysInfo::ByteOrder != QSysInfo::BigEndian)
     delete header;
+  */
+  /*
+  if (QSysInfo::ByteOrder != QSysInfo::LittleEndian) {
+    // Clean up the temporary header 
+    delete header;
+  }
+*/
+  delete header;
 
   RETURN(result);
   return result;
@@ -520,7 +536,7 @@ bool CNIFTI1MainHeader::save(void) const {
 
 //=============================================================================================
 int CNIFTI1MainHeader::rawDataSize() const { 
-  return 348; // Size of the NIFTI-1 main header in bytes
+  return 348; // Size of the NIFTI-1 writeMatrix(const QByteArray& matrixData) (emain header in bytes
 }
 
 //=============================================================================================
@@ -541,20 +557,125 @@ bool CNIFTI1MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIO
   switch(mainHeader->headerFormat()) {
 
     // Conversion from ECAT main header to NIFTI1 main header
-    case CMedIOHeader::ECATMainHeader: 
-    {
-      const CECATMainHeader* eMainHeader = static_cast<const CECATMainHeader*>(mainHeader);
-      
-      // Default configurations for NIFTI converted from ECAT
-      m_pData->header.Dim[0] = 3; // 3D volume by default
-      m_pData->header.Qform_Code = 1; // Scanner anatomical coordinates
-      m_pData->header.Sform_Code = 0; // No standard space alignment by default
-      m_pData->header.Pix_Dim[0] = 1.0f; // qfac = 1 (right-handed)
+    case CMedIOHeader::ECATMainHeader: {
 
-      // Note: Full ECAT to NIFTI spatial mapping requires extracting 
-      // voxel sizes and matrix dimensions from ECAT subheaders, 
-      // which vary depending on ECAT6 or ECAT7 sub-types.
-      bResult = true;
+      const CECATMainHeader* eMainHeader = static_cast<const CECATMainHeader*>(mainHeader);
+      // Exctract the offset of the bed position from the ECAT main header, if available
+      float initBedPosition = 0.0f;
+      if (eMainHeader != NULL) {
+          m_pData->header.Dim[4] = eMainHeader->num_Frames();
+          
+          const CECAT7MainHeader* e7MainHeader = dynamic_cast<const CECAT7MainHeader*>(eMainHeader);
+
+          if (e7MainHeader != NULL) {
+              initBedPosition = e7MainHeader->init_Bed_Position();
+          }
+      }
+
+      const CECAT7SubHeaderImage* eSubHeader = NULL;
+      if (subHeader != NULL) {
+          eSubHeader = static_cast<const CECAT7SubHeaderImage*>(subHeader);
+      }
+
+      // 1. Initialize the mandatory structural fields of the NIfTI header
+      clear(); 
+      m_pData->header.Sizeof_Hdr = 348;
+      m_pData->header.Vox_Offset = 352.0f;
+      strncpy(m_pData->header.Magic, "n+1", 4);
+
+      // 2. Map spatial and temporal dimensions
+      m_pData->header.Dim[0] = 4; // 3D + time
+
+      // =============================================================================================================
+      // Set Qform and Sform codes to indicate scanner anatomical coordinates and affine transformation, respectively.
+      m_pData->header.Qform_Code = 1; // Scanner anatomical (Method 2)
+      m_pData->header.Sform_Code = 1; // Affine Transformation (Method 3)
+      //m_pData->header.Qoffset_Z = initBedPosition * 10.0f;
+
+      // =============================================================================================================
+      // Qform matrix Method 2: Scanner anatomical coordinates
+      //m_pData->header.Pix_Dim[0] = 1.0f; // qfac --> 1.0 for right-handed coordinate system
+      m_pData->header.Pix_Dim[0] = -1.0f;  // for left-handed coordinate system (ECAT uses left-handed coordinates)
+      
+      // Rotation of X and Y: Quaternion [a, b, c, d] for 180-degree rotation around Z-axis
+      m_pData->header.Quatern_B = 0.0f;
+      m_pData->header.Quatern_C = 0.0f;
+      m_pData->header.Quatern_D = 1.0f;
+      // =============================================================================================================
+
+      if (eSubHeader != NULL) {
+          m_pData->header.Dim[1] = eSubHeader->x_Dimension();
+          m_pData->header.Dim[2] = eSubHeader->y_Dimension();
+          m_pData->header.Dim[3] = eSubHeader->z_Dimension();
+          
+          float px = eSubHeader->x_Pixel_Size() * 10.0f; // mm
+          float py = eSubHeader->y_Pixel_Size() * 10.0f; 
+          float pz = eSubHeader->z_Pixel_Size() * 10.0f; 
+          
+          m_pData->header.Pix_Dim[1] = px;
+          m_pData->header.Pix_Dim[2] = py;
+          m_pData->header.Pix_Dim[3] = pz;
+
+          // Extract the scale factor slc_slope from ECAT subheader and pass it to the NIfTI header
+          m_pData->header.Scl_Slope = eSubHeader->scale_Factor();
+          
+          /*
+          // Calculation of the geometric center of the transaxial field of view (FOV / 2) and Coach position offset (initBedPosition) to determine the Qoffset values for the NIfTI header.
+          float nx = static_cast<float>(eSubHeader->x_Dimension());
+          float ny = static_cast<float>(eSubHeader->y_Dimension());
+          float offsetX = (nx * px) / 2.0f;
+          float offsetY = (ny * py) / 2.0f;
+          float bedOffsetMm = initBedPosition * 10.0f;
+          
+          m_pData->header.Qoffset_X = offsetX;
+          m_pData->header.Qoffset_Y = offsetY;
+          m_pData->header.Qoffset_Z = bedOffsetMm;
+          */
+          
+          // Extraction of native reconstruction offsets from the ECAT subheader for absolute bit-identity
+          float xOffsetMm = 0.0f;
+          float yOffsetMm = 0.0f;
+          float zOffsetMm = initBedPosition * 10.0f;
+
+          if (eSubHeader != NULL) {
+              // ECAT7 stores offsets in centimeters, convert them to millimeters (* 10.0f)
+              xOffsetMm = eSubHeader->x_Offset() * 10.0f;
+              yOffsetMm = eSubHeader->y_Offset() * 10.0f;
+              float subZOffset = eSubHeader->z_Offset() * 10.0f;
+              if (subZOffset != 0.0f) {
+                  zOffsetMm = subZOffset;
+              }
+          }
+
+          m_pData->header.Qoffset_X = xOffsetMm;
+          m_pData->header.Qoffset_Y = yOffsetMm;
+          m_pData->header.Qoffset_Z = zOffsetMm;
+
+          // =============================================================================================================
+          // Sform matrix Method 3: Affine transformation using the native reconstruction offsets
+
+          // X axis inverted
+          m_pData->header.Srow_X[0] = -px;  m_pData->header.Srow_X[1] = 0.0f; m_pData->header.Srow_X[2] = 0.0f; m_pData->header.Srow_X[3] = xOffsetMm; 
+          // Y axis inverted
+          m_pData->header.Srow_Y[0] = 0.0f; m_pData->header.Srow_Y[1] = -py; m_pData->header.Srow_Y[2] = 0.0f; m_pData->header.Srow_Y[3] = yOffsetMm; 
+          // Z axis mapping
+          m_pData->header.Srow_Z[0] = 0.0f; m_pData->header.Srow_Z[1] = 0.0f; m_pData->header.Srow_Z[2] = pz; m_pData->header.Srow_Z[3] = zOffsetMm;
+          // =============================================================================================================
+          
+          // 3. Map the data type (Create a mapping from ECAT data types to NIfTI data types)
+          short dt = eSubHeader->data_Type();
+          if (dt == CECATSubHeader::SunShort || dt == CECATSubHeader::VAX_Ix2) {
+              m_pData->header.DataType = 4; // 16-bit signed integer
+              m_pData->header.Bit_Pix = 16;
+          } else if (dt == CECATSubHeader::IEEEFloat || dt == CECATSubHeader::VAX_Rx4) {
+              m_pData->header.DataType = 16; // 32-bit float
+              m_pData->header.Bit_Pix = 32;
+          }
+      }
+      if (eMainHeader != NULL) {
+          m_pData->header.Dim[4] = eMainHeader->num_Frames();
+      }
+      bResult = true; 
     }
     break;
 
@@ -573,7 +694,7 @@ bool CNIFTI1MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIO
       m_pData->header.Pix_Dim[1] = head->pixelSize();
       m_pData->header.Pix_Dim[2] = head->pixelSize();
       m_pData->header.Pix_Dim[3] = head->axialPlaneSize(); // Z plane separation
-
+ 
       // Set Qform to scanner anatomical and apply translation offset
       m_pData->header.Qform_Code = 1;
       m_pData->header.Quatern_B = 0.0f;
@@ -664,6 +785,10 @@ float CNIFTI1MainHeader::pix_Dim(const short index) const {
   return 0.0f;
 }
 
+float CNIFTI1MainHeader::vox_Offset(void) const {
+  return m_pData->header.Vox_Offset;
+}
+
 short CNIFTI1MainHeader::qform_Code(void) const {
   return m_pData->header.Qform_Code;
 }
@@ -683,6 +808,141 @@ const char* CNIFTI1MainHeader::descrip(void) const {
 const char* CNIFTI1MainHeader::magic(void) const {
   return m_pData->header.Magic;
 }
+
+short CNIFTI1MainHeader::bit_Pix(void) const {
+  return m_pData->header.Bit_Pix;
+} 
+
+float CNIFTI1MainHeader::srow_X(const short index) const {
+  if(index >= 0 && index < 4)
+    return m_pData->header.Srow_X[index];
+  return 0;
+} 
+
+float CNIFTI1MainHeader::srow_Y(const short index) const {
+  if(index >= 0 && index < 4)
+    return m_pData->header.Srow_Y[index];
+  return 0;
+}
+
+float CNIFTI1MainHeader::srow_Z(const short index) const {
+  if(index >= 0 && index < 4)
+    return m_pData->header.Srow_Z[index];
+  return 0;
+}
+
+float CNIFTI1MainHeader::scl_Slope(void) const {
+  return m_pData->header.Scl_Slope;
+}
+
+float CNIFTI1MainHeader::scl_Inter(void) const {
+  return m_pData->header.Scl_Inter;
+}
+
+const char* CNIFTI1MainHeader::data_Type(void) const { 
+  return m_pData->header.Data_Type; 
+}
+
+const char* CNIFTI1MainHeader::db_Name(void) const { 
+  return m_pData->header.Db_Name; 
+}
+
+quint32 CNIFTI1MainHeader::extents(void) const { 
+  return m_pData->header.Extents; 
+}
+
+short CNIFTI1MainHeader::session_Error(void) const { 
+  return m_pData->header.Session_Error; 
+}
+
+char CNIFTI1MainHeader::regular(void) const { 
+  return m_pData->header.Regular; 
+}
+
+char CNIFTI1MainHeader::dim_Info(void) const { 
+  return m_pData->header.Dim_Info; 
+}
+
+float CNIFTI1MainHeader::intent_P1(void) const { 
+  return m_pData->header.Intent_P1; 
+}
+
+float CNIFTI1MainHeader::intent_P2(void) const { 
+  return m_pData->header.Intent_P2; 
+}
+
+float CNIFTI1MainHeader::intent_P3(void) const { 
+  return m_pData->header.Intent_P3; 
+}
+
+short CNIFTI1MainHeader::intent_Code(void) const { 
+  return m_pData->header.Intent_Code; 
+}
+
+short CNIFTI1MainHeader::dataType(void) const { 
+  return m_pData->header.DataType; 
+}
+
+short CNIFTI1MainHeader::slice_Start(void) const { 
+  return m_pData->header.Slice_Start; 
+}
+
+short CNIFTI1MainHeader::slice_End(void) const { 
+  return m_pData->header.Slice_End; 
+}
+
+char CNIFTI1MainHeader::slice_Code(void) const { 
+  return m_pData->header.Slice_Code;
+}
+
+char CNIFTI1MainHeader::xyzt_Units(void) const { 
+  return m_pData->header.XYZT_Units; 
+}
+
+float CNIFTI1MainHeader::cal_Max(void) const { 
+  return m_pData->header.Cal_Max; 
+}
+
+float CNIFTI1MainHeader::cal_Min(void) const { 
+  return m_pData->header.Cal_Min; 
+}
+
+float CNIFTI1MainHeader::slice_Duration(void) const { 
+  return m_pData->header.Slice_Duration; 
+}
+
+float CNIFTI1MainHeader::toffset(void) const { 
+  return m_pData->header.Toffset; 
+}
+
+quint32 CNIFTI1MainHeader::glmax(void) const { 
+  return m_pData->header.Glmax; 
+}
+
+quint32 CNIFTI1MainHeader::glmin(void) const { 
+  return m_pData->header.Glmin; 
+}
+
+const char* CNIFTI1MainHeader::aux_File(void) const { 
+  return m_pData->header.Aux_File; 
+}
+
+const char* CNIFTI1MainHeader::intent_Name(void) const { 
+  return m_pData->header.Intent_Name;
+}
+
+float CNIFTI1MainHeader::quatern_B(void) const { 
+  return m_pData->header.Quatern_B; 
+}
+
+float CNIFTI1MainHeader::quatern_C(void) const { 
+  return m_pData->header.Quatern_C; 
+}
+
+float CNIFTI1MainHeader::quatern_D(void) const { 
+  return m_pData->header.Quatern_D; 
+}
+
 //=============================================================================================
 // Setter Methods
 void CNIFTI1MainHeader::setSizeof_Hdr(const qint32 size) {
@@ -725,38 +985,239 @@ void CNIFTI1MainHeader::setMagic(const char* magic) {
   m_pData->header.Magic[sizeof(m_pData->header.Magic)-1] = '\0'; // Ensure null-termination
 }
 
+void CNIFTI1MainHeader::setScl_Slope(float slope) {
+  m_pData->header.Scl_Slope = slope;
+}
+
+void CNIFTI1MainHeader::setScl_Inter(float inter) {
+  m_pData->header.Scl_Inter = inter;
+}
+
+void CNIFTI1MainHeader::setData_Type(const char* dataType) {
+  strncpy(m_pData->header.Data_Type, dataType, sizeof(m_pData->header.Data_Type)-1);
+  m_pData->header.Data_Type[sizeof(m_pData->header.Data_Type)-1] = '\0';
+}
+
+void CNIFTI1MainHeader::setDb_Name(const char* dbName) {
+  strncpy(m_pData->header.Db_Name, dbName, sizeof(m_pData->header.Db_Name)-1);
+  m_pData->header.Db_Name[sizeof(m_pData->header.Db_Name)-1] = '\0';
+}
+
+void CNIFTI1MainHeader::setExtents(const quint32 extents) { m_pData->header.Extents = extents; }
+
+void CNIFTI1MainHeader::setSession_Error(const short error) { m_pData->header.Session_Error = error; }
+
+void CNIFTI1MainHeader::setRegular(const char regular) { m_pData->header.Regular = regular; }
+
+void CNIFTI1MainHeader::setDim_Info(const char dimInfo) { m_pData->header.Dim_Info = dimInfo; }
+
+void CNIFTI1MainHeader::setIntent_P1(const float p1) { m_pData->header.Intent_P1 = p1; }
+
+void CNIFTI1MainHeader::setIntent_P2(const float p2) { m_pData->header.Intent_P2 = p2; }
+
+void CNIFTI1MainHeader::setIntent_P3(const float p3) { m_pData->header.Intent_P3 = p3; }
+
+void CNIFTI1MainHeader::setIntent_Code(const short code) { m_pData->header.Intent_Code = code; }
+
+void CNIFTI1MainHeader::setDataType(const short dataType) { m_pData->header.DataType = dataType; }
+
+void CNIFTI1MainHeader::setBit_Pix(const short bitPix) { m_pData->header.Bit_Pix = bitPix; }
+
+void CNIFTI1MainHeader::setSlice_Start(const short start) { m_pData->header.Slice_Start = start; }
+
+void CNIFTI1MainHeader::setVox_Offset(const float offset) { m_pData->header.Vox_Offset = offset; }
+
+void CNIFTI1MainHeader::setSlice_End(const short end) { m_pData->header.Slice_End = end; }
+
+void CNIFTI1MainHeader::setSlice_Code(const char code) { m_pData->header.Slice_Code = code; }
+
+void CNIFTI1MainHeader::setXyzt_Units(const char units) { m_pData->header.XYZT_Units = units; }
+
+void CNIFTI1MainHeader::setCal_Max(const float max) { m_pData->header.Cal_Max = max; }
+
+void CNIFTI1MainHeader::setCal_Min(const float min) { m_pData->header.Cal_Min = min; }
+
+void CNIFTI1MainHeader::setSlice_Duration(const float duration) { m_pData->header.Slice_Duration = duration; }
+
+void CNIFTI1MainHeader::setToffset(const float toffset) { m_pData->header.Toffset = toffset; }
+
+void CNIFTI1MainHeader::setGlmax(const quint32 glmax) { m_pData->header.Glmax = glmax; }
+
+void CNIFTI1MainHeader::setGlmin(const quint32 glmin) { m_pData->header.Glmin = glmin; }
+
+void CNIFTI1MainHeader::setAux_File(const char* auxFile) {
+  strncpy(m_pData->header.Aux_File, auxFile, sizeof(m_pData->header.Aux_File)-1);
+  m_pData->header.Aux_File[sizeof(m_pData->header.Aux_File)-1] = '\0';
+}
+
+void CNIFTI1MainHeader::setIntent_Name(const char* intentName) {
+  strncpy(m_pData->header.Intent_Name, intentName, sizeof(m_pData->header.Intent_Name)-1);
+  m_pData->header.Intent_Name[sizeof(m_pData->header.Intent_Name)-1] = '\0';
+}
+
+void CNIFTI1MainHeader::setSrow_X(const short index, const float value) {
+  if(index >= 0 && index < 4) m_pData->header.Srow_X[index] = value;
+}
+void CNIFTI1MainHeader::setSrow_Y(const short index, const float value) {
+  if(index >= 0 && index < 4) m_pData->header.Srow_Y[index] = value;
+}
+
+void CNIFTI1MainHeader::setSrow_Z(const short index, const float value) {
+  if(index >= 0 && index < 4) m_pData->header.Srow_Z[index] = value;
+}
 //=============================================================================================
 QTextStream& operator<<(QTextStream& stream, const CNIFTI1MainHeader& mHeader) {
   ENTER();
 
-  stream << qSetRealNumberPrecision(6)
-         << "SIZEOF_HDR " << mHeader.m_pData->header.Sizeof_Hdr << Qt::endl
-         << "DATA_TYPE_STR "  << mHeader.m_pData->header.Data_Type  << Qt::endl
-         << "DESCRIP "    << mHeader.m_pData->header.Descrip    << Qt::endl
-         << "VOX_OFFSET " << mHeader.m_pData->header.Vox_Offset << Qt::endl;
+  stream << "SIZEOF_HDR " << mHeader.m_pData->header.Sizeof_Hdr << Qt::endl
+         << "DATA_TYPE_STR " << mHeader.m_pData->header.Data_Type  << Qt::endl
+         << "DB_NAME "    << mHeader.m_pData->header.Db_Name     << Qt::endl 
+         << "EXTENTS "    << mHeader.m_pData->header.Extents     << Qt::endl
+         << "SESSION_ERROR " << mHeader.m_pData->header.Session_Error << Qt::endl
+         << "REGULAR "    << (int)mHeader.m_pData->header.Regular     << Qt::endl
+         << "DIM_INFO "   << (int)mHeader.m_pData->header.Dim_Info    << Qt::endl;
 
   stream << "DIM";
   for(int i=0; i < 8; i++)
     stream << " " << mHeader.m_pData->header.Dim[i];
   stream << Qt::endl;
+  
+  stream << "INTENT_P1 "  << mHeader.m_pData->header.Intent_P1   << Qt::endl
+         << "INTENT_P2 "  << mHeader.m_pData->header.Intent_P2   << Qt::endl
+         << "INTENT_P3 "  << mHeader.m_pData->header.Intent_P3   << Qt::endl
+         << "INTENT_CODE " << mHeader.m_pData->header.Intent_Code << Qt::endl
+         << "DATA_TYPE "  << mHeader.m_pData->header.DataType   << Qt::endl
+         << "BIT_PIX "    << mHeader.m_pData->header.Bit_Pix     << Qt::endl
+         << "SLICE_START " << mHeader.m_pData->header.Slice_Start << Qt::endl;
 
   stream << "PIX_DIM";
   for(int i=0; i < 8; i++)
     stream << " " << mHeader.m_pData->header.Pix_Dim[i];
   stream << Qt::endl;
 
-  stream << "QFORM_CODE " << mHeader.m_pData->header.Qform_Code << Qt::endl
+  stream << "VOX_OFFSET " << mHeader.m_pData->header.Vox_Offset << Qt::endl
+         << "SCL_SLOPE "  << mHeader.m_pData->header.Scl_Slope  << Qt::endl
+         << "SCL_INTER "  << mHeader.m_pData->header.Scl_Inter  << Qt::endl
+         << "SLICE_END "  << mHeader.m_pData->header.Slice_End  << Qt::endl
+         << "SLICE_CODE " << (int)mHeader.m_pData->header.Slice_Code << Qt::endl
+         << "XYZT_UNITS " << (int)mHeader.m_pData->header.XYZT_Units << Qt::endl
+         << "CAL_MAX "    << mHeader.m_pData->header.Cal_Max    << Qt::endl
+         << "CAL_MIN "    << mHeader.m_pData->header.Cal_Min    << Qt::endl
+         << "SLICE_DURATION " << mHeader.m_pData->header.Slice_Duration << Qt::endl
+         << "TOFFSET "    << mHeader.m_pData->header.Toffset    << Qt::endl
+         << "GLMAX "      << mHeader.m_pData->header.Glmax      << Qt::endl
+         << "GLMIN "      << mHeader.m_pData->header.Glmin      << Qt::endl
+         << "DESCRIP "    << mHeader.m_pData->header.Descrip    << Qt::endl
+         << "AUX_FILE "   << mHeader.m_pData->header.Aux_File   << Qt::endl
+         << "QFORM_CODE " << mHeader.m_pData->header.Qform_Code << Qt::endl
          << "SFORM_CODE " << mHeader.m_pData->header.Sform_Code << Qt::endl
+         << "QUATERN_B "  << mHeader.m_pData->header.Quatern_B  << Qt::endl
+         << "QUATERN_C "  << mHeader.m_pData->header.Quatern_C  << Qt::endl
+         << "QUATERN_D "  << mHeader.m_pData->header.Quatern_D  << Qt::endl
          << "QOFFSET_X "  << mHeader.m_pData->header.Qoffset_X  << Qt::endl
          << "QOFFSET_Y "  << mHeader.m_pData->header.Qoffset_Y  << Qt::endl
-         << "QOFFSET_Z "  << mHeader.m_pData->header.Qoffset_Z  << Qt::endl;
-
-  stream << "QUATERN_B " << mHeader.m_pData->header.Quatern_B << Qt::endl
-         << "QUATERN_C " << mHeader.m_pData->header.Quatern_C << Qt::endl
-         << "QUATERN_D " << mHeader.m_pData->header.Quatern_D << Qt::endl;
-  stream << "MAGIC " << mHeader.m_pData->header.Magic << Qt::endl;
-
+         << "QOFFSET_Z "  << mHeader.m_pData->header.Qoffset_Z  << Qt::endl
+         << "SROW_X "     << mHeader.m_pData->header.Srow_X[0] << " " << mHeader.m_pData->header.Srow_X[1] << " " << mHeader.m_pData->header.Srow_X[2] << " " << mHeader.m_pData->header.Srow_X[3] << Qt::endl
+         << "SROW_Y "     << mHeader.m_pData->header.Srow_Y[0] << " " << mHeader.m_pData->header.Srow_Y[1] << " " << mHeader.m_pData->header.Srow_Y[2] << " " << mHeader.m_pData->header.Srow_Y[3] << Qt::endl
+         << "SROW_Z "     << mHeader.m_pData->header.Srow_Z[0] << " " << mHeader.m_pData->header.Srow_Z[1] << " " << mHeader.m_pData->header.Srow_Z[2] << " " << mHeader.m_pData->header.Srow_Z[3] << Qt::endl
+         << "INTENT_NAME " << mHeader.m_pData->header.Intent_Name << Qt::endl
+         << "MAGIC "      << mHeader.m_pData->header.Magic << Qt::endl;
 
   RETURN(&stream);
   return stream;
+}
+
+//============================================================================================
+// Header extension
+// after the main header, the extension is 4 bytes long 
+
+// Write BIDS JSON directly into the NIFTI-1 header extension
+bool CNIFTI1MainHeader::writeHeaderExtension(CNIFTIFile& file, const QJsonObject& json) {
+    // 1. Serialize the QJsonObject into a compact JSON format
+    QByteArray jsonData = QJsonDocument(json).toJson(QJsonDocument::Compact);
+    
+    // 2. Calculate the total size of the extension:
+    // esize (4 bytes) + ecode (4 bytes) + JSON data
+    qint32 esize = 8 + jsonData.size();
+    
+    // NIfTI extensions require esize to be an exact multiple of 16
+    qint32 remainder = esize % 16;
+    if (remainder != 0) {
+        esize += (16 - remainder);
+    }
+    
+    // Calculate the number of padding bytes needed at the end
+    int paddingSize = esize - (8 + jsonData.size());
+    
+    // ecode = 4 (commonly used for custom / ASCII / XML-ish / JSON data)
+    qint32 ecode = 4; 
+
+    // 3. Before writing the extension, the main header must have the extender set to {1, 0, 0, 0}
+    // (This indicates to reading software that extensions are present immediately after the header)
+    char extender[4] = {1, 0, 0, 0};
+    
+    // Write to the file (assuming the file is open for writing and positioned exactly after the 348 header bytes)
+    file.write(extender, 4);
+    file.write(reinterpret_cast<const char*>(&esize), 4);
+    file.write(reinterpret_cast<const char*>(&ecode), 4);
+    file.write(jsonData);
+    
+    // Write zero-padding to reach the multiple of 16
+    if (paddingSize > 0) {
+        QByteArray zeroPadding(paddingSize, 0);
+        file.write(zeroPadding);
+    }
+    
+    // 4. Update Vox_Offset in the main header:
+    // 348 (header) + 4 (extender) + total esize of the extensions
+    m_pData->header.Vox_Offset = static_cast<float>(348 + 4 + esize); 
+    
+    return true;
+}
+
+//=============================================================================================
+// Read BIDS JSON directly from the NIFTI-1 header extension
+QJsonObject CNIFTI1MainHeader::readHeaderExtension(CNIFTIFile& file) const {
+    QJsonObject emptyJson;
+    
+    // 1. Move file pointer exactly to the 348th byte (start of extender block)
+    if (!file.seek(348)) {
+      //std::cout << "Debug: Failed to seek to 348" << std::endl;
+      return emptyJson;
+    }
+
+    char extender[4] = {0, 0, 0, 0};
+    if (file.read(extender, 4) != 4) {
+      //std::cout << "Debug: Failed to read extender" << std::endl;
+      return emptyJson;
+    }
+
+    //std::cout << "Debug: Extender bytes read: " << (int)extender[0] << " " << (int)extender[1] << std::endl;
+    
+    // 2. If extender[0] != 1, there are no extensions present
+    if (extender[0] != 1) return emptyJson;
+    
+    // 3. Read esize (4 bytes) and ecode (4 bytes)
+    qint32 esize = 0;
+    qint32 ecode = 0;
+    if (file.read(reinterpret_cast<char*>(&esize), 4) != 4) return emptyJson;
+    if (file.read(reinterpret_cast<char*>(&ecode), 4) != 4) return emptyJson;
+    
+    // 4. Validate extension type (4 = JSON / Custom data)
+    if (ecode != 4) return emptyJson;
+    
+    // 5. Calculate data size (esize includes 4 bytes for esize itself + 4 bytes for ecode + payload)
+    int dataSize = esize - 8;
+    if (dataSize <= 0) return emptyJson;
+    
+    QByteArray jsonData = file.read(dataSize);
+    if (jsonData.isEmpty()) return emptyJson;
+    
+    // 6. Parse the byte array into a QJsonDocument
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData);
+    if (!jsonDoc.isNull() && jsonDoc.isObject()) {
+        return jsonDoc.object();
+    }
+    
+    return emptyJson;
 }

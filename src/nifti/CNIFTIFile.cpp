@@ -32,8 +32,8 @@
 // public headers 
 
 //=============================================================================================
-// CNIFTIFilePrivate class is a private class that is used to store the private data of the CNIFTIFile class
-// private class to add private variables to the CNIFTIFile class without exposing them in the public header file 
+// CNIFTIFilePrivate class is a private class that is used to store the private data of the CNIFTIFile class.
+// Private class to add private variables to the CNIFTIFile class without exposing them in the public header file 
 
 class CNIFTIFilePrivate {
   public:
@@ -58,6 +58,13 @@ CNIFTIFile::CNIFTIFile(const QString& filename, CNIFTIMainHeader::Type fileType)
     m_pData->cachedMainHeader = NULL;
     
     setFileType(fileType);
+
+    // to specify the NIfTI format version (NIFTI1 or NIFTI2) based on the file extension
+    if (fileType == CNIFTIMainHeader::NIFTI1) {
+      m_pData->iNIFTIformat = CNIFTIFile::NIFTI1;
+    } else if (fileType == CNIFTIMainHeader::NIFTI2) {
+      m_pData->iNIFTIformat = CNIFTIFile::NIFTI2; 
+    }
 
     LEAVE();
 }
@@ -140,13 +147,13 @@ bool CNIFTIFile::open(QIODevice::OpenModeFlag mode) {
 
       //*********************************************************** 
       // DEBUG to check the size of the header
-      std::cout << "DEBUG: sizeof_hdr = " << sizeof_hdr << " : " << std::endl;
+      // std::cout << "DEBUG: sizeof_hdr = " << sizeof_hdr << " : " << std::endl;
       //*********************************************************** 
 
       // Verify if it is a NIfTI-1 (348 byte)
       if(sizeof_hdr == 348 || sizeof_hdr == 1543569408) {
         D("Found NIfTI-1 file");
-        std::cout << "NIFTI1" << std::endl;
+        //std::cout << "NIFTI1" << std::endl;
         m_pData->iNIFTIformat = CNIFTIFile::NIFTI1;
         
         // Create the header object CNIFTIMainHeader and tell it to load the rest of the data:
@@ -157,7 +164,7 @@ bool CNIFTIFile::open(QIODevice::OpenModeFlag mode) {
         if(m_pData->cachedMainHeader->load()) {
           result = true;
         } else {
-          std::cout << "blah" << std::endl;
+          //std::cout << "blah" << std::endl;
           W("Error while loading NIfTI-1 header");
         }
       }
@@ -338,7 +345,19 @@ bool CNIFTIFile::readMatrix(QByteArray*& matrixData) {
 
   if(isReadable() && m_pData->cachedMainHeader) {
     // 1. offset skipping the header (348 o 540 byte)
-    int offset = m_pData->cachedMainHeader->rawDataSize(); 
+    //int offset = m_pData->cachedMainHeader->rawDataSize(); // Get the size of the main header to determine where the voxel data starts
+    
+    // 1. offset of voxel which is not necessarily the end of the header, because the NIfTI format allows for additional data after the header (extensions).
+    int offset = 0;
+    if (format() == CNIFTIFile::NIFTI1) {
+        offset = static_cast<CNIFTI1MainHeader*>(m_pData->cachedMainHeader)->vox_Offset();
+    } else if (format() == CNIFTIFile::NIFTI2) {
+        offset = static_cast<CNIFTI2MainHeader*>(m_pData->cachedMainHeader)->vox_Offset();
+    }
+
+    if (offset == 0) {
+        offset = m_pData->cachedMainHeader->rawDataSize() + 4;
+    }
     
     // 2. Shift the file pointer beyond the header (shift the file pointer to the beginning of the voxel data)
     seek(offset);
@@ -363,7 +382,18 @@ bool CNIFTIFile::readMatrix(char*& matrixData, unsigned int& len) {
   bool result = false;
 
   if(isReadable() && m_pData->cachedMainHeader) {
-    int offset = m_pData->cachedMainHeader->rawDataSize();
+    
+    int offset = 0;
+    if (format() == CNIFTIFile::NIFTI1) {
+        offset = static_cast<CNIFTI1MainHeader*>(m_pData->cachedMainHeader)->vox_Offset();
+    } else if (format() == CNIFTIFile::NIFTI2) {
+        offset = static_cast<CNIFTI2MainHeader*>(m_pData->cachedMainHeader)->vox_Offset();
+    }
+    
+    if (offset == 0) {
+        offset = m_pData->cachedMainHeader->rawDataSize() + 4;
+    }
+
     seek(offset);
     
     len = size() - offset; // Number of bytes remaining in the file
@@ -388,7 +418,20 @@ bool CNIFTIFile::writeMatrix(const QByteArray& matrixData) {
   bool result = false;
 
   if(isWritable() && m_pData->cachedMainHeader) {
-    int offset = m_pData->cachedMainHeader->rawDataSize();
+    // Use vox_offset to not overwrite the eventual extensions!
+    int offset = 0;
+
+    if (format() == CNIFTIFile::NIFTI1) {
+        offset = static_cast<CNIFTI1MainHeader*>(m_pData->cachedMainHeader)->vox_Offset();
+    } else if (format() == CNIFTIFile::NIFTI2) {
+        offset = static_cast<CNIFTI2MainHeader*>(m_pData->cachedMainHeader)->vox_Offset();
+    }
+    
+    // If the vox_offset is not set correctly, we use the rawDataSize() method to get the size of the main header and use that as the offset
+    if (offset == 0) {
+        offset = m_pData->cachedMainHeader->rawDataSize() + 4;
+    }
+
     seek(offset);
     
     qint64 bytesWritten = write(matrixData);
@@ -406,7 +449,22 @@ bool CNIFTIFile::writeMatrix(const char* matrixData, unsigned int size) {
   bool result = false;
 
   if(isWritable() && m_pData->cachedMainHeader) {
-    int offset = m_pData->cachedMainHeader->rawDataSize();
+    
+    int offset = 0;
+    
+    if (format() == CNIFTIFile::NIFTI1) {
+        offset = static_cast<CNIFTI1MainHeader*>(m_pData->cachedMainHeader)->vox_Offset();
+        std::cout << "Offset" << offset << std::endl;
+    } else if (format() == CNIFTIFile::NIFTI2) {
+        offset = static_cast<CNIFTI2MainHeader*>(m_pData->cachedMainHeader)->vox_Offset();
+        std::cout << "Offset" << offset << std::endl;
+    }
+    
+    if (offset == 0) {
+        offset = m_pData->cachedMainHeader->rawDataSize() + 4;
+        std::cout << "Offset" << offset << std::endl;
+    }
+
     seek(offset);
     
     qint64 bytesWritten = write(matrixData, size);

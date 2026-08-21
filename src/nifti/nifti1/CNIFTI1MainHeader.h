@@ -106,6 +106,7 @@ class CNIFTI1MainHeader : public CNIFTIMainHeader { // derived class from CNIFTI
     qint32 sizeof_Hdr(void) const;
     short dim(const short index) const;
     float pix_Dim(const short index) const;
+    float vox_Offset(void) const;
     short qform_Code(void) const;
     short sform_Code(void) const;
     float qoffset_X(void) const;
@@ -113,6 +114,38 @@ class CNIFTI1MainHeader : public CNIFTIMainHeader { // derived class from CNIFTI
     float qoffset_Z(void) const;
     const char* descrip(void) const;
     const char* magic(void) const;
+    short bit_Pix(void) const;
+    float srow_X(const short index) const;
+    float srow_Y(const short index) const;
+    float srow_Z(const short index) const;
+    const char* data_Type(void) const;
+    const char* db_Name(void) const;
+    quint32 extents(void) const;
+    short session_Error(void) const;
+    char regular(void) const;
+    char dim_Info(void) const;
+    float intent_P1(void) const;
+    float intent_P2(void) const;
+    float intent_P3(void) const;
+    short intent_Code(void) const;
+    short dataType(void) const;
+    short slice_Start(void) const;
+    short slice_End(void) const;
+    char slice_Code(void) const;
+    char xyzt_Units(void) const;
+    float cal_Max(void) const;
+    float cal_Min(void) const;
+    float slice_Duration(void) const;
+    float toffset(void) const;
+    quint32 glmax(void) const;
+    quint32 glmin(void) const;
+    const char* aux_File(void) const;
+    const char* intent_Name(void) const;
+    float quatern_B(void) const;
+    float quatern_C(void) const;
+    float quatern_D(void) const;
+    float scl_Slope(void) const;
+    float scl_Inter(void) const;
 
 // Setter Methods
     void setSizeof_Hdr(const qint32 size);
@@ -128,6 +161,36 @@ class CNIFTI1MainHeader : public CNIFTIMainHeader { // derived class from CNIFTI
     void setQuatern_D(const float val);
     void setDescrip(const char* desc);
     void setMagic(const char* magic);
+    void setData_Type(const char* dataType);
+    void setDb_Name(const char* dbName);
+    void setExtents(const quint32 extents);
+    void setSession_Error(const short error);
+    void setRegular(const char regular);
+    void setDim_Info(const char dimInfo);
+    void setIntent_P1(const float p1);
+    void setIntent_P2(const float p2);
+    void setIntent_P3(const float p3);
+    void setIntent_Code(const short code);
+    void setDataType(const short dataType);
+    void setBit_Pix(const short bitPix);
+    void setSlice_Start(const short start);
+    void setVox_Offset(const float offset);
+    void setSlice_End(const short end);
+    void setSlice_Code(const char code);
+    void setXyzt_Units(const char units);
+    void setCal_Max(const float max);
+    void setCal_Min(const float min);
+    void setSlice_Duration(const float duration);
+    void setToffset(const float toffset);
+    void setGlmax(const quint32 glmax);
+    void setGlmin(const quint32 glmin);
+    void setAux_File(const char* auxFile);
+    void setSrow_X(const short index, const float value);
+    void setSrow_Y(const short index, const float value);
+    void setSrow_Z(const short index, const float value);
+    void setIntent_Name(const char* intentName);    
+    void setScl_Slope(float slope);
+    void setScl_Inter(float inter);
 /*
     // special Qt-based methods for easy time conversion of the really
     // mad ECAT time specifications
@@ -138,6 +201,17 @@ class CNIFTI1MainHeader : public CNIFTIMainHeader { // derived class from CNIFTI
     void setScan_Start_Time_Qt(const QDateTime& dateTime);
     void setDose_Start_Time_Qt(const QDateTime& dateTime);
 */
+
+    // ===============================================================================
+    // Method to write the header extension to a NIfTI file. 
+    // It takes a reference to a CNIFTIFile object and a QJsonObject containing the metadata to be written. 
+    bool writeHeaderExtension(CNIFTIFile& file, const QJsonObject& json);
+
+    // Method to read the header extension from a NIfTI file.
+    // It takes a reference to a CNIFTIFile object and returns a QJsonObject containing the metadata read from the header extension.        
+    QJsonObject readHeaderExtension(CNIFTIFile& file) const;
+    //================================================================================
+
   private:
     CNIFTI1MainHeaderPrivate*  m_pData;
 };

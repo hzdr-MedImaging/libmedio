@@ -37,8 +37,7 @@ class CMedIOHeaderPrivate;
 //! This class is an interface for easier handling of different medical data headers.
 //! All headers of data formats which are included in Medical IO Library should use the class
 //! as a baseclass.
-class CMedIOHeader
-{
+class CMedIOHeader {
   public:
     enum Format 
     {  

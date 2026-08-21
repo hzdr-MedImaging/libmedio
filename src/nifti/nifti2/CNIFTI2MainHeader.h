@@ -104,30 +104,80 @@ class CNIFTI2MainHeader : public CNIFTIMainHeader { // derived class from CNIFTI
 
 // Getter Methods
     qint32 sizeof_Hdr(void) const;
-    short dim(const short index) const;
-    float pix_Dim(const short index) const;
-    short qform_Code(void) const;
-    short sform_Code(void) const;
-    float qoffset_X(void) const;
-    float qoffset_Y(void) const;
-    float qoffset_Z(void) const;
+    qint64 dim(const short index) const;
+    double pix_Dim(const short index) const;
+    qint64 vox_Offset(void) const;
+    qint32 qform_Code(void) const;
+    qint32 sform_Code(void) const;
+    double qoffset_X(void) const;
+    double qoffset_Y(void) const;
+    double qoffset_Z(void) const;
     const char* descrip(void) const;
     const char* magic(void) const;
+    qint16 bit_Pix(void) const;    
+    double srow_X(const short index) const;
+    double srow_Y(const short index) const;
+    double srow_Z(const short index) const;
+    qint16 dataType(void) const;
+    double intent_P1(void) const;
+    double intent_P2(void) const;
+    double intent_P3(void) const;
+    double cal_Max(void) const;
+    double cal_Min(void) const;
+    double slice_Duration(void) const;
+    double toffset(void) const;
+    qint64 slice_Start(void) const;
+    qint64 slice_End(void) const;
+    const char* aux_File(void) const;
+    double quatern_B(void) const;
+    double quatern_C(void) const;
+    double quatern_D(void) const;
+    qint32 slice_Code(void) const;
+    qint32 xyzt_Units(void) const;
+    qint32 intent_Code(void) const;
+    const char* intent_Name(void) const;
+    char dim_Info(void) const;
+    double scl_Slope(void) const;
+    double scl_Inter(void) const;
+    
+
 
 // Setter Methods
     void setSizeof_Hdr(const qint32 size);
-    void setDim(const short index, const short value);
-    void setPix_Dim(const short index, const float value);
-    void setQform_Code(const short code);
-    void setSform_Code(const short code);
-    void setQoffset_X(const float offset);
-    void setQoffset_Y(const float offset);
-    void setQoffset_Z(const float offset);
-    void setQuatern_B(const float val);
-    void setQuatern_C(const float val);
-    void setQuatern_D(const float val);
+    void setDim(const short index, const qint64 value);
+    void setPix_Dim(const short index, const double value);
+    void setQform_Code(const qint32 code);
+    void setSform_Code(const qint32 code);
+    void setQoffset_X(const double offset);
+    void setQoffset_Y(const double offset);
+    void setQoffset_Z(const double offset);
+    void setQuatern_B(const double val);
+    void setQuatern_C(const double val);
+    void setQuatern_D(const double val);
     void setDescrip(const char* desc);
     void setMagic(const char* magic);
+    void setDataType(const qint16 dataType);
+    void setBit_Pix(const qint16 bitPix);
+    void setIntent_P1(const double p1);
+    void setIntent_P2(const double p2);
+    void setIntent_P3(const double p3);
+    void setCal_Max(const double max);
+    void setCal_Min(const double min);
+    void setSlice_Duration(const double duration);
+    void setToffset(const double toffset);
+    void setSlice_Start(const qint64 start);
+    void setSlice_End(const qint64 end);
+    void setAux_File(const char* auxFile);
+    void setSlice_Code(const qint32 code);
+    void setXyzt_Units(const qint32 units);
+    void setIntent_Code(const qint32 code);
+    void setIntent_Name(const char* intentName);
+    void setDim_Info(const char dimInfo);
+    void setSrow_X(const short index, const double value);
+    void setSrow_Y(const short index, const double value);
+    void setSrow_Z(const short index, const double value);
+    void setScl_Slope(const double slope);
+    void setScl_Inter(const double inter);
 
 /*
     // special Qt-based methods for easy time conversion of the really
@@ -139,6 +189,17 @@ class CNIFTI2MainHeader : public CNIFTIMainHeader { // derived class from CNIFTI
     void setScan_Start_Time_Qt(const QDateTime& dateTime);
     void setDose_Start_Time_Qt(const QDateTime& dateTime);
 */
+
+    // ===============================================================================
+    // Method to write the header extension to a NIfTI file. 
+    // It takes a reference to a CNIFTIFile object and a QJsonObject containing the metadata to be written. 
+    bool writeHeaderExtension(CNIFTIFile& file, const QJsonObject& json);
+    
+    // Method to read the header extension from a NIfTI file.
+    // It takes a reference to a CNIFTIFile object and returns a QJsonObject containing the metadata read from the header extension.        
+    QJsonObject readHeaderExtension(CNIFTIFile& file) const;
+    // ===============================================================================        
+
   private:
     CNIFTI2MainHeaderPrivate*  m_pData;
 };

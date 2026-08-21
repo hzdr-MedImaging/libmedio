@@ -52,10 +52,9 @@ int main(int argc, char* argv[]) {
   // check if the user has specified a filename or not
   if(argc > 1) {
     char* filename = argv[1]; // get the name of the file from the commandline arguments
-    short frameNumber = -1;
 
-    if(argc > 2)
-      frameNumber = atoi(argv[2]);
+    QString outputCopyFilename = (argc > 2) ? argv[2] : "copy_test.nii"; // get the name of the output file from the commandline arguments or use a default name
+    QString outputRawFilename = (argc > 3) ? argv[3] : "voxel_output.raw"; 
 
     // open the file
     CNIFTIFile file(filename); // create a CNIFTIFile object with the specified filename
@@ -97,9 +96,10 @@ int main(int argc, char* argv[]) {
         out << *mHeader;
         out.flush();
 
-        cout << "SIZEOF_HDR:" << mHeader->sizeof_Hdr() << endl;
+        //cout << "SIZEOF_HDR:" << mHeader->sizeof_Hdr() << endl;
 
         delete mainHeader; // delete the main header pointer to free up memory
+
         /*
         cout << "Main header data (NIFTI1):" << endl;
         cout << "------------------------" << endl;
@@ -224,19 +224,106 @@ int main(int argc, char* argv[]) {
         cout << "MATRIX_CODE...............: " << mHeader->matrix_Code()                    << endl;
         */
       }
+
+//===============================================================================================================
+// Now that we have printed out the main header information, we can read the voxel data from the NIFTI file and store it in a QByteArray. 
+// This allows us to access the voxel data in memory for further processing or analysis.
+      QByteArray* pVoxelData = NULL; // null pointer to hold the voxel data read from the NIFTI file
+      
+      if(file.readMatrix(pVoxelData)) { // read the voxel data into the QByteArray
+      // check if the readMatrix function was successful in reading the voxel data --> readMatrix returns true if the read was successful, false otherwise.
+        
+        cout << endl << "----------------------------------------" << endl;
+        cout << "Successfully read the voxel data into a QByteArray" << endl;
+        cout << "Voxel data size: " << pVoxelData->size() << " bytes" << endl;
+
+        // Here you can process the voxel data as needed, for example we can export the matrix voxel data in binary format.
+        
+        // Write the QByteArray on a local binary file
+        QFile rawFile(outputRawFilename); // create a QFile object for the output raw file
+        if(rawFile.open(QIODevice::WriteOnly)) {
+          rawFile.write(*pVoxelData);
+          rawFile.close();
+          cout << "Voxel data successfully exported to '" << outputRawFilename.toStdString() << "'" << endl;
+        } else {
+          cout << "Error: Could not open '" << outputRawFilename.toStdString() << "' for writing." << endl;
+        }
+        
+        delete pVoxelData; // delete the voxel data pointer to free up memory
+      }
       // close the NIFTI file
       file.close();
       returnCode = 0; // return success
+    
+// === Writing Test  ===
+      QString inputFilename = argv[1];
+      QString outputFilename = outputCopyFilename; // output filename for the copy test
 
+      cout << endl << "----------------------------------------" << endl;
+      cout << "Writing test to: " << outputFilename.toStdString() << endl;
+
+      // 1. First of all open the original file in reading mode to read the main header and the matrix voxel data
+      CNIFTIFile inFile(inputFilename);
+      if (inFile.open(QIODevice::ReadOnly)) { // open the original file in reading mode
+          
+          CNIFTIMainHeader* mainHeader = NULL;
+          inFile.readMainHeader(mainHeader);// read the main header from the original file using the readMainHeader method of the CNIFTIFile class
+
+          QByteArray* voxelData = NULL;
+          inFile.readMatrix(voxelData); // read the matrix voxel data from the original file using the readMatrix method of the CNIFTIFile class
+          inFile.close();
+
+          if (mainHeader && voxelData) {
+              // 2. Create a new object CNIFTIFile for the output
+              // Impose the format explicitly (NIFTI1)
+              CNIFTIFile outFile(outputFilename, CNIFTIMainHeader::NIFTI1); // create a new CNIFTIFile object for the output file with the specified output filename
+              
+              // Impose the output file to be NIfTI (or reading the format from inFile)
+              // In the constructor we ensure that the file is created as a NIFTI1 header
+
+              
+              // Open the output file in writing mode
+              if (outFile.open(QIODevice::WriteOnly)) {
+                  
+                  // Associate the read header with the new output file
+                  mainHeader->setMedIOData(&outFile);
+
+                  // 3. Write the header to the new file
+                  if (outFile.writeMainHeader(*mainHeader)) { // write the main header to the new output file using the writeMainHeader method of the CNIFTIFile class
+                      cout << "Header written with success." << endl;
+                  } else {
+                      cout << "Error while writing the header!" << endl;
+                  }
+
+                  // 4. Write the voxel matrix to the new file
+                  if (outFile.writeMatrix(*voxelData)) { // write the voxel matrix to the new output file using the writeMatrix method of the CNIFTIFile class
+                      cout << "Voxel matrix written with success." << endl;
+                  } else {
+                      cout << "Error while writing the voxel matrix!" << endl;
+                  }
+
+                  outFile.close();
+                  cout << "Copy file generated correctly!" << endl;
+              } else {
+                  cout << "Error: unable to open " << outputFilename.toStdString() << " for writing." << endl;
+              }
+
+              // Memory cleanup
+              delete mainHeader;
+              delete voxelData;
+          }
+      }
     } 
     else {
       cout << "Error on loading file '" << argv[1] << "' as an NIFTI1/NIFTI2 file.\n";
   } 
+
+
 }
  
 else {
     cout << "Error: No filename was specified on the commandline" << endl;
-    cout << argv[0] << " <filename> [framenumber]" << endl;
+    cout << "Usage: " << argv[0] << " <input.nii> [custom_copy.nii] [custom_voxel.raw]" << endl;
   }
 
   return returnCode;
