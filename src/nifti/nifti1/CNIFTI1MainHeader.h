@@ -75,7 +75,8 @@ class CNIFTI1MainHeader : public CNIFTIMainHeader { // derived class from CNIFTI
     ~CNIFTI1MainHeader();
 
 // Copy constructor
-    CNIFTI1MainHeader(const CNIFTI1MainHeader& src);    
+    CNIFTI1MainHeader(const CNIFTI1MainHeader& src);  
+    
 // Default assignment operator
     CNIFTI1MainHeader& operator=(const CNIFTI1MainHeader& src);
 
@@ -191,18 +192,10 @@ class CNIFTI1MainHeader : public CNIFTIMainHeader { // derived class from CNIFTI
     void setIntent_Name(const char* intentName);    
     void setScl_Slope(float slope);
     void setScl_Inter(float inter);
-/*
-    // special Qt-based methods for easy time conversion of the really
-    // mad ECAT time specifications
-    QDate patient_Birth_Date_Qt(void) const;
-    QDateTime scan_Start_Time_Qt(void) const;
-    QDateTime dose_Start_Time_Qt(void) const;
-    void setPatient_Birth_Date_Qt(const QDate& date);
-    void setScan_Start_Time_Qt(const QDateTime& dateTime);
-    void setDose_Start_Time_Qt(const QDateTime& dateTime);
-*/
 
     // ===============================================================================
+    int headerExtensionSize(const QJsonObject& json) const;
+
     // Method to write the header extension to a NIfTI file. 
     // It takes a reference to a CNIFTIFile object and a QJsonObject containing the metadata to be written. 
     bool writeHeaderExtension(CNIFTIFile& file, const QJsonObject& json);
@@ -210,6 +203,7 @@ class CNIFTI1MainHeader : public CNIFTIMainHeader { // derived class from CNIFTI
     // Method to read the header extension from a NIfTI file.
     // It takes a reference to a CNIFTIFile object and returns a QJsonObject containing the metadata read from the header extension.        
     QJsonObject readHeaderExtension(CNIFTIFile& file) const;
+
     //================================================================================
 
   private:

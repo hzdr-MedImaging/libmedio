@@ -93,6 +93,7 @@ int main(int argc, char* argv[]) {
     
     
     //=========================================================================================================
+    
     // Z orientation correction for ECAT to NIfTI conversion
     if (ecatSubHeader && voxelData) {
         int nz = 0;
@@ -113,7 +114,41 @@ int main(int argc, char* argv[]) {
             
             int sliceSize = nx * ny * bytesPerVoxel;
 
-            QByteArray* flippedData = new QByteArray(voxelData->size(), 0); 
+            qint64 expectedVoxelBytes = static_cast<qint64>(nx) * static_cast<qint64>(ny) * static_cast<qint64>(nz) * static_cast<qint64>(bytesPerVoxel);
+
+            cout << "ECAT matrix size read by libmedio: "
+                << voxelData->size()
+                << " bytes" << endl;
+
+            cout << "Expected image voxel size: "
+                << expectedVoxelBytes
+                << " bytes" << endl;
+
+            cout << "Difference: "
+                << (voxelData->size() - expectedVoxelBytes)
+                << " bytes" << endl;
+
+            
+            // Check that the ECAT matrix contains at least all expected voxel data
+            if (voxelData->size() < expectedVoxelBytes) {
+                cout << "Error: ECAT matrix is smaller than the expected voxel data size."
+                    << endl;
+
+                delete ecatMainHeader;
+                delete ecatSubHeader;
+                delete voxelData;
+
+                return 1;
+            }
+
+            if (voxelData->size() > expectedVoxelBytes) {
+                cout << "Notice: ignoring "
+                    << (voxelData->size() - expectedVoxelBytes)
+                    << " trailing bytes after the voxel matrix."
+                    << endl;
+            }
+
+            QByteArray* flippedData = new QByteArray(static_cast<int>(expectedVoxelBytes), 0);
 
             for (int z = 0; z < nz; ++z) {
                 int srcOffset = z * sliceSize;
@@ -126,6 +161,7 @@ int main(int argc, char* argv[]) {
             cout << "Notice: Applied geometric Z-flip to match NIfTI orientation." << endl;
         }
     }
+    
     //=========================================================================================================
 
     // 4. Close the ECAT file
@@ -133,36 +169,7 @@ int main(int argc, char* argv[]) {
     
 
     if(ecatMainHeader && ecatSubHeader && voxelData) { // if the main header, subheader and voxel data are successfully read from the ECAT file
-        // 5. Create a NIfTI file in output and write the voxel data to it
-        //CNIFTIFile niftiFile(outputFilename, CNIFTIMainHeader::NIFTI1); // create an instance of the CNIFTIFile class with the output NIfTI file name
-        
-        /*
-        if(!niftiFile.open(QIODevice::WriteOnly)) { // open the NIfTI file in write-only mode using the open method of the CNIFTIFile class
-            cout << "Error: unable to open " << outputFilename.toStdString() << " for writing." << endl;
-            return 1;
-        }
 
-        // 6. Create a NIfTI main header and set its properties based on the ECAT main header and subheader
-        CNIFTI1MainHeader niftiMainHeader; // create an instance of the CNIFTI1MainHeader class
-        
-        // using the setter methods of the CNIFTI1MainHeader class to set the properties of the NIfTI main header based on the ECAT main header and subheader
-        niftiMainHeader.setDim(ecatMainHeader->num_Planes(), ecatMainHeader->num_Frames(), ecatMainHeader->num_Gates(), ecatMainHeader->num_Bed_Pos()); // set the dimensions of the NIfTI main header based on the ECAT main header
-        niftiMainHeader.setDataType(ecatSubHeader->data_Type()); // set the data type of the NIfTI main header based on the ECAT subheader
-        // niftiMainHeader.setVoxelSize( .... );
-        // ...
-
-        // 7. Write the NIfTI main header and voxel data to the NIfTI file
-        niftiFile.writeMainHeader(niftiMainHeader); // write the NIfTI main header to the NIfTI file using the writeMainHeader method of the CNIFTIFile class
-        niftiFile.writeMatrix(*voxelData); // write the voxel data to the NIfTI file using the writeMatrix method of the CNIFTIFile class
-
-        // 8. Close the NIfTI file using the close method of the CNIFTIFile class
-        niftiFile.close(); // close the NIfTI file using the close method of the CNIFTIFile class
-        delete ecatMainHeader; // delete the ECAT main header to free up memory
-        delete ecatSubHeader; // delete the ECAT subheader to free up memory
-        delete voxelData; // delete the voxel data to free up memory
-        */
-
-        // =========================================================================================
         // Normalization-Mode: Voxel conversion from Short (16-bit) to Float (32-bit) and scale absorption
         if (normalize) {
 
@@ -293,6 +300,13 @@ int main(int argc, char* argv[]) {
                 json["Data_Units"] = QString(mainEcat->data_Units());
                 json["Scan_Start_Time"] = static_cast<int>(mainEcat->scan_Start_Time());
                 json["Dose_Start_Time"] = static_cast<int>(mainEcat->dose_Start_Time());
+                json["Calibration_Units"] = static_cast<int>(mainEcat->calibration_Units());
+                json["Acquisition_Type"] = static_cast<int>(mainEcat->acquisition_Type());
+                json["Lwr_True_Thres"] = static_cast<int>(mainEcat->lwr_True_Thres());
+                json["Upr_True_Thres"] = static_cast<int>(mainEcat->upr_True_Thres());
+                json["Calibration_Units_Label"] = static_cast<int>(mainEcat->calibration_Units_Label());
+
+                json["Lwr_Sctr_Thres"] = static_cast<int>(mainEcat->lwr_Sctr_Thres());
 
                 // Geometry
                 json["Init_Bed_Position"] = static_cast<double>(mainEcat->init_Bed_Position());
@@ -305,37 +319,106 @@ int main(int argc, char* argv[]) {
                     json["Frame_Start_Time"] = static_cast<double>(imgEcat->frame_Start_Time());
                     json["Frame_Duration"] = static_cast<double>(imgEcat->frame_Duration());
                 }
+                if (imgEcat) {
+                    json["Recon_Zoom"] = static_cast<double>(imgEcat->recon_Zoom());
+                }           
+
+
             }
 
-            // =========================================================================================
-            // Write the NIfTI file including the JSON extension 
-            
-            // Write the 348 bytes of the main header
-            niftiFile.writeMainHeader(*niftiHeader);
 
-            // If NIfTI-1 is selected and ECAT data is available, add the JSON extension
-            /*
-            if (!useNifti2 && mainEcat) {
+            if (useNifti2) {
+                CNIFTI2MainHeader* n2 = static_cast<CNIFTI2MainHeader*>(niftiHeader);
+
+                if(n2){
+                    int extensionSize = n2->headerExtensionSize(json);
+
+
+                    n2->setVox_Offset(static_cast<qint64>(540 + 4 + extensionSize)); // Update vox_offset to account for the extension size
+                    
+                }
+            } else {
                 CNIFTI1MainHeader* n1 = static_cast<CNIFTI1MainHeader*>(niftiHeader);
 
-                // Force the file stream to position 348 explicitly before writing the extension
-                niftiFile.seek(348);
+                if(n1){
+                    int extensionSize = n1->headerExtensionSize(json);
 
-                n1->writeHeaderExtension(niftiFile, json);
-                std::cout << "Notice: Embedded BIDS-like JSON metadata successfully into NIfTI Header Extension." << std::endl;
+                    n1->setVox_Offset(static_cast<qint64>(348 + 4 + extensionSize)); // Update vox_offset to account for the extension size
+                }
             }
-            */
-           
+            // =========================================================================================
+            // Write the NIfTI file including the JSON extension 
+
+            // If NIfTI-1 is selected and ECAT data is available, add the JSON extension
+
+            // Write the NIfTI main header
+            // Vox_offset has already been updated to account for the extension
+
+            if(!niftiFile.writeMainHeader(*niftiHeader)) {
+                cout << "Error: Failed to write the NIfTI main header." << endl;
+                delete niftiHeader;
+                return 1;
+            }
+
+            // Write the JSON metadata as a NIfTI header extension
+            bool extensionWritten = false;
+
+            if(mainEcat) {
+                if (useNifti2) {
+                    CNIFTI2MainHeader* n2 = static_cast<CNIFTI2MainHeader*>(niftiHeader);
+
+                    // NIfTI-2 main header = 540 bytes
+                    niftiFile.seek(540); // Move the file pointer to the position where the extension should be written
+
+                    extensionWritten = n2->writeHeaderExtension(niftiFile, json);
+
+                } else {
+                    CNIFTI1MainHeader* n1 = static_cast<CNIFTI1MainHeader*>(niftiHeader);                    
+                    
+                    // NIfTI-1 main header = 348 bytes
+                    niftiFile.seek(348);
+
+                    extensionWritten = n1->writeHeaderExtension(niftiFile, json);
+                }
+
+                if (!extensionWritten) {
+                    cout << "Error: Failed to write the NIfTI header extension." << endl;
+                    delete niftiHeader;
+                    return 1;
+                }
+                
+                cout << "Notice: Embedded BIDS JSON metadata written into the NIfTI header extension." << endl;
+
+            } else {
+                cout << "Notice: No ECAT metadata available for JSON extension." << endl;
+            }
+
+
             // Write the voxel matrix 
-            niftiFile.writeMatrix(*voxelData);
+            if(!niftiFile.writeMatrix(*voxelData)) {
+
+                cout << "Error: Failed to write the voxel matrix." << endl;
+
+                delete niftiHeader;
+                return 1;
+            }
             niftiFile.close();
 
             // Recalculate the resize taking into account the dynamic vox_Offset which now includes the extension (it's no longer fixed to 352)
-            int finalOffset = (useNifti2) ? 544 : static_cast<CNIFTI1MainHeader*>(niftiHeader)->vox_Offset();
-            QFile::resize(outputFilename, finalOffset + voxelData->size());
+            //int finalOffset = (useNifti2) ? 544 : static_cast<CNIFTI1MainHeader*>(niftiHeader)->vox_Offset();
+            //QFile::resize(outputFilename, finalOffset + voxelData->size());
             
-            delete niftiHeader;
-            
+            qint64 finalOffset = 0;
+
+            if(useNifti2) {
+                CNIFTI2MainHeader* n2 = static_cast<CNIFTI2MainHeader*>(niftiHeader);
+                finalOffset = n2->vox_Offset();
+            } else {
+                CNIFTI1MainHeader* n1 = static_cast<CNIFTI1MainHeader*>(niftiHeader);
+                finalOffset = n1->vox_Offset();
+            }
+
+            QFile::resize(outputFilename, finalOffset + static_cast<qint64>(voxelData->size()));
             // =========================================================================================
             // Continue generating the external JSON sidecar 
             if (mainEcat) {

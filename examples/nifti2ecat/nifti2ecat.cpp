@@ -178,12 +178,38 @@ int main(int argc, char* argv[]){
                     
                 if (jsonObj.contains("Dose_Start_Time")) ecatMainHeader.setDose_Start_Time(jsonObj["Dose_Start_Time"].toInt());
                 if (jsonObj.contains("Scan_Start_Time")) ecatMainHeader.setScan_Start_Time(jsonObj["Scan_Start_Time"].toInt());
+
+                // Restore ECAT acquisition/calibration metadata
+                if (jsonObj.contains("Calibration_Units")) {
+                    ecatMainHeader.setCalibration_Units(static_cast<CECAT7MainHeader::Calibration_Units>(jsonObj["Calibration_Units"].toInt()));
+                }
+
+                if (jsonObj.contains("Calibration_Units_Label")) {
+                    ecatMainHeader.setCalibration_Units_Label(static_cast<CECAT7MainHeader::Calibration_Units_Label>(jsonObj["Calibration_Units_Label"].toInt()));
+                }
+
+                if (jsonObj.contains("Acquisition_Type")) {
+                    ecatMainHeader.setAcquisition_Type(static_cast<CECAT7MainHeader::Acquisition_Type>(jsonObj["Acquisition_Type"].toInt()));
+                }
+
+                if (jsonObj.contains("Lwr_Sctr_Thres")) {
+                    ecatMainHeader.setLwr_Sctr_Thres(static_cast<short>(jsonObj["Lwr_Sctr_Thres"].toInt()));
+                }
+
+                if (jsonObj.contains("Lwr_True_Thres")) {
+                    ecatMainHeader.setLwr_True_Thres(static_cast<short>(jsonObj["Lwr_True_Thres"].toInt()));
+                }
+
+                if (jsonObj.contains("Upr_True_Thres")) {
+                    ecatMainHeader.setUpr_True_Thres(static_cast<short>(jsonObj["Upr_True_Thres"].toInt()));
+                }
                     
-                // Sub Header (Dynamic Data 4D)
+                // Sub Header metadata(Dynamic Data 4D)
                 CECAT7SubHeaderImage* imgEcat = dynamic_cast<CECAT7SubHeaderImage*>(ecatSubHeader);
                 if (imgEcat) {
                     if (jsonObj.contains("Frame_Start_Time")) imgEcat->setFrame_Start_Time(jsonObj["Frame_Start_Time"].toInt());
                     if (jsonObj.contains("Frame_Duration")) imgEcat->setFrame_Duration(jsonObj["Frame_Duration"].toInt());
+                    if (jsonObj.contains("Recon_Zoom")) imgEcat->setRecon_Zoom(static_cast<float>(jsonObj["Recon_Zoom"].toDouble()));
                 }
             } else {
                 cout << "Notice: No embedded or external JSON metadata found. Converting using spatial NIfTI data only." << endl;

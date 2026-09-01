@@ -24,6 +24,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <QTextStream>
+#include <QFileInfo>
 
 using namespace std;
 
@@ -56,19 +57,18 @@ int main(int argc, char* argv[]) {
     QString outputCopyFilename = (argc > 2) ? argv[2] : "copy_test.nii"; // get the name of the output file from the commandline arguments or use a default name
     QString outputRawFilename = (argc > 3) ? argv[3] : "voxel_output.raw"; 
 
+    // Prevent overwriting the input file during the writing test
+    QFileInfo inputInfo(QString::fromLocal8Bit(filename));
+    QFileInfo outputInfo(outputCopyFilename);
+
+    if (inputInfo.absoluteFilePath() == outputInfo.absoluteFilePath()) {
+        cout << "Error: input and output filenames must be different." << endl;
+        return 1;
+    }
+
+
     // open the file
     CNIFTIFile file(filename); // create a CNIFTIFile object with the specified filename
-
-    //*********************************************************** 
-    // DEBUG: Check if the file is opened successfully and if the format is not undefined
-    /*bool isOpen = file.open(QIODevice::ReadOnly);
-    int formatVal = file.format();
-    std::cout << "DEBUG -> isOpen: " << isOpen <<std::endl;
-    std::cout << "DEBUG -> format enum: " << formatVal << " (Undefined is " << CNIFTIFile::Undefined << ")" << std::endl;
-    std::cout << "dataFormat: " << file.dataFormat() << std::endl;
-    */
-    //*********************************************************** 
-
     //if(isOpen && formatVal != CNIFTIFile::Undefined) { 
     if(file.open(QIODevice::ReadOnly) && file.dataFormat() == CMedIOData::NIFTI) { // check if the file is opened successfully and if the format is not undefined
 
@@ -100,129 +100,12 @@ int main(int argc, char* argv[]) {
 
         delete mainHeader; // delete the main header pointer to free up memory
 
-        /*
-        cout << "Main header data (NIFTI1):" << endl;
-        cout << "------------------------" << endl;
-        cout << "SIZE_OF_HEADER..........: " << mHeader->size_Of_Header()              << endl;
-        cout << "DATA_TYPE...............: " << mHeader->data_Type()                    << endl;
-        cout << "DB_NAME.................: " << mHeader->db_Name()                      << endl;
-        cout << "EXTENTS.................: " << mHeader->extents()                      << endl;
-        cout << "SESSION_ERROR...........: " << mHeader->session_Error()                    << endl;
-        cout << "REGULAR.................: " << mHeader->regular()                    << endl;
-        cout << "DIM_INFO................: " << mHeader->dim_Info()                    << endl;
-
-        cout << "DIM.....................: ";
-        for(int i=0; i < 8; i++)
-          cout << mHeader->dim(i) << " ";
-        cout << endl;
-        cout << "INTENT_P1...............: " << mHeader->intent_P1()                    << endl;
-        cout << "INTENT_P2...............: " << mHeader->intent_P2()                    << endl;
-        cout << "INTENT_P3...............: " << mHeader->intent_P3()                    << endl;
-        cout << "INTENT_CODE.............: " << mHeader->intent_Code()                    << endl;
-        cout << "DATATYPE...............: " << mHeader->dataType()                    << endl;
-        cout << "BIT_PIX.................: " << mHeader->bit_Pix()                      << endl;
-        cout << "SLICE_START.............: " << mHeader->slice_Start()                    << endl;
-        cout << "PIX_DIM.................: ";
-        for(int i=0; i < 8; i++)
-          cout << mHeader->pix_Dim(i) << " ";
-        cout << endl;
-        cout << "VOX_OFFSET..............: " << mHeader->vox_Offset()                    << endl;
-        cout << "SCL_SLOPE...............: " << mHeader->scl_Slope()                    << endl;
-        cout << "SCL_INTER...............: " << mHeader->scl_Inter()                    << endl;
-        cout << "SLICE_END.................: " << mHeader->slice_End()                    << endl;
-        cout << "SLICE_CODE.................: " << mHeader->slice_Code()                    << endl;
-        cout << "XYZT_UNITS.................: " << mHeader->xyzt_Units()                    << endl;
-        cout << "CAL_MAX.................: " << mHeader->cal_Max()                    << endl;
-        cout << "CAL_MIN.................: " << mHeader->cal_Min()                    << endl;
-        cout << "SLICE_DURATION..........: " << mHeader->slice_Duration()                << endl;
-        cout << "TOFFSET.................: " << mHeader->toffset()                    << endl;
-        cout << "GLMAX...................: " << mHeader->glmax()                        << endl;
-        cout << "GLMIN...................: " << mHeader->glmin()                        << endl;
-        cout << "DESCRIPTION..............: " << mHeader->description()                  << endl;
-        cout << "AUX_FILE.................: " << mHeader->aux_File()                  << endl;
-        cout << "QFORM_CODE...............: " << mHeader->qform_Code()                    << endl;
-        cout << "SFORM_CODE...............: " << mHeader->sform_Code()                    << endl;
-        cout << "QUATERN_B........................: " << mHeader->quatern_B()                    << endl;
-        cout << "QUATERN_C........................: " << mHeader->quatern_C()                    << endl;
-        cout << "QUATERN_D........................: " << mHeader->quatern_D()                    << endl;
-        cout << "QOFFSET_X.......................: " << mHeader->qoffset_X()                    << endl;
-        cout << "QOFFSET_Y.......................: " << mHeader->qoffset_Y()                    << endl;
-        cout << "QOFFSET_Z.......................: " << mHeader->qoffset_Z()                    << endl;
-        cout << "SROW_X...........................: " << mHeader->srow_X(0) << " " << mHeader->srow_X(1) << " " << mHeader->srow_X(2) << " "<< mHeader->srow_X(3) << endl;
-        cout << "SROW_Y...........................: " << mHeader->srow_Y(0) << " " << mHeader->srow_Y(1) << " " << mHeader->srow_Y(2) << " "<< mHeader->srow_Y(3) << endl;
-        cout << "SROW_Z...........................: " << mHeader->srow_Z(0) << " " << mHeader->srow_Z(1) << " " << mHeader->srow_Z(2) << " "<< mHeader->srow_Z(3) << endl;  
-        cout << "INTENT_NAME...............: " << mHeader->intent_Name()                    << endl;
-        cout << "MAGIC.....................: " << mHeader->magic()                    << endl;
-        */
-
       } else if(file.format() == CNIFTIFile::NIFTI2) {
         CNIFTI2MainHeader* mHeader = static_cast<CNIFTI2MainHeader*>(mainHeader); // cast the main header to the NIFTI2 main header type
         QTextStream out(stdout);
         out << *mHeader;
         out.flush();
         delete mainHeader; // delete the main header pointer to free up memory
-
-        /*
-        cout << "Main header data (NIFTI2):" << endl;
-        cout << "------------------------" << endl;
-        cout << "SIZE_OF_HEADER..........: " << mHeader->size_Of_Header()              << endl;
-        cout << "DATA_TYPE...............: " << mHeader->data_Type()                    << endl;
-        cout << "DB_NAME.................: " << mHeader->db_Name()                      << endl;
-        cout << "EXTENTS.................: " << mHeader->extents()                      << endl;
-        cout << "SESSION_ERROR...........: " << mHeader->session_Error()                    << endl;
-        cout << "REGULAR.................: " << mHeader->regular()                    << endl;
-        cout << "DIM_INFO................: " << mHeader->dim_Info()                    << endl;
-
-        cout << "DIM.....................: ";
-        for(int i=0; i < 8; i++)
-        {
-          cout << mHeader->dim(i) << " ";
-        }
-        cout << endl;
-        cout << "INTENT_P1...............: " << mHeader->intent_P1()                    << endl;
-
-        cout << "INTENT_P2...............: " << mHeader->intent_P2()                    << endl;
-
-        cout << "INTENT_P3...............: " << mHeader->intent_P3()                    << endl;
-
-        cout << "INTENT_CODE...............: " << mHeader->intent_Code()                    << endl;
-        cout << "DATATYPE...............: " << mHeader->dataType()                    << endl;
-        cout << "BIT_PIX.................: " << mHeader->bit_Pix()                      << endl;
-        cout << "SLICE_START.............: " << mHeader->slice_Start()                    << endl;
-        cout << "PIX_DIM.................: ";
-        for(int i=0; i < 8; i++) {
-          cout << mHeader->pix_Dim(i) << " ";
-        }
-        cout << endl;
-        cout << "VOX_OFFSET..............: " << mHeader->vox_Offset()                    << endl;
-        cout << "SCL_SLOPE...............: " << mHeader->scl_Slope()                    << endl;
-        cout << "SCL_INTER...............: " << mHeader->scl_Inter()                    << endl;
-        cout << "SLICE END.................: " << mHeader->slice_End()                    << endl;
-        cout << "SLICE CODE.................: " << mHeader->slice_Code()                    << endl;
-        cout << "XYZT_UNITS.................: " << mHeader->xyzt_Units()                    << endl;
-        cout << "CAL_MAX.................: " << mHeader->cal_Max()                    << endl;
-        cout << "CAL_MIN.................: " << mHeader->cal_Min()                    << endl;
-        cout << "SLICE_DURATION..........: " << mHeader->slice_Duration()                << endl;
-        cout << "TOFFSET.................: " << mHeader->toffset()                    << endl;
-        cout << "GLMAX...................: " << mHeader->glmax()                        << endl;
-        cout << "GLMIN...................: " << mHeader->glmin()                        << endl;
-
-        cout << "DESCRIPTION..............: " << mHeader->description()                  << endl;
-        cout << "AUX_FILE.................: " << mHeader->aux_File()                  << endl;
-        cout << "QFORM_CODE...............: " << mHeader->qform_Code()                    << endl;
-        cout << "SFORM_CODE...............: " << mHeader->sform_Code()                    << endl;
-        cout << "QUATERN_B...................: " << mHeader->quatern_B()                    << endl;
-        cout << "QUATERN_C...................: " << mHeader->quatern_C()                    << endl;
-        cout << "QUATERN_D...................: " << mHeader->quatern_D()                    << endl;
-        cout << "QOFFSET_X...................: " << mHeader->qoffset_X()                    << endl;
-        cout << "QOFFSET_Y...................: " << mHeader->qoffset_Y()                    << endl;
-        cout << "QOFFSET_Z...................: " << mHeader->qoffset_Z()                    << endl;
-        cout << "SROW_X.......................: " << mHeader->srow_X(0) << " " << mHeader->srow_X(1) << " " << mHeader->srow_X(2) << " "<< mHeader->srow_X(3) << endl;
-        cout << "SROW_Y.......................: " << mHeader->srow_Y(0) << " " << mHeader->srow_Y(1) << " " << mHeader->srow_Y(2) << " "<< mHeader->srow_Y(3) << endl;
-        cout << "SROW_Z.......................: " << mHeader->srow_Z(0) << " " << mHeader->srow_Z(1) << " " << mHeader->srow_Z(2) << " "<< mHeader->srow_Z(3) << endl;
-        cout << "INTENT_NAME...............: " << mHeader->intent_Name()                    << endl;
-        cout << "MATRIX_CODE...............: " << mHeader->matrix_Code()                    << endl;
-        */
       }
 
 //===============================================================================================================
@@ -262,26 +145,49 @@ int main(int argc, char* argv[]) {
       cout << endl << "----------------------------------------" << endl;
       cout << "Writing test to: " << outputFilename.toStdString() << endl;
 
+
       // 1. First of all open the original file in reading mode to read the main header and the matrix voxel data
       CNIFTIFile inFile(inputFilename);
+
       if (inFile.open(QIODevice::ReadOnly)) { // open the original file in reading mode
-          
+
+          // Save the detected NIfTI version
+          CNIFTIFile::NIFTIFormat inputFormat = inFile.format();
+
           CNIFTIMainHeader* mainHeader = NULL;
-          inFile.readMainHeader(mainHeader);// read the main header from the original file using the readMainHeader method of the CNIFTIFile class
+          inFile.readMainHeader(mainHeader); // read the main header from the original file using the readMainHeader method of the CNIFTIFile class
+
 
           QByteArray* voxelData = NULL;
-          inFile.readMatrix(voxelData); // read the matrix voxel data from the original file using the readMatrix method of the CNIFTIFile class
+          inFile.readMatrix(voxelData);  // read the matrix voxel data from the original file using the readMatrix method of the CNIFTIFile class
+
           inFile.close();
 
           if (mainHeader && voxelData) {
               // 2. Create a new object CNIFTIFile for the output
               // Impose the format explicitly (NIFTI1)
-              CNIFTIFile outFile(outputFilename, CNIFTIMainHeader::NIFTI1); // create a new CNIFTIFile object for the output file with the specified output filename
-              
-              // Impose the output file to be NIfTI (or reading the format from inFile)
-              // In the constructor we ensure that the file is created as a NIFTI1 header
+              // Preserve the NIfTI version of the input file
+              CNIFTIMainHeader::Type outputType;
 
-              
+              if (inputFormat == CNIFTIFile::NIFTI1) {
+                  outputType = CNIFTIMainHeader::NIFTI1;
+              }
+              else if (inputFormat == CNIFTIFile::NIFTI2) {
+                  outputType = CNIFTIMainHeader::NIFTI2;
+              }
+              else {
+                  cout << "Error: unknown NIfTI format." << endl;
+                  delete mainHeader;
+                  delete voxelData;
+                  return 1;
+              }
+
+              cout << "Copying as NIfTI-"
+                  << (inputFormat == CNIFTIFile::NIFTI1 ? "1" : "2")
+                  << endl;
+
+              CNIFTIFile outFile(outputFilename, outputType);
+
               // Open the output file in writing mode
               if (outFile.open(QIODevice::WriteOnly)) {
                   

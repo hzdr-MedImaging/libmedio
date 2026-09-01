@@ -301,13 +301,20 @@ CNIFTIMainHeader* CNIFTIFile::createEmptyHeader(void) {
 void CNIFTIFile::mainHeaderWritten(const CNIFTIMainHeader& MainHeader) {
   ENTER();
 
-if(m_pData->cachedMainHeader) {
-    *m_pData->cachedMainHeader = MainHeader;
-  } else {
-    m_pData->cachedMainHeader = static_cast<CNIFTIMainHeader*>(MainHeader.clone());
+  if (m_pData->cachedMainHeader == &MainHeader) {
+    m_pData->cachedMainHeader->setMedIOData(this); //link the cached header to the current file
+    LEAVE();
+    return;
   }
-  
-  m_pData->cachedMainHeader->setMedIOData(this);
+
+  delete m_pData->cachedMainHeader;
+
+  m_pData->cachedMainHeader = static_cast<CNIFTIMainHeader*>(MainHeader.clone());
+
+  if(m_pData->cachedMainHeader != NULL) {
+    m_pData->cachedMainHeader->setMedIOData(this); //link the cached header to the current file
+  }
+
   LEAVE();
 }
 
@@ -348,7 +355,7 @@ bool CNIFTIFile::readMatrix(QByteArray*& matrixData) {
     //int offset = m_pData->cachedMainHeader->rawDataSize(); // Get the size of the main header to determine where the voxel data starts
     
     // 1. offset of voxel which is not necessarily the end of the header, because the NIfTI format allows for additional data after the header (extensions).
-    int offset = 0;
+    qint64 offset = 0;
     if (format() == CNIFTIFile::NIFTI1) {
         offset = static_cast<CNIFTI1MainHeader*>(m_pData->cachedMainHeader)->vox_Offset();
     } else if (format() == CNIFTIFile::NIFTI2) {
@@ -383,7 +390,7 @@ bool CNIFTIFile::readMatrix(char*& matrixData, unsigned int& len) {
 
   if(isReadable() && m_pData->cachedMainHeader) {
     
-    int offset = 0;
+    qint64 offset = 0;
     if (format() == CNIFTIFile::NIFTI1) {
         offset = static_cast<CNIFTI1MainHeader*>(m_pData->cachedMainHeader)->vox_Offset();
     } else if (format() == CNIFTIFile::NIFTI2) {
@@ -419,7 +426,7 @@ bool CNIFTIFile::writeMatrix(const QByteArray& matrixData) {
 
   if(isWritable() && m_pData->cachedMainHeader) {
     // Use vox_offset to not overwrite the eventual extensions!
-    int offset = 0;
+    qint64 offset = 0;
 
     if (format() == CNIFTIFile::NIFTI1) {
         offset = static_cast<CNIFTI1MainHeader*>(m_pData->cachedMainHeader)->vox_Offset();
@@ -450,7 +457,7 @@ bool CNIFTIFile::writeMatrix(const char* matrixData, unsigned int size) {
 
   if(isWritable() && m_pData->cachedMainHeader) {
     
-    int offset = 0;
+    qint64 offset = 0;
     
     if (format() == CNIFTIFile::NIFTI1) {
         offset = static_cast<CNIFTI1MainHeader*>(m_pData->cachedMainHeader)->vox_Offset();

@@ -1863,7 +1863,6 @@ void CECAT7MainHeader::setDose_Start_Time_Qt(const QDateTime& doseStartTime)
 QString CECAT7MainHeaderPrivate::concorde2ECAT7dataUnits(CConcordeMainHeader::CalibrationUnits u) const
 {
   ENTER();
-
   CActivityConcentrationUnit calUnit;
   switch(u)
   {

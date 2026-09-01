@@ -178,6 +178,7 @@ class CNIFTI2MainHeader : public CNIFTIMainHeader { // derived class from CNIFTI
     void setSrow_Z(const short index, const double value);
     void setScl_Slope(const double slope);
     void setScl_Inter(const double inter);
+    void setVox_Offset(const qint64 offset);
 
 /*
     // special Qt-based methods for easy time conversion of the really
@@ -191,6 +192,7 @@ class CNIFTI2MainHeader : public CNIFTIMainHeader { // derived class from CNIFTI
 */
 
     // ===============================================================================
+    int headerExtensionSize(const QJsonObject& json) const;
     // Method to write the header extension to a NIfTI file. 
     // It takes a reference to a CNIFTIFile object and a QJsonObject containing the metadata to be written. 
     bool writeHeaderExtension(CNIFTIFile& file, const QJsonObject& json);

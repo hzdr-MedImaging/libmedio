@@ -563,7 +563,7 @@ bool CNIFTI1MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIO
       // Exctract the offset of the bed position from the ECAT main header, if available
       float initBedPosition = 0.0f;
       if (eMainHeader != NULL) {
-          m_pData->header.Dim[4] = eMainHeader->num_Frames();
+          //m_pData->header.Dim[4] = eMainHeader->num_Frames();
           
           const CECAT7MainHeader* e7MainHeader = dynamic_cast<const CECAT7MainHeader*>(eMainHeader);
 
@@ -584,7 +584,30 @@ bool CNIFTI1MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIO
       strncpy(m_pData->header.Magic, "n+1", 4);
 
       // 2. Map spatial and temporal dimensions
-      m_pData->header.Dim[0] = 4; // 3D + time
+
+      short numFrames = 1;
+
+      if (eMainHeader != NULL && eMainHeader->num_Frames() > 1) {
+          numFrames = eMainHeader->num_Frames();
+      }
+
+      // Static PET image -> 3D
+      // Dynamic PET image -> 4D
+      m_pData->header.Dim[0] = (numFrames > 1) ? 4 : 3;
+
+      m_pData->header.Dim[4] = numFrames;
+
+      // Unused dimensions must be 1
+      m_pData->header.Dim[5] = 1;
+      m_pData->header.Dim[6] = 1;
+      m_pData->header.Dim[7] = 1;
+
+      // Default spacing for unused/temporal dimensions
+      m_pData->header.Pix_Dim[4] = 1.0f;
+      m_pData->header.Pix_Dim[5] = 1.0f;
+      m_pData->header.Pix_Dim[6] = 1.0f;
+      m_pData->header.Pix_Dim[7] = 1.0f;
+
 
       // =============================================================================================================
       // Set Qform and Sform codes to indicate scanner anatomical coordinates and affine transformation, respectively.
@@ -595,7 +618,7 @@ bool CNIFTI1MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIO
       // =============================================================================================================
       // Qform matrix Method 2: Scanner anatomical coordinates
       //m_pData->header.Pix_Dim[0] = 1.0f; // qfac --> 1.0 for right-handed coordinate system
-      m_pData->header.Pix_Dim[0] = -1.0f;  // for left-handed coordinate system (ECAT uses left-handed coordinates)
+      m_pData->header.Pix_Dim[0] = 1.0f;  // for left-handed coordinate system (ECAT uses left-handed coordinates)
       
       // Rotation of X and Y: Quaternion [a, b, c, d] for 180-degree rotation around Z-axis
       m_pData->header.Quatern_B = 0.0f;
@@ -672,9 +695,7 @@ bool CNIFTI1MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIO
               m_pData->header.Bit_Pix = 32;
           }
       }
-      if (eMainHeader != NULL) {
-          m_pData->header.Dim[4] = eMainHeader->num_Frames();
-      }
+      
       bResult = true; 
     }
     break;
@@ -1130,52 +1151,70 @@ QTextStream& operator<<(QTextStream& stream, const CNIFTI1MainHeader& mHeader) {
 //============================================================================================
 // Header extension
 // after the main header, the extension is 4 bytes long 
+int CNIFTI1MainHeader::headerExtensionSize(const QJsonObject& json) const  {
+    QJsonDocument doc(json);
+    QByteArray jsonData = doc.toJson(QJsonDocument::Compact);
+
+    // 8 bytes = esize + ecode
+    int esize = 8 + jsonData.size();
+
+    // Every NIfTI extension must be a multiple of 16 bytes
+    int padding = (16 - (esize % 16)) % 16;
+
+    return esize + padding;
+}
 
 // Write BIDS JSON directly into the NIFTI-1 header extension
-bool CNIFTI1MainHeader::writeHeaderExtension(CNIFTIFile& file, const QJsonObject& json) {
+bool CNIFTI1MainHeader::writeHeaderExtension(CNIFTIFile& niftiFile, const QJsonObject& json) {
     // 1. Serialize the QJsonObject into a compact JSON format
     QByteArray jsonData = QJsonDocument(json).toJson(QJsonDocument::Compact);
     
     // 2. Calculate the total size of the extension:
     // esize (4 bytes) + ecode (4 bytes) + JSON data
-    qint32 esize = 8 + jsonData.size();
+    int esize = 8 + jsonData.size();
+    int padding = (16 - (esize % 16)) % 16;
+    esize += padding;
     
-    // NIfTI extensions require esize to be an exact multiple of 16
-    qint32 remainder = esize % 16;
-    if (remainder != 0) {
-        esize += (16 - remainder);
+    if(!niftiFile.seek(348)) {
+        // Failed to seek to the correct position for writing the extension
+        return false;
     }
     
-    // Calculate the number of padding bytes needed at the end
-    int paddingSize = esize - (8 + jsonData.size());
-    
-    // ecode = 4 (commonly used for custom / ASCII / XML-ish / JSON data)
-    qint32 ecode = 4; 
-
-    // 3. Before writing the extension, the main header must have the extender set to {1, 0, 0, 0}
-    // (This indicates to reading software that extensions are present immediately after the header)
     char extender[4] = {1, 0, 0, 0};
-    
-    // Write to the file (assuming the file is open for writing and positioned exactly after the 348 header bytes)
-    file.write(extender, 4);
-    file.write(reinterpret_cast<const char*>(&esize), 4);
-    file.write(reinterpret_cast<const char*>(&ecode), 4);
-    file.write(jsonData);
-    
-    // Write zero-padding to reach the multiple of 16
-    if (paddingSize > 0) {
-        QByteArray zeroPadding(paddingSize, 0);
-        file.write(zeroPadding);
+
+    if(niftiFile.write(extender, 4) != 4) {
+        // Failed to write the extender
+        return false;
     }
-    
-    // 4. Update Vox_Offset in the main header:
-    // 348 (header) + 4 (extender) + total esize of the extensions
-    m_pData->header.Vox_Offset = static_cast<float>(348 + 4 + esize); 
-    
+
+    qint32 extensionSize = static_cast<qint32>(esize);
+    qint32 extensionCode = 6; // Custom / ASCII / XML-ish / JSON data
+
+    if(niftiFile.write(reinterpret_cast<const char*>(&extensionSize), sizeof(extensionSize)) != sizeof(extensionSize)) {
+        // Failed to write the extension size
+        return false;
+    }
+
+    if(niftiFile.write(reinterpret_cast<const char*>(&extensionCode), sizeof(extensionCode)) != sizeof(extensionCode)) {
+        // Failed to write the extension code
+        return false;
+    }
+
+    if(niftiFile.write(jsonData.constData(), jsonData.size()) != jsonData.size()) {
+        // Failed to write the JSON data
+        return false;
+    }
+
+    if(padding > 0) {
+        QByteArray paddingData(padding, '\0');
+        if(niftiFile.write(paddingData.constData(), paddingData.size()) != paddingData.size()) {
+            // Failed to write the padding
+            return false;
+        }
+    }
     return true;
 }
 
-//=============================================================================================
 // Read BIDS JSON directly from the NIFTI-1 header extension
 QJsonObject CNIFTI1MainHeader::readHeaderExtension(CNIFTIFile& file) const {
     QJsonObject emptyJson;
@@ -1203,19 +1242,35 @@ QJsonObject CNIFTI1MainHeader::readHeaderExtension(CNIFTIFile& file) const {
     if (file.read(reinterpret_cast<char*>(&esize), 4) != 4) return emptyJson;
     if (file.read(reinterpret_cast<char*>(&ecode), 4) != 4) return emptyJson;
     
-    // 4. Validate extension type (4 = JSON / Custom data)
-    if (ecode != 4) return emptyJson;
+    // 4. Validate extension type (6 = JSON / Custom data)
+    if (ecode != 6) return emptyJson;
     
     // 5. Calculate data size (esize includes 4 bytes for esize itself + 4 bytes for ecode + payload)
     int dataSize = esize - 8;
     if (dataSize <= 0) return emptyJson;
     
     QByteArray jsonData = file.read(dataSize);
-    if (jsonData.isEmpty()) return emptyJson;
+    if (jsonData.size() != dataSize) return emptyJson;
     
-    // 6. Parse the byte array into a QJsonDocument
-    QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData);
-    if (!jsonDoc.isNull() && jsonDoc.isObject()) {
+    // Remove NIfTI extension padding
+    while (!jsonData.isEmpty() && jsonData.endsWith('\0')) {
+        jsonData.chop(1);
+    }
+
+
+    if(jsonData.isEmpty()) return emptyJson;
+
+    QJsonParseError parseError;
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData, &parseError);
+
+    if (parseError.error != QJsonParseError::NoError) {
+
+      std::cout << "Error: Failed to parse JSON from NIfTI extension: " << parseError.errorString().toStdString() << std::endl;
+        
+      return emptyJson;
+    }
+
+    if (jsonDoc.isObject()) {
         return jsonDoc.object();
     }
     
