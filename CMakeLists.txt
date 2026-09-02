@@ -76,6 +76,8 @@ find_package(Qt5 REQUIRED COMPONENTS Core Gui Test)
 find_package(Threads REQUIRED)
 find_package(RTDEBUG REQUIRED)
 
+find_package(ZLIB REQUIRED)
+
 # add some special libraries in case we are build for windows
 # WARNING: This seems to be a workaround because Qt5 itself should
 # include them?!?!
