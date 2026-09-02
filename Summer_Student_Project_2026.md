@@ -14,8 +14,7 @@ Support for both **NIfTI-1** and **NIfTI-2** was implemented in `libmedio`.
 
 The implementation includes:
 
-- NIfTI-1 header reading and writing
-- NIfTI-2 header reading and writing
+- NIfTI-1 and NIfTI-2 header reading and writing
 - automatic recognition of NIfTI-1 and NIfTI-2 files
 - voxel matrix reading and writing
 - handling of `vox_offset`
@@ -43,7 +42,7 @@ The same `CNIFTIFile` interface is used to handle both formats.
 
 ## 2. ECAT → NIfTI conversion
 
-The `ecat2nifti` example was extended to convert ECAT7 image files to either NIfTI-1 or NIfTI-2.
+The `ecat2nifti` example was implemented to convert ECAT7 image files to either NIfTI-1 or NIfTI-2.
 
 The converter is located in:
 
@@ -134,7 +133,7 @@ for the tested static PET datasets.
 An optional normalization mode was implemented using:
 
 ```bash
---normalize
+ecat2nifti input.v output.nii --normalize
 ```
 
 The default conversion preserves the original ECAT integer representation whenever possible.
@@ -298,7 +297,16 @@ examples/ecat2nifti/ecat2nifti.cpp
 
 followed by the `convertFrom()` implementations in the NIfTI-1 and NIfTI-2 main-header classes.
 
-## 11. Current limitations and possible next steps
+## 11. Compressed NIfTI .nii.gz support
+
+libmedio now supports gzip-compressed NIfTI files (`.nii.gz`) for both
+NIfTI-1 and NIfTI-2.
+
+Compressed files are decompressed to a temporary `.nii` file for reading. When writing `.nii.gz`, the NIfTI file is first generated as an uncompressed temporary file and subsequently compressed using zlib.
+
+The implementation was validated by comparing the uncompressed output with the decompressed `.nii.gz` output byte-for-byte and using SHA-256 checksums.
+
+## 12. Current limitations and possible next steps
 
 The currently validated conversion workflow mainly concerns static 3D PET images.
 
@@ -316,7 +324,7 @@ Possible next steps include:
 
 In particular, full dynamic 4D conversion requires special handling because ECAT may use a different scale factor and timing information for each individual frame, whereas standard NIfTI scaling is global.
 
-## 12. Branch
+## 13. Branch
 
 Development for this project was carried out in:
 
