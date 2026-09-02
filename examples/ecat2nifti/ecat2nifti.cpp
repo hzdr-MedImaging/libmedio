@@ -408,6 +408,7 @@ int main(int argc, char* argv[]) {
             //int finalOffset = (useNifti2) ? 544 : static_cast<CNIFTI1MainHeader*>(niftiHeader)->vox_Offset();
             //QFile::resize(outputFilename, finalOffset + voxelData->size());
             
+            /*
             qint64 finalOffset = 0;
 
             if(useNifti2) {
@@ -419,11 +420,23 @@ int main(int argc, char* argv[]) {
             }
 
             QFile::resize(outputFilename, finalOffset + static_cast<qint64>(voxelData->size()));
+            */
+
             // =========================================================================================
             // Continue generating the external JSON sidecar 
             if (mainEcat) {
-                QFileInfo niftiFileInfo(outputFilename); 
-                QString jsonFilename = niftiFileInfo.absolutePath() + "/" + niftiFileInfo.completeBaseName() + ".json";
+                QFileInfo niftiFileInfo(outputFilename);
+
+                QString baseName = niftiFileInfo.fileName();
+
+                if(baseName.endsWith(".nii.gz", Qt::CaseInsensitive)) {
+                    baseName.chop(7);
+                }
+                else if(baseName.endsWith(".nii", Qt::CaseInsensitive)) {
+                    baseName.chop(4);
+                }
+
+                QString jsonFilename = niftiFileInfo.absolutePath() + "/" + baseName + ".json";
 
                 QFile jsonFile(jsonFilename);
                 if (jsonFile.open(QIODevice::WriteOnly)) {

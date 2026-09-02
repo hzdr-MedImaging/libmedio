@@ -56,7 +56,7 @@ class CNIFTIFilePrivate {
 
 
 //=============================================================================================
-// Helper function to decompress a gzip-compressed NIfTI file (.nii.gz)
+// Function to decompress a gzip-compressed NIfTI file (.nii.gz)
 
 static bool decompressGzipFile(const QString& sourceFilename,
                                const QString& destinationFilename)
@@ -102,6 +102,65 @@ static bool decompressGzipFile(const QString& sourceFilename,
     return result;
 }
 
+// Compress a regular file into gzip format
+
+static bool compressGzipFile(const QString& sourceFilename,
+                             const QString& destinationFilename)
+{
+    QFile input(sourceFilename);
+
+    if(!input.open(QIODevice::ReadOnly)) {
+        return false;
+    }
+
+    QByteArray destinationName = QFile::encodeName(destinationFilename);
+
+    gzFile output = gzopen(destinationName.constData(), "wb");
+
+    if(output == NULL) {
+        input.close();
+        return false;
+    }
+
+    char buffer[64 * 1024];
+    bool result = true;
+
+    while(true) {
+
+        qint64 bytesRead = input.read(buffer, sizeof(buffer));
+
+        if(bytesRead < 0) {
+            result = false;
+            break;
+        }
+
+        if(bytesRead == 0) {
+            break;
+        }
+
+        int bytesWritten =
+            gzwrite(output,
+                    buffer,
+                    static_cast<unsigned int>(bytesRead));
+
+        if(bytesWritten != bytesRead) {
+            result = false;
+            break;
+        }
+    }
+
+    input.close();
+
+    if(gzclose(output) != Z_OK) {
+        result = false;
+    }
+
+    if(!result) {
+        QFile::remove(destinationFilename);
+    }
+
+    return result;
+}
 //=============================================================================================
 // Constructors and Destructors for the CNIFTIFile class
 CNIFTIFile::CNIFTIFile(const QString& filename, CNIFTIMainHeader::Type fileType): CMedIOData(filename) {
@@ -195,16 +254,6 @@ bool CNIFTIFile::open(QIODevice::OpenModeFlag mode) {
   delete m_pData->cachedMainHeader;
   m_pData->cachedMainHeader = NULL;
 
-  // Compressed NIfTI writing is not implemented yet.
-  // For the moment .nii.gz files are supported only for reading.
-  if(m_pData->compressed &&
-    ((mode & QIODevice::WriteOnly) == QIODevice::WriteOnly)) {
-
-      W("Writing compressed NIfTI files (.nii.gz) is not implemented yet.");
-
-      RETURN(false);
-      return false;
-  }
 
   // reading an existing file (ReadOnly or ReadWrite mode) and the file exists
   if((((mode & QIODevice::ReadWrite) == QIODevice::ReadWrite) || 
@@ -306,42 +355,145 @@ bool CNIFTIFile::open(QIODevice::OpenModeFlag mode) {
   }
 
 // Create a new file (WriteOnly)
-  else if((mode & QIODevice::WriteOnly) == QIODevice::WriteOnly)
-  {
+else if((mode & QIODevice::WriteOnly) == QIODevice::WriteOnly)
+{
     if(m_pData->iNIFTIformat != CNIFTIFile::Undefined) {
-       // Create an empty header ready to be filled
-       if (m_pData->iNIFTIformat == CNIFTIFile::NIFTI1) {
-           m_pData->cachedMainHeader = new CNIFTI1MainHeader(this);
-       } else if (m_pData->iNIFTIformat == CNIFTIFile::NIFTI2) {
-           m_pData->cachedMainHeader = new CNIFTI2MainHeader(this);
-       }
-       result = true;
+
+        // Create an empty header ready to be filled
+        if(m_pData->iNIFTIformat == CNIFTIFile::NIFTI1) {
+            m_pData->cachedMainHeader = new CNIFTI1MainHeader(this);
+        }
+        else if(m_pData->iNIFTIformat == CNIFTIFile::NIFTI2) {
+            m_pData->cachedMainHeader = new CNIFTI2MainHeader(this);
+        }
+
+        result = true;
+
     } else {
-      E("Format NIFTI unknown for writing");
+
+        E("Format NIFTI unknown for writing");
     }
 
-    if(result)
-      QFile::remove(fileName());
-  }
+
+    if(result) {
+
+        // ------------------------------------------------------------
+        // Compressed NIfTI output (.nii.gz)
+        // ------------------------------------------------------------
+        if(m_pData->compressed) {
+
+            // The actual NIfTI file is first written uncompressed
+            // into a temporary .nii file.
+            m_pData->temporaryFile =
+                new QTemporaryFile(
+                    QDir::tempPath() + "/libmedio-nifti-XXXXXX.nii"
+                );
+
+            m_pData->temporaryFile->setAutoRemove(true);
+
+            if(!m_pData->temporaryFile->open()) {
+
+                W("Unable to create temporary file for compressed NIfTI output.");
+
+                delete m_pData->temporaryFile;
+                m_pData->temporaryFile = NULL;
+
+                delete m_pData->cachedMainHeader;
+                m_pData->cachedMainHeader = NULL;
+
+                RETURN(false);
+                return false;
+            }
+
+            QString temporaryFilename = m_pData->temporaryFile->fileName();
+
+            // CNIFTIFile will reopen the temporary file itself
+            m_pData->temporaryFile->close();
+
+            // From this point CNIFTIFile writes to the temporary
+            // uncompressed NIfTI file instead of directly to .nii.gz
+            QFile::setFileName(temporaryFilename);
+
+            D("Using temporary uncompressed NIfTI file for gzip output.");
+
+        } else {
+
+            // Normal uncompressed .nii output
+            QFile::remove(fileName());
+        }
+    }
+}
 
   // Reopen final file with the correct permissions requested by the user
   if(result) {
+    
     mode = static_cast<QIODevice::OpenModeFlag>(mode & ~(QIODevice::Append|QIODevice::Truncate|QIODevice::Text)); // Mask bit to bit, to remove the flags we don't need
     
     if((result = QFile::open(mode|QIODevice::ReadOnly)) == false)
       QFile::close();
   }
+
+  if(result == false) {
+
+    delete m_pData->cachedMainHeader;
+    m_pData->cachedMainHeader = NULL;
+
+    if(m_pData->temporaryFile) {
+
+        QFile::setFileName(m_pData->originalFileName);
+
+        delete m_pData->temporaryFile;
+        m_pData->temporaryFile = NULL;
+    }
+}
     
+/*
   if(result == false) {
     delete m_pData->cachedMainHeader;
     m_pData->cachedMainHeader = NULL;
-  }
 
+    // For compressed NIfTI output, write first to a temporary uncompressed .nii file.
+    // The temporary file will be gzip-compressed when CNIFTIFile::close() is called.
+    if(m_pData->compressed &&
+      ((mode & QIODevice::WriteOnly) == QIODevice::WriteOnly) &&
+      ((mode & QIODevice::ReadWrite) != QIODevice::ReadWrite)) {
+
+        m_pData->temporaryFile =
+            new QTemporaryFile(
+                QDir::tempPath() + "/libmedio-nifti-XXXXXX.nii"
+            );
+
+        m_pData->temporaryFile->setAutoRemove(true);
+
+        if(!m_pData->temporaryFile->open()) {
+
+            W("Unable to create temporary file for compressed NIfTI output.");
+
+            delete m_pData->temporaryFile;
+            m_pData->temporaryFile = NULL;
+
+            RETURN(false);
+            return false;
+        }
+
+        QString temporaryFilename =
+            m_pData->temporaryFile->fileName();
+
+        m_pData->temporaryFile->close();
+
+        // From this point on CNIFTIFile writes a normal uncompressed NIfTI.
+        QFile::setFileName(temporaryFilename);
+    }
+
+  }
+*/
   RETURN(result);
   return result;
 }
 //------------------------------------------------------------------------------------------------
 // 2. close --> method to close the file
+
+/*
 void CNIFTIFile::close(void) {
     
   // close the opened file and clean everything up
@@ -362,6 +514,57 @@ void CNIFTIFile::close(void) {
     delete m_pData->temporaryFile;
     m_pData->temporaryFile = NULL;
    } 
+}
+*/
+
+void CNIFTIFile::close(void) {
+
+    ENTER();
+
+    // Remember whether the temporary NIfTI file was opened for writing.
+    bool compressOnClose =
+        m_pData->compressed &&
+        m_pData->temporaryFile != NULL &&
+        isWritable();
+
+    QString temporaryFilename;
+
+    if(m_pData->temporaryFile != NULL) {
+        temporaryFilename = QFile::fileName();
+    }
+
+    // Close the uncompressed file first.
+    QFile::close();
+
+    // If this was a compressed output file, gzip the temporary .nii.
+    if(compressOnClose) {
+
+        if(compressGzipFile(temporaryFilename,
+                            m_pData->originalFileName)) {
+
+            D("Compressed NIfTI file successfully written.");
+
+        } else {
+
+            E("Unable to compress NIfTI file.");
+        }
+    }
+
+    if(m_pData->cachedMainHeader)
+    {
+        delete m_pData->cachedMainHeader;
+        m_pData->cachedMainHeader = NULL;
+    }
+
+    if(m_pData->temporaryFile) {
+        // Restore the filename originally supplied to CNIFTIFile.
+        QFile::setFileName(m_pData->originalFileName);
+
+        delete m_pData->temporaryFile;
+        m_pData->temporaryFile = NULL;
+    }
+
+    LEAVE();
 }
 //------------------------------------------------------------------------------------------------
 // Getter for the format of the file
@@ -570,7 +773,7 @@ bool CNIFTIFile::writeMatrix(const QByteArray& matrixData) {
     
     qint64 bytesWritten = write(matrixData);
     if(bytesWritten == matrixData.size()) {
-      result = true;
+      result = resize(offset + bytesWritten); // Resize the file to the new size after writing the matrix data
     }
   }
 
@@ -603,7 +806,7 @@ bool CNIFTIFile::writeMatrix(const char* matrixData, unsigned int size) {
     
     qint64 bytesWritten = write(matrixData, size);
     if(bytesWritten == size) {
-      result = true;
+      result = resize(offset + bytesWritten); // Resize the file to the new size after writing the matrix data
     }
   }
 
