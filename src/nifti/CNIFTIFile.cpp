@@ -26,6 +26,7 @@
 #include <QFileInfo>
 #include <QTemporaryFile>
 #include <QDir>
+
 #include <zlib.h>
 
 #include <rtdebug.h>
@@ -426,7 +427,7 @@ else if((mode & QIODevice::WriteOnly) == QIODevice::WriteOnly)
 
   // Reopen final file with the correct permissions requested by the user
   if(result) {
-    
+
     mode = static_cast<QIODevice::OpenModeFlag>(mode & ~(QIODevice::Append|QIODevice::Truncate|QIODevice::Text)); // Mask bit to bit, to remove the flags we don't need
     
     if((result = QFile::open(mode|QIODevice::ReadOnly)) == false)
@@ -447,75 +448,12 @@ else if((mode & QIODevice::WriteOnly) == QIODevice::WriteOnly)
     }
 }
     
-/*
-  if(result == false) {
-    delete m_pData->cachedMainHeader;
-    m_pData->cachedMainHeader = NULL;
 
-    // For compressed NIfTI output, write first to a temporary uncompressed .nii file.
-    // The temporary file will be gzip-compressed when CNIFTIFile::close() is called.
-    if(m_pData->compressed &&
-      ((mode & QIODevice::WriteOnly) == QIODevice::WriteOnly) &&
-      ((mode & QIODevice::ReadWrite) != QIODevice::ReadWrite)) {
-
-        m_pData->temporaryFile =
-            new QTemporaryFile(
-                QDir::tempPath() + "/libmedio-nifti-XXXXXX.nii"
-            );
-
-        m_pData->temporaryFile->setAutoRemove(true);
-
-        if(!m_pData->temporaryFile->open()) {
-
-            W("Unable to create temporary file for compressed NIfTI output.");
-
-            delete m_pData->temporaryFile;
-            m_pData->temporaryFile = NULL;
-
-            RETURN(false);
-            return false;
-        }
-
-        QString temporaryFilename =
-            m_pData->temporaryFile->fileName();
-
-        m_pData->temporaryFile->close();
-
-        // From this point on CNIFTIFile writes a normal uncompressed NIfTI.
-        QFile::setFileName(temporaryFilename);
-    }
-
-  }
-*/
   RETURN(result);
   return result;
 }
 //------------------------------------------------------------------------------------------------
 // 2. close --> method to close the file
-
-/*
-void CNIFTIFile::close(void) {
-    
-  // close the opened file and clean everything up
-  QFile::close();
-
-  if(m_pData->cachedMainHeader)
-  {
-    delete m_pData->cachedMainHeader;
-    m_pData->cachedMainHeader = NULL;
-  }      
-
-  // Clean up temporary decompressed file
-  if(m_pData->temporaryFile) {
-    // Restore the original .nii.gz filename
-    QFile::setFileName(m_pData->originalFileName);
-
-    // QTemporaryFile has autoRemove enabled
-    delete m_pData->temporaryFile;
-    m_pData->temporaryFile = NULL;
-   } 
-}
-*/
 
 void CNIFTIFile::close(void) {
 

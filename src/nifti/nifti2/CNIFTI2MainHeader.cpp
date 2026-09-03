@@ -99,10 +99,6 @@ class CNIFTI2MainHeaderPrivate { // private class to add private variables to th
   };
 
 //==============================================================================================
-// Header extension
-// after the main header, the extension is 4 bytes long 
-
-//==============================================================================================
 // Constructors
 CNIFTI2MainHeader::CNIFTI2MainHeader(CNIFTIFile* niftiFile, CNIFTIMainHeader::Type fileType)  : CNIFTIMainHeader(niftiFile) {
   

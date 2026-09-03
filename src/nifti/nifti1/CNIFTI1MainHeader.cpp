@@ -642,19 +642,6 @@ bool CNIFTI1MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIO
           // Extract the scale factor slc_slope from ECAT subheader and pass it to the NIfTI header
           m_pData->header.Scl_Slope = eSubHeader->scale_Factor();
           
-          /*
-          // Calculation of the geometric center of the transaxial field of view (FOV / 2) and Coach position offset (initBedPosition) to determine the Qoffset values for the NIfTI header.
-          float nx = static_cast<float>(eSubHeader->x_Dimension());
-          float ny = static_cast<float>(eSubHeader->y_Dimension());
-          float offsetX = (nx * px) / 2.0f;
-          float offsetY = (ny * py) / 2.0f;
-          float bedOffsetMm = initBedPosition * 10.0f;
-          
-          m_pData->header.Qoffset_X = offsetX;
-          m_pData->header.Qoffset_Y = offsetY;
-          m_pData->header.Qoffset_Z = bedOffsetMm;
-          */
-          
           // Extraction of native reconstruction offsets from the ECAT subheader for absolute bit-identity
           float xOffsetMm = 0.0f;
           float yOffsetMm = 0.0f;

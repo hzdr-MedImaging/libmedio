@@ -180,17 +180,6 @@ class CNIFTI2MainHeader : public CNIFTIMainHeader { // derived class from CNIFTI
     void setScl_Inter(const double inter);
     void setVox_Offset(const qint64 offset);
 
-/*
-    // special Qt-based methods for easy time conversion of the really
-    // mad ECAT time specifications
-    QDate patient_Birth_Date_Qt(void) const;
-    QDateTime scan_Start_Time_Qt(void) const;
-    QDateTime dose_Start_Time_Qt(void) const;
-    void setPatient_Birth_Date_Qt(const QDate& date);
-    void setScan_Start_Time_Qt(const QDateTime& dateTime);
-    void setDose_Start_Time_Qt(const QDateTime& dateTime);
-*/
-
     // ===============================================================================
     int headerExtensionSize(const QJsonObject& json) const;
     // Method to write the header extension to a NIfTI file. 

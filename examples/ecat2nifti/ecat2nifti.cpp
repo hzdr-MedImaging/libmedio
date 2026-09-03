@@ -404,23 +404,6 @@ int main(int argc, char* argv[]) {
             }
             niftiFile.close();
 
-            // Recalculate the resize taking into account the dynamic vox_Offset which now includes the extension (it's no longer fixed to 352)
-            //int finalOffset = (useNifti2) ? 544 : static_cast<CNIFTI1MainHeader*>(niftiHeader)->vox_Offset();
-            //QFile::resize(outputFilename, finalOffset + voxelData->size());
-            
-            /*
-            qint64 finalOffset = 0;
-
-            if(useNifti2) {
-                CNIFTI2MainHeader* n2 = static_cast<CNIFTI2MainHeader*>(niftiHeader);
-                finalOffset = n2->vox_Offset();
-            } else {
-                CNIFTI1MainHeader* n1 = static_cast<CNIFTI1MainHeader*>(niftiHeader);
-                finalOffset = n1->vox_Offset();
-            }
-
-            QFile::resize(outputFilename, finalOffset + static_cast<qint64>(voxelData->size()));
-            */
 
             // =========================================================================================
             // Continue generating the external JSON sidecar 
