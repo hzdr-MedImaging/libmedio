@@ -31,6 +31,9 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/config.h.in
 set(MEDIO_LIB_INCLUDES  ${CMAKE_CURRENT_SOURCE_DIR}/ecat
                         ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat6
                         ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat7
+                        ${CMAKE_CURRENT_SOURCE_DIR}/nifti
+                        ${CMAKE_CURRENT_SOURCE_DIR}/nifti/nifti1
+                        ${CMAKE_CURRENT_SOURCE_DIR}/nifti/nifti2
                         ${CMAKE_CURRENT_SOURCE_DIR}/micropet
                         ${CMAKE_CURRENT_SOURCE_DIR}/philips
                         ${CMAKE_CURRENT_SOURCE_DIR}/helpers
@@ -68,6 +71,9 @@ set(PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/CMedIO.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat7/CECAT7SubHeaderPolarMap.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat7/CECAT7SubHeaderScan.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat7/CECAT7SubHeaderScan3D.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/nifti/nifti1/CNIFTI1MainHeader.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/nifti/nifti2/CNIFTI2MainHeader.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/nifti/CNIFTIFile.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/micropet/CConcordeMainHeader.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/micropet/CConcordeMainHeaderSinogram.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/micropet/CConcordeMainHeaderImage.h
@@ -110,6 +116,7 @@ set_target_properties(${CMAKE_PROJECT_NAME}-shared PROPERTIES OUTPUT_NAME medio
 target_link_libraries(${CMAKE_PROJECT_NAME}-static 
                       Qt5::Core 
                       Threads::Threads
+                      ZLIB::ZLIB
                       ${RTDEBUG_STATIC_LIB}
                       ${DEPEND_STATIC_LIB}
 )
@@ -117,6 +124,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}-static
 target_link_libraries(${CMAKE_PROJECT_NAME}-shared 
                       Qt5::Core 
                       Threads::Threads
+                      ZLIB::ZLIB
                       ${RTDEBUG_SHARED_LIB}
                       ${DEPEND_STATIC_LIB}
 )

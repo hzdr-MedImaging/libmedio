@@ -76,6 +76,8 @@ find_package(Qt5 REQUIRED COMPONENTS Core Gui Test)
 find_package(Threads REQUIRED)
 find_package(RTDEBUG REQUIRED)
 
+find_package(ZLIB REQUIRED)
+
 # add some special libraries in case we are build for windows
 # WARNING: This seems to be a workaround because Qt5 itself should
 # include them?!?!
@@ -100,6 +102,7 @@ add_subdirectory(src)
 add_subdirectory(examples/img2ecat)
 add_subdirectory(examples/image2ecat)
 add_subdirectory(examples/mp2ecat)
+add_subdirectory(examples/ecat2nifti)
 add_subdirectory(examples/bin2txt)
 add_subdirectory(examples/ecat/anonymize)
 add_subdirectory(examples/ecat/assembleBeds)
@@ -108,6 +111,8 @@ add_subdirectory(examples/ecat/ecatcmp)
 add_subdirectory(examples/ecat/ecatutil)
 add_subdirectory(examples/ecat/showheader)
 add_subdirectory(examples/ecat/sumSino)
+add_subdirectory(examples/nifti/showheader)
+add_subdirectory(examples/nifti2ecat)
 
 # Enable CTest support and add the test suite
 enable_testing()

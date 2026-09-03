@@ -33,9 +33,7 @@
 //! constructs a CMedIOData object
 //!
 ////////////////////////////////////////////////////////////////////////////////
-CMedIOData::CMedIOData(const QString& fileName)
-  : QFile(fileName)
-{
+CMedIOData::CMedIOData(const QString& fileName) : QFile(fileName) {
   m_iErrStatus = MERR_Ok;
 }
 

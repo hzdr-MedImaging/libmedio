@@ -37,8 +37,7 @@ class CMedIOHeaderPrivate;
 //! This class is an interface for easier handling of different medical data headers.
 //! All headers of data formats which are included in Medical IO Library should use the class
 //! as a baseclass.
-class CMedIOHeader
-{
+class CMedIOHeader {
   public:
     enum Format 
     {  
@@ -49,7 +48,8 @@ class CMedIOHeader
       ECATSubHeader,                //!< sub header of ECAT6/7 PET scanners
       PhilipsMainHeader,            //!< main header of philips scanners
       PhilipsSubHeader,             //!< sub header of philips scanners
-      PhilipsListviewHeader         //!< listview header of philips scanners
+      PhilipsListviewHeader,        //!< listview header of philips scanners
+      NIFTIMainHeader               //!< main header of NIfTI1/2 data format
     };
 
     // constructors
