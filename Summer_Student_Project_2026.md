@@ -6,6 +6,56 @@ The main goal of the project was to extend `libmedio` with support for the NIfTI
 
 The implementation is available in the `nifti` branch.
 
+## libmedio — C++ I/O library for medical imaging formats
+
+**libmedio** is a portable C++ library that provides high-level I/O APIs
+for reading and writing medical imaging data formats.
+
+Originally developed for PET applications, libmedio focuses primarily on
+nuclear-medicine imaging while also supporting more general medical imaging
+workflows.
+
+The library is written in C++ and uses the **Qt framework** for portability
+across Linux, macOS, and Windows.
+
+## Scope & supported formats
+
+libmedio currently provides support for several medical imaging formats,
+including:
+
+- **ECAT 6 / ECAT 7** images and sinograms (Siemens/CTI)
+- **NIfTI-1 / NIfTI-2**
+  - uncompressed monolithic `.nii`
+  - gzip-compressed `.nii.gz`
+- **Philips PET** image data, including Syntegra-related variants
+- **microPET** (Siemens Concorde)
+
+Additional formats and extensions may be supported over time.
+
+## Features
+
+- Object-oriented C++ API
+- Read/write support for PET images and sinograms
+- NIfTI-1 and NIfTI-2 file I/O
+- Reading and writing of gzip-compressed NIfTI files (`.nii.gz`)
+  using zlib
+- ECAT-to-NIfTI and NIfTI-to-ECAT conversion tools
+- Preservation of voxel dimensions, voxel spacing and numerical data types
+  during conversion
+- Handling of ECAT/NIfTI spatial orientation differences
+- Support for NIfTI scaling through `scl_slope` and `scl_inter`
+- Storage and recovery of additional PET/ECAT metadata through JSON metadata
+  embedded in NIfTI extensions and external JSON sidecars
+- Cross-platform build system based on CMake and Qt5
+
+## Requirements
+
+- C++ compiler (GCC/Clang/MSVC)
+- CMake >= 3.17
+- Qt 5
+- librtdebug
+- zlib
+
 ---
 
 ## 1. NIfTI-1 and NIfTI-2 support
