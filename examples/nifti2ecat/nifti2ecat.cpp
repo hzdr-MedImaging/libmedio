@@ -231,6 +231,7 @@ int main(int argc, char* argv[]){
             bool ZFlip = false; // initialize a boolean variable to track if the Z-axis needs to be flipped
             int nx = 0, ny = 0; // initialize variables to hold the dimensions of the voxel data
             int bitpix = 0; // initialize a variable to hold the number of bits per voxel
+            int niftiDatatype = 0;
 
             // Exploit the polymorphism of the CNIFTIMainHeader class (1 = NIfTI-1, 2 = NIfTI-2)
             if (niftiHeader->mainHeaderType() == 1) { 
@@ -246,7 +247,8 @@ int main(int argc, char* argv[]){
                 nx = nifti1Header->dim(1); 
                 ny = nifti1Header->dim(2); 
                 nz = nifti1Header->dim(3); 
-                bitpix = nifti1Header->bit_Pix(); 
+                bitpix = nifti1Header->bit_Pix();
+                niftiDatatype = nifti1Header->dataType();
 
             } else if (niftiHeader->mainHeaderType() == 2) { 
                 const CNIFTI2MainHeader* nifti2Header = static_cast<const CNIFTI2MainHeader*>(niftiHeader); 
@@ -261,6 +263,7 @@ int main(int argc, char* argv[]){
                 ny = nifti2Header->dim(2); 
                 nz = nifti2Header->dim(3);
                 bitpix = nifti2Header->bit_Pix(); 
+                niftiDatatype = nifti2Header->dataType();
             }
 
             // 8. If ZFlip is true, we need to flip the voxel data along the Z-axis to match ECAT's coordinate system
@@ -277,10 +280,44 @@ int main(int argc, char* argv[]){
 
                 delete voxelData; // delete the original voxel data to free memory
                 voxelData = flippedData; // assign the flipped data to voxelData
-
-                cout << "Notice: Applied dynamic Z-flip to match ECAT physical layout." << endl;
+                
+                cout << "Notice: Applied geometric Z-flip to match ECAT physical layout." << endl;            
             } 
+            
             //====================================================================================================
+            // NIfTI FLOAT64 has no direct ECAT7 image equivalent.
+            // Convert the voxel matrix numerically from double (64 bit)
+            // to float (32 bit) before writing it as ECAT IEEEFloat.
+            if (niftiDatatype == 64) { // DT_FLOAT64
+
+                qint64 numVoxels = static_cast<qint64>(nx) *static_cast<qint64>(ny) * static_cast<qint64>(nz);
+
+                qint64 expectedSize = numVoxels * static_cast<qint64>(sizeof(double));
+
+                if (voxelData->size() != expectedSize) {
+                    cout << "Error: Invalid FLOAT64 voxel matrix size. Expected " << expectedSize << " bytes, got " << voxelData->size() << " bytes." << endl;
+
+                    ecatFile.close();
+                    delete niftiHeader;
+                    delete voxelData;
+                    return 1;
+                }
+
+                const double* input = reinterpret_cast<const double*>(voxelData->constData());
+
+                QByteArray* convertedData = new QByteArray(numVoxels * sizeof(float), 0);
+
+                float* output = reinterpret_cast<float*>(convertedData->data());
+
+                for (qint64 i = 0; i < numVoxels; ++i) {
+                    output[i] = static_cast<float>(input[i]);
+                }
+
+                delete voxelData;
+                voxelData = convertedData;
+
+                cout << "Notice: Converted NIfTI FLOAT64 voxel data to ECAT FLOAT32." << endl;
+            }
 
             // 9. Finally, write the voxel data to the ECAT file
             ecatFile.writeMatrix(voxelData->constData(), voxelData->size(), 1); // write the voxel data to the ECAT 

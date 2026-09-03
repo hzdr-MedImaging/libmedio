@@ -481,7 +481,9 @@ if (mainHeader != NULL && mainHeader->headerFormat() == CMedIOHeader::NIFTIMainH
       float pixDim1 = 0.0f, pixDim2 = 0.0f, pixDim3 = 0.0f;
       float xOffsetMm = 0.0f, yOffsetMm = 0.0f;
       float slope = 1.0f;
-      short bitpix = 16; // default
+      short bitpix = 16;       // number of bits per voxel
+      short niftiDataType = 0; // numeric NIfTI datatype code
+
 
       if (baseNiftiHeader->mainHeaderType() == 1) { // NIFTI-1
           const CNIFTI1MainHeader* nifti1 = static_cast<const CNIFTI1MainHeader*>(baseNiftiHeader);
@@ -499,6 +501,7 @@ if (mainHeader != NULL && mainHeader->headerFormat() == CMedIOHeader::NIFTIMainH
           slope = nifti1->scl_Slope();
 
           bitpix = nifti1->bit_Pix();
+          niftiDataType = nifti1->dataType();
 
       } else if (baseNiftiHeader->mainHeaderType() == 2) { // NIFTI-2
           const CNIFTI2MainHeader* nifti2 = static_cast<const CNIFTI2MainHeader*>(baseNiftiHeader);
@@ -516,14 +519,39 @@ if (mainHeader != NULL && mainHeader->headerFormat() == CMedIOHeader::NIFTIMainH
           slope = nifti2->scl_Slope();
 
           bitpix = nifti2->bit_Pix();
+          niftiDataType = nifti2->dataType();
       }
 
-      if (bitpix == 32) {
-          setData_Type(CECATSubHeader::IEEEFloat);
-      } else if (bitpix == 8) {
-          setData_Type(CECATSubHeader::ByteData);
-      } else {
-          setData_Type(CECATSubHeader::SunShort); // Lo standard ECAT per immagini a 16 bit
+      // Map the NIfTI numerical datatype to the closest ECAT7 datatype.
+      // ECAT7 does not provide a 64-bit floating-point image datatype,
+      // therefore NIfTI FLOAT64 data are converted to FLOAT32 by the
+      // nifti2ecat converter before writing the voxel matrix.
+      switch (niftiDataType) {
+          case 2:     // DT_UINT8
+              setData_Type(CECATSubHeader::ByteData);
+              break;
+
+          case 4:     // DT_INT16
+              setData_Type(CECATSubHeader::SunShort);
+              break;
+
+          case 8:     // DT_INT32
+              setData_Type(CECATSubHeader::SunLong);
+              break;
+
+          case 16:    // DT_FLOAT32
+              setData_Type(CECATSubHeader::IEEEFloat);
+              break;
+
+          case 64:    // DT_FLOAT64
+              setData_Type(CECATSubHeader::IEEEFloat);
+              break;
+
+          default:
+              W("Unsupported NIfTI datatype %d while converting to ECAT7",
+                niftiDataType);
+              setData_Type(CECATSubHeader::UnknownDataType);
+              break;
       }
 
       setNum_Dimensions(3);
