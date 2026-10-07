@@ -19,3 +19,4 @@
 
 add_subdirectory(ecat)
 add_subdirectory(philips)
+add_subdirectory(nifti)
