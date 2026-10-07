@@ -390,6 +390,7 @@ bool CECAT7SubHeaderPolarMap::convertFrom(const CMedIOHeader* subHeader, const C
 
     case CMedIOHeader::ConcordeMicroPetFrameHeader:
     case CMedIOHeader::PhilipsSubHeader:
+    case CMedIOHeader::NIFTIMainHeader:
     case CMedIOHeader::PhilipsListviewHeader:
     {
       E("medio subheader %d conversion not implemented!", subHeader->headerFormat());

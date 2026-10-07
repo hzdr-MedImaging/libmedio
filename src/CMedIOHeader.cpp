@@ -27,6 +27,8 @@
 #include "CConcordeFile.h"
 #include "CConcordeMainHeader.h"
 #include "CConcordeFrameHeader.h"
+#include "CNIFTIFile.h"
+#include "CNIFTIMainHeader.h"
 
 #include <rtdebug.h>
 #include <iostream>
@@ -202,6 +204,20 @@ bool CMedIOHeader::convertFrom(CMedIOData* pData)
       }
       break;
 
+      case CMedIOData::NIFTI:
+      {
+        CNIFTIFile* niftiFile = static_cast<CNIFTIFile*>(pData);
+        CNIFTIMainHeader* mainHeader = NULL;
+
+        // NIfTI only has a main header which carries all information,
+        // so it serves as main and sub header at the same time
+        if(niftiFile->readMainHeader(mainHeader))
+          result = convertFrom(mainHeader, mainHeader);
+
+        delete mainHeader;
+      }
+      break;
+
       case CMedIOData::Unknown:
         result = false;
       break;
@@ -231,6 +247,7 @@ bool CMedIOHeader::isMainHeader(void) const
     case CMedIOHeader::ConcordeMicroPetMainHeader:
     case CMedIOHeader::ECATMainHeader:
     case CMedIOHeader::PhilipsMainHeader:
+    case CMedIOHeader::NIFTIMainHeader:
       result = true;
     break;
     

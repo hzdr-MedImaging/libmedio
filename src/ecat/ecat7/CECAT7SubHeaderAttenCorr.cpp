@@ -405,6 +405,7 @@ bool CECAT7SubHeaderAttenCorr::convertFrom(const CMedIOHeader* subHeader, const 
 
     case CMedIOHeader::ConcordeMicroPetFrameHeader:
     case CMedIOHeader::PhilipsSubHeader:
+    case CMedIOHeader::NIFTIMainHeader:
     case CMedIOHeader::PhilipsListviewHeader:
     {
       E("medio subheader %d conversion not implemented!", subHeader->headerFormat());

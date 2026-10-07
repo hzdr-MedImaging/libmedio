@@ -19,6 +19,8 @@
 
 #include "CNIFTI1MainHeader.h"
 #include "CNIFTIFile.h"
+#include "CNIFTI2MainHeader.h"
+#include "CNIFTIHeaderCopy.h"
 #include "CECATMainHeader.h"
 #include "CECAT7MainHeader.h"
 #include "CECAT7SubHeaderImage.h"
@@ -692,6 +694,27 @@ bool CNIFTI1MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIO
 
       strncpy(m_pData->header.Descrip, head->series_desc(), sizeof(m_pData->header.Descrip)-1);
       bResult = true;
+    }
+    break;
+
+    // Conversion from a NIfTI-1/NIfTI-2 main header
+    case CMedIOHeader::NIFTIMainHeader:
+    {
+      const CNIFTIMainHeader* niftiHeader = static_cast<const CNIFTIMainHeader*>(mainHeader);
+
+      if(niftiHeader->mainHeaderType() == CNIFTIMainHeader::NIFTI1MainHeader) {
+        *this = *static_cast<const CNIFTI1MainHeader*>(niftiHeader);
+
+        // a converted header always describes a new (little endian) file
+        setByteOrder(QSysInfo::LittleEndian);
+        bResult = true;
+      }
+      else if(niftiHeader->mainHeaderType() == CNIFTIMainHeader::NIFTI2MainHeader) {
+        bResult = copyNIFTIHeaderFields(*this, *static_cast<const CNIFTI2MainHeader*>(niftiHeader), 32767);
+
+        if(bResult == false)
+          E("NIfTI-2 header values exceed the limits of a NIfTI-1 header");
+      }
     }
     break;
 

@@ -19,6 +19,8 @@
 
 #include "CNIFTI2MainHeader.h"
 #include "CNIFTIFile.h"
+#include "CNIFTI1MainHeader.h"
+#include "CNIFTIHeaderCopy.h"
 #include "CECATMainHeader.h"
 #include "CECAT7MainHeader.h"
 #include "CECAT7SubHeaderImage.h"
@@ -38,6 +40,7 @@
 #include <QJsonDocument>
 #include <QByteArray>
 #include <time.h>
+#include <limits>
 #include <unistd.h>
 
 #include <rtdebug.h>
@@ -704,6 +707,27 @@ bool CNIFTI2MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIO
 
       strncpy(m_pData->header.Descrip, head->series_desc(), sizeof(m_pData->header.Descrip)-1);
       bResult = true;
+    }
+    break;
+
+    // Conversion from a NIfTI-1/NIfTI-2 main header
+    case CMedIOHeader::NIFTIMainHeader:
+    {
+      const CNIFTIMainHeader* niftiHeader = static_cast<const CNIFTIMainHeader*>(mainHeader);
+
+      if(niftiHeader->mainHeaderType() == CNIFTIMainHeader::NIFTI2MainHeader) {
+        *this = *static_cast<const CNIFTI2MainHeader*>(niftiHeader);
+
+        // a converted header always describes a new (little endian) file
+        setByteOrder(QSysInfo::LittleEndian);
+        bResult = true;
+      }
+      else if(niftiHeader->mainHeaderType() == CNIFTIMainHeader::NIFTI1MainHeader) {
+        bResult = copyNIFTIHeaderFields(*this, *static_cast<const CNIFTI1MainHeader*>(niftiHeader), std::numeric_limits<qint64>::max());
+
+        if(bResult == false)
+          E("NIfTI-1 header values exceed the limits of a NIfTI-2 header");
+      }
     }
     break;
 
