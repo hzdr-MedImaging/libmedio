@@ -22,7 +22,6 @@
 #include "CNIFTI1MainHeader.h"
 #include "CNIFTI2MainHeader.h"
 
-#include <QDataStream> // NIfTI are pure binary files
 #include <QFileInfo>
 #include <QTemporaryFile>
 #include <QDir>
@@ -163,6 +162,73 @@ static bool compressGzipFile(const QString& sourceFilename,
     return result;
 }
 //=============================================================================================
+// identification of NIfTI headers
+
+// size of the largest NIfTI header (NIfTI-2)
+#define NIFTI_MAX_HEADER_SIZE 540
+
+// Identify the NIfTI version of a header by means of its sizeof_hdr field
+// and the magic signature. Only single file (.nii) NIfTI data is supported.
+static CNIFTIFile::NIFTIFormat identifyHeader(const QByteArray& header)
+{
+  if(header.size() < 348)
+    return CNIFTIFile::Undefined;
+
+  // sizeof_hdr is either stored in little or big endian byte order
+  const uchar* p = reinterpret_cast<const uchar*>(header.constData());
+  quint32 sizeofHdrLE = p[0] | (p[1] << 8) | (p[2] << 16) | (static_cast<quint32>(p[3]) << 24);
+  quint32 sizeofHdrBE = p[3] | (p[2] << 8) | (p[1] << 16) | (static_cast<quint32>(p[0]) << 24);
+
+  if(sizeofHdrLE == 348 || sizeofHdrBE == 348) {
+    // NIfTI-1: magic at byte offset 344
+    if(memcmp(header.constData()+344, "n+1\0", 4) == 0)
+      return CNIFTIFile::NIFTI1;
+
+    if(memcmp(header.constData()+344, "ni1\0", 4) == 0)
+      W("NIfTI-1 header/image file pairs (.hdr/.img) are not supported");
+  }
+  else if((sizeofHdrLE == 540 || sizeofHdrBE == 540) && header.size() >= 540) {
+    // NIfTI-2: magic at byte offset 4
+    if(memcmp(header.constData()+4, "n+2\0", 4) == 0)
+      return CNIFTIFile::NIFTI2;
+
+    if(memcmp(header.constData()+4, "ni2\0", 4) == 0)
+      W("NIfTI-2 header/image file pairs (.hdr/.img) are not supported");
+  }
+
+  return CNIFTIFile::Undefined;
+}
+
+// read the first bytes of a (possibly gzip compressed) file which are
+// required to identify a NIfTI header
+static QByteArray readHeaderBytes(const QString& fileName, bool compressed)
+{
+  QByteArray header;
+
+  if(compressed) {
+    gzFile input = gzopen(QFile::encodeName(fileName).constData(), "rb");
+
+    if(input) {
+      header.resize(NIFTI_MAX_HEADER_SIZE);
+
+      int bytesRead = gzread(input, header.data(), NIFTI_MAX_HEADER_SIZE);
+      header.resize(bytesRead > 0 ? bytesRead : 0);
+
+      gzclose(input);
+    }
+  } else {
+    QFile input(fileName);
+
+    if(input.open(QIODevice::ReadOnly)) {
+      header = input.read(NIFTI_MAX_HEADER_SIZE);
+      input.close();
+    }
+  }
+
+  return header;
+}
+
+//=============================================================================================
 // Constructors and Destructors for the CNIFTIFile class
 CNIFTIFile::CNIFTIFile(const QString& filename, CNIFTIMainHeader::Type fileType): CMedIOData(filename) {
     
@@ -206,17 +272,10 @@ CNIFTIFile::~CNIFTIFile() {
 bool CNIFTIFile::isOfType(const QString& filename) {
   ENTER();
 
-  bool result = false;
-
-  // try to open the file (in read mode) and identify it as a NIfTI file
-  CNIFTIFile file(filename);
-
-  if(file.open(QIODevice::ReadOnly)) { 
-    if(file.format() != CNIFTIFile::Undefined)
-      result = true;
-
-    file.close();
-  }
+  // only read the header bytes so that a compressed file
+  // does not have to be decompressed completely
+  bool compressed = QFileInfo(filename).fileName().endsWith(".nii.gz", Qt::CaseInsensitive);
+  bool result = (identifyHeader(readHeaderBytes(filename, compressed)) != CNIFTIFile::Undefined);
 
   RETURN(result);
   return result;
@@ -310,47 +369,31 @@ bool CNIFTIFile::open(QIODevice::OpenModeFlag mode) {
 
     if(QFile::open(QIODevice::ReadOnly)) {
       
-      QDataStream stream(this);
-      stream.setByteOrder(QDataStream::LittleEndian); // NIfTI is Little Endian 
+      // identify the NIfTI version by means of sizeof_hdr and the magic signature
+      CNIFTIFile::NIFTIFormat format = identifyHeader(QFile::read(NIFTI_MAX_HEADER_SIZE));
 
-      // read the first 4 bytes to determine the size of the header (NIfTI-1: 32-bit -> 348 bytes, NIfTI-2: 64-bit -> 540 bytes)
-      qint32 sizeof_hdr; 
-      stream >> sizeof_hdr;
-
-      // Verify if it is a NIfTI-1 (348 byte)
-      if(sizeof_hdr == 348 || sizeof_hdr == 1543569408) {
+      if(format == CNIFTIFile::NIFTI1) {
         D("Found NIfTI-1 file");
-        //std::cout << "NIFTI1" << std::endl;
         m_pData->iNIFTIformat = CNIFTIFile::NIFTI1;
-        
-        // Create the header object CNIFTIMainHeader and tell it to load the rest of the data:
-        // Once the file is open and verified as a NIfTI file, we create a new CNIFTIMainHeader object 
-        // and call its load() method to read the rest of the header data from the file. 
-        // If the load is successful, we set result to true; otherwise, we delete the header object and set result to false.
         m_pData->cachedMainHeader = new CNIFTI1MainHeader(this);
-        if(m_pData->cachedMainHeader->load()) {
-          result = true;
-        } else {
-          //std::cout << "blah" << std::endl;
-          W("Error while loading NIfTI-1 header");
-        }
       }
-      // Verify if it is a NIfTI-2 (540 byte)
-      else if(sizeof_hdr == 540 || sizeof_hdr == 469893120) {
+      else if(format == CNIFTIFile::NIFTI2) {
         D("Found NIfTI-2 file");
         m_pData->iNIFTIformat = CNIFTIFile::NIFTI2;
-        
         m_pData->cachedMainHeader = new CNIFTI2MainHeader(this);
-        if(m_pData->cachedMainHeader->load()) {
-          result = true;
-        } else {
-          W("Error while loading NIfTI-2 header");
-        }
       }
       else {
-         W("Magic number error: it's not a valid NIfTI file.");
+        W("Magic number error: it's not a valid NIfTI file.");
       }
-    
+
+      // load the rest of the header data from the file
+      if(m_pData->cachedMainHeader != NULL) {
+        if(m_pData->cachedMainHeader->load())
+          result = true;
+        else
+          W("Error while loading NIfTI header");
+      }
+
       QFile::close();
     }
   }
