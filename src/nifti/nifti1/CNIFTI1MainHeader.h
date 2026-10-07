@@ -23,6 +23,7 @@
 #include <QDataStream>
 #include <QDateTime>
 #include <QTextStream>
+#include <QSysInfo>
 
 #ifndef __MEDIO_PRIVATE__
 #include <CNIFTIMainHeader>
@@ -192,6 +193,11 @@ class CNIFTI1MainHeader : public CNIFTIMainHeader { // derived class from CNIFTI
     void setIntent_Name(const char* intentName);    
     void setScl_Slope(float slope);
     void setScl_Inter(float inter);
+
+    // byte order of the file the header was loaded from or will be
+    // written to (headers of new files: little endian)
+    QSysInfo::Endian byteOrder(void) const;
+    void setByteOrder(QSysInfo::Endian order);
 
     // ===============================================================================
     int headerExtensionSize(const QJsonObject& json) const;

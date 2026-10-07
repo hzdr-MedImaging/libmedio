@@ -28,6 +28,7 @@
 
 #include <zlib.h>
 
+#include <algorithm>
 #include <limits>
 
 #include <rtdebug.h>
@@ -54,7 +55,7 @@ class CNIFTIFilePrivate {
 
     // methods
     bool syncMainHeader(CNIFTIFile* file) const;
-    bool matrixLayout(qint64& offset, qint64& size) const;
+    bool matrixLayout(qint64& offset, qint64& size, int& swapSize) const;
 };
 
 
@@ -164,6 +165,33 @@ static bool compressGzipFile(const QString& sourceFilename,
 
     return result;
 }
+//=============================================================================================
+// byte order handling of the voxel data
+
+// size in bytes of the individual numbers stored in a voxel of the given NIfTI datatype
+static int voxelNumberSize(int datatype, int bitpix)
+{
+  switch(datatype) {
+    case 32:   return 4;  // DT_COMPLEX64: 2 x float32
+    case 1792: return 8;  // DT_COMPLEX128: 2 x float64
+    case 2048: return 16; // DT_COMPLEX256: 2 x float128
+    case 128:             // DT_RGB24: 3 x uint8
+    case 2304: return 1;  // DT_RGBA32: 4 x uint8
+  }
+
+  return bitpix / 8;
+}
+
+// reverse the byte order of all numbers of size numberSize in the given data
+static void swapMatrix(char* data, qint64 size, int numberSize)
+{
+  if(numberSize < 2)
+    return;
+
+  for(qint64 i=0; i + numberSize <= size; i += numberSize)
+    std::reverse(data + i, data + i + numberSize);
+}
+
 //=============================================================================================
 // identification of NIfTI headers
 
@@ -660,7 +688,7 @@ bool CNIFTIFilePrivate::syncMainHeader(CNIFTIFile* /*file*/) const {
 //------------------------------------------------------------------------------------------------
 // method of the private class to determine the file position and the size (in bytes)
 // of the voxel matrix as described by the cached main header
-bool CNIFTIFilePrivate::matrixLayout(qint64& offset, qint64& size) const {
+bool CNIFTIFilePrivate::matrixLayout(qint64& offset, qint64& size, int& swapSize) const {
   ENTER();
 
   if(cachedMainHeader == NULL) {
@@ -670,18 +698,24 @@ bool CNIFTIFilePrivate::matrixLayout(qint64& offset, qint64& size) const {
 
   qint64 dims[8];
   int bitpix = 0;
+  int datatype = 0;
+  QSysInfo::Endian byteOrder = QSysInfo::LittleEndian;
 
   if(iNIFTIformat == CNIFTIFile::NIFTI1) {
     const CNIFTI1MainHeader* header = static_cast<const CNIFTI1MainHeader*>(cachedMainHeader);
     for(int i=0; i < 8; i++)
       dims[i] = header->dim(i);
     bitpix = header->bit_Pix();
+    datatype = header->dataType();
+    byteOrder = header->byteOrder();
     offset = static_cast<qint64>(header->vox_Offset());
   } else if(iNIFTIformat == CNIFTIFile::NIFTI2) {
     const CNIFTI2MainHeader* header = static_cast<const CNIFTI2MainHeader*>(cachedMainHeader);
     for(int i=0; i < 8; i++)
       dims[i] = header->dim(i);
     bitpix = header->bit_Pix();
+    datatype = header->dataType();
+    byteOrder = header->byteOrder();
     offset = header->vox_Offset();
   } else {
     RETURN(false);
@@ -710,6 +744,9 @@ bool CNIFTIFilePrivate::matrixLayout(qint64& offset, qint64& size) const {
     size *= dims[i];
   }
 
+  // the voxel data is stored in the byte order of the main header
+  swapSize = (byteOrder != QSysInfo::ByteOrder) ? voxelNumberSize(datatype, bitpix) : 0;
+
   RETURN(true);
   return true;
 }
@@ -722,10 +759,11 @@ bool CNIFTIFile::readMatrix(QByteArray*& matrixData) {
   bool result = false;
   qint64 offset = 0;
   qint64 matrixSize = 0;
+  int swapSize = 0;
 
   matrixData = NULL;
 
-  if(isReadable() && m_pData->matrixLayout(offset, matrixSize)) {
+  if(isReadable() && m_pData->matrixLayout(offset, matrixSize, swapSize)) {
     if(matrixSize > std::numeric_limits<int>::max()) {
       E("voxel matrix of %lld bytes is too large for a QByteArray", matrixSize);
     } else if(size() < offset + matrixSize) {
@@ -734,6 +772,8 @@ bool CNIFTIFile::readMatrix(QByteArray*& matrixData) {
       matrixData = new QByteArray(read(matrixSize));
 
       if(matrixData->size() == matrixSize) {
+        // return the voxel data in the byte order of this machine
+        swapMatrix(matrixData->data(), matrixSize, swapSize);
         result = true;
       } else {
         delete matrixData;
@@ -751,11 +791,12 @@ bool CNIFTIFile::readMatrix(char*& matrixData, unsigned int& len) {
   bool result = false;
   qint64 offset = 0;
   qint64 matrixSize = 0;
+  int swapSize = 0;
 
   matrixData = NULL;
   len = 0;
 
-  if(isReadable() && m_pData->matrixLayout(offset, matrixSize)) {
+  if(isReadable() && m_pData->matrixLayout(offset, matrixSize, swapSize)) {
     if(matrixSize > std::numeric_limits<unsigned int>::max()) {
       E("voxel matrix of %lld bytes is too large", matrixSize);
     } else if(size() < offset + matrixSize) {
@@ -764,6 +805,8 @@ bool CNIFTIFile::readMatrix(char*& matrixData, unsigned int& len) {
       matrixData = new char[matrixSize];
 
       if(read(matrixData, matrixSize) == matrixSize) {
+        // return the voxel data in the byte order of this machine
+        swapMatrix(matrixData, matrixSize, swapSize);
         len = static_cast<unsigned int>(matrixSize);
         result = true;
       } else {
@@ -791,14 +834,26 @@ bool CNIFTIFile::writeMatrix(const char* matrixData, unsigned int size) {
   bool result = false;
   qint64 offset = 0;
   qint64 matrixSize = 0;
+  int swapSize = 0;
 
   // the main header has to be written first as it defines the matrix layout
-  if(isWritable() && m_pData->matrixLayout(offset, matrixSize)) {
+  if(isWritable() && m_pData->matrixLayout(offset, matrixSize, swapSize)) {
     if(static_cast<qint64>(size) != matrixSize) {
       E("size of the voxel matrix (%u bytes) does not match the main header (%lld bytes)", size, matrixSize);
     } else if(seek(offset)) {
+      qint64 bytesWritten = 0;
+
       // vox_offset is used so that header extensions are not overwritten
-      if(write(matrixData, size) == matrixSize)
+      if(swapSize > 0) {
+        // the voxel data has to be stored in the byte order of the main header
+        QByteArray swappedData(matrixData, size);
+        swapMatrix(swappedData.data(), matrixSize, swapSize);
+        bytesWritten = write(swappedData);
+      } else {
+        bytesWritten = write(matrixData, size);
+      }
+
+      if(bytesWritten == matrixSize)
         result = resize(offset + matrixSize);
     }
   }

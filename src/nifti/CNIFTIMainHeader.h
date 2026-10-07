@@ -21,6 +21,8 @@
 #define CNIFTIMAINHEADER_H
 
 #include <QTextStream>
+#include <QIODevice>
+#include <QJsonObject>
 
 #ifndef __MEDIO_PRIVATE__
 #include <CMedIOHeader>
@@ -93,6 +95,12 @@ class CNIFTIMainHeader : public CMedIOHeader { // CNIFTIMainHeader class inherit
 
     // conversion methods
     virtual bool convertFrom(const CMedIOHeader* mainHeader, const CMedIOHeader* subHeader=NULL) = 0;
+
+  protected:
+    // helpers shared by the NIfTI-1/NIfTI-2 header extension methods
+    static int jsonExtensionSize(const QJsonObject& json);
+    static bool writeJsonExtension(QIODevice& file, qint64 headerSize, const QJsonObject& json, bool swap);
+    static QJsonObject readJsonExtension(QIODevice& file, qint64 headerSize, qint64 voxOffset, bool swap);
 };
 
 #endif // CNIFTIMAINHEADER_H

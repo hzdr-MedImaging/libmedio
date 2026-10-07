@@ -95,6 +95,9 @@ class CNIFTI2MainHeaderPrivate { // private class to add private variables to th
       char   Dim_Info;                     // 524: MRI slice ordering
       char  unused_str[15];                // 525: Unused space for future expansion
     } header;
+
+    // byte order of the file the header belongs to
+    QSysInfo::Endian byteOrder;
     #pragma pack(pop)
   };
 
@@ -185,6 +188,7 @@ CNIFTI2MainHeader& CNIFTI2MainHeader::operator=(const CNIFTI2MainHeader& src) {
     memcpy(&m_pData->header, 
            &src.m_pData->header, 
            sizeof(struct CNIFTI2MainHeaderPrivate::HeaderData));
+    m_pData->byteOrder = src.m_pData->byteOrder;
   }
 
   LEAVE();
@@ -206,6 +210,9 @@ void CNIFTI2MainHeader::clear() {
   
   // clear our MainHeader structure first
   memset(&m_pData->header, 0, sizeof(struct CNIFTI2MainHeaderPrivate::HeaderData));
+
+  // new files are written in little endian byte order
+  m_pData->byteOrder = QSysInfo::LittleEndian;
 
   LEAVE();
 }
@@ -237,65 +244,24 @@ bool CNIFTI2MainHeader::load(void) {
 
 //------------------------------------------------------------------------------------
 
-  // now that we have streamed in all data in one run we
-  // have to take care of correct endianness in the non-char
-  // entries in the header structure in case this is a little endian
-  // machine
-
-if(QSysInfo::ByteOrder != QSysInfo::LittleEndian) {
-    // 32-bit and 16-bit header elements
-    BSWAP_32(m_pData->header.Sizeof_Hdr);
-    BSWAP_16(m_pData->header.DataType);
-    BSWAP_16(m_pData->header.Bit_Pix);
-
-    // 8-element arrays (Dimensions and Pixel dimensions)
-    for(int i = 0; i < 8; i++) {
-        BSWAP_64(m_pData->header.Dim[i]);
-        BSWAP_DBL(m_pData->header.Pix_Dim[i]);
+  // detect the byte order of the file by means of the sizeof_hdr field and
+  // swap all non-char elements in case it differs from the one of this machine
+  bool swapped = false;
+  if(m_pData->header.Sizeof_Hdr != MAINHEADER_SIZE) {
+    if(bswap_32(m_pData->header.Sizeof_Hdr) != MAINHEADER_SIZE) {
+      W("invalid sizeof_hdr field: %u", m_pData->header.Sizeof_Hdr);
+      RETURN(false);
+      return false;
     }
 
-    // Intent parameters (double precision)
-    BSWAP_DBL(m_pData->header.Intent_P1);
-    BSWAP_DBL(m_pData->header.Intent_P2);
-    BSWAP_DBL(m_pData->header.Intent_P3);
-
-    // Offsets and slice indices (64-bit integers)
-    BSWAP_64(m_pData->header.Vox_Offset);
-    BSWAP_64(m_pData->header.Slice_Start);
-    BSWAP_64(m_pData->header.Slice_End);
-
-    // Scaling and display intensity ranges (double precision)
-    BSWAP_DBL(m_pData->header.Scl_Slope);
-    BSWAP_DBL(m_pData->header.Scl_Inter);
-    BSWAP_DBL(m_pData->header.Cal_Max);
-    BSWAP_DBL(m_pData->header.Cal_Min);
-    BSWAP_DBL(m_pData->header.Slice_Duration);
-    BSWAP_DBL(m_pData->header.Toffset);
-
-    // Coordinate systems and affine transformation codes (32-bit integers)
-    BSWAP_32(m_pData->header.Qform_Code);
-    BSWAP_32(m_pData->header.Sform_Code);
-
-    // Quaternions and shifts (double precision)
-    BSWAP_DBL(m_pData->header.Quatern_B);
-    BSWAP_DBL(m_pData->header.Quatern_C);
-    BSWAP_DBL(m_pData->header.Quatern_D);
-    BSWAP_DBL(m_pData->header.Qoffset_X);
-    BSWAP_DBL(m_pData->header.Qoffset_Y);
-    BSWAP_DBL(m_pData->header.Qoffset_Z);
-
-    // Affine transformation rows (4 elements each, double precision)
-    for(int i = 0; i < 4; i++) {
-        BSWAP_DBL(m_pData->header.Srow_X[i]);
-        BSWAP_DBL(m_pData->header.Srow_Y[i]);
-        BSWAP_DBL(m_pData->header.Srow_Z[i]);
-    }
-
-    // Additional codes and metadata (32-bit integers)
-    BSWAP_32(m_pData->header.Slice_Code);
-    BSWAP_32(m_pData->header.XYZT_Units);
-    BSWAP_32(m_pData->header.Intent_Code);
+    swapHeader(m_pData->header);
+    swapped = true;
   }
+
+  if(swapped)
+    m_pData->byteOrder = (QSysInfo::ByteOrder == QSysInfo::LittleEndian) ? QSysInfo::BigEndian : QSysInfo::LittleEndian;
+  else
+    m_pData->byteOrder = QSysInfo::ByteOrder;
 
   // some more debug output
 #if defined(DEBUG)
@@ -509,8 +475,8 @@ bool CNIFTI2MainHeader::save(void) const {
     header.Vox_Offset = MAINHEADER_SIZE + 4;
 
 //------------------------------------------------------------------------------------
-  // NIfTI files are written in little endian byte order
-  if(QSysInfo::ByteOrder != QSysInfo::LittleEndian)
+  // the header is written in the byte order of its file
+  if(m_pData->byteOrder != QSysInfo::ByteOrder)
     swapHeader(header);
 
 //------------------------------------------------------------------------------------
@@ -1069,125 +1035,32 @@ QTextStream& operator<<(QTextStream& stream, const CNIFTI2MainHeader& mHeader) {
 }
 
 //=============================================================================================
+// Byte order
+
+QSysInfo::Endian CNIFTI2MainHeader::byteOrder(void) const {
+  return m_pData->byteOrder;
+}
+
+void CNIFTI2MainHeader::setByteOrder(QSysInfo::Endian order) {
+  m_pData->byteOrder = order;
+}
+
+//=============================================================================================
 // Header extension
-// after the main header, the extension is 4 bytes long 
-int CNIFTI2MainHeader::headerExtensionSize(const QJsonObject& json) const  {
-    QJsonDocument doc(json);
-    QByteArray jsonData = doc.toJson(QJsonDocument::Compact);
 
-    // 8 bytes = esize + ecode
-    int esize = 8 + jsonData.size();
-
-    // Every NIfTI extension must be a multiple of 16 bytes
-    int padding = (16 - (esize % 16)) % 16;
-
-    return esize + padding;
+// size in bytes of the header extension holding the given JSON metadata
+int CNIFTI2MainHeader::headerExtensionSize(const QJsonObject& json) const {
+  return jsonExtensionSize(json);
 }
 
-// Write BIDS JSON directly into the NIFTI-2 header extension
+// Write the JSON metadata as header extension directly after the NIfTI-2 main header.
+// vox_offset has to account for the extension (see headerExtensionSize()).
 bool CNIFTI2MainHeader::writeHeaderExtension(CNIFTIFile& niftiFile, const QJsonObject& json) {
-    // 1. Serialize the QJsonObject into a compact JSON format
-    QByteArray jsonData = QJsonDocument(json).toJson(QJsonDocument::Compact);
-    
-    // 2. Calculate the total size of the extension:
-    // esize (4 bytes) + ecode (4 bytes) + JSON data
-    int esize = 8 + jsonData.size();
-    int padding = (16 - (esize % 16)) % 16;
-    esize += padding;
-    
-    if(!niftiFile.seek(540)) {
-        // Failed to seek to the correct position for writing the extension
-        return false;
-    }
-    
-    char extender[4] = {1, 0, 0, 0};
-
-    if(niftiFile.write(extender, 4) != 4) {
-        // Failed to write the extender
-        return false;
-    }
-
-    qint32 extensionSize = static_cast<qint32>(esize);
-    qint32 extensionCode = 6; // Custom / ASCII / XML-ish / JSON data
-
-    if(niftiFile.write(reinterpret_cast<const char*>(&extensionSize), sizeof(extensionSize)) != sizeof(extensionSize)) {
-        // Failed to write the extension size
-        return false;
-    }
-
-    if(niftiFile.write(reinterpret_cast<const char*>(&extensionCode), sizeof(extensionCode)) != sizeof(extensionCode)) {
-        // Failed to write the extension code
-        return false;
-    }
-
-    if(niftiFile.write(jsonData.constData(), jsonData.size()) != jsonData.size()) {
-        // Failed to write the JSON data
-        return false;
-    }
-
-    if(padding > 0) {
-        QByteArray paddingData(padding, '\0');
-        if(niftiFile.write(paddingData.constData(), paddingData.size()) != paddingData.size()) {
-            // Failed to write the padding
-            return false;
-        }
-    }
-    return true;
+  return writeJsonExtension(niftiFile, MAINHEADER_SIZE, json, m_pData->byteOrder != QSysInfo::ByteOrder);
 }
 
-// Read BIDS JSON directly from the NIFTI-2 header extension
+// Read the JSON metadata from the header extensions of the NIfTI-2 file
 QJsonObject CNIFTI2MainHeader::readHeaderExtension(CNIFTIFile& file) const {
-    QJsonObject emptyJson;
-    
-    // Check if the extender indicates the presence of extensions (bytes 540-543)
-    if (m_pData->header.Magic[0] == '\0') return emptyJson; // Safety check
-    
-    // We need to read the 4 bytes immediately after the 540-byte header
-    file.seek(540);
-    char extender[4];
-    if (file.read(extender, 4) != 4) return emptyJson;
-    
-    // If extender[0] != 1, there are no extensions
-    if (extender[0] != 1) return emptyJson;
-    
-    // Read esize (size of extension) and ecode (type of extension)
-    qint32 esize = 0;
-    qint32 ecode = 0;
-    if (file.read(reinterpret_cast<char*>(&esize), 4) != 4) return emptyJson;
-    if (file.read(reinterpret_cast<char*>(&ecode), 4) != 4) return emptyJson;
-    
-    // We only care about JSON/Custom data (ecode == 6 or similar, depending on your choice)
-    if (ecode != 6) return emptyJson;
-    
-    // The actual JSON data size is esize - 8 (since esize includes itself and ecode)
-    int dataSize = esize - 8;
-    if (dataSize <= 0) return emptyJson;
-    
-    // Read the JSON data
-    QByteArray jsonData = file.read(dataSize);
-    if (jsonData.size() != dataSize) return emptyJson;
-    
-    // Remove NIfTI extension padding
-    while (!jsonData.isEmpty() && jsonData.endsWith('\0')) {
-        jsonData.chop(1);
-    }
-
-
-    if(jsonData.isEmpty()) return emptyJson;
-
-    QJsonParseError parseError;
-    QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData, &parseError);
-
-    if (parseError.error != QJsonParseError::NoError) {
-
-      std::cout << "Error: Failed to parse JSON from NIfTI extension: " << parseError.errorString().toStdString() << std::endl;
-        
-      return emptyJson;
-    }
-
-    if (jsonDoc.isObject()) {
-        return jsonDoc.object();
-    }
-    
-    return emptyJson;
+  return readJsonExtension(file, MAINHEADER_SIZE, static_cast<qint64>(m_pData->header.Vox_Offset),
+                           m_pData->byteOrder != QSysInfo::ByteOrder);
 }
