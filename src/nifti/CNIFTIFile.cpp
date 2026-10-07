@@ -28,6 +28,8 @@
 
 #include <zlib.h>
 
+#include <limits>
+
 #include <rtdebug.h>
 
 // we define the private inline class of that one so that we
@@ -52,6 +54,7 @@ class CNIFTIFilePrivate {
 
     // methods
     bool syncMainHeader(CNIFTIFile* file) const;
+    bool matrixLayout(qint64& offset, qint64& size) const;
 };
 
 
@@ -654,40 +657,88 @@ bool CNIFTIFilePrivate::syncMainHeader(CNIFTIFile* /*file*/) const {
 
 
 
+//------------------------------------------------------------------------------------------------
+// method of the private class to determine the file position and the size (in bytes)
+// of the voxel matrix as described by the cached main header
+bool CNIFTIFilePrivate::matrixLayout(qint64& offset, qint64& size) const {
+  ENTER();
+
+  if(cachedMainHeader == NULL) {
+    RETURN(false);
+    return false;
+  }
+
+  qint64 dims[8];
+  int bitpix = 0;
+
+  if(iNIFTIformat == CNIFTIFile::NIFTI1) {
+    const CNIFTI1MainHeader* header = static_cast<const CNIFTI1MainHeader*>(cachedMainHeader);
+    for(int i=0; i < 8; i++)
+      dims[i] = header->dim(i);
+    bitpix = header->bit_Pix();
+    offset = static_cast<qint64>(header->vox_Offset());
+  } else if(iNIFTIformat == CNIFTIFile::NIFTI2) {
+    const CNIFTI2MainHeader* header = static_cast<const CNIFTI2MainHeader*>(cachedMainHeader);
+    for(int i=0; i < 8; i++)
+      dims[i] = header->dim(i);
+    bitpix = header->bit_Pix();
+    offset = header->vox_Offset();
+  } else {
+    RETURN(false);
+    return false;
+  }
+
+  // in a single file (.nii) the voxel data follows the header and the
+  // 4 byte extension indicator at the earliest
+  if(offset < cachedMainHeader->rawDataSize() + 4)
+    offset = cachedMainHeader->rawDataSize() + 4;
+
+  if(dims[0] < 1 || dims[0] > 7 || bitpix <= 0 || (bitpix % 8) != 0) {
+    E("invalid NIfTI matrix description (dim[0]=%lld, bitpix=%d)", dims[0], bitpix);
+    RETURN(false);
+    return false;
+  }
+
+  size = bitpix / 8;
+  for(int i=1; i <= dims[0]; i++) {
+    if(dims[i] < 1 || size > std::numeric_limits<qint64>::max() / dims[i]) {
+      E("invalid NIfTI matrix dimension dim[%d]=%lld", i, dims[i]);
+      RETURN(false);
+      return false;
+    }
+
+    size *= dims[i];
+  }
+
+  RETURN(true);
+  return true;
+}
+
 //=============================================================================================
 // MATRIX I/O METHODS (Monolithic format)
 
 bool CNIFTIFile::readMatrix(QByteArray*& matrixData) {
   ENTER();
   bool result = false;
+  qint64 offset = 0;
+  qint64 matrixSize = 0;
 
-  if(isReadable() && m_pData->cachedMainHeader) {
-    // 1. offset skipping the header (348 o 540 byte)
-    //int offset = m_pData->cachedMainHeader->rawDataSize(); // Get the size of the main header to determine where the voxel data starts
-    
-    // 1. offset of voxel which is not necessarily the end of the header, because the NIfTI format allows for additional data after the header (extensions).
-    qint64 offset = 0;
-    if (format() == CNIFTIFile::NIFTI1) {
-        offset = static_cast<CNIFTI1MainHeader*>(m_pData->cachedMainHeader)->vox_Offset();
-    } else if (format() == CNIFTIFile::NIFTI2) {
-        offset = static_cast<CNIFTI2MainHeader*>(m_pData->cachedMainHeader)->vox_Offset();
-    }
+  matrixData = NULL;
 
-    if (offset == 0) {
-        offset = m_pData->cachedMainHeader->rawDataSize() + 4;
-    }
-    
-    // 2. Shift the file pointer beyond the header (shift the file pointer to the beginning of the voxel data)
-    seek(offset);
+  if(isReadable() && m_pData->matrixLayout(offset, matrixSize)) {
+    if(matrixSize > std::numeric_limits<int>::max()) {
+      E("voxel matrix of %lld bytes is too large for a QByteArray", matrixSize);
+    } else if(size() < offset + matrixSize) {
+      E("file too short: voxel matrix requires %lld bytes at offset %lld", matrixSize, offset);
+    } else if(seek(offset)) {
+      matrixData = new QByteArray(read(matrixSize));
 
-    // 3. Read the entire voxel block
-    matrixData = new QByteArray(readAll());
-    
-    if(!matrixData->isEmpty()) {
-      result = true;
-    } else {
-      delete matrixData;
-      matrixData = NULL;
+      if(matrixData->size() == matrixSize) {
+        result = true;
+      } else {
+        delete matrixData;
+        matrixData = NULL;
+      }
     }
   }
 
@@ -698,32 +749,27 @@ bool CNIFTIFile::readMatrix(QByteArray*& matrixData) {
 bool CNIFTIFile::readMatrix(char*& matrixData, unsigned int& len) {
   ENTER();
   bool result = false;
+  qint64 offset = 0;
+  qint64 matrixSize = 0;
 
-  if(isReadable() && m_pData->cachedMainHeader) {
-    
-    qint64 offset = 0;
-    if (format() == CNIFTIFile::NIFTI1) {
-        offset = static_cast<CNIFTI1MainHeader*>(m_pData->cachedMainHeader)->vox_Offset();
-    } else if (format() == CNIFTIFile::NIFTI2) {
-        offset = static_cast<CNIFTI2MainHeader*>(m_pData->cachedMainHeader)->vox_Offset();
-    }
-    
-    if (offset == 0) {
-        offset = m_pData->cachedMainHeader->rawDataSize() + 4;
-    }
+  matrixData = NULL;
+  len = 0;
 
-    seek(offset);
-    
-    len = size() - offset; // Number of bytes remaining in the file
-    
-    matrixData = new char[len];
-    qint64 bytesRead = read(matrixData, len);
-    
-    if(bytesRead == len) {
-      result = true;
-    } else {
-      delete[] matrixData;
-      matrixData = NULL;
+  if(isReadable() && m_pData->matrixLayout(offset, matrixSize)) {
+    if(matrixSize > std::numeric_limits<unsigned int>::max()) {
+      E("voxel matrix of %lld bytes is too large", matrixSize);
+    } else if(size() < offset + matrixSize) {
+      E("file too short: voxel matrix requires %lld bytes at offset %lld", matrixSize, offset);
+    } else if(seek(offset)) {
+      matrixData = new char[matrixSize];
+
+      if(read(matrixData, matrixSize) == matrixSize) {
+        len = static_cast<unsigned int>(matrixSize);
+        result = true;
+      } else {
+        delete[] matrixData;
+        matrixData = NULL;
+      }
     }
   }
 
@@ -733,30 +779,8 @@ bool CNIFTIFile::readMatrix(char*& matrixData, unsigned int& len) {
 //------------------------------------------------------------------------------------------------
 bool CNIFTIFile::writeMatrix(const QByteArray& matrixData) {
   ENTER();
-  bool result = false;
 
-  if(isWritable() && m_pData->cachedMainHeader) {
-    // Use vox_offset to not overwrite the eventual extensions!
-    qint64 offset = 0;
-
-    if (format() == CNIFTIFile::NIFTI1) {
-        offset = static_cast<CNIFTI1MainHeader*>(m_pData->cachedMainHeader)->vox_Offset();
-    } else if (format() == CNIFTIFile::NIFTI2) {
-        offset = static_cast<CNIFTI2MainHeader*>(m_pData->cachedMainHeader)->vox_Offset();
-    }
-    
-    // If the vox_offset is not set correctly, we use the rawDataSize() method to get the size of the main header and use that as the offset
-    if (offset == 0) {
-        offset = m_pData->cachedMainHeader->rawDataSize() + 4;
-    }
-
-    seek(offset);
-    
-    qint64 bytesWritten = write(matrixData);
-    if(bytesWritten == matrixData.size()) {
-      result = resize(offset + bytesWritten); // Resize the file to the new size after writing the matrix data
-    }
-  }
+  bool result = writeMatrix(matrixData.constData(), matrixData.size());
 
   RETURN(result);
   return result;
@@ -765,33 +789,20 @@ bool CNIFTIFile::writeMatrix(const QByteArray& matrixData) {
 bool CNIFTIFile::writeMatrix(const char* matrixData, unsigned int size) {
   ENTER();
   bool result = false;
+  qint64 offset = 0;
+  qint64 matrixSize = 0;
 
-  if(isWritable() && m_pData->cachedMainHeader) {
-    
-    qint64 offset = 0;
-    
-    if (format() == CNIFTIFile::NIFTI1) {
-        offset = static_cast<CNIFTI1MainHeader*>(m_pData->cachedMainHeader)->vox_Offset();
-        std::cout << "Offset" << offset << std::endl;
-    } else if (format() == CNIFTIFile::NIFTI2) {
-        offset = static_cast<CNIFTI2MainHeader*>(m_pData->cachedMainHeader)->vox_Offset();
-        std::cout << "Offset" << offset << std::endl;
-    }
-    
-    if (offset == 0) {
-        offset = m_pData->cachedMainHeader->rawDataSize() + 4;
-        std::cout << "Offset" << offset << std::endl;
-    }
-
-    seek(offset);
-    
-    qint64 bytesWritten = write(matrixData, size);
-    if(bytesWritten == size) {
-      result = resize(offset + bytesWritten); // Resize the file to the new size after writing the matrix data
+  // the main header has to be written first as it defines the matrix layout
+  if(isWritable() && m_pData->matrixLayout(offset, matrixSize)) {
+    if(static_cast<qint64>(size) != matrixSize) {
+      E("size of the voxel matrix (%u bytes) does not match the main header (%lld bytes)", size, matrixSize);
+    } else if(seek(offset)) {
+      // vox_offset is used so that header extensions are not overwritten
+      if(write(matrixData, size) == matrixSize)
+        result = resize(offset + matrixSize);
     }
   }
 
   RETURN(result);
   return result;
 }
-
