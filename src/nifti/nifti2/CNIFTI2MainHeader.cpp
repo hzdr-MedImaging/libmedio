@@ -98,6 +98,57 @@ class CNIFTI2MainHeaderPrivate { // private class to add private variables to th
     #pragma pack(pop)
   };
 
+// NIfTI-2 single file (.nii) magic signature: "n+2\0" followed by "\r\n\032\n"
+static const char NIFTI2_MAGIC[8] = { 'n', '+', '2', '\0', '\r', '\n', '\x1a', '\n' };
+
+// swap the byte order of all non-char elements of a NIfTI-2 header
+static void swapHeader(struct CNIFTI2MainHeaderPrivate::HeaderData& header)
+{
+  BSWAP_32(header.Sizeof_Hdr);
+  BSWAP_16(header.DataType);
+  BSWAP_16(header.Bit_Pix);
+
+  for(int i = 0; i < 8; i++) {
+    BSWAP_64(header.Dim[i]);
+    BSWAP_DBL(header.Pix_Dim[i]);
+  }
+
+  BSWAP_DBL(header.Intent_P1);
+  BSWAP_DBL(header.Intent_P2);
+  BSWAP_DBL(header.Intent_P3);
+
+  BSWAP_64(header.Vox_Offset);
+  BSWAP_64(header.Slice_Start);
+  BSWAP_64(header.Slice_End);
+
+  BSWAP_DBL(header.Scl_Slope);
+  BSWAP_DBL(header.Scl_Inter);
+  BSWAP_DBL(header.Cal_Max);
+  BSWAP_DBL(header.Cal_Min);
+  BSWAP_DBL(header.Slice_Duration);
+  BSWAP_DBL(header.Toffset);
+
+  BSWAP_32(header.Qform_Code);
+  BSWAP_32(header.Sform_Code);
+
+  BSWAP_DBL(header.Quatern_B);
+  BSWAP_DBL(header.Quatern_C);
+  BSWAP_DBL(header.Quatern_D);
+  BSWAP_DBL(header.Qoffset_X);
+  BSWAP_DBL(header.Qoffset_Y);
+  BSWAP_DBL(header.Qoffset_Z);
+
+  for(int i = 0; i < 4; i++) {
+    BSWAP_DBL(header.Srow_X[i]);
+    BSWAP_DBL(header.Srow_Y[i]);
+    BSWAP_DBL(header.Srow_Z[i]);
+  }
+
+  BSWAP_32(header.Slice_Code);
+  BSWAP_32(header.XYZT_Units);
+  BSWAP_32(header.Intent_Code);
+}
+
 //==============================================================================================
 // Constructors
 CNIFTI2MainHeader::CNIFTI2MainHeader(CNIFTIFile* niftiFile, CNIFTIMainHeader::Type fileType)  : CNIFTIMainHeader(niftiFile) {
@@ -445,76 +496,29 @@ bool CNIFTI2MainHeader::save(void) const {
   ASSERT(sizeof(m_pData->header) == MAINHEADER_SIZE);
 
   CNIFTIFile* niftiFile = static_cast<CNIFTIFile*>(mData);
-  
-  struct CNIFTI2MainHeaderPrivate::HeaderData* header = NULL;
+
+  // work on a copy so that the fields required for a valid file
+  // do not modify the header data itself
+  struct CNIFTI2MainHeaderPrivate::HeaderData header;
+  memcpy(&header, &m_pData->header, sizeof(header));
+
+  // mandatory fields of a single file (.nii) NIfTI-2 header
+  header.Sizeof_Hdr = MAINHEADER_SIZE;
+  memcpy(header.Magic, NIFTI2_MAGIC, sizeof(header.Magic));
+  if(header.Vox_Offset == 0)
+    header.Vox_Offset = MAINHEADER_SIZE + 4;
 
 //------------------------------------------------------------------------------------
-  if(QSysInfo::ByteOrder != QSysInfo::LittleEndian) {
-    header = new CNIFTI2MainHeaderPrivate::HeaderData;
-
-    // Copy the current header data to manipulate it safely
-    memcpy(header, &m_pData->header, sizeof(m_pData->header));
-
-    // Apply the correct byte-swapping logic for NIFTI-2 (64-bit and double precision)
-    BSWAP_32(header->Sizeof_Hdr);
-    BSWAP_16(header->DataType);
-    BSWAP_16(header->Bit_Pix);
-
-    for(int i = 0; i < 8; i++) {
-        BSWAP_64(header->Dim[i]);
-        BSWAP_DBL(header->Pix_Dim[i]);
-    }
-
-    BSWAP_DBL(header->Intent_P1);
-    BSWAP_DBL(header->Intent_P2);
-    BSWAP_DBL(header->Intent_P3);
-
-    BSWAP_64(header->Vox_Offset);
-    BSWAP_64(header->Slice_Start);
-    BSWAP_64(header->Slice_End);
-
-    BSWAP_DBL(header->Scl_Slope);
-    BSWAP_DBL(header->Scl_Inter);
-    BSWAP_DBL(header->Cal_Max);
-    BSWAP_DBL(header->Cal_Min);
-    BSWAP_DBL(header->Slice_Duration);
-    BSWAP_DBL(header->Toffset);
-
-    BSWAP_32(header->Qform_Code);
-    BSWAP_32(header->Sform_Code);
-
-    BSWAP_DBL(header->Quatern_B);
-    BSWAP_DBL(header->Quatern_C);
-    BSWAP_DBL(header->Quatern_D);
-    BSWAP_DBL(header->Qoffset_X);
-    BSWAP_DBL(header->Qoffset_Y);
-    BSWAP_DBL(header->Qoffset_Z);
-
-    for(int i = 0; i < 4; i++) {
-        BSWAP_DBL(header->Srow_X[i]);
-        BSWAP_DBL(header->Srow_Y[i]);
-        BSWAP_DBL(header->Srow_Z[i]);
-    }
-
-    BSWAP_32(header->Slice_Code);
-    BSWAP_32(header->XYZT_Units);
-    BSWAP_32(header->Intent_Code);
-  }
-  else {
-    header = &m_pData->header;
-  }
+  // NIfTI files are written in little endian byte order
+  if(QSysInfo::ByteOrder != QSysInfo::LittleEndian)
+    swapHeader(header);
 
 //------------------------------------------------------------------------------------
   // Write out the main header to the file
   bool result = false;
-  if(mData->write(reinterpret_cast<char*>(header), sizeof(m_pData->header)) == MAINHEADER_SIZE) {
+  if(mData->write(reinterpret_cast<char*>(&header), sizeof(header)) == MAINHEADER_SIZE) {
     niftiFile->mainHeaderWritten(*this);
     result = true;
-  }
-
-  if (QSysInfo::ByteOrder != QSysInfo::LittleEndian) {
-    // Clean up the temporary header 
-    delete header;
   }
 
   RETURN(result);
@@ -569,8 +573,7 @@ bool CNIFTI2MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIO
       m_pData->header.Vox_Offset = 544; // 540 bytes header + 4 bytes extension marker
 
       // NIFTI-2 magic signature (8 bytes: "n+2\0\r\n\x1a\n")
-      const char magic_n2[8] = {'n', '+', '2', '\0', '\r', '\n', '\x1a', '\n'};
-      memcpy(m_pData->header.Magic, magic_n2, 8);
+      memcpy(m_pData->header.Magic, NIFTI2_MAGIC, sizeof(m_pData->header.Magic));
 
       //double bedOffsetMm = static_cast<double>(initBedPosition) * 10.0;
       
@@ -680,8 +683,7 @@ bool CNIFTI2MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIO
 
       m_pData->header.Sizeof_Hdr = 540;
       m_pData->header.Vox_Offset = 544.0;
-      const char magic_n2[8] = {'n', '+', '2', '\0', '\r', '\n', '\x1a', '\n'};
-      memcpy(m_pData->header.Magic, magic_n2, 8);
+      memcpy(m_pData->header.Magic, NIFTI2_MAGIC, sizeof(m_pData->header.Magic));
 
       m_pData->header.Dim[0] = 3; 
       m_pData->header.Dim[1] = head->xDimension();
@@ -717,8 +719,7 @@ bool CNIFTI2MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIO
 
       m_pData->header.Sizeof_Hdr = 540;
       m_pData->header.Vox_Offset = 544.0;
-      const char magic_n2[8] = {'n', '+', '2', '\0', '\r', '\n', '\x1a', '\n'};
-      memcpy(m_pData->header.Magic, magic_n2, 8);
+      memcpy(m_pData->header.Magic, NIFTI2_MAGIC, sizeof(m_pData->header.Magic));
 
       m_pData->header.Dim[0] = 4; 
       m_pData->header.Dim[3] = head->nslice();
@@ -948,8 +949,11 @@ void CNIFTI2MainHeader::setDescrip(const char* desc) {
 }
 
 void CNIFTI2MainHeader::setMagic(const char* magic) {
-  strncpy(m_pData->header.Magic, magic, sizeof(m_pData->header.Magic)-1);
-  m_pData->header.Magic[sizeof(m_pData->header.Magic)-1] = '\0'; // Ensure null-termination
+  // the NIfTI-2 magic consists of a 4 byte identifier ("n+2\0" or "ni2\0")
+  // followed by the fixed sequence "\r\n\032\n"
+  memset(m_pData->header.Magic, 0, sizeof(m_pData->header.Magic));
+  strncpy(m_pData->header.Magic, magic, 3);
+  memcpy(m_pData->header.Magic+4, NIFTI2_MAGIC+4, 4);
 }
 
 void CNIFTI2MainHeader::setScl_Slope(const double slope) { m_pData->header.Scl_Slope = slope; }
