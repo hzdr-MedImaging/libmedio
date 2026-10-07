@@ -157,7 +157,7 @@ static void swapHeader(struct CNIFTI2MainHeaderPrivate::HeaderData& header)
 
 //==============================================================================================
 // Constructors
-CNIFTI2MainHeader::CNIFTI2MainHeader(CNIFTIFile* niftiFile, CNIFTIMainHeader::Type fileType)  : CNIFTIMainHeader(niftiFile) {
+CNIFTI2MainHeader::CNIFTI2MainHeader(CNIFTIFile* niftiFile, CNIFTIMainHeader::Type /*fileType*/)  : CNIFTIMainHeader(niftiFile) {
   
   ENTER();
 
@@ -270,36 +270,26 @@ bool CNIFTI2MainHeader::load(void) {
 #if defined(DEBUG)
   D("NIFTI2 Main Header loaded:");
   D("------------------------");
-  D("SIZE OF HEADER          : %d",           m_pData->header.Sizeof_Hdr);
-  D("DATA TYPE               : %s",           m_pData->header.Data_Type);
-  D("DB NAME                 : %s",           m_pData->header.Db_Name);
-  D("EXTENTS                 : %d",           m_pData->header.Extents);
-  D("SESSION ERROR           : %d",           m_pData->header.Session_Error);
-  D("REGULAR                 : %c",           m_pData->header.Regular);
-  D("DIM INFO                : %c",           m_pData->header.Dim_Info);
-  D("DIM                     : %d %d %d %d %d %d %d %d", m_pData->header.Dim[0], m_pData->header.Dim[1], m_pData->header.Dim[2], m_pData->header.Dim[3], m_pData->header.Dim[4], m_pData->header.Dim[5], m_pData->header.Dim[6], m_pData->header.Dim[7]);
+  D("SIZE OF HEADER          : %u",           m_pData->header.Sizeof_Hdr);
+  D("MAGIC                   : %.3s",         m_pData->header.Magic);
+  D("DATA TYPE               : %d",           m_pData->header.DataType);
+  D("BIT PIX                 : %d",           m_pData->header.Bit_Pix);
+  D("DIM                     : %lld %lld %lld %lld %lld %lld %lld %lld", m_pData->header.Dim[0], m_pData->header.Dim[1], m_pData->header.Dim[2], m_pData->header.Dim[3], m_pData->header.Dim[4], m_pData->header.Dim[5], m_pData->header.Dim[6], m_pData->header.Dim[7]);
   D("INTENT P1               : %f",           m_pData->header.Intent_P1);
   D("INTENT P2               : %f",           m_pData->header.Intent_P2);
   D("INTENT P3               : %f",           m_pData->header.Intent_P3);
-  D("INTENT CODE             : %d",           m_pData->header.Intent_Code);
-  D("DATA TYPE               : %d",           m_pData->header.Data_Type);
-  D("BIT PIX                 : %d",           m_pData->header.Bit_Pix);
-  D("SLICE START             : %d",           m_pData->header.Slice_Start);
   D("PIX DIM                 : %f %f %f %f %f %f %f %f", m_pData->header.Pix_Dim[0], m_pData->header.Pix_Dim[1], m_pData->header.Pix_Dim[2], m_pData->header.Pix_Dim[3], m_pData->header.Pix_Dim[4], m_pData->header.Pix_Dim[5], m_pData->header.Pix_Dim[6], m_pData->header.Pix_Dim[7]);
-  D("VOX OFFSET              : %f",           m_pData->header.Vox_Offset);
-  D("SCL SLOPE                : %f",           m_pData->header.Scl_Slope);    
+  D("VOX OFFSET              : %lld",         m_pData->header.Vox_Offset);
+  D("SCL SLOPE               : %f",           m_pData->header.Scl_Slope);
   D("SCL INTER               : %f",           m_pData->header.Scl_Inter);
-  D("SLICE END               : %d",           m_pData->header.Slice_End);
-  D("SLICE CODE              : %c",           m_pData->header.Slice_Code);
-  D("XYZT UNITS              : %c",           m_pData->header.XYZT_Units);
   D("CAL MAX                 : %f",           m_pData->header.Cal_Max);
   D("CAL MIN                 : %f",           m_pData->header.Cal_Min);
   D("SLICE DURATION          : %f",           m_pData->header.Slice_Duration);
   D("TOFFSET                 : %f",           m_pData->header.Toffset);
-  D("GLMAX                   : %d",           m_pData->header.Glmax);
-  D("GLMIN                   : %d",           m_pData->header.Glmin);
-  D("DESCRIP                 : %s",           m_pData->header.Descrip);
-  D("AUX FILE                : %s",           m_pData->header.Aux_File);
+  D("SLICE START             : %lld",         m_pData->header.Slice_Start);
+  D("SLICE END               : %lld",         m_pData->header.Slice_End);
+  D("DESCRIP                 : %.80s",        m_pData->header.Descrip);
+  D("AUX FILE                : %.24s",        m_pData->header.Aux_File);
   D("QFORM CODE              : %d",           m_pData->header.Qform_Code);
   D("SFORM CODE              : %d",           m_pData->header.Sform_Code);
   D("QUATERN B               : %f",           m_pData->header.Quatern_B);
@@ -311,8 +301,11 @@ bool CNIFTI2MainHeader::load(void) {
   D("SROW X                  : %f %f %f %f", m_pData->header.Srow_X[0], m_pData->header.Srow_X[1], m_pData->header.Srow_X[2], m_pData->header.Srow_X[3]);
   D("SROW Y                  : %f %f %f %f", m_pData->header.Srow_Y[0], m_pData->header.Srow_Y[1], m_pData->header.Srow_Y[2], m_pData->header.Srow_Y[3]);
   D("SROW Z                  : %f %f %f %f", m_pData->header.Srow_Z[0], m_pData->header.Srow_Z[1], m_pData->header.Srow_Z[2], m_pData->header.Srow_Z[3]);
-  D("INTENT NAME             : %s",           m_pData->header.Intent_Name);
-  D("MAGIC                   : %s",           m_pData->header.Magic);
+  D("SLICE CODE              : %d",           m_pData->header.Slice_Code);
+  D("XYZT UNITS              : %d",           m_pData->header.XYZT_Units);
+  D("INTENT CODE             : %d",           m_pData->header.Intent_Code);
+  D("INTENT NAME             : %.16s",        m_pData->header.Intent_Name);
+  D("DIM INFO                : %d",           m_pData->header.Dim_Info);
 #endif
 
   RETURN(true);

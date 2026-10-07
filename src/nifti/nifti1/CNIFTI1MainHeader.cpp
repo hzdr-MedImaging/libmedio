@@ -167,7 +167,7 @@ static void swapHeader(struct CNIFTI1MainHeaderPrivate::HeaderData& header)
 
 //==============================================================================================
 // Constructors
-CNIFTI1MainHeader::CNIFTI1MainHeader(CNIFTIFile* niftiFile, CNIFTIMainHeader::Type fileType)  : CNIFTIMainHeader(niftiFile) {
+CNIFTI1MainHeader::CNIFTI1MainHeader(CNIFTIFile* niftiFile, CNIFTIMainHeader::Type /*fileType*/)  : CNIFTIMainHeader(niftiFile) {
   
   ENTER();
 
@@ -234,9 +234,6 @@ void CNIFTI1MainHeader::clear() {
 // load the main header from the file
 bool CNIFTI1MainHeader::load(void) {
 
-  D("Dimensione struct HeaderData: %lu", sizeof(m_pData->header));
-  D("MAINHEADER_SIZE definito: %d", MAINHEADER_SIZE);
-  //std::cout << "blah2:" << MAINHEADER_SIZE << ":" << sizeof(m_pData->header) << std::endl;
   ENTER();
   CMedIOData* mData = medIOData();
 
@@ -244,7 +241,6 @@ bool CNIFTI1MainHeader::load(void) {
   if(mData == NULL ||
      mData->isReadable() == false ||
      mData->seek(0) == false) {
-      //std::cout << "blah3" << std::endl;
       RETURN(false);
       return false;
   }
@@ -253,7 +249,6 @@ bool CNIFTI1MainHeader::load(void) {
   ASSERT(sizeof(m_pData->header) == MAINHEADER_SIZE);
 
   if(mData->read(reinterpret_cast<char*>(&m_pData->header), sizeof(m_pData->header)) != MAINHEADER_SIZE) {
-    //std::cout << "blah4" << std::endl;
     RETURN(false);
     return false;
   }
@@ -295,7 +290,7 @@ bool CNIFTI1MainHeader::load(void) {
   D("INTENT P2               : %f",           m_pData->header.Intent_P2);
   D("INTENT P3               : %f",           m_pData->header.Intent_P3);
   D("INTENT CODE             : %d",           m_pData->header.Intent_Code);
-  D("DATA TYPE               : %d",           m_pData->header.Data_Type);
+  D("DATATYPE                : %d",           m_pData->header.DataType);
   D("BIT PIX                 : %d",           m_pData->header.Bit_Pix);
   D("SLICE START             : %d",           m_pData->header.Slice_Start);
   D("PIX DIM                 : %f %f %f %f %f %f %f %f", m_pData->header.Pix_Dim[0], m_pData->header.Pix_Dim[1], m_pData->header.Pix_Dim[2], m_pData->header.Pix_Dim[3], m_pData->header.Pix_Dim[4], m_pData->header.Pix_Dim[5], m_pData->header.Pix_Dim[6], m_pData->header.Pix_Dim[7]);
