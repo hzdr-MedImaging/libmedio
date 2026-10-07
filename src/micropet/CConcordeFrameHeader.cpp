@@ -518,6 +518,7 @@ bool CConcordeFrameHeader::convertFrom(const CMedIOHeader* subHeader, const CMed
 
       case CMedIOHeader::ECATSubHeader:
       case CMedIOHeader::PhilipsSubHeader:
+      case CMedIOHeader::NIFTIMainHeader:
       case CMedIOHeader::PhilipsListviewHeader:
       {
         E("medio subheader %d conversion not implemented!", subHeader->headerFormat());

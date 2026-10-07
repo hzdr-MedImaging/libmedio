@@ -22,8 +22,7 @@
 #include <rtdebug.h>
 #include <cstdlib>
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
   int returnCode = EXIT_SUCCESS; // return no error on default
 
   // You want this, unless you mix couts output with C output.
