@@ -17,5 +17,9 @@
 # limitations under the License.
 #
 
+# directory holding the test datasets (see testsuite/data/README.md)
+set(MEDIO_TEST_DATA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/data" CACHE PATH
+    "Directory holding the test datasets (see testsuite/data/README.md)")
+
 add_subdirectory(ecat)
 add_subdirectory(philips)

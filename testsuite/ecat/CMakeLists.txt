@@ -44,3 +44,20 @@ add_test(NAME ecat_readwritematrix
          COMMAND readwritematrix
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# generic validation of the ECAT7 datasets in testsuite/data/ecat7
+add_executable(testECAT7Datasets testECAT7Datasets.cpp)
+
+target_include_directories(testECAT7Datasets PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../common)
+target_compile_definitions(testECAT7Datasets PRIVATE MEDIO_TEST_DATA_DIR="${MEDIO_TEST_DATA_DIR}")
+
+target_link_libraries(testECAT7Datasets Qt5::Core
+                                        Qt5::Test
+                                        ${CMAKE_PROJECT_NAME}-static
+                                        ${RTDEBUG_STATIC_LIB}
+)
+
+add_test(NAME ecat7_datasets
+         COMMAND testECAT7Datasets
+         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
