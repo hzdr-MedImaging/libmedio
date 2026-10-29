@@ -17,11 +17,11 @@
   limitations under the License.
 */
 
-// Validates the ECAT7 reading of libmedio against the datasets in
-// testsuite/data/ecat7 (see testsuite/data/README.md). The expected values
-// of each dataset are generated with an independent implementation
-// (testsuite/data/tools/make_expected.py), only the keys present in the
-// "expected" block are checked.
+// Validates the ECAT7 reading of libmedio against the ECAT files in
+// testsuite/data/ecat (see testsuite/data/README.md). The expected values
+// of each file (<file>.json) are generated with an independent
+// implementation (testsuite/data/tools/make_expected.py), only the keys
+// present are checked.
 
 #include <QtTest/QtTest>
 #include <QJsonArray>
@@ -37,7 +37,7 @@
 
 #include "MedIOTestData.h"
 
-Q_DECLARE_METATYPE(MedIOTestDataset)
+Q_DECLARE_METATYPE(MedIOTestFile)
 
 // compare a number with an expected JSON value using a relative tolerance
 #define COMPARE_NUMBER(actual, expectedValue, tolerance)                                     \
@@ -53,13 +53,25 @@ Q_DECLARE_METATYPE(MedIOTestDataset)
 // relative tolerance for values stored as float32
 #define FLOAT_TOLERANCE 1e-6
 
+// ECAT files whose expected values describe an ECAT7 file
+static QList<MedIOTestFile> ecat7Files()
+{
+  QList<MedIOTestFile> files;
+
+  foreach(const MedIOTestFile& file, medioTestData("ecat").files)
+  {
+    if(file.expected.value("format").toString() == "ecat7")
+      files.append(file);
+  }
+
+  return files;
+}
+
 class TestECAT7Datasets : public QObject
 {
   Q_OBJECT
 
   private slots:
-    void testDatasetLayout();
-
     void testMainHeader_data();
     void testMainHeader();
 
@@ -68,47 +80,33 @@ class TestECAT7Datasets : public QObject
 };
 
 //---------------------------------------------------------------------------------------------
-// all dataset directories have to be complete
-void TestECAT7Datasets::testDatasetLayout()
-{
-  QStringList errors;
-  QStringList placeholders;
-  medioTestDatasets("ecat7", &errors, &placeholders);
-
-  foreach(const QString& placeholder, placeholders)
-    QWARN(qPrintable(placeholder + ": placeholder, waiting for data"));
-
-  QVERIFY2(errors.isEmpty(), qPrintable(errors.join("\n")));
-}
-
-//---------------------------------------------------------------------------------------------
 void TestECAT7Datasets::testMainHeader_data()
 {
-  QTest::addColumn<MedIOTestDataset>("dataset");
+  QTest::addColumn<MedIOTestFile>("file");
 
-  QList<MedIOTestDataset> datasets = medioTestDatasets("ecat7");
+  QList<MedIOTestFile> files = ecat7Files();
 
-  foreach(const MedIOTestDataset& dataset, datasets)
-    QTest::newRow(dataset.name.toLatin1().constData()) << dataset;
+  foreach(const MedIOTestFile& file, files)
+    QTest::newRow(file.relativePath.toLatin1().constData()) << file;
 
-  if(datasets.isEmpty())
-    QTest::newRow("no datasets") << MedIOTestDataset();
+  if(files.isEmpty())
+    QTest::newRow("no files") << MedIOTestFile();
 }
 
 void TestECAT7Datasets::testMainHeader()
 {
-  QFETCH(MedIOTestDataset, dataset);
+  QFETCH(MedIOTestFile, file);
 
-  if(dataset.name.isEmpty())
-    QSKIP(qPrintable("no ECAT7 datasets found in " + medioTestDataDir()));
+  if(file.path.isEmpty())
+    QSKIP(qPrintable("no ECAT7 files with expected values found in " + medioTestDataDir() + "/ecat"));
 
-  QJsonObject expected = dataset.json.value("expected").toObject().value("main_header").toObject();
+  QJsonObject expected = file.expected.value("main_header").toObject();
 
-  CECATFile file(dataset.dataFile());
-  QVERIFY(file.open(QIODevice::ReadOnly));
+  CECATFile ecatFile(file.path);
+  QVERIFY(ecatFile.open(QIODevice::ReadOnly));
 
   CECATMainHeader* mainHeader = NULL;
-  QVERIFY(file.readMainHeader(mainHeader));
+  QVERIFY(ecatFile.readMainHeader(mainHeader));
   QScopedPointer<CECATMainHeader> mainHeaderGuard(mainHeader);
   QCOMPARE(mainHeader->mainHeaderType(), CECATMainHeader::ECAT7MainHeader);
 
@@ -125,43 +123,43 @@ void TestECAT7Datasets::testMainHeader()
   if(expected.contains("data_units"))
     QCOMPARE(QString::fromLatin1(header->data_Units()).trimmed(), expected.value("data_units").toString());
 
-  file.close();
+  ecatFile.close();
 }
 
 //---------------------------------------------------------------------------------------------
 void TestECAT7Datasets::testMatrix_data()
 {
-  QTest::addColumn<MedIOTestDataset>("dataset");
+  QTest::addColumn<MedIOTestFile>("file");
   QTest::addColumn<QJsonObject>("matrix");
 
-  QList<MedIOTestDataset> datasets = medioTestDatasets("ecat7");
+  QList<MedIOTestFile> files = ecat7Files();
 
-  foreach(const MedIOTestDataset& dataset, datasets)
+  foreach(const MedIOTestFile& file, files)
   {
-    foreach(const QJsonValue& value, dataset.json.value("expected").toObject().value("matrices").toArray())
+    foreach(const QJsonValue& value, file.expected.value("matrices").toArray())
     {
       QJsonObject matrix = value.toObject();
-      QString name = QString("%1 f%2 p%3 g%4 b%5 d%6").arg(dataset.name)
+      QString name = QString("%1 f%2 p%3 g%4 b%5 d%6").arg(file.relativePath)
                                                       .arg(matrix.value("frame").toInt())
                                                       .arg(matrix.value("plane").toInt())
                                                       .arg(matrix.value("gate").toInt())
                                                       .arg(matrix.value("bed").toInt())
                                                       .arg(matrix.value("data").toInt());
-      QTest::newRow(name.toLatin1().constData()) << dataset << matrix;
+      QTest::newRow(name.toLatin1().constData()) << file << matrix;
     }
   }
 
-  if(datasets.isEmpty())
-    QTest::newRow("no datasets") << MedIOTestDataset() << QJsonObject();
+  if(files.isEmpty())
+    QTest::newRow("no files") << MedIOTestFile() << QJsonObject();
 }
 
 void TestECAT7Datasets::testMatrix()
 {
-  QFETCH(MedIOTestDataset, dataset);
+  QFETCH(MedIOTestFile, file);
   QFETCH(QJsonObject, matrix);
 
-  if(dataset.name.isEmpty())
-    QSKIP(qPrintable("no ECAT7 datasets found in " + medioTestDataDir()));
+  if(file.path.isEmpty())
+    QSKIP(qPrintable("no ECAT7 files with expected values found in " + medioTestDataDir() + "/ecat"));
 
   short frame = matrix.value("frame").toInt();
   short plane = matrix.value("plane").toInt();
@@ -169,12 +167,12 @@ void TestECAT7Datasets::testMatrix()
   short bed   = matrix.value("bed").toInt();
   short data  = matrix.value("data").toInt();
 
-  CECATFile file(dataset.dataFile());
-  QVERIFY(file.open(QIODevice::ReadOnly));
+  CECATFile ecatFile(file.path);
+  QVERIFY(ecatFile.open(QIODevice::ReadOnly));
 
   // sub header
   CECATSubHeader* subHeader = NULL;
-  QVERIFY(file.readSubHeader(subHeader, frame, plane, gate, bed, data));
+  QVERIFY(ecatFile.readSubHeader(subHeader, frame, plane, gate, bed, data));
   QScopedPointer<CECATSubHeader> subHeaderGuard(subHeader);
   QCOMPARE(subHeader->subHeaderType(), CECATSubHeader::ECAT7_Image);
 
@@ -206,7 +204,7 @@ void TestECAT7Datasets::testMatrix()
 
   // voxel values as stored (machine byte order, unscaled)
   QByteArray* matrixData = NULL;
-  QVERIFY(file.readMatrix(matrixData, frame, plane, gate, bed, data));
+  QVERIFY(ecatFile.readMatrix(matrixData, frame, plane, gate, bed, data));
   QScopedPointer<QByteArray> matrixGuard(matrixData);
 
   qint64 voxels = static_cast<qint64>(header->x_Dimension()) * header->y_Dimension() * header->z_Dimension();
@@ -258,7 +256,7 @@ void TestECAT7Datasets::testMatrix()
   if(matrix.contains("raw_sum"))
     COMPARE_NUMBER(sum, matrix.value("raw_sum"), tolerance);
 
-  file.close();
+  ecatFile.close();
 }
 
 QTEST_GUILESS_MAIN(TestECAT7Datasets)

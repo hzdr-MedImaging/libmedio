@@ -20,17 +20,18 @@
 #ifndef MEDIOTESTDATA_H
 #define MEDIOTESTDATA_H
 
-// Helper for the tests using the datasets in testsuite/data (see
+// Helper for the tests using the test data in testsuite/data (see
 // testsuite/data/README.md). The data directory is passed by CMake via
 // the MEDIO_TEST_DATA_DIR define.
 
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QList>
+#include <QMap>
+#include <QSet>
 #include <QString>
 #include <QStringList>
 
@@ -38,24 +39,24 @@
 #error "MEDIO_TEST_DATA_DIR has to be defined"
 #endif
 
-// a dataset of testsuite/data/<format>/<name>
-struct MedIOTestDataset
+// a data file (or dataset directory) of testsuite/data/<format>/
+struct MedIOTestFile
 {
-  QString name;       // directory name of the dataset
-  QString dir;        // absolute path of the dataset directory
-  QJsonObject json;   // content of dataset.json
+  QString dataset;          // dataset name (file name up to the first dot)
+  QString format;           // format directory, e.g. "ecat"
+  QString relativePath;     // path relative to the data directory, e.g. "ecat/pet-static.v"
+  QString path;             // absolute path
+  QJsonObject expected;     // content of <file>.json
+  QJsonObject fileInfo;     // entry of the file in datasets.json
+  QJsonObject datasetInfo;  // entry of the dataset in datasets.json
+};
 
-  // absolute path of a file given relative to the dataset directory
-  QString filePath(const QString& relativePath) const
-  {
-    return QDir(dir).filePath(relativePath);
-  }
-
-  // absolute path of the data file of the dataset ("file" entry)
-  QString dataFile() const
-  {
-    return filePath(json.value("file").toString());
-  }
+// content of the test data directory
+struct MedIOTestData
+{
+  QList<MedIOTestFile> files;  // complete data files
+  QStringList pending;         // files listed in datasets.json but not existing yet
+  QStringList errors;          // inconsistencies (see testsuite/data/README.md)
 };
 
 // base directory of the test data
@@ -64,84 +65,123 @@ static inline QString medioTestDataDir()
   return QString(MEDIO_TEST_DATA_DIR);
 }
 
-// Returns all datasets of the given format (sorted by name). Problems with
-// a dataset (missing or invalid dataset.json, missing data file) are
-// appended to errors and the dataset is skipped. Dataset directories which
-// still wait for their data (PLACEHOLDER.md present, data file missing) are
-// appended to placeholders and skipped as well.
-static inline QList<MedIOTestDataset> medioTestDatasets(const QString& format, QStringList* errors = NULL,
-                                                        QStringList* placeholders = NULL)
+static inline QJsonObject medioReadJson(const QString& fileName, QString* error)
 {
-  QList<MedIOTestDataset> datasets;
-  QDir formatDir(QDir(medioTestDataDir()).filePath(format));
+  QFile file(fileName);
+  error->clear();
 
-  foreach(const QString& name, formatDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name))
+  if(file.open(QIODevice::ReadOnly) == false)
   {
-    MedIOTestDataset dataset;
-    dataset.name = name;
-    dataset.dir = formatDir.absoluteFilePath(name);
+    *error = "missing";
+    return QJsonObject();
+  }
 
-    QString error;
-    QFile jsonFile(dataset.filePath("dataset.json"));
-    bool placeholder = QFileInfo(dataset.filePath("PLACEHOLDER.md")).exists();
+  QJsonParseError parseError;
+  QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &parseError);
 
-    // placeholder directory still waiting for its data file
-    if(placeholder)
+  if(parseError.error != QJsonParseError::NoError || doc.isObject() == false)
+  {
+    *error = "invalid JSON: " + parseError.errorString();
+    return QJsonObject();
+  }
+
+  return doc.object();
+}
+
+// Returns the data files of the given format directory (all formats if
+// format is empty) together with the pending files and all inconsistencies
+// found. Files with inconsistencies are not part of the returned files.
+static inline MedIOTestData medioTestData(const QString& format = QString())
+{
+  MedIOTestData result;
+  QDir dataDir(medioTestDataDir());
+
+  // datasets.json: file path -> (dataset name, file entry)
+  QString error;
+  QJsonObject datasets = medioReadJson(dataDir.filePath("datasets.json"), &error).value("datasets").toObject();
+  QMap<QString, QString> listedDataset;
+
+  if(error.isEmpty() == false)
+    result.errors.append("datasets.json: " + error);
+
+  foreach(const QString& name, datasets.keys())
+  {
+    QJsonObject files = datasets.value(name).toObject().value("files").toObject();
+
+    if(datasets.value(name).toObject().value("description").toString().isEmpty())
+      result.errors.append("datasets.json: dataset " + name + ": \"description\" missing");
+
+    foreach(const QString& path, files.keys())
     {
-      QJsonObject json = QJsonDocument::fromJson(jsonFile.open(QIODevice::ReadOnly) ? jsonFile.readAll() : QByteArray()).object();
-      QString dataFile = json.value("file").toString();
+      QString fileFormat = path.section('/', 0, 0);
+      QString fileDataset = QFileInfo(path).fileName().section('.', 0, 0);
 
-      if(dataFile.isEmpty() || QFileInfo(dataset.filePath(dataFile)).isFile() == false)
+      if(format.isEmpty() == false && fileFormat != format)
+        continue;
+
+      if(fileDataset != name)
+        result.errors.append("datasets.json: " + path + " is listed under dataset " + name +
+                             " but its file name denotes dataset " + fileDataset);
+      else if(QFileInfo(dataDir.filePath(path)).exists() == false)
+        result.pending.append(path);
+
+      listedDataset.insert(path, name);
+    }
+  }
+
+  // data files of the format directories
+  QStringList formats;
+  if(format.isEmpty())
+    formats = dataDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+  else
+    formats << format;
+  formats.removeAll("tools");
+
+  foreach(const QString& fmt, formats)
+  {
+    QDir formatDir(dataDir.filePath(fmt));
+    QSet<QString> dataNames;
+
+    foreach(const QString& name, formatDir.entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name))
+    {
+      if(name.endsWith(".json") || name == "PLACEHOLDER.md" || name == "README.md")
+        continue;
+
+      dataNames.insert(name);
+
+      MedIOTestFile file;
+      file.format = fmt;
+      file.dataset = name.section('.', 0, 0);
+      file.relativePath = fmt + "/" + name;
+      file.path = formatDir.absoluteFilePath(name);
+
+      if(listedDataset.value(file.relativePath) != file.dataset)
       {
-        if(placeholders)
-          placeholders->append(format + "/" + name);
+        result.errors.append(file.relativePath + ": not listed under dataset " + file.dataset + " in datasets.json");
         continue;
       }
 
-      if(errors)
-        errors->append(format + "/" + name + ": data file added, remove PLACEHOLDER.md and run tools/make_expected.py");
-      continue;
-    }
-
-    if(jsonFile.open(QIODevice::ReadOnly) == false)
-      error = "dataset.json missing";
-    else
-    {
-      QJsonParseError parseError;
-      QJsonDocument doc = QJsonDocument::fromJson(jsonFile.readAll(), &parseError);
-
-      if(parseError.error != QJsonParseError::NoError || doc.isObject() == false)
-        error = "dataset.json invalid: " + parseError.errorString();
-      else
+      file.expected = medioReadJson(file.path + ".json", &error);
+      if(error.isEmpty() == false)
       {
-        dataset.json = doc.object();
-
-        if(dataset.json.value("file").toString().isEmpty())
-          error = "dataset.json: \"file\" entry missing";
-        else if(QFileInfo(dataset.dataFile()).isFile() == false)
-          error = "data file " + dataset.json.value("file").toString() + " missing";
-        else if(dataset.json.value("expected").isObject() == false)
-          error = "dataset.json: \"expected\" block missing (run tools/make_expected.py)";
-        else
-        {
-          foreach(const QJsonValue& reference, dataset.json.value("references").toArray())
-          {
-            QString referenceFile = reference.toObject().value("file").toString();
-
-            if(QFileInfo(dataset.filePath(referenceFile)).isFile() == false)
-              error = "reference file " + referenceFile + " missing";
-          }
-        }
+        result.errors.append(file.relativePath + ".json: " + error + " (run tools/make_expected.py)");
+        continue;
       }
+
+      file.datasetInfo = datasets.value(file.dataset).toObject();
+      file.fileInfo = file.datasetInfo.value("files").toObject().value(file.relativePath).toObject();
+      result.files.append(file);
     }
 
-    if(error.isEmpty())
-      datasets.append(dataset);
-    else if(errors)
-      errors->append(format + "/" + name + ": " + error);
+    // expected values without data file
+    foreach(const QString& name, formatDir.entryList(QStringList() << "*.json", QDir::Files, QDir::Name))
+    {
+      if(dataNames.contains(name.left(name.length() - 5)) == false)
+        result.errors.append(fmt + "/" + name + ": data file " + name.left(name.length() - 5) + " missing");
+    }
   }
 
-  return datasets;
+  return result;
 }
 
 #endif // MEDIOTESTDATA_H

@@ -1,0 +1,48 @@
+{
+  "datasets": {
+    "pet-static": {
+      "description": "TODO: static PET acquisition, e.g. phantom type, duration",
+      "source": {
+        "scanner": "TODO",
+        "reconstruction": "TODO",
+        "units": "TODO, e.g. Bq/ml",
+        "notes": "TODO, e.g. orientation of the patient/phantom"
+      },
+      "files": {
+        "ecat/pet-static.v": {
+          "origin": "original",
+          "notes": "TODO"
+        },
+        "nifti/pet-static.nii.gz": {
+          "origin": "converted",
+          "tool": "TODO, e.g. dcm2niix v1.0.20250505 -z y",
+          "same_reconstruction": true,
+          "notes": "TODO"
+        }
+      },
+      "landmarks": []
+    },
+    "pet-dynamic": {
+      "description": "TODO: dynamic PET acquisition, e.g. phantom type, duration, number of frames",
+      "source": {
+        "scanner": "TODO",
+        "reconstruction": "TODO",
+        "units": "TODO, e.g. Bq/ml",
+        "notes": "TODO, e.g. orientation of the patient/phantom"
+      },
+      "files": {
+        "ecat/pet-dynamic.v": {
+          "origin": "original",
+          "notes": "TODO"
+        },
+        "nifti/pet-dynamic.nii.gz": {
+          "origin": "converted",
+          "tool": "TODO, e.g. dcm2niix v1.0.20250505 -z y",
+          "same_reconstruction": true,
+          "notes": "TODO"
+        }
+      },
+      "landmarks": []
+    }
+  }
+}

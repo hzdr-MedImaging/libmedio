@@ -18,21 +18,22 @@
 # limitations under the License.
 #
 
-"""Generate the "expected" block of a test dataset (see ../README.md).
+"""Generate the expected values (<file>.json) of the test data files.
 
-The data file of the dataset is read with nibabel (https://nipy.org/nibabel)
-as an independent implementation, so that libmedio is not validated against
-itself. dataset.json is created if it does not exist, otherwise only its
-"expected" block is replaced.
+The data files are read with nibabel (https://nipy.org/nibabel) as an
+independent implementation, so that libmedio is not validated against
+itself. See ../README.md for the layout of the test data.
 
-Usage: make_expected.py DATASET_DIR [DATASET_DIR ...]
+Without arguments, the expected values of all data files which do not have
+a <file>.json yet are generated. Files can also be given explicitly (path
+relative to the test data directory or absolute).
 
-Supported formats (first directory level below testsuite/data):
-  ecat7  ECAT7 image files (file types Image8/16, Volume8/16)
+Supported formats:
+  ecat/   ECAT7 image files (file types Image8/16, Volume8/16)
+  nifti/  single file NIfTI-1/NIfTI-2 (.nii, .nii.gz)
 """
 
 import argparse
-import glob
 import json
 import os
 import sys
@@ -42,6 +43,11 @@ import nibabel as nib
 from nibabel import ecat
 from nibabel.volumeutils import array_from_file
 
+DATA_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# entries of a format directory which are no data files
+NON_DATA_FILES = ('PLACEHOLDER.md', 'README.md')
+
 ECAT_BLOCK_SIZE = 512
 
 # ECAT7 file types holding image sub headers
@@ -50,6 +56,24 @@ ECAT7_IMAGE_FILE_TYPES = (2, 6, 7, 10)  # Image16, Volume8, Volume16, Image8
 # ECAT7 data types stored in little endian (VAX) byte order
 ECAT7_VAX_DATA_TYPES = (2, 3, 4)
 
+
+def number(value):
+    # convert numpy scalars to plain JSON numbers
+    value = np.asarray(value).item()
+    return value if isinstance(value, int) else float(value)
+
+
+def stats(raw):
+    # statistics of stored (unscaled) voxel values
+    if np.issubdtype(raw.dtype, np.integer):
+        raw_sum = int(raw.astype(np.int64).sum())
+    else:
+        raw_sum = float(raw.astype(np.float64).sum())
+    return {'raw_min': number(raw.min()), 'raw_max': number(raw.max()), 'raw_sum': raw_sum}
+
+
+#------------------------------------------------------------------------------
+# ECAT7
 
 def ecat7_matrix_index(matrix_id):
     # decode an ECAT7 matrix id (as defined by the ECAT7 file format)
@@ -62,13 +86,7 @@ def ecat7_matrix_index(matrix_id):
     }
 
 
-def number(value):
-    # convert numpy scalars to plain JSON numbers
-    value = np.asarray(value).item()
-    return value if isinstance(value, int) else float(value)
-
-
-def expected_ecat7(path):
+def expected_ecat(path):
     img = ecat.load(path)
     hdr = img.header
     sub = img.get_subheaders()
@@ -77,10 +95,11 @@ def expected_ecat7(path):
     file_type = int(hdr['file_type'])
     if file_type not in ECAT7_IMAGE_FILE_TYPES:
         raise ValueError(f'ECAT7 file type {file_type} is not supported by this script, '
-                         'please add the expected values manually')
+                         'please write the expected values by hand')
 
     expected = {
         'generator': f'nibabel {nib.__version__}',
+        'format': 'ecat7',
         'main_header': {
             'file_type': file_type,
             'num_frames': int(hdr['num_frames']),
@@ -103,9 +122,6 @@ def expected_ecat7(path):
 
         # stored voxel values without any scaling or reorientation
         raw = array_from_file(shape, dtype, sub.fileobj, offset=int(entry[1]) * ECAT_BLOCK_SIZE)
-        raw_sum = raw.astype(np.float64).sum()
-        if np.issubdtype(dtype, np.integer):
-            raw_sum = int(raw.astype(np.int64).sum())
 
         matrix = ecat7_matrix_index(int(entry[0]))
         matrix.update({
@@ -115,75 +131,145 @@ def expected_ecat7(path):
             'scale_factor': number(sh['scale_factor']),
             'frame_start_time_ms': int(sh['frame_start_time']),
             'frame_duration_ms': int(sh['frame_duration']),
-            'raw_min': number(raw.min()),
-            'raw_max': number(raw.max()),
-            'raw_sum': number(raw_sum),
         })
+        matrix.update(stats(raw))
         expected['matrices'].append(matrix)
 
     return expected
 
 
+#------------------------------------------------------------------------------
+# NIfTI
+
+def expected_nifti(path):
+    img = nib.load(path)
+    if type(img) not in (nib.Nifti1Image, nib.Nifti2Image):
+        raise ValueError('not a single file NIfTI-1/NIfTI-2 file')
+
+    hdr = img.header
+    ndim = int(hdr['dim'][0])
+
+    expected = {
+        'generator': f'nibabel {nib.__version__}',
+        'format': 'nifti2' if isinstance(img, nib.Nifti2Image) else 'nifti1',
+        'header': {
+            'dim': [int(v) for v in hdr['dim'][:ndim + 1]],
+            'pixdim': [number(v) for v in hdr['pixdim'][:ndim + 1]],
+            'datatype': int(hdr['datatype']),
+            'bitpix': int(hdr['bitpix']),
+            # nibabel moves the scaling into the data object on load
+            'scl_slope': number(img.dataobj.slope),
+            'scl_inter': number(img.dataobj.inter),
+            'qform_code': int(hdr['qform_code']),
+            'sform_code': int(hdr['sform_code']),
+            'quatern': [number(hdr['quatern_b']), number(hdr['quatern_c']), number(hdr['quatern_d'])],
+            'qoffset': [number(hdr['qoffset_x']), number(hdr['qoffset_y']), number(hdr['qoffset_z'])],
+            'srow': [[number(v) for v in hdr[f'srow_{axis}']] for axis in 'xyz'],
+            'xyzt_units': int(hdr['xyzt_units']),
+            'byte_order': 'big' if hdr.endianness == '>' else 'little',
+        },
+        'volumes': [],
+    }
+
+    # stored (unscaled) voxel values per 3D volume
+    raw = np.asanyarray(img.dataobj.get_unscaled())
+    volumes = raw.reshape(raw.shape[:3] + (-1,), order='F') if raw.ndim > 3 else raw[..., np.newaxis]
+    for v in range(volumes.shape[3]):
+        expected['volumes'].append(stats(volumes[..., v]))
+
+    return expected
+
+
 GENERATORS = {
-    'ecat7': (expected_ecat7, ('*.v',)),
+    'ecat': expected_ecat,
+    'nifti': expected_nifti,
 }
 
 
-def process(dataset_dir):
-    dataset_dir = os.path.abspath(dataset_dir)
-    fmt = os.path.basename(os.path.dirname(dataset_dir))
+#------------------------------------------------------------------------------
+
+def data_files(data_dir):
+    # all data files/directories of the format directories (relative paths)
+    result = []
+    for fmt in sorted(os.listdir(data_dir)):
+        fmt_dir = os.path.join(data_dir, fmt)
+        if fmt == 'tools' or not os.path.isdir(fmt_dir):
+            continue
+        for name in sorted(os.listdir(fmt_dir)):
+            if name.startswith('.') or name.endswith('.json') or name in NON_DATA_FILES:
+                continue
+            result.append(f'{fmt}/{name}')
+    return result
+
+
+def listed_files(data_dir):
+    with open(os.path.join(data_dir, 'datasets.json'), encoding='utf-8') as f:
+        datasets = json.load(f).get('datasets', {})
+    return {path: name for name, dataset in datasets.items() for path in dataset.get('files', {})}
+
+
+def process(data_dir, rel_path, listed):
+    fmt = rel_path.split('/')[0]
     if fmt not in GENERATORS:
-        raise ValueError(f'unsupported format directory "{fmt}" (supported: {", ".join(GENERATORS)})')
-    generator, patterns = GENERATORS[fmt]
+        raise ValueError(f'no generator for format directory "{fmt}" (supported: {", ".join(GENERATORS)}), '
+                         'please write the expected values by hand')
 
-    json_path = os.path.join(dataset_dir, 'dataset.json')
-    if os.path.exists(json_path):
-        with open(json_path, encoding='utf-8') as f:
-            dataset = json.load(f)
-    else:
-        candidates = sorted(c for p in patterns for c in glob.glob(os.path.join(dataset_dir, p)))
-        if len(candidates) != 1:
-            raise ValueError('dataset.json missing and the data file cannot be determined '
-                             f'(candidates: {candidates}); please create dataset.json with a "file" entry')
-        dataset = {'description': 'TODO', 'file': os.path.basename(candidates[0])}
+    dataset = os.path.basename(rel_path).split('.')[0]
+    if listed.get(rel_path) != dataset:
+        print(f'{rel_path}: warning: not listed under dataset "{dataset}" in datasets.json')
 
-    if 'file' not in dataset:
-        raise ValueError(f'{json_path}: "file" entry missing')
-
-    for reference in dataset.get('references', []):
-        if not os.path.isfile(os.path.join(dataset_dir, reference.get('file', ''))):
-            raise ValueError(f'reference file "{reference.get("file")}" listed in dataset.json does not exist')
-
-    dataset.pop('expected', None)
-    dataset['expected'] = generator(os.path.join(dataset_dir, dataset['file']))
-
-    with open(json_path, 'w', encoding='utf-8') as f:
-        json.dump(dataset, f, indent=2, ensure_ascii=False)
+    expected = GENERATORS[fmt](os.path.join(data_dir, rel_path))
+    with open(os.path.join(data_dir, rel_path + '.json'), 'w', encoding='utf-8') as f:
+        json.dump(expected, f, indent=2, ensure_ascii=False)
         f.write('\n')
+    print(f'{rel_path}.json written')
 
-    print(f'{json_path}: {len(dataset["expected"].get("matrices", []))} matrices')
 
-    # the dataset is complete now, remove the placeholder files
-    for placeholder in glob.glob(os.path.join(dataset_dir, '**', 'PLACEHOLDER.md'), recursive=True):
-        os.remove(placeholder)
-        print(f'removed {placeholder}')
-
-    if 'TODO' in json.dumps({k: v for k, v in dataset.items() if k != 'expected'}):
-        print(f'{json_path}: note: still contains TODO entries')
+def remove_placeholders(data_dir, listed):
+    # remove the PLACEHOLDER.md of format directories whose files all exist
+    for fmt in {path.split('/')[0] for path in listed}:
+        placeholder = os.path.join(data_dir, fmt, 'PLACEHOLDER.md')
+        complete = all(os.path.exists(os.path.join(data_dir, p)) for p in listed if p.startswith(fmt + '/'))
+        if complete and os.path.exists(placeholder):
+            os.remove(placeholder)
+            print(f'{fmt}/PLACEHOLDER.md removed')
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('datasets', nargs='+', metavar='DATASET_DIR')
+    parser.add_argument('files', nargs='*', metavar='FILE', help='data files (default: all without .json)')
+    parser.add_argument('--force', action='store_true', help='regenerate existing expected values')
+    parser.add_argument('--data-dir', default=DATA_DIR, help='test data directory (default: %(default)s)')
     args = parser.parse_args()
 
+    data_dir = os.path.abspath(args.data_dir)
+    listed = listed_files(data_dir)
+
+    if args.files:
+        files = [os.path.relpath(os.path.abspath(f) if os.path.exists(f) else os.path.join(data_dir, f), data_dir)
+                 for f in args.files]
+        files = [f.replace(os.sep, '/') for f in files]
+    else:
+        files = [f for f in data_files(data_dir)
+                 if args.force or not os.path.exists(os.path.join(data_dir, f + '.json'))]
+
     failed = False
-    for dataset_dir in args.datasets:
+    for rel_path in files:
         try:
-            process(dataset_dir)
-        except Exception as e:  # report all datasets before failing
-            print(f'{dataset_dir}: error: {e}', file=sys.stderr)
+            process(data_dir, rel_path, listed)
+        except Exception as e:  # report all files before failing
+            print(f'{rel_path}: error: {e}', file=sys.stderr)
             failed = True
+
+    remove_placeholders(data_dir, listed)
+
+    pending = [p for p in listed if not os.path.exists(os.path.join(data_dir, p))]
+    for path in pending:
+        print(f'{path}: listed in datasets.json but missing')
+
+    with open(os.path.join(data_dir, 'datasets.json'), encoding='utf-8') as f:
+        if 'TODO' in f.read():
+            print('datasets.json: note: still contains TODO entries')
 
     return 1 if failed else 0
 
