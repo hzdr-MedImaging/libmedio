@@ -150,6 +150,10 @@ def process(dataset_dir):
     if 'file' not in dataset:
         raise ValueError(f'{json_path}: "file" entry missing')
 
+    for reference in dataset.get('references', []):
+        if not os.path.isfile(os.path.join(dataset_dir, reference.get('file', ''))):
+            raise ValueError(f'reference file "{reference.get("file")}" listed in dataset.json does not exist')
+
     dataset.pop('expected', None)
     dataset['expected'] = generator(os.path.join(dataset_dir, dataset['file']))
 
@@ -158,6 +162,14 @@ def process(dataset_dir):
         f.write('\n')
 
     print(f'{json_path}: {len(dataset["expected"].get("matrices", []))} matrices')
+
+    # the dataset is complete now, remove the placeholder files
+    for placeholder in glob.glob(os.path.join(dataset_dir, '**', 'PLACEHOLDER.md'), recursive=True):
+        os.remove(placeholder)
+        print(f'removed {placeholder}')
+
+    if 'TODO' in json.dumps({k: v for k, v in dataset.items() if k != 'expected'}):
+        print(f'{json_path}: note: still contains TODO entries')
 
 
 def main():

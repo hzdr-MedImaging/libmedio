@@ -106,8 +106,18 @@ For ECAT7 image files `expected` contains the main header values
    if available, the reference files into it.
 2. Write `dataset.json` with at least `description` and `file` (or let
    `make_expected.py` create it and fill in `description` afterwards).
-3. Run `tools/make_expected.py` on the dataset directory.
+3. Run `tools/make_expected.py` on the dataset directory. It also checks
+   that the files listed in `references` exist.
 4. Build and run the tests (`ctest`), then commit the dataset directory.
+
+## Placeholders
+
+A dataset directory containing a `PLACEHOLDER.md` waits for its data: it
+describes which files are expected and is skipped by the tests as long as
+the data file listed in its `dataset.json` is missing. Once the data file
+was added, `tools/make_expected.py` generates the expected values and
+removes the `PLACEHOLDER.md` files. A dataset with data file and remaining
+`PLACEHOLDER.md` is reported as error by the tests.
 
 ## Rules
 

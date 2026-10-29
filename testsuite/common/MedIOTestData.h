@@ -27,6 +27,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QList>
@@ -65,8 +66,11 @@ static inline QString medioTestDataDir()
 
 // Returns all datasets of the given format (sorted by name). Problems with
 // a dataset (missing or invalid dataset.json, missing data file) are
-// appended to errors and the dataset is skipped.
-static inline QList<MedIOTestDataset> medioTestDatasets(const QString& format, QStringList* errors = NULL)
+// appended to errors and the dataset is skipped. Dataset directories which
+// still wait for their data (PLACEHOLDER.md present, data file missing) are
+// appended to placeholders and skipped as well.
+static inline QList<MedIOTestDataset> medioTestDatasets(const QString& format, QStringList* errors = NULL,
+                                                        QStringList* placeholders = NULL)
 {
   QList<MedIOTestDataset> datasets;
   QDir formatDir(QDir(medioTestDataDir()).filePath(format));
@@ -79,6 +83,25 @@ static inline QList<MedIOTestDataset> medioTestDatasets(const QString& format, Q
 
     QString error;
     QFile jsonFile(dataset.filePath("dataset.json"));
+    bool placeholder = QFileInfo(dataset.filePath("PLACEHOLDER.md")).exists();
+
+    // placeholder directory still waiting for its data file
+    if(placeholder)
+    {
+      QJsonObject json = QJsonDocument::fromJson(jsonFile.open(QIODevice::ReadOnly) ? jsonFile.readAll() : QByteArray()).object();
+      QString dataFile = json.value("file").toString();
+
+      if(dataFile.isEmpty() || QFileInfo(dataset.filePath(dataFile)).isFile() == false)
+      {
+        if(placeholders)
+          placeholders->append(format + "/" + name);
+        continue;
+      }
+
+      if(errors)
+        errors->append(format + "/" + name + ": data file added, remove PLACEHOLDER.md and run tools/make_expected.py");
+      continue;
+    }
 
     if(jsonFile.open(QIODevice::ReadOnly) == false)
       error = "dataset.json missing";
@@ -99,6 +122,16 @@ static inline QList<MedIOTestDataset> medioTestDatasets(const QString& format, Q
           error = "data file " + dataset.json.value("file").toString() + " missing";
         else if(dataset.json.value("expected").isObject() == false)
           error = "dataset.json: \"expected\" block missing (run tools/make_expected.py)";
+        else
+        {
+          foreach(const QJsonValue& reference, dataset.json.value("references").toArray())
+          {
+            QString referenceFile = reference.toObject().value("file").toString();
+
+            if(QFileInfo(dataset.filePath(referenceFile)).isFile() == false)
+              error = "reference file " + referenceFile + " missing";
+          }
+        }
       }
     }
 

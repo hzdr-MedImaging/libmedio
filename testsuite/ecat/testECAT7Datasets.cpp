@@ -72,7 +72,11 @@ class TestECAT7Datasets : public QObject
 void TestECAT7Datasets::testDatasetLayout()
 {
   QStringList errors;
-  medioTestDatasets("ecat7", &errors);
+  QStringList placeholders;
+  medioTestDatasets("ecat7", &errors, &placeholders);
+
+  foreach(const QString& placeholder, placeholders)
+    QWARN(qPrintable(placeholder + ": placeholder, waiting for data"));
 
   QVERIFY2(errors.isEmpty(), qPrintable(errors.join("\n")));
 }
