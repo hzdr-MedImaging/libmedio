@@ -1,0 +1,20 @@
+{
+  "generator": "numpy 2.5.3",
+  "format": "raw",
+  "layout": {
+    "dims": [
+      33,
+      33,
+      37
+    ],
+    "data_type": "float32",
+    "byte_order": "little"
+  },
+  "volumes": [
+    {
+      "raw_min": 3399.572509765625,
+      "raw_max": 54551.3203125,
+      "raw_sum": 437270721.50439453
+    }
+  ]
+}

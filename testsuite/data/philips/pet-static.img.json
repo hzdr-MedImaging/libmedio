@@ -1,0 +1,24 @@
+{
+  "generator": "manual",
+  "notes": "nibabel cannot read Philips files; dimensions, voxel size and the statistics of the stored (unscaled) int16 voxel values are taken from ecat/pet-static.v, whose stored values are identical",
+  "format": "philips-image",
+  "frames": 1,
+  "dims": [
+    33,
+    33,
+    37
+  ],
+  "pixel_size_mm": [
+    1.65,
+    1.65,
+    1.645996
+  ],
+  "data_type": "int16",
+  "volumes": [
+    {
+      "raw_min": 2042,
+      "raw_max": 32767,
+      "raw_sum": 262652670
+    }
+  ]
+}

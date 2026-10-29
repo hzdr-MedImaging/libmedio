@@ -1,0 +1,37 @@
+{
+  "generator": "nibabel 5.4.2",
+  "format": "ecat7",
+  "main_header": {
+    "file_type": 7,
+    "num_frames": 1,
+    "num_planes": 37,
+    "calibration_factor": 1.0,
+    "data_units": "BQML"
+  },
+  "matrices": [
+    {
+      "frame": 1,
+      "plane": 1,
+      "gate": 1,
+      "bed": 0,
+      "data": 0,
+      "data_type": 6,
+      "dims": [
+        33,
+        33,
+        37
+      ],
+      "pixel_size_cm": [
+        0.16499999165534973,
+        0.16499999165534973,
+        0.16459961235523224
+      ],
+      "scale_factor": 1.6648249626159668,
+      "frame_start_time_ms": 0,
+      "frame_duration_ms": 1800000,
+      "raw_min": 2042,
+      "raw_max": 32767,
+      "raw_sum": 262652670
+    }
+  ]
+}

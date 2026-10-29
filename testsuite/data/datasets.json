@@ -1,0 +1,81 @@
+{
+  "datasets": {
+    "pet-static": {
+      "description": "NEMA phantom filled with Cu-61 (Phantom_NEMA_Cu61_kontrast8), static frame of 30 min, 33x33x37 voxels of 1.65 x 1.65 x 1.646 mm",
+      "source": {
+        "scanner": "TODO (system type in the ECAT7 main header: 962)",
+        "reconstruction": "TODO",
+        "units": "Bq/ml",
+        "notes": "TODO, e.g. orientation of the phantom"
+      },
+      "files": {
+        "ecat/pet-static.v": {
+          "origin": "original",
+          "notes": "ECAT7 Volume16, SunShort, scale factor 1.664825"
+        },
+        "nifti/pet-static.nii.gz": {
+          "origin": "converted",
+          "tool": "TODO",
+          "same_reconstruction": true,
+          "notes": "same stored int16 values and scale factor as ecat/pet-static.v with reversed z axis; qform_code and sform_code are 0"
+        },
+        "nifti/pet-static.pair": {
+          "origin": "converted",
+          "tool": "TODO",
+          "same_reconstruction": true,
+          "notes": "NIfTI-1 header/image pair (ni1) with the same content as nifti/pet-static.nii.gz"
+        },
+        "philips/pet-static.img": {
+          "origin": "converted",
+          "tool": "TODO",
+          "same_reconstruction": true,
+          "notes": "Philips image file; same stored int16 values and voxel order as ecat/pet-static.v"
+        },
+        "philips/pet-static.syn": {
+          "origin": "converted",
+          "tool": "TODO",
+          "same_reconstruction": true,
+          "notes": "Philips Syntegra file; same stored int16 values and voxel order as ecat/pet-static.v"
+        },
+        "raw/pet-static.raw": {
+          "origin": "converted",
+          "tool": "TODO",
+          "same_reconstruction": true,
+          "notes": "scaled values (Bq/ml) of ecat/pet-static.v in the same voxel order",
+          "layout": {
+            "dims": [
+              33,
+              33,
+              37
+            ],
+            "data_type": "float32",
+            "byte_order": "little"
+          }
+        }
+      },
+      "landmarks": []
+    },
+    "pet-dynamic": {
+      "description": "TODO: dynamic PET acquisition, e.g. phantom type, duration, number of frames",
+      "source": {
+        "scanner": "TODO",
+        "reconstruction": "TODO",
+        "units": "TODO, e.g. Bq/ml",
+        "notes": "TODO, e.g. orientation of the patient/phantom"
+      },
+      "files": {
+        "ecat/pet-dynamic.v": {
+          "origin": "original",
+          "notes": "TODO"
+        },
+        "nifti/pet-dynamic.nii.gz": {
+          "origin": "converted",
+          "tool": "TODO, e.g. dcm2niix v1.0.20250505 -z y",
+          "same_reconstruction": true,
+          "notes": "TODO"
+        }
+      },
+      "landmarks": []
+    }
+  }
+}
