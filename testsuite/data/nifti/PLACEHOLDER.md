@@ -3,11 +3,10 @@
 The following files are listed in `../datasets.json` and still have to be
 added here:
 
-- `pet-static.nii.gz`: the same acquisition (same reconstruction) as
-  `../ecat/pet-static.v`, written by a tool whose geometry is trusted,
-  e.g. converted from the original DICOM data with dcm2niix, or exported
-  by PMOD or Vinci.
-- `pet-dynamic.nii.gz`: the same for `../ecat/pet-dynamic.v` (4D file).
+- `pet-dynamic.nii.gz`: the same acquisition (same reconstruction) as
+  `../ecat/pet-dynamic.v` as 4D file, written by a tool whose geometry is
+  trusted, e.g. converted from the original DICOM data with dcm2niix, or
+  exported by PMOD or Vinci (ideally with qform/sform set).
 
 Enter the tool incl. version and options as `tool` of the file in
 `../datasets.json`. If known, add `landmarks` (a point with its world

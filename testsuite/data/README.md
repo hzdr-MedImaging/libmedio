@@ -38,8 +38,9 @@ testsuite/data/
   different tools) get an additional suffix after the dataset name:
   `nifti/pet-static.pmod.nii.gz`.
 - **Formats with several files per dataset** (e.g. header and data file)
-  use a directory named like the dataset instead of a single file:
-  `philips/pet-static/`.
+  use a directory named like the dataset (optionally with a suffix)
+  instead of a single file, e.g. `nifti/pet-static.pair/` holding
+  `pet-static.hdr` and `pet-static.img`.
 - **Every data file has a `<file>.json` next to it** holding its expected
   values (for a dataset directory: `<directory>.json`).
 
@@ -93,6 +94,7 @@ testsuite/data/
 | `origin`      | yes      | `original` (written by the scanner/reconstruction) or `converted`    |
 | `tool`        | for `converted` | tool incl. version and options used to write the file        |
 | `same_reconstruction` | no | whether the file holds exactly the same reconstruction as the original |
+| `layout`      | for `raw/` | `dims`, `data_type` (e.g. `float32`) and `byte_order` (`little`/`big`) of raw voxel data, first dimension varying fastest |
 | `landmarks`   | no       | points with known world coordinates (mm) and their voxel indices per file |
 
 The conversion tests compare the files of a dataset with each other, the
@@ -110,11 +112,13 @@ python3 testsuite/data/tools/make_expected.py            # all files without .js
 python3 testsuite/data/tools/make_expected.py ecat/pet-static.v   # single file
 ```
 
-Supported are ECAT7 image files (`ecat/`) and single file NIfTI-1/NIfTI-2
-(`nifti/`, `.nii` and `.nii.gz`). For other files the expected values may
-be written by hand; the tests only check the keys that are present. Do not
-edit generated files by hand, run the script again instead (`--force`
-regenerates existing files).
+Supported are ECAT7 image files (`ecat/`), NIfTI-1/NIfTI-2 (`nifti/`,
+`.nii`, `.nii.gz` and header/image pair directories) and raw voxel data
+(`raw/`, using the `layout` of the file in `datasets.json`). For other
+files (e.g. `philips/`) the expected values are written by hand with
+`"generator": "manual"` and a note where the values come from; the tests
+only check the keys that are present. Do not edit generated files by hand,
+run the script again instead (`--force` regenerates existing files).
 
 - **ECAT7** (`"format": "ecat7"`): main header values (`file_type`,
   `num_frames`, `num_planes`, `calibration_factor`, `data_units`) and for
@@ -126,7 +130,10 @@ regenerates existing files).
 - **NIfTI** (`"format": "nifti1"`/`"nifti2"`): header values (`dim`,
   `pixdim`, `datatype`, `bitpix`, `scl_slope`, `scl_inter`, `qform_code`,
   `sform_code`, `quatern`, `qoffset`, `srow`, `xyzt_units`, `byte_order`)
-  and statistics of the stored voxel values per volume.
+  and statistics of the stored voxel values per volume
+  (`"format": "nifti1-pair"`/`"nifti2-pair"` for header/image pairs).
+- **Raw** (`"format": "raw"`): the layout and statistics of the voxel
+  values per volume.
 
 ## Placeholders
 

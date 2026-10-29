@@ -30,7 +30,10 @@ relative to the test data directory or absolute).
 
 Supported formats:
   ecat/   ECAT7 image files (file types Image8/16, Volume8/16)
-  nifti/  single file NIfTI-1/NIfTI-2 (.nii, .nii.gz)
+  nifti/  single file NIfTI-1/NIfTI-2 (.nii, .nii.gz) and header/image
+          pairs (directory holding <name>.hdr and <name>.img)
+  raw/    raw voxel data, described by the "layout" entry of the file in
+          datasets.json (dims, data_type, byte_order)
 """
 
 import argparse
@@ -86,7 +89,7 @@ def ecat7_matrix_index(matrix_id):
     }
 
 
-def expected_ecat(path):
+def expected_ecat(path, file_info):
     img = ecat.load(path)
     hdr = img.header
     sub = img.get_subheaders()
@@ -141,17 +144,28 @@ def expected_ecat(path):
 #------------------------------------------------------------------------------
 # NIfTI
 
-def expected_nifti(path):
-    img = nib.load(path)
-    if type(img) not in (nib.Nifti1Image, nib.Nifti2Image):
-        raise ValueError('not a single file NIfTI-1/NIfTI-2 file')
+def expected_nifti(path, file_info):
+    if os.path.isdir(path):
+        # header/image pair stored in a dataset directory
+        headers = [f for f in os.listdir(path) if f.endswith('.hdr')]
+        if len(headers) != 1:
+            raise ValueError('a NIfTI pair directory has to contain exactly one .hdr file')
+        img = nib.load(os.path.join(path, headers[0]))
+        if type(img) not in (nib.Nifti1Pair, nib.Nifti2Pair):
+            raise ValueError('not a NIfTI-1/NIfTI-2 header/image pair')
+        fmt = 'nifti2-pair' if isinstance(img, nib.Nifti2Pair) else 'nifti1-pair'
+    else:
+        img = nib.load(path)
+        if type(img) not in (nib.Nifti1Image, nib.Nifti2Image):
+            raise ValueError('not a single file NIfTI-1/NIfTI-2 file')
+        fmt = 'nifti2' if isinstance(img, nib.Nifti2Image) else 'nifti1'
 
     hdr = img.header
     ndim = int(hdr['dim'][0])
 
     expected = {
         'generator': f'nibabel {nib.__version__}',
-        'format': 'nifti2' if isinstance(img, nib.Nifti2Image) else 'nifti1',
+        'format': fmt,
         'header': {
             'dim': [int(v) for v in hdr['dim'][:ndim + 1]],
             'pixdim': [number(v) for v in hdr['pixdim'][:ndim + 1]],
@@ -180,9 +194,41 @@ def expected_nifti(path):
     return expected
 
 
+#------------------------------------------------------------------------------
+# raw voxel data
+
+RAW_DATA_TYPES = ('uint8', 'int8', 'uint16', 'int16', 'uint32', 'int32', 'float32', 'float64')
+
+
+def expected_raw(path, file_info):
+    layout = file_info.get('layout')
+    if not layout:
+        raise ValueError('raw files need a "layout" entry (dims, data_type, byte_order) in datasets.json')
+    if layout.get('data_type') not in RAW_DATA_TYPES:
+        raise ValueError(f'unsupported raw data type {layout.get("data_type")} (supported: {", ".join(RAW_DATA_TYPES)})')
+
+    dtype = np.dtype(layout['data_type']).newbyteorder('>' if layout.get('byte_order') == 'big' else '<')
+    dims = [int(d) for d in layout['dims']]
+    size = os.path.getsize(path)
+    if size != int(np.prod(dims)) * dtype.itemsize:
+        raise ValueError(f'file size {size} does not match the layout {dims} x {dtype.itemsize} bytes')
+
+    # first dimension varies fastest
+    raw = np.fromfile(path, dtype=dtype).reshape(dims, order='F')
+    volumes = raw.reshape(raw.shape[:3] + (-1,), order='F') if raw.ndim > 3 else raw[..., np.newaxis]
+
+    return {
+        'generator': f'numpy {np.__version__}',
+        'format': 'raw',
+        'layout': layout,
+        'volumes': [stats(volumes[..., v]) for v in range(volumes.shape[3])],
+    }
+
+
 GENERATORS = {
     'ecat': expected_ecat,
     'nifti': expected_nifti,
+    'raw': expected_raw,
 }
 
 
@@ -203,9 +249,11 @@ def data_files(data_dir):
 
 
 def listed_files(data_dir):
+    # file path -> (dataset name, file entry)
     with open(os.path.join(data_dir, 'datasets.json'), encoding='utf-8') as f:
         datasets = json.load(f).get('datasets', {})
-    return {path: name for name, dataset in datasets.items() for path in dataset.get('files', {})}
+    return {path: (name, info) for name, dataset in datasets.items()
+            for path, info in dataset.get('files', {}).items()}
 
 
 def process(data_dir, rel_path, listed):
@@ -215,10 +263,11 @@ def process(data_dir, rel_path, listed):
                          'please write the expected values by hand')
 
     dataset = os.path.basename(rel_path).split('.')[0]
-    if listed.get(rel_path) != dataset:
+    listed_dataset, file_info = listed.get(rel_path, (None, {}))
+    if listed_dataset != dataset:
         print(f'{rel_path}: warning: not listed under dataset "{dataset}" in datasets.json')
 
-    expected = GENERATORS[fmt](os.path.join(data_dir, rel_path))
+    expected = GENERATORS[fmt](os.path.join(data_dir, rel_path), file_info)
     with open(os.path.join(data_dir, rel_path + '.json'), 'w', encoding='utf-8') as f:
         json.dump(expected, f, indent=2, ensure_ascii=False)
         f.write('\n')
