@@ -34,6 +34,8 @@ Supported formats:
           pairs (directory holding <name>.hdr and <name>.img)
   raw/    raw voxel data, described by the "layout" entry of the file in
           datasets.json (dims, data_type, byte_order)
+  dicom/  DICOM image series (directory holding the slices of one series),
+          read with pydicom
 """
 
 import argparse
@@ -225,10 +227,85 @@ def expected_raw(path, file_info):
     }
 
 
+#------------------------------------------------------------------------------
+# DICOM
+
+def dicom_volumes(path):
+    """Read a DICOM image series and return (slices, frames): the slices of the
+    first frame and per frame the list of slices, sorted by their position along
+    the slice normal (voxel index order: column, row, slice)."""
+    import pydicom
+
+    files = sorted(os.path.join(path, f) for f in os.listdir(path) if not f.startswith('.'))
+    dcs = [pydicom.dcmread(f) for f in files]
+    if len({d.SeriesInstanceUID for d in dcs}) != 1:
+        raise ValueError('a DICOM directory has to contain exactly one series')
+
+    iop = np.array([float(v) for v in dcs[0].ImageOrientationPatient])
+    normal = np.cross(iop[:3], iop[3:])
+    frames = {}
+    for d in dcs:
+        frames.setdefault(float(d.get('FrameReferenceTime', 0)), []).append(d)
+    return [sorted(frames[t], key=lambda d: float(np.dot(normal, [float(v) for v in d.ImagePositionPatient])))
+            for t in sorted(frames)], normal
+
+
+def expected_dicom(path, file_info):
+    import pydicom
+
+    if not os.path.isdir(path):
+        raise ValueError('DICOM data has to be stored as directory holding the slices of one series')
+
+    frames, normal = dicom_volumes(path)
+    d0 = frames[0][0]
+    positions = [float(np.dot(normal, [float(v) for v in d.ImagePositionPatient])) for d in frames[0]]
+    spacing = np.diff(positions)
+
+    expected = {
+        'generator': f'pydicom {pydicom.__version__}',
+        'format': 'dicom',
+        'header': {
+            'modality': str(d0.Modality),
+            'manufacturer': str(d0.get('Manufacturer', '')),
+            'model': str(d0.get('ManufacturerModelName', '')),
+            'rows': int(d0.Rows),
+            'columns': int(d0.Columns),
+            'slices': len(frames[0]),
+            'frames': len(frames),
+            'pixel_spacing_mm': [float(v) for v in d0.PixelSpacing],
+            'slice_spacing_mm': float(np.mean(spacing)) if len(spacing) else None,
+            'image_orientation': [float(v) for v in d0.ImageOrientationPatient],
+            'patient_position': str(d0.get('PatientPosition', '')),
+            'units': str(d0.get('Units', '')),
+        },
+        'frames': [],
+    }
+
+    for slices in frames:
+        if len(slices) != len(frames[0]):
+            raise ValueError('all frames of a DICOM series need the same number of slices')
+        raw = np.stack([d.pixel_array for d in slices]).astype(np.float64)
+        slope = np.array([float(d.get('RescaleSlope', 1)) for d in slices])[:, None, None]
+        inter = np.array([float(d.get('RescaleIntercept', 0)) for d in slices])[:, None, None]
+        scaled = raw * slope + inter
+        frame = {
+            'frame_reference_time_ms': float(slices[0].get('FrameReferenceTime', 0)),
+            'frame_duration_ms': int(slices[0].get('ActualFrameDuration', 0)),
+            'first_position_mm': [float(v) for v in slices[0].ImagePositionPatient],
+            'last_position_mm': [float(v) for v in slices[-1].ImagePositionPatient],
+        }
+        frame.update(stats(raw.astype(np.int64) if np.all(raw == np.round(raw)) else raw))
+        frame.update({'scaled_min': float(scaled.min()), 'scaled_max': float(scaled.max()), 'scaled_sum': float(scaled.sum())})
+        expected['frames'].append(frame)
+
+    return expected
+
+
 GENERATORS = {
     'ecat': expected_ecat,
     'nifti': expected_nifti,
     'raw': expected_raw,
+    'dicom': expected_dicom,
 }
 
 

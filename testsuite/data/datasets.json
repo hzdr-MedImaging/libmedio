@@ -69,13 +69,19 @@
         "scanner": "Siemens Biograph Vision 600 PET/CT",
         "reconstruction": "e7tools (dynamic reconstruction of the acquisition of pet-static)",
         "units": "Bq/ml (ECAT7 data units \"Bq/cc\" with calibration factor 1000)",
-        "notes": "The dynamic DICOM images were loaded into PMOD and saved as ECAT7 (32x32x159 voxels of 22.6875 x 22.6875 x 1.6456 mm), which was loaded into ROVER, cropped there to 31x31x39 voxels and exported as ECAT7, Philips and raw data. The cropped ECAT7 file was loaded into PMOD again and exported as NIfTI. The coarse in-plane voxel size results from the 32x32 matrix of the dynamic reconstruction over the 726 mm field of view (pet-static: 1.65 mm)."
+        "notes": "The dynamic DICOM images (dicom/pet-dynamic) were loaded into PMOD and saved as ECAT7, which was loaded into ROVER, cropped there to 31x31x39 voxels and exported as ECAT7, Philips and raw data. The cropped ECAT7 file was loaded into PMOD again and exported as NIfTI. The coarse in-plane voxel size results from the 32x32 matrix of the dynamic reconstruction over the 726 mm field of view (pet-static: 1.65 mm). The crop covers the DICOM columns and rows 0-30 and the slices 77-115 (sorted by increasing z), see the landmarks for the voxel correspondence."
       },
       "files": {
+        "dicom/pet-dynamic": {
+          "origin": "original",
+          "tool": "e7tools (dynamic reconstruction)",
+          "same_reconstruction": true,
+          "notes": "DICOM PET image series, 32x32x159 voxels, 3 frames, Bq/ml, image orientation [1,0,0,0,1,0], patient position HFS; slices sorted by increasing z"
+        },
         "ecat/pet-dynamic.v": {
           "origin": "converted",
           "tool": "ROVER 3.0.84h (ECAT7 export after cropping)",
-          "source": "ECAT7 file saved by PMOD 4.006 from the dynamic DICOM images reconstructed with e7tools (not part of the test data)",
+          "source": "dicom/pet-dynamic (saved as ECAT7 by PMOD 4.006, cropped in ROVER)",
           "same_reconstruction": true,
           "notes": "ECAT7 Volume16, SunShort, calibration factor 1000, a different scale factor per frame"
         },
@@ -96,21 +102,21 @@
         "philips/pet-dynamic.img": {
           "origin": "converted",
           "tool": "ROVER 3.0.84h (Philips image export)",
-          "source": "ECAT7 file saved by PMOD 4.006 (not part of the test data), cropped in ROVER",
+          "source": "dicom/pet-dynamic (saved as ECAT7 by PMOD 4.006, cropped in ROVER)",
           "same_reconstruction": true,
           "notes": "Philips image file with 3 frames; same stored int16 values and voxel order as ecat/pet-dynamic.v"
         },
         "philips/pet-dynamic.syn": {
           "origin": "converted",
           "tool": "ROVER 3.0.84h (Philips Syntegra export)",
-          "source": "ECAT7 file saved by PMOD 4.006 (not part of the test data), cropped in ROVER",
+          "source": "dicom/pet-dynamic (saved as ECAT7 by PMOD 4.006, cropped in ROVER)",
           "same_reconstruction": true,
           "notes": "Philips Syntegra file with 3 frames; same stored int16 values and voxel order as ecat/pet-dynamic.v"
         },
         "raw/pet-dynamic.raw": {
           "origin": "converted",
           "tool": "ROVER 3.0.84h (raw export)",
-          "source": "ECAT7 file saved by PMOD 4.006 (not part of the test data), cropped in ROVER",
+          "source": "dicom/pet-dynamic (saved as ECAT7 by PMOD 4.006, cropped in ROVER)",
           "same_reconstruction": true,
           "notes": "only frame 3 of ecat/pet-dynamic.v: stored values x calibration factor (1000) x scale factor, same voxel order",
           "layout": {
@@ -124,7 +130,100 @@
           }
         }
       },
-      "landmarks": []
+      "landmarks": [
+        {
+          "name": "first voxel of the cropped volume",
+          "coordinate_system": "DICOM patient coordinates (LPS)",
+          "world_mm": [
+            -362.142,
+            -541.255,
+            -687.761
+          ],
+          "voxel": {
+            "dicom/pet-dynamic": [
+              0,
+              0,
+              115
+            ],
+            "ecat/pet-dynamic.v": [
+              0,
+              0,
+              0
+            ],
+            "nifti/pet-dynamic.nii.gz": [
+              0,
+              0,
+              38
+            ],
+            "nifti/pet-dynamic.pair": [
+              0,
+              0,
+              38
+            ],
+            "philips/pet-dynamic.img": [
+              0,
+              0,
+              0
+            ],
+            "philips/pet-dynamic.syn": [
+              0,
+              0,
+              0
+            ],
+            "raw/pet-dynamic.raw": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "name": "last voxel of the cropped volume",
+          "coordinate_system": "DICOM patient coordinates (LPS)",
+          "world_mm": [
+            318.483,
+            139.37,
+            -750.293
+          ],
+          "voxel": {
+            "dicom/pet-dynamic": [
+              30,
+              30,
+              77
+            ],
+            "ecat/pet-dynamic.v": [
+              30,
+              30,
+              38
+            ],
+            "nifti/pet-dynamic.nii.gz": [
+              30,
+              30,
+              0
+            ],
+            "nifti/pet-dynamic.pair": [
+              30,
+              30,
+              0
+            ],
+            "philips/pet-dynamic.img": [
+              30,
+              30,
+              38
+            ],
+            "philips/pet-dynamic.syn": [
+              30,
+              30,
+              38
+            ],
+            "raw/pet-dynamic.raw": [
+              30,
+              30,
+              38
+            ]
+          }
+        }
+      ]
     }
   }
 }

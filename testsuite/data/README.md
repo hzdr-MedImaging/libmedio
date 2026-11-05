@@ -25,7 +25,10 @@ testsuite/data/
 │   ├── pet-static.nii.gz.json
 │   └── ...
 ├── philips/
-└── micropet/
+├── raw/
+└── dicom/
+    ├── pet-static/                # DICOM series: one directory per dataset
+    └── pet-static.json
 ```
 
 - **One directory per format**, named like the corresponding source
@@ -40,7 +43,8 @@ testsuite/data/
 - **Formats with several files per dataset** (e.g. header and data file)
   use a directory named like the dataset (optionally with a suffix)
   instead of a single file, e.g. `nifti/pet-static.pair/` holding
-  `pet-static.hdr` and `pet-static.img`.
+  `pet-static.hdr` and `pet-static.img`, or `dicom/pet-static/` holding
+  all slices of one DICOM series.
 - **Every data file has a `<file>.json` next to it** holding its expected
   values (for a dataset directory: `<directory>.json`).
 
@@ -97,7 +101,11 @@ testsuite/data/
 | `source`      | for `converted` | what the file was created from: another file of the dataset (path relative to `testsuite/data`) or a description of data not part of the test data |
 | `same_reconstruction` | no | whether the file holds exactly the same reconstruction as the original |
 | `layout`      | for `raw/` | `dims`, `data_type` (e.g. `float32`) and `byte_order` (`little`/`big`) of raw voxel data, first dimension varying fastest |
-| `landmarks`   | no       | points with known world coordinates (mm) and their voxel indices per file |
+| `landmarks`   | no       | points with known world coordinates (mm, incl. their `coordinate_system`) and their voxel indices per file |
+
+Voxel indices start at 0 and follow the storage order of the file; for
+DICOM series they are (column, row, slice) with the slices sorted by
+their position along the slice normal.
 
 The conversion tests compare the files of a dataset with each other; the
 `origin`, `tool` and `source` entries tell how the files are related and
@@ -110,14 +118,15 @@ which reads the data files with [nibabel](https://nipy.org/nibabel) as an
 independent implementation, so libmedio is not validated against itself:
 
 ```bash
-pip install nibabel numpy
+pip install nibabel numpy pydicom
 python3 testsuite/data/tools/make_expected.py            # all files without .json
 python3 testsuite/data/tools/make_expected.py ecat/pet-static.v   # single file
 ```
 
 Supported are ECAT7 image files (`ecat/`), NIfTI-1/NIfTI-2 (`nifti/`,
-`.nii`, `.nii.gz` and header/image pair directories) and raw voxel data
-(`raw/`, using the `layout` of the file in `datasets.json`). For other
+`.nii`, `.nii.gz` and header/image pair directories), raw voxel data
+(`raw/`, using the `layout` of the file in `datasets.json`) and DICOM image
+series (`dicom/`, read with pydicom). For other
 files (e.g. `philips/`) the expected values are written by hand with
 `"generator": "manual"` and a note where the values come from; the tests
 only check the keys that are present. Do not edit generated files by hand,
@@ -137,6 +146,11 @@ run the script again instead (`--force` regenerates existing files).
   (`"format": "nifti1-pair"`/`"nifti2-pair"` for header/image pairs).
 - **Raw** (`"format": "raw"`): the layout and statistics of the voxel
   values per volume.
+- **DICOM** (`"format": "dicom"`): series header values (`modality`,
+  `rows`, `columns`, `slices`, `frames`, `pixel_spacing_mm`,
+  `slice_spacing_mm`, `image_orientation`, `patient_position`, `units`)
+  and per frame its timing, the positions of the first and last slice and
+  statistics of the stored and of the rescaled voxel values.
 
 ## Placeholders
 
