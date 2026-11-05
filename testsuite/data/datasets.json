@@ -69,7 +69,7 @@
         "scanner": "Siemens Biograph Vision 600 PET/CT",
         "reconstruction": "e7tools (dynamic reconstruction of the acquisition of pet-static)",
         "units": "Bq/ml (ECAT7 data units \"Bq/cc\" with calibration factor 1000)",
-        "notes": "The dynamic DICOM images were loaded into PMOD and saved as ECAT7, which was loaded into ROVER, cropped there and exported as ECAT7, Philips and raw data. The cropped ECAT7 file was loaded into PMOD again and exported as NIfTI. The in-plane voxel size of 22.6875 mm (= 726 mm / 32) differs from the 1.65 mm of pet-static of the same scanner and is presumably wrong."
+        "notes": "The dynamic DICOM images were loaded into PMOD and saved as ECAT7 (32x32x159 voxels of 22.6875 x 22.6875 x 1.6456 mm), which was loaded into ROVER, cropped there to 31x31x39 voxels and exported as ECAT7, Philips and raw data. The cropped ECAT7 file was loaded into PMOD again and exported as NIfTI. The coarse in-plane voxel size results from the 32x32 matrix of the dynamic reconstruction over the 726 mm field of view (pet-static: 1.65 mm)."
       },
       "files": {
         "ecat/pet-dynamic.v": {
