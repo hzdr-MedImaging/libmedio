@@ -67,6 +67,7 @@ testsuite/data/
         "nifti/pet-static.nii.gz": {
           "origin": "converted",
           "tool": "dcm2niix v1.0.20250505 -z y",
+          "source": "DICOM export of the reconstruction (not part of the test data)",
           "same_reconstruction": true,
           "notes": "converted from the DICOM export of the same reconstruction"
         }
@@ -93,12 +94,14 @@ testsuite/data/
 | `files`       | yes      | all files of the dataset, relative to `testsuite/data`               |
 | `origin`      | yes      | `original` (written by the scanner/reconstruction) or `converted`    |
 | `tool`        | for `converted` | tool incl. version and options used to write the file        |
+| `source`      | for `converted` | what the file was created from: another file of the dataset (path relative to `testsuite/data`) or a description of data not part of the test data |
 | `same_reconstruction` | no | whether the file holds exactly the same reconstruction as the original |
 | `layout`      | for `raw/` | `dims`, `data_type` (e.g. `float32`) and `byte_order` (`little`/`big`) of raw voxel data, first dimension varying fastest |
 | `landmarks`   | no       | points with known world coordinates (mm) and their voxel indices per file |
 
-The conversion tests compare the files of a dataset with each other, the
-`origin`/`tool` entries tell which files are a trustworthy reference.
+The conversion tests compare the files of a dataset with each other; the
+`origin`, `tool` and `source` entries tell how the files are related and
+which of them are a trustworthy reference.
 
 ## Expected values
 

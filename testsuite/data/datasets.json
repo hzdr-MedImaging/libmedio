@@ -3,43 +3,51 @@
     "pet-static": {
       "description": "NEMA phantom filled with Cu-61 (Phantom_NEMA_Cu61_kontrast8), static frame of 30 min, 33x33x37 voxels of 1.65 x 1.65 x 1.646 mm",
       "source": {
-        "scanner": "TODO (system type in the ECAT7 main header: 962)",
-        "reconstruction": "TODO",
+        "scanner": "Siemens Biograph Vision 600 PET/CT",
+        "reconstruction": "e7tools",
         "units": "Bq/ml",
-        "notes": "TODO, e.g. orientation of the phantom"
+        "notes": "The reconstructed DICOM images were loaded into ROVER, cropped there and exported as ECAT7, Philips and raw data. The ECAT7 main header contains the system type 962 written by ROVER."
       },
       "files": {
         "ecat/pet-static.v": {
-          "origin": "original",
-          "notes": "ECAT7 Volume16, SunShort, scale factor 1.664825"
+          "origin": "converted",
+          "tool": "ROVER 3.0.84h (ECAT7 export)",
+          "source": "cropped DICOM images reconstructed with e7tools (not part of the test data)",
+          "same_reconstruction": true,
+          "notes": "ECAT7 Volume16, SunShort, scale factor 1.664825, calibration factor 1"
         },
         "nifti/pet-static.nii.gz": {
           "origin": "converted",
-          "tool": "TODO",
+          "tool": "ecat2nifti (separate tool, not examples/ecat2nifti of libmedio)",
+          "source": "ecat/pet-static.v",
           "same_reconstruction": true,
           "notes": "same stored int16 values and scale factor as ecat/pet-static.v with reversed z axis; qform_code and sform_code are 0"
         },
         "nifti/pet-static.pair": {
           "origin": "converted",
-          "tool": "TODO",
+          "tool": "PMOD 4.006",
+          "source": "TODO",
           "same_reconstruction": true,
           "notes": "NIfTI-1 header/image pair (ni1) with the same content as nifti/pet-static.nii.gz"
         },
         "philips/pet-static.img": {
           "origin": "converted",
-          "tool": "TODO",
+          "tool": "ROVER 3.0.84h (Philips image export)",
+          "source": "cropped DICOM images reconstructed with e7tools (not part of the test data)",
           "same_reconstruction": true,
           "notes": "Philips image file; same stored int16 values and voxel order as ecat/pet-static.v"
         },
         "philips/pet-static.syn": {
           "origin": "converted",
-          "tool": "TODO",
+          "tool": "ROVER 3.0.84h (Philips Syntegra export)",
+          "source": "cropped DICOM images reconstructed with e7tools (not part of the test data)",
           "same_reconstruction": true,
           "notes": "Philips Syntegra file; same stored int16 values and voxel order as ecat/pet-static.v"
         },
         "raw/pet-static.raw": {
           "origin": "converted",
-          "tool": "TODO",
+          "tool": "ROVER 3.0.84h (raw export)",
+          "source": "cropped DICOM images reconstructed with e7tools (not part of the test data)",
           "same_reconstruction": true,
           "notes": "scaled values (Bq/ml) of ecat/pet-static.v in the same voxel order",
           "layout": {
@@ -58,43 +66,51 @@
     "pet-dynamic": {
       "description": "NEMA phantom filled with Cu-61 (Phantom_NEMA_Cu61_kontrast8), dynamic with 3 frames (30 s, 60 s, 90 s), 31x31x39 voxels of 22.6875 x 22.6875 x 1.6456 mm",
       "source": {
-        "scanner": "TODO (system type in the ECAT7 main header: 0)",
-        "reconstruction": "TODO",
-        "units": "TODO (ECAT7 data units \"Bq/cc\" with calibration factor 1000)",
-        "notes": "TODO, e.g. orientation of the phantom"
+        "scanner": "Siemens Biograph Vision 600 PET/CT",
+        "reconstruction": "e7tools (dynamic reconstruction of the acquisition of pet-static)",
+        "units": "Bq/ml (ECAT7 data units \"Bq/cc\" with calibration factor 1000)",
+        "notes": "The dynamic DICOM images were loaded into PMOD and saved as ECAT7, which was loaded into ROVER, cropped there and exported as ECAT7, Philips and raw data. The cropped ECAT7 file was loaded into PMOD again and exported as NIfTI. The in-plane voxel size of 22.6875 mm (= 726 mm / 32) differs from the 1.65 mm of pet-static of the same scanner and is presumably wrong."
       },
       "files": {
         "ecat/pet-dynamic.v": {
-          "origin": "original",
+          "origin": "converted",
+          "tool": "ROVER 3.0.84h (ECAT7 export after cropping)",
+          "source": "ECAT7 file saved by PMOD 4.006 from the dynamic DICOM images reconstructed with e7tools (not part of the test data)",
+          "same_reconstruction": true,
           "notes": "ECAT7 Volume16, SunShort, calibration factor 1000, a different scale factor per frame"
         },
         "nifti/pet-dynamic.nii.gz": {
           "origin": "converted",
-          "tool": "TODO",
+          "tool": "PMOD 4.006 (NIfTI single file export)",
+          "source": "ecat/pet-dynamic.v",
           "same_reconstruction": true,
           "notes": "4D int16 with a single scale factor (requantized frames 2 and 3) and reversed z axis compared to ecat/pet-dynamic.v; the ECAT7 calibration factor is not applied; qform_code and sform_code are 0, no frame timing (pixdim[4] = 0)"
         },
         "nifti/pet-dynamic.pair": {
           "origin": "converted",
-          "tool": "TODO",
+          "tool": "PMOD 4.006 (NIfTI header/image pair (ni1) export)",
+          "source": "ecat/pet-dynamic.v",
           "same_reconstruction": true,
           "notes": "NIfTI-1 header/image pair (ni1) with the same content as nifti/pet-dynamic.nii.gz"
         },
         "philips/pet-dynamic.img": {
           "origin": "converted",
-          "tool": "TODO",
+          "tool": "ROVER 3.0.84h (Philips image export)",
+          "source": "ECAT7 file saved by PMOD 4.006 (not part of the test data), cropped in ROVER",
           "same_reconstruction": true,
           "notes": "Philips image file with 3 frames; same stored int16 values and voxel order as ecat/pet-dynamic.v"
         },
         "philips/pet-dynamic.syn": {
           "origin": "converted",
-          "tool": "TODO",
+          "tool": "ROVER 3.0.84h (Philips Syntegra export)",
+          "source": "ECAT7 file saved by PMOD 4.006 (not part of the test data), cropped in ROVER",
           "same_reconstruction": true,
           "notes": "Philips Syntegra file with 3 frames; same stored int16 values and voxel order as ecat/pet-dynamic.v"
         },
         "raw/pet-dynamic.raw": {
           "origin": "converted",
-          "tool": "TODO",
+          "tool": "ROVER 3.0.84h (raw export)",
+          "source": "ECAT7 file saved by PMOD 4.006 (not part of the test data), cropped in ROVER",
           "same_reconstruction": true,
           "notes": "only frame 3 of ecat/pet-dynamic.v: stored values x calibration factor (1000) x scale factor, same voxel order",
           "layout": {
