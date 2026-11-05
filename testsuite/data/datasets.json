@@ -6,7 +6,7 @@
         "scanner": "Siemens Biograph Vision 600 PET/CT",
         "reconstruction": "e7tools",
         "units": "Bq/ml",
-        "notes": "The reconstructed DICOM images were loaded into ROVER, cropped there and exported as ECAT7, Philips and raw data. The ECAT7 main header contains the system type 962 written by ROVER."
+        "notes": "The reconstructed DICOM images were loaded into ROVER, cropped there and exported as ECAT7, Philips and raw data. The ECAT7 file was converted to NIfTI with ecat2nifti, the NIfTI header/image pair was created from the DICOM images with PMOD. The ECAT7 main header contains the system type 962 written by ROVER."
       },
       "files": {
         "ecat/pet-static.v": {
@@ -18,15 +18,15 @@
         },
         "nifti/pet-static.nii.gz": {
           "origin": "converted",
-          "tool": "ecat2nifti (separate tool, not examples/ecat2nifti of libmedio)",
+          "tool": "ecat2nifti (own conversion routines, not examples/ecat2nifti of libmedio)",
           "source": "ecat/pet-static.v",
           "same_reconstruction": true,
-          "notes": "same stored int16 values and scale factor as ecat/pet-static.v with reversed z axis; qform_code and sform_code are 0"
+          "notes": "same stored int16 values and scale factor as ecat/pet-static.v with reversed z axis; qform_code and sform_code are 0; header (incl. a DICOM header extension) and voxel data are byte-identical to nifti/pet-static.pair except vox_offset and magic"
         },
         "nifti/pet-static.pair": {
           "origin": "converted",
-          "tool": "PMOD 4.006",
-          "source": "TODO",
+          "tool": "PMOD 4.006 (NIfTI header/image pair export)",
+          "source": "DICOM images reconstructed with e7tools (not part of the test data)",
           "same_reconstruction": true,
           "notes": "NIfTI-1 header/image pair (ni1) with the same content as nifti/pet-static.nii.gz"
         },
