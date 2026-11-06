@@ -29,6 +29,7 @@
 #include <CPhilipsMainHeader.h>
 #include <CPhilipsSubHeader.h>
 #include <CPhilipsSubHeaderImage.h>
+#include <CECAT7SubHeaderImage.h>
 
 #include <QtTest/QtTest>
 #include <QTemporaryDir>
@@ -131,6 +132,7 @@ class TestPhilipsWrite : public QObject
     void writeOrder();
     void overwrite();
     void readFrame();
+    void unsignedShortHeader();
 };
 
 void TestPhilipsWrite::writeOrder_data()
@@ -339,6 +341,26 @@ void TestPhilipsWrite::readFrame()
   CPhilipsSubHeader* subHeader = NULL;
   QVERIFY(file.readMatrix(data, subHeader, 5) == false);
   QVERIFY(data == NULL && subHeader == NULL);
+}
+
+// the ECAT7 image sub header of an unsigned 16 bit Philips slice describes
+// 32 bit integers, as values above 32767 do not fit into 16 bit integers
+void TestPhilipsWrite::unsignedShortHeader()
+{
+  CPhilipsSubHeaderImage philips;
+  philips.setXdim(nx);
+  philips.setYdim(ny);
+  philips.setImgscl(1.0f);
+
+  CPhilipsMainHeader mainHeader(NULL, CPhilipsMainHeader::Image);
+  philips.setDatype(CPhilipsSubHeader::UnsignedShort);
+  CECAT7SubHeaderImage ecat;
+  QVERIFY(ecat.convertFrom(&philips, &mainHeader));
+  QCOMPARE(static_cast<int>(ecat.data_Type()), static_cast<int>(CECATSubHeader::SunLong));
+
+  philips.setDatype(CPhilipsSubHeader::SignedShort);
+  QVERIFY(ecat.convertFrom(&philips, &mainHeader));
+  QCOMPARE(static_cast<int>(ecat.data_Type()), static_cast<int>(CECATSubHeader::SunShort));
 }
 
 QTEST_GUILESS_MAIN(TestPhilipsWrite)
