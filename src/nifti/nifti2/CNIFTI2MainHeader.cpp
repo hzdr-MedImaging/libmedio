@@ -21,6 +21,7 @@
 #include "CNIFTIFile.h"
 #include "CNIFTI1MainHeader.h"
 #include "CNIFTIHeaderCopy.h"
+#include "CNIFTIGeometry.h"
 #include "CECATMainHeader.h"
 #include "CECAT7MainHeader.h"
 #include "CECAT7SubHeaderImage.h"
@@ -510,197 +511,22 @@ bool CNIFTI2MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIO
   switch(mainHeader->headerFormat()) {
 
     // Conversion from ECAT main header to NIFTI2 main header
-    case CMedIOHeader::ECATMainHeader:  
+    // Conversion from an ECAT7 main header and the image sub header of its first frame
+    case CMedIOHeader::ECATMainHeader:
     {
-      const CECATMainHeader* eMainHeader = static_cast<const CECATMainHeader*>(mainHeader);
+      QString error;
 
-      // To extract the initial bed offset from the ECAT header (in centimeters)
-      float initBedPosition = 0.0f;
-      if (eMainHeader != NULL) {
-          
-          const CECAT7MainHeader* e7MainHeader = dynamic_cast<const CECAT7MainHeader*>(eMainHeader);
-          if (e7MainHeader != NULL) {
-              initBedPosition = e7MainHeader->init_Bed_Position();
-          }
-      }
-      
-      const CECAT7SubHeaderImage* eSubHeader = NULL;
-      if (subHeader != NULL) {
-          eSubHeader = static_cast<const CECAT7SubHeaderImage*>(subHeader);
-      }
+      bResult = convertNIFTIFromECAT(*this, static_cast<const CECATMainHeader*>(mainHeader), static_cast<const CECATSubHeader*>(subHeader), &error);
 
-      // 1. Initialize mandatory structural fields for NIFTI-2 (540 bytes)
-      clear(); 
-      m_pData->header.Sizeof_Hdr = 540;
-      m_pData->header.Vox_Offset = 544; // 540 bytes header + 4 bytes extension marker
-
-      // NIFTI-2 magic signature (8 bytes: "n+2\0\r\n\x1a\n")
-      memcpy(m_pData->header.Magic, NIFTI2_MAGIC, sizeof(m_pData->header.Magic));
-
-      //double bedOffsetMm = static_cast<double>(initBedPosition) * 10.0;
-      
-      // 2. Map spatial and temporal dimensions (64-bit integers in NIFTI-2)
-      qint64 numFrames = 1;
-
-      if (eMainHeader != NULL && eMainHeader->num_Frames() > 1) {
-          numFrames = eMainHeader->num_Frames();
-      }
-
-      // Static image -> 3D
-      // Dynamic image -> 4D
-      m_pData->header.Dim[0] = (numFrames > 1) ? 4 : 3;
-
-      // Temporal dimension
-      m_pData->header.Dim[4] = numFrames;
-
-      // Unused dimensions
-      m_pData->header.Dim[5] = 1;
-      m_pData->header.Dim[6] = 1;
-      m_pData->header.Dim[7] = 1;
-
-      // Default spacing for temporal / unused dimensions
-      m_pData->header.Pix_Dim[4] = 1.0;
-      m_pData->header.Pix_Dim[5] = 1.0;
-      m_pData->header.Pix_Dim[6] = 1.0;
-      m_pData->header.Pix_Dim[7] = 1.0;      
-      
-      m_pData->header.Qform_Code = 1;
-      m_pData->header.Sform_Code = 1;
-      m_pData->header.Pix_Dim[0] = 1.0; // qfac (double precision)
-      //m_pData->header.Qoffset_Z = bedOffsetMm;
-
-      m_pData->header.Quatern_B = 0.0;
-      m_pData->header.Quatern_C = 0.0;
-      m_pData->header.Quatern_D = 1.0;
-
-      if (eSubHeader != NULL) {
-          m_pData->header.Dim[1] = eSubHeader->x_Dimension();
-          m_pData->header.Dim[2] = eSubHeader->y_Dimension();
-          m_pData->header.Dim[3] = eSubHeader->z_Dimension();
-          
-          double px = static_cast<double>(eSubHeader->x_Pixel_Size()) * 10.0;
-          double py = static_cast<double>(eSubHeader->y_Pixel_Size()) * 10.0;
-          double pz = static_cast<double>(eSubHeader->z_Pixel_Size()) * 10.0;
-          
-          m_pData->header.Pix_Dim[1] = px;
-          m_pData->header.Pix_Dim[2] = py;
-          m_pData->header.Pix_Dim[3] = pz;
-          
-          // Preserve the ECAT scale factor in the NIfTI header
-          m_pData->header.Scl_Slope = static_cast<double>(eSubHeader->scale_Factor());
-
-          m_pData->header.Scl_Inter = 0.0;
-
-          // Extraction of native reconstruction offsets from the ECAT subheader,
-          double xOffsetMm = 0.0;
-          double yOffsetMm = 0.0;
-          double zOffsetMm = static_cast<double>(initBedPosition) * 10.0;
-
-          // ECAT7 stores offsets in centimeters -> convert to millimeters
-          xOffsetMm = static_cast<double>(eSubHeader->x_Offset()) * 10.0;
-          yOffsetMm = static_cast<double>(eSubHeader->y_Offset()) * 10.0;
-
-          double subZOffset = static_cast<double>(eSubHeader->z_Offset()) * 10.0;
-
-          // Prefer the subheader Z offset when available
-          if (subZOffset != 0.0) {
-              zOffsetMm = subZOffset;
-          }
-
-          // Qform translation
-          m_pData->header.Qoffset_X = xOffsetMm;
-          m_pData->header.Qoffset_Y = yOffsetMm;
-          m_pData->header.Qoffset_Z = zOffsetMm;
-
-          // =============================================================================================================
-          // Sform matrix
-
-          // X axis inverted
-          m_pData->header.Srow_X[0] = -px; m_pData->header.Srow_X[1] = 0.0; m_pData->header.Srow_X[2] = 0.0; m_pData->header.Srow_X[3] = xOffsetMm;
-          // Y axis inverted
-          m_pData->header.Srow_Y[0] = 0.0; m_pData->header.Srow_Y[1] = -py; m_pData->header.Srow_Y[2] = 0.0; m_pData->header.Srow_Y[3] = yOffsetMm;
-          // Z axis mapping
-          m_pData->header.Srow_Z[0] = 0.0; m_pData->header.Srow_Z[1] = 0.0; m_pData->header.Srow_Z[2] = pz; m_pData->header.Srow_Z[3] = zOffsetMm;
-
-          // 3. Map data type
-          short dt = eSubHeader->data_Type();
-          if (dt == CECATSubHeader::SunShort || dt == CECATSubHeader::VAX_Ix2) {
-              m_pData->header.DataType = 4; // 16-bit signed integer
-              m_pData->header.Bit_Pix = 16;
-          } else if (dt == CECATSubHeader::IEEEFloat || dt == CECATSubHeader::VAX_Rx4) {
-              m_pData->header.DataType = 16; // 32-bit float
-              m_pData->header.Bit_Pix = 32;
-          }
-      }
-
-      bResult = true; 
+      if(bResult == false)
+        E("%s", error.toLatin1().constData());
     }
     break;
 
-    // Conversion from Concorde MicroPET main header to NIFTI2 main header
+    // Conversion from Concorde microPET and Philips headers is not implemented yet
     case CMedIOHeader::ConcordeMicroPetMainHeader:
-    {
-      const CConcordeMainHeader* head = static_cast<const CConcordeMainHeader*>(mainHeader);
-      const CConcordeFrameHeader* frame = static_cast<const CConcordeFrameHeader*>(subHeader);
-
-      m_pData->header.Sizeof_Hdr = 540;
-      m_pData->header.Vox_Offset = 544.0;
-      memcpy(m_pData->header.Magic, NIFTI2_MAGIC, sizeof(m_pData->header.Magic));
-
-      m_pData->header.Dim[0] = 3; 
-      m_pData->header.Dim[1] = head->xDimension();
-      m_pData->header.Dim[2] = head->yDimension();
-      m_pData->header.Dim[3] = head->zDimension();
-
-      m_pData->header.Pix_Dim[0] = 1.0; 
-      m_pData->header.Pix_Dim[1] = static_cast<double>(head->pixelSize());
-      m_pData->header.Pix_Dim[2] = static_cast<double>(head->pixelSize());
-      m_pData->header.Pix_Dim[3] = static_cast<double>(head->axialPlaneSize());
-
-      m_pData->header.Qform_Code = 1;
-      m_pData->header.Quatern_B = 0.0;
-      m_pData->header.Quatern_C = 0.0;
-      m_pData->header.Quatern_D = 0.0;
-      
-      if(frame) {
-          m_pData->header.Qoffset_X = 0.0; 
-          m_pData->header.Qoffset_Y = static_cast<double>(frame->verticalBedOffset());
-          m_pData->header.Qoffset_Z = static_cast<double>(frame->bedOffset());
-      }
-
-      strncpy(m_pData->header.Descrip, head->study().toLatin1().constData(), sizeof(m_pData->header.Descrip)-1);
-      bResult = true;
-    }
-    break;
-
-    // Conversion from Philips main header to NIFTI2 main header
     case CMedIOHeader::PhilipsMainHeader:
-    {
-      const CPhilipsMainHeader* head = static_cast<const CPhilipsMainHeader*>(mainHeader);
-      const CPhilipsSubHeaderImage* subHead = static_cast<const CPhilipsSubHeaderImage*>(subHeader);
-
-      m_pData->header.Sizeof_Hdr = 540;
-      m_pData->header.Vox_Offset = 544.0;
-      memcpy(m_pData->header.Magic, NIFTI2_MAGIC, sizeof(m_pData->header.Magic));
-
-      m_pData->header.Dim[0] = 4; 
-      m_pData->header.Dim[3] = head->nslice();
-      m_pData->header.Dim[4] = head->nframe();
-
-      m_pData->header.Pix_Dim[0] = 1.0; 
-      m_pData->header.Pix_Dim[3] = static_cast<double>(head->Dslice_thick()) / 10.0;
-
-      m_pData->header.Qform_Code = 1;
-      
-      if(subHead) {
-          m_pData->header.Qoffset_Z = subHead->Dslice_loc() != 0.0f ? 
-                                      static_cast<double>(subHead->Dslice_loc()) / 10.0 : 
-                                      static_cast<double>(subHead->img_pos_z()) / 10.0;
-      }
-
-      strncpy(m_pData->header.Descrip, head->series_desc(), sizeof(m_pData->header.Descrip)-1);
-      bResult = true;
-    }
+      E("medio mainheader %d conversion not implemented!", mainHeader->headerFormat());
     break;
 
     // Conversion from a NIfTI-1/NIfTI-2 main header

@@ -28,6 +28,7 @@
 #include "CNIFTIMainHeader.h"
 #include "CNIFTI1MainHeader.h"
 #include "CNIFTI2MainHeader.h"
+#include "CNIFTIGeometry.h"
 
 #include <QtCore/qmath.h>
 
@@ -476,73 +477,47 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* subHeader, const CMed
   // NIfTI is monolithic and does not have a subheader, so intercept the mainHeader before the switch statement and convert it to an ECAT7 subheader to avoid segmentation faults.
 if (mainHeader != NULL && mainHeader->headerFormat() == CMedIOHeader::NIFTIMainHeader) {
       const CNIFTIMainHeader* baseNiftiHeader = static_cast<const CNIFTIMainHeader*>(mainHeader);
-      
-      short dim1 = 0, dim2 = 0, dim3 = 0;
-      float pixDim1 = 0.0f, pixDim2 = 0.0f, pixDim3 = 0.0f;
-      float xOffsetMm = 0.0f, yOffsetMm = 0.0f;
-      float slope = 1.0f;
-      short bitpix = 16;       // number of bits per voxel
-      short niftiDataType = 0; // numeric NIfTI datatype code
 
+      // geometry of the corresponding ECAT7 image (see CNIFTIGeometry.h)
+      ECATGeometryFromNIFTI geometry;
+      QString error;
 
-      if (baseNiftiHeader->mainHeaderType() == 1) { // NIFTI-1
-          const CNIFTI1MainHeader* nifti1 = static_cast<const CNIFTI1MainHeader*>(baseNiftiHeader);
-          dim1 = nifti1->dim(1); 
-          dim2 = nifti1->dim(2); 
-          dim3 = nifti1->dim(3);
-
-          pixDim1 = std::fabs(nifti1->pix_Dim(1));
-          pixDim2 = std::fabs(nifti1->pix_Dim(2));
-          pixDim3 = std::fabs(nifti1->pix_Dim(3));
-
-          xOffsetMm = nifti1->qoffset_X() - ((dim1 * pixDim1) / 2.0f);
-          yOffsetMm = nifti1->qoffset_Y() - ((dim2 * pixDim2) / 2.0f);
-          
-          slope = nifti1->scl_Slope();
-
-          bitpix = nifti1->bit_Pix();
-          niftiDataType = nifti1->dataType();
-
-      } else if (baseNiftiHeader->mainHeaderType() == 2) { // NIFTI-2
-          const CNIFTI2MainHeader* nifti2 = static_cast<const CNIFTI2MainHeader*>(baseNiftiHeader);
-          dim1 = nifti2->dim(1); 
-          dim2 = nifti2->dim(2); 
-          dim3 = nifti2->dim(3);
-
-          pixDim1 = std::fabs(nifti2->pix_Dim(1)); 
-          pixDim2 = std::fabs(nifti2->pix_Dim(2)); 
-          pixDim3 = std::fabs(nifti2->pix_Dim(3));
-
-          xOffsetMm = static_cast<float>(nifti2->qoffset_X()) - ((dim1 * pixDim1) / 2.0f);
-          yOffsetMm = static_cast<float>(nifti2->qoffset_Y()) - ((dim2 * pixDim2) / 2.0f);
-          
-          slope = nifti2->scl_Slope();
-
-          bitpix = nifti2->bit_Pix();
-          niftiDataType = nifti2->dataType();
+      if(ecatGeometryFromNIFTI(baseNiftiHeader, geometry, &error) == false) {
+        E("%s", error.toLatin1().constData());
+        RETURN(false);
+        return false;
       }
 
-      // Map the NIfTI numerical datatype to the closest ECAT7 datatype.
-      // ECAT7 does not provide a 64-bit floating-point image datatype,
-      // therefore NIfTI FLOAT64 data are converted to FLOAT32 by the
-      // nifti2ecat converter before writing the voxel matrix.
+      double slope = 1.0;
+      short niftiDataType = 0;
+
+      if(baseNiftiHeader->mainHeaderType() == CNIFTIMainHeader::NIFTI1MainHeader) {
+        const CNIFTI1MainHeader* nifti1 = static_cast<const CNIFTI1MainHeader*>(baseNiftiHeader);
+        slope = nifti1->scl_Slope();
+        niftiDataType = nifti1->dataType();
+      } else {
+        const CNIFTI2MainHeader* nifti2 = static_cast<const CNIFTI2MainHeader*>(baseNiftiHeader);
+        slope = nifti2->scl_Slope();
+        niftiDataType = nifti2->dataType();
+      }
+
+      // Map the NIfTI numerical datatype to the closest ECAT7 datatype. Data
+      // types without ECAT7 counterpart (e.g. FLOAT64) have to be converted by
+      // the caller (see CNIFTIConverter).
       switch (niftiDataType) {
-          case 2:     // DT_UINT8
+          case NIFTI_DT_UINT8:
               setData_Type(CECATSubHeader::ByteData);
               break;
 
-          case 4:     // DT_INT16
+          case NIFTI_DT_INT16:
               setData_Type(CECATSubHeader::SunShort);
               break;
 
-          case 8:     // DT_INT32
+          case NIFTI_DT_INT32:
               setData_Type(CECATSubHeader::SunLong);
               break;
 
-          case 16:    // DT_FLOAT32
-              setData_Type(CECATSubHeader::IEEEFloat);
-              break;
-
+          case NIFTI_DT_FLOAT32:
           case 64:    // DT_FLOAT64
               setData_Type(CECATSubHeader::IEEEFloat);
               break;
@@ -555,21 +530,26 @@ if (mainHeader != NULL && mainHeader->headerFormat() == CMedIOHeader::NIFTIMainH
       }
 
       setNum_Dimensions(3);
-      setX_Dimension(dim1);
-      setY_Dimension(dim2);
-      setZ_Dimension(dim3);
+      setX_Dimension(geometry.dims[0]);
+      setY_Dimension(geometry.dims[1]);
+      setZ_Dimension(geometry.dims[2]);
 
       // mm -> cm
-      setX_Pixel_Size(pixDim1 / 10.0f); 
-      setY_Pixel_Size(pixDim2 / 10.0f);  
-      setZ_Pixel_Size(pixDim3 / 10.0f);  
+      setX_Pixel_Size(geometry.pixelSize[0] / 10.0);
+      setY_Pixel_Size(geometry.pixelSize[1] / 10.0);
+      setZ_Pixel_Size(geometry.pixelSize[2] / 10.0);
+      setX_Offset(geometry.xOffset / 10.0);
+      setY_Offset(geometry.yOffset / 10.0);
+      setZ_Offset(0.0f);
 
       setRecon_Zoom(1.0f);
-      if (slope == 0.0f) slope = 1.0f; 
+      if (slope == 0.0 || std::isfinite(slope) == false) slope = 1.0;
       setScale_Factor(slope); // Scale factor
-      setFrame_Duration(0);
-      setFrame_Start_Time(0);
-      
+
+      // timing of the first frame (s -> ms)
+      setFrame_Duration(static_cast<unsigned int>(geometry.frameDuration * 1000.0 + 0.5));
+      setFrame_Start_Time(static_cast<unsigned int>(geometry.frameStart * 1000.0 + 0.5));
+
       RETURN(true);
       return true;
   }

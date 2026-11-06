@@ -28,6 +28,7 @@
 #include "CNIFTIMainHeader.h"
 #include "CNIFTI1MainHeader.h"
 #include "CNIFTI2MainHeader.h"
+#include "CNIFTIGeometry.h"
 
 #include "config.h"
 
@@ -1081,39 +1082,24 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
       setStudy_Description("NIFTI_CONVERTED");
 
 
-      short num_dims = 0;
-      short dim3 = 1;
-      short dim4 = 1;
-      float pixDim3 = 0.0f;
-      float zOffset = 0.0f;
+      // geometry of the corresponding ECAT7 image (see CNIFTIGeometry.h)
+      ECATGeometryFromNIFTI geometry;
+      QString error;
 
-      if (baseNiftiHeader->mainHeaderType() == 1) { // NIFTI-1
-          const CNIFTI1MainHeader* nifti1 = static_cast<const CNIFTI1MainHeader*>(baseNiftiHeader); //downCast to the nifti1 header
-          num_dims = nifti1->dim(0);
-          dim3 = nifti1->dim(3);
-          dim4 = nifti1->dim(4);
-          pixDim3 = std::fabs(nifti1->pix_Dim(3));      
-          zOffset = nifti1->qoffset_Z();
+      if(ecatGeometryFromNIFTI(baseNiftiHeader, geometry, &error) == false) {
+        E("%s", error.toLatin1().constData());
+        break;
+      }
 
-        } else if (baseNiftiHeader->mainHeaderType() == 2) { // NIFTI-2
-          const CNIFTI2MainHeader* nifti2 = static_cast<const CNIFTI2MainHeader*>(baseNiftiHeader);
-          num_dims = nifti2->dim(0);
-          dim3 = nifti2->dim(3);
-          dim4 = nifti2->dim(4);
-
-          pixDim3 = std::fabs(nifti2->pix_Dim(3));      
-          zOffset = nifti2->qoffset_Z();
-        }
-
-      setNum_Planes((num_dims >= 3 && dim3 > 0) ? dim3 : 1);
-      setNum_Frames((num_dims >= 4 && dim4 > 0) ? dim4 : 1);
+      setNum_Planes(geometry.dims[2]);
+      setNum_Frames(geometry.frames);
       setNum_Gates(1);
       setNum_Bed_Pos(0);
-      
+
       // Conversion from mm (NIFTI) to cm (ECAT7)
-      setPlane_Separation(pixDim3 / 10.0f); 
-      setInit_Bed_Position(zOffset / 10.0f);
-      
+      setPlane_Separation(geometry.pixelSize[2] / 10.0);
+      setInit_Bed_Position(geometry.bedPosition / 10.0);
+
       bResult = true;
     }
     break;
