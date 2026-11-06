@@ -126,7 +126,12 @@ independent implementation, so libmedio is not validated against itself:
 pip install nibabel numpy pydicom
 python3 testsuite/data/tools/make_expected.py            # all files without .json
 python3 testsuite/data/tools/make_expected.py ecat/pet-static.v   # single file
+python3 testsuite/data/tools/make_expected.py --check            # compare with the existing files
 ```
+
+The CI runs the `--check` mode (with the nibabel, numpy and pydicom versions
+the files were generated with) to make sure the expected values are up to
+date with the data files.
 
 Supported are ECAT7 image files (`ecat/`), NIfTI-1/NIfTI-2 (`nifti/`,
 `.nii`, `.nii.gz` and header/image pair directories), raw voxel data
