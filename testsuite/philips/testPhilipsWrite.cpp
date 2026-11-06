@@ -130,6 +130,7 @@ class TestPhilipsWrite : public QObject
     void writeOrder_data();
     void writeOrder();
     void overwrite();
+    void readFrame();
 };
 
 void TestPhilipsWrite::writeOrder_data()
@@ -268,6 +269,76 @@ void TestPhilipsWrite::overwrite()
   const QString error = overlap(path, &items);
   QVERIFY2(error.isEmpty(), qPrintable(error));
   QCOMPARE(items, 3 * slices + 1);
+}
+
+// readMatrix() with slice -1 returns all slices of a frame, also for
+// frames with a single slice (division by zero before)
+void TestPhilipsWrite::readFrame()
+{
+  const QString path = m_tmp.filePath("frames.img");
+  const int sliceCount[2] = { 1, 3 };
+  {
+    CPhilipsFile file(path, CPhilipsMainHeader::Image);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    QScopedPointer<CPhilipsMainHeader> mainHeader(file.createEmptyMainHeader());
+    mainHeader->setFiltyp(CPhilipsMainHeader::Image);
+    QVERIFY(file.writeMainHeader(*mainHeader));
+    QScopedPointer<CPhilipsSubHeader> subHeaderPtr(file.createEmptySubHeader());
+    CPhilipsSubHeaderImage* subHeader = static_cast<CPhilipsSubHeaderImage*>(subHeaderPtr.data());
+    subHeader->setDatype(CPhilipsSubHeader::SignedShort);
+    subHeader->setXdim(nx);
+    subHeader->setYdim(ny);
+    subHeader->setImgscl(1.0f);
+    for(int f=0; f < 2; f++)
+      for(int k=0; k < sliceCount[f]; k++) {
+        const QByteArray plane = slice(f + 1, k, 1);
+        subHeader->setSlcnum(k);
+        QVERIFY(file.writeMatrix(plane.constData(), plane.size(), *subHeader, f + 1, k));
+      }
+    file.close();
+  }
+
+  CPhilipsFile file(path);
+  QVERIFY(file.open(QIODevice::ReadOnly));
+  for(int f=0; f < 2; f++) {
+    // a single slice is read as frame; the slice numbering of the file is 0..2
+    if(f == 0)
+      QCOMPARE(static_cast<int>(file.numSlices(1)), 1);
+
+    QByteArray expected;
+    for(int k=0; k < sliceCount[f]; k++)
+      expected.append(slice(f + 1, k, 1));
+
+    QByteArray* data = NULL;
+    CPhilipsSubHeader* subHeader = NULL;
+    {
+      QVERIFY(file.readMatrix(data, f + 1));
+      QVERIFY(*data == expected);
+      delete data;
+
+      QVERIFY(file.readMatrix(data, subHeader, f + 1));
+      QVERIFY(*data == expected);
+      QCOMPARE(static_cast<int>(subHeader->slcnum()), 0);
+      delete data;
+      delete subHeader;
+
+      char* raw = NULL;
+      unsigned int length = 0;
+      QVERIFY(file.readMatrix(raw, length, f + 1));
+      QVERIFY(QByteArray(raw, length) == expected);
+      delete[] raw;
+      QVERIFY(file.readMatrix(raw, length, subHeader, f + 1));
+      QVERIFY(QByteArray(raw, length) == expected);
+      delete[] raw;
+      delete subHeader;
+    }
+  }
+
+  // frames that do not exist
+  QByteArray* data = NULL;
+  CPhilipsSubHeader* subHeader = NULL;
+  QVERIFY(file.readMatrix(data, subHeader, 5) == false);
+  QVERIFY(data == NULL && subHeader == NULL);
 }
 
 QTEST_GUILESS_MAIN(TestPhilipsWrite)
