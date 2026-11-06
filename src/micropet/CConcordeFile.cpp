@@ -146,7 +146,9 @@ CMedIOData::Format CConcordeFile::dataFormat() const
 void CConcordeFile::close()
 {
   ENTER();
-  m_pCachedMainHeader->save();
+  // the main header only exists if the file was opened successfully
+  if(m_pCachedMainHeader != NULL)
+    m_pCachedMainHeader->save();
   delete m_pCachedMainHeader;
   m_pCachedMainHeader = NULL;
   QFile::close();

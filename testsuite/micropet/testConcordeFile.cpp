@@ -120,6 +120,7 @@ class TestConcordeFile : public QObject
     void frameOrder_data();
     void frameOrder();
     void frameRange();
+    void closeWithoutOpen();
 };
 
 // all variants of readMatrix() return the frames of the file
@@ -293,6 +294,17 @@ void TestConcordeFile::frameRange()
     QVERIFY(data == NULL && header == NULL);
   }
   file.close();
+}
+
+// closing a file that was not opened (or failed to open) must not crash
+void TestConcordeFile::closeWithoutOpen()
+{
+  CConcordeImage notOpened(m_tmp.filePath("missing"));
+  notOpened.close();
+
+  CConcordeImage missing(m_tmp.filePath("missing"));
+  QVERIFY(missing.open(QIODevice::ReadOnly) == false);
+  missing.close();
 }
 
 QTEST_GUILESS_MAIN(TestConcordeFile)
