@@ -29,6 +29,10 @@ libmedio targets PET-centric workflows and currently focuses on:
 - Conversion of ECAT7 and Philips images to NIfTI and back
   (`CNIFTIConverter`), incl. dynamic (4D) data, patient orientation/geometry,
   physical units and the metadata (stored as JSON header extension)
+- Format independent access to image matrices: every image file can be read
+  in the matrix representation of another format (voxel order, data type,
+  scaling, header) and matrices of any format can be written into files of
+  another format (`CMedIOData::readMatrix()`/`writeMatrix()`, `CMedIOVolume`)
 - Cross-platform build with CMake; Qt5 backend
 
 ## Requirements
@@ -96,6 +100,73 @@ details are documented in `src/nifti/CNIFTIConverter.h`. Analyze 7.5 files
 (`.hdr`/`.img` without NIfTI magic) are not supported. The NIfTI support was
 started in the 2026 summer student project, see
 [docs/summer-student-2026](docs/summer-student-2026/README.md).
+
+## Format independent matrix access
+Applications do not need to know the format of a file to work with its
+image data in the representation they are used to. `readMatrix()` of every
+file class (`CECATFile`, `CNIFTIFile`, `CPhilipsFile`, `CConcordeFile`)
+returns a frame in the representation of the requested format:
+```cpp
+// any supported image file, e.g. NIfTI, Philips or microPET
+CMedIOData* file = CMedIODataFactory::create(fileName);
+file->open(QIODevice::ReadOnly);
+
+CMedIOHeader* mainHeader = NULL;                   // here: CECAT7MainHeader
+file->readMainHeader(mainHeader, CMedIOData::ECAT);
+const int frames = static_cast<CECAT7MainHeader*>(mainHeader)->num_Frames();
+
+for(short frame=1; frame <= frames; frame++) {
+  QByteArray* data = NULL;
+  CMedIOHeader* subHeader = NULL;                  // here: CECAT7SubHeaderImage
+  if(file->readMatrix(data, subHeader, CMedIOData::ECAT, frame)) {
+    // ... ECAT7 voxel order, data type and scale factor ...
+    delete data;
+    delete subHeader;
+  }
+}
+```
+and `writeMatrix()` writes a frame given in the representation of any
+format, e.g. ECAT7 data into a NIfTI file:
+```cpp
+CECATMainHeader* ecatMainHeader = NULL;            // bed position, calibration factor
+ecatFile.readMainHeader(ecatMainHeader);
+CMedIOHeader* niftiHeader = NULL;                  // NIfTI main header of the ECAT7 file
+ecatFile.readMainHeader(niftiHeader, CMedIOData::NIFTI);
+
+CNIFTIFile nifti("image.nii.gz", CNIFTIMainHeader::NIFTI1);
+nifti.open(QIODevice::WriteOnly);
+niftiHeader->setMedIOData(&nifti);                 // returned headers are not linked to a file
+nifti.writeMainHeader(*static_cast<CNIFTIMainHeader*>(niftiHeader));
+
+for(short frame=1; frame <= frames; frame++) {
+  QByteArray* data = NULL;
+  CECATSubHeader* subHeader = NULL;
+  ecatFile.readMatrix(data, subHeader, frame);     // ECAT7 matrix
+  nifti.writeMatrix(*data, *subHeader, frame, ecatMainHeader);
+  delete data;
+  delete subHeader;
+}
+```
+- Every frame is converted via its ECAT7 representation, using the existing
+  header conversions (`convertFrom()`); the geometry of every voxel is kept.
+- Voxel order: ECAT7, Philips and microPET: x towards patient left, y
+  towards posterior, planes from superior to inferior; NIfTI: the same
+  with reversed planes (as written by `CNIFTIConverter`), or the
+  orientation of the NIfTI file written to, whatever orientation it has.
+- Data types: the stored values are kept if the target format can represent
+  them exactly (integers are widened if needed), otherwise the physical
+  values are stored as float32. Writing into a file with a given data type
+  (NIfTI) converts the values into its data type and scaling and fails
+  without writing if a value does not fit.
+- Philips matrices hold all slices of a frame with one scale factor;
+  Philips files are written frame by frame in ascending order. microPET
+  files can only be read.
+- `readVolume()`/`writeVolume()` exchange frames as `CMedIOVolume`: voxel
+  data, scaling, the position of every voxel (DICOM patient coordinates)
+  and the frame timing; `CMedIOVolume::reorient()` reorders the voxels.
+- Only image data is supported (no sinograms, normalizations, list mode).
+
+The details are documented in `src/CMedIOData.h` and `src/CMedIOMatrix.h`.
 
 ## License
 libmedio is licensed under the **Apache License, Version 2.0.**
