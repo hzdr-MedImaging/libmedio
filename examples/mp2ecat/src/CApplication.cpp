@@ -263,7 +263,7 @@ void CApplication::showVersion()
 bool CApplication::process()
 {
   ENTER();
-  bool result = false;
+  bool result = true;
 
   // now we check out options and either convert bunch of files or a whole directory tree
   if(m_bRecursive == false)
@@ -284,6 +284,7 @@ bool CApplication::process()
     if(m_sInputFileNames.count() > 1)
     {
       cout << "ERROR: only one directory can be specified." << endl;
+      result = false;
     }
     else
       result = walkDirectory(QDir(m_sInputFileNames[0]));
@@ -589,28 +590,43 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
         // put in an annotation about being converted by mp2ecat
         pEcat7ImgSubHeader->setAnnotation("converted by " PACKAGE_NAME " " PACKAGE_VERSION);
 
-        ecat7Image->writeSubHeader(*pEcat7ImgSubHeader, i+1);
-        ecat7Image->writeMatrix(*pImgData,i+1);
+        if(ecat7Image->writeSubHeader(*pEcat7ImgSubHeader, i+1) == false ||
+           ecat7Image->writeMatrix(*pImgData,i+1) == false)
+        {
+          cout << "ERROR: When writing frame " << i+1 << endl;
+          bResult = false;
+        }
         delete pEcat7ImgSubHeader;
       }
       delete pImgData;
       delete pSrcImgSubHeader;
 
       if(bUnknownDataType)
+        bResult = false;
+
+      if(bResult == false)
         break;
     }
 
-    if(!bUnknownDataType)
+    if(bResult)
     {
       cout << "Writing main header and finalizing file" << endl;
-      ecat7Image->writeMainHeader(*pEcat7ImgHeader);
-      bResult = true;
+      if(ecat7Image->writeMainHeader(*pEcat7ImgHeader) == false)
+      {
+        cout << "ERROR: When writing the main header" << endl;
+        bResult = false;
+      }
     }
     ecat7Image->close();
     delete pEcat7ImgHeader;
   }
 
+  // do not leave a partial output file behind
+  const bool outputCreated = (ecat7Image != NULL);
   delete ecat7Image;
+  if(bResult == false && outputCreated)
+    QFile::remove(m_sOutputFileName);
+
   delete pSrcImageHeader;
   if(pSrcImageVolume)
     pSrcImageVolume->close();
@@ -628,22 +644,21 @@ bool CApplication::walkDirectory(const QDir& dir)
   // this function will recursively walk through a directory and process all *.img files in it
   QFileInfoList dirEntries = dir.entryInfoList(QStringList("*.img"), QDir::Files | QDir::NoSymLinks | QDir::AllDirs | QDir::NoDotAndDotDot);
 
+  // all files are converted, the result is false if any conversion failed
   QFileInfo dirEntry;
   foreach(dirEntry, dirEntries)
   {
     if(dirEntry.isDir())
     {
-      result = walkDirectory(QDir(dirEntry.absoluteFilePath()));
+      if(walkDirectory(QDir(dirEntry.absoluteFilePath())) == false)
+        result = false;
     }
     else
     {
       // check if we found a filename with a *.img suffix
-      if(dirEntry.suffix().toLower() == "img")
-        convertFile(dirEntry);
+      if(dirEntry.suffix().toLower() == "img" && convertFile(dirEntry) == false)
+        result = false;
     }
-
-    if(result == false)
-      break;
   }
 
   RETURN(result);
