@@ -1,0 +1,217 @@
+#
+# libmedio - C++ I/O Library for loading/saving medical data formats
+#            https://github.com/hzdr-MedImaging/libmedio
+#
+# Copyright (C) 2004-2026 hzdr.de and contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# Builds libmedio on Linux and runs the test suite (ctest), checks the
+# installed library incl. the Python bindings and verifies that the expected
+# values of the test data are up to date.
+
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # librtdebug (https://github.com/hzdr-MedImaging/librtdebug) release used for the builds
+  RTDEBUG_VERSION: 3.0.0
+  APT_PACKAGES: cmake g++ clang qtbase5-dev zlib1g-dev pkg-config tzdata
+
+jobs:
+  #-------------------------------------------------------------------------------------------
+  # build and run the test suite with GCC and Clang in Release and Debug mode
+  build-test:
+    name: build & test (${{ matrix.compiler }}, ${{ matrix.build_type }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [ gcc, clang ]
+        build_type: [ Release, Debug ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends $APT_PACKAGES
+
+      - name: Set up environment
+        run: |
+          if [ "${{ matrix.compiler }}" = "clang" ]; then
+            echo "CC=clang" >> "$GITHUB_ENV"
+            echo "CXX=clang++" >> "$GITHUB_ENV"
+          else
+            echo "CC=gcc" >> "$GITHUB_ENV"
+            echo "CXX=g++" >> "$GITHUB_ENV"
+          fi
+          # search and install prefix of librtdebug and libmedio
+          echo "PETLIB=$RUNNER_TEMP/petlib" >> "$GITHUB_ENV"
+
+      - name: Build librtdebug ${{ env.RTDEBUG_VERSION }}
+        run: |
+          mkdir -p "$PETLIB"
+          git clone --depth 1 --branch "$RTDEBUG_VERSION" https://github.com/hzdr-MedImaging/librtdebug.git "$RUNNER_TEMP/librtdebug"
+          cmake -S "$RUNNER_TEMP/librtdebug" -B "$RUNNER_TEMP/librtdebug-build" \
+                -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DPREFIX_PATH="$PETLIB"
+          cmake --build "$RUNNER_TEMP/librtdebug-build" -j"$(nproc)"
+          cmake --install "$RUNNER_TEMP/librtdebug-build"
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DPREFIX_PATH="$PETLIB"
+
+      - name: Build
+        run: cmake --build build -j"$(nproc)"
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Test in other time zones
+        run: |
+          for tz in Europe/Berlin Asia/Tokyo; do
+            echo "TZ=$tz"
+            TZ="$tz" ctest --test-dir build --output-on-failure
+          done
+
+  #-------------------------------------------------------------------------------------------
+  # install libmedio, use it from an external program and build/test the Python bindings
+  install-python:
+    name: install & Python bindings
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends $APT_PACKAGES
+          python -m pip install --upgrade pip
+          python -m pip install pybind11 pytest numpy
+          echo "PETLIB=$RUNNER_TEMP/petlib" >> "$GITHUB_ENV"
+
+      - name: Build librtdebug ${{ env.RTDEBUG_VERSION }}
+        run: |
+          mkdir -p "$PETLIB"
+          git clone --depth 1 --branch "$RTDEBUG_VERSION" https://github.com/hzdr-MedImaging/librtdebug.git "$RUNNER_TEMP/librtdebug"
+          cmake -S "$RUNNER_TEMP/librtdebug" -B "$RUNNER_TEMP/librtdebug-build" \
+                -DCMAKE_BUILD_TYPE=Release -DPREFIX_PATH="$PETLIB"
+          cmake --build "$RUNNER_TEMP/librtdebug-build" -j"$(nproc)"
+          cmake --install "$RUNNER_TEMP/librtdebug-build"
+
+      - name: Build and install libmedio
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPREFIX_PATH="$PETLIB"
+          cmake --build build -j"$(nproc)"
+          cmake --install build
+
+      - name: Use the installed library from an external program
+        run: |
+          mkdir -p "$RUNNER_TEMP/external"
+          cat > "$RUNNER_TEMP/external/convert.cpp" <<'CPP'
+          #include <CNIFTIConverter>
+          #include <CNIFTIFile>
+          #include <CPhilipsFile>
+          #include <CECATFile>
+          #include <cstdio>
+
+          int main(int argc, char* argv[])
+          {
+            QString error;
+            if(argc != 3 || CNIFTIConverter::toNifti(argv[1], argv[2], CNIFTIConverter::Options(), &error) == false) {
+              fprintf(stderr, "conversion failed: %s\n", qPrintable(error));
+              return 1;
+            }
+
+            CNIFTIFile file(argv[2]);
+            if(file.open(QIODevice::ReadOnly) == false)
+              return 1;
+            printf("%s -> %s (NIfTI-%d)\n", argv[1], argv[2], int(file.format()));
+            file.close();
+            return 0;
+          }
+          CPP
+          includes=$(find "$PETLIB/include" -type d -printf '-I%p ')
+          $CXX -std=c++17 -fPIC "$RUNNER_TEMP/external/convert.cpp" -o "$RUNNER_TEMP/external/convert" \
+               $includes $(pkg-config --cflags Qt5Core) \
+               -L"$PETLIB/lib" -lmedio $(pkg-config --libs Qt5Core) -Wl,-rpath,"$PETLIB/lib"
+          for input in testsuite/data/ecat/pet-dynamic.v testsuite/data/philips/pet-static.syn; do
+            "$RUNNER_TEMP/external/convert" "$input" "$RUNNER_TEMP/external/$(basename "$input").nii.gz"
+          done
+        env:
+          CXX: g++
+
+      - name: Build and test the Python bindings
+        run: |
+          cmake -S python -B build-python -DCMAKE_BUILD_TYPE=Release -DPREFIX_PATH="$PETLIB" \
+                -Dpybind11_DIR="$(python -c 'import pybind11; print(pybind11.get_cmake_dir())')" \
+                -DPython_EXECUTABLE="$(which python)" \
+                -DCMAKE_CXX_FLAGS="-I$PETLIB/include/rtdebug"
+          cmake --build build-python -j"$(nproc)"
+          PYTHONPATH="$PWD/build-python" python -m pytest -v python/tests
+
+  #-------------------------------------------------------------------------------------------
+  # the expected values of the test data and the NIfTI test fixtures must be reproducible
+  # with the independent implementations they were generated with
+  test-data:
+    name: test data expected values
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install nibabel, numpy and pydicom
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install nibabel==5.4.2 numpy==2.5.3 pydicom==3.0.2
+
+      - name: Check the expected values of testsuite/data
+        run: python -I testsuite/data/tools/make_expected.py --check
+
+      - name: Check the NIfTI test fixtures
+        run: |
+          out="$RUNNER_TEMP/fixtures"
+          mkdir -p "$out"
+          python -I testsuite/nifti/data/generate_fixtures.py "$out"
+          status=0
+          for file in "$out"/*; do
+            name=$(basename "$file")
+            if ! cmp -s "$file" "testsuite/nifti/data/$name"; then
+              echo "::error file=testsuite/nifti/data/$name::differs from the file generated by generate_fixtures.py"
+              status=1
+            fi
+          done
+          exit $status

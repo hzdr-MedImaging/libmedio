@@ -23,6 +23,14 @@ set(PROJECT_VERSION_MINOR 0)
 set(PROJECT_VERSION_PATCH 1)
 set(PROJECT_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
 
+# image2ecat requires the COREG library, which is not publicly available:
+# the tool is only built if COREG is found
+find_package(COREG QUIET)
+if(NOT COREG_FOUND)
+  message(STATUS "COREG not found: image2ecat is not built")
+  return()
+endif()
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
 # set __MEDIO_PRIVATE__ to flag that we compile the library and
@@ -32,8 +40,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__MEDIO_PRIVATE__")
 # configure files where variables should be replaced.
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/includes/config.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/includes/config.h)
-
-find_package(COREG REQUIRED)
 
 # specify include directories
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/includes

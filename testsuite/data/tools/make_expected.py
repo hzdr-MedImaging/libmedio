@@ -26,7 +26,9 @@ itself. See ../README.md for the layout of the test data.
 
 Without arguments, the expected values of all data files which do not have
 a <file>.json yet are generated. Files can also be given explicitly (path
-relative to the test data directory or absolute).
+relative to the test data directory or absolute). With --check, the
+expected values of all generated files are compared with the existing
+<file>.json files instead (used by the CI).
 
 Supported formats:
   ecat/   ECAT7 image files (file types Image8/16, Volume8/16)
@@ -428,7 +430,39 @@ def listed_files(data_dir):
             for path, info in dataset.get('files', {}).items()}
 
 
-def process(data_dir, rel_path, listed):
+def compare(expected, existing, path='', rel_tol=1e-9):
+    """Differences between newly generated and existing expected values
+    (numbers with a relative tolerance, the generator version is ignored)."""
+    if isinstance(expected, dict) and isinstance(existing, dict):
+        differences = []
+        for key in sorted(set(expected) | set(existing)):
+            if key == 'generator' and path == '':
+                continue
+            if key not in expected or key not in existing:
+                differences.append(f'{path}/{key}: only in the {"existing" if key in existing else "new"} values')
+            else:
+                differences += compare(expected[key], existing[key], f'{path}/{key}', rel_tol)
+        return differences
+    if isinstance(expected, list) and isinstance(existing, list):
+        if len(expected) != len(existing):
+            return [f'{path}: {len(existing)} entries instead of {len(expected)}']
+        differences = []
+        for i, (a, b) in enumerate(zip(expected, existing)):
+            differences += compare(a, b, f'{path}[{i}]', rel_tol)
+        return differences
+    if isinstance(expected, (int, float)) and isinstance(existing, (int, float)) \
+            and not isinstance(expected, bool) and not isinstance(existing, bool):
+        if abs(expected - existing) <= rel_tol * max(1.0, abs(expected), abs(existing)):
+            return []
+    elif expected == existing:
+        return []
+    return [f'{path}: {existing!r} instead of {expected!r}']
+
+
+def process(data_dir, rel_path, listed, check=False):
+    """Generate the expected values of a data file and write them to
+    <file>.json, or (check) compare them with the existing <file>.json.
+    Returns False if the check found differences."""
     fmt = rel_path.split('/')[0]
     if fmt not in GENERATORS:
         raise ValueError(f'no generator for format directory "{fmt}" (supported: {", ".join(GENERATORS)}), '
@@ -440,10 +474,26 @@ def process(data_dir, rel_path, listed):
         print(f'{rel_path}: warning: not listed under dataset "{dataset}" in datasets.json')
 
     expected = GENERATORS[fmt](os.path.join(data_dir, rel_path), file_info)
-    with open(os.path.join(data_dir, rel_path + '.json'), 'w', encoding='utf-8') as f:
+    json_path = os.path.join(data_dir, rel_path + '.json')
+
+    if check:
+        if not os.path.exists(json_path):
+            print(f'{rel_path}.json: missing')
+            return False
+        with open(json_path, encoding='utf-8') as f:
+            existing = json.load(f)
+        differences = compare(expected, existing)
+        for difference in differences:
+            print(f'{rel_path}.json{difference}')
+        if not differences:
+            print(f'{rel_path}.json: up to date')
+        return not differences
+
+    with open(json_path, 'w', encoding='utf-8') as f:
         json.dump(expected, f, indent=2, ensure_ascii=False)
         f.write('\n')
     print(f'{rel_path}.json written')
+    return True
 
 
 def remove_placeholders(data_dir, listed):
@@ -456,10 +506,22 @@ def remove_placeholders(data_dir, listed):
             print(f'{fmt}/PLACEHOLDER.md removed')
 
 
+def is_manual(json_path):
+    """True for expected values written by hand ("generator": "manual")."""
+    try:
+        with open(json_path, encoding='utf-8') as f:
+            return json.load(f).get('generator') == 'manual'
+    except (OSError, ValueError):
+        return False
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('files', nargs='*', metavar='FILE', help='data files (default: all without .json)')
     parser.add_argument('--force', action='store_true', help='regenerate existing expected values')
+    parser.add_argument('--check', action='store_true',
+                        help='compare the expected values of all generated files with the existing '
+                             '<file>.json instead of writing them (files with "generator": "manual" are skipped)')
     parser.add_argument('--data-dir', default=DATA_DIR, help='test data directory (default: %(default)s)')
     args = parser.parse_args()
 
@@ -470,6 +532,8 @@ def main():
         files = [os.path.relpath(os.path.abspath(f) if os.path.exists(f) else os.path.join(data_dir, f), data_dir)
                  for f in args.files]
         files = [f.replace(os.sep, '/') for f in files]
+    elif args.check:
+        files = [f for f in data_files(data_dir) if not is_manual(os.path.join(data_dir, f + '.json'))]
     else:
         files = [f for f in data_files(data_dir)
                  if args.force or not os.path.exists(os.path.join(data_dir, f + '.json'))]
@@ -477,10 +541,15 @@ def main():
     failed = False
     for rel_path in files:
         try:
-            process(data_dir, rel_path, listed)
+            if not process(data_dir, rel_path, listed, check=args.check):
+                failed = True
         except Exception as e:  # report all files before failing
             print(f'{rel_path}: error: {e}', file=sys.stderr)
             failed = True
+
+    if args.check:
+        print('expected values differ from the data files' if failed else 'all expected values are up to date')
+        return 1 if failed else 0
 
     remove_placeholders(data_dir, listed)
 
