@@ -122,6 +122,12 @@ void CKeyParser::addKey(const QString& Key, void* p2Object, void (*p2Function)(v
   }    
 }
 
+// the line starts with the symbol as a whole word ("frame 1" does not match "frame 10")
+static bool startsWithSymbol(const QString& line, const QString& symbol)
+{
+  return line.startsWith(symbol) && (line.length() == symbol.length() || line[symbol.length()].isSpace());
+}
+
 bool CKeyParser::parse(const QString Filename)
 {
   QFile file( Filename );
@@ -172,7 +178,7 @@ bool CKeyParser::parse(const QString Filename)
     {
       for(QStringList::Iterator it = StartSymbols.begin(); it != StartSymbols.end(); ++it ) 
       {
-        if(Line.startsWith(*it))
+        if(startsWithSymbol(Line, *it))
         {
           start_symbol_found = true;
           break;
@@ -201,7 +207,7 @@ bool CKeyParser::parse(const QString Filename)
     {
       for(QStringList::Iterator it = StopSymbols.begin(); it != StopSymbols.end(); ++it ) 
       {
-              if(Line.startsWith(*it))
+              if(startsWithSymbol(Line, *it))
         {
           stop_symbol_found = true;
           break;
