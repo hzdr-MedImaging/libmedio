@@ -16,9 +16,9 @@
   "data_type": "int16",
   "volumes": [
     {
-      "raw_min": 2042,
+      "raw_min": 2277,
       "raw_max": 32767,
-      "raw_sum": 262652670
+      "raw_sum": 272761878
     }
   ]
 }

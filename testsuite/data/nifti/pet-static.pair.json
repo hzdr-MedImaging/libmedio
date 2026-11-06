@@ -18,7 +18,7 @@
     ],
     "datatype": 4,
     "bitpix": 16,
-    "scl_slope": 1.6648250818252563,
+    "scl_slope": 1.6819779872894287,
     "scl_inter": 0.0,
     "qform_code": 0,
     "sform_code": 0,
@@ -57,9 +57,9 @@
   },
   "volumes": [
     {
-      "raw_min": 2042,
+      "raw_min": 2277,
       "raw_max": 32767,
-      "raw_sum": 262652670
+      "raw_sum": 272761878
     }
   ]
 }

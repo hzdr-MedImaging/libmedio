@@ -1,0 +1,33 @@
+{
+  "generator": "own Interfile parser (make_expected.py)",
+  "format": "interfile",
+  "header": {
+    "version_of_keys": "3.3",
+    "type_of_data": "Tomographic",
+    "byte_order": "little",
+    "data_offset": 0,
+    "units": "BQML"
+  },
+  "frames": [
+    {
+      "dims": [
+        33,
+        33,
+        37
+      ],
+      "number_format": "i2",
+      "pixel_size_mm": [
+        1.6499999,
+        1.6499999,
+        1.6459961
+      ],
+      "duration_s": 1800.0,
+      "rescale_slope": 1.6819779872894287,
+      "rescale_offset": -0.0,
+      "units": "BQML",
+      "raw_min": 2277,
+      "raw_max": 32767,
+      "raw_sum": 272761878
+    }
+  ]
+}

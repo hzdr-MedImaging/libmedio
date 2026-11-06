@@ -26,6 +26,10 @@ testsuite/data/
 │   └── ...
 ├── philips/
 ├── raw/
+├── interfile/
+│   ├── pet-static.hdr             # Interfile single file (header followed by the data)
+│   ├── pet-static.pair/           # Interfile header/image pair
+│   └── ...
 └── dicom/
     ├── pet-static/                # DICOM series: one directory per dataset
     └── pet-static.json
@@ -125,8 +129,10 @@ python3 testsuite/data/tools/make_expected.py ecat/pet-static.v   # single file
 
 Supported are ECAT7 image files (`ecat/`), NIfTI-1/NIfTI-2 (`nifti/`,
 `.nii`, `.nii.gz` and header/image pair directories), raw voxel data
-(`raw/`, using the `layout` of the file in `datasets.json`) and DICOM image
-series (`dicom/`, read with pydicom). For other
+(`raw/`, using the `layout` of the file in `datasets.json`), DICOM image
+series (`dicom/`, read with pydicom) and Interfile 3.3 (`interfile/`, single
+files and header/image pair directories, read with an own parser as nibabel
+does not support Interfile). For other
 files (e.g. `philips/`) the expected values are written by hand with
 `"generator": "manual"` and a note where the values come from; the tests
 only check the keys that are present. Do not edit generated files by hand,
@@ -151,6 +157,10 @@ run the script again instead (`--force` regenerates existing files).
   `slice_spacing_mm`, `image_orientation`, `patient_position`, `units`)
   and per frame its timing, the positions of the first and last slice and
   statistics of the stored and of the rescaled voxel values.
+- **Interfile** (`"format": "interfile"`): header values (`version_of_keys`,
+  `type_of_data`, `byte_order`, `data_offset`, `units`) and per image or
+  frame group its dimensions, number format, pixel size, duration, rescale
+  slope/offset and statistics of the stored voxel values.
 
 ## Placeholders
 

@@ -36,6 +36,8 @@ Supported formats:
           datasets.json (dims, data_type, byte_order)
   dicom/  DICOM image series (directory holding the slices of one series),
           read with pydicom
+  interfile/  Interfile 3.3 images: a single file holding header and data,
+          or a directory holding the header (.hdr) and the data file it names
 """
 
 import argparse
@@ -301,11 +303,104 @@ def expected_dicom(path, file_info):
     return expected
 
 
+#------------------------------------------------------------------------------
+# Interfile (own parser, as nibabel does not support Interfile)
+
+INTERFILE_NUMBER_FORMATS = {
+    ('signed integer', 1): 'i1', ('signed integer', 2): 'i2', ('signed integer', 4): 'i4',
+    ('unsigned integer', 1): 'u1', ('unsigned integer', 2): 'u2', ('unsigned integer', 4): 'u4',
+    ('short float', 4): 'f4', ('float', 4): 'f4', ('long float', 8): 'f8',
+}
+
+
+def interfile_header(path):
+    """Parse an Interfile header into a list of (key, value) pairs (keys in
+    lower case, without leading '!'), up to the "END OF INTERFILE" key."""
+    with open(path, 'rb') as f:
+        data = f.read()
+    end = data.upper().find(b'!END OF INTERFILE')
+    if not data.lstrip().upper().startswith(b'!INTERFILE') or end < 0:
+        raise ValueError('not an Interfile header')
+    entries = []
+    for line in data[:end].decode('latin-1').splitlines():
+        line = line.split(';', 1)[0] if line.lstrip().startswith(';') else line
+        if ':=' not in line:
+            continue
+        key, value = line.split(':=', 1)
+        entries.append((key.strip().lstrip('!').strip().lower(), value.strip()))
+    return entries
+
+
+def expected_interfile(path, file_info):
+    if os.path.isdir(path):
+        headers = [f for f in os.listdir(path) if f.lower().endswith('.hdr')]
+        if len(headers) != 1:
+            raise ValueError('an Interfile directory has to contain exactly one .hdr file')
+        header_file = os.path.join(path, headers[0])
+    else:
+        header_file = path
+
+    entries = interfile_header(header_file)
+    keys = dict(entries)
+    data_file = keys.get('name of data file', '')
+    data_file = os.path.join(os.path.dirname(header_file), data_file) if data_file else header_file
+    offset = int(keys.get('data offset in bytes', '0') or 0)
+    byte_order = '>' if keys.get('imagedata byte order', 'BIGENDIAN').upper() == 'BIGENDIAN' else '<'
+
+    # one group per frame group (dynamic data) or a single group (static data)
+    groups, current = [], None
+    for key, value in entries:
+        if key == 'frame group number' or (key == 'matrix size [1]' and current is None):
+            current = {}
+            groups.append(current)
+        if current is not None:
+            current[key] = value
+
+    expected = {
+        'generator': 'own Interfile parser (make_expected.py)',
+        'format': 'interfile',
+        'header': {
+            'version_of_keys': keys.get('version of keys', ''),
+            'type_of_data': keys.get('type of data', ''),
+            'byte_order': 'big' if byte_order == '>' else 'little',
+            'data_offset': offset,
+            'units': keys.get('units', ''),
+        },
+        'frames': [],
+    }
+
+    pos = offset
+    for group in groups:
+        dims = [int(group[f'matrix size [{i}]']) for i in (1, 2, 3)]
+        fmt = INTERFILE_NUMBER_FORMATS[(group.get('number format', keys.get('number format', '')).lower(),
+                                        int(group.get('number of bytes per pixel', keys.get('number of bytes per pixel', 0))))]
+        dtype = np.dtype(fmt).newbyteorder(byte_order)
+        count = int(np.prod(dims))
+        raw = np.fromfile(data_file, dtype=dtype, count=count, offset=pos).reshape(dims, order='F')
+        if raw.size != count:
+            raise ValueError('Interfile data file too short')
+        pos += count * dtype.itemsize
+        frame = {
+            'dims': dims,
+            'number_format': fmt,
+            'pixel_size_mm': [float(group[f'scaling factor (mm/pixel) [{i}]']) for i in (1, 2, 3)],
+            'duration_s': float(group.get('image duration (sec)', keys.get('image duration (sec)', 0))),
+            'rescale_slope': float(group.get('data rescale slope', 1)),
+            'rescale_offset': float(group.get('data rescale offset', 0)),
+            'units': group.get('units', keys.get('units', '')),
+        }
+        frame.update(stats(raw))
+        expected['frames'].append(frame)
+
+    return expected
+
+
 GENERATORS = {
     'ecat': expected_ecat,
     'nifti': expected_nifti,
     'raw': expected_raw,
     'dicom': expected_dicom,
+    'interfile': expected_interfile,
 }
 
 

@@ -6,54 +6,54 @@
         "scanner": "Siemens Biograph Vision 600 PET/CT",
         "reconstruction": "e7tools",
         "units": "Bq/ml",
-        "notes": "The reconstructed DICOM images were loaded into ROVER, cropped there and exported as ECAT7, Philips and raw data. The ECAT7 file was converted to NIfTI with a separate Python ecat2nifti tool, the NIfTI header/image pair was created from the DICOM images with PMOD. The ECAT7 main header contains the system type 962 written by ROVER. dicom/pet-static is a static reconstruction of the same acquisition covering the full field of view; it provides the patient coordinates of the cropped files (see the landmarks), its values differ slightly."
+        "notes": "The reconstructed DICOM images (dicom/pet-static) were loaded into ROVER, cropped there and exported as ECAT7, Philips and raw data. The ECAT7 file was converted to NIfTI with a separate Python ecat2nifti tool and exported as NIfTI header/image pair and as Interfile with PMOD. The ECAT7 main header contains the system type 962 written by ROVER. The crop covers the DICOM columns 169-201, rows 206-238 and slices 81-117 (sorted by increasing z), see the landmarks for the voxel correspondence."
       },
       "files": {
         "dicom/pet-static": {
           "origin": "original",
           "tool": "e7tools (TOF-PSF-OP-OSEM 6i 5s)",
-          "same_reconstruction": false,
-          "notes": "DICOM PET image series, 440x440x159 voxels of 1.65 x 1.65 x 1.6456 mm, one frame of 30 min, Bq/ml, image orientation [1,0,0,0,1,0], patient position HFS; slices sorted by increasing z. The cropped files of the dataset cover the columns 169-201, rows 206-238 and slices 81-117 with reversed slice order (same spatial structure, correlation 0.99999), but their values differ (ecat/pet-static.v = 0.9978 x DICOM - 509 Bq/ml, residual rms 61 Bq/ml): presumably a different reconstruction of the same acquisition."
+          "same_reconstruction": true,
+          "notes": "DICOM PET image series, 440x440x159 voxels of 1.65 x 1.65 x 1.6456 mm, one frame of 30 min, Bq/ml, TOF-PSF-OP-OSEM 6i 5s, image orientation [1,0,0,0,1,0], patient position HFS; slices sorted by increasing z"
         },
         "ecat/pet-static.v": {
           "origin": "converted",
           "tool": "ROVER 3.0.84h (ECAT7 export)",
-          "source": "cropped DICOM images reconstructed with e7tools (not part of the test data)",
+          "source": "dicom/pet-static (cropped in ROVER)",
           "same_reconstruction": true,
-          "notes": "ECAT7 Volume16, SunShort, scale factor 1.664825, calibration factor 1"
+          "notes": "ECAT7 Volume16, SunShort, scale factor 1.681978, calibration factor 1; stored values identical to the cropped DICOM values with reversed slice order"
         },
         "nifti/pet-static.nii.gz": {
           "origin": "converted",
           "tool": "ecat2nifti (separate Python tool converting between ECAT and NIfTI, not part of libmedio)",
           "source": "ecat/pet-static.v",
           "same_reconstruction": true,
-          "notes": "same stored int16 values and scale factor as ecat/pet-static.v with reversed z axis; qform_code and sform_code are 0; header (incl. a DICOM header extension) and voxel data are byte-identical to nifti/pet-static.pair except vox_offset and magic"
+          "notes": "float32 with the scaled values of ecat/pet-static.v and reversed z axis; sform_code 2 with the orientation of the DICOM series but without its position (translation 0); qform_code 0, xyzt_units unknown"
         },
         "nifti/pet-static.pair": {
           "origin": "converted",
           "tool": "PMOD 4.006 (NIfTI header/image pair export)",
-          "source": "DICOM images reconstructed with e7tools (not part of the test data)",
+          "source": "ecat/pet-static.v",
           "same_reconstruction": true,
-          "notes": "NIfTI-1 header/image pair (ni1) with the same content as nifti/pet-static.nii.gz"
+          "notes": "NIfTI-1 header/image pair (ni1), int16 with the stored values and scale factor of ecat/pet-static.v and reversed z axis; qform_code and sform_code are 0"
         },
         "philips/pet-static.img": {
           "origin": "converted",
           "tool": "ROVER 3.0.84h (Philips image export)",
-          "source": "cropped DICOM images reconstructed with e7tools (not part of the test data)",
+          "source": "dicom/pet-static (cropped in ROVER)",
           "same_reconstruction": true,
           "notes": "Philips image file; same stored int16 values and voxel order as ecat/pet-static.v"
         },
         "philips/pet-static.syn": {
           "origin": "converted",
           "tool": "ROVER 3.0.84h (Philips Syntegra export)",
-          "source": "cropped DICOM images reconstructed with e7tools (not part of the test data)",
+          "source": "dicom/pet-static (cropped in ROVER)",
           "same_reconstruction": true,
           "notes": "Philips Syntegra file; same stored int16 values and voxel order as ecat/pet-static.v"
         },
         "raw/pet-static.raw": {
           "origin": "converted",
           "tool": "ROVER 3.0.84h (raw export)",
-          "source": "cropped DICOM images reconstructed with e7tools (not part of the test data)",
+          "source": "dicom/pet-static (cropped in ROVER)",
           "same_reconstruction": true,
           "notes": "scaled values (Bq/ml) of ecat/pet-static.v in the same voxel order",
           "layout": {
@@ -65,6 +65,20 @@
             "data_type": "float32",
             "byte_order": "little"
           }
+        },
+        "interfile/pet-static.hdr": {
+          "origin": "converted",
+          "tool": "PMOD 4.006 (Interfile 3.3 export, single file (header followed by the data))",
+          "source": "ecat/pet-static.v",
+          "same_reconstruction": true,
+          "notes": "int16 little endian with the stored values and scale factor of ecat/pet-static.v and reversed z axis, units BQML; origin 0"
+        },
+        "interfile/pet-static.pair": {
+          "origin": "converted",
+          "tool": "PMOD 4.006 (Interfile 3.3 export, header/image pair)",
+          "source": "ecat/pet-static.v",
+          "same_reconstruction": true,
+          "notes": "int16 little endian with the stored values and scale factor of ecat/pet-static.v and reversed z axis, units BQML; origin 0"
         }
       },
       "landmarks": [
@@ -111,6 +125,16 @@
               0,
               0,
               0
+            ],
+            "interfile/pet-static.hdr": [
+              0,
+              0,
+              36
+            ],
+            "interfile/pet-static.pair": [
+              0,
+              0,
+              36
             ]
           }
         },
@@ -157,6 +181,16 @@
               32,
               32,
               36
+            ],
+            "interfile/pet-static.hdr": [
+              32,
+              32,
+              0
+            ],
+            "interfile/pet-static.pair": [
+              32,
+              32,
+              0
             ]
           }
         }
@@ -168,7 +202,7 @@
         "scanner": "Siemens Biograph Vision 600 PET/CT",
         "reconstruction": "e7tools (dynamic reconstruction of the acquisition of pet-static)",
         "units": "Bq/ml (ECAT7 data units \"Bq/cc\" with calibration factor 1000)",
-        "notes": "The dynamic DICOM images (dicom/pet-dynamic) were loaded into PMOD and saved as ECAT7, which was loaded into ROVER, cropped there to 31x31x39 voxels and exported as ECAT7, Philips and raw data. The cropped ECAT7 file was loaded into PMOD again and exported as NIfTI. The coarse in-plane voxel size results from the 32x32 matrix of the dynamic reconstruction over the 726 mm field of view (pet-static: 1.65 mm). The crop covers the DICOM columns and rows 0-30 and the slices 77-115 (sorted by increasing z), see the landmarks for the voxel correspondence."
+        "notes": "The dynamic DICOM images (dicom/pet-dynamic) were loaded into PMOD and saved as ECAT7, which was loaded into ROVER, cropped there to 31x31x39 voxels and exported as ECAT7, Philips and raw data. The cropped ECAT7 file was loaded into PMOD again and exported as NIfTI and Interfile. The coarse in-plane voxel size results from the 32x32 matrix of the dynamic reconstruction over the 726 mm field of view (pet-static: 1.65 mm). The crop covers the DICOM columns and rows 0-30 and the slices 77-115 (sorted by increasing z), see the landmarks for the voxel correspondence."
       },
       "files": {
         "dicom/pet-dynamic": {
@@ -227,6 +261,20 @@
             "data_type": "float32",
             "byte_order": "little"
           }
+        },
+        "interfile/pet-dynamic.hdr": {
+          "origin": "converted",
+          "tool": "PMOD 4.006 (Interfile 3.3 export, single file (header followed by the data))",
+          "source": "ecat/pet-dynamic.v",
+          "same_reconstruction": true,
+          "notes": "3 frame groups, int16 little endian with the stored values and the scale factor of each frame of ecat/pet-dynamic.v and reversed z axis; units kBq/cc (calibration factor not applied); radiopharmaceutical FDG and half-life 6586.2 s are wrong (Cu-61); origin 0"
+        },
+        "interfile/pet-dynamic.pair": {
+          "origin": "converted",
+          "tool": "PMOD 4.006 (Interfile 3.3 export, header/image pair)",
+          "source": "ecat/pet-dynamic.v",
+          "same_reconstruction": true,
+          "notes": "3 frame groups, int16 little endian with the stored values and the scale factor of each frame of ecat/pet-dynamic.v and reversed z axis; units kBq/cc (calibration factor not applied); radiopharmaceutical FDG and half-life 6586.2 s are wrong (Cu-61); origin 0"
         }
       },
       "landmarks": [
@@ -273,6 +321,16 @@
               0,
               0,
               0
+            ],
+            "interfile/pet-dynamic.hdr": [
+              0,
+              0,
+              38
+            ],
+            "interfile/pet-dynamic.pair": [
+              0,
+              0,
+              38
             ]
           }
         },
@@ -319,6 +377,16 @@
               30,
               30,
               38
+            ],
+            "interfile/pet-dynamic.hdr": [
+              30,
+              30,
+              0
+            ],
+            "interfile/pet-dynamic.pair": [
+              30,
+              30,
+              0
             ]
           }
         }
