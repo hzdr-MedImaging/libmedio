@@ -48,7 +48,9 @@ add_test(NAME medio_volume
 add_executable(testMedIOMatrix testMedIOMatrix.cpp)
 
 target_include_directories(testMedIOMatrix PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../common)
-target_compile_definitions(testMedIOMatrix PRIVATE MEDIO_TEST_DATA_DIR="${MEDIO_TEST_DATA_DIR}")
+target_compile_definitions(testMedIOMatrix PRIVATE
+                           MEDIO_TEST_DATA_DIR="${MEDIO_TEST_DATA_DIR}"
+                           NIFTI_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../nifti/data")
 
 target_link_libraries(testMedIOMatrix Qt5::Core
                                       Qt5::Test

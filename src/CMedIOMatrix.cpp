@@ -24,6 +24,8 @@
 #include "CMedIOHeader.h"
 #include "CECATFile.h"
 #include "CECATSubHeader.h"
+#include "CNIFTIFile.h"
+#include "CNIFTIMainHeader.h"
 
 #include <QVector>
 
@@ -289,6 +291,11 @@ CMedIOData::Format headerDataFormat(const CMedIOHeader& header)
   return CMedIOData::Unknown;
 }
 
+short frameNumber(CMedIOData* /*file*/, int index)
+{
+  return static_cast<short>(index + 1);
+}
+
 //=============================================================================================
 // dispatch to the format adapters
 
@@ -310,6 +317,10 @@ bool readVolume(CMedIOData* file, short frame, CMedIOVolume& volume)
   bool result = false;
 
   switch(file->dataFormat()) {
+    case CMedIOData::NIFTI:
+      result = readNiftiVolume(static_cast<CNIFTIFile*>(file), frame, volume);
+    break;
+
     default: {
       // formats storing their images in the ECAT7 voxel order
       CMedIOFrame f;
@@ -334,6 +345,10 @@ bool readFrame(CMedIOData* file, short frame, CMedIOFrame& f)
       result = readEcatFrame(static_cast<CECATFile*>(file), frame, f);
     break;
 
+    case CMedIOData::NIFTI:
+      result = readNiftiFrame(static_cast<CNIFTIFile*>(file), frame, f);
+    break;
+
     default:
       result = unsupported(file->dataFormat(), "reading matrices in another format");
     break;
@@ -352,6 +367,10 @@ bool frameFromMatrix(const QByteArray& data, const CMedIOHeader& header, const C
     case CMedIOData::ECAT:
       result = (header.headerFormat() == CMedIOHeader::ECATSubHeader) &&
                ecatFrameFromMatrix(data, static_cast<const CECATSubHeader&>(header), mainHeader, f);
+    break;
+
+    case CMedIOData::NIFTI:
+      result = niftiFrameFromMatrix(data, static_cast<const CNIFTIMainHeader&>(header), f);
     break;
 
     default:
@@ -374,6 +393,10 @@ bool matrixFromFrame(const CMedIOFrame& f, CMedIOData::Format format, QByteArray
       result = ecatMatrixFromFrame(f, data, header);
     break;
 
+    case CMedIOData::NIFTI:
+      result = niftiMatrixFromFrame(f, data, header);
+    break;
+
     default:
       result = unsupported(format, "converting matrices into this format");
     break;
@@ -383,7 +406,7 @@ bool matrixFromFrame(const CMedIOFrame& f, CMedIOData::Format format, QByteArray
   return result;
 }
 
-bool mainHeaderFromFrame(const CMedIOFrame& f, CMedIOData::Format format, CMedIOData* /*source*/, CMedIOHeader*& header)
+bool mainHeaderFromFrame(const CMedIOFrame& f, CMedIOData::Format format, CMedIOData* source, CMedIOHeader*& header)
 {
   ENTER();
   bool result = false;
@@ -392,6 +415,10 @@ bool mainHeaderFromFrame(const CMedIOFrame& f, CMedIOData::Format format, CMedIO
   switch(format) {
     case CMedIOData::ECAT:
       result = ecatMainHeaderFromFrame(f, header);
+    break;
+
+    case CMedIOData::NIFTI:
+      result = niftiMainHeaderFromFrame(f, source, header);
     break;
 
     default:
@@ -411,6 +438,10 @@ bool writeFrame(CMedIOData* file, short frame, const CMedIOFrame& f)
   switch(file->dataFormat()) {
     case CMedIOData::ECAT:
       result = writeEcatFrame(static_cast<CECATFile*>(file), frame, f);
+    break;
+
+    case CMedIOData::NIFTI:
+      result = writeNiftiFrame(static_cast<CNIFTIFile*>(file), frame, f);
     break;
 
     default:
@@ -441,6 +472,20 @@ bool readNativeMatrix(CMedIOData* file, short frame, QByteArray& data, CMedIOHea
     }
     break;
 
+    case CMedIOData::NIFTI: {
+      // one volume in the voxel order and datatype of the file and the header
+      // of the file with the timing of the frame
+      CMedIOVolume volume;
+      CNIFTIMainHeader* mainHeader = NULL;
+      result = readNiftiVolume(static_cast<CNIFTIFile*>(file), frame, volume, &mainHeader);
+      if(result) {
+        setNiftiFrameTiming(mainHeader, volume.frameStart(), volume.frameDuration());
+        data = volume.data();
+        header = mainHeader;
+      }
+    }
+    break;
+
     default:
       result = unsupported(file->dataFormat(), "reading matrices");
     break;
@@ -460,6 +505,13 @@ bool readNativeMainHeader(CMedIOData* file, CMedIOHeader*& header)
     case CMedIOData::ECAT: {
       CECATMainHeader* mainHeader = NULL;
       result = static_cast<CECATFile*>(file)->readMainHeader(mainHeader);
+      header = mainHeader;
+    }
+    break;
+
+    case CMedIOData::NIFTI: {
+      CNIFTIMainHeader* mainHeader = NULL;
+      result = static_cast<CNIFTIFile*>(file)->readMainHeader(mainHeader);
       header = mainHeader;
     }
     break;

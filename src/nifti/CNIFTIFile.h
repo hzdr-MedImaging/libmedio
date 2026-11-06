@@ -113,6 +113,13 @@ class CNIFTIFile : public CMedIOData { // CNIFTIFile class inherits from CMedIOD
         bool writeMatrix(const QByteArray& matrixData);
         bool writeMatrix(const char* matrixData, unsigned int size);
 
+    // voxel data of one 3D volume (frame 1 = first volume, further dimensions
+    // dim[5..7] count as further volumes) in the voxel order and datatype of
+    // the file, in the byte order of this machine. writeMatrix(): the main
+    // header has to be written first; the volumes can be written in any order.
+        bool readMatrix(QByteArray*& matrixData, short frame);
+        bool writeMatrix(const QByteArray& matrixData, short frame);
+
 //=============================================================================================
 
     // methods to generate some objects just for convienence

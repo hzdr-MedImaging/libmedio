@@ -41,6 +41,10 @@
 #include <CECATSubHeader.h>
 #include <CECAT7MainHeader.h>
 #include <CECAT7SubHeaderImage.h>
+#include <CNIFTIFile.h>
+#include <CNIFTIMainHeader.h>
+#include <CNIFTI1MainHeader.h>
+#include <CNIFTI2MainHeader.h>
 
 #include "MedIOTestData.h"
 
@@ -49,6 +53,12 @@
 #include <QJsonArray>
 
 #include <cmath>
+#include <cstring>
+#include <limits>
+
+#ifndef NIFTI_TEST_DATA_DIR
+#error "NIFTI_TEST_DATA_DIR has to be defined"
+#endif
 
 //=============================================================================================
 // helpers
@@ -154,6 +164,232 @@ static bool createEcat(CECATFile& file, const CECAT7MainHeader& mainHeader)
   return file.writeMainHeader(mh);
 }
 
+
+//---------------------------------------------------------------------------------------------
+// NIfTI helpers
+
+static double niftiValue(const char* data, qint64 i, int datatype)
+{
+  switch(datatype) {
+    case 2:   return reinterpret_cast<const quint8*>(data)[i];
+    case 256: return reinterpret_cast<const qint8*>(data)[i];
+    case 4:   return reinterpret_cast<const qint16*>(data)[i];
+    case 512: return reinterpret_cast<const quint16*>(data)[i];
+    case 8:   return reinterpret_cast<const qint32*>(data)[i];
+    case 768: return reinterpret_cast<const quint32*>(data)[i];
+    case 16:  return reinterpret_cast<const float*>(data)[i];
+    case 64:  return reinterpret_cast<const double*>(data)[i];
+  }
+  return std::nan("");
+}
+
+static int niftiSize(int datatype)
+{
+  switch(datatype) {
+    case 2: case 256: return 1;
+    case 4: case 512: return 2;
+    case 8: case 16: case 768: return 4;
+    case 64: return 8;
+  }
+  return 0;
+}
+
+static void setNiftiValue(char* data, qint64 i, int datatype, double v)
+{
+  switch(datatype) {
+    case 2:   reinterpret_cast<quint8*>(data)[i] = static_cast<quint8>(v); break;
+    case 256: reinterpret_cast<qint8*>(data)[i] = static_cast<qint8>(v); break;
+    case 4:   reinterpret_cast<qint16*>(data)[i] = static_cast<qint16>(v); break;
+    case 512: reinterpret_cast<quint16*>(data)[i] = static_cast<quint16>(v); break;
+    case 8:   reinterpret_cast<qint32*>(data)[i] = static_cast<qint32>(v); break;
+    case 768: reinterpret_cast<quint32*>(data)[i] = static_cast<quint32>(v); break;
+    case 16:  reinterpret_cast<float*>(data)[i] = static_cast<float>(v); break;
+    case 64:  reinterpret_cast<double*>(data)[i] = v; break;
+  }
+}
+
+// voxel value of linear index i in the nibabel reference files (see testsuite/nifti/data/generate_fixtures.py)
+static double patternValue(qint64 i, int datatype)
+{
+  switch(datatype) {
+    case 16:
+    case 64:  return i * 0.25 - 2.0;
+    case 2:   return (i * 7) % 50;
+    default:  return (i * 7) % 50 - 10;
+  }
+}
+
+// header values of both NIfTI versions
+struct NiftiHeader
+{
+  qint64 dim[8];
+  int datatype;
+  double slope, inter;
+  double srow[3][4];
+  int sformCode;
+};
+
+template <class H>
+static NiftiHeader niftiHeaderOf(const H* h)
+{
+  NiftiHeader n;
+  for(short i=0; i < 8; i++)
+    n.dim[i] = h->dim(i);
+  n.datatype = h->dataType();
+  n.slope = h->scl_Slope();
+  n.inter = h->scl_Inter();
+  n.sformCode = h->sform_Code();
+  for(short i=0; i < 4; i++) {
+    n.srow[0][i] = h->srow_X(i);
+    n.srow[1][i] = h->srow_Y(i);
+    n.srow[2][i] = h->srow_Z(i);
+  }
+  return n;
+}
+
+static NiftiHeader niftiHeader(const CMedIOHeader* h)
+{
+  const CNIFTIMainHeader* n = static_cast<const CNIFTIMainHeader*>(h);
+  if(n->mainHeaderType() == CNIFTIMainHeader::NIFTI1MainHeader)
+    return niftiHeaderOf(static_cast<const CNIFTI1MainHeader*>(n));
+  return niftiHeaderOf(static_cast<const CNIFTI2MainHeader*>(n));
+}
+
+// LPS position (mm) of NIfTI voxel v using a RAS affine (mm)
+static void niftiPosition(const double a[3][4], const double v[3], double p[3])
+{
+  for(int r=0; r < 3; r++)
+    p[r] = a[r][0] * v[0] + a[r][1] * v[1] + a[r][2] * v[2] + a[r][3];
+  p[0] = -p[0];
+  p[1] = -p[1];
+}
+
+// NIfTI voxel (possibly fractional) at LPS position p (mm) using a RAS affine (mm)
+static void niftiVoxel(const double a[3][4], const double p[3], double v[3])
+{
+  const double ras[3] = { -p[0] - a[0][3], -p[1] - a[1][3], p[2] - a[2][3] };
+  const double det = a[0][0]*(a[1][1]*a[2][2]-a[1][2]*a[2][1]) - a[0][1]*(a[1][0]*a[2][2]-a[1][2]*a[2][0]) + a[0][2]*(a[1][0]*a[2][1]-a[1][1]*a[2][0]);
+  for(int i=0; i < 3; i++) {
+    v[i] = 0.0;
+    for(int j=0; j < 3; j++) {
+      const int i1 = (j + 1) % 3, i2 = (j + 2) % 3, j1 = (i + 1) % 3, j2 = (i + 2) % 3;
+      v[i] += (a[i1][j1] * a[i2][j2] - a[i1][j2] * a[i2][j1]) / det * ras[j];
+    }
+  }
+}
+
+// description of a synthetic NIfTI file
+struct Synthetic
+{
+  Synthetic() : version(1), nx(4), ny(3), nz(2), frames(1), dim5(1), useQform(false), units(10),
+                datatype(4), slope(1.0), inter(0.0), pixdim4(0.0), toffset(0.0),
+                byteOrder(QSysInfo::ByteOrder)
+  {
+    const double lps[3][4] = { { -2, 0, 0, 10 }, { 0, -2.5, 0, -20 }, { 0, 0, 3, -30 } };
+    memcpy(affine, lps, sizeof(affine));
+  }
+
+  int version, nx, ny, nz, frames, dim5;
+  double affine[3][4]; // RAS, in file units
+  bool useQform;       // affine is a rotation about z by 180 degrees (see setHeader())
+  int units, datatype;
+  double slope, inter, pixdim4, toffset;
+  QSysInfo::Endian byteOrder;
+
+  qint64 voxels() const { return static_cast<qint64>(nx) * ny * nz; }
+};
+
+template <class H>
+static void setHeader(H* h, const Synthetic& s)
+{
+  double size[3];
+  for(int j=0; j < 3; j++)
+    size[j] = std::sqrt(s.affine[0][j]*s.affine[0][j] + s.affine[1][j]*s.affine[1][j] + s.affine[2][j]*s.affine[2][j]);
+
+  h->setDim(0, s.dim5 > 1 ? 5 : (s.frames > 1 ? 4 : 3));
+  h->setDim(1, s.nx); h->setDim(2, s.ny); h->setDim(3, s.nz); h->setDim(4, s.frames); h->setDim(5, s.dim5);
+  for(short i=6; i < 8; i++) h->setDim(i, 1);
+  for(short i=0; i < 8; i++) h->setPix_Dim(i, 1.0);
+  for(short i=1; i <= 3; i++) h->setPix_Dim(i, size[i-1]);
+  h->setPix_Dim(4, s.pixdim4);
+  h->setToffset(s.toffset);
+  h->setXyzt_Units(s.units);
+  h->setDataType(s.datatype);
+  h->setBit_Pix(s.datatype == 32 ? 64 : niftiSize(s.datatype) * 8);
+  h->setScl_Slope(s.slope);
+  h->setScl_Inter(s.inter);
+  h->setByteOrder(s.byteOrder);
+
+  if(s.useQform) {
+    // rotation by 180 degrees about z (quaternion (0, 0, 1)), qfac = sign of affine[2][2]
+    h->setSform_Code(0);
+    h->setQform_Code(1);
+    h->setQuatern_B(0.0); h->setQuatern_C(0.0); h->setQuatern_D(1.0);
+    h->setPix_Dim(0, s.affine[2][2] < 0 ? -1.0 : 1.0);
+    h->setQoffset_X(s.affine[0][3]); h->setQoffset_Y(s.affine[1][3]); h->setQoffset_Z(s.affine[2][3]);
+  } else {
+    h->setQform_Code(0);
+    h->setSform_Code(2);
+    for(short i=0; i < 4; i++) {
+      h->setSrow_X(i, s.affine[0][i]);
+      h->setSrow_Y(i, s.affine[1][i]);
+      h->setSrow_Z(i, s.affine[2][i]);
+    }
+  }
+}
+
+// open a NIfTI file for writing and write the main header of s
+static bool createNifti(CNIFTIFile& file, const Synthetic& s)
+{
+  if(file.open(QIODevice::WriteOnly) == false)
+    return false;
+
+  QScopedPointer<CNIFTIMainHeader> header(file.createEmptyHeader());
+  if(header.data() == NULL)
+    return false;
+
+  if(s.version == 2)
+    setHeader(static_cast<CNIFTI2MainHeader*>(header.data()), s);
+  else
+    setHeader(static_cast<CNIFTI1MainHeader*>(header.data()), s);
+
+  return file.writeMainHeader(*header);
+}
+
+// write a synthetic NIfTI file with the given stored values (machine byte order)
+static bool writeNifti(const QString& path, const Synthetic& s, const QByteArray& data)
+{
+  CNIFTIFile file(path, s.version == 2 ? CNIFTIMainHeader::NIFTI2 : CNIFTIMainHeader::NIFTI1);
+  bool result = createNifti(file, s) && file.writeMatrix(data);
+  file.close();
+  return result;
+}
+
+// create a NIfTI file with a main header converted from another one
+static bool createNifti(CNIFTIFile& file, const CMedIOHeader* header)
+{
+  if(file.open(QIODevice::WriteOnly) == false)
+    return false;
+  QScopedPointer<CNIFTIMainHeader> h(file.createEmptyHeader());
+  return h.data() && h->convertFrom(header) && file.writeMainHeader(*h);
+}
+
+// complete voxel data of a NIfTI file (machine byte order) and its header
+static QByteArray readAll(const QString& path, NiftiHeader* header = NULL)
+{
+  CNIFTIFile file(path);
+  QByteArray* data = NULL;
+  CNIFTIMainHeader* h = NULL;
+  if(file.open(QIODevice::ReadOnly) == false || file.readMatrix(data) == false || data == NULL || file.readMainHeader(h) == false)
+    return QByteArray();
+  if(header)
+    *header = niftiHeader(h);
+  delete h;
+  QByteArray result(*data);
+  delete data;
+  return result;
+}
+
 //=============================================================================================
 
 class TestMedIOMatrix : public QObject
@@ -173,6 +409,21 @@ class TestMedIOMatrix : public QObject
     void ecatVolume();
     void ecatWriteVolume();
     void writeReorientedVolume();
+
+    void niftiReferenceFiles_data();
+    void niftiReferenceFiles();
+    void niftiOrientations_data();
+    void niftiOrientations();
+    void niftiDataTypes_data();
+    void niftiDataTypes();
+    void niftiDatasets_data();
+    void niftiDatasets();
+    void ecatToNiftiFile_data();
+    void ecatToNiftiFile();
+    void niftiToEcatFile();
+    void niftiRequantized();
+    void niftiErrors();
+
     void errors();
 };
 
@@ -389,6 +640,748 @@ void TestMedIOMatrix::writeReorientedVolume()
         const double expected = (1 + qRound(v[0]) + 4 * (qRound(v[1]) + 3 * qRound(v[2]))) * 0.5;
         QCOMPARE(written.value(0, i + s->x_Dimension() * (j + s->y_Dimension() * k)), expected);
       }
+}
+
+
+//=============================================================================================
+// NIfTI
+
+//---------------------------------------------------------------------------------------------
+// nibabel reference files: affine diag(-2, 2.5, 3) + (10, -20, -30) (RAS) for
+// all files, scl_slope 0.5, scl_inter 1, i.e. NIfTI voxel (i, j, k) is ECAT7
+// voxel (i, ny-1-j, nz-1-k) (y towards posterior, planes from superior to inferior)
+
+void TestMedIOMatrix::niftiReferenceFiles_data()
+{
+  QTest::addColumn<QString>("file");
+  QTest::addColumn<int>("frames");
+
+  QTest::newRow("n1_le_int16.nii")          << "n1_le_int16.nii" << 1;
+  QTest::newRow("n1_be_float32_4d.nii")     << "n1_be_float32_4d.nii" << 2;
+  QTest::newRow("n1_le_uint8.nii.gz")       << "n1_le_uint8.nii.gz" << 1;
+  QTest::newRow("n2_le_float64.nii")        << "n2_le_float64.nii" << 1;
+  QTest::newRow("n2_be_int32_ext.nii")      << "n2_be_int32_ext.nii" << 1;
+  QTest::newRow("n2_le_int16_4d.nii.gz")    << "n2_le_int16_4d.nii.gz" << 2;
+  QTest::newRow("p1_le_int16_ext.hdr")      << "p1_le_int16_ext.hdr" << 1;
+  QTest::newRow("p2_be_float32_4d.hdr")     << "p2_be_float32_4d.hdr" << 2;
+  QTest::newRow("p1_le_uint8.hdr.gz")       << "p1_le_uint8.hdr.gz" << 1;
+  QTest::newRow("p1_le_int16_offset.img")   << "p1_le_int16_offset.img" << 1;
+}
+
+void TestMedIOMatrix::niftiReferenceFiles()
+{
+  QFETCH(QString, file);
+  QFETCH(int, frames);
+
+  const int nx = 4, ny = 3, nz = 2;
+  const qint64 voxels = nx * ny * nz;
+  const double affine[3][4] = { { -2, 0, 0, 10 }, { 0, 2.5, 0, -20 }, { 0, 0, 3, -30 } };
+
+  QScopedPointer<CMedIOData> nifti(CMedIODataFactory::create(QString(NIFTI_TEST_DATA_DIR) + "/" + file));
+  QVERIFY(nifti.data() != NULL);
+  QCOMPARE(static_cast<int>(nifti->dataFormat()), static_cast<int>(CMedIOData::NIFTI));
+  QVERIFY(nifti->open(QIODevice::ReadOnly));
+
+  CMedIOHeader* mh = NULL;
+  QVERIFY(nifti->readMainHeader(mh, CMedIOData::ECAT));
+  QScopedPointer<CMedIOHeader> mhGuard(mh);
+  QCOMPARE(static_cast<int>(static_cast<CECAT7MainHeader*>(mh)->num_Frames()), frames);
+  const double bed = static_cast<CECAT7MainHeader*>(mh)->init_Bed_Position() * 10.0;
+
+  for(int f=1; f <= frames; f++) {
+    const qint64 first = (f - 1) * voxels;
+
+    // NIfTI representation of the file itself: one volume in the voxel order and datatype of the file
+    QByteArray* native = NULL;
+    CMedIOHeader* nativeHeader = NULL;
+    QVERIFY(nifti->readMatrix(native, nativeHeader, CMedIOData::NIFTI, f));
+    QScopedPointer<QByteArray> nativeGuard(native);
+    QScopedPointer<CMedIOHeader> nativeHeaderGuard(nativeHeader);
+    const NiftiHeader n = niftiHeader(nativeHeader);
+    QCOMPARE(native->size(), static_cast<int>(voxels * niftiSize(n.datatype)));
+    for(qint64 i=0; i < voxels; i++)
+      QCOMPARE(niftiValue(native->constData(), i, n.datatype), patternValue(first + i, n.datatype));
+
+    // volume in the voxel order of the file
+    CMedIOVolume volume;
+    QVERIFY(nifti->readVolume(volume, f));
+    QCOMPARE(volume.orientation(), QString("LAS"));
+    QCOMPARE(volume.scaleFactor(), 0.5);
+    QCOMPARE(volume.intercept(), 1.0);
+    for(qint64 i=0; i < voxels; i++)
+      QCOMPARE(volume.storedValue(i), patternValue(first + i, n.datatype));
+
+    // ECAT7 representation: scl_inter -> physical values as float32
+    QByteArray* data = NULL;
+    CMedIOHeader* sh = NULL;
+    QVERIFY(nifti->readMatrix(data, sh, CMedIOData::ECAT, f));
+    QScopedPointer<QByteArray> dataGuard(data);
+    QScopedPointer<CMedIOHeader> shGuard(sh);
+    QCOMPARE(static_cast<int>(sh->headerFormat()), static_cast<int>(CMedIOHeader::ECATSubHeader));
+    const CECAT7SubHeaderImage* s = static_cast<const CECAT7SubHeaderImage*>(sh);
+    QCOMPARE(static_cast<int>(s->data_Type()), static_cast<int>(CECATSubHeader::IEEEFloat));
+    QCOMPARE(static_cast<double>(s->scale_Factor()), 1.0);
+    QCOMPARE(s->x_Dimension(), nx); QCOMPARE(s->y_Dimension(), ny); QCOMPARE(s->z_Dimension(), nz);
+
+    for(int k=0; k < nz; k++)
+      for(int j=0; j < ny; j++)
+        for(int i=0; i < nx; i++) {
+          const qint64 e = i + nx * (j + ny * k);
+          const qint64 o = i + nx * ((ny - 1 - j) + ny * (nz - 1 - k));
+          QVERIFY(approx(ecatValue(data->constData(), e, CECATSubHeader::IEEEFloat),
+                         static_cast<float>(patternValue(first + o, n.datatype) * 0.5 + 1.0), 1e-6));
+
+          // same position in both representations
+          const double v[3] = { static_cast<double>(i), static_cast<double>(ny - 1 - j), static_cast<double>(nz - 1 - k) };
+          double pn[3];
+          niftiPosition(affine, v, pn);
+          const double pe[3] = { s->x_Offset() * 10.0 + (i - (nx - 1) / 2.0) * s->x_Pixel_Size() * 10.0,
+                                 s->y_Offset() * 10.0 + (j - (ny - 1) / 2.0) * s->y_Pixel_Size() * 10.0,
+                                 bed + s->z_Offset() * 10.0 - k * s->z_Pixel_Size() * 10.0 };
+          for(int r=0; r < 3; r++)
+            QVERIFY2(approx(pe[r], pn[r], 0.0, 1e-3), qPrintable(QString("voxel (%1,%2,%3) axis %4").arg(i).arg(j).arg(k).arg(r)));
+        }
+
+    // char* variant
+    char* raw = NULL;
+    unsigned int len = 0;
+    CMedIOHeader* sh2 = NULL;
+    QVERIFY(nifti->readMatrix(raw, len, sh2, CMedIOData::ECAT, f));
+    QCOMPARE(QByteArray(raw, len), *data);
+    delete[] raw;
+    delete sh2;
+  }
+
+  QByteArray* none = NULL;
+  CMedIOHeader* noHeader = NULL;
+  QVERIFY(nifti->readMatrix(none, noHeader, CMedIOData::ECAT, frames + 1) == false);
+  QVERIFY(nifti->readMatrix(none, noHeader, CMedIOData::NIFTI, frames + 1) == false);
+  QVERIFY(none == NULL && noHeader == NULL);
+}
+
+//---------------------------------------------------------------------------------------------
+// synthetic NIfTI files with different orientations (2 frames, values 1 +
+// linear index): ECAT7 representation, frame timing and writing back
+
+void TestMedIOMatrix::niftiOrientations_data()
+{
+  QTest::addColumn<QVector<double> >("affine");
+  QTest::addColumn<bool>("useQform");
+  QTest::addColumn<int>("units");
+  QTest::addColumn<double>("unitScale");
+  QTest::addColumn<int>("version");
+
+  // RAS affines (rows), voxel sizes 2, 2.5 and 3 mm
+  QTest::newRow("RAS (dcm2niix, nibabel)") << (QVector<double>() << 2 << 0 << 0 << 10   << 0 << 2.5 << 0 << -20 << 0 << 0 << 3 << -30) << false << 10 << 1.0 << 1;
+  QTest::newRow("LPS (libmedio)")          << (QVector<double>() << -2 << 0 << 0 << 10  << 0 << -2.5 << 0 << -20 << 0 << 0 << 3 << -30) << false << 10 << 1.0 << 2;
+  QTest::newRow("LAI")                     << (QVector<double>() << -2 << 0 << 0 << 10  << 0 << 2.5 << 0 << -20 << 0 << 0 << -3 << -30) << false << 10 << 1.0 << 1;
+  QTest::newRow("permuted axes (A, L, S)") << (QVector<double>() << 0 << -2.5 << 0 << 10 << 2 << 0 << 0 << -20 << 0 << 0 << 3 << -30) << false << 10 << 1.0 << 2;
+  QTest::newRow("sagittal (S, P, L)")      << (QVector<double>() << 0 << 0 << -3 << 10  << 0 << -2.5 << 0 << -20 << 2 << 0 << 0 << -30) << false << 10 << 1.0 << 1;
+  QTest::newRow("qform qfac 1")            << (QVector<double>() << -2 << 0 << 0 << 10  << 0 << -2.5 << 0 << -20 << 0 << 0 << 3 << -30) << true << 10 << 1.0 << 1;
+  QTest::newRow("qform qfac -1")           << (QVector<double>() << -2 << 0 << 0 << 10  << 0 << -2.5 << 0 << -20 << 0 << 0 << -3 << -30) << true << 10 << 1.0 << 2;
+  QTest::newRow("units m and ms")          << (QVector<double>() << 0.002 << 0 << 0 << 0.01 << 0 << 0.0025 << 0 << -0.02 << 0 << 0 << 0.003 << -0.03) << false << (1 | 16) << 1000.0 << 1;
+}
+
+void TestMedIOMatrix::niftiOrientations()
+{
+  QFETCH(QVector<double>, affine);
+  QFETCH(bool, useQform);
+  QFETCH(int, units);
+  QFETCH(double, unitScale);
+  QFETCH(int, version);
+
+  Synthetic s;
+  s.version = version;
+  s.frames = 2;
+  s.useQform = useQform;
+  s.units = units;
+  s.pixdim4 = 500.0;  // time units
+  s.toffset = 1000.0;
+  for(int i=0; i < 12; i++)
+    s.affine[i / 4][i % 4] = affine[i];
+
+  double a[3][4]; // in mm
+  for(int i=0; i < 3; i++)
+    for(int j=0; j < 4; j++)
+      a[i][j] = s.affine[i][j] * unitScale;
+  const double timeScale = (units & 0x38) == 16 ? 0.001 : 1.0;
+
+  const qint64 voxels = s.voxels();
+  QByteArray values(voxels * s.frames * 2, '\0');
+  for(qint64 i=0; i < voxels * s.frames; i++)
+    reinterpret_cast<qint16*>(values.data())[i] = static_cast<qint16>(i + 1);
+
+  const QString name = QString("orientation-%1").arg(QTest::currentDataTag()).replace(QRegExp("[^a-zA-Z0-9-]"), "_");
+  QVERIFY(writeNifti(tmpFile(name + ".nii"), s, values));
+
+  CNIFTIFile nifti(tmpFile(name + ".nii"));
+  QVERIFY(nifti.open(QIODevice::ReadOnly));
+  CMedIOHeader* mh = NULL;
+  QVERIFY(nifti.readMainHeader(mh, CMedIOData::ECAT));
+  QScopedPointer<CMedIOHeader> mhGuard(mh);
+  const double bed = static_cast<CECAT7MainHeader*>(mh)->init_Bed_Position() * 10.0;
+
+  QList<QByteArray> ecatData, niftiData;
+  QList<CMedIOHeader*> ecatHeaders, niftiHeaders;
+
+  for(int f=1; f <= s.frames; f++) {
+    QByteArray* data = NULL;
+    CMedIOHeader* sh = NULL;
+    QVERIFY(nifti.readMatrix(data, sh, CMedIOData::ECAT, f));
+    ecatData.append(*data);
+    ecatHeaders.append(sh);
+    const CECAT7SubHeaderImage* sub = static_cast<const CECAT7SubHeaderImage*>(sh);
+
+    QCOMPARE(static_cast<int>(sub->data_Type()), static_cast<int>(CECATSubHeader::SunShort));
+    QCOMPARE(static_cast<double>(sub->scale_Factor()), 1.0);
+    QCOMPARE(sub->frame_Start_Time(), static_cast<unsigned int>(qRound((1000.0 + (f - 1) * 500.0) * timeScale * 1000.0)));
+    QCOMPARE(sub->frame_Duration(), static_cast<unsigned int>(qRound(500.0 * timeScale * 1000.0)));
+
+    const int nx = sub->x_Dimension(), ny = sub->y_Dimension(), nz = sub->z_Dimension();
+    QCOMPARE(static_cast<qint64>(nx) * ny * nz, voxels);
+
+    // every ECAT7 voxel holds the value of the NIfTI voxel at the same position
+    for(int k=0; k < nz; k++)
+      for(int j=0; j < ny; j++)
+        for(int i=0; i < nx; i++) {
+          const double p[3] = { sub->x_Offset() * 10.0 + (i - (nx - 1) / 2.0) * sub->x_Pixel_Size() * 10.0,
+                                sub->y_Offset() * 10.0 + (j - (ny - 1) / 2.0) * sub->y_Pixel_Size() * 10.0,
+                                bed + sub->z_Offset() * 10.0 - k * sub->z_Pixel_Size() * 10.0 };
+          double v[3];
+          niftiVoxel(a, p, v);
+          const int n[3] = { s.nx, s.ny, s.nz };
+          for(int r=0; r < 3; r++)
+            QVERIFY2(std::fabs(v[r] - qRound(v[r])) < 1e-3 && qRound(v[r]) >= 0 && qRound(v[r]) < n[r],
+                     qPrintable(QString("ECAT voxel (%1,%2,%3) maps to NIfTI (%4,%5,%6)").arg(i).arg(j).arg(k).arg(v[0]).arg(v[1]).arg(v[2])));
+          const double expected = 1 + qRound(v[0]) + s.nx * (qRound(v[1]) + s.ny * (qRound(v[2]) + s.nz * (f - 1)));
+          QCOMPARE(ecatValue(data->constData(), i + nx * (j + ny * k), CECATSubHeader::SunShort), expected);
+        }
+    delete data;
+
+    QVERIFY(nifti.readMatrix(data, sh, CMedIOData::NIFTI, f));
+    niftiData.append(*data);
+    niftiHeaders.append(sh);
+    delete data;
+  }
+
+  // ECAT7 representation written into a NIfTI file with the same header (frames in any order)
+  {
+    CNIFTIFile out(tmpFile(name + ".ecat.nii.gz"), version == 2 ? CNIFTIMainHeader::NIFTI2 : CNIFTIMainHeader::NIFTI1);
+    QVERIFY(createNifti(out, s));
+    for(int f=s.frames; f >= 1; f--)
+      QVERIFY(out.writeMatrix(ecatData[f-1].constData(), ecatData[f-1].size(), *ecatHeaders[f-1], f));
+    out.close();
+    QCOMPARE(readAll(tmpFile(name + ".ecat.nii.gz")), values);
+  }
+
+  // NIfTI representation written into an ECAT7 file: the same as the ECAT7 representation
+  {
+    CECATFile out(tmpFile(name + ".v"), CECATMainHeader::ECAT7_Volume16);
+    QVERIFY(createEcat(out, *static_cast<CECAT7MainHeader*>(mh)));
+    for(int f=1; f <= s.frames; f++)
+      QVERIFY(out.writeMatrix(niftiData[f-1], *niftiHeaders[f-1], f));
+    out.close();
+
+    EcatFile written;
+    QVERIFY(written.read(tmpFile(name + ".v")));
+    QCOMPARE(written.frames(), s.frames);
+    for(int f=0; f < s.frames; f++) {
+      const CECAT7SubHeaderImage* e = static_cast<const CECAT7SubHeaderImage*>(ecatHeaders[f]);
+      QCOMPARE(written.matrices[f], ecatData[f]);
+      QCOMPARE(written.subHeaders[f]->frame_Start_Time(), e->frame_Start_Time());
+      QCOMPARE(written.subHeaders[f]->frame_Duration(), e->frame_Duration());
+      QCOMPARE(written.subHeaders[f]->x_Offset(), e->x_Offset());
+      QVERIFY(approx(written.subHeaders[f]->z_Offset(), e->z_Offset(), 0.0, 1e-5));
+    }
+  }
+
+  qDeleteAll(ecatHeaders);
+  qDeleteAll(niftiHeaders);
+}
+
+//---------------------------------------------------------------------------------------------
+// NIfTI datatypes and scaling -> ECAT7 data type and scale factor
+
+void TestMedIOMatrix::niftiDataTypes_data()
+{
+  QTest::addColumn<int>("datatype");
+  QTest::addColumn<double>("slope");
+  QTest::addColumn<double>("inter");
+  QTest::addColumn<double>("lo");      // stored values from lo to hi
+  QTest::addColumn<double>("hi");
+  QTest::addColumn<int>("ecatType");
+  QTest::addColumn<double>("scale");   // 0: physical values (scale factor 1)
+
+  QTest::newRow("uint8")              << 2   << 2.0 << 0.0 << 0.0 << 255.0 << static_cast<int>(CECATSubHeader::ByteData) << 2.0;
+  QTest::newRow("int8")               << 256 << 2.0 << 0.0 << -128.0 << 127.0 << static_cast<int>(CECATSubHeader::SunShort) << 2.0;
+  QTest::newRow("int16")              << 4   << 0.25 << 0.0 << -32768.0 << 32767.0 << static_cast<int>(CECATSubHeader::SunShort) << 0.25;
+  QTest::newRow("uint16")             << 512 << 0.5 << 0.0 << 0.0 << 65535.0 << static_cast<int>(CECATSubHeader::SunLong) << 0.5;
+  QTest::newRow("int32")              << 8   << 3.0 << 0.0 << -2147483648.0 << 2147483647.0 << static_cast<int>(CECATSubHeader::SunLong) << 3.0;
+  QTest::newRow("uint32 int32 range") << 768 << 1.5 << 0.0 << 0.0 << 2147483647.0 << static_cast<int>(CECATSubHeader::SunLong) << 1.5;
+  QTest::newRow("uint32 large")       << 768 << 1.5 << 0.0 << 0.0 << 4294967295.0 << static_cast<int>(CECATSubHeader::IEEEFloat) << 0.0;
+  QTest::newRow("float32")            << 16  << 2.0 << 0.0 << -2.5 << 1e6 << static_cast<int>(CECATSubHeader::IEEEFloat) << 2.0;
+  QTest::newRow("float64")            << 64  << 2.0 << 0.0 << -1e-3 << 1e10 << static_cast<int>(CECATSubHeader::IEEEFloat) << 0.0;
+  QTest::newRow("int16 scl_inter")    << 4   << 0.5 << 5.0 << -100.0 << 100.0 << static_cast<int>(CECATSubHeader::IEEEFloat) << 0.0;
+  QTest::newRow("uint8 scl_inter")    << 2   << 1.0 << -1.0 << 0.0 << 255.0 << static_cast<int>(CECATSubHeader::IEEEFloat) << 0.0;
+  QTest::newRow("scl_slope 0")        << 4   << 0.0 << 7.0 << -100.0 << 100.0 << static_cast<int>(CECATSubHeader::SunShort) << 1.0;
+}
+
+void TestMedIOMatrix::niftiDataTypes()
+{
+  QFETCH(int, datatype);
+  QFETCH(double, slope);
+  QFETCH(double, inter);
+  QFETCH(double, lo);
+  QFETCH(double, hi);
+  QFETCH(int, ecatType);
+  QFETCH(double, scale);
+
+  Synthetic s;
+  s.datatype = datatype;
+  s.slope = slope;
+  s.inter = inter;
+  s.version = 2; // double scl_slope/scl_inter
+  s.byteOrder = (QSysInfo::ByteOrder == QSysInfo::LittleEndian) ? QSysInfo::BigEndian : QSysInfo::LittleEndian;
+
+  // stored values from lo to hi; the affine is the one of libmedio: NIfTI voxel (i, j, nz-1-k) is ECAT7 voxel (i, j, k)
+  const qint64 voxels = s.voxels();
+  QByteArray values(voxels * niftiSize(datatype), '\0');
+  QVector<double> stored(voxels);
+  for(qint64 n=0; n < voxels; n++) {
+    double v = lo + (hi - lo) * n / (voxels - 1);
+    if(datatype != 16 && datatype != 64)
+      v = std::floor(v);
+    if(n == voxels - 1)
+      v = hi;
+    setNiftiValue(values.data(), n, datatype, v);
+    stored[n] = niftiValue(values.constData(), n, datatype);
+  }
+
+  const QString name = QString("datatype-%1.nii").arg(QTest::currentDataTag()).replace(' ', '_');
+  QVERIFY(writeNifti(tmpFile(name), s, values));
+
+  CNIFTIFile nifti(tmpFile(name));
+  QVERIFY(nifti.open(QIODevice::ReadOnly));
+
+  // the volume keeps the datatype of the file
+  CMedIOVolume volume;
+  QVERIFY(nifti.readVolume(volume, 1));
+  QCOMPARE(CMedIOVolume::bytesPerVoxel(volume.dataType()), niftiSize(datatype));
+  for(qint64 n=0; n < voxels; n++)
+    QCOMPARE(volume.storedValue(n), stored[n]);
+
+  QByteArray* data = NULL;
+  CMedIOHeader* sh = NULL;
+  QVERIFY(nifti.readMatrix(data, sh, CMedIOData::ECAT, 1));
+  QScopedPointer<QByteArray> dataGuard(data);
+  QScopedPointer<CMedIOHeader> shGuard(sh);
+  const CECAT7SubHeaderImage* sub = static_cast<const CECAT7SubHeaderImage*>(sh);
+
+  QCOMPARE(static_cast<int>(sub->data_Type()), ecatType);
+  QCOMPARE(data->size(), static_cast<int>(voxels * EcatFile::ecatSize(ecatType)));
+  QCOMPARE(static_cast<double>(sub->scale_Factor()), scale == 0.0 ? 1.0 : scale);
+
+  // physical values: stored x scl_slope + scl_inter (scl_slope 0: stored values)
+  const double niftiSlope = (slope == 0.0) ? 1.0 : slope;
+  const double niftiInter = (slope == 0.0) ? 0.0 : inter;
+  for(int k=0; k < s.nz; k++)
+    for(int j=0; j < s.ny; j++)
+      for(int i=0; i < s.nx; i++) {
+        const qint64 n = i + s.nx * (j + s.ny * (s.nz - 1 - k));
+        const double value = ecatValue(data->constData(), i + s.nx * (j + s.ny * k), ecatType);
+        if(scale != 0.0)
+          QCOMPARE(value, stored[n]); // stored values unchanged
+        else
+          QVERIFY2(approx(value, stored[n] * niftiSlope + niftiInter, 1e-6),
+                   qPrintable(QString("voxel %1: %2 != %3").arg(n).arg(value).arg(stored[n] * niftiSlope + niftiInter)));
+      }
+
+  if(ecatType == CECATSubHeader::SunShort || ecatType == CECATSubHeader::ByteData) {
+    QCOMPARE(static_cast<double>(sub->image_Min()), lo);
+    QCOMPARE(static_cast<double>(sub->image_Max()), hi);
+  }
+}
+
+//---------------------------------------------------------------------------------------------
+// datasets of testsuite/data: the NIfTI files were written by other tools
+// (PMOD, ecat2nifti) from the ECAT7 files
+
+void TestMedIOMatrix::niftiDatasets_data()
+{
+  QTest::addColumn<QString>("ecat");
+  QTest::addColumn<QString>("nifti");
+  QTest::addColumn<int>("ecatType");      // ECAT7 data type of the NIfTI file
+  QTest::addColumn<bool>("calibrated");   // the NIfTI values include the ECAT7 calibration factor
+  QTest::addColumn<bool>("requantized");  // the NIfTI file has one scale factor for all frames
+
+  QTest::newRow("pet-static.pair")     << "ecat/pet-static.v" << "nifti/pet-static.pair/pet-static.hdr" << static_cast<int>(CECATSubHeader::SunShort) << true << false;
+  QTest::newRow("pet-static.nii.gz")   << "ecat/pet-static.v" << "nifti/pet-static.nii.gz" << static_cast<int>(CECATSubHeader::IEEEFloat) << true << false;
+  QTest::newRow("pet-dynamic.pair")    << "ecat/pet-dynamic.v" << "nifti/pet-dynamic.pair/pet-dynamic.hdr" << static_cast<int>(CECATSubHeader::SunShort) << false << true;
+  QTest::newRow("pet-dynamic.nii.gz")  << "ecat/pet-dynamic.v" << "nifti/pet-dynamic.nii.gz" << static_cast<int>(CECATSubHeader::SunShort) << false << true;
+}
+
+void TestMedIOMatrix::niftiDatasets()
+{
+  QFETCH(QString, ecat);
+  QFETCH(QString, nifti);
+  QFETCH(int, ecatType);
+  QFETCH(bool, calibrated);
+  QFETCH(bool, requantized);
+
+  EcatFile reference;
+  QVERIFY(reference.read(medioTestDataDir() + "/" + ecat));
+  const double calibration = reference.mainHeader->calibration_Factor();
+
+  QScopedPointer<CMedIOData> niftiFile(CMedIODataFactory::create(medioTestDataDir() + "/" + nifti));
+  QVERIFY(niftiFile->open(QIODevice::ReadOnly));
+  QScopedPointer<CMedIOData> ecatFile(CMedIODataFactory::create(medioTestDataDir() + "/" + ecat));
+  QVERIFY(ecatFile->open(QIODevice::ReadOnly));
+
+  // NIfTI file written by the other tool
+  const QByteArray niftiValues = readAll(medioTestDataDir() + "/" + nifti);
+  NiftiHeader n;
+  readAll(medioTestDataDir() + "/" + nifti, &n);
+
+  double niftiScale = 0.0;
+  for(int f=1; f <= reference.frames(); f++) {
+    const CECAT7SubHeaderImage* e = reference.subHeaders[f-1];
+    const qint64 voxels = reference.voxels();
+
+    // NIfTI file -> ECAT7 representation
+    QByteArray* data = NULL;
+    CMedIOHeader* sh = NULL;
+    QVERIFY(niftiFile->readMatrix(data, sh, CMedIOData::ECAT, f));
+    QScopedPointer<QByteArray> dataGuard(data);
+    QScopedPointer<CMedIOHeader> shGuard(sh);
+    const CECAT7SubHeaderImage* s = static_cast<const CECAT7SubHeaderImage*>(sh);
+
+    QCOMPARE(static_cast<int>(s->data_Type()), ecatType);
+    QCOMPARE(s->x_Dimension(), e->x_Dimension());
+    QCOMPARE(s->y_Dimension(), e->y_Dimension());
+    QCOMPARE(s->z_Dimension(), e->z_Dimension());
+    QVERIFY(approx(s->x_Pixel_Size(), e->x_Pixel_Size(), 1e-5));
+    QVERIFY(approx(s->z_Pixel_Size(), e->z_Pixel_Size(), 1e-5));
+
+    if(f == 1)
+      niftiScale = s->scale_Factor();
+    QCOMPARE(static_cast<qint64>(data->size()), voxels * EcatFile::ecatSize(ecatType));
+
+    if(ecatType == CECATSubHeader::SunShort && (requantized == false || f == 1)) {
+      // same stored values and scale factor
+      QCOMPARE(static_cast<double>(s->scale_Factor()), static_cast<double>(e->scale_Factor()));
+      QVERIFY(*data == reference.matrices[f-1]);
+    } else {
+      // same physical values (one quantization step of requantized frames)
+      const double tolerance = requantized ? niftiScale : 0.0;
+      for(qint64 i=0; i < voxels; i++) {
+        const double expected = reference.value(f - 1, i) / (calibrated ? 1.0 : calibration);
+        const double value = ecatValue(data->constData(), i, ecatType) * s->scale_Factor();
+        QVERIFY2(approx(value, expected, 1e-6, tolerance), qPrintable(QString("frame %1 voxel %2: %3 != %4").arg(f).arg(i).arg(value).arg(expected)));
+      }
+    }
+
+    // ECAT7 file -> NIfTI representation: the voxel order of the NIfTI files of the other tools
+    if(requantized == false || f == 1) {
+      QByteArray* niftiData = NULL;
+      CMedIOHeader* niftiHeaderPtr = NULL;
+      QVERIFY(ecatFile->readMatrix(niftiData, niftiHeaderPtr, CMedIOData::NIFTI, f));
+      QScopedPointer<QByteArray> niftiDataGuard(niftiData);
+      QScopedPointer<CMedIOHeader> niftiHeaderGuard(niftiHeaderPtr);
+      const NiftiHeader h = niftiHeader(niftiHeaderPtr);
+      QCOMPARE(h.datatype, 4); // int16 with the scale factor (x calibration factor)
+      QVERIFY(approx(h.slope, e->scale_Factor() * calibration, 1e-6));
+      for(int a=1; a <= 4; a++)
+        QCOMPARE(h.dim[a], a < 4 ? n.dim[a] : static_cast<qint64>(reference.frames()));
+
+      for(qint64 i=0; i < voxels; i++) {
+        const double value = niftiValue(niftiData->constData(), i, 4) * h.slope;
+        const double expected = niftiValue(niftiValues.constData(), i + voxels * (f - 1), n.datatype) * (n.slope != 0.0 ? n.slope : 1.0) *
+                                (calibrated ? 1.0 : calibration);
+        QVERIFY2(approx(value, expected, 1e-5), qPrintable(QString("frame %1 voxel %2: %3 != %4").arg(f).arg(i).arg(value).arg(expected)));
+      }
+    }
+  }
+}
+
+//---------------------------------------------------------------------------------------------
+// ECAT7 file -> NIfTI file: main header in the NIfTI representation, frames
+// written in the ECAT7 representation and in the NIfTI representation
+
+void TestMedIOMatrix::ecatToNiftiFile_data()
+{
+  QTest::addColumn<QString>("ecat");
+  QTest::addColumn<QString>("nifti");
+  QTest::addColumn<int>("datatype");  // expected NIfTI datatype of the main header
+
+  QTest::newRow("pet-static .nii")       << "ecat/pet-static.v" << "static.nii" << 4;
+  QTest::newRow("pet-static .hdr")       << "ecat/pet-static.v" << "static.hdr" << 4;
+  QTest::newRow("pet-dynamic .nii.gz")   << "ecat/pet-dynamic.v" << "dynamic.nii.gz" << 16; // scale factor per frame
+}
+
+void TestMedIOMatrix::ecatToNiftiFile()
+{
+  QFETCH(QString, ecat);
+  QFETCH(QString, nifti);
+  QFETCH(int, datatype);
+
+  EcatFile reference;
+  QVERIFY(reference.read(medioTestDataDir() + "/" + ecat));
+  const CECAT7SubHeaderImage* first = reference.subHeaders.first();
+  const int nx = first->x_Dimension(), ny = first->y_Dimension(), nz = first->z_Dimension();
+  const qint64 voxels = reference.voxels();
+
+  CECATFile in(medioTestDataDir() + "/" + ecat);
+  QVERIFY(in.open(QIODevice::ReadOnly));
+  CMedIOHeader* mh = NULL;
+  QVERIFY(in.readMainHeader(mh, CMedIOData::NIFTI));
+  QScopedPointer<CMedIOHeader> mhGuard(mh);
+  QCOMPARE(niftiHeader(mh).datatype, datatype);
+  QCOMPARE(niftiHeader(mh).dim[4], static_cast<qint64>(reference.frames()));
+
+  for(int pass=0; pass < 2; pass++) {
+    const QString path = tmpFile(QString::number(pass) + "-" + nifti);
+    {
+      // pass 0: NIfTI-1, header linked to the file; pass 1: NIfTI-2, header converted
+      CNIFTIFile out(path, pass == 0 ? CNIFTIMainHeader::NIFTI1 : CNIFTIMainHeader::NIFTI2);
+      if(pass == 0) {
+        QVERIFY(out.open(QIODevice::WriteOnly));
+        mh->setMedIOData(&out);
+        QVERIFY(out.writeMainHeader(*static_cast<CNIFTIMainHeader*>(mh)));
+        mh->setMedIOData(NULL);
+      } else {
+        QVERIFY(createNifti(out, mh));
+      }
+
+      for(int f=reference.frames(); f >= 1; f--) {
+        if(pass == 0) {
+          // ECAT7 representation (the matrix of CECATFile, padded to 512 byte blocks)
+          QByteArray* data = NULL;
+          CECATSubHeader* sh = NULL;
+          QVERIFY(in.readMatrix(data, sh, f));
+          QVERIFY(out.writeMatrix(*data, *static_cast<CMedIOHeader*>(sh), f, reference.mainHeader));
+          delete data;
+          delete sh;
+        } else {
+          // NIfTI representation
+          QByteArray* data = NULL;
+          CMedIOHeader* sh = NULL;
+          QVERIFY(in.readMatrix(data, sh, CMedIOData::NIFTI, f));
+          QVERIFY(out.writeMatrix(*data, *sh, f));
+          delete data;
+          delete sh;
+        }
+      }
+      out.close();
+    }
+
+    NiftiHeader h;
+    const QByteArray all = readAll(path, &h);
+    QCOMPARE(h.datatype, datatype);
+    QCOMPARE(static_cast<qint64>(all.size()), voxels * reference.frames() * niftiSize(datatype));
+
+    for(int f=0; f < reference.frames(); f++)
+      for(int k=0; k < nz; k++)
+        for(int j=0; j < ny; j++)
+          for(int i=0; i < nx; i++) {
+            const qint64 e = i + static_cast<qint64>(nx) * (j + static_cast<qint64>(ny) * k);
+            const qint64 n = i + static_cast<qint64>(nx) * (j + static_cast<qint64>(ny) * (nz - 1 - k));
+            const double value = niftiValue(all.constData(), n + voxels * f, datatype);
+
+            if(datatype == 4)
+              QCOMPARE(value, ecatValue(reference.matrices[f].constData(), e, CECATSubHeader::SunShort));
+            else
+              QVERIFY(approx(value * h.slope, reference.value(f, e), 1e-6));
+
+            if(f == 0 && (i == 0 || i == nx - 1) && (j == 0 || j == ny - 1)) {
+              const double v[3] = { static_cast<double>(i), static_cast<double>(j), static_cast<double>(nz - 1 - k) };
+              double pn[3], pe[3];
+              niftiPosition(h.srow, v, pn);
+              reference.position(f, i, j, k, pe);
+              for(int r=0; r < 3; r++)
+                QVERIFY(approx(pn[r], pe[r], 0.0, 1e-3));
+            }
+          }
+  }
+}
+
+//---------------------------------------------------------------------------------------------
+// NIfTI file of PMOD -> ECAT7 file with the stored values of the original ECAT7 file
+
+void TestMedIOMatrix::niftiToEcatFile()
+{
+  const QString path = tmpFile("pet-static-from-nifti.v");
+  {
+    QScopedPointer<CMedIOData> in(CMedIODataFactory::create(medioTestDataDir() + "/nifti/pet-static.pair/pet-static.hdr"));
+    QVERIFY(in->open(QIODevice::ReadOnly));
+
+    CMedIOHeader* mh = NULL;
+    QVERIFY(in->readMainHeader(mh, CMedIOData::ECAT));
+    QScopedPointer<CMedIOHeader> mhGuard(mh);
+
+    CECATFile out(path, CECATMainHeader::ECAT7_Volume16);
+    QVERIFY(createEcat(out, *static_cast<CECAT7MainHeader*>(mh)));
+
+    // the NIfTI representation of the file itself
+    QByteArray* data = NULL;
+    CMedIOHeader* sh = NULL;
+    QVERIFY(in->readMatrix(data, sh, CMedIOData::NIFTI, 1));
+    QVERIFY(out.writeMatrix(*data, *sh, 1));
+    delete data;
+    delete sh;
+    out.close();
+  }
+
+  EcatFile written, reference;
+  QVERIFY(written.read(path));
+  QVERIFY(reference.read(medioTestDataDir() + "/ecat/pet-static.v"));
+  QCOMPARE(written.frames(), 1);
+  QCOMPARE(static_cast<int>(written.subHeaders[0]->data_Type()), static_cast<int>(CECATSubHeader::SunShort));
+  QCOMPARE(written.subHeaders[0]->scale_Factor(), reference.subHeaders[0]->scale_Factor());
+  QVERIFY(written.matrices[0] == reference.matrices[0]);
+}
+
+//---------------------------------------------------------------------------------------------
+// ECAT7 frames with different scale factors and calibration factor 1000
+// written into an int16 NIfTI file with the scaling of frame 1: frame 1 keeps
+// its stored values, the others are requantized; values exceeding int16 are rejected
+
+void TestMedIOMatrix::niftiRequantized()
+{
+  EcatFile reference;
+  QVERIFY(reference.read(medioTestDataDir() + "/ecat/pet-dynamic.v"));
+  QCOMPARE(reference.frames(), 3);
+  const CECAT7SubHeaderImage* first = reference.subHeaders.first();
+  const int nx = first->x_Dimension(), ny = first->y_Dimension(), nz = first->z_Dimension();
+  const qint64 voxels = reference.voxels();
+
+  for(int pass=0; pass < 2; pass++) {
+    const QString path = tmpFile(QString("requantized-%1.nii").arg(pass));
+    CNIFTIFile file(path, CNIFTIMainHeader::NIFTI1);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    QScopedPointer<CNIFTIMainHeader> header(file.createEmptyHeader());
+    QVERIFY(header->convertFrom(reference.mainHeader, first));
+    CNIFTI1MainHeader* h = static_cast<CNIFTI1MainHeader*>(header.data());
+    QVERIFY(approx(h->scl_Slope(), first->scale_Factor() * 1000.0, 1e-6));
+    if(pass == 1)
+      h->setScl_Slope(h->scl_Slope() / 4.0); // frame 1 does not fit
+    QVERIFY(file.writeMainHeader(*header));
+    const double slope = h->scl_Slope();
+
+    if(pass == 1) {
+      QVERIFY(file.writeMatrix(reference.matrices[0], *reference.subHeaders[0], 1, reference.mainHeader) == false);
+      file.close();
+      continue;
+    }
+
+    for(int f=1; f <= 3; f++)
+      QVERIFY(file.writeMatrix(reference.matrices[f-1], *reference.subHeaders[f-1], f, reference.mainHeader));
+    file.close();
+
+    const QByteArray all = readAll(path);
+    QCOMPARE(static_cast<qint64>(all.size()), voxels * 3 * 2);
+    for(int f=0; f < 3; f++)
+      for(int k=0; k < nz; k++)
+        for(qint64 ij=0; ij < static_cast<qint64>(nx) * ny; ij++) {
+          const double stored = ecatValue(reference.matrices[f].constData(), ij + nx * ny * k, CECATSubHeader::SunShort);
+          const double value = niftiValue(all.constData(), ij + nx * ny * (nz - 1 - k) + voxels * f, 4);
+          if(f == 0)
+            QCOMPARE(value, stored);
+          else
+            QVERIFY(std::fabs(value * slope - reference.value(f, ij + nx * ny * k)) <= slope * (0.5 + 1e-6));
+        }
+  }
+}
+
+//---------------------------------------------------------------------------------------------
+
+void TestMedIOMatrix::niftiErrors()
+{
+  Synthetic s;
+  const qint64 voxels = s.voxels();
+  QByteArray values(voxels * 2, '\0');
+
+  CNIFTIFile file(tmpFile("errors.nii"), CNIFTIMainHeader::NIFTI1);
+  QVERIFY(createNifti(file, s));
+
+  // ECAT7 sub header not matching the NIfTI main header
+  CECAT7SubHeaderImage sub;
+  sub.setData_Type(CECATSubHeader::SunShort);
+  sub.setScale_Factor(1.0f);
+  sub.setX_Dimension(s.nx); sub.setY_Dimension(s.ny); sub.setZ_Dimension(s.nz);
+  QVERIFY(file.writeMatrix(values, sub, 1));
+  QVERIFY(file.writeMatrix(values, sub, 2) == false);         // frame
+  sub.setZ_Dimension(s.nz + 1);
+  QVERIFY(file.writeMatrix(QByteArray(voxels * 2 + s.nx * s.ny * 2, '\0'), sub, 1) == false); // dimensions
+  sub.setZ_Dimension(s.nz);
+  QVERIFY(file.writeMatrix(values.left(values.size() - 2), sub, 1) == false);              // size
+  sub.setData_Type(CECATSubHeader::IEEEFloat);
+  QByteArray floats(voxels * 4, '\0');
+  reinterpret_cast<float*>(floats.data())[3] = 40000.0f;
+  QVERIFY(file.writeMatrix(floats, sub, 1) == false); // exceeds int16
+  reinterpret_cast<float*>(floats.data())[3] = std::numeric_limits<float>::quiet_NaN();
+  QVERIFY(file.writeMatrix(floats, sub, 1) == false); // NaN in int16
+  reinterpret_cast<float*>(floats.data())[3] = 2.6f;
+  QVERIFY(file.writeMatrix(floats, sub, 1));          // rounded to 3
+  file.close();
+
+  // the rejected writes did not change the data
+  const QByteArray written = readAll(tmpFile("errors.nii"));
+  QCOMPARE(written.size(), values.size());
+  for(qint64 n=0; n < voxels; n++) {
+    // ECAT7 voxel 3 = (3, 0, 0) is NIfTI voxel (3, 0, nz-1)
+    const double expected = (n == 3 + s.nx * s.ny * (s.nz - 1)) ? 3.0 : 0.0;
+    QCOMPARE(niftiValue(written.constData(), n, 4), expected);
+  }
+
+  // complex data: neither volume nor other representations
+  {
+    Synthetic c;
+    c.datatype = 32; // DT_COMPLEX64
+    QVERIFY(writeNifti(tmpFile("complex.nii"), c, QByteArray(voxels * 8, '\0')));
+
+    CNIFTIFile in(tmpFile("complex.nii"));
+    QVERIFY(in.open(QIODevice::ReadOnly));
+    QByteArray* data = NULL;
+    QVERIFY(in.readMatrix(data, 1));  // native volume
+    QCOMPARE(data->size(), static_cast<int>(voxels * 8));
+    delete data;
+    data = NULL;
+
+    CMedIOHeader* sh = NULL;
+    QVERIFY(in.readMatrix(data, sh, CMedIOData::ECAT, 1) == false);
+    QVERIFY(data == NULL && sh == NULL);
+    CMedIOVolume v;
+    QVERIFY(in.readVolume(v, 1) == false);
+  }
+
+  // 5D data: frames of the file, but no ECAT7 representation
+  {
+    Synthetic d;
+    d.frames = 2;
+    d.dim5 = 3;
+    QByteArray data5(voxels * 6 * 2, '\0');
+    for(qint64 n=0; n < voxels * 6; n++)
+      reinterpret_cast<qint16*>(data5.data())[n] = static_cast<qint16>(n);
+    QVERIFY(writeNifti(tmpFile("5d.nii"), d, data5));
+
+    CNIFTIFile in(tmpFile("5d.nii"));
+    QVERIFY(in.open(QIODevice::ReadOnly));
+    QByteArray* data = NULL;
+    QVERIFY(in.readMatrix(data, 6));
+    QCOMPARE(*data, data5.right(voxels * 2));
+    delete data;
+    QVERIFY(in.readMatrix(data, 7) == false);
+    CMedIOHeader* sh = NULL;
+    QVERIFY(in.readMatrix(data, sh, CMedIOData::ECAT, 1) == false);
+  }
+
+  // the main header has to be written first
+  {
+    CNIFTIFile out(tmpFile("noheader.nii"), CNIFTIMainHeader::NIFTI1);
+    QVERIFY(out.open(QIODevice::WriteOnly));
+    QVERIFY(out.writeMatrix(values, sub, 1) == false);
+    out.close();
+  }
 }
 
 //---------------------------------------------------------------------------------------------

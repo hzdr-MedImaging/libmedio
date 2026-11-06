@@ -57,6 +57,9 @@
 class CMedIOHeader;
 class CECATFile;
 class CECATSubHeader;
+class CNIFTIFile;
+class CNIFTIMainHeader;
+class QJsonObject;
 
 //! ECAT7 representation of one frame
 struct CMedIOFrame
@@ -107,6 +110,9 @@ CECATSubHeader::Data_Type ecatType(CMedIOVolume::DataType type);
 //! file format whose matrices are described by a header
 CMedIOData::Format headerDataFormat(const CMedIOHeader& header);
 
+//! frame number of frame index (0-based) of a file
+short frameNumber(CMedIOData* file, int index);
+
 //---------------------------------------------------------------------------------------------
 // dispatch to the format adapters
 
@@ -132,6 +138,17 @@ bool ecatFrameFromMatrix(const QByteArray& data, const CECATSubHeader& subHeader
 bool ecatMatrixFromFrame(const CMedIOFrame& f, QByteArray& data, CMedIOHeader*& header);
 bool ecatMainHeaderFromFrame(const CMedIOFrame& f, CMedIOHeader*& header);
 bool writeEcatFrame(CECATFile* file, short frame, const CMedIOFrame& f);
+
+//---------------------------------------------------------------------------------------------
+// NIfTI adapter (src/nifti/CNIFTIMatrix.cpp)
+
+bool readNiftiVolume(CNIFTIFile* file, short frame, CMedIOVolume& v, CNIFTIMainHeader** header = NULL, QJsonObject* metadata = NULL);
+bool readNiftiFrame(CNIFTIFile* file, short frame, CMedIOFrame& f);
+bool niftiFrameFromMatrix(const QByteArray& data, const CNIFTIMainHeader& header, CMedIOFrame& f);
+bool niftiMatrixFromFrame(const CMedIOFrame& f, QByteArray& data, CMedIOHeader*& header);
+bool niftiMainHeaderFromFrame(const CMedIOFrame& f, CMedIOData* source, CMedIOHeader*& header);
+bool writeNiftiFrame(CNIFTIFile* file, short frame, const CMedIOFrame& f);
+void setNiftiFrameTiming(CNIFTIMainHeader* header, double start, double duration);
 
 } // namespace MedIOMatrix
 
