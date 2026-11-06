@@ -25,8 +25,11 @@
 #include "CPhilipsSubHeaderSyntegra.h"
 #include "CPhilipsSubHeaderListmode.h"
 #include "CPhilipsListviewHeader.h"
+#include "CPhilipsVolume.h"
+#include "CECAT7SubHeaderImage.h"
 
 #include <QDataStream>
+#include <QScopedPointer>
 #include <rtdebug.h>
 
 // we define the private inline class of that one so that we
@@ -721,6 +724,106 @@ bool CPhilipsFile::readMatrix(char*& matrixData, unsigned int& len, CPhilipsSubH
     else
       result = m_pData->directory->readMatrix(matrixData, len, subHeader, frame, slice, tilt);
   }
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsFile::readMatrix(QByteArray*& matrixData, CECATSubHeader*& subHeader, short frame)
+{
+  ENTER();
+  bool result = false;
+
+  matrixData = NULL;
+  subHeader = NULL;
+
+  CPhilipsMainHeader* mainHeader = NULL;
+  if(isReadable() && m_pData->directory && readMainHeader(mainHeader))
+  {
+    QScopedPointer<CPhilipsMainHeader> mainHeaderGuard(mainHeader);
+    const short philipsFrame = (frame == -1) ? minFrame() : frame;
+
+    if(mainHeader->filtyp() != CPhilipsMainHeader::Image &&
+       mainHeader->filtyp() != CPhilipsMainHeader::Syntegra)
+    {
+      W("only Philips image and Syntegra files have an ECAT7 representation");
+    }
+    else if(philipsFrame < 0 || numSlices(philipsFrame) < 1)
+    {
+      W("frame %d does not exist", frame);
+    }
+    else
+    {
+      CPhilipsVolume volume;
+      QString error;
+      if(volume.read(*this, mainHeader, philipsFrame, &error) == false)
+        W("%s", error.toLocal8Bit().constData());
+      else
+      {
+        if(volume.m_Unscaled)
+          W("%s: no valid scale factor for some slices of frame %d, their stored values are used",
+            fileName().toLocal8Bit().constData(), philipsFrame);
+
+        // slices with different scale factors: physical values
+        if(volume.commonScale() == false)
+          volume.convertToPhysical();
+
+        CECAT7SubHeaderImage* s = new CECAT7SubHeaderImage();
+        if(volume.convertSubHeader(*s, mainHeader))
+        {
+          // value range of the stored values of all slices (16 bit sub header fields)
+          short minValue = 0;
+          short maxValue = 0;
+          if(volume.m_DataType == CECATSubHeader::ByteData || volume.m_DataType == CECATSubHeader::SunShort)
+          {
+            const qint64 voxels = static_cast<qint64>(volume.m_Nx) * volume.m_Ny * volume.m_Nz;
+            for(qint64 i=0; i < voxels; i++)
+            {
+              const short value = (volume.m_DataType == CECATSubHeader::ByteData) ?
+                                  reinterpret_cast<const quint8*>(volume.m_Data.constData())[i] :
+                                  reinterpret_cast<const qint16*>(volume.m_Data.constData())[i];
+              if(i == 0 || value < minValue)
+                minValue = value;
+              if(i == 0 || value > maxValue)
+                maxValue = value;
+            }
+          }
+          s->setImage_Min(minValue);
+          s->setImage_Max(maxValue);
+
+          matrixData = new QByteArray(volume.m_Data);
+          subHeader = s;
+          result = true;
+        }
+        else
+        {
+          W("unable to convert the Philips sub header of frame %d", philipsFrame);
+          delete s;
+        }
+      }
+    }
+  }
+
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsFile::readMatrix(char*& matrixData, unsigned int& len, CECATSubHeader*& subHeader, short frame)
+{
+  ENTER();
+  QByteArray* data = NULL;
+
+  matrixData = NULL;
+  len = 0;
+
+  bool result = readMatrix(data, subHeader, frame);
+  if(result)
+  {
+    len = static_cast<unsigned int>(data->size());
+    matrixData = new char[len];
+    memcpy(matrixData, data->constData(), len);
+  }
+  delete data;
 
   RETURN(result);
   return result;

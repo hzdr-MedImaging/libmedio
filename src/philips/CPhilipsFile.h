@@ -36,6 +36,7 @@
 // forward declarations
 class CPhilipsFilePrivate;
 class CPhilipsDirectory;
+class CECATSubHeader;
 
 class CPhilipsFile : public CMedIOData
 {
@@ -83,6 +84,33 @@ class CPhilipsFile : public CMedIOData
                     short frame=-1, short slice=-1, short tilt=-1);
     bool readMatrix(char*& matrixData, unsigned int& len, CPhilipsSubHeader*& subHeader,
                     short frame=-1, short slice=-1, short tilt=-1);
+
+    // ECAT7 representation of one frame of a Philips image or Syntegra file,
+    // as returned by CECATFile::readMatrix() and CNIFTIFile::readMatrix():
+    // voxel data of all slices in ECAT7 voxel order and a
+    // CECAT7SubHeaderImage (to be deleted by the caller) describing it like
+    // the image sub header of an ECAT7 file: dimensions, voxel sizes, data
+    // type, scale factor, value range and frame timing, converted with
+    // CECAT7SubHeaderImage::convertFrom(philipsSubHeader, philipsMainHeader)
+    // from the sub header of the first slice. The ECAT7 main header is
+    // obtained with CECAT7MainHeader::convertFrom(philipsMainHeader,
+    // philipsSubHeader) and the sub header of the first slice (readSubHeader()).
+    //
+    // - frame is the frame number as in the methods above (usually 1 to
+    //   numFrames(), like the ECAT7 frame numbers); -1 = default = minFrame().
+    // - The slices of the frame are assembled as with slice -1 in the
+    //   methods above; the voxel order within a slice already is the ECAT7
+    //   voxel order. The voxel data is in the byte order of this machine.
+    // - Physical value = stored value x scale factor (calibration factor 1),
+    //   the scale factor of a slice is CPhilipsSubHeaderImage::ecat_Scale_Factor()
+    //   (1 if the slice has no valid scale factor).
+    // - Data types: byte, signed short and float are returned as ByteData,
+    //   SunShort and IEEEFloat, unsigned short as SunLong, with the stored
+    //   values and the common scale factor of the slices. If the slices of
+    //   the frame have different scale factors, the physical values are
+    //   returned as IEEEFloat with scale factor 1.
+    bool readMatrix(QByteArray*& matrixData, CECATSubHeader*& subHeader, short frame=-1);
+    bool readMatrix(char*& matrixData, unsigned int& len, CECATSubHeader*& subHeader, short frame=-1);
 
     // methods to write out headers/data to the file.
     bool writeMainHeader(CPhilipsMainHeader& mainHeader);

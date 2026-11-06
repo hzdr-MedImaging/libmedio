@@ -41,3 +41,19 @@ add_test(NAME philips_datasets
          COMMAND testPhilipsDatasets
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+add_executable(testPhilipsMatrix testPhilipsMatrix.cpp)
+
+target_include_directories(testPhilipsMatrix PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../common)
+target_compile_definitions(testPhilipsMatrix PRIVATE MEDIO_TEST_DATA_DIR="${MEDIO_TEST_DATA_DIR}")
+
+target_link_libraries(testPhilipsMatrix Qt5::Core
+                                        Qt5::Test
+                                        ${CMAKE_PROJECT_NAME}-static
+                                        ${RTDEBUG_STATIC_LIB}
+)
+
+add_test(NAME philips_matrix
+         COMMAND testPhilipsMatrix
+         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

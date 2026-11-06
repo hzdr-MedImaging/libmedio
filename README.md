@@ -29,6 +29,12 @@ libmedio targets PET-centric workflows and currently focuses on:
 - Conversion of ECAT7 and Philips images to NIfTI and back
   (`CNIFTIConverter`), incl. dynamic (4D) data, patient orientation/geometry,
   physical units and the metadata (stored as JSON header extension)
+- Frame-wise access to NIfTI voxel data in the ECAT7 voxel order and data
+  representation (`CNIFTIFile::readMatrix()`/`writeMatrix()`), so that
+  applications working with ECAT7 data can use NIfTI files directly
+- Frame-wise access to Philips image and Syntegra files in the ECAT7 data
+  representation (`CPhilipsFile::readMatrix()`), so that applications can
+  read ECAT7, NIfTI and Philips images as ECAT7 volumes
 - Cross-platform build with CMake; Qt5 backend
 
 ## Requirements
@@ -96,6 +102,73 @@ details are documented in `src/nifti/CNIFTIConverter.h`. Analyze 7.5 files
 (`.hdr`/`.img` without NIfTI magic) are not supported. The NIfTI support was
 started in the 2026 summer student project, see
 [docs/summer-student-2026](docs/summer-student-2026/README.md).
+
+### NIfTI data in the ECAT7 voxel order
+Applications working with ECAT7 data arrays can read and write NIfTI files
+frame by frame in the ECAT7 voxel order (x towards patient left, y towards
+posterior, planes from superior to inferior), whatever orientation the NIfTI
+file has. The ECAT7 representation of a volume consists of the voxel data in
+an ECAT7 data type and a `CECAT7SubHeaderImage` (dimensions, voxel sizes,
+offsets, scale factor, frame timing):
+```cpp
+CNIFTIFile nifti("image.nii.gz");
+nifti.open(QIODevice::ReadOnly);
+
+// numFrames: num_Frames() of CECAT7MainHeader::convertFrom(niftiMainHeader)
+for(short frame=1; frame <= numFrames; frame++) {
+  QByteArray* data = NULL;
+  CECATSubHeader* subHeader = NULL;
+  if(nifti.readMatrix(data, subHeader, frame)) {  // as CECATFile::readMatrix()
+    // ... work with the ECAT7 data ...
+    delete data;
+    delete subHeader;
+  }
+}
+```
+- `readMatrix(data, CMedIOData::ECATOrientation, frame)` only reorders the
+  voxels and keeps the NIfTI datatype, `CMedIOData::NativeOrientation` reads a
+  frame in the voxel order of the file.
+- `writeMatrix(data, subHeader, frame, ecatMainHeader)` writes a volume given
+  in the ECAT7 representation into the datatype, scaling and orientation of
+  the NIfTI main header written before (e.g. created with
+  `CNIFTIMainHeader::convertFrom(ecatMainHeader, ecatSubHeader)`).
+- The ECAT7 main header of a NIfTI file is obtained with
+  `CECAT7MainHeader::convertFrom(niftiMainHeader)`.
+
+The rules for data types and scaling are documented in `src/nifti/CNIFTIFile.h`.
+
+### Philips images in the ECAT7 representation
+Philips image (`.img`) and Syntegra (`.syn`) files store one sub header and
+matrix per slice. `CPhilipsFile` assembles a complete frame from its slices
+and returns it in the same ECAT7 representation as `CECATFile` and
+`CNIFTIFile`: voxel data in an ECAT7 data type and a `CECAT7SubHeaderImage`.
+```cpp
+CPhilipsFile philips("image.img");
+philips.open(QIODevice::ReadOnly);
+
+for(short frame=1; frame <= philips.numFrames(); frame++) {
+  QByteArray* data = NULL;
+  CECATSubHeader* subHeader = NULL;
+  if(philips.readMatrix(data, subHeader, frame)) {  // as CECATFile::readMatrix()
+    // ... work with the ECAT7 data ...
+    delete data;
+    delete subHeader;
+  }
+}
+```
+- `frame` is the frame number of the Philips file as for the slice-wise
+  `readMatrix()` methods (usually 1 to `numFrames()`), `-1` selects the first
+  frame.
+- The stored values are returned as `ByteData`, `SunShort`, `SunLong`
+  (unsigned short) or `IEEEFloat` with the scale factor of the slices
+  (`CPhilipsSubHeaderImage::ecat_Scale_Factor()`). If the slices of a frame
+  have different scale factors, the physical values are returned as
+  `IEEEFloat` with scale factor 1.
+- The ECAT7 main header of a Philips file is obtained with
+  `CECAT7MainHeader::convertFrom(philipsMainHeader, philipsSubHeader)` and
+  the sub header of the first slice (`readSubHeader()`).
+
+The details are documented in `src/philips/CPhilipsFile.h`.
 
 ## License
 libmedio is licensed under the **Apache License, Version 2.0.**

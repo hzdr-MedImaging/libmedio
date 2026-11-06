@@ -37,6 +37,8 @@
 
 // forward declarations
 class CNIFTIFilePrivate;
+class CECATMainHeader;
+class CECATSubHeader;
 
 class CNIFTIFile : public CMedIOData { // CNIFTIFile class inherits from CMedIOData class, which is a base class for medical data formats
 
@@ -107,6 +109,67 @@ class CNIFTIFile : public CMedIOData { // CNIFTIFile class inherits from CMedIOD
 
         bool writeMatrix(const QByteArray& matrixData);
         bool writeMatrix(const char* matrixData, unsigned int size);
+
+//=============================================================================================
+
+    // Frame-wise voxel data access in the voxel order of the file
+    // (NativeOrientation) or in the ECAT7 voxel order (ECATOrientation), so
+    // that applications working with ECAT7 data can use NIfTI files without
+    // handling their orientation themselves.
+    //
+    // - frame is the 3D volume (1 = first volume, -1 = default = first volume);
+    //   one call reads or writes one volume of nx * ny * nz voxels.
+    // - ECATOrientation: voxel (i, j, k) is the voxel of an ECAT7 image as
+    //   written by CNIFTIConverter::niftiToEcat(): i towards patient left, j
+    //   towards posterior, plane k from superior to inferior. The NIfTI voxels
+    //   are reordered by means of the sform, the qform or the default
+    //   orientation (see CNIFTIConverter.h), whatever orientation the file
+    //   has. Oblique data is assigned to the closest axes. 3D/4D data only.
+    // - The voxel data is in the byte order of this machine.
+    // - writeMatrix(): the main header has to be written first, as it defines
+    //   the layout and orientation of the voxel data. Volumes can be written in
+    //   any order.
+
+    // voxel data of one volume in the NIfTI datatype of the file
+        bool readMatrix(QByteArray*& matrixData, CMedIOData::Orientation orientation, short frame=-1);
+        bool readMatrix(char*& matrixData, unsigned int& len, CMedIOData::Orientation orientation, short frame=-1);
+
+        bool writeMatrix(const QByteArray& matrixData, CMedIOData::Orientation orientation, short frame=-1);
+        bool writeMatrix(const char* matrixData, unsigned int size, CMedIOData::Orientation orientation, short frame=-1);
+
+    // ECAT7 representation of one volume: voxel data in ECAT7 voxel order and
+    // a CECAT7SubHeaderImage (to be deleted by the caller) describing it like
+    // the image sub header of an ECAT7 file: dimensions, voxel sizes and x/y
+    // offset (cm), data type, scale factor and frame timing (from the
+    // metadata of CNIFTIConverter or the header, see CNIFTIConverter.h).
+    // Physical value = stored value x scale factor (calibration factor 1).
+    // The ECAT7 main header (bed position, number of frames, ...) is
+    // obtained with CECAT7MainHeader::convertFrom(niftiMainHeader).
+    //
+    // Data types: uint8, int16, int32 and float32 are returned as ByteData,
+    // SunShort, SunLong and IEEEFloat with scl_slope as scale factor, int8
+    // as SunShort, uint16 (and uint32 if all values fit) as SunLong. float64,
+    // larger uint32 values and data with scl_inter != 0 are returned as
+    // IEEEFloat with the physical values (scale factor 1).
+        bool readMatrix(QByteArray*& matrixData, CECATSubHeader*& subHeader, short frame=-1);
+        bool readMatrix(char*& matrixData, unsigned int& len, CECATSubHeader*& subHeader, short frame=-1);
+
+    // write one volume given in the ECAT7 representation: voxel data in ECAT7
+    // voxel order with the data type, scale factor and dimensions of the
+    // ECAT7 image sub header (the size of the data may include the padding
+    // to ECAT7 blocks of 512 bytes). Physical value = stored value x scale factor x
+    // calibration factor of mainHeader (1 without mainHeader), as for
+    // CNIFTIMainHeader::convertFrom(ecatMainHeader, ecatSubHeader), which
+    // can be used to create the NIfTI main header. The values are converted into the datatype and scaling (scl_slope,
+    // scl_inter) of the main header written before; they are copied
+    // unchanged if datatype and scaling correspond to the sub header. Values
+    // are rounded for integer datatypes; the method fails without writing
+    // anything if a value does not fit into the datatype (e.g. frames with
+    // different scale factors and an int16 header: use float32 then).
+        bool writeMatrix(const QByteArray& matrixData, const CECATSubHeader& subHeader, short frame=-1,
+                         const CECATMainHeader* mainHeader=NULL);
+        bool writeMatrix(const char* matrixData, unsigned int size, const CECATSubHeader& subHeader, short frame=-1,
+                         const CECATMainHeader* mainHeader=NULL);
 
 //=============================================================================================
 

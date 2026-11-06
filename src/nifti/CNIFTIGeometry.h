@@ -44,6 +44,10 @@
 // tools (e.g. PMOD, ROVER): first axis towards patient left, second axis
 // towards posterior, third axis towards superior.
 
+#include <QDir>
+#include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonObject>
 #include <QString>
 
 #include <cmath>
@@ -385,6 +389,65 @@ static inline bool ecatGeometryFromNIFTI(const CNIFTIMainHeader* header, ECATGeo
     return ecatGeometryFromNIFTIHeader(*static_cast<const CNIFTI1MainHeader*>(header), g, error);
 
   return ecatGeometryFromNIFTIHeader(*static_cast<const CNIFTI2MainHeader*>(header), g, error);
+}
+
+// Index (within one 3D volume) of the NIfTI voxel holding ECAT7 voxel (i, j, k);
+// niftiDims are dim[1..3] of the NIfTI header.
+static inline qint64 niftiVoxelIndex(const ECATGeometryFromNIFTI& g, const qint64 niftiDims[3], int i, int j, int k)
+{
+  const int e[3] = { i, j, k };
+  qint64 v[3];
+  for(int a=0; a < 3; a++)
+    v[g.axis[a]] = g.flip[a] ? g.dims[a] - 1 - e[a] : e[a];
+
+  return v[0] + niftiDims[0] * (v[1] + niftiDims[1] * v[2]);
+}
+
+//=============================================================================================
+// metadata of NIfTI files written by CNIFTIConverter (JSON header extension
+// or JSON sidecar file, see CNIFTIConverter.h)
+
+// NIfTI JSON sidecar file name (<name>.json next to <name>.nii/.nii.gz/.hdr/.img)
+static inline QString niftiSidecarFileName(const QString& niftiFileName)
+{
+  QFileInfo info(niftiFileName);
+  QString base = info.fileName();
+
+  if(base.endsWith(".gz", Qt::CaseInsensitive))
+    base.chop(3);
+  if(base.endsWith(".nii", Qt::CaseInsensitive) ||
+     base.endsWith(".hdr", Qt::CaseInsensitive) ||
+     base.endsWith(".img", Qt::CaseInsensitive))
+    base.chop(4);
+
+  return info.absoluteDir().filePath(base + ".json");
+}
+
+// start time and duration (s) of volume f (0-based) of a NIfTI file: from
+// the metadata if it holds the timing of all volumes, from the header otherwise
+static inline void niftiFrameTiming(const ECATGeometryFromNIFTI& g, const QJsonObject& json, int f,
+                                    double& start, double& duration)
+{
+  const QJsonArray startTimes = json["FrameTimesStart"].toArray();
+  const QJsonArray durations = json["FrameDuration"].toArray();
+
+  start = g.frameStart + f * g.frameDuration;
+  duration = g.frameDuration;
+
+  if(startTimes.size() == g.frames && durations.size() == g.frames) {
+    start = startTimes[f].toDouble();
+    duration = durations[f].toDouble();
+  } else if(g.frames == 1 && json.contains("Frame_Duration")) {
+    // metadata written by earlier versions (ms)
+    start = json["Frame_Start_Time"].toDouble() / 1000.0;
+    duration = json["Frame_Duration"].toDouble() / 1000.0;
+  }
+}
+
+// ECAT7 frame start time or duration (ms) of a time in s
+static inline unsigned int ecatFrameTime(double seconds)
+{
+  return seconds > 0.0 ? static_cast<unsigned int>(seconds * 1000.0 + 0.5) : 0;
 }
 
 #endif // CNIFTIGEOMETRY_H
