@@ -43,3 +43,21 @@ add_test(NAME medio_volume
          COMMAND testMedIOVolume
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# tests of the format independent matrix access (CMedIOData::readMatrix() ...)
+add_executable(testMedIOMatrix testMedIOMatrix.cpp)
+
+target_include_directories(testMedIOMatrix PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../common)
+target_compile_definitions(testMedIOMatrix PRIVATE MEDIO_TEST_DATA_DIR="${MEDIO_TEST_DATA_DIR}")
+
+target_link_libraries(testMedIOMatrix Qt5::Core
+                                      Qt5::Test
+                                      ZLIB::ZLIB
+                                      ${CMAKE_PROJECT_NAME}-static
+                                      ${RTDEBUG_STATIC_LIB}
+)
+
+add_test(NAME medio_matrix
+         COMMAND testMedIOMatrix
+         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

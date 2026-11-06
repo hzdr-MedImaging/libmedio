@@ -72,6 +72,11 @@ class CPhilipsFile : public CMedIOData
     short minTilt(void) const;
     short numTilts(void) const;
 
+    // format independent matrix access of CMedIOData (in the representation of other formats)
+    using CMedIOData::readMainHeader;
+    using CMedIOData::readMatrix;
+    using CMedIOData::writeMatrix;
+
     // interface methods to read out specific data from the philips files
     bool readMainHeader(CPhilipsMainHeader*& mainHeader);
     bool readSubHeader(CPhilipsSubHeader*& subHeader, short frame=-1, short slice=-1, short tilt=-1);

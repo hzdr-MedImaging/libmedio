@@ -94,6 +94,11 @@ class CNIFTIFile : public CMedIOData { // CNIFTIFile class inherits from CMedIOD
 
     // Member Function to read out and write specific METADATA from the NIfTI files --> I/O
 
+    // format independent matrix access of CMedIOData (in the representation of other formats)
+    using CMedIOData::readMainHeader;
+    using CMedIOData::readMatrix;
+    using CMedIOData::writeMatrix;
+
     // readHeader() reads the main header of the NIfTI file and returns a pointer to a CNIFTIMainHeader object
         bool readMainHeader(CNIFTIMainHeader*& MainHeader);
 

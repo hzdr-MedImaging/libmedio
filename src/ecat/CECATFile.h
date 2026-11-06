@@ -85,6 +85,11 @@ class CECATFile : public CMedIOData
     short minData(void) const;
     short numData(void) const;
 
+    // format independent matrix access of CMedIOData (in the representation of other formats)
+    using CMedIOData::readMainHeader;
+    using CMedIOData::readMatrix;
+    using CMedIOData::writeMatrix;
+
     // interface methods to read out specific data from the ECAT files
     bool readMainHeader(CECATMainHeader*& mainHeader);
     bool readSubHeader(CECATSubHeader*& subHeader,

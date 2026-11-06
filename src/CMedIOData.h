@@ -28,6 +28,7 @@
 
 // forward declarations
 class CMedIOHeader;
+class CMedIOVolume;
 
 //! @class CMedIOData
 //! @brief an abstract class which provides an interface for medical data
@@ -80,6 +81,73 @@ class CMedIOData : public QFile {
     //! @brief for querying error status information
     //! @return integer value for the specific error reason
     int errorStatus(void) const;
+
+    //---------------------------------------------------------------------------------------
+    // Format independent access to the image matrices: the matrices of every
+    // supported image format can be read in the representation of another
+    // format, and matrices given in the representation of any format can be
+    // written into a file of another format. The conversion uses the ECAT7
+    // representation of a frame as common format (see CMedIOMatrix.h):
+    //
+    // - Voxel order and geometry: the voxels are reordered into the voxel
+    //   order of the target format, every voxel keeps its position (ECAT7,
+    //   Philips, microPET: x towards patient left, y towards posterior,
+    //   planes from superior to inferior; NIfTI: the same with reversed
+    //   planes, or the orientation of the NIfTI file written to).
+    // - Data types: the stored values are kept if the target format can
+    //   represent them exactly (integers are widened if needed), otherwise
+    //   the physical values are stored as float32. Physical value = stored
+    //   value x scale factor (x calibration factor).
+    // - One call reads or writes one frame (3D volume); frame -1 selects the
+    //   default frame of the format (the first one).
+    // - Only image data is supported (no sinograms, normalizations, ...).
+    //   microPET files can be read only.
+    //
+    // If the requested format is the format of the file itself, the
+    // matrices and headers of the file are returned unchanged (except for
+    // Philips files, whose slices are combined into one frame).
+
+    //! @brief main header of the file in the representation of another format
+    //! @param mainHeader the new header (to be deleted by the caller); it is not
+    //!        linked to a file, call setMedIOData() before saving it
+    bool readMainHeader(CMedIOHeader*& mainHeader, CMedIOData::Format format);
+
+    //! @brief frame of the file in the representation of another format
+    //! @param matrixData voxel data in the voxel order and data type of the
+    //!        format, in the byte order of this machine (to be deleted by the caller)
+    //! @param subHeader header describing the matrix (to be deleted by the caller):
+    //!        ECAT: CECAT7SubHeaderImage, NIfTI: CNIFTIMainHeader of a file
+    //!        holding the frames, Philips: CPhilipsSubHeaderImage of the first
+    //!        slice (all slices of the frame in matrixData), microPET:
+    //!        CConcordeFrameHeader (microPET files only)
+    bool readMatrix(QByteArray*& matrixData, CMedIOHeader*& subHeader,
+                    CMedIOData::Format format, short frame=-1);
+    bool readMatrix(char*& matrixData, unsigned int& len, CMedIOHeader*& subHeader,
+                    CMedIOData::Format format, short frame=-1);
+
+    //! @brief write a frame given in the representation of any format
+    //! @param matrixData voxel data as returned by readMatrix() of that
+    //!        format (ECAT7 matrices may be padded to blocks of 512 bytes)
+    //! @param subHeader header describing the matrix (see readMatrix()); its
+    //!        type determines the format of the matrix
+    //! @param mainHeader main header of the matrix format: ECAT7 (bed
+    //!        position, calibration factor; optional), Philips (scale factors;
+    //!        required), microPET (required); unused for NIfTI
+    //!
+    //! The main header of this file has to be written before. The values are
+    //! converted into the representation of this file (NIfTI: datatype,
+    //! scaling and orientation of its main header; the method fails without
+    //! writing if a value does not fit into the datatype).
+    bool writeMatrix(const QByteArray& matrixData, const CMedIOHeader& subHeader,
+                     short frame=-1, const CMedIOHeader* mainHeader=NULL);
+    bool writeMatrix(const char* matrixData, unsigned int size, const CMedIOHeader& subHeader,
+                     short frame=-1, const CMedIOHeader* mainHeader=NULL);
+
+    //! @brief frame as format independent volume in the voxel order of the file
+    bool readVolume(CMedIOVolume& volume, short frame=-1);
+
+    //! @brief write a volume as frame of the file (main header written before)
+    bool writeVolume(const CMedIOVolume& volume, short frame=-1);
 
   protected :
     int            m_iErrStatus;  //!< error status variable
