@@ -220,13 +220,15 @@ int main(int argc, char* argv[])
     // Qt-based time conversion routines
     CECAT7MainHeader* e7mainHeader = static_cast<CECAT7MainHeader*>(file.createEmptyMainHeader());
     QDateTime dt(QDate(1970, 1, 1), QTime());
-    QDateTime dtUTC(QDate(1970, 1, 1), QTime(), Qt::UTC);
 
-    int utcDiff = dtUTC.secsTo(dt);
+    // The times are local times: the expected values are the seconds since
+    // the epoch of the given date/time in UTC minus the offset of the local
+    // time zone at that date/time (incl. daylight saving time), so that the
+    // checks work in every time zone.
 
     // test == 1.1.1970
     e7mainHeader->setScan_Start_Time_Qt(dt);
-    if(e7mainHeader->scan_Start_Time() != 0+utcDiff || e7mainHeader->scan_Start_Time_Qt() != dt)
+    if(e7mainHeader->scan_Start_Time() != 0 - dt.offsetFromUtc() || e7mainHeader->scan_Start_Time_Qt() != dt)
     {
       cout << "Error on testing datetime conversion routines." << endl;
       exit(2);
@@ -235,7 +237,7 @@ int main(int argc, char* argv[])
     // test < 1970 (31.01.1924)
     dt.setDate(QDate(1924, 1, 31));
     e7mainHeader->setScan_Start_Time_Qt(dt);
-    if(e7mainHeader->scan_Start_Time() != -1449100800+utcDiff || e7mainHeader->scan_Start_Time_Qt() != dt)
+    if(e7mainHeader->scan_Start_Time() != -1449100800 - dt.offsetFromUtc() || e7mainHeader->scan_Start_Time_Qt() != dt)
     {
       cout << "Error on testing datetime conversion routines." << endl;
       exit(2);
@@ -244,7 +246,7 @@ int main(int argc, char* argv[])
     // test > 1975 (6.1.1975)
     dt.setDate(QDate(1975, 1, 6));
     e7mainHeader->setScan_Start_Time_Qt(dt);
-    if(e7mainHeader->scan_Start_Time() != 158198400+utcDiff || e7mainHeader->scan_Start_Time_Qt() != dt)
+    if(e7mainHeader->scan_Start_Time() != 158198400 - dt.offsetFromUtc() || e7mainHeader->scan_Start_Time_Qt() != dt)
     {
       cout << "Error on testing datetime conversion routines." << endl;
       exit(2);
@@ -253,7 +255,7 @@ int main(int argc, char* argv[])
     // test > 1975 (3.7.2015)
     dt.setDate(QDate(2015, 7, 3));
     e7mainHeader->setScan_Start_Time_Qt(dt);
-    if(e7mainHeader->scan_Start_Time() != 1435878000+utcDiff || e7mainHeader->scan_Start_Time_Qt() != dt)
+    if(e7mainHeader->scan_Start_Time() != 1435881600 - dt.offsetFromUtc() || e7mainHeader->scan_Start_Time_Qt() != dt)
     {
       cout << "Error on testing datetime conversion routines." << endl;
       exit(2);
@@ -265,7 +267,7 @@ int main(int argc, char* argv[])
     dt.setDate(QDate(1955, 2, 7));
     dt.setTime(QTime(10, 39, 59));
     e7mainHeader->setScan_Start_Time_Qt(dt);
-    if(e7mainHeader->scan_Start_Time() != -470150401+utcDiff || e7mainHeader->scan_Start_Time_Qt() != dt)
+    if(e7mainHeader->scan_Start_Time() != -470150401 - dt.offsetFromUtc() || e7mainHeader->scan_Start_Time_Qt() != dt)
     {
       cout << "Error on testing datetime conversion routines." << endl;
       exit(2);
@@ -275,7 +277,7 @@ int main(int argc, char* argv[])
     dt.setDate(QDate(2001, 9, 11));
     dt.setTime(QTime(8, 44, 29));
     e7mainHeader->setScan_Start_Time_Qt(dt);
-    if(e7mainHeader->scan_Start_Time() != 1000194269+utcDiff || e7mainHeader->scan_Start_Time_Qt() != dt)
+    if(e7mainHeader->scan_Start_Time() != 1000197869 - dt.offsetFromUtc() || e7mainHeader->scan_Start_Time_Qt() != dt)
     {
       cout << "Error on testing datetime conversion routines." << endl;
       exit(2);
@@ -284,7 +286,7 @@ int main(int argc, char* argv[])
     // now we check the patient birth date set/read methods
     QDate bdate(1924, 1, 31);
     e7mainHeader->setPatient_Birth_Date_Qt(bdate);
-    if(e7mainHeader->patient_Birth_Date() != -1449100800+utcDiff || e7mainHeader->patient_Birth_Date_Qt() != bdate)
+    if(e7mainHeader->patient_Birth_Date() != -1449100800 - QDateTime(bdate, QTime()).offsetFromUtc() || e7mainHeader->patient_Birth_Date_Qt() != bdate)
     {
       cout << "Error on testing date conversion routines." << endl;
       exit(2);
