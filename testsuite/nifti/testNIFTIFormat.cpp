@@ -227,6 +227,7 @@ class TestNIFTIFormat : public QObject
 
     void testTrailingBytesIgnored();
     void testTruncatedFileRejected();
+    void testPairFiles();
 
     void testMatrixSizeMismatch_data();
     void testMatrixSizeMismatch();
@@ -251,9 +252,16 @@ void TestNIFTIFormat::testIdentify_data()
   QTest::newRow("NIfTI-2 LE")         << "n2_le_float64.nii"     << true;
   QTest::newRow("NIfTI-2 BE")         << "n2_be_int32_ext.nii"   << true;
   QTest::newRow("NIfTI-2 gzip")       << "n2_le_int16_4d.nii.gz" << true;
-  QTest::newRow("Analyze 7.5")        << "analyze.hdr"           << false;
-  QTest::newRow("NIfTI-1 pair (hdr)") << "n1_pair.hdr"           << false;
-  QTest::newRow("NIfTI-1 pair (img)") << "n1_pair.img"           << false;
+  QTest::newRow("Analyze 7.5 (hdr)")  << "analyze.hdr"           << false;
+  QTest::newRow("Analyze 7.5 (img)")  << "analyze.img"           << false;
+  QTest::newRow("NIfTI-1 pair (hdr)") << "n1_pair.hdr"           << true;
+  QTest::newRow("NIfTI-1 pair (img)") << "n1_pair.img"           << true;
+  QTest::newRow("NIfTI-1 pair ext")   << "p1_le_int16_ext.img"   << true;
+  QTest::newRow("NIfTI-1 pair gzip (hdr)") << "p1_le_uint8.hdr.gz" << true;
+  QTest::newRow("NIfTI-1 pair gzip (img)") << "p1_le_uint8.img.gz" << true;
+  QTest::newRow("NIfTI-2 pair (hdr)") << "p2_be_float32_4d.hdr"  << true;
+  QTest::newRow("NIfTI-2 pair (img)") << "p2_be_float32_4d.img"  << true;
+  QTest::newRow("missing file")       << "missing.hdr"           << false;
 }
 
 void TestNIFTIFormat::testIdentify()
@@ -282,6 +290,20 @@ void TestNIFTIFormat::testReadReference_data()
   QTest::newRow("NIfTI-2 LE float64")       << "n2_le_float64.nii"     << 2 << 1 << DT_FLOAT64 << QSysInfo::LittleEndian << false;
   QTest::newRow("NIfTI-2 BE int32 ext")     << "n2_be_int32_ext.nii"   << 2 << 1 << DT_INT32   << QSysInfo::BigEndian    << true;
   QTest::newRow("NIfTI-2 gzip int16 4D")    << "n2_le_int16_4d.nii.gz" << 2 << 2 << DT_INT16   << QSysInfo::LittleEndian << false;
+  QTest::newRow("NIfTI-1 pair extensions")  << "p1_le_int16_ext.hdr"   << 1 << 1 << DT_INT16   << QSysInfo::LittleEndian << true;
+  QTest::newRow("NIfTI-1 pair via img")     << "p1_le_int16_ext.img"   << 1 << 1 << DT_INT16   << QSysInfo::LittleEndian << true;
+  QTest::newRow("NIfTI-1 pair gzip uint8")  << "p1_le_uint8.img.gz"    << 1 << 1 << DT_UINT8   << QSysInfo::LittleEndian << false;
+  QTest::newRow("NIfTI-1 pair vox_offset")  << "p1_le_int16_offset.hdr" << 1 << 1 << DT_INT16  << QSysInfo::LittleEndian << false;
+  QTest::newRow("NIfTI-2 pair BE float32 4D") << "p2_be_float32_4d.img" << 2 << 2 << DT_FLOAT32 << QSysInfo::BigEndian    << false;
+}
+
+// header/image pairs are identified by the file name
+static bool pairName(const QString& name)
+{
+  QString n = name.toLower();
+  if(n.endsWith(".gz"))
+    n.chop(3);
+  return n.endsWith(".hdr") || n.endsWith(".img");
 }
 
 void TestNIFTIFormat::testReadReference()
@@ -297,6 +319,14 @@ void TestNIFTIFormat::testReadReference()
   QVERIFY(niftiFile.open(QIODevice::ReadOnly));
   QCOMPARE(static_cast<int>(niftiFile.format()), version == 1 ? static_cast<int>(CNIFTIFile::NIFTI1)
                                                                : static_cast<int>(CNIFTIFile::NIFTI2));
+  QCOMPARE(niftiFile.isPair(), pairName(file));
+  if(niftiFile.isPair()) {
+    QString base = dataFile(file);
+    base.chop(base.endsWith(".gz") ? 7 : 4);
+    const QString gz = file.endsWith(".gz") ? ".gz" : "";
+    QCOMPARE(niftiFile.headerFileName(), base + ".hdr" + gz);
+    QCOMPARE(niftiFile.imageFileName(), base + ".img" + gz);
+  }
 
   CNIFTIMainHeader* header = NULL;
   QVERIFY(niftiFile.readMainHeader(header));
@@ -368,19 +398,23 @@ void TestNIFTIFormat::testReadReference()
 void TestNIFTIFormat::testWriteRoundTrip_data()
 {
   QTest::addColumn<int>("version");
-  QTest::addColumn<bool>("compressed");
+  QTest::addColumn<QString>("suffix");
   QTest::addColumn<QSysInfo::Endian>("byteOrder");
   QTest::addColumn<bool>("withJson");
 
+  // single files and header/image pairs (pairs are written via the header
+  // or the image file name)
+  const char* suffixes[] = { ".nii", ".nii.gz", ".hdr", ".img.gz" };
+
   for(int version=1; version <= 2; version++) {
-    for(int compressed=0; compressed <= 1; compressed++) {
+    for(const char* suffix : suffixes) {
       for(int bigEndian=0; bigEndian <= 1; bigEndian++) {
         for(int withJson=0; withJson <= 1; withJson++) {
           QString name = QString("NIfTI-%1 %2 %3%4").arg(version)
-                                                     .arg(compressed ? ".nii.gz" : ".nii")
+                                                     .arg(suffix)
                                                      .arg(bigEndian ? "BE" : "LE")
                                                      .arg(withJson ? " JSON" : "");
-          QTest::newRow(name.toLatin1().constData()) << version << bool(compressed)
+          QTest::newRow(name.toLatin1().constData()) << version << QString(suffix)
                                                      << (bigEndian ? QSysInfo::BigEndian : QSysInfo::LittleEndian)
                                                      << bool(withJson);
         }
@@ -392,13 +426,17 @@ void TestNIFTIFormat::testWriteRoundTrip_data()
 void TestNIFTIFormat::testWriteRoundTrip()
 {
   QFETCH(int, version);
-  QFETCH(bool, compressed);
+  QFETCH(QString, suffix);
   QFETCH(QSysInfo::Endian, byteOrder);
   QFETCH(bool, withJson);
 
   QTemporaryDir tmpDir;
   QVERIFY(tmpDir.isValid());
-  QString fileName = tmpDir.filePath(compressed ? "test.nii.gz" : "test.nii");
+  const QString fileName = tmpDir.filePath("test" + suffix);
+  const bool pair = pairName(suffix);
+  const QString gz = suffix.endsWith(".gz") ? ".gz" : "";
+  const QString headerFile = pair ? tmpDir.filePath("test.hdr" + gz) : fileName;
+  const QString imageFile = pair ? tmpDir.filePath("test.img" + gz) : fileName;
 
   const qint64 dims[8] = { 4, 5, 4, 3, 2, 1, 1, 1 };
   const qint64 voxels = 5 * 4 * 3 * 2;
@@ -420,12 +458,12 @@ void TestNIFTIFormat::testWriteRoundTrip()
     if(version == 1) {
       CNIFTI1MainHeader* h = static_cast<CNIFTI1MainHeader*>(header.data());
       fillHeader(h, dims, byteOrder);
-      if(withJson)
+      if(withJson && pair == false)
         h->setVox_Offset(headerSize + 4 + h->headerExtensionSize(json));
     } else {
       CNIFTI2MainHeader* h = static_cast<CNIFTI2MainHeader*>(header.data());
       fillHeader(h, dims, byteOrder);
-      if(withJson)
+      if(withJson && pair == false)
         h->setVox_Offset(headerSize + 4 + h->headerExtensionSize(json));
     }
 
@@ -442,34 +480,54 @@ void TestNIFTIFormat::testWriteRoundTrip()
   }
 
   // check the file content on byte level
-  QByteArray content = fileContent(fileName);
-  QVERIFY(content.size() > headerSize + 4);
+  QVERIFY(QFile::exists(headerFile));
+  QVERIFY(QFile::exists(imageFile));
+  QByteArray content = fileContent(headerFile);
+  QVERIFY(content.size() >= headerSize);
 
   QCOMPARE(fromByteOrder<quint32>(content.constData(), byteOrder), quint32(headerSize));
 
   qint64 voxOffset;
   if(version == 1) {
-    QCOMPARE(QByteArray(content.constData()+344, 4), QByteArray("n+1\0", 4));
+    QCOMPARE(QByteArray(content.constData()+344, 4), QByteArray(pair ? "ni1\0" : "n+1\0", 4));
     voxOffset = static_cast<qint64>(fromByteOrder<float>(content.constData()+108, byteOrder));
   } else {
-    QCOMPARE(QByteArray(content.constData()+4, 8), QByteArray("n+2\0\r\n\032\n", 8));
+    QCOMPARE(QByteArray(content.constData()+4, 8), QByteArray(pair ? "ni2\0\r\n\032\n" : "n+2\0\r\n\032\n", 8));
     voxOffset = fromByteOrder<qint64>(content.constData()+168, byteOrder);
   }
 
-  QVERIFY(voxOffset >= headerSize + 4);
-  QCOMPARE(voxOffset % 16, qint64(0));
-  QCOMPARE(qint64(content.size()), voxOffset + matrix.size());
-  QCOMPARE(content.at(headerSize) != 0, withJson); // extension indicator
+  QByteArray image = content;
+  if(pair) {
+    // the header file holds the header and its extensions only, the
+    // image file the voxel data starting at vox_offset 0
+    QCOMPARE(voxOffset, qint64(0));
+    if(withJson) {
+      QVERIFY(content.size() > headerSize + 4);
+      QCOMPARE(content.at(headerSize) != 0, true); // extension indicator
+      QCOMPARE((content.size() - headerSize - 4) % 16, 0);
+    } else {
+      QCOMPARE(content.size(), headerSize);
+    }
+    image = fileContent(imageFile);
+    QCOMPARE(image.size(), matrix.size());
+  } else {
+    QVERIFY(content.size() > headerSize + 4);
+    QVERIFY(voxOffset >= headerSize + 4);
+    QCOMPARE(voxOffset % 16, qint64(0));
+    QCOMPARE(qint64(content.size()), voxOffset + matrix.size());
+    QCOMPARE(content.at(headerSize) != 0, withJson); // extension indicator
+  }
 
   // first voxel in the requested byte order
-  QCOMPARE(fromByteOrder<qint16>(content.constData()+voxOffset, byteOrder),
+  QCOMPARE(fromByteOrder<qint16>(image.constData()+voxOffset, byteOrder),
            static_cast<qint16>(patternValue(0, DT_INT16)));
-  QCOMPARE(fromByteOrder<qint16>(content.constData()+voxOffset+2, byteOrder),
+  QCOMPARE(fromByteOrder<qint16>(image.constData()+voxOffset+2, byteOrder),
            static_cast<qint16>(patternValue(1, DT_INT16)));
 
-  // read the file back
-  CNIFTIFile niftiFile(fileName);
+  // read the file back (pairs via the other file name)
+  CNIFTIFile niftiFile(pair ? (fileName == headerFile ? imageFile : headerFile) : fileName);
   QVERIFY(niftiFile.open(QIODevice::ReadOnly));
+  QCOMPARE(niftiFile.isPair(), pair);
 
   CNIFTIMainHeader* header = NULL;
   QVERIFY(niftiFile.readMainHeader(header));
@@ -543,6 +601,123 @@ void TestNIFTIFormat::testTruncatedFileRejected()
   QVERIFY(matrix == NULL);
 
   niftiFile.close();
+}
+
+//---------------------------------------------------------------------------------------------
+// special cases of header/image pairs
+void TestNIFTIFormat::testPairFiles()
+{
+  QTemporaryDir tmpDir;
+  QVERIFY(tmpDir.isValid());
+  const QString hdr = dataFile("n1_pair.hdr");
+  const QString img = dataFile("n1_pair.img");
+
+  // the image file is required
+  QVERIFY(copyFile(hdr, tmpDir.filePath("noimage.hdr")));
+  QVERIFY(CNIFTIFile::isOfType(tmpDir.filePath("noimage.hdr")) == false);
+  {
+    CNIFTIFile niftiFile(tmpDir.filePath("noimage.hdr"));
+    QVERIFY(niftiFile.open(QIODevice::ReadOnly) == false);
+  }
+
+  // the magic has to match the file name: single file named .hdr/.img ...
+  QVERIFY(copyFile(dataFile("n1_le_int16.nii"), tmpDir.filePath("single.hdr")));
+  QVERIFY(copyFile(img, tmpDir.filePath("single.img")));
+  QVERIFY(CNIFTIFile::isOfType(tmpDir.filePath("single.hdr")) == false);
+  QVERIFY(CNIFTIFile::isOfType(tmpDir.filePath("single.img")) == false);
+  {
+    CNIFTIFile niftiFile(tmpDir.filePath("single.hdr"));
+    QVERIFY(niftiFile.open(QIODevice::ReadOnly) == false);
+  }
+
+  // ... and the header of a pair named .nii
+  QVERIFY(copyFile(hdr, tmpDir.filePath("pair.nii")));
+  QVERIFY(CNIFTIFile::isOfType(tmpDir.filePath("pair.nii")) == false);
+
+  // upper case and mixed case extensions
+  QVERIFY(copyFile(hdr, tmpDir.filePath("UPPER.HDR")));
+  QVERIFY(copyFile(img, tmpDir.filePath("UPPER.IMG")));
+  QVERIFY(copyFile(hdr, tmpDir.filePath("mixed.hdr")));
+  QVERIFY(copyFile(img, tmpDir.filePath("mixed.IMG")));
+  foreach(const QString& name, QStringList() << "UPPER.IMG" << "UPPER.HDR" << "mixed.hdr" << "mixed.IMG") {
+    QVERIFY2(CNIFTIFile::isOfType(tmpDir.filePath(name)), qPrintable(name));
+    CNIFTIFile niftiFile(tmpDir.filePath(name));
+    QVERIFY(niftiFile.open(QIODevice::ReadOnly));
+    QByteArray* matrix = NULL;
+    QVERIFY(niftiFile.readMatrix(matrix));
+    QCOMPARE(matrix->size(), 4 * 3 * 2 * 2);
+    QCOMPARE(voxelValue(matrix->constData(), 23, DT_INT16), patternValue(23, DT_INT16));
+    delete matrix;
+    niftiFile.close();
+  }
+
+  // trailing bytes in the image file are ignored, a truncated image file is rejected
+  QVERIFY(copyFile(hdr, tmpDir.filePath("trailing.hdr")));
+  QVERIFY(copyFile(img, tmpDir.filePath("trailing.img")));
+  {
+    QFile file(tmpDir.filePath("trailing.img"));
+    QVERIFY(file.open(QIODevice::Append));
+    file.write("trailing bytes");
+    file.close();
+
+    CNIFTIFile niftiFile(tmpDir.filePath("trailing.hdr"));
+    QVERIFY(niftiFile.open(QIODevice::ReadOnly));
+    QByteArray* matrix = NULL;
+    QVERIFY(niftiFile.readMatrix(matrix));
+    QCOMPARE(matrix->size(), 4 * 3 * 2 * 2);
+    delete matrix;
+  }
+
+  QVERIFY(copyFile(hdr, tmpDir.filePath("truncated.hdr")));
+  QVERIFY(copyFile(img, tmpDir.filePath("truncated.img")));
+  {
+    QFile file(tmpDir.filePath("truncated.img"));
+    QVERIFY(file.resize(file.size() - 2));
+
+    CNIFTIFile niftiFile(tmpDir.filePath("truncated.img"));
+    QVERIFY(niftiFile.open(QIODevice::ReadOnly));
+    QByteArray* matrix = NULL;
+    QVERIFY(niftiFile.readMatrix(matrix) == false);
+    QVERIFY(matrix == NULL);
+  }
+
+  // writing replaces both files of an existing pair
+  QVERIFY(copyFile(hdr, tmpDir.filePath("replace.hdr")));
+  QVERIFY(copyFile(dataFile("p2_be_float32_4d.img"), tmpDir.filePath("replace.img")));
+  {
+    CNIFTIFile niftiFile(tmpDir.filePath("replace.img"), CNIFTIMainHeader::NIFTI1);
+    QVERIFY(niftiFile.open(QIODevice::WriteOnly));
+    QScopedPointer<CNIFTIMainHeader> header(niftiFile.createEmptyHeader());
+    const qint64 dims[8] = { 3, 2, 2, 2, 1, 1, 1, 1 };
+    fillHeader(static_cast<CNIFTI1MainHeader*>(header.data()), dims, QSysInfo::LittleEndian);
+    QVERIFY(niftiFile.writeMainHeader(*header));
+    QVERIFY(niftiFile.writeMatrix(patternMatrix(8)));
+    niftiFile.close();
+  }
+  QCOMPARE(fileContent(tmpDir.filePath("replace.hdr")).size(), 348);
+  QCOMPARE(fileContent(tmpDir.filePath("replace.img")), patternMatrix(8));
+
+  // no header file is left behind if the image file cannot be created
+  QVERIFY(QDir(tmpDir.path()).mkdir("blocked.img"));
+  {
+    CNIFTIFile niftiFile(tmpDir.filePath("blocked.hdr"), CNIFTIMainHeader::NIFTI1);
+    QVERIFY(niftiFile.open(QIODevice::WriteOnly) == false);
+  }
+  QVERIFY(QFile::exists(tmpDir.filePath("blocked.hdr")) == false);
+
+  // an existing file is kept if no NIfTI version is given for writing
+  QVERIFY(copyFile(dataFile("n1_le_int16.nii"), tmpDir.filePath("keep.nii")));
+  {
+    CNIFTIFile niftiFile(tmpDir.filePath("keep.nii"));
+    QVERIFY(niftiFile.open(QIODevice::WriteOnly) == false);
+  }
+  QCOMPARE(fileContent(tmpDir.filePath("keep.nii")), fileContent(dataFile("n1_le_int16.nii")));
+
+  // nor a compressed file if its directory does not exist
+  {
+    CNIFTIFile niftiFile(tmpDir.filePath("missing/dir.nii.gz"), CNIFTIMainHeader::NIFTI1);
+    QVERIFY(niftiFile.open(QIODevice::WriteOnly) == false);
+  }
 }
 
 //---------------------------------------------------------------------------------------------

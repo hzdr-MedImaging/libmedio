@@ -264,6 +264,25 @@ static double maxAbs(const QVector<double>& values, qint64 offset, qint64 count)
   return m;
 }
 
+// the file to open for a test data entry: the .hdr file of a pair directory
+static QString niftiPath(const MedIOTestFile& file)
+{
+  if(QFileInfo(file.path).isDir() == false)
+    return file.path;
+
+  const QStringList headers = QDir(file.path).entryList(QStringList() << "*.hdr" << "*.HDR" << "*.hdr.gz", QDir::Files);
+  return headers.size() == 1 ? QDir(file.path).filePath(headers.first()) : QString();
+}
+
+// header/image pairs are identified by the file name
+static bool pairName(const QString& name)
+{
+  QString n = name.toLower();
+  if(n.endsWith(".gz"))
+    n.chop(3);
+  return n.endsWith(".hdr") || n.endsWith(".img");
+}
+
 static QJsonArray landmarks(const MedIOTestFile& file)
 {
   return file.datasetInfo.value("landmarks").toArray();
@@ -342,6 +361,8 @@ void TestNIFTIConversion::addEcatRows(bool withVariants)
       QTest::newRow(qPrintable(file.relativePath + " nifti2 gz")) << file.path << 2 << false << ".nii.gz";
       QTest::newRow(qPrintable(file.relativePath + " nifti1 float gz")) << file.path << 1 << true << ".nii.gz";
       QTest::newRow(qPrintable(file.relativePath + " nifti2 float")) << file.path << 2 << true << ".nii";
+      QTest::newRow(qPrintable(file.relativePath + " nifti1 pair")) << file.path << 1 << false << ".hdr";
+      QTest::newRow(qPrintable(file.relativePath + " nifti2 float pair gz")) << file.path << 2 << true << ".img.gz";
     }
   }
 
@@ -479,8 +500,13 @@ void TestNIFTIConversion::ecatToNifti()
 
   // metadata in the JSON header extension
   QVERIFY(n.json.isEmpty() == false);
-  QVERIFY(n.voxOffset > (version == 2 ? 544 : 352));
-  QCOMPARE(std::fmod(n.voxOffset, 16.0), 0.0);
+  if(pairName(suffix)) {
+    // the extension ends the header file, the voxel data starts the image file
+    QCOMPARE(n.voxOffset, 0.0);
+  } else {
+    QVERIFY(n.voxOffset > (version == 2 ? 544 : 352));
+    QCOMPARE(std::fmod(n.voxOffset, 16.0), 0.0);
+  }
   QVERIFY(n.json.contains("Patient_Name"));
   QVERIFY(n.json.contains("Isotope_Name"));
   QCOMPARE(n.json.value("Data_Units").toString(), testFile->expected.value("main_header").toObject().value("data_units").toString());
@@ -672,8 +698,8 @@ void TestNIFTIConversion::niftiToEcatReference_data()
 
   bool any = false;
   foreach(const MedIOTestFile& nifti, m_data.files) {
-    if(nifti.format != "nifti" || QFileInfo(nifti.path).isDir())
-      continue; // header/image pairs are not supported by CNIFTIFile
+    if(nifti.format != "nifti")
+      continue;
     foreach(const MedIOTestFile& ecat, m_data.files) {
       if(ecat.format == "ecat" && ecat.dataset == nifti.dataset) {
         QTest::newRow(qPrintable(nifti.relativePath)) << nifti.relativePath << ecat.relativePath;
@@ -700,15 +726,18 @@ void TestNIFTIConversion::niftiToEcatReference()
   }
   QVERIFY(niftiFile && ecatFile);
 
+  const QString in = niftiPath(*niftiFile);
+  QVERIFY2(in.isEmpty() == false, "a NIfTI pair directory has to contain exactly one .hdr file");
+
   const QString out = tmpFile(QFileInfo(nifti).fileName() + ".v");
   QString error;
-  QVERIFY2(CNIFTIConverter::niftiToEcat(niftiFile->path, out, &error), qPrintable(error));
+  QVERIFY2(CNIFTIConverter::niftiToEcat(in, out, &error), qPrintable(error));
 
   EcatVolume ref, conv;
   QVERIFY(readEcat(ecatFile->path, ref));
   QVERIFY(readEcat(out, conv));
   NiftiVolume n;
-  QVERIFY(readNifti(niftiFile->path, n));
+  QVERIFY(readNifti(in, n));
 
   QCOMPARE(conv.frames, ref.frames);
   QCOMPARE(conv.nx, ref.nx);
@@ -958,6 +987,17 @@ void TestNIFTIConversion::metadataOptions()
   for(int f=0; f < a.frames; f++)
     QCOMPARE(b.frameInfo[f].durationMs, a.frameInfo[f].durationMs);
 
+  // sidecar file of a header/image pair (written via the image file name)
+  QVERIFY2(CNIFTIConverter::ecatToNifti(ecat, tmpFile("sidecarpair.img"), options, &error), qPrintable(error));
+  QVERIFY(QFile::exists(tmpFile("sidecarpair.hdr")));
+  QVERIFY(QFile::exists(tmpFile("sidecarpair.json")));
+  QVERIFY2(CNIFTIConverter::niftiToEcat(tmpFile("sidecarpair.hdr"), tmpFile("sidecarpair.v"), &error), qPrintable(error));
+  EcatVolume p;
+  QVERIFY(readEcat(tmpFile("sidecarpair.v"), p));
+  QCOMPARE(p.patientName, a.patientName);
+  for(int f=0; f < a.frames; f++)
+    QCOMPARE(p.frameInfo[f].durationMs, a.frameInfo[f].durationMs);
+
   // without any metadata: no frame timing for 3D data (pixdim[4] is ignored)
   const double affine[3][4] = { { -2, 0, 0, 0 }, { 0, -2.5, 0, 0 }, { 0, 0, 3, 0 } };
   const QString plain = writeSyntheticNifti("plain.nii", affine, false, 10, 1, 1.0, 0.0);
@@ -1000,6 +1040,19 @@ void TestNIFTIConversion::errors()
   // output directory does not exist
   QVERIFY(CNIFTIConverter::niftiToEcat(nifti, tmpFile("no/such/dir/error.v"), &error) == false);
   QVERIFY(CNIFTIConverter::ecatToNifti(tmpFile("error.v"), tmpFile("no/such/dir/error.nii"), CNIFTIConverter::Options(), &error) == false);
+  QVERIFY(CNIFTIConverter::ecatToNifti(tmpFile("error.v"), tmpFile("no/such/dir/error.nii.gz"), CNIFTIConverter::Options(), &error) == false);
+  QVERIFY(QFile::exists(tmpFile("no/such/dir/error.nii.gz")) == false);
+
+  // the image file of a pair cannot be created: no header file is left behind
+  QVERIFY(QDir(m_tmp.path()).mkdir("blocked.img"));
+  QVERIFY(CNIFTIConverter::ecatToNifti(tmpFile("error.v"), tmpFile("blocked.hdr"), CNIFTIConverter::Options(), &error) == false);
+  QVERIFY(QFile::exists(tmpFile("blocked.hdr")) == false);
+
+  // NIfTI pair without image file
+  QVERIFY2(CNIFTIConverter::ecatToNifti(tmpFile("error.v"), tmpFile("noimage.hdr"), CNIFTIConverter::Options(), &error), qPrintable(error));
+  QVERIFY(QFile::remove(tmpFile("noimage.img")));
+  QVERIFY(CNIFTIConverter::niftiToEcat(tmpFile("noimage.hdr"), tmpFile("noimage.v"), &error) == false);
+  QVERIFY(QFile::exists(tmpFile("noimage.v")) == false);
 }
 
 QTEST_GUILESS_MAIN(TestNIFTIConversion)

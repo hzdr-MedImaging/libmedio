@@ -18,7 +18,8 @@
 # limitations under the License.
 #
 
-# Generates the NIfTI reference files used by testNIFTIFormat. The files are
+# Generates the NIfTI reference files (single files and header/image pairs)
+# used by testNIFTIFormat. The files are
 # written with nibabel (https://nipy.org/nibabel) as an independent NIfTI
 # implementation and only contain synthetic data.
 #
@@ -89,7 +90,33 @@ def save(img, name):
     print('written', path)
 
 
+def save_pair(img, name, compressed=False, offset=0):
+    # header/image pair <name>.hdr/<name>.img (compressed: .hdr.gz/.img.gz);
+    # offset > 0 stores the voxel data at this vox_offset of the image file
+    hdr_path = os.path.join(OUT, name + '.hdr')
+    img_path = os.path.join(OUT, name + '.img')
+    if offset:
+        img.header['vox_offset'] = offset
+    nib.save(img, hdr_path)
+    if offset:
+        # nibabel writes the data at vox_offset and leaves the gap empty
+        with open(img_path, 'rb') as f:
+            data = f.read()
+        assert len(data) == offset + img.get_data_dtype().itemsize * int(np.prod(img.shape))
+        with open(img_path, 'wb') as f:
+            f.write(b'libmedio gap ' + b'.' * (offset - 13) + data[offset:])
+    if compressed:
+        for path in (hdr_path, img_path):
+            with open(path, 'rb') as f:
+                raw = f.read()
+            os.remove(path)
+            with open(path + '.gz', 'wb') as f:
+                f.write(gzip.compress(raw, mtime=0))
+    print('written', name, '(header/image pair)')
+
+
 N1, N2 = nib.Nifti1Image, nib.Nifti2Image
+P1, P2 = nib.Nifti1Pair, nib.Nifti2Pair
 
 save(make(N1, (4, 3, 2),    np.int16),                   'n1_le_int16.nii')
 save(make(N1, (4, 3, 2, 2), np.float32, '>'),            'n1_be_float32_4d.nii')
@@ -99,7 +126,16 @@ save(make(N2, (4, 3, 2),    np.float64),                 'n2_le_float64.nii')
 save(make(N2, (4, 3, 2),    np.int32, '>', True),        'n2_be_int32_ext.nii')
 save(make(N2, (4, 3, 2, 2), np.int16),                   'n2_le_int16_4d.nii.gz')
 
-# files which must not be identified as (single file) NIfTI
+# header/image pairs ("ni1"/"ni2")
+save_pair(make(P1, (4, 3, 2),    np.int16, extensions=True), 'p1_le_int16_ext')
+save_pair(make(P2, (4, 3, 2, 2), np.float32, '>'),           'p2_be_float32_4d')
+save_pair(make(P1, (4, 3, 2),    np.uint8),                  'p1_le_uint8', compressed=True)
+save_pair(make(P1, (4, 3, 2),    np.int16),                  'p1_le_int16_offset', offset=48)
+
+# Analyze 7.5 header/image pair, which must not be identified as NIfTI
 nib.save(nib.AnalyzeImage(pattern((4, 3, 2), np.int16), AFFINE), os.path.join(OUT, 'analyze.img'))
+print('written analyze.hdr/.img')
+
+# minimal NIfTI-1 pair without extensions written by nibabel from a single file image
 nib.save(N1(pattern((4, 3, 2), np.int16), AFFINE), os.path.join(OUT, 'n1_pair.img'))
-print('written analyze.hdr/.img and n1_pair.hdr/.img')
+print('written n1_pair.hdr/.img')

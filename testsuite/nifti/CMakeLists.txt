@@ -67,3 +67,20 @@ add_test(NAME nifti_conversion
          COMMAND testNIFTIConversion
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+add_executable(testNIFTIDatasets testNIFTIDatasets.cpp)
+
+target_include_directories(testNIFTIDatasets PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../common)
+target_compile_definitions(testNIFTIDatasets PRIVATE MEDIO_TEST_DATA_DIR="${MEDIO_TEST_DATA_DIR}")
+
+target_link_libraries(testNIFTIDatasets Qt5::Core
+                                        Qt5::Test
+                                        ZLIB::ZLIB
+                                        ${CMAKE_PROJECT_NAME}-static
+                                        ${RTDEBUG_STATIC_LIB}
+)
+
+add_test(NAME nifti_datasets
+         COMMAND testNIFTIDatasets
+         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
