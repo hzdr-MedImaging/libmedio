@@ -419,10 +419,11 @@ bool writePhilipsFrame(CPhilipsFile* file, short frame, const CMedIOFrame& f)
     return false;
   }
 
-  // the directory of Philips files is corrupted if frames are written in
-  // another order, so only frames following the existing ones are accepted
-  if(file->numFrames() > 0 && frame <= file->maxFrame()) {
-    E("Philips files have to be written frame by frame in ascending order (frame %d after frame %d)", frame, file->maxFrame());
+  // frames can be written in any order, but only once: CPhilipsFile writes
+  // a slice that exists already at its old position, which overwrites the
+  // following slices if the new (compressed) data is larger
+  if(file->numFrames() > 0 && file->numSlices(frame) > 0) {
+    E("frame %d of the Philips file has already been written", frame);
     RETURN(false);
     return false;
   }

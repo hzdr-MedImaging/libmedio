@@ -159,7 +159,7 @@ for(short frame=1; frame <= frames; frame++) {
   (NIfTI) converts the values into its data type and scaling and fails
   without writing if a value does not fit.
 - Philips matrices hold all slices of a frame with one scale factor;
-  Philips files are written frame by frame in ascending order. microPET
+  every frame of a Philips file can be written once (in any order). microPET
   files can only be read.
 - Without a format, `readMainHeader(header)` and `readMatrix(data, header, frame)`
   return the main header and frames in the format of the file itself, e.g.

@@ -1621,7 +1621,7 @@ void TestMedIOMatrix::writePhilips()
     QVERIFY(in->readMainHeader(sourceMain, in->dataFormat()));
     QScopedPointer<CMedIOHeader> sourceMainGuard(sourceMain);
 
-    for(int f=1; f <= reference.frames(); f++) {
+    for(int f=reference.frames(); f >= 1; f--) {
       QByteArray* data = NULL;
       CMedIOHeader* sh = NULL;
       QVERIFY(in->readMatrix(data, sh, in->dataFormat(), f));
@@ -1800,7 +1800,7 @@ void TestMedIOMatrix::philipsErrors()
   QVERIFY(out.writeMatrix(*data, *sh, 1, mh));
   out.close();
 
-  // Philips files are written frame by frame in ascending order
+  // the frames of Philips files can be written in any order, but only once
   {
     CPhilipsFile philipsOut(tmpFile("philips-order.img"), CPhilipsMainHeader::Image);
     QVERIFY(philipsOut.open(QIODevice::WriteOnly));
@@ -1808,10 +1808,22 @@ void TestMedIOMatrix::philipsErrors()
     QVERIFY(philipsOut.writeMainHeader(*static_cast<CPhilipsMainHeader*>(mh)));
     mh->setMedIOData(NULL);
     QVERIFY(philipsOut.writeMatrix(*data, *sh, 2, mh));
-    QVERIFY(philipsOut.writeMatrix(*data, *sh, 1, mh) == false);
-    QVERIFY(philipsOut.writeMatrix(*data, *sh, 2, mh) == false);
+    QVERIFY(philipsOut.writeMatrix(*data, *sh, 1, mh));
+    QVERIFY(philipsOut.writeMatrix(*data, *sh, 2, mh) == false);  // written already
     QVERIFY(philipsOut.writeMatrix(*data, *sh, 3, mh));
     philipsOut.close();
+
+    CPhilipsFile in(tmpFile("philips-order.img"));
+    QVERIFY(in.open(QIODevice::ReadOnly));
+    QCOMPARE(static_cast<int>(in.numFrames()), 3);
+    for(int f=1; f <= 3; f++) {
+      QByteArray* frameData = NULL;
+      CMedIOHeader* frameHeader = NULL;
+      QVERIFY(in.readMatrix(frameData, frameHeader, CMedIOData::Philips, f));
+      QVERIFY(*frameData == *data);
+      delete frameData;
+      delete frameHeader;
+    }
   }
 
   // frames that do not exist
