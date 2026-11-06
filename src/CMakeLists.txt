@@ -71,6 +71,7 @@ set(PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/CMedIO.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat7/CECAT7SubHeaderPolarMap.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat7/CECAT7SubHeaderScan.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/ecat/ecat7/CECAT7SubHeaderScan3D.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/nifti/CNIFTIMainHeader.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/nifti/nifti1/CNIFTI1MainHeader.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/nifti/nifti2/CNIFTI2MainHeader.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/nifti/CNIFTIFile.h

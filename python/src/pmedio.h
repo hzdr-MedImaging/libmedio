@@ -1782,6 +1782,8 @@ namespace PYBIND11_NAMESPACE { namespace detail {
           value = CMedIOData::PhilipsBin;
         else if(str.startsWith('p', Qt::CaseInsensitive))
           value = CMedIOData::Philips;
+        else if(str.startsWith('n', Qt::CaseInsensitive))
+          value = CMedIOData::NIFTI;
         else
         {
           value = CMedIOData::Unknown;
@@ -1822,6 +1824,10 @@ namespace PYBIND11_NAMESPACE { namespace detail {
 
         case CMedIOData::PhilipsBin:
           srcStr = "philipsbin";
+        break;
+
+        case CMedIOData::NIFTI:
+          srcStr = "nifti";
         break;
       }
 
