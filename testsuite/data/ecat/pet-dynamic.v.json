@@ -1,0 +1,85 @@
+{
+  "generator": "nibabel 5.4.2",
+  "format": "ecat7",
+  "main_header": {
+    "file_type": 7,
+    "num_frames": 3,
+    "num_planes": 39,
+    "calibration_factor": 1000.0,
+    "data_units": "Bq/cc"
+  },
+  "matrices": [
+    {
+      "frame": 1,
+      "plane": 1,
+      "gate": 1,
+      "bed": 0,
+      "data": 0,
+      "data_type": 6,
+      "dims": [
+        31,
+        31,
+        39
+      ],
+      "pixel_size_cm": [
+        2.268749952316284,
+        2.268749952316284,
+        0.16455695033073425
+      ],
+      "scale_factor": 0.0012551620602607727,
+      "frame_start_time_ms": 0,
+      "frame_duration_ms": 30000,
+      "raw_min": -154,
+      "raw_max": 32767,
+      "raw_sum": 12405793
+    },
+    {
+      "frame": 2,
+      "plane": 1,
+      "gate": 1,
+      "bed": 0,
+      "data": 0,
+      "data_type": 6,
+      "dims": [
+        31,
+        31,
+        39
+      ],
+      "pixel_size_cm": [
+        2.268749952316284,
+        2.268749952316284,
+        0.16455695033073425
+      ],
+      "scale_factor": 0.0012383920839056373,
+      "frame_start_time_ms": 30000,
+      "frame_duration_ms": 60000,
+      "raw_min": -193,
+      "raw_max": 32767,
+      "raw_sum": 12585024
+    },
+    {
+      "frame": 3,
+      "plane": 1,
+      "gate": 1,
+      "bed": 0,
+      "data": 0,
+      "data_type": 6,
+      "dims": [
+        31,
+        31,
+        39
+      ],
+      "pixel_size_cm": [
+        2.268749952316284,
+        2.268749952316284,
+        0.16455695033073425
+      ],
+      "scale_factor": 0.0011173110688105226,
+      "frame_start_time_ms": 90000,
+      "frame_duration_ms": 90000,
+      "raw_min": -104,
+      "raw_max": 32767,
+      "raw_sum": 14044188
+    }
+  ]
+}

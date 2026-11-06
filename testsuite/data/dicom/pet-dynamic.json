@@ -1,0 +1,90 @@
+{
+  "generator": "pydicom 3.0.2",
+  "format": "dicom",
+  "header": {
+    "modality": "PT",
+    "manufacturer": "SIEMENS",
+    "model": "1208",
+    "rows": 32,
+    "columns": 32,
+    "slices": 159,
+    "frames": 3,
+    "pixel_spacing_mm": [
+      22.6875,
+      22.6875
+    ],
+    "slice_spacing_mm": 1.6455696202531647,
+    "image_orientation": [
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0
+    ],
+    "patient_position": "HFS",
+    "units": "BQML"
+  },
+  "frames": [
+    {
+      "frame_reference_time_ms": 15000.0,
+      "frame_duration_ms": 30000,
+      "first_position_mm": [
+        -362.142,
+        -541.255,
+        -877.002
+      ],
+      "last_position_mm": [
+        -362.142,
+        -541.255,
+        -617.002
+      ],
+      "raw_min": -516,
+      "raw_max": 32767,
+      "raw_sum": 33857149,
+      "scaled_min": -647.6635920000001,
+      "scaled_max": 41127.893254,
+      "scaled_sum": 42496206.853138
+    },
+    {
+      "frame_reference_time_ms": 60000.0,
+      "frame_duration_ms": 60000,
+      "first_position_mm": [
+        -362.142,
+        -541.255,
+        -877.002
+      ],
+      "last_position_mm": [
+        -362.142,
+        -541.255,
+        -617.002
+      ],
+      "raw_min": -338,
+      "raw_max": 32767,
+      "raw_sum": 34115331,
+      "scaled_min": -418.57649599999996,
+      "scaled_max": 40578.390664,
+      "scaled_sum": 42248152.987752
+    },
+    {
+      "frame_reference_time_ms": 135000.0,
+      "frame_duration_ms": 90000,
+      "first_position_mm": [
+        -362.142,
+        -541.255,
+        -877.002
+      ],
+      "last_position_mm": [
+        -362.142,
+        -541.255,
+        -617.002
+      ],
+      "raw_min": -138,
+      "raw_max": 32767,
+      "raw_sum": 37920745,
+      "scaled_min": -154.188918,
+      "scaled_max": 36610.929536999996,
+      "scaled_sum": 42369265.516695
+    }
+  ]
+}
