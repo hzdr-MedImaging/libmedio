@@ -64,22 +64,6 @@ bool fail(QString* error, const QString& message)
   return false;
 }
 
-// NIfTI JSON sidecar file name (<name>.json next to <name>.nii/.nii.gz/.hdr/.img)
-QString sidecarFileName(const QString& niftiFileName)
-{
-  QFileInfo info(niftiFileName);
-  QString base = info.fileName();
-
-  if(base.endsWith(".gz", Qt::CaseInsensitive))
-    base.chop(3);
-  if(base.endsWith(".nii", Qt::CaseInsensitive) ||
-     base.endsWith(".hdr", Qt::CaseInsensitive) ||
-     base.endsWith(".img", Qt::CaseInsensitive))
-    base.chop(4);
-
-  return info.absoluteDir().filePath(base + ".json");
-}
-
 // value of voxel i of an ECAT7 matrix in machine byte order
 double ecatValue(const char* data, qint64 i, CECATSubHeader::Data_Type type)
 {
@@ -646,7 +630,7 @@ bool saveNifti(const EcatImage& image, const QString& niftiFileName, const CNIFT
       result = niftiFile.writeMatrix(data);
 
     if(result && options.jsonSidecar) {
-      QFile sidecar(sidecarFileName(niftiFileName));
+      QFile sidecar(niftiSidecarFileName(niftiFileName));
       result = sidecar.open(QIODevice::WriteOnly | QIODevice::Truncate) &&
                sidecar.write(QJsonDocument(json).toJson(QJsonDocument::Indented)) > 0;
     }
@@ -709,7 +693,7 @@ bool loadNifti(const QString& niftiFileName, EcatImage& image, QString* error)
   niftiFile.close();
 
   if(json.isEmpty()) {
-    QFile sidecar(sidecarFileName(niftiFileName));
+    QFile sidecar(niftiSidecarFileName(niftiFileName));
     if(sidecar.open(QIODevice::ReadOnly))
       json = QJsonDocument::fromJson(sidecar.readAll()).object();
   }
@@ -721,10 +705,6 @@ bool loadNifti(const QString& niftiFileName, EcatImage& image, QString* error)
 
   // keep the stored values if they are 8/16 bit integers without intercept
   const bool storedValues = (info.datatype == 2 || info.datatype == 256 || info.datatype == 4) && info.inter == 0.0;
-
-  // frame timing (s)
-  QJsonArray startTimes = json["FrameTimesStart"].toArray();
-  QJsonArray durations = json["FrameDuration"].toArray();
 
   image.mainHeader = new CECAT7MainHeader(&image.ecatFile, CECATMainHeader::ECAT7_Volume16);
   if(image.mainHeader->convertFrom(headerPtr, NULL) == false)
@@ -743,12 +723,7 @@ bool loadNifti(const QString& niftiFileName, EcatImage& image, QString* error)
     for(int k=0; k < nz; k++) {
       for(int j=0; j < ny; j++) {
         for(int i=0; i < nx; i++) {
-          const int e[3] = { i, j, k };
-          qint64 v[3];
-          for(int a=0; a < 3; a++)
-            v[geometry.axis[a]] = geometry.flip[a] ? geometry.dims[a] - 1 - e[a] : e[a];
-
-          const qint64 index = v[0] + dimNifti[0] * (v[1] + dimNifti[1] * (v[2] + dimNifti[2] * f));
+          const qint64 index = niftiVoxelIndex(geometry, dimNifti, i, j, k) + voxels * f;
           double value = niftiValue(matrix->constData(), index, info.datatype);
           if(storedValues == false)
             value = value * info.slope + info.inter;
@@ -787,18 +762,10 @@ bool loadNifti(const QString& niftiFileName, EcatImage& image, QString* error)
     subHeader->setImage_Max(maxStored);
 
     // frame timing from the metadata, the NIfTI header otherwise (s -> ms)
-    double start = geometry.frameStart + f * geometry.frameDuration;
-    double duration = geometry.frameDuration;
-    if(startTimes.size() == frames && durations.size() == frames) {
-      start = startTimes[f].toDouble();
-      duration = durations[f].toDouble();
-    } else if(frames == 1 && json.contains("Frame_Duration")) {
-      // metadata written by earlier versions (ms)
-      start = json["Frame_Start_Time"].toDouble() / 1000.0;
-      duration = json["Frame_Duration"].toDouble() / 1000.0;
-    }
-    subHeader->setFrame_Start_Time(start > 0.0 ? static_cast<unsigned int>(start * 1000.0 + 0.5) : 0);
-    subHeader->setFrame_Duration(duration > 0.0 ? static_cast<unsigned int>(duration * 1000.0 + 0.5) : 0);
+    double start = 0.0, duration = 0.0;
+    niftiFrameTiming(geometry, json, f, start, duration);
+    subHeader->setFrame_Start_Time(ecatFrameTime(start));
+    subHeader->setFrame_Duration(ecatFrameTime(duration));
 
     if(json.contains("Recon_Zoom"))
       subHeader->setRecon_Zoom(json["Recon_Zoom"].toDouble());

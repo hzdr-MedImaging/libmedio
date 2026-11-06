@@ -49,6 +49,14 @@ class CMedIOData : public QFile {
       NIFTI              //!< NIfTI format
     };
 
+    //! @enum voxel order in which matrix data is read or written by the
+    //!       format classes supporting it (see CNIFTIFile::readMatrix())
+    enum Orientation {
+      NativeOrientation = 0, //!< voxel order of the file format
+      ECATOrientation        //!< voxel order of ECAT7 images: x towards patient left,
+                             //!< y towards posterior, planes from superior to inferior
+    };
+
     //! @enum enumeration carrying special IO error codes which
     //!       can be queried with the errorStatus() method.
     enum errStatus { MERR_Ok = 0,         //!< No Error

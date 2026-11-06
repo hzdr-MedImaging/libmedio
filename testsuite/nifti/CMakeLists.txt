@@ -84,3 +84,22 @@ add_test(NAME nifti_datasets
          COMMAND testNIFTIDatasets
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+add_executable(testNIFTIMatrix testNIFTIMatrix.cpp)
+
+target_include_directories(testNIFTIMatrix PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../common)
+target_compile_definitions(testNIFTIMatrix PRIVATE
+                           MEDIO_TEST_DATA_DIR="${MEDIO_TEST_DATA_DIR}"
+                           NIFTI_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
+
+target_link_libraries(testNIFTIMatrix Qt5::Core
+                                      Qt5::Test
+                                      ZLIB::ZLIB
+                                      ${CMAKE_PROJECT_NAME}-static
+                                      ${RTDEBUG_STATIC_LIB}
+)
+
+add_test(NAME nifti_matrix
+         COMMAND testNIFTIMatrix
+         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
