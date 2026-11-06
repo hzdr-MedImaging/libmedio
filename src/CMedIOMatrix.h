@@ -62,6 +62,8 @@ class CNIFTIMainHeader;
 class CPhilipsFile;
 class CPhilipsMainHeader;
 class CPhilipsSubHeader;
+class CConcordeFile;
+class CConcordeFrameHeader;
 class QJsonObject;
 
 //! ECAT7 representation of one frame
@@ -165,6 +167,13 @@ bool philipsFrameFromMatrix(const QByteArray& data, const CPhilipsSubHeader& sub
 bool philipsMatrixFromFrame(const CMedIOFrame& f, QByteArray& data, CMedIOHeader*& header);
 bool philipsMainHeaderFromFrame(const CMedIOFrame& f, CMedIOHeader*& header);
 bool writePhilipsFrame(CPhilipsFile* file, short frame, const CMedIOFrame& f);
+
+//---------------------------------------------------------------------------------------------
+// microPET adapter (src/micropet/CConcordeMatrix.cpp), reading only
+
+bool readConcordeFrame(CConcordeFile* file, short frame, CMedIOFrame& f);
+bool concordeFrameFromMatrix(const QByteArray& data, const CConcordeFrameHeader& frameHeader, const CMedIOHeader* mainHeader,
+                             CMedIOFrame& f);
 
 } // namespace MedIOMatrix
 

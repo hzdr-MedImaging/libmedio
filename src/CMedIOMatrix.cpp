@@ -29,6 +29,9 @@
 #include "CPhilipsFile.h"
 #include "CPhilipsSubHeader.h"
 #include "CPhilipsMainHeader.h"
+#include "CConcordeFile.h"
+#include "CConcordeMainHeader.h"
+#include "CConcordeFrameHeader.h"
 
 #include <QVector>
 
@@ -359,6 +362,10 @@ bool readFrame(CMedIOData* file, short frame, CMedIOFrame& f)
       result = readPhilipsFrame(static_cast<CPhilipsFile*>(file), frame, f);
     break;
 
+    case CMedIOData::ConcordeMicropet:
+      result = readConcordeFrame(static_cast<CConcordeFile*>(file), frame, f);
+    break;
+
     default:
       result = unsupported(file->dataFormat(), "reading matrices in another format");
     break;
@@ -386,6 +393,11 @@ bool frameFromMatrix(const QByteArray& data, const CMedIOHeader& header, const C
     case CMedIOData::Philips:
       result = (header.headerFormat() == CMedIOHeader::PhilipsSubHeader) &&
                philipsFrameFromMatrix(data, static_cast<const CPhilipsSubHeader&>(header), mainHeader, f);
+    break;
+
+    case CMedIOData::ConcordeMicropet:
+      result = (header.headerFormat() == CMedIOHeader::ConcordeMicroPetFrameHeader) &&
+               concordeFrameFromMatrix(data, static_cast<const CConcordeFrameHeader&>(header), mainHeader, f);
     break;
 
     default:
@@ -499,6 +511,20 @@ bool readNativeMatrix(CMedIOData* file, short frame, QByteArray& data, CMedIOHea
     }
     break;
 
+    case CMedIOData::ConcordeMicropet: {
+      CConcordeFile* concorde = static_cast<CConcordeFile*>(file);
+      char* matrix = NULL;
+      unsigned int length = 0;
+      CConcordeFrameHeader* frameHeader = NULL;
+      result = concorde->readMatrix(matrix, length, frameHeader, frame == -1 ? 1 : frame);
+      if(result) {
+        data = QByteArray(matrix, length);
+        header = frameHeader;
+      }
+      delete[] matrix;
+    }
+    break;
+
     case CMedIOData::NIFTI: {
       // one volume in the voxel order and datatype of the file and the header
       // of the file with the timing of the frame
@@ -546,6 +572,13 @@ bool readNativeMainHeader(CMedIOData* file, CMedIOHeader*& header)
     case CMedIOData::Philips: {
       CPhilipsMainHeader* mainHeader = NULL;
       result = static_cast<CPhilipsFile*>(file)->readMainHeader(mainHeader);
+      header = mainHeader;
+    }
+    break;
+
+    case CMedIOData::ConcordeMicropet: {
+      CConcordeMainHeader* mainHeader = NULL;
+      result = static_cast<CConcordeFile*>(file)->readMainHeader(mainHeader);
       header = mainHeader;
     }
     break;

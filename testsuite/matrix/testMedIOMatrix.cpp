@@ -49,12 +49,17 @@
 #include <CPhilipsMainHeader.h>
 #include <CPhilipsSubHeader.h>
 #include <CPhilipsSubHeaderImage.h>
+#include <CConcordeFile.h>
+#include <CConcordeMainHeader.h>
+#include <CConcordeFrameHeader.h>
 
 #include "MedIOTestData.h"
 
 #include <QtTest/QtTest>
 #include <QTemporaryDir>
 #include <QJsonArray>
+#include <QTextStream>
+#include <QtEndian>
 
 #include <cmath>
 #include <cstring>
@@ -435,6 +440,8 @@ class TestMedIOMatrix : public QObject
     void philipsSliceScales_data();
     void philipsSliceScales();
     void philipsErrors();
+
+    void concorde();
 
     void errors();
 };
@@ -1808,6 +1815,158 @@ void TestMedIOMatrix::philipsErrors()
   QByteArray* none = NULL;
   QVERIFY(philips.readMatrix(none, sh, CMedIOData::ECAT, 99) == false);
   QVERIFY(none == NULL);
+}
+
+//=============================================================================================
+// microPET (read only)
+
+// synthetic microPET image: 4 x 3 x 2 voxels, 2 frames, int16 (Intel byte
+// order), stored value 1 + i + 100 * frame, frame f with scale factor 0.5 / (f + 1)
+static bool writeConcorde(const QString& path)
+{
+  QFile header(path + ".hdr");
+  if(header.open(QIODevice::WriteOnly | QIODevice::Text) == false)
+    return false;
+
+  QTextStream h(&header);
+  h << "# synthetic microPET header (libmedio test)\n"
+    << "model 2000\n"
+    << "file_type 5\n"
+    << "acquisition_mode 3\n"
+    << "total_frames 2\n"
+    << "isotope F-18\n"
+    << "isotope_half_life 6586.2\n"
+    << "isotope_branching_fraction 0.8\n"
+    << "data_type 2\n"
+    << "number_of_dimensions 3\n"
+    << "x_dimension 4\n"
+    << "y_dimension 3\n"
+    << "z_dimension 2\n"
+    << "pixel_size 0.2\n"
+    << "axial_crystal_pitch 0.6\n"
+    << "calibration_units 2\n"
+    << "calibration_factor 1000\n"
+    << "subject_identifier test\n"
+    << "end_of_header\n";
+  for(int f=0; f < 2; f++) {
+    h << "frame " << f << "\n"
+      << "event_type 1\n"
+      << "gate 0\n"
+      << "bed 0\n"
+      << "bed_offset 0\n"
+      << "data_file_pointer 0 " << f * 48 << "\n"
+      << "frame_start " << f * 60 << "\n"
+      << "frame_duration " << 60 * (f + 1) << "\n"
+      << "scale_factor " << 0.5 / (f + 1) << "\n"
+      << "minimum " << 1 + 100 * f << "\n"
+      << "maximum " << 24 + 100 * f << "\n"
+      << "end_of_header\n";
+  }
+  header.close();
+
+  QFile data(path);
+  if(data.open(QIODevice::WriteOnly) == false)
+    return false;
+  for(int f=0; f < 2; f++)
+    for(int i=0; i < 24; i++) {
+      const qint16 v = qToLittleEndian(static_cast<qint16>(1 + i + 100 * f));
+      data.write(reinterpret_cast<const char*>(&v), 2);
+    }
+  return true;
+}
+
+void TestMedIOMatrix::concorde()
+{
+  const QString path = tmpFile("mpet_image");
+  QVERIFY(writeConcorde(path));
+
+  QScopedPointer<CMedIOData> file(CMedIODataFactory::create(path));
+  QVERIFY(file.data() != NULL);
+  QCOMPARE(static_cast<int>(file->dataFormat()), static_cast<int>(CMedIOData::ConcordeMicropet));
+  QVERIFY(file->open(QIODevice::ReadOnly));
+
+  CMedIOHeader* ecatMain = NULL;
+  QVERIFY(file->readMainHeader(ecatMain, CMedIOData::ECAT));
+  QScopedPointer<CMedIOHeader> ecatMainGuard(ecatMain);
+  QCOMPARE(static_cast<int>(static_cast<CECAT7MainHeader*>(ecatMain)->num_Frames()), 2);
+  CMedIOHeader* concordeMain = NULL;
+  QVERIFY(file->readMainHeader(concordeMain, CMedIOData::ConcordeMicropet));
+  QScopedPointer<CMedIOHeader> concordeMainGuard(concordeMain);
+  QCOMPARE(static_cast<int>(concordeMain->headerFormat()), static_cast<int>(CMedIOHeader::ConcordeMicroPetMainHeader));
+
+  for(int f=1; f <= 2; f++) {
+    // physical value = stored x scale_factor / branching fraction x calibration factor (as mp2ecat)
+    const double scale = 0.5 / f / 0.8 * 1000.0;
+
+    // the voxels of the file in ECAT7 voxel order (as mp2ecat)
+    CMedIOVolume v;
+    QVERIFY(file->readVolume(v, f));
+    QCOMPARE(v.dataType(), CMedIOVolume::Int16);
+    QCOMPARE(v.dimension(0), 4); QCOMPARE(v.dimension(1), 3); QCOMPARE(v.dimension(2), 2);
+    QCOMPARE(v.orientation(), QString("LPI"));
+    QVERIFY(approx(v.scaleFactor(), scale, 1e-6));
+    QVERIFY(approx(v.voxelSize(0), 2.0, 1e-6));
+    QVERIFY(approx(v.voxelSize(2), 3.0, 1e-6));
+    QCOMPARE(v.frameStart(), (f - 1) * 60.0);
+    QCOMPARE(v.frameDuration(), f * 60.0);
+    for(int i=0; i < 24; i++)
+      QCOMPARE(v.storedValue(i), 1.0 + i + 100 * (f - 1));
+
+    // ECAT7 representation
+    QByteArray* data = NULL;
+    CMedIOHeader* sh = NULL;
+    QVERIFY(file->readMatrix(data, sh, CMedIOData::ECAT, f));
+    QScopedPointer<QByteArray> dataGuard(data);
+    QScopedPointer<CMedIOHeader> shGuard(sh);
+    const CECAT7SubHeaderImage* s = static_cast<const CECAT7SubHeaderImage*>(sh);
+    QCOMPARE(static_cast<int>(s->data_Type()), static_cast<int>(CECATSubHeader::SunShort));
+    QVERIFY(approx(s->scale_Factor(), scale, 1e-6));
+    QCOMPARE(s->frame_Duration(), static_cast<unsigned int>(f * 60000));
+    for(int i=0; i < 24; i++)
+      QCOMPARE(ecatValue(data->constData(), i, CECATSubHeader::SunShort), 1.0 + i + 100 * (f - 1));
+
+    // NIfTI representation: planes reversed
+    QVERIFY(file->readMatrix(data, sh, CMedIOData::NIFTI, f));
+    QScopedPointer<QByteArray> niftiDataGuard(data);
+    QScopedPointer<CMedIOHeader> niftiHeaderGuard(sh);
+    const NiftiHeader n = niftiHeader(sh);
+    QCOMPARE(n.datatype, 4);
+    QVERIFY(approx(n.slope, scale, 1e-6));
+    for(int k=0; k < 2; k++)
+      for(int i=0; i < 12; i++)
+        QCOMPARE(niftiValue(data->constData(), i + 12 * (1 - k), 4), 1.0 + i + 12 * k + 100 * (f - 1));
+
+    // microPET representation of the file itself: unchanged
+    QVERIFY(file->readMatrix(data, sh, CMedIOData::ConcordeMicropet, f));
+    QScopedPointer<QByteArray> nativeGuard(data);
+    QScopedPointer<CMedIOHeader> nativeHeaderGuard(sh);
+    QCOMPARE(static_cast<int>(sh->headerFormat()), static_cast<int>(CMedIOHeader::ConcordeMicroPetFrameHeader));
+    QCOMPARE(data->size(), 48);
+    QCOMPARE(static_cast<double>(static_cast<CConcordeFrameHeader*>(sh)->scaleFactor()), 0.5 / f);
+
+    // ... which can be written into an ECAT7 file with the microPET main header
+    CECATFile out(tmpFile(QString("mpet-%1.v").arg(f)), CECATMainHeader::ECAT7_Volume16);
+    QVERIFY(createEcat(out, *static_cast<CECAT7MainHeader*>(ecatMain)));
+    QVERIFY(out.writeMatrix(*data, *sh, 1) == false);   // main header missing
+    QVERIFY(out.writeMatrix(*data, *sh, 1, concordeMain));
+    out.close();
+    EcatFile written;
+    QVERIFY(written.read(tmpFile(QString("mpet-%1.v").arg(f))));
+    for(int i=0; i < 24; i++)
+      QVERIFY(approx(written.value(0, i), (1.0 + i + 100 * (f - 1)) * scale, 1e-6));
+  }
+
+  // microPET files cannot be written
+  CECATFile ecat(medioTestDataDir() + "/ecat/pet-static.v");
+  QVERIFY(ecat.open(QIODevice::ReadOnly));
+  QByteArray* data = NULL;
+  CMedIOHeader* sh = NULL;
+  QVERIFY(ecat.readMatrix(data, sh, CMedIOData::ConcordeMicropet, 1) == false);
+  QVERIFY(ecat.readMainHeader(sh, CMedIOData::ConcordeMicropet) == false);
+  CMedIOVolume v;
+  QVERIFY(file->readVolume(v, 1));
+  QVERIFY(file->writeVolume(v, 1) == false);
+  QVERIFY(file->readVolume(v, 3) == false);
 }
 
 //---------------------------------------------------------------------------------------------
