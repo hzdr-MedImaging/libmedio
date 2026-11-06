@@ -613,6 +613,16 @@ CPhilipsDirectoryItem* CPhilipsDirectoryPrivate::newDirItem(quint32 matrixID)
 {
   ENTER();
 
+  // The directory lists (PHILIPS_DIRITEM_NUM items each) are stored between
+  // the data blocks. If the new item needs a further directory list, its
+  // position has to be reserved before the item is placed: otherwise save(),
+  // which is already called before the data of the new item is written (via
+  // reWriteMainHeader()), places the directory list at the start of the new
+  // item and the sub header written there later overwrites it.
+  const int lists = (dirItems.count() + PHILIPS_DIRITEM_NUM) / PHILIPS_DIRITEM_NUM;
+  while(filePositions.count() < lists)
+    filePositions.append(lastDirItemOffset() + PHILIPS_BLOCKSIZE);
+
   // create a new directory item with the supplied matrixID
   CPhilipsDirectoryItem* pNewDItem = new CPhilipsDirectoryItem(file, matrixID);
 
