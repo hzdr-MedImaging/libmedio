@@ -6,9 +6,15 @@
         "scanner": "Siemens Biograph Vision 600 PET/CT",
         "reconstruction": "e7tools",
         "units": "Bq/ml",
-        "notes": "The reconstructed DICOM images were loaded into ROVER, cropped there and exported as ECAT7, Philips and raw data. The ECAT7 file was converted to NIfTI with a separate Python ecat2nifti tool, the NIfTI header/image pair was created from the DICOM images with PMOD. The ECAT7 main header contains the system type 962 written by ROVER."
+        "notes": "The reconstructed DICOM images were loaded into ROVER, cropped there and exported as ECAT7, Philips and raw data. The ECAT7 file was converted to NIfTI with a separate Python ecat2nifti tool, the NIfTI header/image pair was created from the DICOM images with PMOD. The ECAT7 main header contains the system type 962 written by ROVER. dicom/pet-static is a static reconstruction of the same acquisition covering the full field of view; it provides the patient coordinates of the cropped files (see the landmarks), its values differ slightly."
       },
       "files": {
+        "dicom/pet-static": {
+          "origin": "original",
+          "tool": "e7tools (TOF-PSF-OP-OSEM 6i 5s)",
+          "same_reconstruction": false,
+          "notes": "DICOM PET image series, 440x440x159 voxels of 1.65 x 1.65 x 1.6456 mm, one frame of 30 min, Bq/ml, image orientation [1,0,0,0,1,0], patient position HFS; slices sorted by increasing z. The cropped files of the dataset cover the columns 169-201, rows 206-238 and slices 81-117 with reversed slice order (same spatial structure, correlation 0.99999), but their values differ (ecat/pet-static.v = 0.9978 x DICOM - 509 Bq/ml, residual rms 61 Bq/ml): presumably a different reconstruction of the same acquisition."
+        },
         "ecat/pet-static.v": {
           "origin": "converted",
           "tool": "ROVER 3.0.84h (ECAT7 export)",
@@ -61,7 +67,100 @@
           }
         }
       },
-      "landmarks": []
+      "landmarks": [
+        {
+          "name": "first voxel of the cropped volume",
+          "coordinate_system": "DICOM patient coordinates (LPS)",
+          "world_mm": [
+            -83.292,
+            -201.355,
+            -684.47
+          ],
+          "voxel": {
+            "dicom/pet-static": [
+              169,
+              206,
+              117
+            ],
+            "ecat/pet-static.v": [
+              0,
+              0,
+              0
+            ],
+            "nifti/pet-static.nii.gz": [
+              0,
+              0,
+              36
+            ],
+            "nifti/pet-static.pair": [
+              0,
+              0,
+              36
+            ],
+            "philips/pet-static.img": [
+              0,
+              0,
+              0
+            ],
+            "philips/pet-static.syn": [
+              0,
+              0,
+              0
+            ],
+            "raw/pet-static.raw": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "name": "last voxel of the cropped volume",
+          "coordinate_system": "DICOM patient coordinates (LPS)",
+          "world_mm": [
+            -30.492,
+            -148.555,
+            -743.711
+          ],
+          "voxel": {
+            "dicom/pet-static": [
+              201,
+              238,
+              81
+            ],
+            "ecat/pet-static.v": [
+              32,
+              32,
+              36
+            ],
+            "nifti/pet-static.nii.gz": [
+              32,
+              32,
+              0
+            ],
+            "nifti/pet-static.pair": [
+              32,
+              32,
+              0
+            ],
+            "philips/pet-static.img": [
+              32,
+              32,
+              36
+            ],
+            "philips/pet-static.syn": [
+              32,
+              32,
+              36
+            ],
+            "raw/pet-static.raw": [
+              32,
+              32,
+              36
+            ]
+          }
+        }
+      ]
     },
     "pet-dynamic": {
       "description": "NEMA phantom filled with Cu-61 (Phantom_NEMA_Cu61_kontrast8), dynamic with 3 frames (30 s, 60 s, 90 s), 31x31x39 voxels of 22.6875 x 22.6875 x 1.6456 mm",
