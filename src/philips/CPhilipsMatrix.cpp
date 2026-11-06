@@ -33,6 +33,7 @@
 
 #include "CMedIOMatrix.h"
 #include "CPhilipsFile.h"
+#include "CPhilipsDirectory.h"
 #include "CPhilipsMainHeader.h"
 #include "CPhilipsSubHeader.h"
 #include "CPhilipsSubHeaderImage.h"
@@ -419,15 +420,6 @@ bool writePhilipsFrame(CPhilipsFile* file, short frame, const CMedIOFrame& f)
     return false;
   }
 
-  // frames can be written in any order, but only once: CPhilipsFile writes
-  // a slice that exists already at its old position, which overwrites the
-  // following slices if the new (compressed) data is larger
-  if(file->numFrames() > 0 && file->numSlices(frame) > 0) {
-    E("frame %d of the Philips file has already been written", frame);
-    RETURN(false);
-    return false;
-  }
-
   CMedIOVolume v = f.volume;
   if(fitDataType(v, philipsTypes, false, false) == false) {
     RETURN(false);
@@ -445,6 +437,19 @@ bool writePhilipsFrame(CPhilipsFile* file, short frame, const CMedIOFrame& f)
   // every plane as slice: image files number their slices from 0, Syntegra files from 1
   const int firstSlice = (type == CPhilipsMainHeader::Syntegra) ? 1 : 0;
   const int sliceStep = qMax(static_cast<short>(1), mh->slcthk());
+
+  // a frame written before can be overwritten if the new data has the same
+  // slices; other slices of the old frame would remain otherwise
+  if(file->numFrames() > 0 && file->numSlices(frame) > 0) {
+    bool same = (file->numSlices(frame) == v.dimension(2));
+    for(int k=0; k < v.dimension(2) && same; k++)
+      same = (file->directory()->item(frame, firstSlice + k * sliceStep) != NULL);
+    if(same == false) {
+      E("frame %d of the Philips file holds other slices (%d) than the new data (%d)", frame, file->numSlices(frame), v.dimension(2));
+      RETURN(false);
+      return false;
+    }
+  }
   const qint64 planeVoxels = static_cast<qint64>(v.dimension(0)) * v.dimension(1);
   const int bytes = CMedIOVolume::bytesPerVoxel(v.dataType());
 

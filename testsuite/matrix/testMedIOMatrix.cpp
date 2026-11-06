@@ -1800,7 +1800,7 @@ void TestMedIOMatrix::philipsErrors()
   QVERIFY(out.writeMatrix(*data, *sh, 1, mh));
   out.close();
 
-  // the frames of Philips files can be written in any order, but only once
+  // the frames of Philips files can be written in any order and overwritten with the same slices
   {
     CPhilipsFile philipsOut(tmpFile("philips-order.img"), CPhilipsMainHeader::Image);
     QVERIFY(philipsOut.open(QIODevice::WriteOnly));
@@ -1809,8 +1809,16 @@ void TestMedIOMatrix::philipsErrors()
     mh->setMedIOData(NULL);
     QVERIFY(philipsOut.writeMatrix(*data, *sh, 2, mh));
     QVERIFY(philipsOut.writeMatrix(*data, *sh, 1, mh));
-    QVERIFY(philipsOut.writeMatrix(*data, *sh, 2, mh) == false);  // written already
     QVERIFY(philipsOut.writeMatrix(*data, *sh, 3, mh));
+
+    // frame 2 overwritten with values that compress worse
+    QByteArray other(*data);
+    for(int i=0; i < other.size() / 2; i++)
+      reinterpret_cast<qint16*>(other.data())[i] = static_cast<qint16>((i * 7919) % 30011);
+    QVERIFY(philipsOut.writeMatrix(other, *sh, 2, mh));
+    // other slices than the frame holds
+    const int sliceBytes = static_cast<CPhilipsSubHeaderImage*>(sh)->xdim() * static_cast<CPhilipsSubHeaderImage*>(sh)->ydim() * 2;
+    QVERIFY(philipsOut.writeMatrix(data->left(data->size() - sliceBytes), *sh, 2, mh) == false);
     philipsOut.close();
 
     CPhilipsFile in(tmpFile("philips-order.img"));
@@ -1820,7 +1828,7 @@ void TestMedIOMatrix::philipsErrors()
       QByteArray* frameData = NULL;
       CMedIOHeader* frameHeader = NULL;
       QVERIFY(in.readMatrix(frameData, frameHeader, CMedIOData::Philips, f));
-      QVERIFY(*frameData == *data);
+      QVERIFY(*frameData == (f == 2 ? other : *data));
       delete frameData;
       delete frameHeader;
     }
