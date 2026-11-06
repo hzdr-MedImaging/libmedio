@@ -29,6 +29,23 @@
 #include <stdlib.h>
 #include <iostream>
 
+// CECATFile::readMatrix() returns the matrix as char array: read it into a
+// 16 bit buffer and free it as the char array it is (casting the buffer
+// variable to char*& instead would break the strict aliasing rules)
+static bool readMatrix16(CECATFile& file, quint16*& buffer, unsigned int& len, short frame)
+{
+  char* data = NULL;
+  const bool result = file.readMatrix(data, len, frame);
+  buffer = reinterpret_cast<quint16*>(data);
+  return result;
+}
+
+static void freeMatrix16(quint16*& buffer)
+{
+  delete[] reinterpret_cast<char*>(buffer);
+  buffer = NULL;
+}
+
 // defines for generating the ECAT7 files
 #define NUM_DIMENSIONS 3
 #define X_DIMENSION 128
@@ -131,7 +148,7 @@ void matrixSizeTest(void)
 
   quint16* readBuf = NULL;
   unsigned int len = 0;
-  pEcatFile->readMatrix((char*&)readBuf, len, 1);
+  readMatrix16(*pEcatFile, readBuf, len, 1);
   cout << "read " << len << " bytes" << endl;
 
   counter = 0;
@@ -151,7 +168,7 @@ void matrixSizeTest(void)
 
   cout << "counter: " << counter << endl;
 
-  delete[] readBuf;
+  freeMatrix16(readBuf);
 
   pEcatFile->close();
   delete pEcatFile;
@@ -499,7 +516,7 @@ int main(int /*argc*/, char* /*argv*/[])
     quint16* readBuf = NULL;
     unsigned int len = 0;
 
-    if(file.readMatrix((char*&)readBuf, len, 1) == false)
+    if(readMatrix16(file, readBuf, len, 1) == false)
       cout << "Error during readMatrix() operation" << endl;
     else
     {
@@ -525,10 +542,10 @@ int main(int /*argc*/, char* /*argv*/[])
         cout << "successfully compared read with written matrixData!" << endl;
 
       // free the read matrix data
-      delete[] readBuf;
+      freeMatrix16(readBuf);
     }
 
-    if(file.readMatrix((char*&)readBuf, len, 2) == false)
+    if(readMatrix16(file, readBuf, len, 2) == false)
       cout << "Error during readMatrix() operation" << endl;
     else
     {
@@ -554,7 +571,7 @@ int main(int /*argc*/, char* /*argv*/[])
         cout << "successfully compared read with written matrixData!" << endl;
 
       // free the read matrix data
-      delete[] readBuf;        
+      freeMatrix16(readBuf);        
     }
 
     // for testing that the directory list stuff works above > 31 frames we read out
@@ -602,7 +619,7 @@ int main(int /*argc*/, char* /*argv*/[])
         break;
       }
          
-      if(file.readMatrix((char*&)readBuf, len, i+3) == false)
+      if(readMatrix16(file, readBuf, len, i+3) == false)
       {
         cout << "ERROR: in reading matrix data of frame #" << i+3;
         delete subHeader;
@@ -617,7 +634,7 @@ int main(int /*argc*/, char* /*argv*/[])
         {
           cout << "ERROR: read MatrixData != written MatrixData at position " << j << " (" << FilePos2ECATBlock(j)<< ") in frame #" << i+3 << endl;
           cout << "ERROR: read: " << hex << uppercase << readBuf[j] << " - written: " << matrixData_frame2[j];
-          delete[] readBuf;
+          freeMatrix16(readBuf);
           delete subHeader;
           success = false;
           break;
@@ -625,7 +642,7 @@ int main(int /*argc*/, char* /*argv*/[])
       }
 
       // free the read matrix data
-      delete[] readBuf;  
+      freeMatrix16(readBuf);  
       delete subHeader;
     }
     cout << endl;
