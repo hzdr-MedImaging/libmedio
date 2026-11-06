@@ -19,9 +19,11 @@
 
 // Tests of writing Philips image files with CPhilipsFile. The directory of
 // a Philips file holds 31 items per directory list; further lists are
-// stored between the data blocks. Files with more than 31 slices written in
-// any frame or slice order have to be read back unchanged, and no directory
-// list may overlap the data of a slice (checked on block level).
+// stored between the data blocks, and the slices are stored compressed.
+// Files with more than 31 slices written in any frame or slice order, and
+// files whose slices are overwritten with data of another compressed size,
+// have to be read back unchanged, and no directory list or slice may
+// overlap the data of another slice (checked on block level).
 
 #include <CPhilipsFile.h>
 #include <CPhilipsMainHeader.h>
@@ -75,6 +77,47 @@ static QList<Block> directoryBlocks(const QString& fileName, int* items)
   return blocks;
 }
 
+
+// slice with values that compress well (variant 0) or hardly at all (variant 1)
+static QByteArray slice(int frame, int slice, int variant)
+{
+  QByteArray plane(nx * ny * 2, '\0');
+  quint32 seed = 1 + frame * 1000 + slice;
+  for(int i=0; i < nx * ny; i++) {
+    seed = seed * 1103515245u + 12345u;
+    reinterpret_cast<qint16*>(plane.data())[i] = (variant == 0) ? static_cast<qint16>(frame * 100 + slice)
+                                                                : static_cast<qint16>(seed >> 16);
+  }
+  return plane;
+}
+
+// write the slices of the given frames with the given variant (slices in descending order if reversed)
+static bool writeSlices(CPhilipsFile& file, CPhilipsSubHeaderImage* subHeader, const QList<int>& frames, int variant, bool reversed)
+{
+  foreach(int frame, frames) {
+    for(int s=0; s < slices; s++) {
+      const int k = reversed ? slices - 1 - s : s;
+      const QByteArray plane = slice(frame, k, variant);
+      subHeader->setSlcnum(k);
+      if(file.writeMatrix(plane.constData(), plane.size(), *subHeader, frame, k) == false)
+        return false;
+    }
+  }
+  return true;
+}
+
+// directory blocks of a file do not overlap
+static QString overlap(const QString& path, int* items)
+{
+  QList<Block> blocks = directoryBlocks(path, items);
+  std::sort(blocks.begin(), blocks.end(), [](const Block& a, const Block& b) { return a.start < b.start; });
+  for(int i=1; i < blocks.size(); i++)
+    if(blocks[i].start <= blocks[i-1].end)
+      return QString("%1 (blocks %2-%3) overlaps %4 (blocks %5-%6)").arg(blocks[i].what).arg(blocks[i].start).arg(blocks[i].end)
+             .arg(blocks[i-1].what).arg(blocks[i-1].start).arg(blocks[i-1].end);
+  return QString();
+}
+
 class TestPhilipsWrite : public QObject
 {
   Q_OBJECT
@@ -86,6 +129,7 @@ class TestPhilipsWrite : public QObject
     void initTestCase() { QVERIFY(m_tmp.isValid()); }
     void writeOrder_data();
     void writeOrder();
+    void overwrite();
 };
 
 void TestPhilipsWrite::writeOrder_data()
@@ -165,6 +209,65 @@ void TestPhilipsWrite::writeOrder()
     QVERIFY2(blocks[i].start > blocks[i-1].end,
              qPrintable(QString("%1 (blocks %2-%3) overlaps %4 (blocks %5-%6)").arg(blocks[i].what).arg(blocks[i].start).arg(blocks[i].end)
                         .arg(blocks[i-1].what).arg(blocks[i-1].start).arg(blocks[i-1].end)));
+}
+
+// slices overwritten with data of a larger and of a smaller compressed size
+void TestPhilipsWrite::overwrite()
+{
+  const QString path = m_tmp.filePath("overwrite.img");
+  QMap<QPair<int, int>, int> variants;  // (frame, slice) -> variant written last
+  {
+    CPhilipsFile file(path, CPhilipsMainHeader::Image);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    QScopedPointer<CPhilipsMainHeader> mainHeader(file.createEmptyMainHeader());
+    mainHeader->setFiltyp(CPhilipsMainHeader::Image);
+    QVERIFY(file.writeMainHeader(*mainHeader));
+    QScopedPointer<CPhilipsSubHeader> subHeaderPtr(file.createEmptySubHeader());
+    CPhilipsSubHeaderImage* subHeader = static_cast<CPhilipsSubHeaderImage*>(subHeaderPtr.data());
+    subHeader->setDatype(CPhilipsSubHeader::SignedShort);
+    subHeader->setXdim(nx);
+    subHeader->setYdim(ny);
+    subHeader->setImgscl(1.0f);
+
+    // frames 1-3 compress well, then frame 2 (descending slices) and frame 1
+    // hardly at all, then single slices of frame 2 well again
+    QVERIFY(writeSlices(file, subHeader, QList<int>() << 1 << 2 << 3, 0, false));
+    QVERIFY(writeSlices(file, subHeader, QList<int>() << 2, 1, true));
+    QVERIFY(writeSlices(file, subHeader, QList<int>() << 1, 1, false));
+    for(int f=1; f <= 3; f++)
+      for(int k=0; k < slices; k++)
+        variants[qMakePair(f, k)] = (f == 3) ? 0 : 1;
+
+    foreach(int k, QList<int>() << 0 << 17 << 38) {
+      const QByteArray plane = slice(2, k, 0);
+      subHeader->setSlcnum(k);
+      QVERIFY(file.writeMatrix(plane.constData(), plane.size(), *subHeader, 2, k));
+      variants[qMakePair(2, k)] = 0;
+    }
+    file.close();
+  }
+
+  CPhilipsFile file(path);
+  QVERIFY(file.open(QIODevice::ReadOnly));
+  QCOMPARE(static_cast<int>(file.numFrames()), 3);
+  for(int f=1; f <= 3; f++)
+    for(int k=0; k < slices; k++) {
+      QByteArray* data = NULL;
+      CPhilipsSubHeader* subHeader = NULL;
+      QVERIFY2(file.readMatrix(data, subHeader, f, k), qPrintable(QString("frame %1 slice %2").arg(f).arg(k)));
+      QScopedPointer<QByteArray> dataGuard(data);
+      QScopedPointer<CPhilipsSubHeader> subHeaderGuard(subHeader);
+      QCOMPARE(static_cast<const CPhilipsSubHeaderImage*>(subHeader)->xdim(), static_cast<short>(nx));
+      QCOMPARE(static_cast<const CPhilipsSubHeaderImage*>(subHeader)->slcnum(), static_cast<short>(k));
+      QVERIFY2(data->left(nx * ny * 2) == slice(f, k, variants[qMakePair(f, k)]),
+               qPrintable(QString("data of frame %1 slice %2").arg(f).arg(k)));
+    }
+  file.close();
+
+  int items = 0;
+  const QString error = overlap(path, &items);
+  QVERIFY2(error.isEmpty(), qPrintable(error));
+  QCOMPARE(items, 3 * slices + 1);
 }
 
 QTEST_GUILESS_MAIN(TestPhilipsWrite)
