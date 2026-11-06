@@ -1,0 +1,50 @@
+{
+  "generator": "pydicom 3.0.2",
+  "format": "dicom",
+  "header": {
+    "modality": "PT",
+    "manufacturer": "SIEMENS",
+    "model": "1208",
+    "rows": 440,
+    "columns": 440,
+    "slices": 159,
+    "frames": 1,
+    "pixel_spacing_mm": [
+      1.65,
+      1.65
+    ],
+    "slice_spacing_mm": 1.6455696202531647,
+    "image_orientation": [
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0
+    ],
+    "patient_position": "HFS",
+    "units": "BQML"
+  },
+  "frames": [
+    {
+      "frame_reference_time_ms": 900000.0,
+      "frame_duration_ms": 1800000,
+      "first_position_mm": [
+        -362.142,
+        -541.255,
+        -877.002
+      ],
+      "last_position_mm": [
+        -362.142,
+        -541.255,
+        -617.002
+      ],
+      "raw_min": 0,
+      "raw_max": 32767,
+      "raw_sum": 7482187858,
+      "scaled_min": 0.0,
+      "scaled_max": 55113.373126,
+      "scaled_sum": 12584875369.023125
+    }
+  ]
+}

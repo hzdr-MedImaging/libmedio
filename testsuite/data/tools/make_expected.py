@@ -1,0 +1,499 @@
+#!/usr/bin/env python3
+#
+# libmedio - C++ I/O Library for loading/saving medical data formats
+#            https://github.com/hzdr-MedImaging/libmedio
+#
+# Copyright (C) 2004-2026 hzdr.de and contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+"""Generate the expected values (<file>.json) of the test data files.
+
+The data files are read with nibabel (https://nipy.org/nibabel) as an
+independent implementation, so that libmedio is not validated against
+itself. See ../README.md for the layout of the test data.
+
+Without arguments, the expected values of all data files which do not have
+a <file>.json yet are generated. Files can also be given explicitly (path
+relative to the test data directory or absolute).
+
+Supported formats:
+  ecat/   ECAT7 image files (file types Image8/16, Volume8/16)
+  nifti/  single file NIfTI-1/NIfTI-2 (.nii, .nii.gz) and header/image
+          pairs (directory holding <name>.hdr and <name>.img)
+  raw/    raw voxel data, described by the "layout" entry of the file in
+          datasets.json (dims, data_type, byte_order)
+  dicom/  DICOM image series (directory holding the slices of one series),
+          read with pydicom
+  interfile/  Interfile 3.3 images: a single file holding header and data,
+          or a directory holding the header (.hdr) and the data file it names
+"""
+
+import argparse
+import json
+import os
+import sys
+
+import numpy as np
+import nibabel as nib
+from nibabel import ecat
+from nibabel.volumeutils import array_from_file
+
+DATA_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# entries of a format directory which are no data files
+NON_DATA_FILES = ('PLACEHOLDER.md', 'README.md')
+
+ECAT_BLOCK_SIZE = 512
+
+# ECAT7 file types holding image sub headers
+ECAT7_IMAGE_FILE_TYPES = (2, 6, 7, 10)  # Image16, Volume8, Volume16, Image8
+
+# ECAT7 data types stored in little endian (VAX) byte order
+ECAT7_VAX_DATA_TYPES = (2, 3, 4)
+
+
+def number(value):
+    # convert numpy scalars to plain JSON numbers
+    value = np.asarray(value).item()
+    return value if isinstance(value, int) else float(value)
+
+
+def stats(raw):
+    # statistics of stored (unscaled) voxel values
+    if np.issubdtype(raw.dtype, np.integer):
+        raw_sum = int(raw.astype(np.int64).sum())
+    else:
+        raw_sum = float(raw.astype(np.float64).sum())
+    return {'raw_min': number(raw.min()), 'raw_max': number(raw.max()), 'raw_sum': raw_sum}
+
+
+#------------------------------------------------------------------------------
+# ECAT7
+
+def ecat7_matrix_index(matrix_id):
+    # decode an ECAT7 matrix id (as defined by the ECAT7 file format)
+    return {
+        'frame': matrix_id & 0x1FF,
+        'plane': ((matrix_id >> 16) & 0xFF) + (((matrix_id >> 9) & 0x3) << 8),
+        'gate': (matrix_id >> 24) & 0x3F,
+        'bed': (matrix_id >> 12) & 0xF,
+        'data': ((matrix_id >> 9) & 0x4) | ((matrix_id >> 30) & 0x3),
+    }
+
+
+def expected_ecat(path, file_info):
+    img = ecat.load(path)
+    hdr = img.header
+    sub = img.get_subheaders()
+    mlist = img.get_mlist()
+
+    file_type = int(hdr['file_type'])
+    if file_type not in ECAT7_IMAGE_FILE_TYPES:
+        raise ValueError(f'ECAT7 file type {file_type} is not supported by this script, '
+                         'please write the expected values by hand')
+
+    expected = {
+        'generator': f'nibabel {nib.__version__}',
+        'format': 'ecat7',
+        'main_header': {
+            'file_type': file_type,
+            'num_frames': int(hdr['num_frames']),
+            'num_planes': int(hdr['num_planes']),
+            'calibration_factor': number(hdr['ecat_calibration_factor']),
+            'data_units': hdr['data_units'].item().decode('latin-1').rstrip('\0 '),
+        },
+        'matrices': [],
+    }
+
+    for i, entry in enumerate(mlist):
+        if entry[0] <= 0:
+            continue
+
+        sh = sub.subheaders[i]
+        code = int(sh['data_type'])
+        dtype = np.dtype(ecat.data_type_codes.dtype[code])
+        dtype = dtype.newbyteorder('<' if code in ECAT7_VAX_DATA_TYPES else '>')
+        shape = (int(sh['x_dimension']), int(sh['y_dimension']), int(sh['z_dimension']))
+
+        # stored voxel values without any scaling or reorientation
+        raw = array_from_file(shape, dtype, sub.fileobj, offset=int(entry[1]) * ECAT_BLOCK_SIZE)
+
+        matrix = ecat7_matrix_index(int(entry[0]))
+        matrix.update({
+            'data_type': code,
+            'dims': list(shape),
+            'pixel_size_cm': [number(sh['x_pixel_size']), number(sh['y_pixel_size']), number(sh['z_pixel_size'])],
+            'scale_factor': number(sh['scale_factor']),
+            'frame_start_time_ms': int(sh['frame_start_time']),
+            'frame_duration_ms': int(sh['frame_duration']),
+        })
+        matrix.update(stats(raw))
+        expected['matrices'].append(matrix)
+
+    return expected
+
+
+#------------------------------------------------------------------------------
+# NIfTI
+
+def expected_nifti(path, file_info):
+    if os.path.isdir(path):
+        # header/image pair stored in a dataset directory
+        headers = [f for f in os.listdir(path) if f.endswith('.hdr')]
+        if len(headers) != 1:
+            raise ValueError('a NIfTI pair directory has to contain exactly one .hdr file')
+        img = nib.load(os.path.join(path, headers[0]))
+        if type(img) not in (nib.Nifti1Pair, nib.Nifti2Pair):
+            raise ValueError('not a NIfTI-1/NIfTI-2 header/image pair')
+        fmt = 'nifti2-pair' if isinstance(img, nib.Nifti2Pair) else 'nifti1-pair'
+    else:
+        img = nib.load(path)
+        if type(img) not in (nib.Nifti1Image, nib.Nifti2Image):
+            raise ValueError('not a single file NIfTI-1/NIfTI-2 file')
+        fmt = 'nifti2' if isinstance(img, nib.Nifti2Image) else 'nifti1'
+
+    hdr = img.header
+    ndim = int(hdr['dim'][0])
+
+    expected = {
+        'generator': f'nibabel {nib.__version__}',
+        'format': fmt,
+        'header': {
+            'dim': [int(v) for v in hdr['dim'][:ndim + 1]],
+            'pixdim': [number(v) for v in hdr['pixdim'][:ndim + 1]],
+            'datatype': int(hdr['datatype']),
+            'bitpix': int(hdr['bitpix']),
+            # nibabel moves the scaling into the data object on load
+            'scl_slope': number(img.dataobj.slope),
+            'scl_inter': number(img.dataobj.inter),
+            'qform_code': int(hdr['qform_code']),
+            'sform_code': int(hdr['sform_code']),
+            'quatern': [number(hdr['quatern_b']), number(hdr['quatern_c']), number(hdr['quatern_d'])],
+            'qoffset': [number(hdr['qoffset_x']), number(hdr['qoffset_y']), number(hdr['qoffset_z'])],
+            'srow': [[number(v) for v in hdr[f'srow_{axis}']] for axis in 'xyz'],
+            'xyzt_units': int(hdr['xyzt_units']),
+            'byte_order': 'big' if hdr.endianness == '>' else 'little',
+        },
+        'volumes': [],
+    }
+
+    # stored (unscaled) voxel values per 3D volume
+    raw = np.asanyarray(img.dataobj.get_unscaled())
+    volumes = raw.reshape(raw.shape[:3] + (-1,), order='F') if raw.ndim > 3 else raw[..., np.newaxis]
+    for v in range(volumes.shape[3]):
+        expected['volumes'].append(stats(volumes[..., v]))
+
+    return expected
+
+
+#------------------------------------------------------------------------------
+# raw voxel data
+
+RAW_DATA_TYPES = ('uint8', 'int8', 'uint16', 'int16', 'uint32', 'int32', 'float32', 'float64')
+
+
+def expected_raw(path, file_info):
+    layout = file_info.get('layout')
+    if not layout:
+        raise ValueError('raw files need a "layout" entry (dims, data_type, byte_order) in datasets.json')
+    if layout.get('data_type') not in RAW_DATA_TYPES:
+        raise ValueError(f'unsupported raw data type {layout.get("data_type")} (supported: {", ".join(RAW_DATA_TYPES)})')
+
+    dtype = np.dtype(layout['data_type']).newbyteorder('>' if layout.get('byte_order') == 'big' else '<')
+    dims = [int(d) for d in layout['dims']]
+    size = os.path.getsize(path)
+    if size != int(np.prod(dims)) * dtype.itemsize:
+        raise ValueError(f'file size {size} does not match the layout {dims} x {dtype.itemsize} bytes')
+
+    # first dimension varies fastest
+    raw = np.fromfile(path, dtype=dtype).reshape(dims, order='F')
+    volumes = raw.reshape(raw.shape[:3] + (-1,), order='F') if raw.ndim > 3 else raw[..., np.newaxis]
+
+    return {
+        'generator': f'numpy {np.__version__}',
+        'format': 'raw',
+        'layout': layout,
+        'volumes': [stats(volumes[..., v]) for v in range(volumes.shape[3])],
+    }
+
+
+#------------------------------------------------------------------------------
+# DICOM
+
+def dicom_volumes(path):
+    """Read a DICOM image series and return (slices, frames): the slices of the
+    first frame and per frame the list of slices, sorted by their position along
+    the slice normal (voxel index order: column, row, slice)."""
+    import pydicom
+
+    files = sorted(os.path.join(path, f) for f in os.listdir(path) if not f.startswith('.'))
+    dcs = [pydicom.dcmread(f) for f in files]
+    if len({d.SeriesInstanceUID for d in dcs}) != 1:
+        raise ValueError('a DICOM directory has to contain exactly one series')
+
+    iop = np.array([float(v) for v in dcs[0].ImageOrientationPatient])
+    normal = np.cross(iop[:3], iop[3:])
+    frames = {}
+    for d in dcs:
+        frames.setdefault(float(d.get('FrameReferenceTime', 0)), []).append(d)
+    return [sorted(frames[t], key=lambda d: float(np.dot(normal, [float(v) for v in d.ImagePositionPatient])))
+            for t in sorted(frames)], normal
+
+
+def expected_dicom(path, file_info):
+    import pydicom
+
+    if not os.path.isdir(path):
+        raise ValueError('DICOM data has to be stored as directory holding the slices of one series')
+
+    frames, normal = dicom_volumes(path)
+    d0 = frames[0][0]
+    positions = [float(np.dot(normal, [float(v) for v in d.ImagePositionPatient])) for d in frames[0]]
+    spacing = np.diff(positions)
+
+    expected = {
+        'generator': f'pydicom {pydicom.__version__}',
+        'format': 'dicom',
+        'header': {
+            'modality': str(d0.Modality),
+            'manufacturer': str(d0.get('Manufacturer', '')),
+            'model': str(d0.get('ManufacturerModelName', '')),
+            'rows': int(d0.Rows),
+            'columns': int(d0.Columns),
+            'slices': len(frames[0]),
+            'frames': len(frames),
+            'pixel_spacing_mm': [float(v) for v in d0.PixelSpacing],
+            'slice_spacing_mm': float(np.mean(spacing)) if len(spacing) else None,
+            'image_orientation': [float(v) for v in d0.ImageOrientationPatient],
+            'patient_position': str(d0.get('PatientPosition', '')),
+            'units': str(d0.get('Units', '')),
+        },
+        'frames': [],
+    }
+
+    for slices in frames:
+        if len(slices) != len(frames[0]):
+            raise ValueError('all frames of a DICOM series need the same number of slices')
+        raw = np.stack([d.pixel_array for d in slices]).astype(np.float64)
+        slope = np.array([float(d.get('RescaleSlope', 1)) for d in slices])[:, None, None]
+        inter = np.array([float(d.get('RescaleIntercept', 0)) for d in slices])[:, None, None]
+        scaled = raw * slope + inter
+        frame = {
+            'frame_reference_time_ms': float(slices[0].get('FrameReferenceTime', 0)),
+            'frame_duration_ms': int(slices[0].get('ActualFrameDuration', 0)),
+            'first_position_mm': [float(v) for v in slices[0].ImagePositionPatient],
+            'last_position_mm': [float(v) for v in slices[-1].ImagePositionPatient],
+        }
+        frame.update(stats(raw.astype(np.int64) if np.all(raw == np.round(raw)) else raw))
+        frame.update({'scaled_min': float(scaled.min()), 'scaled_max': float(scaled.max()), 'scaled_sum': float(scaled.sum())})
+        expected['frames'].append(frame)
+
+    return expected
+
+
+#------------------------------------------------------------------------------
+# Interfile (own parser, as nibabel does not support Interfile)
+
+INTERFILE_NUMBER_FORMATS = {
+    ('signed integer', 1): 'i1', ('signed integer', 2): 'i2', ('signed integer', 4): 'i4',
+    ('unsigned integer', 1): 'u1', ('unsigned integer', 2): 'u2', ('unsigned integer', 4): 'u4',
+    ('short float', 4): 'f4', ('float', 4): 'f4', ('long float', 8): 'f8',
+}
+
+
+def interfile_header(path):
+    """Parse an Interfile header into a list of (key, value) pairs (keys in
+    lower case, without leading '!'), up to the "END OF INTERFILE" key."""
+    with open(path, 'rb') as f:
+        data = f.read()
+    end = data.upper().find(b'!END OF INTERFILE')
+    if not data.lstrip().upper().startswith(b'!INTERFILE') or end < 0:
+        raise ValueError('not an Interfile header')
+    entries = []
+    for line in data[:end].decode('latin-1').splitlines():
+        line = line.split(';', 1)[0] if line.lstrip().startswith(';') else line
+        if ':=' not in line:
+            continue
+        key, value = line.split(':=', 1)
+        entries.append((key.strip().lstrip('!').strip().lower(), value.strip()))
+    return entries
+
+
+def expected_interfile(path, file_info):
+    if os.path.isdir(path):
+        headers = [f for f in os.listdir(path) if f.lower().endswith('.hdr')]
+        if len(headers) != 1:
+            raise ValueError('an Interfile directory has to contain exactly one .hdr file')
+        header_file = os.path.join(path, headers[0])
+    else:
+        header_file = path
+
+    entries = interfile_header(header_file)
+    keys = dict(entries)
+    data_file = keys.get('name of data file', '')
+    data_file = os.path.join(os.path.dirname(header_file), data_file) if data_file else header_file
+    offset = int(keys.get('data offset in bytes', '0') or 0)
+    byte_order = '>' if keys.get('imagedata byte order', 'BIGENDIAN').upper() == 'BIGENDIAN' else '<'
+
+    # one group per frame group (dynamic data) or a single group (static data)
+    groups, current = [], None
+    for key, value in entries:
+        if key == 'frame group number' or (key == 'matrix size [1]' and current is None):
+            current = {}
+            groups.append(current)
+        if current is not None:
+            current[key] = value
+
+    expected = {
+        'generator': 'own Interfile parser (make_expected.py)',
+        'format': 'interfile',
+        'header': {
+            'version_of_keys': keys.get('version of keys', ''),
+            'type_of_data': keys.get('type of data', ''),
+            'byte_order': 'big' if byte_order == '>' else 'little',
+            'data_offset': offset,
+            'units': keys.get('units', ''),
+        },
+        'frames': [],
+    }
+
+    pos = offset
+    for group in groups:
+        dims = [int(group[f'matrix size [{i}]']) for i in (1, 2, 3)]
+        fmt = INTERFILE_NUMBER_FORMATS[(group.get('number format', keys.get('number format', '')).lower(),
+                                        int(group.get('number of bytes per pixel', keys.get('number of bytes per pixel', 0))))]
+        dtype = np.dtype(fmt).newbyteorder(byte_order)
+        count = int(np.prod(dims))
+        raw = np.fromfile(data_file, dtype=dtype, count=count, offset=pos).reshape(dims, order='F')
+        if raw.size != count:
+            raise ValueError('Interfile data file too short')
+        pos += count * dtype.itemsize
+        frame = {
+            'dims': dims,
+            'number_format': fmt,
+            'pixel_size_mm': [float(group[f'scaling factor (mm/pixel) [{i}]']) for i in (1, 2, 3)],
+            'duration_s': float(group.get('image duration (sec)', keys.get('image duration (sec)', 0))),
+            'rescale_slope': float(group.get('data rescale slope', 1)),
+            'rescale_offset': float(group.get('data rescale offset', 0)),
+            'units': group.get('units', keys.get('units', '')),
+        }
+        frame.update(stats(raw))
+        expected['frames'].append(frame)
+
+    return expected
+
+
+GENERATORS = {
+    'ecat': expected_ecat,
+    'nifti': expected_nifti,
+    'raw': expected_raw,
+    'dicom': expected_dicom,
+    'interfile': expected_interfile,
+}
+
+
+#------------------------------------------------------------------------------
+
+def data_files(data_dir):
+    # all data files/directories of the format directories (relative paths)
+    result = []
+    for fmt in sorted(os.listdir(data_dir)):
+        fmt_dir = os.path.join(data_dir, fmt)
+        if fmt == 'tools' or not os.path.isdir(fmt_dir):
+            continue
+        for name in sorted(os.listdir(fmt_dir)):
+            if name.startswith('.') or name.endswith('.json') or name in NON_DATA_FILES:
+                continue
+            result.append(f'{fmt}/{name}')
+    return result
+
+
+def listed_files(data_dir):
+    # file path -> (dataset name, file entry)
+    with open(os.path.join(data_dir, 'datasets.json'), encoding='utf-8') as f:
+        datasets = json.load(f).get('datasets', {})
+    return {path: (name, info) for name, dataset in datasets.items()
+            for path, info in dataset.get('files', {}).items()}
+
+
+def process(data_dir, rel_path, listed):
+    fmt = rel_path.split('/')[0]
+    if fmt not in GENERATORS:
+        raise ValueError(f'no generator for format directory "{fmt}" (supported: {", ".join(GENERATORS)}), '
+                         'please write the expected values by hand')
+
+    dataset = os.path.basename(rel_path).split('.')[0]
+    listed_dataset, file_info = listed.get(rel_path, (None, {}))
+    if listed_dataset != dataset:
+        print(f'{rel_path}: warning: not listed under dataset "{dataset}" in datasets.json')
+
+    expected = GENERATORS[fmt](os.path.join(data_dir, rel_path), file_info)
+    with open(os.path.join(data_dir, rel_path + '.json'), 'w', encoding='utf-8') as f:
+        json.dump(expected, f, indent=2, ensure_ascii=False)
+        f.write('\n')
+    print(f'{rel_path}.json written')
+
+
+def remove_placeholders(data_dir, listed):
+    # remove the PLACEHOLDER.md of format directories whose files all exist
+    for fmt in {path.split('/')[0] for path in listed}:
+        placeholder = os.path.join(data_dir, fmt, 'PLACEHOLDER.md')
+        complete = all(os.path.exists(os.path.join(data_dir, p)) for p in listed if p.startswith(fmt + '/'))
+        if complete and os.path.exists(placeholder):
+            os.remove(placeholder)
+            print(f'{fmt}/PLACEHOLDER.md removed')
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('files', nargs='*', metavar='FILE', help='data files (default: all without .json)')
+    parser.add_argument('--force', action='store_true', help='regenerate existing expected values')
+    parser.add_argument('--data-dir', default=DATA_DIR, help='test data directory (default: %(default)s)')
+    args = parser.parse_args()
+
+    data_dir = os.path.abspath(args.data_dir)
+    listed = listed_files(data_dir)
+
+    if args.files:
+        files = [os.path.relpath(os.path.abspath(f) if os.path.exists(f) else os.path.join(data_dir, f), data_dir)
+                 for f in args.files]
+        files = [f.replace(os.sep, '/') for f in files]
+    else:
+        files = [f for f in data_files(data_dir)
+                 if args.force or not os.path.exists(os.path.join(data_dir, f + '.json'))]
+
+    failed = False
+    for rel_path in files:
+        try:
+            process(data_dir, rel_path, listed)
+        except Exception as e:  # report all files before failing
+            print(f'{rel_path}: error: {e}', file=sys.stderr)
+            failed = True
+
+    remove_placeholders(data_dir, listed)
+
+    pending = [p for p in listed if not os.path.exists(os.path.join(data_dir, p))]
+    for path in pending:
+        print(f'{path}: listed in datasets.json but missing')
+
+    with open(os.path.join(data_dir, 'datasets.json'), encoding='utf-8') as f:
+        if 'TODO' in f.read():
+            print('datasets.json: note: still contains TODO entries')
+
+    return 1 if failed else 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

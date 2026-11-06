@@ -1,0 +1,73 @@
+{
+  "generator": "own Interfile parser (make_expected.py)",
+  "format": "interfile",
+  "header": {
+    "version_of_keys": "3.3",
+    "type_of_data": "Dynamic",
+    "byte_order": "little",
+    "data_offset": 0,
+    "units": "kBq/cc"
+  },
+  "frames": [
+    {
+      "dims": [
+        31,
+        31,
+        39
+      ],
+      "number_format": "i2",
+      "pixel_size_mm": [
+        22.6875,
+        22.6875,
+        1.6455695000000001
+      ],
+      "duration_s": 30.0,
+      "rescale_slope": 0.0012551620602607727,
+      "rescale_offset": -0.0,
+      "units": "kBq/cc",
+      "raw_min": -154,
+      "raw_max": 32767,
+      "raw_sum": 12405793
+    },
+    {
+      "dims": [
+        31,
+        31,
+        39
+      ],
+      "number_format": "i2",
+      "pixel_size_mm": [
+        22.6875,
+        22.6875,
+        1.6455695000000001
+      ],
+      "duration_s": 60.0,
+      "rescale_slope": 0.001238392200320959,
+      "rescale_offset": -0.0,
+      "units": "kBq/cc",
+      "raw_min": -193,
+      "raw_max": 32767,
+      "raw_sum": 12585024
+    },
+    {
+      "dims": [
+        31,
+        31,
+        39
+      ],
+      "number_format": "i2",
+      "pixel_size_mm": [
+        22.6875,
+        22.6875,
+        1.6455695000000001
+      ],
+      "duration_s": 90.0,
+      "rescale_slope": 0.0011173111852258444,
+      "rescale_offset": -0.0,
+      "units": "kBq/cc",
+      "raw_min": -104,
+      "raw_max": 32767,
+      "raw_sum": 14044188
+    }
+  ]
+}
