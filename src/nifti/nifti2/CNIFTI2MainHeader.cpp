@@ -529,8 +529,17 @@ bool CNIFTI2MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIO
     break;
 
     // Conversion from Concorde microPET and Philips headers is not implemented yet
-    case CMedIOHeader::ConcordeMicroPetMainHeader:
+    // Conversion from a Philips main header and the image sub header of a slice
     case CMedIOHeader::PhilipsMainHeader:
+    {
+      QString error;
+      bResult = convertNIFTIFromPhilips(*this, static_cast<const CPhilipsMainHeader*>(mainHeader), static_cast<const CPhilipsSubHeader*>(subHeader), &error);
+      if(bResult == false)
+        E("%s", error.toLatin1().constData());
+    }
+    break;
+
+    case CMedIOHeader::ConcordeMicroPetMainHeader:
       E("medio mainheader %d conversion not implemented!", mainHeader->headerFormat());
     break;
 

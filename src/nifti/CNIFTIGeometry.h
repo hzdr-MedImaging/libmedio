@@ -52,6 +52,8 @@
 #include "CECATSubHeader.h"
 #include "CECAT7MainHeader.h"
 #include "CECAT7SubHeaderImage.h"
+#include "CPhilipsMainHeader.h"
+#include "CPhilipsSubHeader.h"
 #include "CNIFTIMainHeader.h"
 #include "CNIFTI1MainHeader.h"
 #include "CNIFTI2MainHeader.h"
@@ -182,6 +184,34 @@ static bool convertNIFTIFromECAT(H& h, const CECATMainHeader* mainHeader, const 
   h.setScl_Inter(0.0);
 
   return true;
+}
+
+//=============================================================================================
+// Philips -> NIfTI: via the ECAT7 representation of the Philips headers
+// (existing Philips -> ECAT7 conversions), see CNIFTIConverter.h
+
+template <class H>
+static bool convertNIFTIFromPhilips(H& h, const CPhilipsMainHeader* mainHeader, const CPhilipsSubHeader* subHeader, QString* error = NULL)
+{
+  if(subHeader == NULL ||
+     (subHeader->subHeaderType() != CPhilipsSubHeader::Image && subHeader->subHeaderType() != CPhilipsSubHeader::Syntegra)) {
+    if(error)
+      *error = "only Philips image data can be converted to NIfTI";
+    return false;
+  }
+
+  CECAT7MainHeader ecatMainHeader;
+  CECAT7SubHeaderImage ecatSubHeader;
+  if(ecatMainHeader.convertFrom(mainHeader, subHeader) == false ||
+     ecatSubHeader.convertFrom(subHeader, mainHeader) == false) {
+    if(error)
+      *error = "unable to convert the Philips headers";
+    return false;
+  }
+
+  // the scale factor of the sub header is in physical units already
+  ecatMainHeader.setCalibration_Factor(1.0f);
+  return convertNIFTIFromECAT(h, &ecatMainHeader, &ecatSubHeader, error);
 }
 
 //=============================================================================================
@@ -332,9 +362,10 @@ static bool ecatGeometryFromNIFTIHeader(const H& h, ECATGeometryFromNIFTI& g, QS
   for(int i=0; i < 3; i++)
     p[i] = m[i][0] * v[0] + m[i][1] * v[1] + m[i][2] * v[2] + m[i][3];
 
-  g.xOffset = p[0] + (g.dims[0] - 1) / 2.0 * g.pixelSize[0];
-  g.yOffset = p[1] + (g.dims[1] - 1) / 2.0 * g.pixelSize[1];
-  g.bedPosition = p[2];
+  // positions rounded to 0.1 um to remove the rounding noise of the float affine
+  g.xOffset = std::floor((p[0] + (g.dims[0] - 1) / 2.0 * g.pixelSize[0]) * 1e4 + 0.5) / 1e4;
+  g.yOffset = std::floor((p[1] + (g.dims[1] - 1) / 2.0 * g.pixelSize[1]) * 1e4 + 0.5) / 1e4;
+  g.bedPosition = std::floor(p[2] * 1e4 + 0.5) / 1e4;
   g.frames = (h.dim(0) >= 4 && h.dim(4) > 1) ? static_cast<int>(h.dim(4)) : 1;
 
   // pixdim[4] is only meaningful for 4D data

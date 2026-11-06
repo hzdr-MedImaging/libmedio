@@ -113,6 +113,8 @@ add_subdirectory(examples/ecat/showheader)
 add_subdirectory(examples/ecat/sumSino)
 add_subdirectory(examples/nifti/showheader)
 add_subdirectory(examples/nifti2ecat)
+add_subdirectory(examples/philips2nifti)
+add_subdirectory(examples/nifti2philips)
 
 # Enable CTest support and add the test suite
 enable_testing()

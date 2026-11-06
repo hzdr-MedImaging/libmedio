@@ -29,6 +29,11 @@
 #include "CECAT7MainHeader.h"
 #include "CECAT7SubHeaderImage.h"
 #include "CMedIO.h"
+#include "CMedIODataFactory.h"
+#include "CPhilipsFile.h"
+#include "CPhilipsMainHeader.h"
+#include "CPhilipsSubHeader.h"
+#include "CPhilipsSubHeaderImage.h"
 
 #include <QByteArray>
 #include <QFile>
@@ -169,19 +174,21 @@ NIFTIInfo niftiInfo(const H* h)
 
 // adjust the NIfTI header written by ecatToNifti()
 template <class H>
-void setNIFTIData(H* h, bool floatData, double minValue, double maxValue, double duration)
+void setNIFTIData(H* h, bool floatData, double slope, double minValue, double maxValue, double duration)
 {
   if(floatData) {
     h->setDataType(NIFTI_DT_FLOAT32);
     h->setBit_Pix(32);
     h->setScl_Slope(1.0);
-    h->setScl_Inter(0.0);
+  } else {
+    h->setScl_Slope(slope);
   }
+  h->setScl_Inter(0.0);
 
   h->setCal_Min(minValue);
   h->setCal_Max(maxValue);
   h->setPix_Dim(4, duration);
-  h->setDescrip("converted from ECAT7 by libmedio");
+  h->setDescrip("converted by libmedio");
 }
 
 template <class H>
@@ -287,86 +294,285 @@ void applyEcatMetadata(CECAT7MainHeader& h, const QJsonObject& json)
 #undef JSON_NUMBER
 }
 
-} // namespace
-
 //=============================================================================================
-// ECAT7 -> NIfTI
+// Image data in the ECAT7 representation, which is the common intermediate
+// format of all conversions: the ECAT7 main header, one image sub header and
+// the stored voxel values (ECAT7 voxel order, machine byte order) per frame
+// and the factor converting the stored values of every plane into physical
+// values (incl. the calibration factor).
 
-bool CNIFTIConverter::ecatToNifti(const QString& ecatFileName, const QString& niftiFileName,
-                                  const Options& options, QString* error)
+struct EcatImage
 {
-  ENTER();
+  EcatImage() : ecatFile(CECATMainHeader::ECAT7_Volume16), mainHeader(NULL) { }
+  ~EcatImage() { delete mainHeader; qDeleteAll(subHeaders); }
 
-  CECATFile ecatFile(ecatFileName);
-  if(ecatFile.open(QIODevice::ReadOnly) == false)
-    return fail(error, "unable to open " + ecatFileName + " as ECAT file");
+  QScopedPointer<CMedIOData> source;        // file the headers were read from
+  CECATFile ecatFile;                       // owner of headers created here (never opened)
+  CECAT7MainHeader* mainHeader;
+  QList<CECAT7SubHeaderImage*> subHeaders;  // one per frame
+  QList<QByteArray> matrices;               // stored values per frame
+  QList<QVector<double> > planeScales;      // physical value = stored value x planeScales[frame][plane]
+};
 
-  CECATMainHeader* mainHeaderPtr = NULL;
-  if(ecatFile.readMainHeader(mainHeaderPtr) == false || mainHeaderPtr == NULL)
-    return fail(error, "unable to read the ECAT main header of " + ecatFileName);
-  QScopedPointer<CECATMainHeader> mainHeaderGuard(mainHeaderPtr);
+//---------------------------------------------------------------------------------------------
+// ECAT7 file -> EcatImage
 
-  if(mainHeaderPtr->mainHeaderType() != CECATMainHeader::ECAT7MainHeader)
+bool loadEcat(const QString& fileName, EcatImage& image, QString* error)
+{
+  CECATFile* ecatFile = new CECATFile(fileName);
+  image.source.reset(ecatFile);
+
+  if(ecatFile->open(QIODevice::ReadOnly) == false)
+    return fail(error, "unable to open " + fileName + " as ECAT file");
+
+  CECATMainHeader* mainHeader = NULL;
+  if(ecatFile->readMainHeader(mainHeader) == false || mainHeader == NULL)
+    return fail(error, "unable to read the ECAT main header of " + fileName);
+
+  if(mainHeader->mainHeaderType() != CECATMainHeader::ECAT7MainHeader) {
+    delete mainHeader;
     return fail(error, "only ECAT7 files can be converted to NIfTI");
-  const CECAT7MainHeader* mainHeader = static_cast<const CECAT7MainHeader*>(mainHeaderPtr);
+  }
+  image.mainHeader = static_cast<CECAT7MainHeader*>(mainHeader);
 
   // read all frames
-  const int frames = (mainHeader->num_Frames() > 1) ? mainHeader->num_Frames() : 1;
-  QList<CECAT7SubHeaderImage*> subHeaders;
-  QList<QByteArray> matrices;
-
-  struct Cleanup {
-    QList<CECAT7SubHeaderImage*>& list;
-    ~Cleanup() { qDeleteAll(list); }
-  } cleanup = { subHeaders };
+  const int frames = (image.mainHeader->num_Frames() > 1) ? image.mainHeader->num_Frames() : 1;
+  const double calibration = ecatCalibrationFactor(image.mainHeader);
 
   for(int f=1; f <= frames; f++) {
     CECATSubHeader* subHeader = NULL;
     QByteArray* matrix = NULL;
 
-    if(ecatFile.readMatrix(matrix, subHeader, f) == false || matrix == NULL || subHeader == NULL) {
+    if(ecatFile->readMatrix(matrix, subHeader, f) == false || matrix == NULL || subHeader == NULL) {
       delete matrix;
       delete subHeader;
-      return fail(error, QString("unable to read frame %1 of %2").arg(f).arg(ecatFileName));
+      return fail(error, QString("unable to read frame %1 of %2").arg(f).arg(fileName));
     }
 
-    matrices.append(*matrix);
+    image.matrices.append(*matrix);
     delete matrix;
 
     if(subHeader->subHeaderType() != CECATSubHeader::ECAT7_Image) {
       delete subHeader;
       return fail(error, "only ECAT7 image data can be converted to NIfTI");
     }
-    subHeaders.append(static_cast<CECAT7SubHeaderImage*>(subHeader));
-  }
-  ecatFile.close();
 
-  const CECAT7SubHeaderImage* first = subHeaders.first();
+    CECAT7SubHeaderImage* s = static_cast<CECAT7SubHeaderImage*>(subHeader);
+    image.subHeaders.append(s);
+
+    double scale = s->scale_Factor();
+    if(scale == 0.0 || std::isfinite(scale) == false)
+      scale = 1.0;
+    image.planeScales.append(QVector<double>(qMax(0, static_cast<int>(s->z_Dimension())), scale * calibration));
+  }
+
+  ecatFile->close();
+  return true;
+}
+
+//---------------------------------------------------------------------------------------------
+// Philips image/Syntegra file -> EcatImage
+//
+// The headers are converted with the existing Philips -> ECAT7 header
+// conversions. Every slice of a Philips file has its own sub header and
+// scale factor (CPhilipsSubHeaderImage::ecat_Scale_Factor()). The image
+// positions of the slices (img_pos_x/y) are not used, the position along
+// z is given by the bed position (see CNIFTIConverter.h).
+
+bool loadPhilips(const QString& fileName, EcatImage& image, QString* error)
+{
+  CPhilipsFile* file = new CPhilipsFile(fileName);
+  image.source.reset(file);
+
+  if(file->open(QIODevice::ReadOnly) == false)
+    return fail(error, "unable to open " + fileName + " as Philips file");
+
+  CPhilipsMainHeader* mainHeader = NULL;
+  if(file->readMainHeader(mainHeader) == false || mainHeader == NULL)
+    return fail(error, "unable to read the Philips main header of " + fileName);
+  QScopedPointer<CPhilipsMainHeader> mainHeaderGuard(mainHeader);
+
+  if(mainHeader->filtyp() != CPhilipsMainHeader::Image && mainHeader->filtyp() != CPhilipsMainHeader::Syntegra)
+    return fail(error, "only Philips image and Syntegra files can be converted to NIfTI");
+
+  const int frames = file->numFrames();
+  const int minFrame = file->minFrame();
+  const int minSlice = file->minSlice();
+  const int maxSlice = file->maxSlice();
+  if(frames < 1)
+    return fail(error, "no frames found in " + fileName);
+
+  int nx = 0, ny = 0, nz = 0;
+  int dataType = CPhilipsSubHeader::UnknownDataType;
+  QScopedPointer<CPhilipsSubHeader> firstSubHeader;
+  bool unscaled = false;
+
+  for(int f=0; f < frames; f++) {
+    const int frame = minFrame + f;
+    const int slices = file->numSlices(frame);
+
+    if(f == 0)
+      nz = slices;
+    else if(slices != nz)
+      return fail(error, "the frames of the Philips file differ in their number of slices");
+
+    // slice numbers of this frame (see CPhilipsFile::readMatrix())
+    const int increment = (nz > 1) ? (maxSlice - minSlice) / (nz - 1) : 1;
+    if(nz < 1 || increment < 1)
+      return fail(error, "invalid slice numbering in " + fileName);
+
+    QByteArray frameData;
+    QVector<double> scales;
+    QScopedPointer<CPhilipsSubHeader> frameSubHeader;
+
+    for(int k=0; k < nz; k++) {
+      const int slice = minSlice + k * increment;
+      QByteArray* data = NULL;
+      CPhilipsSubHeader* subHeader = NULL;
+
+      if(file->readMatrix(data, subHeader, frame, slice) == false || data == NULL || subHeader == NULL) {
+        delete data;
+        delete subHeader;
+        return fail(error, QString("unable to read slice %1 of frame %2 of %3").arg(slice).arg(frame).arg(fileName));
+      }
+      QScopedPointer<QByteArray> dataGuard(data);
+      QScopedPointer<CPhilipsSubHeader> subHeaderGuard(subHeader);
+
+      if(subHeader->subHeaderType() != CPhilipsSubHeader::Image && subHeader->subHeaderType() != CPhilipsSubHeader::Syntegra)
+        return fail(error, "only Philips image data can be converted to NIfTI");
+      const CPhilipsSubHeaderImage* s = static_cast<const CPhilipsSubHeaderImage*>(subHeader);
+
+      if(f == 0 && k == 0) {
+        nx = s->xdim();
+        ny = s->ydim();
+        dataType = s->datype();
+      }
+
+      if(s->xdim() != nx || s->ydim() != ny || nx < 1 || ny < 1)
+        return fail(error, "the slices of the Philips file differ in their dimensions");
+      if(s->datype() != dataType)
+        return fail(error, "the slices of the Philips file differ in their data type");
+
+      // stored values as ECAT7 data type: unsigned 16 bit values are kept as 32 bit integers
+      const qint64 voxels = static_cast<qint64>(nx) * ny;
+      int bytes = 0;
+      switch(dataType) {
+        case CPhilipsSubHeader::ByteData:      bytes = 1; break;
+        case CPhilipsSubHeader::SignedShort:
+        case CPhilipsSubHeader::UnsignedShort: bytes = 2; break;
+        case CPhilipsSubHeader::Float:         bytes = 4; break;
+        default:
+          return fail(error, QString("unsupported Philips data type %1").arg(dataType));
+      }
+      if(data->size() < voxels * bytes)
+        return fail(error, QString("slice %1 of frame %2 is too small").arg(slice).arg(frame));
+
+      if(dataType == CPhilipsSubHeader::UnsignedShort) {
+        const quint16* src = reinterpret_cast<const quint16*>(data->constData());
+        QByteArray converted(voxels * 4, '\0');
+        qint32* dst = reinterpret_cast<qint32*>(converted.data());
+        for(qint64 i=0; i < voxels; i++)
+          dst[i] = src[i];
+        frameData.append(converted);
+      } else {
+        frameData.append(data->constData(), voxels * bytes);
+      }
+
+      bool ok = false;
+      double scale = s->ecat_Scale_Factor(ok, mainHeader);
+      if(ok == false || scale <= 0.0 || std::isfinite(scale) == false) {
+        unscaled = true;
+        scale = 1.0;
+      }
+      scales.append(scale);
+
+      if(k == 0)
+        frameSubHeader.reset(subHeaderGuard.take());
+    }
+
+    // ECAT7 image sub header of this frame from the sub header of its first slice
+    CECAT7SubHeaderImage* ecatSubHeader = new CECAT7SubHeaderImage(&image.ecatFile);
+    image.subHeaders.append(ecatSubHeader);
+    if(ecatSubHeader->convertFrom(frameSubHeader.data(), mainHeader) == false)
+      return fail(error, "unable to convert the Philips sub header of " + fileName);
+
+    ecatSubHeader->setZ_Dimension(nz);
+    switch(dataType) {
+      case CPhilipsSubHeader::ByteData:      ecatSubHeader->setData_Type(CECATSubHeader::ByteData); break;
+      case CPhilipsSubHeader::SignedShort:   ecatSubHeader->setData_Type(CECATSubHeader::SunShort); break;
+      case CPhilipsSubHeader::UnsignedShort: ecatSubHeader->setData_Type(CECATSubHeader::SunLong); break;
+      default:                               ecatSubHeader->setData_Type(CECATSubHeader::IEEEFloat); break;
+    }
+    ecatSubHeader->setScale_Factor(scales.first());
+
+    image.matrices.append(frameData);
+    image.planeScales.append(scales);
+
+    if(f == 0)
+      firstSubHeader.reset(frameSubHeader.take());
+  }
+
+  if(unscaled)
+    W("%s: no valid scale factor for some slices, their stored values are used", fileName.toLocal8Bit().constData());
+
+  // ECAT7 main header (the values are converted into physical values already)
+  image.mainHeader = new CECAT7MainHeader(&image.ecatFile, CECATMainHeader::ECAT7_Volume16);
+  if(image.mainHeader->convertFrom(mainHeader, firstSubHeader.data()) == false)
+    return fail(error, "unable to convert the Philips main header of " + fileName);
+
+  image.mainHeader->setNum_Frames(frames);
+  image.mainHeader->setNum_Planes(nz);
+  image.mainHeader->setCalibration_Factor(1.0f);
+
+  // the ECAT7 field holds 31 characters only: use the file name without its path
+  image.mainHeader->setOriginal_File_Name(QFileInfo(fileName).fileName().left(31).toLatin1().constData());
+
+  file->close();
+  return true;
+}
+
+//---------------------------------------------------------------------------------------------
+// EcatImage -> NIfTI file
+
+bool saveNifti(const EcatImage& image, const QString& niftiFileName, const CNIFTIConverter::Options& options, QString* error)
+{
+  const int frames = image.subHeaders.size();
+  if(frames < 1 || image.matrices.size() != frames || image.planeScales.size() != frames)
+    return fail(error, "no image data to convert");
+
+  const CECAT7SubHeaderImage* first = image.subHeaders.first();
   const int nx = first->x_Dimension();
   const int ny = first->y_Dimension();
   const int nz = first->z_Dimension();
   const qint64 voxels = static_cast<qint64>(nx) * ny * nz;
   const qint64 planeVoxels = static_cast<qint64>(nx) * ny;
-  const double calibration = ecatCalibrationFactor(mainHeader);
 
-  // keep the stored values if all frames share data type and scale factor
+  if(nx < 1 || ny < 1 || nz < 1)
+    return fail(error, "invalid image dimensions");
+
+  // keep the stored values if all planes of all frames share data type and scale factor
   bool storedValues = (options.floatData == false);
   bool sameDuration = true;
+  const double slope = image.planeScales.first().isEmpty() ? 1.0 : image.planeScales.first().first();
 
   for(int f=0; f < frames; f++) {
-    const CECAT7SubHeaderImage* s = subHeaders[f];
+    const CECAT7SubHeaderImage* s = image.subHeaders[f];
 
-    if(s->x_Dimension() != nx || s->y_Dimension() != ny || s->z_Dimension() != nz)
-      return fail(error, "the frames of the ECAT7 file differ in their dimensions");
+    if(s->x_Dimension() != nx || s->y_Dimension() != ny || s->z_Dimension() != nz || image.planeScales[f].size() != nz)
+      return fail(error, "the frames differ in their dimensions");
 
     if(ecatBytesPerVoxel(s->data_Type()) == 0)
       return fail(error, QString("unsupported ECAT7 data type %1").arg(s->data_Type()));
 
-    if(matrices[f].size() < voxels * ecatBytesPerVoxel(s->data_Type()))
+    if(image.matrices[f].size() < voxels * ecatBytesPerVoxel(s->data_Type()))
       return fail(error, QString("matrix of frame %1 is too small").arg(f + 1));
 
-    if(s->data_Type() != first->data_Type() || s->scale_Factor() != first->scale_Factor())
+    if(s->data_Type() != first->data_Type())
       storedValues = false;
+    foreach(double scale, image.planeScales[f]) {
+      if(scale != slope)
+        storedValues = false;
+    }
 
     if(s->frame_Duration() != first->frame_Duration())
       sameDuration = false;
@@ -378,22 +584,18 @@ bool CNIFTIConverter::ecatToNifti(const QString& ecatFileName, const QString& ni
   double maxValue = -std::numeric_limits<double>::max();
 
   for(int f=0; f < frames; f++) {
-    const CECAT7SubHeaderImage* s = subHeaders[f];
-    double scale = s->scale_Factor();
-    if(scale == 0.0 || std::isfinite(scale) == false)
-      scale = 1.0;
-    scale *= calibration;
-
-    const char* src = matrices[f].constData();
+    const CECAT7SubHeaderImage* s = image.subHeaders[f];
+    const char* src = image.matrices[f].constData();
     char* dst = data.data() + f * voxels * bytesPerVoxel;
 
     // NIfTI stores the planes in reversed order (see CNIFTIGeometry.h)
     for(int k=0; k < nz; k++) {
       const qint64 srcPlane = k * planeVoxels;
       const qint64 dstPlane = (nz - 1 - k) * planeVoxels;
+      const double scale = image.planeScales[f][k];
 
       if(storedValues) {
-        // ECAT matrices are returned in machine byte order
+        // the matrices are in machine byte order
         memcpy(dst + dstPlane * bytesPerVoxel, src + srcPlane * bytesPerVoxel, planeVoxels * bytesPerVoxel);
       }
 
@@ -415,20 +617,20 @@ bool CNIFTIConverter::ecatToNifti(const QString& ecatFileName, const QString& ni
     return fail(error, "unable to open " + niftiFileName + " for writing");
 
   QScopedPointer<CNIFTIMainHeader> header(niftiFile.createEmptyHeader());
-  bool result = (header.data() != NULL) && header->convertFrom(mainHeaderPtr, first);
+  bool result = (header.data() != NULL) && header->convertFrom(image.mainHeader, first);
 
   if(result) {
     const double duration = sameDuration ? first->frame_Duration() / 1000.0 : 0.0;
-    const QJsonObject json = ecatMetadata(mainHeader, subHeaders);
+    const QJsonObject json = ecatMetadata(image.mainHeader, image.subHeaders);
 
     if(options.niftiVersion == 2) {
       CNIFTI2MainHeader* h = static_cast<CNIFTI2MainHeader*>(header.data());
-      setNIFTIData(h, storedValues == false, minValue, maxValue, duration);
+      setNIFTIData(h, storedValues == false, slope, minValue, maxValue, duration);
       if(options.jsonExtension && niftiFile.isPair() == false)
         h->setVox_Offset(540 + 4 + h->headerExtensionSize(json));
     } else {
       CNIFTI1MainHeader* h = static_cast<CNIFTI1MainHeader*>(header.data());
-      setNIFTIData(h, storedValues == false, minValue, maxValue, duration);
+      setNIFTIData(h, storedValues == false, slope, minValue, maxValue, duration);
       if(options.jsonExtension && niftiFile.isPair() == false)
         h->setVox_Offset(348 + 4 + h->headerExtensionSize(json));
     }
@@ -459,17 +661,14 @@ bool CNIFTIConverter::ecatToNifti(const QString& ecatFileName, const QString& ni
     return fail(error, "unable to write " + niftiFileName);
   }
 
-  RETURN(true);
   return true;
 }
 
-//=============================================================================================
-// NIfTI -> ECAT7
+//---------------------------------------------------------------------------------------------
+// NIfTI file -> EcatImage (16 bit integers with a scale factor per frame)
 
-bool CNIFTIConverter::niftiToEcat(const QString& niftiFileName, const QString& ecatFileName, QString* error)
+bool loadNifti(const QString& niftiFileName, EcatImage& image, QString* error)
 {
-  ENTER();
-
   CNIFTIFile niftiFile(niftiFileName);
   if(niftiFile.open(QIODevice::ReadOnly) == false)
     return fail(error, "unable to open " + niftiFileName + " as NIfTI file");
@@ -492,7 +691,7 @@ bool CNIFTIConverter::niftiToEcat(const QString& niftiFileName, const QString& e
 
   for(int i=5; i <= info.dim[0]; i++) {
     if(info.dim[i] > 1)
-      return fail(error, "NIfTI data with more than 4 dimensions cannot be converted to ECAT7");
+      return fail(error, "NIfTI data with more than 4 dimensions cannot be converted");
   }
 
   const int bytesPerVoxel = niftiBytesPerVoxel(info.datatype);
@@ -527,22 +726,16 @@ bool CNIFTIConverter::niftiToEcat(const QString& niftiFileName, const QString& e
   QJsonArray startTimes = json["FrameTimesStart"].toArray();
   QJsonArray durations = json["FrameDuration"].toArray();
 
-  CECATFile ecatFile(ecatFileName, CECATMainHeader::ECAT7_Volume16);
-  if(ecatFile.open(QIODevice::WriteOnly) == false)
-    return fail(error, "unable to open " + ecatFileName + " for writing");
+  image.mainHeader = new CECAT7MainHeader(&image.ecatFile, CECATMainHeader::ECAT7_Volume16);
+  if(image.mainHeader->convertFrom(headerPtr, NULL) == false)
+    return fail(error, "unable to convert the NIfTI header of " + niftiFileName);
 
-  CECAT7MainHeader mainHeader(&ecatFile, CECATMainHeader::ECAT7_Volume16);
-  bool result = mainHeader.convertFrom(headerPtr, NULL);
+  applyEcatMetadata(*image.mainHeader, json);
 
-  if(result) {
-    applyEcatMetadata(mainHeader, json);
+  // the values already contain the calibration factor
+  image.mainHeader->setCalibration_Factor(1.0f);
 
-    // the values written already contain the calibration factor
-    mainHeader.setCalibration_Factor(1.0f);
-    result = ecatFile.writeMainHeader(mainHeader);
-  }
-
-  for(int f=0; f < frames && result; f++) {
+  for(int f=0; f < frames; f++) {
     // reorder the voxels of this frame into the ECAT7 voxel order
     QVector<double> values(voxels);
     double maxAbs = 0.0;
@@ -583,45 +776,218 @@ bool CNIFTIConverter::niftiToEcat(const QString& niftiFileName, const QString& e
       maxStored = qMax(maxStored, dst[i]);
     }
 
-    QScopedPointer<CECATSubHeader> subHeaderPtr(ecatFile.createEmptySubHeader());
-    CECAT7SubHeaderImage* subHeader = static_cast<CECAT7SubHeaderImage*>(subHeaderPtr.data());
-    result = (subHeader != NULL) && subHeader->convertFrom(NULL, headerPtr);
+    CECAT7SubHeaderImage* subHeader = new CECAT7SubHeaderImage(&image.ecatFile);
+    image.subHeaders.append(subHeader);
+    if(subHeader->convertFrom(NULL, headerPtr) == false)
+      return fail(error, "unable to convert the NIfTI header of " + niftiFileName);
 
-    if(result) {
-      subHeader->setData_Type(CECATSubHeader::SunShort);
-      subHeader->setScale_Factor(scale);
-      subHeader->setImage_Min(minStored);
-      subHeader->setImage_Max(maxStored);
+    subHeader->setData_Type(CECATSubHeader::SunShort);
+    subHeader->setScale_Factor(scale);
+    subHeader->setImage_Min(minStored);
+    subHeader->setImage_Max(maxStored);
 
-      // frame timing from the metadata, the NIfTI header otherwise (s -> ms)
-      double start = geometry.frameStart + f * geometry.frameDuration;
-      double duration = geometry.frameDuration;
-      if(startTimes.size() == frames && durations.size() == frames) {
-        start = startTimes[f].toDouble();
-        duration = durations[f].toDouble();
-      } else if(frames == 1 && json.contains("Frame_Duration")) {
-        // metadata written by earlier versions (ms)
-        start = json["Frame_Start_Time"].toDouble() / 1000.0;
-        duration = json["Frame_Duration"].toDouble() / 1000.0;
-      }
-      subHeader->setFrame_Start_Time(start > 0.0 ? static_cast<unsigned int>(start * 1000.0 + 0.5) : 0);
-      subHeader->setFrame_Duration(duration > 0.0 ? static_cast<unsigned int>(duration * 1000.0 + 0.5) : 0);
-
-      if(json.contains("Recon_Zoom"))
-        subHeader->setRecon_Zoom(json["Recon_Zoom"].toDouble());
-
-      result = ecatFile.writeSubHeader(*subHeader, f + 1) &&
-               ecatFile.writeMatrix(data, f + 1);
+    // frame timing from the metadata, the NIfTI header otherwise (s -> ms)
+    double start = geometry.frameStart + f * geometry.frameDuration;
+    double duration = geometry.frameDuration;
+    if(startTimes.size() == frames && durations.size() == frames) {
+      start = startTimes[f].toDouble();
+      duration = durations[f].toDouble();
+    } else if(frames == 1 && json.contains("Frame_Duration")) {
+      // metadata written by earlier versions (ms)
+      start = json["Frame_Start_Time"].toDouble() / 1000.0;
+      duration = json["Frame_Duration"].toDouble() / 1000.0;
     }
+    subHeader->setFrame_Start_Time(start > 0.0 ? static_cast<unsigned int>(start * 1000.0 + 0.5) : 0);
+    subHeader->setFrame_Duration(duration > 0.0 ? static_cast<unsigned int>(duration * 1000.0 + 0.5) : 0);
+
+    if(json.contains("Recon_Zoom"))
+      subHeader->setRecon_Zoom(json["Recon_Zoom"].toDouble());
+
+    image.matrices.append(data);
+    image.planeScales.append(QVector<double>(nz, scale));
+  }
+
+  return true;
+}
+
+//---------------------------------------------------------------------------------------------
+// EcatImage (16 bit integers) -> ECAT7 file
+
+bool saveEcat(EcatImage& image, const QString& ecatFileName, QString* error)
+{
+  CECATFile ecatFile(ecatFileName, CECATMainHeader::ECAT7_Volume16);
+  if(ecatFile.open(QIODevice::WriteOnly) == false)
+    return fail(error, "unable to open " + ecatFileName + " for writing");
+
+  // the main header is saved to the file it is linked to
+  image.mainHeader->setMedIOData(&ecatFile);
+  bool result = ecatFile.writeMainHeader(*image.mainHeader);
+
+  for(int f=0; f < image.subHeaders.size() && result; f++) {
+    result = ecatFile.writeSubHeader(*image.subHeaders[f], f + 1) &&
+             ecatFile.writeMatrix(image.matrices[f], f + 1);
   }
 
   ecatFile.close();
+  image.mainHeader->setMedIOData(&image.ecatFile);
 
   if(result == false) {
     QFile::remove(ecatFileName);
     return fail(error, "unable to write " + ecatFileName);
   }
 
-  RETURN(true);
   return true;
+}
+
+//---------------------------------------------------------------------------------------------
+// EcatImage (16 bit integers) -> Philips image/Syntegra file
+//
+// The headers are converted with the existing ECAT7 -> Philips header
+// conversions (scale factor as suvscl for calibrated data, as imgscl
+// otherwise); every plane is written as slice with its own sub header. Image
+// files number their slices from 0, Syntegra files from 1 (like ROVER).
+
+bool savePhilips(EcatImage& image, const QString& philipsFileName, CPhilipsMainHeader::File_Type type, QString* error)
+{
+  CPhilipsFile file(philipsFileName, type);
+  if(file.open(QIODevice::WriteOnly) == false)
+    return fail(error, "unable to open " + philipsFileName + " for writing");
+
+  QScopedPointer<CPhilipsMainHeader> mainHeader(file.createEmptyMainHeader());
+  bool result = (mainHeader.data() != NULL) &&
+                mainHeader->convertFrom(image.mainHeader, image.subHeaders.first());
+
+  if(result) {
+    mainHeader->setFiltyp(type);
+
+    const int firstSlice = (type == CPhilipsMainHeader::Syntegra) ? 1 : 0;
+    const int sliceStep = qMax(static_cast<short>(1), mainHeader->slcthk());
+
+    for(int f=0; f < image.subHeaders.size() && result; f++) {
+      const CECAT7SubHeaderImage* ecatSubHeader = image.subHeaders[f];
+      const int nx = ecatSubHeader->x_Dimension();
+      const int ny = ecatSubHeader->y_Dimension();
+      const int nz = ecatSubHeader->z_Dimension();
+      const qint64 planeVoxels = static_cast<qint64>(nx) * ny;
+
+      if(ecatSubHeader->data_Type() != CECATSubHeader::SunShort ||
+         image.matrices[f].size() < planeVoxels * nz * 2) {
+        result = false;
+        break;
+      }
+
+      QScopedPointer<CPhilipsSubHeader> subHeaderPtr(file.createEmptySubHeader());
+      CPhilipsSubHeaderImage* subHeader = static_cast<CPhilipsSubHeaderImage*>(subHeaderPtr.data());
+      result = (subHeader != NULL) && subHeader->convertFrom(ecatSubHeader, image.mainHeader);
+
+      for(int k=0; k < nz && result; k++) {
+        const qint16* plane = reinterpret_cast<const qint16*>(image.matrices[f].constData()) + k * planeVoxels;
+        qint16 minValue = std::numeric_limits<qint16>::max();
+        qint16 maxValue = std::numeric_limits<qint16>::min();
+        double sum = 0.0;
+        for(qint64 i=0; i < planeVoxels; i++) {
+          minValue = qMin(minValue, plane[i]);
+          maxValue = qMax(maxValue, plane[i]);
+          sum += plane[i];
+        }
+
+        subHeader->setImgmin(minValue);
+        subHeader->setImgmax(maxValue);
+        subHeader->setImgsum(sum);
+
+        const int slice = firstSlice + k * sliceStep;
+        subHeader->setSlcnum(slice);
+        result = file.writeMatrix(reinterpret_cast<const char*>(plane), planeVoxels * 2, *subHeader, f + 1, slice);
+      }
+    }
+
+    if(result)
+      result = file.writeMainHeader(*mainHeader);
+  }
+
+  file.close();
+
+  if(result == false) {
+    QFile::remove(philipsFileName);
+    return fail(error, "unable to write " + philipsFileName);
+  }
+
+  return true;
+}
+
+// Philips file type by the file name (.syn: Syntegra, image otherwise)
+CPhilipsMainHeader::File_Type philipsFileType(const QString& fileName)
+{
+  return fileName.endsWith(".syn", Qt::CaseInsensitive) ? CPhilipsMainHeader::Syntegra : CPhilipsMainHeader::Image;
+}
+
+} // namespace
+
+//=============================================================================================
+// public interface
+
+bool CNIFTIConverter::ecatToNifti(const QString& ecatFileName, const QString& niftiFileName,
+                                  const Options& options, QString* error)
+{
+  ENTER();
+  EcatImage image;
+  bool result = loadEcat(ecatFileName, image, error) &&
+                saveNifti(image, niftiFileName, options, error);
+  RETURN(result);
+  return result;
+}
+
+bool CNIFTIConverter::philipsToNifti(const QString& philipsFileName, const QString& niftiFileName,
+                                     const Options& options, QString* error)
+{
+  ENTER();
+  EcatImage image;
+  bool result = loadPhilips(philipsFileName, image, error) &&
+                saveNifti(image, niftiFileName, options, error);
+  RETURN(result);
+  return result;
+}
+
+bool CNIFTIConverter::toNifti(const QString& fileName, const QString& niftiFileName,
+                              const Options& options, QString* error)
+{
+  ENTER();
+  bool result = false;
+
+  switch(CMedIODataFactory::identify(fileName)) {
+    case CMedIOData::ECAT:
+      result = ecatToNifti(fileName, niftiFileName, options, error);
+    break;
+
+    case CMedIOData::Philips:
+      result = philipsToNifti(fileName, niftiFileName, options, error);
+    break;
+
+    default:
+      result = fail(error, fileName + " is neither an ECAT7 nor a Philips image file");
+    break;
+  }
+
+  RETURN(result);
+  return result;
+}
+
+bool CNIFTIConverter::niftiToEcat(const QString& niftiFileName, const QString& ecatFileName, QString* error)
+{
+  ENTER();
+  EcatImage image;
+  bool result = loadNifti(niftiFileName, image, error) &&
+                saveEcat(image, ecatFileName, error);
+  RETURN(result);
+  return result;
+}
+
+bool CNIFTIConverter::niftiToPhilips(const QString& niftiFileName, const QString& philipsFileName, QString* error)
+{
+  ENTER();
+  EcatImage image;
+  bool result = loadNifti(niftiFileName, image, error) &&
+                savePhilips(image, philipsFileName, philipsFileType(philipsFileName), error);
+  RETURN(result);
+  return result;
 }

@@ -22,7 +22,8 @@
 
 #include <QString>
 
-// Conversion of complete image files between ECAT7 and NIfTI-1/NIfTI-2. NIfTI
+// Conversion of complete image files between ECAT7 or Philips (image .img and
+// Syntegra .syn files) and NIfTI-1/NIfTI-2. NIfTI
 // files are single files (.nii, .nii.gz) or header/image pairs (.hdr/.img,
 // .hdr.gz/.img.gz; either name of a pair can be given), depending on the file
 // name. Analyze 7.5 files (.hdr/.img without NIfTI magic) are not supported.
@@ -58,6 +59,21 @@
 //   to ECAT7. NIfTI files without this metadata provide the frame timing by
 //   toffset and pixdim[4] (4D data only).
 //
+// Philips image and Syntegra files
+// - Philips files are converted via the ECAT7 representation of libmedio
+//   (the existing Philips <-> ECAT7 header conversions), so the rules above
+//   apply to them as well. Their voxel order is the one of ECAT7.
+// - Philips -> NIfTI: every slice has its own scale factor (suvscl together
+//   with activity, weight, half-life and injection time, or imgscl, see
+//   CPhilipsSubHeaderImage::ecat_Scale_Factor()); if the slices differ in
+//   their scale factor, float32 values are written. The position along z is
+//   given by the bed position; the image positions img_pos_x/y of the slices
+//   are not used, as their definition is not known reliably.
+// - NIfTI -> Philips: 16 bit integers, one sub header per slice with the
+//   scale factor of the frame (as suvscl for calibrated data, as imgscl
+//   otherwise). Image files number their slices from 0, Syntegra files from 1.
+//   The x/y position of the NIfTI data is not stored.
+//
 // If a conversion fails, no output file is left behind.
 class CNIFTIConverter
 {
@@ -76,11 +92,25 @@ class CNIFTIConverter
     static bool ecatToNifti(const QString& ecatFileName, const QString& niftiFileName,
                             const Options& options = Options(), QString* error = NULL);
 
+    // Convert a Philips image (.img) or Syntegra (.syn) file into a NIfTI file.
+    static bool philipsToNifti(const QString& philipsFileName, const QString& niftiFileName,
+                               const Options& options = Options(), QString* error = NULL);
+
+    // Convert an ECAT7 or Philips image file (identified by its content) into a NIfTI file.
+    static bool toNifti(const QString& fileName, const QString& niftiFileName,
+                        const Options& options = Options(), QString* error = NULL);
+
     // Convert a NIfTI file (.nii, .nii.gz, .hdr/.img, .hdr.gz/.img.gz) into an ECAT7 image file. The
     // metadata is taken from the JSON header extension or, if there is none,
     // from a JSON sidecar file <name>.json next to the NIfTI file.
     static bool niftiToEcat(const QString& niftiFileName, const QString& ecatFileName,
                             QString* error = NULL);
+
+    // Convert a NIfTI file into a Philips file: a Syntegra file if the name
+    // ends with .syn, an image file otherwise. The metadata is taken as for
+    // niftiToEcat().
+    static bool niftiToPhilips(const QString& niftiFileName, const QString& philipsFileName,
+                               QString* error = NULL);
 };
 
 #endif // CNIFTICONVERTER_H

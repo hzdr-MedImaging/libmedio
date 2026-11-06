@@ -24,9 +24,9 @@ libmedio targets PET-centric workflows and currently focuses on:
 - Object-oriented C++ API (header-only interfaces with a shared library core)
 - Read/write support for PET images and sinograms (ECAT6/7, Philips IMG, microPET, etc.)
 - Robust metadata handling and endian-safe I/O
-- Conversion of ECAT7 images to NIfTI and back (`CNIFTIConverter`), incl.
-  dynamic (4D) data, patient orientation/geometry, physical units and the
-  ECAT7 metadata (stored as JSON header extension)
+- Conversion of ECAT7 and Philips images to NIfTI and back
+  (`CNIFTIConverter`), incl. dynamic (4D) data, patient orientation/geometry,
+  physical units and the metadata (stored as JSON header extension)
 - Cross-platform build with CMake; Qt5 backend
 
 ## Requirements
@@ -59,21 +59,27 @@ raw) are stored in `testsuite/data`; see
 [testsuite/data/README.md](testsuite/data/README.md) for their layout and how
 to add data.
 
-## ECAT7 ↔ NIfTI conversion
-The command line tools `ecat2nifti` and `nifti2ecat` convert complete files:
+## Conversion to and from NIfTI
+The command line tools `ecat2nifti`/`nifti2ecat` (ECAT7) and
+`philips2nifti`/`nifti2philips` (Philips image `.img` and Syntegra `.syn`
+files) convert complete files:
 ```bash
-ecat2nifti [-2] [--float] [--sidecar] [--no-extension] input.v [output.nii[.gz]|output.hdr[.gz]]
-nifti2ecat input.nii[.gz]|input.hdr[.gz]|input.img[.gz] [output.v]
+ecat2nifti    [-2] [--float] [--sidecar] [--no-extension] input.v [output.nii[.gz]|output.hdr[.gz]]
+philips2nifti [-2] [--float] [--sidecar] [--no-extension] input.img|input.syn [output.nii[.gz]|output.hdr[.gz]]
+nifti2ecat    input.nii[.gz]|input.hdr[.gz]|input.img[.gz] [output.v]
+nifti2philips input.nii[.gz]|input.hdr[.gz]|input.img[.gz] [output.img|output.syn]
 ```
 - NIfTI files hold the physical values (stored value × scale factor ×
-  calibration factor, e.g. Bq/ml); dynamic data with a scale factor per frame
-  (or `--float`) is written as float32.
+  calibration factor, e.g. Bq/ml); data with a scale factor per frame or
+  (Philips) per slice, or with `--float`, is written as float32.
 - ECAT7 voxel (i, j, k) is written as NIfTI voxel (i, j, nz-1-k) with qform
   and sform describing its position. NIfTI files of any orientation are
   reordered into the ECAT7 voxel order.
-- The ECAT7 main header values (incl. patient data) and the frame timing are
+- The main header values (incl. patient data) and the frame timing are
   stored as JSON header extension (`--sidecar`: also as `<output>.json`) and
-  restored by `nifti2ecat`.
+  restored by `nifti2ecat`/`nifti2philips`.
+- Philips files are converted via the ECAT7 representation of libmedio; the
+  x/y image position of Philips slices is not used.
 
 An output name ending with `.hdr`/`.img` writes a header/image pair. The
 details are documented in `src/nifti/CNIFTIConverter.h`. Analyze 7.5 files

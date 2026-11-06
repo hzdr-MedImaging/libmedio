@@ -40,7 +40,7 @@ src/
   CMedIOHeader.h / .cpp        # Abstract base: header read/write interface
   CMedIODataFactory.h / .cpp   # Factory: auto-detects format, returns CMedIOData*
   ecat/                        # ECAT6 + ECAT7 implementation (CECATFile, headers, directory)
-  nifti/                       # NIfTI-1/NIfTI-2 (CNIFTIFile, headers) and ECAT7 <-> NIfTI conversion (CNIFTIConverter)
+  nifti/                       # NIfTI-1/NIfTI-2 (CNIFTIFile, headers) and ECAT7/Philips <-> NIfTI conversion (CNIFTIConverter)
   micropet/                    # Siemens Concorde microPET (CConcordeFile, headers)
   philips/                     # Philips PET/Syntegra (CPhilipsFile, headers)
   helpers/                     # Shared utilities: CDate, CKeyParser, MedIOUnits, CIntVector
@@ -53,7 +53,7 @@ python/
   src/pmedio.h                 # MedIOImage class (numpy-compatible wrapper)
   src/ecat.cpp / ecat7.cpp     # Python bindings for ECAT types
   tests/test_pmedio.py
-examples/                      # CLI tools (img2ecat, ecatutil, ecatCheck, bin2txt, ecat2nifti, nifti2ecat, …)
+examples/                      # CLI tools (img2ecat, ecatutil, ecatCheck, bin2txt, ecat2nifti, nifti2ecat, philips2nifti, nifti2philips, …)
 testsuite/                     # C++ tests (QtTest, run with ctest)
   data/                        # test datasets in several formats, see testsuite/data/README.md
 ```
