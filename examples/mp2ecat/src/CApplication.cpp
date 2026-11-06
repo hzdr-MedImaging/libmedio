@@ -440,7 +440,7 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
 
           STARTCLOCK("converting data");
           int iNumElements = iFramesize/sizeof(qint16);
-          CDataArray<qint32> dataArray(pImgData, iNumElements);
+          CDataArray<qint16> dataArray(pImgData, iNumElements);
           imgMaxValue = dataArray.maxValue();
           imgMinValue = dataArray.minValue();
 
