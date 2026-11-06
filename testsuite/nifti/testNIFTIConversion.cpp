@@ -40,6 +40,11 @@
 #include <CECATSubHeader.h>
 #include <CECAT7MainHeader.h>
 #include <CECAT7SubHeaderImage.h>
+#include <CPhilipsFile.h>
+#include <CPhilipsMainHeader.h>
+#include <CPhilipsSubHeader.h>
+#include <CPhilipsSubHeaderImage.h>
+#include <CMedIODataFactory.h>
 
 #include "MedIOTestData.h"
 
@@ -330,6 +335,16 @@ class TestNIFTIConversion : public QObject
 
     void niftiToEcatOrientation_data();
     void niftiToEcatOrientation();
+
+    void philipsToNifti_data();
+    void philipsToNifti();
+
+    void philipsRoundTrip_data();
+    void philipsRoundTrip();
+
+    void philipsSliceScales_data();
+    void philipsSliceScales();
+    void philipsHeaderConversion();
 
     void metadataOptions();
     void errors();
@@ -946,6 +961,318 @@ void TestNIFTIConversion::niftiToEcatOrientation()
 }
 
 //---------------------------------------------------------------------------------------------
+// Philips -> NIfTI, compared with the NIfTI file converted from the ECAT7 file
+// of the same dataset (the Philips and ECAT7 files hold the same data)
+
+void TestNIFTIConversion::philipsToNifti_data()
+{
+  QTest::addColumn<QString>("philips");
+  QTest::addColumn<QString>("ecat");
+
+  bool any = false;
+  foreach(const MedIOTestFile& philips, m_data.files) {
+    if(philips.format != "philips")
+      continue;
+    foreach(const MedIOTestFile& ecat, m_data.files) {
+      if(ecat.format == "ecat" && ecat.dataset == philips.dataset) {
+        QTest::newRow(qPrintable(philips.relativePath)) << philips.path << ecat.path;
+        any = true;
+      }
+    }
+  }
+
+  if(any == false)
+    QTest::newRow("no Philips/ECAT7 test data") << QString() << QString();
+}
+
+void TestNIFTIConversion::philipsToNifti()
+{
+  QFETCH(QString, philips);
+  QFETCH(QString, ecat);
+  if(philips.isEmpty())
+    QSKIP("no Philips and ECAT7 files of the same dataset in the test data");
+
+  const QString base = tmpFile(QFileInfo(philips).fileName());
+  QString error;
+  QVERIFY2(CNIFTIConverter::philipsToNifti(philips, base + ".nii", CNIFTIConverter::Options(), &error), qPrintable(error));
+  QVERIFY2(CNIFTIConverter::toNifti(philips, base + ".auto.nii", CNIFTIConverter::Options(), &error), qPrintable(error));
+  QVERIFY2(CNIFTIConverter::ecatToNifti(ecat, base + ".ecat.nii", CNIFTIConverter::Options(), &error), qPrintable(error));
+
+  NiftiVolume p, a, e;
+  QVERIFY(readNifti(base + ".nii", p));
+  QVERIFY(readNifti(base + ".auto.nii", a));
+  QVERIFY(readNifti(base + ".ecat.nii", e));
+  QCOMPARE(a.values, p.values);
+
+  // header and geometry
+  for(int i=0; i <= 4; i++)
+    QCOMPARE(p.dim[i], e.dim[i]);
+  for(int r=0; r < 3; r++)
+    for(int c=0; c < 4; c++)
+      QVERIFY2(std::fabs(p.srow[r][c] - e.srow[r][c]) < 1e-3, qPrintable(QString("srow[%1][%2]").arg(r).arg(c)));
+
+  // values per frame
+  const qint64 volume = e.dim[1] * e.dim[2] * e.dim[3];
+  const int frames = e.dim[0] >= 4 ? int(e.dim[4]) : 1;
+  QCOMPARE(qint64(p.values.size()), volume * frames);
+  for(int f=0; f < frames; f++) {
+    const double tol = 1e-6 * maxAbs(e.values, f * volume, volume);
+    for(qint64 i=0; i < volume; i++) {
+      if(std::fabs(p.values[f * volume + i] - e.values[f * volume + i]) > tol)
+        QFAIL(qPrintable(QString("frame %1 voxel %2: %3 instead of %4").arg(f+1).arg(i).arg(p.values[f * volume + i]).arg(e.values[f * volume + i])));
+    }
+  }
+
+  // frame timing and metadata
+  QCOMPARE(p.json.value("FrameTimesStart").toArray(), e.json.value("FrameTimesStart").toArray());
+  QCOMPARE(p.json.value("FrameDuration").toArray(), e.json.value("FrameDuration").toArray());
+  QCOMPARE(p.json.value("Patient_Name").toString(), e.json.value("Patient_Name").toString());
+  QCOMPARE(p.json.value("Dosage").toDouble(), e.json.value("Dosage").toDouble());
+  QVERIFY(std::fabs(p.json.value("Patient_Weight").toDouble() - e.json.value("Patient_Weight").toDouble()) < 1e-3);
+  QCOMPARE(p.json.value("Original_File_Name").toString(), QFileInfo(philips).fileName().left(31));
+}
+
+//---------------------------------------------------------------------------------------------
+// ECAT7 -> NIfTI -> Philips (image and Syntegra) -> NIfTI
+
+void TestNIFTIConversion::philipsRoundTrip_data()
+{
+  QTest::addColumn<QString>("ecat");
+  QTest::addColumn<QString>("suffix");
+
+  bool any = false;
+  foreach(const MedIOTestFile& file, m_data.files) {
+    if(file.format == "ecat") {
+      QTest::newRow(qPrintable(file.relativePath + " image")) << file.path << ".img";
+      QTest::newRow(qPrintable(file.relativePath + " syntegra")) << file.path << ".syn";
+      any = true;
+    }
+  }
+
+  if(any == false)
+    QTest::newRow("no ECAT7 test data") << QString() << QString();
+}
+
+void TestNIFTIConversion::philipsRoundTrip()
+{
+  QFETCH(QString, ecat);
+  QFETCH(QString, suffix);
+  if(ecat.isEmpty())
+    QSKIP("no ECAT7 files in the test data");
+
+  const QString base = tmpFile(QFileInfo(ecat).fileName() + ".prt");
+  QString error;
+  QVERIFY2(CNIFTIConverter::ecatToNifti(ecat, base + ".nii", CNIFTIConverter::Options(), &error), qPrintable(error));
+  QVERIFY2(CNIFTIConverter::niftiToPhilips(base + ".nii", base + suffix, &error), qPrintable(error));
+  QVERIFY2(CNIFTIConverter::philipsToNifti(base + suffix, base + ".back.nii", CNIFTIConverter::Options(), &error), qPrintable(error));
+
+  NiftiVolume a, b;
+  QVERIFY(readNifti(base + ".nii", a));
+  QVERIFY(readNifti(base + ".back.nii", b));
+
+  // the Philips file
+  QCOMPARE(CMedIODataFactory::identify(base + suffix), CMedIOData::Philips);
+  {
+    CPhilipsFile philipsFile(base + suffix);
+    QVERIFY(philipsFile.open(QIODevice::ReadOnly));
+    CPhilipsMainHeader* mainHeader = NULL;
+    QVERIFY(philipsFile.readMainHeader(mainHeader));
+    QScopedPointer<CPhilipsMainHeader> guard(mainHeader);
+    QCOMPARE(int(mainHeader->filtyp()), int(suffix == ".syn" ? CPhilipsMainHeader::Syntegra : CPhilipsMainHeader::Image));
+    QCOMPARE(qint64(philipsFile.numFrames()), a.dim[0] >= 4 ? a.dim[4] : qint64(1));
+    QCOMPARE(qint64(philipsFile.numSlices(philipsFile.minFrame())), a.dim[3]);
+    QCOMPARE(int(philipsFile.minSlice()), suffix == ".syn" ? 1 : 0);
+    QCOMPARE(QString(mainHeader->patient_name()), a.json.value("Patient_Name").toString());
+  }
+
+  // header and geometry
+  for(int i=0; i <= 4; i++)
+    QCOMPARE(b.dim[i], a.dim[i]);
+  for(int r=0; r < 3; r++)
+    for(int c=0; c < 4; c++)
+      QVERIFY2(std::fabs(b.srow[r][c] - a.srow[r][c]) < 1e-3, qPrintable(QString("srow[%1][%2]").arg(r).arg(c)));
+
+  // values (16 bit integers with a scale factor per frame)
+  const qint64 volume = a.dim[1] * a.dim[2] * a.dim[3];
+  const int frames = a.dim[0] >= 4 ? int(a.dim[4]) : 1;
+  for(int f=0; f < frames; f++) {
+    const double m = maxAbs(a.values, f * volume, volume);
+    const double tol = 0.5 * m / 32767.0 + 1e-6 * m;
+    for(qint64 i=0; i < volume; i++) {
+      if(std::fabs(b.values[f * volume + i] - a.values[f * volume + i]) > tol)
+        QFAIL(qPrintable(QString("frame %1 voxel %2: %3 instead of %4").arg(f+1).arg(i).arg(b.values[f * volume + i]).arg(a.values[f * volume + i])));
+    }
+  }
+
+  // frame timing and metadata
+  QCOMPARE(b.json.value("FrameTimesStart").toArray(), a.json.value("FrameTimesStart").toArray());
+  QCOMPARE(b.json.value("FrameDuration").toArray(), a.json.value("FrameDuration").toArray());
+  QCOMPARE(b.json.value("Patient_Name").toString(), a.json.value("Patient_Name").toString());
+  QCOMPARE(b.json.value("Isotope_Name").toString(), a.json.value("Isotope_Name").toString());
+  QCOMPARE(b.json.value("Dosage").toDouble(), a.json.value("Dosage").toDouble());
+  QVERIFY(std::fabs(b.json.value("Patient_Weight").toDouble() - a.json.value("Patient_Weight").toDouble()) < 1e-3);
+}
+
+//---------------------------------------------------------------------------------------------
+// Philips file with a different scale factor per slice (written by means of
+// the NIfTI -> Philips header conversion) -> float32 NIfTI
+
+void TestNIFTIConversion::philipsSliceScales_data()
+{
+  QTest::addColumn<int>("dataType");
+  QTest::addColumn<double>("offset");  // stored value of voxel i of slice k: i + 1 + 100 k + offset
+
+  QTest::newRow("signed short")   << int(CPhilipsSubHeader::SignedShort) << -50.0;
+  QTest::newRow("unsigned short") << int(CPhilipsSubHeader::UnsignedShort) << 40000.0;
+  QTest::newRow("byte")           << int(CPhilipsSubHeader::ByteData) << 0.0;
+  QTest::newRow("float")          << int(CPhilipsSubHeader::Float) << 0.25;
+}
+
+void TestNIFTIConversion::philipsSliceScales()
+{
+  QFETCH(int, dataType);
+  QFETCH(double, offset);
+
+  const double affine[3][4] = { { -2, 0, 0, 0 }, { 0, -2.5, 0, 0 }, { 0, 0, 3, 0 } };
+  const QString name = QString("slices%1").arg(dataType);
+  const QString nifti = writeSyntheticNifti(name + ".nii", affine, false, 10, 1, 0.0, 0.0);
+  QVERIFY(nifti.isEmpty() == false);
+
+  CNIFTIFile niftiFile(nifti);
+  QVERIFY(niftiFile.open(QIODevice::ReadOnly));
+  CNIFTIMainHeader* niftiHeader = NULL;
+  QVERIFY(niftiFile.readMainHeader(niftiHeader));
+  QScopedPointer<CNIFTIMainHeader> niftiGuard(niftiHeader);
+
+  const double scale[2] = { 0.5, 2.0 };
+  {
+    CPhilipsFile philipsFile(tmpFile(name + ".img"), CPhilipsMainHeader::Image);
+    QVERIFY(philipsFile.open(QIODevice::WriteOnly));
+
+    QScopedPointer<CPhilipsMainHeader> mainHeader(philipsFile.createEmptyMainHeader());
+    QVERIFY(mainHeader->convertFrom(niftiHeader));
+    QCOMPARE(int(mainHeader->nslice()), 2);
+    QCOMPARE(int(mainHeader->nframe()), 1);
+    QVERIFY(std::fabs(mainHeader->Dslice_thick() - 3.0) < 1e-4);
+
+    QScopedPointer<CPhilipsSubHeader> subHeaderPtr(philipsFile.createEmptySubHeader());
+    CPhilipsSubHeaderImage* subHeader = static_cast<CPhilipsSubHeaderImage*>(subHeaderPtr.data());
+    QVERIFY(subHeader->convertFrom(NULL, niftiHeader));
+    QCOMPARE(int(subHeader->xdim()), 4);
+    QCOMPARE(int(subHeader->ydim()), 3);
+    QVERIFY(std::fabs(subHeader->pix_spacing_x() - 2.0) < 1e-4);
+    QVERIFY(std::fabs(subHeader->pix_spacing_y() - 2.5) < 1e-4);
+
+    subHeader->setDatype(static_cast<CPhilipsSubHeader::Data_Type>(dataType));
+    for(int k=0; k < 2; k++) {
+      QByteArray plane;
+      for(int i=0; i < 12; i++) {
+        const double value = i + 1 + 100 * k + offset;
+        if(dataType == CPhilipsSubHeader::SignedShort) {
+          const qint16 v = static_cast<qint16>(value);
+          plane.append(reinterpret_cast<const char*>(&v), sizeof(v));
+        } else if(dataType == CPhilipsSubHeader::UnsignedShort) {
+          const quint16 v = static_cast<quint16>(value);
+          plane.append(reinterpret_cast<const char*>(&v), sizeof(v));
+        } else if(dataType == CPhilipsSubHeader::ByteData) {
+          plane.append(static_cast<char>(static_cast<quint8>(value)));
+        } else {
+          const float v = static_cast<float>(value);
+          plane.append(reinterpret_cast<const char*>(&v), sizeof(v));
+        }
+      }
+
+      subHeader->setSuvscl(0.0f);
+      subHeader->setImgscl(scale[k]);
+      subHeader->setSlcnum(k);
+      QVERIFY(philipsFile.writeMatrix(plane.constData(), plane.size(), *subHeader, 1, k));
+    }
+
+    QVERIFY(philipsFile.writeMainHeader(*mainHeader));
+    philipsFile.close();
+  }
+
+  QString error;
+  QVERIFY2(CNIFTIConverter::philipsToNifti(tmpFile(name + ".img"), tmpFile(name + ".back.nii"), CNIFTIConverter::Options(), &error), qPrintable(error));
+
+  NiftiVolume n;
+  QVERIFY(readNifti(tmpFile(name + ".back.nii"), n));
+  QCOMPARE(n.datatype, 16);
+  QCOMPARE(n.dim[1], qint64(4));
+  QCOMPARE(n.dim[2], qint64(3));
+  QCOMPARE(n.dim[3], qint64(2));
+  QVERIFY(std::fabs(n.pixdim[1] - 2.0) < 1e-4);
+  QVERIFY(std::fabs(n.pixdim[2] - 2.5) < 1e-4);
+  QVERIFY(std::fabs(n.pixdim[3] - 3.0) < 1e-4);
+
+  // Philips (ECAT7) plane k is NIfTI slice nz-1-k
+  for(int k=0; k < 2; k++)
+    for(int j=0; j < 3; j++)
+      for(int i=0; i < 4; i++)
+        QCOMPARE(n.value(i, j, 1 - k, 0), (i + 4 * j + 1 + 100 * k + offset) * scale[k]);
+}
+
+//---------------------------------------------------------------------------------------------
+// header conversion Philips -> NIfTI (CNIFTI1/2MainHeader::convertFrom())
+
+void TestNIFTIConversion::philipsHeaderConversion()
+{
+  QString philips;
+  foreach(const MedIOTestFile& f, m_data.files)
+    if(f.format == "philips" && philips.isEmpty())
+      philips = f.path;
+  if(philips.isEmpty())
+    QSKIP("no Philips files in the test data");
+
+  CPhilipsFile philipsFile(philips);
+  QVERIFY(philipsFile.open(QIODevice::ReadOnly));
+  CPhilipsMainHeader* mainHeader = NULL;
+  QVERIFY(philipsFile.readMainHeader(mainHeader));
+  QScopedPointer<CPhilipsMainHeader> mainGuard(mainHeader);
+  CPhilipsSubHeader* subHeader = NULL;
+  QVERIFY(philipsFile.readSubHeader(subHeader, philipsFile.minFrame(), philipsFile.minSlice()));
+  QScopedPointer<CPhilipsSubHeader> subGuard(subHeader);
+  const CPhilipsSubHeaderImage* s = static_cast<const CPhilipsSubHeaderImage*>(subHeader);
+
+  bool ok = false;
+  const double scale = s->ecat_Scale_Factor(ok, mainHeader);
+  QVERIFY(ok);
+
+  for(int version=1; version <= 2; version++) {
+    CNIFTIFile niftiFile(tmpFile(QString("header%1.nii").arg(version)), version == 1 ? CNIFTIMainHeader::NIFTI1 : CNIFTIMainHeader::NIFTI2);
+    QVERIFY(niftiFile.open(QIODevice::WriteOnly));
+    QScopedPointer<CNIFTIMainHeader> header(niftiFile.createEmptyHeader());
+    QVERIFY(header->convertFrom(mainHeader, subHeader));
+
+    double slope = 0.0, pixdim[4];
+    qint64 dim[5];
+    int sformCode = 0;
+    if(version == 1) {
+      const CNIFTI1MainHeader* h = static_cast<const CNIFTI1MainHeader*>(header.data());
+      slope = h->scl_Slope(); sformCode = h->sform_Code();
+      for(int i=0; i < 5; i++) dim[i] = h->dim(i);
+      for(int i=1; i < 4; i++) pixdim[i] = h->pix_Dim(i);
+    } else {
+      const CNIFTI2MainHeader* h = static_cast<const CNIFTI2MainHeader*>(header.data());
+      slope = h->scl_Slope(); sformCode = h->sform_Code();
+      for(int i=0; i < 5; i++) dim[i] = h->dim(i);
+      for(int i=1; i < 4; i++) pixdim[i] = h->pix_Dim(i);
+    }
+
+    QCOMPARE(dim[0], qint64(philipsFile.numFrames() > 1 ? 4 : 3));
+    QCOMPARE(dim[1], qint64(s->xdim()));
+    QCOMPARE(dim[2], qint64(s->ydim()));
+    QCOMPARE(dim[3], qint64(philipsFile.numSlices(philipsFile.minFrame())));
+    QVERIFY(std::fabs(pixdim[1] - s->pix_spacing_x()) < 1e-4);
+    QVERIFY(std::fabs(pixdim[2] - s->pix_spacing_y()) < 1e-4);
+    QVERIFY(std::fabs(pixdim[3] - mainHeader->Dslice_thick()) < 1e-4);
+    QVERIFY(std::fabs(slope - scale) <= 1e-6 * scale);
+    QCOMPARE(sformCode, 1);
+    niftiFile.close();
+  }
+}
+
+//---------------------------------------------------------------------------------------------
 // metadata options and NIfTI files of other tools without JSON metadata
 
 void TestNIFTIConversion::metadataOptions()
@@ -1042,6 +1369,16 @@ void TestNIFTIConversion::errors()
   QVERIFY(CNIFTIConverter::ecatToNifti(tmpFile("error.v"), tmpFile("no/such/dir/error.nii"), CNIFTIConverter::Options(), &error) == false);
   QVERIFY(CNIFTIConverter::ecatToNifti(tmpFile("error.v"), tmpFile("no/such/dir/error.nii.gz"), CNIFTIConverter::Options(), &error) == false);
   QVERIFY(QFile::exists(tmpFile("no/such/dir/error.nii.gz")) == false);
+
+  // Philips conversions
+  QVERIFY(CNIFTIConverter::philipsToNifti(nifti, tmpFile("error.p.nii"), CNIFTIConverter::Options(), &error) == false);
+  QVERIFY(QFile::exists(tmpFile("error.p.nii")) == false);
+  QVERIFY(CNIFTIConverter::philipsToNifti(tmpFile("missing.img"), tmpFile("missing.p.nii"), CNIFTIConverter::Options(), &error) == false);
+  QVERIFY(CNIFTIConverter::toNifti(nifti, tmpFile("error.t.nii"), CNIFTIConverter::Options(), &error) == false);
+  QVERIFY(QFile::exists(tmpFile("error.t.nii")) == false);
+  QVERIFY(CNIFTIConverter::niftiToPhilips(nifti, tmpFile("no/such/dir/error.img"), &error) == false);
+  QVERIFY(CNIFTIConverter::niftiToPhilips(tmpFile("missing.nii"), tmpFile("missing.img"), &error) == false);
+  QVERIFY(QFile::exists(tmpFile("missing.img")) == false);
 
   // the image file of a pair cannot be created: no header file is left behind
   QVERIFY(QDir(m_tmp.path()).mkdir("blocked.img"));

@@ -19,47 +19,25 @@
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
-# set __MEDIO_PRIVATE__ to flag that we compile the library and
-# are no users of medio
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__MEDIO_PRIVATE__")
 
-# Qt5::Test is required for the QtTest framework (QTest::qExec, QVERIFY, …);
-# the component is requested in the top-level find_package(Qt5 …) call.
-
-# specify include directories
 include_directories(${RTDEBUG_INCLUDES}
                     ${MEDIO_CONFIG}
                     ${MEDIO_INCLUDES}
 )
 
-# collect all source files
-file(GLOB_RECURSE CODE_FILES *.cpp)
-list(REMOVE_DUPLICATES CODE_FILES)
+add_executable(testPhilipsDatasets testPhilipsDatasets.cpp)
 
-# specify the executable we are going to build
-add_executable(testPhilipsFormat ${CODE_FILES})
+target_include_directories(testPhilipsDatasets PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../common)
+target_compile_definitions(testPhilipsDatasets PRIVATE MEDIO_TEST_DATA_DIR="${MEDIO_TEST_DATA_DIR}")
 
-# define link libraries dependencies
-target_link_libraries(testPhilipsFormat Qt5::Core
-                                        Qt5::Test
-                                        ${CMAKE_PROJECT_NAME}-static
-                                        ${RTDEBUG_STATIC_LIB}
+target_link_libraries(testPhilipsDatasets Qt5::Core
+                                          Qt5::Test
+                                          ${CMAKE_PROJECT_NAME}-static
+                                          ${RTDEBUG_STATIC_LIB}
 )
 
-# Optional CTest registration: set PHILIPS_TEST_FILE to the path of a
-# Philips PET/Syntegra data file to enable the test.
-#
-# Example:
-#   cmake -DPHILIPS_TEST_FILE=/path/to/scan.hdr ...
-#   make && ctest -R philips
-#
-set(PHILIPS_TEST_FILE "" CACHE FILEPATH
-    "Path to a Philips PET/Syntegra data file used by the philips_format CTest")
-
-if(PHILIPS_TEST_FILE)
-  add_test(NAME philips_format
-           COMMAND testPhilipsFormat ${PHILIPS_TEST_FILE}
-  )
-else()
-  message(STATUS "PHILIPS_TEST_FILE not set — testPhilipsFormat will be built but not registered as a CTest test")
-endif()
+add_test(NAME philips_datasets
+         COMMAND testPhilipsDatasets
+         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

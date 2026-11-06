@@ -158,6 +158,11 @@ run the script again instead (`--force` regenerates existing files).
   `slice_spacing_mm`, `image_orientation`, `patient_position`, `units`)
   and per frame its timing, the positions of the first and last slice and
   statistics of the stored and of the rescaled voxel values.
+- **Philips** (`"format": "philips-image"`/`"philips-syntegra"`, written by
+  hand): `frames`, `dims`, `pixel_size_mm`, `data_type` and statistics of the
+  stored voxel values per frame (`volumes`). The `philips_datasets` test also
+  compares the scale factors and the frame timing with the expected values of
+  the ECAT7 file of the same dataset, if there is one.
 - **Interfile** (`"format": "interfile"`): header values (`version_of_keys`,
   `type_of_data`, `byte_order`, `data_offset`, `units`) and per image or
   frame group its dimensions, number format, pixel size, duration, rescale
