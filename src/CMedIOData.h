@@ -137,7 +137,9 @@ class CMedIOData : public QFile {
     //! The main header of this file has to be written before. The values are
     //! converted into the representation of this file (NIfTI: datatype,
     //! scaling and orientation of its main header; the method fails without
-    //! writing if a value does not fit into the datatype).
+    //! writing if a value does not fit into the datatype). Philips files are
+    //! written frame by frame in ascending order (all slices of a frame with
+    //! one scale factor).
     bool writeMatrix(const QByteArray& matrixData, const CMedIOHeader& subHeader,
                      short frame=-1, const CMedIOHeader* mainHeader=NULL);
     bool writeMatrix(const char* matrixData, unsigned int size, const CMedIOHeader& subHeader,

@@ -59,6 +59,9 @@ class CECATFile;
 class CECATSubHeader;
 class CNIFTIFile;
 class CNIFTIMainHeader;
+class CPhilipsFile;
+class CPhilipsMainHeader;
+class CPhilipsSubHeader;
 class QJsonObject;
 
 //! ECAT7 representation of one frame
@@ -149,6 +152,19 @@ bool niftiMatrixFromFrame(const CMedIOFrame& f, QByteArray& data, CMedIOHeader*&
 bool niftiMainHeaderFromFrame(const CMedIOFrame& f, CMedIOData* source, CMedIOHeader*& header);
 bool writeNiftiFrame(CNIFTIFile* file, short frame, const CMedIOFrame& f);
 void setNiftiFrameTiming(CNIFTIMainHeader* header, double start, double duration);
+
+//---------------------------------------------------------------------------------------------
+// Philips adapter (src/philips/CPhilipsMatrix.cpp)
+
+short philipsFrameNumber(CPhilipsFile* file, int index);
+//! all slices of a frame as volume with a scale factor per slice (shared with CNIFTIConverter)
+bool readPhilipsFrameData(CPhilipsFile* file, const CPhilipsMainHeader* mainHeader, short frame,
+                          CMedIOVolume& v, CPhilipsSubHeader*& firstSlice, bool* unscaled = NULL);
+bool readPhilipsFrame(CPhilipsFile* file, short frame, CMedIOFrame& f);
+bool philipsFrameFromMatrix(const QByteArray& data, const CPhilipsSubHeader& subHeader, const CMedIOHeader* mainHeader, CMedIOFrame& f);
+bool philipsMatrixFromFrame(const CMedIOFrame& f, QByteArray& data, CMedIOHeader*& header);
+bool philipsMainHeaderFromFrame(const CMedIOFrame& f, CMedIOHeader*& header);
+bool writePhilipsFrame(CPhilipsFile* file, short frame, const CMedIOFrame& f);
 
 } // namespace MedIOMatrix
 

@@ -45,6 +45,10 @@
 #include <CNIFTIMainHeader.h>
 #include <CNIFTI1MainHeader.h>
 #include <CNIFTI2MainHeader.h>
+#include <CPhilipsFile.h>
+#include <CPhilipsMainHeader.h>
+#include <CPhilipsSubHeader.h>
+#include <CPhilipsSubHeaderImage.h>
 
 #include "MedIOTestData.h"
 
@@ -423,6 +427,14 @@ class TestMedIOMatrix : public QObject
     void niftiToEcatFile();
     void niftiRequantized();
     void niftiErrors();
+
+    void philipsDatasets_data();
+    void philipsDatasets();
+    void writePhilips_data();
+    void writePhilips();
+    void philipsSliceScales_data();
+    void philipsSliceScales();
+    void philipsErrors();
 
     void errors();
 };
@@ -1382,6 +1394,420 @@ void TestMedIOMatrix::niftiErrors()
     QVERIFY(out.writeMatrix(values, sub, 1) == false);
     out.close();
   }
+}
+
+//=============================================================================================
+// Philips
+
+// maximum absolute physical value of frame f
+static double maxAbs(const EcatFile& e, int f)
+{
+  double m = 0.0;
+  for(qint64 i=0; i < e.voxels(); i++)
+    m = qMax(m, std::fabs(e.value(f, i)));
+  return m;
+}
+
+// physical values of a Philips matrix (all slices of a frame) and its scale factor
+static bool philipsValues(const QByteArray& data, const CMedIOHeader* header, const CMedIOHeader* mainHeader, QVector<double>& values)
+{
+  const CPhilipsSubHeaderImage* s = dynamic_cast<const CPhilipsSubHeaderImage*>(header);
+  const CPhilipsMainHeader* m = dynamic_cast<const CPhilipsMainHeader*>(mainHeader);
+  if(s == NULL || m == NULL)
+    return false;
+  bool ok = false;
+  const double scale = s->ecat_Scale_Factor(ok, m);
+  if(ok == false)
+    return false;
+
+  values.clear();
+  switch(s->datype()) {
+    case CPhilipsSubHeader::SignedShort:
+      for(int i=0; i < data.size() / 2; i++)
+        values.append(reinterpret_cast<const qint16*>(data.constData())[i] * scale);
+      break;
+    case CPhilipsSubHeader::Float:
+      for(int i=0; i < data.size() / 4; i++)
+        values.append(reinterpret_cast<const float*>(data.constData())[i] * scale);
+      break;
+    default:
+      return false;
+  }
+  return true;
+}
+
+//---------------------------------------------------------------------------------------------
+// Philips files of the datasets (ROVER export with the same stored values and
+// voxel order as the ECAT7 files) in all representations
+
+void TestMedIOMatrix::philipsDatasets_data()
+{
+  QTest::addColumn<QString>("philips");
+  QTest::addColumn<QString>("ecat");
+
+  QTest::newRow("pet-static.img")  << "philips/pet-static.img" << "ecat/pet-static.v";
+  QTest::newRow("pet-static.syn")  << "philips/pet-static.syn" << "ecat/pet-static.v";
+  QTest::newRow("pet-dynamic.img") << "philips/pet-dynamic.img" << "ecat/pet-dynamic.v";
+  QTest::newRow("pet-dynamic.syn") << "philips/pet-dynamic.syn" << "ecat/pet-dynamic.v";
+}
+
+void TestMedIOMatrix::philipsDatasets()
+{
+  QFETCH(QString, philips);
+  QFETCH(QString, ecat);
+
+  EcatFile reference;
+  QVERIFY(reference.read(medioTestDataDir() + "/" + ecat));
+  const qint64 voxels = reference.voxels();
+
+  QScopedPointer<CMedIOData> file(CMedIODataFactory::create(medioTestDataDir() + "/" + philips));
+  QVERIFY(file.data() != NULL);
+  QCOMPARE(static_cast<int>(file->dataFormat()), static_cast<int>(CMedIOData::Philips));
+  QVERIFY(file->open(QIODevice::ReadOnly));
+  CECATFile ecatFile(medioTestDataDir() + "/" + ecat);
+  QVERIFY(ecatFile.open(QIODevice::ReadOnly));
+
+  CMedIOHeader* philipsMain = NULL;
+  QVERIFY(file->readMainHeader(philipsMain, CMedIOData::Philips));
+  QScopedPointer<CMedIOHeader> philipsMainGuard(philipsMain);
+  CMedIOHeader* ecatAsPhilipsMain = NULL;
+  QVERIFY(ecatFile.readMainHeader(ecatAsPhilipsMain, CMedIOData::Philips));
+  QScopedPointer<CMedIOHeader> ecatAsPhilipsMainGuard(ecatAsPhilipsMain);
+  CMedIOHeader* ecatMain = NULL;
+  QVERIFY(file->readMainHeader(ecatMain, CMedIOData::ECAT));
+  QScopedPointer<CMedIOHeader> ecatMainGuard(ecatMain);
+  QCOMPARE(static_cast<int>(static_cast<CECAT7MainHeader*>(ecatMain)->num_Frames()), reference.frames());
+
+  const short firstFrame = static_cast<CPhilipsFile*>(file.data())->minFrame();
+  for(int f=0; f < reference.frames(); f++) {
+    const double tolerance = 1e-6 * maxAbs(reference, f);
+
+    // volume: same stored values and voxel order, physical values and positions of the ECAT7 file
+    CMedIOVolume v;
+    QVERIFY(file->readVolume(v, firstFrame + f));
+    QCOMPARE(v.dataType(), CMedIOVolume::Int16);
+    QCOMPARE(v.voxelCount(), voxels);
+    QCOMPARE(v.orientation(), QString("LPI"));
+    QCOMPARE(v.frameStart() * 1000.0, static_cast<double>(reference.subHeaders[f]->frame_Start_Time()));
+    for(qint64 i=0; i < voxels; i++) {
+      QCOMPARE(v.storedValue(i), ecatValue(reference.matrices[f].constData(), i, CECATSubHeader::SunShort));
+      QVERIFY(approx(v.value(i), reference.value(f, i), 0.0, tolerance));
+    }
+    const int last[3] = { v.dimension(0) - 1, v.dimension(1) - 1, v.dimension(2) - 1 };
+    double p[3], q[3];
+    v.position(last[0], last[1], last[2], p);
+    reference.position(f, last[0], last[1], last[2], q);
+    for(int r=0; r < 3; r++)
+      QVERIFY(approx(p[r], q[r], 0.0, 1e-3));
+
+    // ECAT7 representation: int16 with one scale factor if the slices share it, float32 otherwise
+    QByteArray* data = NULL;
+    CMedIOHeader* sh = NULL;
+    QVERIFY(file->readMatrix(data, sh, CMedIOData::ECAT, firstFrame + f));
+    QScopedPointer<QByteArray> dataGuard(data);
+    QScopedPointer<CMedIOHeader> shGuard(sh);
+    const CECAT7SubHeaderImage* s = static_cast<const CECAT7SubHeaderImage*>(sh);
+    QCOMPARE(static_cast<int>(s->data_Type()), static_cast<int>(v.hasUniformScaleFactor() ? CECATSubHeader::SunShort : CECATSubHeader::IEEEFloat));
+    QCOMPARE(s->z_Dimension(), reference.subHeaders[f]->z_Dimension());
+    for(qint64 i=0; i < voxels; i++)
+      QVERIFY(approx(ecatValue(data->constData(), i, s->data_Type()) * s->scale_Factor(), reference.value(f, i), 0.0, tolerance));
+
+    // NIfTI representation: the same values as the one of the ECAT7 file
+    QByteArray* niftiData = NULL;
+    CMedIOHeader* niftiHeaderPtr = NULL;
+    QVERIFY(file->readMatrix(niftiData, niftiHeaderPtr, CMedIOData::NIFTI, firstFrame + f));
+    QScopedPointer<QByteArray> niftiDataGuard(niftiData);
+    QScopedPointer<CMedIOHeader> niftiHeaderGuard(niftiHeaderPtr);
+    QByteArray* ecatNiftiData = NULL;
+    CMedIOHeader* ecatNiftiHeader = NULL;
+    QVERIFY(ecatFile.readMatrix(ecatNiftiData, ecatNiftiHeader, CMedIOData::NIFTI, f + 1));
+    QScopedPointer<QByteArray> ecatNiftiDataGuard(ecatNiftiData);
+    QScopedPointer<CMedIOHeader> ecatNiftiHeaderGuard(ecatNiftiHeader);
+    const NiftiHeader a = niftiHeader(niftiHeaderPtr), b = niftiHeader(ecatNiftiHeader);
+    for(int r=0; r < 3; r++)
+      for(int c=0; c < 4; c++)
+        QVERIFY(approx(a.srow[r][c], b.srow[r][c], 0.0, 1e-3));
+    for(qint64 i=0; i < voxels; i++)
+      QVERIFY(approx(niftiValue(niftiData->constData(), i, a.datatype) * a.slope + a.inter,
+                     niftiValue(ecatNiftiData->constData(), i, b.datatype) * b.slope + b.inter, 0.0, tolerance));
+
+    // Philips representation of the Philips file and of the ECAT7 file: all slices, one scale factor
+    QByteArray* philipsData = NULL;
+    CMedIOHeader* philipsHeader = NULL;
+    QVERIFY(file->readMatrix(philipsData, philipsHeader, CMedIOData::Philips, firstFrame + f));
+    QScopedPointer<QByteArray> philipsDataGuard(philipsData);
+    QScopedPointer<CMedIOHeader> philipsHeaderGuard(philipsHeader);
+    QCOMPARE(static_cast<int>(philipsHeader->headerFormat()), static_cast<int>(CMedIOHeader::PhilipsSubHeader));
+    QVector<double> values;
+    QVERIFY(philipsValues(*philipsData, philipsHeader, philipsMain, values));
+    QCOMPARE(static_cast<qint64>(values.size()), voxels);
+    for(qint64 i=0; i < voxels; i++)
+      QVERIFY(approx(values[i], reference.value(f, i), 0.0, tolerance));
+
+    QVERIFY(ecatFile.readMatrix(philipsData, philipsHeader, CMedIOData::Philips, f + 1));
+    QScopedPointer<QByteArray> philipsData2Guard(philipsData);
+    QScopedPointer<CMedIOHeader> philipsHeader2Guard(philipsHeader);
+    QCOMPARE(static_cast<int>(static_cast<CPhilipsSubHeader*>(philipsHeader)->datype()), static_cast<int>(CPhilipsSubHeader::SignedShort));
+    QVERIFY(*philipsData == reference.matrices[f]); // stored values of the ECAT7 file
+    QVERIFY(philipsValues(*philipsData, philipsHeader, ecatAsPhilipsMain, values));
+    for(qint64 i=0; i < voxels; i++)
+      QVERIFY(approx(values[i], reference.value(f, i), 0.0, tolerance));
+  }
+}
+
+//---------------------------------------------------------------------------------------------
+// Philips image and Syntegra files written from ECAT7 matrices and from NIfTI matrices
+
+void TestMedIOMatrix::writePhilips_data()
+{
+  QTest::addColumn<QString>("source");
+  QTest::addColumn<QString>("ecat");     // ECAT7 file of the same dataset
+  QTest::addColumn<int>("type");
+  QTest::addColumn<bool>("exact");       // the stored values of the ECAT7 file are kept
+  QTest::addColumn<bool>("timing");      // the source holds the frame timing
+
+  QTest::newRow("ECAT7 -> image")      << "ecat/pet-dynamic.v" << "ecat/pet-dynamic.v" << static_cast<int>(CPhilipsMainHeader::Image) << true << true;
+  QTest::newRow("ECAT7 -> Syntegra")   << "ecat/pet-static.v" << "ecat/pet-static.v" << static_cast<int>(CPhilipsMainHeader::Syntegra) << true << true;
+  QTest::newRow("NIfTI -> image")      << "nifti/pet-static.pair/pet-static.hdr" << "ecat/pet-static.v" << static_cast<int>(CPhilipsMainHeader::Image) << true << true;
+  QTest::newRow("NIfTI -> Syntegra")   << "nifti/pet-static.nii.gz" << "ecat/pet-static.v" << static_cast<int>(CPhilipsMainHeader::Syntegra) << false << false;
+  QTest::newRow("ECAT7 -> image, other main header") << "ecat/pet-dynamic.v" << "ecat/pet-dynamic.v" << static_cast<int>(CPhilipsMainHeader::Image) << true << true;
+}
+
+void TestMedIOMatrix::writePhilips()
+{
+  QFETCH(QString, source);
+  QFETCH(QString, ecat);
+  QFETCH(int, type);
+  QFETCH(bool, exact);
+  QFETCH(bool, timing);
+
+  EcatFile reference;
+  QVERIFY(reference.read(medioTestDataDir() + "/" + ecat));
+  const qint64 voxels = reference.voxels();
+
+  const QString path = tmpFile(QString(QTest::currentDataTag()).replace(QRegExp("[^a-zA-Z0-9]"), "_") +
+                               (type == CPhilipsMainHeader::Syntegra ? ".syn" : ".img"));
+  {
+    QScopedPointer<CMedIOData> in(CMedIODataFactory::create(medioTestDataDir() + "/" + source));
+    QVERIFY(in->open(QIODevice::ReadOnly));
+
+    CMedIOHeader* mh = NULL;
+    QVERIFY(in->readMainHeader(mh, CMedIOData::Philips));
+    QScopedPointer<CMedIOHeader> mhGuard(mh);
+    CPhilipsMainHeader* philipsMain = static_cast<CPhilipsMainHeader*>(mh);
+    philipsMain->setFiltyp(static_cast<CPhilipsMainHeader::File_Type>(type));
+    if(QString(QTest::currentDataTag()).contains("other main header")) {
+      // the scale factors of the slices must not depend on the patient data of the source
+      philipsMain->setWeight(philipsMain->weight() * 2 + 10000);
+      philipsMain->setActivity(philipsMain->activity() * 3.0f + 1.0f);
+    }
+
+    CPhilipsFile out(path, static_cast<CPhilipsMainHeader::File_Type>(type));
+    QVERIFY(out.open(QIODevice::WriteOnly));
+    philipsMain->setMedIOData(&out);
+    QVERIFY(out.writeMainHeader(*philipsMain));
+
+    CMedIOHeader* sourceMain = NULL;
+    QVERIFY(in->readMainHeader(sourceMain, in->dataFormat()));
+    QScopedPointer<CMedIOHeader> sourceMainGuard(sourceMain);
+
+    for(int f=1; f <= reference.frames(); f++) {
+      QByteArray* data = NULL;
+      CMedIOHeader* sh = NULL;
+      QVERIFY(in->readMatrix(data, sh, in->dataFormat(), f));
+      QVERIFY(out.writeMatrix(*data, *sh, f, sourceMain));
+      delete data;
+      delete sh;
+    }
+    out.close();
+  }
+
+  // read back: values and slice numbering
+  CPhilipsFile written(path);
+  QVERIFY(written.open(QIODevice::ReadOnly));
+  QCOMPARE(static_cast<int>(written.fileType()), type);
+  QCOMPARE(static_cast<int>(written.numFrames()), reference.frames());
+  QCOMPARE(static_cast<int>(written.minSlice()), type == CPhilipsMainHeader::Syntegra ? 1 : 0);
+
+  for(int f=0; f < reference.frames(); f++) {
+    CMedIOVolume v;
+    QVERIFY(written.readVolume(v, written.minFrame() + f));
+    QCOMPARE(v.voxelCount(), voxels);
+    QCOMPARE(v.dataType(), exact ? CMedIOVolume::Int16 : CMedIOVolume::Float32);
+    const double tolerance = 1e-6 * maxAbs(reference, f);
+    for(qint64 i=0; i < voxels; i++) {
+      if(exact)
+        QCOMPARE(v.storedValue(i), ecatValue(reference.matrices[f].constData(), i, CECATSubHeader::SunShort));
+      QVERIFY(approx(v.value(i), reference.value(f, i), 0.0, tolerance));
+    }
+    if(timing) {
+      QCOMPARE(v.frameStart() * 1000.0, static_cast<double>(reference.subHeaders[f]->frame_Start_Time()));
+      QCOMPARE(v.frameDuration() * 1000.0, static_cast<double>(reference.subHeaders[f]->frame_Duration()));
+    }
+  }
+}
+
+//---------------------------------------------------------------------------------------------
+// Philips file with a scale factor per slice (2 slices of 4 x 3 voxels,
+// stored value 1 + i + 100 * slice, written with CPhilipsFile)
+
+void TestMedIOMatrix::philipsSliceScales_data()
+{
+  QTest::addColumn<int>("dataType");
+  QTest::addColumn<double>("scale0");
+  QTest::addColumn<double>("scale1");
+  QTest::addColumn<int>("ecatType");     // ECAT7 representation
+  QTest::addColumn<int>("niftiType");    // NIfTI representation
+
+  QTest::newRow("int16, different scales")  << static_cast<int>(CPhilipsSubHeader::SignedShort) << 0.5 << 2.0
+                                            << static_cast<int>(CECATSubHeader::IEEEFloat) << 16;
+  QTest::newRow("uint16, different scales") << static_cast<int>(CPhilipsSubHeader::UnsignedShort) << 0.5 << 2.0
+                                            << static_cast<int>(CECATSubHeader::IEEEFloat) << 16;
+  QTest::newRow("uint16, same scale")       << static_cast<int>(CPhilipsSubHeader::UnsignedShort) << 2.0 << 2.0
+                                            << static_cast<int>(CECATSubHeader::SunLong) << 512;
+}
+
+void TestMedIOMatrix::philipsSliceScales()
+{
+  QFETCH(int, dataType);
+  QFETCH(double, scale0);
+  QFETCH(double, scale1);
+  QFETCH(int, ecatType);
+  QFETCH(int, niftiType);
+
+  const double scales[2] = { scale0, scale1 };
+  const QString path = tmpFile(QString("slices-%1-%2.img").arg(dataType).arg(scale0));
+  {
+    // NIfTI header of the geometry (libmedio orientation)
+    Synthetic s;
+    QVERIFY(writeNifti(tmpFile("slices-geometry.nii"), s, QByteArray(s.voxels() * 2, '\0')));
+    CNIFTIFile niftiFile(tmpFile("slices-geometry.nii"));
+    QVERIFY(niftiFile.open(QIODevice::ReadOnly));
+    CNIFTIMainHeader* niftiHeaderPtr = NULL;
+    QVERIFY(niftiFile.readMainHeader(niftiHeaderPtr));
+    QScopedPointer<CNIFTIMainHeader> niftiGuard(niftiHeaderPtr);
+
+    CPhilipsFile philipsFile(path, CPhilipsMainHeader::Image);
+    QVERIFY(philipsFile.open(QIODevice::WriteOnly));
+    QScopedPointer<CPhilipsMainHeader> mainHeader(philipsFile.createEmptyMainHeader());
+    QVERIFY(mainHeader->convertFrom(niftiHeaderPtr));
+    QScopedPointer<CPhilipsSubHeader> subHeaderPtr(philipsFile.createEmptySubHeader());
+    CPhilipsSubHeaderImage* subHeader = static_cast<CPhilipsSubHeaderImage*>(subHeaderPtr.data());
+    QVERIFY(subHeader->convertFrom(NULL, niftiHeaderPtr));
+    subHeader->setDatype(static_cast<CPhilipsSubHeader::Data_Type>(dataType));
+
+    for(int k=0; k < 2; k++) {
+      QByteArray plane;
+      for(int i=0; i < 12; i++) {
+        const qint16 v = static_cast<qint16>(i + 1 + 100 * k);
+        plane.append(reinterpret_cast<const char*>(&v), sizeof(v));
+      }
+      subHeader->setSuvscl(0.0f);
+      subHeader->setImgscl(scales[k]);
+      subHeader->setSlcnum(k);
+      QVERIFY(philipsFile.writeMatrix(plane.constData(), plane.size(), *subHeader, 1, k));
+    }
+    QVERIFY(philipsFile.writeMainHeader(*mainHeader));
+    philipsFile.close();
+  }
+
+  CPhilipsFile file(path);
+  QVERIFY(file.open(QIODevice::ReadOnly));
+
+  CMedIOVolume v;
+  QVERIFY(file.readVolume(v, 1));
+  QCOMPARE(v.dataType(), dataType == CPhilipsSubHeader::SignedShort ? CMedIOVolume::Int16 : CMedIOVolume::UInt16);
+  QCOMPARE(v.scaleFactor(0), scale0);
+  QCOMPARE(v.scaleFactor(1), scale1);
+  for(int k=0; k < 2; k++)
+    for(int i=0; i < 12; i++) {
+      QCOMPARE(v.storedValue(i + 12 * k), 1.0 + i + 100 * k);
+      QCOMPARE(v.value(i + 12 * k), (1.0 + i + 100 * k) * scales[k]);
+    }
+
+  // ECAT7 representation
+  QByteArray* data = NULL;
+  CMedIOHeader* sh = NULL;
+  QVERIFY(file.readMatrix(data, sh, CMedIOData::ECAT, 1));
+  QScopedPointer<QByteArray> dataGuard(data);
+  QScopedPointer<CMedIOHeader> shGuard(sh);
+  const CECAT7SubHeaderImage* e = static_cast<const CECAT7SubHeaderImage*>(sh);
+  QCOMPARE(static_cast<int>(e->data_Type()), ecatType);
+  for(int k=0; k < 2; k++)
+    for(int i=0; i < 12; i++)
+      QCOMPARE(ecatValue(data->constData(), i + 12 * k, ecatType) * e->scale_Factor(), (1.0 + i + 100 * k) * scales[k]);
+
+  // NIfTI representation (planes reversed)
+  QVERIFY(file.readMatrix(data, sh, CMedIOData::NIFTI, 1));
+  QScopedPointer<QByteArray> niftiDataGuard(data);
+  QScopedPointer<CMedIOHeader> niftiHeaderGuard(sh);
+  const NiftiHeader n = niftiHeader(sh);
+  QCOMPARE(n.datatype, niftiType);
+  for(int k=0; k < 2; k++)
+    for(int i=0; i < 12; i++)
+      QCOMPARE(niftiValue(data->constData(), i + 12 * (1 - k), niftiType) * n.slope, (1.0 + i + 100 * k) * scales[k]);
+
+  // Philips representation: one scale factor
+  CMedIOHeader* mh = NULL;
+  QVERIFY(file.readMainHeader(mh, CMedIOData::Philips));
+  QScopedPointer<CMedIOHeader> mhGuard(mh);
+  QVERIFY(file.readMatrix(data, sh, CMedIOData::Philips, 1));
+  QScopedPointer<QByteArray> philipsDataGuard(data);
+  QScopedPointer<CMedIOHeader> philipsHeaderGuard(sh);
+  QCOMPARE(static_cast<int>(static_cast<CPhilipsSubHeader*>(sh)->datype()),
+           static_cast<int>(scale0 == scale1 ? dataType : CPhilipsSubHeader::Float));
+  bool ok = false;
+  const double scale = static_cast<CPhilipsSubHeaderImage*>(sh)->ecat_Scale_Factor(ok, static_cast<CPhilipsMainHeader*>(mh));
+  QVERIFY(ok);
+  for(int k=0; k < 2; k++)
+    for(int i=0; i < 12; i++) {
+      const double stored = (scale0 == scale1) ? (dataType == CPhilipsSubHeader::SignedShort ? reinterpret_cast<const qint16*>(data->constData())[i + 12 * k]
+                                                                                             : reinterpret_cast<const quint16*>(data->constData())[i + 12 * k])
+                                               : reinterpret_cast<const float*>(data->constData())[i + 12 * k];
+      QCOMPARE(stored * scale, (1.0 + i + 100 * k) * scales[k]);
+    }
+}
+
+//---------------------------------------------------------------------------------------------
+
+void TestMedIOMatrix::philipsErrors()
+{
+  CPhilipsFile philips(medioTestDataDir() + "/philips/pet-static.img");
+  QVERIFY(philips.open(QIODevice::ReadOnly));
+  QByteArray* data = NULL;
+  CMedIOHeader* sh = NULL;
+  QVERIFY(philips.readMatrix(data, sh, CMedIOData::Philips, -1));
+  QScopedPointer<QByteArray> dataGuard(data);
+  QScopedPointer<CMedIOHeader> shGuard(sh);
+  CMedIOHeader* mh = NULL;
+  QVERIFY(philips.readMainHeader(mh, CMedIOData::Philips));
+  QScopedPointer<CMedIOHeader> mhGuard(mh);
+
+  CECATFile out(tmpFile("philips-errors.v"), CECATMainHeader::ECAT7_Volume16);
+  QVERIFY(createEcat(out, CECAT7MainHeader(NULL, CECATMainHeader::ECAT7_Volume16)));
+  QVERIFY(out.writeMatrix(*data, *sh, 1) == false);                        // no Philips main header
+  QVERIFY(out.writeMatrix(data->left(data->size() - 2), *sh, 1, mh) == false); // not a multiple of a slice
+  QVERIFY(out.writeMatrix(*data, *sh, 1, mh));
+  out.close();
+
+  // Philips files are written frame by frame in ascending order
+  {
+    CPhilipsFile philipsOut(tmpFile("philips-order.img"), CPhilipsMainHeader::Image);
+    QVERIFY(philipsOut.open(QIODevice::WriteOnly));
+    mh->setMedIOData(&philipsOut);
+    QVERIFY(philipsOut.writeMainHeader(*static_cast<CPhilipsMainHeader*>(mh)));
+    mh->setMedIOData(NULL);
+    QVERIFY(philipsOut.writeMatrix(*data, *sh, 2, mh));
+    QVERIFY(philipsOut.writeMatrix(*data, *sh, 1, mh) == false);
+    QVERIFY(philipsOut.writeMatrix(*data, *sh, 2, mh) == false);
+    QVERIFY(philipsOut.writeMatrix(*data, *sh, 3, mh));
+    philipsOut.close();
+  }
+
+  // frames that do not exist
+  QByteArray* none = NULL;
+  QVERIFY(philips.readMatrix(none, sh, CMedIOData::ECAT, 99) == false);
+  QVERIFY(none == NULL);
 }
 
 //---------------------------------------------------------------------------------------------
