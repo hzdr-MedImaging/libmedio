@@ -11,6 +11,8 @@ portability across Linux, macOS, and Windows.
 ## Scope & supported formats
 libmedio targets PET-centric workflows and currently focuses on:
 - **ECAT 6 / ECAT 7** images and sinograms (Siemens/CTI)
+- **NIfTI-1 / NIfTI-2** single files (`.nii`, gzip-compressed `.nii.gz`),
+  both byte orders, incl. JSON header extensions
 - **Philips PET** image data, including **Syntegra**-related variants
 - **microPET** (Siemens Concorde)
 
@@ -21,6 +23,9 @@ libmedio targets PET-centric workflows and currently focuses on:
 - Object-oriented C++ API (header-only interfaces with a shared library core)
 - Read/write support for PET images and sinograms (ECAT6/7, Philips IMG, microPET, etc.)
 - Robust metadata handling and endian-safe I/O
+- Conversion of ECAT7 images to NIfTI and back (`CNIFTIConverter`), incl.
+  dynamic (4D) data, patient orientation/geometry, physical units and the
+  ECAT7 metadata (stored as JSON header extension)
 - Cross-platform build with CMake; Qt5 backend
 
 ## Requirements
@@ -28,6 +33,7 @@ libmedio targets PET-centric workflows and currently focuses on:
 - **CMake ≥ 3.20**
 - **Qt 5.15+** (at least `Core`; additional modules as needed)
 - **librtdebug**
+- **zlib** (for `.nii.gz`)
 
 ## Build & install
 ```bash
@@ -41,6 +47,37 @@ cmake --build build -j
 # Install (may require sudo)
 cmake --install build
 ```
+
+## Tests
+The test suite uses QtTest and is run with CTest after building:
+```bash
+ctest --test-dir build --output-on-failure
+```
+Test datasets in several formats (DICOM, ECAT7, NIfTI, Philips, Interfile,
+raw) are stored in `testsuite/data`; see
+[testsuite/data/README.md](testsuite/data/README.md) for their layout and how
+to add data.
+
+## ECAT7 ↔ NIfTI conversion
+The command line tools `ecat2nifti` and `nifti2ecat` convert complete files:
+```bash
+ecat2nifti [-2] [--float] [--sidecar] [--no-extension] input.v [output.nii[.gz]]
+nifti2ecat input.nii[.gz] [output.v]
+```
+- NIfTI files hold the physical values (stored value × scale factor ×
+  calibration factor, e.g. Bq/ml); dynamic data with a scale factor per frame
+  (or `--float`) is written as float32.
+- ECAT7 voxel (i, j, k) is written as NIfTI voxel (i, j, nz-1-k) with qform
+  and sform describing its position. NIfTI files of any orientation are
+  reordered into the ECAT7 voxel order.
+- The ECAT7 main header values (incl. patient data) and the frame timing are
+  stored as JSON header extension (`--sidecar`: also as `<output>.json`) and
+  restored by `nifti2ecat`.
+
+The details are documented in `src/nifti/CNIFTIConverter.h`. NIfTI
+header/image pairs (`.hdr`/`.img`) are not supported yet. The NIfTI support
+was started in the 2026 summer student project, see
+[docs/summer-student-2026](docs/summer-student-2026/README.md).
 
 ## License
 libmedio is licensed under the **Apache License, Version 2.0.**

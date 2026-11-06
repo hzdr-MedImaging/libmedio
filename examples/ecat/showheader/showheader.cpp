@@ -168,18 +168,17 @@ int main(int argc, char* argv[])
             cout << "\nSubHeader data for frame " << frameNumber << ":" << endl;
             cout << "------------------------" << endl;
 
-            if(subHeader->subHeaderType() == CECATSubHeader::ECAT7_Image){
-
+            if(subHeader->subHeaderType() == CECATSubHeader::ECAT7_Image) {
               CECAT7SubHeaderImage* imgSubHeader = static_cast<CECAT7SubHeaderImage*>(subHeader);
-              cout << "Data_Type...............: " << imgSubHeader->data_Type() << endl;
+              cout << "Data Type...............: " << imgSubHeader->data_Type() << endl;
               cout << "X Dimension.............: " << imgSubHeader->x_Dimension() << endl;
               cout << "Y Dimension.............: " << imgSubHeader->y_Dimension() << endl;
               cout << "Z Dimension.............: " << imgSubHeader->z_Dimension() << endl;
-              cout << "X Pixel Size.............: " << imgSubHeader->x_Pixel_Size() << endl;
-              cout << "Y Pixel Size.............: " << imgSubHeader->y_Pixel_Size() << endl;
-              cout << "Z Pixel Size.............: " << imgSubHeader->z_Pixel_Size() << endl;
-              cout << "RECON_ZOOM.................: " << imgSubHeader->recon_Zoom() << endl;
-              cout << "SCALE_FACTOR.................: " << imgSubHeader->scale_Factor() << endl;
+              cout << "X Pixel Size............: " << imgSubHeader->x_Pixel_Size() << endl;
+              cout << "Y Pixel Size............: " << imgSubHeader->y_Pixel_Size() << endl;
+              cout << "Z Pixel Size............: " << imgSubHeader->z_Pixel_Size() << endl;
+              cout << "Recon Zoom..............: " << imgSubHeader->recon_Zoom() << endl;
+              cout << "Scale Factor............: " << imgSubHeader->scale_Factor() << endl;
             }
             cout << "successfully read sub Header data for frame " << frameNumber << "." << endl;
             delete subHeader;

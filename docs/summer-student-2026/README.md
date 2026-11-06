@@ -6,6 +6,14 @@ The main goal of the project was to extend `libmedio` with support for the NIfTI
 
 The implementation is available in the `nifti` branch.
 
+> **Note:** This report and the [presentation](presentation.pdf) describe the
+> state at the end of the project. The NIfTI support was completed afterwards:
+> the conversion moved into the library (`CNIFTIConverter`, see
+> `src/nifti/CNIFTIConverter.h`) with a defined geometry convention, support of
+> dynamic (4D) data and automated tests (`testsuite/nifti`). The command line
+> options of `ecat2nifti` changed accordingly (`--normalize` is now `--float`).
+> See the main [README](../../README.md) for the current state.
+
 ## libmedio — C++ I/O library for medical imaging formats
 
 **libmedio** is a portable C++ library that provides high-level I/O APIs
