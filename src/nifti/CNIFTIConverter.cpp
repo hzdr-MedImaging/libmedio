@@ -59,15 +59,17 @@ bool fail(QString* error, const QString& message)
   return false;
 }
 
-// NIfTI JSON sidecar file name (<name>.json next to <name>.nii/.nii.gz)
+// NIfTI JSON sidecar file name (<name>.json next to <name>.nii/.nii.gz/.hdr/.img)
 QString sidecarFileName(const QString& niftiFileName)
 {
   QFileInfo info(niftiFileName);
   QString base = info.fileName();
 
-  if(base.endsWith(".nii.gz", Qt::CaseInsensitive))
-    base.chop(7);
-  else if(base.endsWith(".nii", Qt::CaseInsensitive))
+  if(base.endsWith(".gz", Qt::CaseInsensitive))
+    base.chop(3);
+  if(base.endsWith(".nii", Qt::CaseInsensitive) ||
+     base.endsWith(".hdr", Qt::CaseInsensitive) ||
+     base.endsWith(".img", Qt::CaseInsensitive))
     base.chop(4);
 
   return info.absoluteDir().filePath(base + ".json");
@@ -422,12 +424,12 @@ bool CNIFTIConverter::ecatToNifti(const QString& ecatFileName, const QString& ni
     if(options.niftiVersion == 2) {
       CNIFTI2MainHeader* h = static_cast<CNIFTI2MainHeader*>(header.data());
       setNIFTIData(h, storedValues == false, minValue, maxValue, duration);
-      if(options.jsonExtension)
+      if(options.jsonExtension && niftiFile.isPair() == false)
         h->setVox_Offset(540 + 4 + h->headerExtensionSize(json));
     } else {
       CNIFTI1MainHeader* h = static_cast<CNIFTI1MainHeader*>(header.data());
       setNIFTIData(h, storedValues == false, minValue, maxValue, duration);
-      if(options.jsonExtension)
+      if(options.jsonExtension && niftiFile.isPair() == false)
         h->setVox_Offset(348 + 4 + h->headerExtensionSize(json));
     }
 
@@ -451,7 +453,9 @@ bool CNIFTIConverter::ecatToNifti(const QString& ecatFileName, const QString& ni
   niftiFile.close();
 
   if(result == false) {
-    QFile::remove(niftiFileName);
+    // single file or both files of a header/image pair
+    QFile::remove(niftiFile.headerFileName());
+    QFile::remove(niftiFile.imageFileName());
     return fail(error, "unable to write " + niftiFileName);
   }
 

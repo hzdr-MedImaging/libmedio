@@ -11,8 +11,9 @@ portability across Linux, macOS, and Windows.
 ## Scope & supported formats
 libmedio targets PET-centric workflows and currently focuses on:
 - **ECAT 6 / ECAT 7** images and sinograms (Siemens/CTI)
-- **NIfTI-1 / NIfTI-2** single files (`.nii`, gzip-compressed `.nii.gz`),
-  both byte orders, incl. JSON header extensions
+- **NIfTI-1 / NIfTI-2** single files (`.nii`, `.nii.gz`) and header/image
+  pairs (`.hdr`/`.img`, `.hdr.gz`/`.img.gz`), both byte orders, incl. JSON
+  header extensions
 - **Philips PET** image data, including **Syntegra**-related variants
 - **microPET** (Siemens Concorde)
 
@@ -61,8 +62,8 @@ to add data.
 ## ECAT7 ↔ NIfTI conversion
 The command line tools `ecat2nifti` and `nifti2ecat` convert complete files:
 ```bash
-ecat2nifti [-2] [--float] [--sidecar] [--no-extension] input.v [output.nii[.gz]]
-nifti2ecat input.nii[.gz] [output.v]
+ecat2nifti [-2] [--float] [--sidecar] [--no-extension] input.v [output.nii[.gz]|output.hdr[.gz]]
+nifti2ecat input.nii[.gz]|input.hdr[.gz]|input.img[.gz] [output.v]
 ```
 - NIfTI files hold the physical values (stored value × scale factor ×
   calibration factor, e.g. Bq/ml); dynamic data with a scale factor per frame
@@ -74,9 +75,10 @@ nifti2ecat input.nii[.gz] [output.v]
   stored as JSON header extension (`--sidecar`: also as `<output>.json`) and
   restored by `nifti2ecat`.
 
-The details are documented in `src/nifti/CNIFTIConverter.h`. NIfTI
-header/image pairs (`.hdr`/`.img`) are not supported yet. The NIfTI support
-was started in the 2026 summer student project, see
+An output name ending with `.hdr`/`.img` writes a header/image pair. The
+details are documented in `src/nifti/CNIFTIConverter.h`. Analyze 7.5 files
+(`.hdr`/`.img` without NIfTI magic) are not supported. The NIfTI support was
+started in the 2026 summer student project, see
 [docs/summer-student-2026](docs/summer-student-2026/README.md).
 
 ## License

@@ -72,6 +72,13 @@ class CNIFTIFile : public CMedIOData { // CNIFTIFile class inherits from CMedIOD
         CNIFTIMainHeader::Type fileType(void) const;
     // Setter for the type of the file
         bool setFileType(CNIFTIMainHeader::Type fileType);
+    // header/image file pair (.hdr/.img, .hdr.gz/.img.gz) instead of a single
+    // file (.nii, .nii.gz); determined by the file name passed to the constructor
+        bool isPair(void) const;
+    // file holding the main header and its extensions (.hdr/.nii) and file holding
+    // the voxel data (.img/.nii); both are the same file for single files
+        QString headerFileName(void) const;
+        QString imageFileName(void) const;
     
 //=============================================================================================
 

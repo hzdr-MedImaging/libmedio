@@ -32,7 +32,7 @@ using namespace std;
 
 static void usage(const char* name)
 {
-  cout << "Usage: " << name << " <input.nii|input.nii.gz|input.hdr> [output.v]" << endl
+  cout << "Usage: " << name << " <input.nii|.nii.gz|.hdr|.img|.hdr.gz|.img.gz> [output.v]" << endl
        << endl
        << "The ECAT7 metadata (patient, isotope, frame timing, ...) is restored from the" << endl
        << "JSON header extension of the input file or from a JSON sidecar file next to it." << endl

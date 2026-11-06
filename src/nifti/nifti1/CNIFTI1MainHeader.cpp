@@ -457,10 +457,15 @@ bool CNIFTI1MainHeader::save(void) const {
   struct CNIFTI1MainHeaderPrivate::HeaderData header;
   memcpy(&header, &m_pData->header, sizeof(header));
 
-  // mandatory fields of a single file (.nii) NIfTI-1 header
+  // mandatory fields of a NIfTI-1 header
   header.Sizeof_Hdr = MAINHEADER_SIZE;
   memcpy(header.Magic, NIFTI1_MAGIC, sizeof(header.Magic));
-  if(header.Vox_Offset == 0.0f)
+  if(niftiFile->isPair()) {
+    // header/image file pair: "ni1"/"ni2", the voxel data is stored in the
+    // image file (usually at vox_offset 0)
+    header.Magic[1] = 'i';
+  }
+  else if(header.Vox_Offset == 0.0f)
     header.Vox_Offset = MAINHEADER_SIZE + 4;
 
 //------------------------------------------------------------------------------------
@@ -950,13 +955,16 @@ int CNIFTI1MainHeader::headerExtensionSize(const QJsonObject& json) const {
 }
 
 // Write the JSON metadata as header extension directly after the NIfTI-1 main header.
-// vox_offset has to account for the extension (see headerExtensionSize()).
+// In single files vox_offset has to account for the extension (see
+// headerExtensionSize()), in header/image pairs the extension ends the header file.
 bool CNIFTI1MainHeader::writeHeaderExtension(CNIFTIFile& niftiFile, const QJsonObject& json) {
   return writeJsonExtension(niftiFile, MAINHEADER_SIZE, json, m_pData->byteOrder != QSysInfo::ByteOrder);
 }
 
 // Read the JSON metadata from the header extensions of the NIfTI-1 file
 QJsonObject CNIFTI1MainHeader::readHeaderExtension(CNIFTIFile& file) const {
-  return readJsonExtension(file, MAINHEADER_SIZE, static_cast<qint64>(m_pData->header.Vox_Offset),
-                           m_pData->byteOrder != QSysInfo::ByteOrder);
+  // the extensions of a header/image pair fill the rest of the header file,
+  // those of a single file end at vox_offset
+  const qint64 end = file.isPair() ? file.size() : static_cast<qint64>(m_pData->header.Vox_Offset);
+  return readJsonExtension(file, MAINHEADER_SIZE, end, m_pData->byteOrder != QSysInfo::ByteOrder);
 }

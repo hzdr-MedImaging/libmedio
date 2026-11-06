@@ -22,8 +22,10 @@
 
 #include <QString>
 
-// Conversion of complete image files between ECAT7 and NIfTI-1/NIfTI-2
-// (single files .nii and .nii.gz, header/image pairs are not supported).
+// Conversion of complete image files between ECAT7 and NIfTI-1/NIfTI-2. NIfTI
+// files are single files (.nii, .nii.gz) or header/image pairs (.hdr/.img,
+// .hdr.gz/.img.gz; either name of a pair can be given), depending on the file
+// name. Analyze 7.5 files (.hdr/.img without NIfTI magic) are not supported.
 //
 // Voxel values
 // - NIfTI files hold the physical values of the ECAT7 data, i.e. the stored
@@ -70,11 +72,11 @@ class CNIFTIConverter
       bool jsonSidecar;     // also store the metadata as <name>.json next to the NIfTI file
     };
 
-    // Convert an ECAT7 image file into a NIfTI file (.nii or .nii.gz).
+    // Convert an ECAT7 image file into a NIfTI file (.nii, .nii.gz, .hdr/.img, .hdr.gz/.img.gz).
     static bool ecatToNifti(const QString& ecatFileName, const QString& niftiFileName,
                             const Options& options = Options(), QString* error = NULL);
 
-    // Convert a NIfTI file (.nii or .nii.gz) into an ECAT7 image file. The
+    // Convert a NIfTI file (.nii, .nii.gz, .hdr/.img, .hdr.gz/.img.gz) into an ECAT7 image file. The
     // metadata is taken from the JSON header extension or, if there is none,
     // from a JSON sidecar file <name>.json next to the NIfTI file.
     static bool niftiToEcat(const QString& niftiFileName, const QString& ecatFileName,

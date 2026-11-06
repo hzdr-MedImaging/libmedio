@@ -48,15 +48,43 @@ class CNIFTIFilePrivate {
     CNIFTIMainHeader*  cachedMainHeader; // for speed reasons we cache the loaded main header
 
     // gzip support
-    // True if the input/output file uses gzip compression (.nii.gz)
+    // True if the input/output file uses gzip compression (.nii.gz, .hdr.gz/.img.gz)
     bool compressed;
     QString originalFileName; // Store the original file name for reference
     QTemporaryFile* temporaryFile; // Temporary file for handling compressed files
 
+    // header/image file pairs (.hdr/.img): the header (and its extensions) is
+    // accessed via the QFile of CNIFTIFile, the voxel data via imageFile
+    bool pair;
+    QString headerFileName;
+    QString imageFileName;
+    QFile* imageFile;
+    QTemporaryFile* imageTemporaryFile;
+
     // methods
     bool syncMainHeader(CNIFTIFile* file) const;
     bool matrixLayout(qint64& offset, qint64& size, int& swapSize) const;
+    QFile* matrixFile(CNIFTIFile* file) const { return pair ? imageFile : file; }
+    void release(void);
 };
+
+// free the resources of an opened file
+void CNIFTIFilePrivate::release(void)
+{
+  delete cachedMainHeader;
+  cachedMainHeader = NULL;
+
+  if(imageFile) {
+    imageFile->close();
+    delete imageFile;
+    imageFile = NULL;
+  }
+
+  delete temporaryFile;
+  temporaryFile = NULL;
+  delete imageTemporaryFile;
+  imageTemporaryFile = NULL;
+}
 
 
 //=============================================================================================
@@ -199,9 +227,13 @@ static void swapMatrix(char* data, qint64 size, int numberSize)
 #define NIFTI_MAX_HEADER_SIZE 540
 
 // Identify the NIfTI version of a header by means of its sizeof_hdr field
-// and the magic signature. Only single file (.nii) NIfTI data is supported.
-static CNIFTIFile::NIFTIFormat identifyHeader(const QByteArray& header)
+// and the magic signature. pair is set to true for the header of a
+// header/image file pair ("ni1"/"ni2") and to false for a single file
+// ("n+1"/"n+2"). Analyze 7.5 headers (without magic) are not supported.
+static CNIFTIFile::NIFTIFormat identifyHeader(const QByteArray& header, bool& pair)
 {
+  pair = false;
+
   if(header.size() < 348)
     return CNIFTIFile::Undefined;
 
@@ -215,19 +247,113 @@ static CNIFTIFile::NIFTIFormat identifyHeader(const QByteArray& header)
     if(memcmp(header.constData()+344, "n+1\0", 4) == 0)
       return CNIFTIFile::NIFTI1;
 
-    if(memcmp(header.constData()+344, "ni1\0", 4) == 0)
-      W("NIfTI-1 header/image file pairs (.hdr/.img) are not supported");
+    if(memcmp(header.constData()+344, "ni1\0", 4) == 0) {
+      pair = true;
+      return CNIFTIFile::NIFTI1;
+    }
   }
   else if((sizeofHdrLE == 540 || sizeofHdrBE == 540) && header.size() >= 540) {
     // NIfTI-2: magic at byte offset 4
     if(memcmp(header.constData()+4, "n+2\0", 4) == 0)
       return CNIFTIFile::NIFTI2;
 
-    if(memcmp(header.constData()+4, "ni2\0", 4) == 0)
-      W("NIfTI-2 header/image file pairs (.hdr/.img) are not supported");
+    if(memcmp(header.constData()+4, "ni2\0", 4) == 0) {
+      pair = true;
+      return CNIFTIFile::NIFTI2;
+    }
   }
 
   return CNIFTIFile::Undefined;
+}
+
+// Determine the names of the header and image file of a header/image file
+// pair from the name of one of them (.hdr/.img, optionally gzip compressed
+// as .hdr.gz/.img.gz). Returns false for the names of single files.
+static bool pairFileNames(const QString& fileName, QString& headerName, QString& imageName, bool& compressed)
+{
+  QString stem = fileName;
+  QString gz;
+
+  if(stem.endsWith(".gz", Qt::CaseInsensitive)) {
+    gz = stem.right(3);
+    stem.chop(3);
+  }
+
+  const QString extension = stem.right(4);
+  if(extension.compare(".hdr", Qt::CaseInsensitive) != 0 &&
+     extension.compare(".img", Qt::CaseInsensitive) != 0) {
+    return false;
+  }
+  stem.chop(4);
+
+  // use the letter case of the given extension, but accept existing
+  // files using the other one (e.g. "data.hdr" and "data.IMG")
+  const bool upper = (extension == extension.toUpper());
+  headerName = stem + (upper ? ".HDR" : ".hdr") + gz;
+  imageName = stem + (upper ? ".IMG" : ".img") + gz;
+
+  if(QFile::exists(headerName) == false && QFile::exists(stem + (upper ? ".hdr" : ".HDR") + gz))
+    headerName = stem + (upper ? ".hdr" : ".HDR") + gz;
+  if(QFile::exists(imageName) == false && QFile::exists(stem + (upper ? ".img" : ".IMG") + gz))
+    imageName = stem + (upper ? ".img" : ".IMG") + gz;
+
+  // the given name is used as it is
+  if(extension.compare(".hdr", Qt::CaseInsensitive) == 0)
+    headerName = fileName;
+  else
+    imageName = fileName;
+
+  compressed = (gz.isEmpty() == false);
+  return true;
+}
+
+// decompress a gzip compressed file into a new temporary file
+static QTemporaryFile* decompressToTemporaryFile(const QString& fileName)
+{
+  QTemporaryFile* temporaryFile = new QTemporaryFile(QDir::tempPath() + "/libmedio-nifti-XXXXXX");
+  temporaryFile->setAutoRemove(true);
+
+  // the file is reopened by its user
+  if(temporaryFile->open() == false) {
+    W("unable to create a temporary file for %s", fileName.toLocal8Bit().constData());
+    delete temporaryFile;
+    return NULL;
+  }
+  temporaryFile->close();
+
+  if(decompressGzipFile(fileName, temporaryFile->fileName()) == false) {
+    W("unable to decompress %s", fileName.toLocal8Bit().constData());
+    delete temporaryFile;
+    return NULL;
+  }
+
+  return temporaryFile;
+}
+
+// create an empty temporary file which is compressed into fileName when
+// closing the NIfTI file; fileName is created right away so that an
+// unwritable destination is detected when opening the file
+static QTemporaryFile* createTemporaryFile(const QString& fileName)
+{
+  QFile destination(fileName);
+  if(destination.open(QIODevice::WriteOnly | QIODevice::Truncate) == false) {
+    W("unable to create %s", fileName.toLocal8Bit().constData());
+    return NULL;
+  }
+  destination.close();
+
+  QTemporaryFile* temporaryFile = new QTemporaryFile(QDir::tempPath() + "/libmedio-nifti-XXXXXX");
+  temporaryFile->setAutoRemove(true);
+
+  if(temporaryFile->open() == false) {
+    W("unable to create a temporary file for %s", fileName.toLocal8Bit().constData());
+    delete temporaryFile;
+    QFile::remove(fileName);
+    return NULL;
+  }
+  temporaryFile->close();
+
+  return temporaryFile;
 }
 
 // read the first bytes of a (possibly gzip compressed) file which are
@@ -271,11 +397,19 @@ CNIFTIFile::CNIFTIFile(const QString& filename, CNIFTIMainHeader::Type fileType)
     m_pData->iMainHeaderType = fileType;
     m_pData->cachedMainHeader = NULL;
     
-    // Check whether the NIfTI file is gzip-compressed (.nii.gz)     
-    m_pData->compressed = QFileInfo(filename).fileName().endsWith(".nii.gz", Qt::CaseInsensitive);
-
     m_pData->originalFileName = filename; // Store the original file name for reference
     m_pData->temporaryFile = NULL; // Initialize the temporary file pointer to NULL
+    m_pData->imageFile = NULL;
+    m_pData->imageTemporaryFile = NULL;
+
+    // header/image file pair (.hdr/.img) or single file (.nii), both
+    // optionally gzip compressed (.hdr.gz/.img.gz, .nii.gz)
+    m_pData->pair = pairFileNames(filename, m_pData->headerFileName, m_pData->imageFileName, m_pData->compressed);
+    if(m_pData->pair == false) {
+      m_pData->compressed = QFileInfo(filename).fileName().endsWith(".nii.gz", Qt::CaseInsensitive);
+      m_pData->headerFileName = filename;
+      m_pData->imageFileName = filename;
+    }
 
     setFileType(fileType);
 
@@ -292,7 +426,11 @@ CNIFTIFile::CNIFTIFile(const QString& filename, CNIFTIMainHeader::Type fileType)
 CNIFTIFile::~CNIFTIFile() {
     ENTER();
 
-    delete m_pData->cachedMainHeader;
+    // write out (and compress) data of a file which is still open
+    if(isOpen() || m_pData->imageFile)
+      close();
+
+    m_pData->release();
     delete m_pData;
 
     LEAVE();
@@ -305,8 +443,19 @@ bool CNIFTIFile::isOfType(const QString& filename) {
 
   // only read the header bytes so that a compressed file
   // does not have to be decompressed completely
-  bool compressed = QFileInfo(filename).fileName().endsWith(".nii.gz", Qt::CaseInsensitive);
-  bool result = (identifyHeader(readHeaderBytes(filename, compressed)) != CNIFTIFile::Undefined);
+  QString headerName, imageName;
+  bool compressed = false;
+  bool pairName = pairFileNames(filename, headerName, imageName, compressed);
+  if(pairName == false) {
+    headerName = filename;
+    compressed = QFileInfo(filename).fileName().endsWith(".nii.gz", Qt::CaseInsensitive);
+  }
+
+  // a header/image pair also requires the image file
+  bool pair = false;
+  bool result = (identifyHeader(readHeaderBytes(headerName, compressed), pair) != CNIFTIFile::Undefined) &&
+                pair == pairName &&
+                (pair == false || QFile::exists(imageName));
 
   RETURN(result);
   return result;
@@ -340,86 +489,70 @@ CMedIOData::Format CNIFTIFile::dataFormat() const
 bool CNIFTIFile::open(QIODevice::OpenModeFlag mode) {
   ENTER();
   bool result = false;
-  
-  // delete the cached main header if it exists
-  delete m_pData->cachedMainHeader;
-  m_pData->cachedMainHeader = NULL;
+  CNIFTIFilePrivate* d = m_pData;
 
+  // close a previously opened file
+  if(isOpen() || d->imageFile)
+    close();
+  d->release();
 
-  // reading an existing file (ReadOnly or ReadWrite mode) and the file exists
-  if((((mode & QIODevice::ReadWrite) == QIODevice::ReadWrite) || 
-      ((mode & QIODevice::ReadOnly) == QIODevice::ReadOnly))  && 
-     exists()) {
+  const bool exists = QFile::exists(d->headerFileName) &&
+                      (d->pair == false || QFile::exists(d->imageFileName));
+  QString imagePath = d->imageFileName;
+  bool writing = false;
 
-    // ------------------------------------------------------------
-    // Handle gzip-compressed NIfTI files (.nii.gz)
-    // ------------------------------------------------------------
-    if(m_pData->compressed) {
+  // reading an existing file (ReadOnly or ReadWrite mode)
+  if((mode & QIODevice::ReadOnly) == QIODevice::ReadOnly && exists) {
 
-        m_pData->temporaryFile =
-            new QTemporaryFile(
-                QDir::tempPath() + "/libmedio-nifti-XXXXXX.nii"
-            );
+    QString headerPath = d->headerFileName;
+    bool files = true;
 
-        m_pData->temporaryFile->setAutoRemove(true);
+    // compressed files are decompressed into temporary files
+    if(d->compressed) {
+      if((d->temporaryFile = decompressToTemporaryFile(d->headerFileName)) != NULL)
+        headerPath = d->temporaryFile->fileName();
+      else
+        files = false;
 
-        if(!m_pData->temporaryFile->open()) {
-
-            W("Unable to create temporary file for compressed NIfTI.");
-
-            delete m_pData->temporaryFile;
-            m_pData->temporaryFile = NULL;
-
-            RETURN(false);
-            return false;
-        }
-
-        QString temporaryFilename =
-            m_pData->temporaryFile->fileName();
-
-        // The file will be reopened by CNIFTIFile
-        m_pData->temporaryFile->close();
-
-        if(!decompressGzipFile(m_pData->originalFileName,
-                               temporaryFilename)) {
-
-            W("Unable to decompress NIfTI gzip file.");
-
-            delete m_pData->temporaryFile;
-            m_pData->temporaryFile = NULL;
-
-            RETURN(false);
-            return false;
-        }
-
-        // CNIFTIFile will now operate on the decompressed temporary .nii
-        QFile::setFileName(temporaryFilename);
-
-        D("Compressed NIfTI file successfully decompressed.");
+      if(files && d->pair) {
+        if((d->imageTemporaryFile = decompressToTemporaryFile(d->imageFileName)) != NULL)
+          imagePath = d->imageTemporaryFile->fileName();
+        else
+          files = false;
+      }
     }
 
-    if(QFile::open(QIODevice::ReadOnly)) {
-      
+    QFile::setFileName(headerPath);
+
+    if(files && QFile::open(QIODevice::ReadOnly)) {
+
       // identify the NIfTI version by means of sizeof_hdr and the magic signature
-      CNIFTIFile::NIFTIFormat format = identifyHeader(QFile::read(NIFTI_MAX_HEADER_SIZE));
+      bool pair = false;
+      CNIFTIFile::NIFTIFormat format = identifyHeader(QFile::read(NIFTI_MAX_HEADER_SIZE), pair);
+
+      if(format != CNIFTIFile::Undefined && pair != d->pair) {
+        W("%s: the NIfTI magic does not match the file name (%s expected)",
+          d->originalFileName.toLocal8Bit().constData(), d->pair ? "header/image pair" : "single file");
+        format = CNIFTIFile::Undefined;
+      }
 
       if(format == CNIFTIFile::NIFTI1) {
         D("Found NIfTI-1 file");
-        m_pData->iNIFTIformat = CNIFTIFile::NIFTI1;
-        m_pData->cachedMainHeader = new CNIFTI1MainHeader(this);
+        d->iNIFTIformat = CNIFTIFile::NIFTI1;
+        d->cachedMainHeader = new CNIFTI1MainHeader(this);
       }
       else if(format == CNIFTIFile::NIFTI2) {
         D("Found NIfTI-2 file");
-        m_pData->iNIFTIformat = CNIFTIFile::NIFTI2;
-        m_pData->cachedMainHeader = new CNIFTI2MainHeader(this);
+        d->iNIFTIformat = CNIFTIFile::NIFTI2;
+        d->cachedMainHeader = new CNIFTI2MainHeader(this);
       }
       else {
         W("Magic number error: it's not a valid NIfTI file.");
       }
 
       // load the rest of the header data from the file
-      if(m_pData->cachedMainHeader != NULL) {
-        if(m_pData->cachedMainHeader->load())
+      if(d->cachedMainHeader != NULL) {
+        if(d->cachedMainHeader->load())
           result = true;
         else
           W("Error while loading NIfTI header");
@@ -428,100 +561,70 @@ bool CNIFTIFile::open(QIODevice::OpenModeFlag mode) {
       QFile::close();
     }
   }
+  // create a new file (WriteOnly)
+  else if((mode & QIODevice::WriteOnly) == QIODevice::WriteOnly) {
 
-// Create a new file (WriteOnly)
-else if((mode & QIODevice::WriteOnly) == QIODevice::WriteOnly)
-{
-    if(m_pData->iNIFTIformat != CNIFTIFile::Undefined) {
+    // create an empty header ready to be filled
+    if(d->iNIFTIformat == CNIFTIFile::NIFTI1)
+      d->cachedMainHeader = new CNIFTI1MainHeader(this);
+    else if(d->iNIFTIformat == CNIFTIFile::NIFTI2)
+      d->cachedMainHeader = new CNIFTI2MainHeader(this);
+    else
+      E("Format NIFTI unknown for writing");
 
-        // Create an empty header ready to be filled
-        if(m_pData->iNIFTIformat == CNIFTIFile::NIFTI1) {
-            m_pData->cachedMainHeader = new CNIFTI1MainHeader(this);
+    if(d->cachedMainHeader != NULL) {
+      result = true;
+      writing = true;
+
+      if(d->compressed) {
+        // the data is written uncompressed into temporary files which are
+        // compressed into the actual files when closing the file
+        if((d->temporaryFile = createTemporaryFile(d->headerFileName)) != NULL)
+          QFile::setFileName(d->temporaryFile->fileName());
+        else
+          result = false;
+
+        if(result && d->pair) {
+          if((d->imageTemporaryFile = createTemporaryFile(d->imageFileName)) != NULL)
+            imagePath = d->imageTemporaryFile->fileName();
+          else
+            result = false;
         }
-        else if(m_pData->iNIFTIformat == CNIFTIFile::NIFTI2) {
-            m_pData->cachedMainHeader = new CNIFTI2MainHeader(this);
-        }
-
-        result = true;
-
-    } else {
-
-        E("Format NIFTI unknown for writing");
+      } else {
+        QFile::setFileName(d->headerFileName);
+        QFile::remove(d->headerFileName);
+        if(d->pair)
+          QFile::remove(d->imageFileName);
+      }
     }
+  }
 
-
-    if(result) {
-
-        // ------------------------------------------------------------
-        // Compressed NIfTI output (.nii.gz)
-        // ------------------------------------------------------------
-        if(m_pData->compressed) {
-
-            // The actual NIfTI file is first written uncompressed
-            // into a temporary .nii file.
-            m_pData->temporaryFile =
-                new QTemporaryFile(
-                    QDir::tempPath() + "/libmedio-nifti-XXXXXX.nii"
-                );
-
-            m_pData->temporaryFile->setAutoRemove(true);
-
-            if(!m_pData->temporaryFile->open()) {
-
-                W("Unable to create temporary file for compressed NIfTI output.");
-
-                delete m_pData->temporaryFile;
-                m_pData->temporaryFile = NULL;
-
-                delete m_pData->cachedMainHeader;
-                m_pData->cachedMainHeader = NULL;
-
-                RETURN(false);
-                return false;
-            }
-
-            QString temporaryFilename = m_pData->temporaryFile->fileName();
-
-            // CNIFTIFile will reopen the temporary file itself
-            m_pData->temporaryFile->close();
-
-            // From this point CNIFTIFile writes to the temporary
-            // uncompressed NIfTI file instead of directly to .nii.gz
-            QFile::setFileName(temporaryFilename);
-
-            D("Using temporary uncompressed NIfTI file for gzip output.");
-
-        } else {
-
-            // Normal uncompressed .nii output
-            QFile::remove(fileName());
-        }
-    }
-}
-
-  // Reopen final file with the correct permissions requested by the user
+  // reopen the file(s) with the mode requested by the user
   if(result) {
+    mode = static_cast<QIODevice::OpenModeFlag>(mode & ~(QIODevice::Append|QIODevice::Truncate|QIODevice::Text));
 
-    mode = static_cast<QIODevice::OpenModeFlag>(mode & ~(QIODevice::Append|QIODevice::Truncate|QIODevice::Text)); // Mask bit to bit, to remove the flags we don't need
-    
-    if((result = QFile::open(mode|QIODevice::ReadOnly)) == false)
+    result = QFile::open(mode|QIODevice::ReadOnly);
+
+    if(result && d->pair) {
+      d->imageFile = new QFile(imagePath);
+      result = d->imageFile->open(mode|QIODevice::ReadOnly);
+    }
+
+    if(result == false)
       QFile::close();
   }
 
   if(result == false) {
+    d->release();
+    QFile::setFileName(d->originalFileName);
 
-    delete m_pData->cachedMainHeader;
-    m_pData->cachedMainHeader = NULL;
-
-    if(m_pData->temporaryFile) {
-
-        QFile::setFileName(m_pData->originalFileName);
-
-        delete m_pData->temporaryFile;
-        m_pData->temporaryFile = NULL;
+    // do not leave (partially) created files behind
+    if(writing) {
+      QFile::remove(d->headerFileName);
+      if(d->pair)
+        QFile::remove(d->imageFileName);
     }
-}
-    
+  }
 
   RETURN(result);
   return result;
@@ -531,52 +634,49 @@ else if((mode & QIODevice::WriteOnly) == QIODevice::WriteOnly)
 
 void CNIFTIFile::close(void) {
 
-    ENTER();
+  ENTER();
+  CNIFTIFilePrivate* d = m_pData;
 
-    // Remember whether the temporary NIfTI file was opened for writing.
-    bool compressOnClose =
-        m_pData->compressed &&
-        m_pData->temporaryFile != NULL &&
-        isWritable();
+  // compress the temporary files of a compressed file opened for writing
+  const bool compress = d->compressed && d->temporaryFile != NULL && isWritable();
 
-    QString temporaryFilename;
+  QFile::close();
+  if(d->imageFile)
+    d->imageFile->close();
 
-    if(m_pData->temporaryFile != NULL) {
-        temporaryFilename = QFile::fileName();
-    }
+  if(compress) {
+    bool result = compressGzipFile(d->temporaryFile->fileName(), d->headerFileName);
 
-    // Close the uncompressed file first.
-    QFile::close();
+    if(result && d->pair && d->imageTemporaryFile)
+      result = compressGzipFile(d->imageTemporaryFile->fileName(), d->imageFileName);
 
-    // If this was a compressed output file, gzip the temporary .nii.
-    if(compressOnClose) {
+    if(result)
+      D("Compressed NIfTI file successfully written.");
+    else
+      E("Unable to compress NIfTI file %s", d->originalFileName.toLocal8Bit().constData());
+  }
 
-        if(compressGzipFile(temporaryFilename,
-                            m_pData->originalFileName)) {
+  d->release();
 
-            D("Compressed NIfTI file successfully written.");
+  // restore the file name originally supplied to CNIFTIFile
+  QFile::setFileName(d->originalFileName);
 
-        } else {
-
-            E("Unable to compress NIfTI file.");
-        }
-    }
-
-    if(m_pData->cachedMainHeader)
-    {
-        delete m_pData->cachedMainHeader;
-        m_pData->cachedMainHeader = NULL;
-    }
-
-    if(m_pData->temporaryFile) {
-        // Restore the filename originally supplied to CNIFTIFile.
-        QFile::setFileName(m_pData->originalFileName);
-
-        delete m_pData->temporaryFile;
-        m_pData->temporaryFile = NULL;
-    }
-
-    LEAVE();
+  LEAVE();
+}
+//------------------------------------------------------------------------------------------------
+// header/image file pair (.hdr/.img)
+bool CNIFTIFile::isPair(void) const {
+  return m_pData->pair;
+}
+//------------------------------------------------------------------------------------------------
+// name of the file holding the header (and its extensions)
+QString CNIFTIFile::headerFileName(void) const {
+  return m_pData->headerFileName;
+}
+//------------------------------------------------------------------------------------------------
+// name of the file holding the voxel data
+QString CNIFTIFile::imageFileName(void) const {
+  return m_pData->imageFileName;
 }
 //------------------------------------------------------------------------------------------------
 // Getter for the format of the file
@@ -723,9 +823,12 @@ bool CNIFTIFilePrivate::matrixLayout(qint64& offset, qint64& size, int& swapSize
   }
 
   // in a single file (.nii) the voxel data follows the header and the
-  // 4 byte extension indicator at the earliest
-  if(offset < cachedMainHeader->rawDataSize() + 4)
+  // 4 byte extension indicator at the earliest, in the image file of a
+  // header/image pair it usually starts at offset 0
+  if(pair == false && offset < cachedMainHeader->rawDataSize() + 4)
     offset = cachedMainHeader->rawDataSize() + 4;
+  else if(offset < 0)
+    offset = 0;
 
   if(dims[0] < 1 || dims[0] > 7 || bitpix <= 0 || (bitpix % 8) != 0) {
     E("invalid NIfTI matrix description (dim[0]=%lld, bitpix=%d)", dims[0], bitpix);
@@ -763,13 +866,15 @@ bool CNIFTIFile::readMatrix(QByteArray*& matrixData) {
 
   matrixData = NULL;
 
-  if(isReadable() && m_pData->matrixLayout(offset, matrixSize, swapSize)) {
+  QFile* file = m_pData->matrixFile(this);
+
+  if(file && file->isReadable() && m_pData->matrixLayout(offset, matrixSize, swapSize)) {
     if(matrixSize > std::numeric_limits<int>::max()) {
       E("voxel matrix of %lld bytes is too large for a QByteArray", matrixSize);
-    } else if(size() < offset + matrixSize) {
+    } else if(file->size() < offset + matrixSize) {
       E("file too short: voxel matrix requires %lld bytes at offset %lld", matrixSize, offset);
-    } else if(seek(offset)) {
-      matrixData = new QByteArray(read(matrixSize));
+    } else if(file->seek(offset)) {
+      matrixData = new QByteArray(file->read(matrixSize));
 
       if(matrixData->size() == matrixSize) {
         // return the voxel data in the byte order of this machine
@@ -796,15 +901,17 @@ bool CNIFTIFile::readMatrix(char*& matrixData, unsigned int& len) {
   matrixData = NULL;
   len = 0;
 
-  if(isReadable() && m_pData->matrixLayout(offset, matrixSize, swapSize)) {
+  QFile* file = m_pData->matrixFile(this);
+
+  if(file && file->isReadable() && m_pData->matrixLayout(offset, matrixSize, swapSize)) {
     if(matrixSize > std::numeric_limits<unsigned int>::max()) {
       E("voxel matrix of %lld bytes is too large", matrixSize);
-    } else if(size() < offset + matrixSize) {
+    } else if(file->size() < offset + matrixSize) {
       E("file too short: voxel matrix requires %lld bytes at offset %lld", matrixSize, offset);
-    } else if(seek(offset)) {
+    } else if(file->seek(offset)) {
       matrixData = new char[matrixSize];
 
-      if(read(matrixData, matrixSize) == matrixSize) {
+      if(file->read(matrixData, matrixSize) == matrixSize) {
         // return the voxel data in the byte order of this machine
         swapMatrix(matrixData, matrixSize, swapSize);
         len = static_cast<unsigned int>(matrixSize);
@@ -837,10 +944,12 @@ bool CNIFTIFile::writeMatrix(const char* matrixData, unsigned int size) {
   int swapSize = 0;
 
   // the main header has to be written first as it defines the matrix layout
-  if(isWritable() && m_pData->matrixLayout(offset, matrixSize, swapSize)) {
+  QFile* file = m_pData->matrixFile(this);
+
+  if(file && file->isWritable() && m_pData->matrixLayout(offset, matrixSize, swapSize)) {
     if(static_cast<qint64>(size) != matrixSize) {
       E("size of the voxel matrix (%u bytes) does not match the main header (%lld bytes)", size, matrixSize);
-    } else if(seek(offset)) {
+    } else if(file->seek(offset)) {
       qint64 bytesWritten = 0;
 
       // vox_offset is used so that header extensions are not overwritten
@@ -848,13 +957,13 @@ bool CNIFTIFile::writeMatrix(const char* matrixData, unsigned int size) {
         // the voxel data has to be stored in the byte order of the main header
         QByteArray swappedData(matrixData, size);
         swapMatrix(swappedData.data(), matrixSize, swapSize);
-        bytesWritten = write(swappedData);
+        bytesWritten = file->write(swappedData);
       } else {
-        bytesWritten = write(matrixData, size);
+        bytesWritten = file->write(matrixData, size);
       }
 
       if(bytesWritten == matrixSize)
-        result = resize(offset + matrixSize);
+        result = file->resize(offset + matrixSize);
     }
   }
 

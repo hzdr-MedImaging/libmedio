@@ -66,7 +66,8 @@ CMedIOHeader::Format CNIFTIMainHeader::headerFormat() const {
 // Header extensions
 //
 // A single file NIfTI may contain header extensions between the main header and
-// vox_offset. They are announced by a 4 byte extension indicator directly after the
+// vox_offset, the header file of a header/image pair after the main header up to
+// the end of the header file. They are announced by a 4 byte extension indicator directly after the
 // main header (first byte != 0). Each extension starts with its size in bytes (esize,
 // a multiple of 16 which includes the 8 bytes for esize and ecode) and its code
 // (ecode), followed by the extension data.

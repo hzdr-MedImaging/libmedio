@@ -32,7 +32,7 @@ using namespace std;
 
 static void usage(const char* name)
 {
-  cout << "Usage: " << name << " [options] <input.v> [output.nii|output.nii.gz]" << endl
+  cout << "Usage: " << name << " [options] <input.v> [output.nii|.nii.gz|.hdr|.hdr.gz]" << endl
        << endl
        << "Options:" << endl
        << "  -2              write NIfTI-2 instead of NIfTI-1" << endl
@@ -40,7 +40,8 @@ static void usage(const char* name)
        << "  --sidecar       also write the metadata as JSON sidecar file (<output>.json)" << endl
        << "  --no-extension  do not store the metadata as JSON header extension" << endl
        << endl
-       << "The output defaults to the input file name with the extension .nii." << endl;
+       << "The output defaults to the input file name with the extension .nii. An output" << endl
+       << "name ending with .hdr/.img (.hdr.gz/.img.gz) writes a NIfTI header/image pair." << endl;
 }
 
 int main(int argc, char* argv[])
