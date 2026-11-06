@@ -194,7 +194,7 @@ int main(int argc, char* argv[])
         //CECAT6MainHeader* mHeader = static_cast<CECAT6MainHeader*>(file.mainHeader());
         cout << "Main header data (ECAT6):" << endl;
         cout << "------------------------" << endl;
-        #warning "ECAT6 output implementation missing"
+        cout << "(the output of ECAT6 main headers is not implemented)" << endl;
       }
 
       // close the ECAT file

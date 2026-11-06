@@ -64,6 +64,7 @@ class CNIFTIFilePrivate {
     // methods
     bool syncMainHeader(CNIFTIFile* file) const;
     bool matrixLayout(qint64& offset, qint64& size, int& swapSize) const;
+    bool volumeLayout(short frame, qint64& offset, qint64& size, int& swapSize) const;
     QFile* matrixFile(CNIFTIFile* file) const { return pair ? imageFile : file; }
     void release(void);
 };
@@ -964,6 +965,105 @@ bool CNIFTIFile::writeMatrix(const char* matrixData, unsigned int size) {
 
       if(bytesWritten == matrixSize)
         result = file->resize(offset + matrixSize);
+    }
+  }
+
+  RETURN(result);
+  return result;
+}
+
+//=============================================================================================
+// FRAME-WISE MATRIX I/O
+
+//------------------------------------------------------------------------------------------------
+// method of the private class to determine the file position and size (in
+// bytes) of volume frame (1-based) of the voxel matrix
+bool CNIFTIFilePrivate::volumeLayout(short frame, qint64& offset, qint64& size, int& swapSize) const {
+  ENTER();
+
+  qint64 matrixSize = 0;
+  if(matrixLayout(offset, matrixSize, swapSize) == false) {
+    RETURN(false);
+    return false;
+  }
+
+  // number of volumes: dim[4..7] (the dimensions are valid, see matrixLayout())
+  qint64 volumes = 1;
+  for(int i=4; i < 8; i++) {
+    const qint64 dim = (iNIFTIformat == CNIFTIFile::NIFTI1) ? static_cast<const CNIFTI1MainHeader*>(cachedMainHeader)->dim(i)
+                                                            : static_cast<const CNIFTI2MainHeader*>(cachedMainHeader)->dim(i);
+    const qint64 dim0 = (iNIFTIformat == CNIFTIFile::NIFTI1) ? static_cast<const CNIFTI1MainHeader*>(cachedMainHeader)->dim(0)
+                                                             : static_cast<const CNIFTI2MainHeader*>(cachedMainHeader)->dim(0);
+    if(i <= dim0)
+      volumes *= dim;
+  }
+
+  if(frame < 1 || frame > volumes) {
+    E("frame %d does not exist (%lld frames)", frame, volumes);
+    RETURN(false);
+    return false;
+  }
+
+  size = matrixSize / volumes;
+  offset += (frame - 1) * size;
+
+  RETURN(true);
+  return true;
+}
+
+//------------------------------------------------------------------------------------------------
+bool CNIFTIFile::readMatrix(QByteArray*& matrixData, short frame) {
+  ENTER();
+  bool result = false;
+  qint64 offset = 0;
+  qint64 size = 0;
+  int swapSize = 0;
+
+  matrixData = NULL;
+
+  QFile* file = m_pData->matrixFile(this);
+
+  if(file && file->isReadable() && m_pData->volumeLayout(frame, offset, size, swapSize)) {
+    if(size > std::numeric_limits<int>::max()) {
+      E("volume of %lld bytes is too large for a QByteArray", size);
+    } else if(file->size() < offset + size) {
+      E("file too short: frame %d requires %lld bytes at offset %lld", frame, size, offset);
+    } else if(file->seek(offset)) {
+      matrixData = new QByteArray(file->read(size));
+
+      if(matrixData->size() == size) {
+        // return the voxel data in the byte order of this machine
+        swapMatrix(matrixData->data(), size, swapSize);
+        result = true;
+      } else {
+        delete matrixData;
+        matrixData = NULL;
+      }
+    }
+  }
+
+  RETURN(result);
+  return result;
+}
+//------------------------------------------------------------------------------------------------
+bool CNIFTIFile::writeMatrix(const QByteArray& matrixData, short frame) {
+  ENTER();
+  bool result = false;
+  qint64 offset = 0;
+  qint64 size = 0;
+  int swapSize = 0;
+
+  // the main header has to be written first as it defines the matrix layout
+  QFile* file = m_pData->matrixFile(this);
+
+  if(file && file->isWritable() && m_pData->volumeLayout(frame, offset, size, swapSize)) {
+    if(matrixData.size() != size) {
+      E("size of the volume (%d bytes) does not match the main header (%lld bytes)", matrixData.size(), size);
+    } else if(file->seek(offset)) {
+      // the voxel data has to be stored in the byte order of the main header
+      QByteArray data(matrixData);
+      swapMatrix(data.data(), size, swapSize);
+      result = (file->write(data) == size);
     }
   }
 

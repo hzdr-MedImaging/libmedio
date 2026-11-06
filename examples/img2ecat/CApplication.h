@@ -49,7 +49,6 @@ class CApplication
     QString     m_sPatientName;
     QString     m_sStartDirectory;
     bool        m_bOverWrite;
-    bool        m_bPreserveDataType;
     bool        m_bRecursive;
     bool        m_bEcat2Img;
 };

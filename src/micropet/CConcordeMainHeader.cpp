@@ -203,7 +203,9 @@ CConcordeMainHeader::CConcordeMainHeader(const CConcordeMainHeader& src)
   ENTER();
 
   // allocate data from our private instance class
+  // the copy of the parser has no keys: bind them to the variables of this header
   m_pData = new CConcordeMainHeaderPrivate(*(src.m_pData));
+  m_pData->init();
 
   LEAVE();
 }

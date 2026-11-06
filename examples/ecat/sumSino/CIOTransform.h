@@ -54,8 +54,6 @@ private:
   QString m_tfmfile;
   QString m_outfile;
   QString m_sTfmString;
-  bool m_bForward;
-  bool m_bAllTfm;
 
   CECATFile* m_pInputFile;
   CECAT7MainHeader* m_pMainHead;

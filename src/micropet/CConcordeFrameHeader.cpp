@@ -137,7 +137,9 @@ CConcordeFrameHeader::CConcordeFrameHeader(const CConcordeFrameHeader& src)
   ENTER();
 
   // allocate data from our private instance class
+  // the copy of the parser has no keys: bind them to the variables of this header
   m_pData = new CConcordeFrameHeaderPrivate(*(src.m_pData));
+  m_pData->init();
 
   LEAVE();
 }

@@ -27,6 +27,7 @@ void CKeyParser::addKey(const QString& Key, QString* Value)
   if(Value!=NULL)
   {
     CKeyValue* KValue = new CKeyValue(CKeyType::ASCII, (void*)Value);
+    delete KeyDictionary.take(Key); // a key added again replaces the previous binding
     KeyDictionary.insert(Key,KValue);
   }
 }
@@ -36,6 +37,7 @@ void CKeyParser::addKey(const QString& Key, double* Value)
   if(Value!=NULL)
   {
     CKeyValue* KValue = new CKeyValue(CKeyType::DOUBLE, (void*)Value);
+    delete KeyDictionary.take(Key); // a key added again replaces the previous binding
     KeyDictionary.insert(Key,KValue);
   }
 }
@@ -45,6 +47,7 @@ void CKeyParser::addKey(const QString& Key, short* Value)
   if(Value!=NULL)
   {
     CKeyValue* KValue = new CKeyValue(CKeyType::SHORT, (void*)Value);
+    delete KeyDictionary.take(Key); // a key added again replaces the previous binding
     KeyDictionary.insert(Key,KValue);
   }
 }
@@ -54,6 +57,7 @@ void CKeyParser::addKey(const QString& Key, unsigned short* Value)
   if(Value!=NULL)
   {
     CKeyValue* KValue = new CKeyValue(CKeyType::USHORT, (void*)Value);
+    delete KeyDictionary.take(Key); // a key added again replaces the previous binding
     KeyDictionary.insert(Key,KValue);
   }
 }
@@ -63,6 +67,7 @@ void CKeyParser::addKey(const QString& Key, int* Value)
   if(Value!=NULL)
   {
     CKeyValue* KValue = new CKeyValue(CKeyType::INT, (void*)Value);
+    delete KeyDictionary.take(Key); // a key added again replaces the previous binding
     KeyDictionary.insert(Key,KValue);
   }
 }
@@ -72,6 +77,7 @@ void CKeyParser::addKey(const QString& Key, unsigned int* Value)
   if(Value!=NULL)
   {
     CKeyValue* KValue = new CKeyValue(CKeyType::UINT, (void*)Value);
+    delete KeyDictionary.take(Key); // a key added again replaces the previous binding
     KeyDictionary.insert(Key,KValue);
   }
 }
@@ -81,6 +87,7 @@ void CKeyParser::addKey(const QString& Key, long* Value)
   if(Value!=NULL)
   {
     CKeyValue* KValue = new CKeyValue(CKeyType::LONG, (void*)Value);
+    delete KeyDictionary.take(Key); // a key added again replaces the previous binding
     KeyDictionary.insert(Key,KValue);
   }
 }
@@ -90,6 +97,7 @@ void CKeyParser::addKey(const QString& Key, unsigned long* Value)
   if(Value!=NULL)
   {
     CKeyValue* KValue = new CKeyValue(CKeyType::ULONG, (void*)Value);
+    delete KeyDictionary.take(Key); // a key added again replaces the previous binding
     KeyDictionary.insert(Key,KValue);
   }
 }
@@ -99,6 +107,7 @@ void CKeyParser::addKey(const QString& Key, float* Value)
   if(Value!=NULL)
   {
     CKeyValue* KValue = new CKeyValue(CKeyType::FLOAT, (void*)Value);
+    delete KeyDictionary.take(Key); // a key added again replaces the previous binding
     KeyDictionary.insert(Key,KValue);
   }
 }
@@ -108,8 +117,15 @@ void CKeyParser::addKey(const QString& Key, void* p2Object, void (*p2Function)(v
   if(p2Object!=NULL)
   {
     CKeyValue* KValue = new CKeyValue(CKeyType::USEROBJECT, p2Object, p2Function);
+    delete KeyDictionary.take(Key); // a key added again replaces the previous binding
     KeyDictionary.insert(Key,KValue);
   }    
+}
+
+// the line starts with the symbol as a whole word ("frame 1" does not match "frame 10")
+static bool startsWithSymbol(const QString& line, const QString& symbol)
+{
+  return line.startsWith(symbol) && (line.length() == symbol.length() || line[symbol.length()].isSpace());
 }
 
 bool CKeyParser::parse(const QString Filename)
@@ -162,7 +178,7 @@ bool CKeyParser::parse(const QString Filename)
     {
       for(QStringList::Iterator it = StartSymbols.begin(); it != StartSymbols.end(); ++it ) 
       {
-        if(Line.startsWith(*it))
+        if(startsWithSymbol(Line, *it))
         {
           start_symbol_found = true;
           break;
@@ -191,7 +207,7 @@ bool CKeyParser::parse(const QString Filename)
     {
       for(QStringList::Iterator it = StopSymbols.begin(); it != StopSymbols.end(); ++it ) 
       {
-              if(Line.startsWith(*it))
+              if(startsWithSymbol(Line, *it))
         {
           stop_symbol_found = true;
           break;

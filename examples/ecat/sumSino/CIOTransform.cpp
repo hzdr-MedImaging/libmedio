@@ -40,8 +40,6 @@ using namespace std;
 CIOTransform::CIOTransform(const QStringList& filelist)
 : m_filename(filelist[0]),
   m_InfileList(filelist),
-  m_bForward(true),
-  m_bAllTfm(false),
   m_pInputFile(NULL),
   m_pMainHead(NULL),
   m_pSubHead(NULL),
@@ -79,8 +77,7 @@ int CIOTransform::exec()
       pE7MainHead->convertFrom(m_pMainHead);
       pE7MainHead->save();
  
-      // now we iterate through all possible frames of the source file
-      int numFrames = m_pMainHead->num_Frames();
+      // the first frame of the input files is summed
       int destFrame = 1;
       result = 0;
       int frame = 1;
@@ -97,9 +94,9 @@ int CIOTransform::exec()
                                           1, m_iNum_Y,
                                           1, m_iNum_X);
 
-              for(int z = 1; z<=m_iNum_Z; ++z)
-                for(int y=1; y <= m_iNum_Y; ++y)
-                  for(int x=1; x <= m_iNum_X; ++x)
+              for(unsigned int z = 1; z<=m_iNum_Z; ++z)
+                for(unsigned int y=1; y <= m_iNum_Y; ++y)
+                  for(unsigned int x=1; x <= m_iNum_X; ++x)
                   {
                     temp3DArray[z][y][x]=pInputData[z][y][x];
                   }
@@ -113,9 +110,9 @@ int CIOTransform::exec()
                   if(loadVolume(frame))
                   {
                     float*** pInputData = m_pVolume->rawArray();
-                    for(int z = 1; z<=m_iNum_Z; ++z)
-                      for(int y=1; y <= m_iNum_Y; ++y)
-                        for(int x=1; x <= m_iNum_X; ++x)
+                    for(unsigned int z = 1; z<=m_iNum_Z; ++z)
+                      for(unsigned int y=1; y <= m_iNum_Y; ++y)
+                        for(unsigned int x=1; x <= m_iNum_X; ++x)
                         {
                           temp3DArray[z][y][x]+=pInputData[z][y][x];
                         }
@@ -125,9 +122,9 @@ int CIOTransform::exec()
                 C3DArray<qint16> tmpArray(m_iNum_Z - 1, m_iNum_Y - 1, m_iNum_X - 1);
       
               // convert the data for our writeMatrix() method
-              for(int z = 1; z<=m_iNum_Z; ++z)
-                for(int y=1; y <= m_iNum_Y; ++y)
-                  for(int x=1; x <= m_iNum_X; ++x)
+              for(unsigned int z = 1; z<=m_iNum_Z; ++z)
+                for(unsigned int y=1; y <= m_iNum_Y; ++y)
+                  for(unsigned int x=1; x <= m_iNum_X; ++x)
                     tmpArray[z - 1][y - 1][x - 1] = static_cast<qint16>(temp3DArray[z][y][x]);
 
       

@@ -41,3 +41,17 @@ add_test(NAME philips_datasets
          COMMAND testPhilipsDatasets
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# writing Philips files with frames and slices in any order
+add_executable(testPhilipsWrite testPhilipsWrite.cpp)
+
+target_link_libraries(testPhilipsWrite Qt5::Core
+                                       Qt5::Test
+                                       ${CMAKE_PROJECT_NAME}-static
+                                       ${RTDEBUG_STATIC_LIB}
+)
+
+add_test(NAME philips_write
+         COMMAND testPhilipsWrite
+         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

@@ -33,6 +33,8 @@
 #include "CIntVector.h"
 #include "CKeyParser.h"
 
+#include <QStringList>
+
 #include <rtdebug.h>
 
 #include "bswap.h"
@@ -42,7 +44,26 @@ class CConcordeFilePrivate
   public:
     CIntVector frameOrder;
     CConcordeFilePrivate(const QString& fileName);
+
+    // byte offset in the data file given by data_file_pointer (two 32 bit
+    // integers: high and low word of a 64 bit offset), -1 if not given
+    static qint64 dataFilePointer(const QString& value);
 };
+
+qint64 CConcordeFilePrivate::dataFilePointer(const QString& value)
+{
+  const QStringList parts = value.simplified().split(' '); // no empty parts after simplified()
+  bool ok[2] = { false, false };
+  qint64 words[2] = { 0, 0 };
+
+  for(int i=0; i < parts.count() && i < 2; i++)
+    words[i] = parts[i].toLongLong(&ok[i]);
+
+  if(parts.count() == 2 && ok[0] && ok[1] && words[0] >= 0 && words[1] >= 0)
+    return (words[0] << 32) + words[1];
+
+  return -1;
+}
 
 CConcordeFilePrivate::CConcordeFilePrivate(const QString& fileName)
 {
@@ -83,6 +104,7 @@ CConcordeFile::~CConcordeFile()
   ENTER();
 
   delete m_pCachedMainHeader;
+  delete m_pData;
   
   LEAVE();
 }
@@ -124,7 +146,9 @@ CMedIOData::Format CConcordeFile::dataFormat() const
 void CConcordeFile::close()
 {
   ENTER();
-  m_pCachedMainHeader->save();
+  // the main header only exists if the file was opened successfully
+  if(m_pCachedMainHeader != NULL)
+    m_pCachedMainHeader->save();
   delete m_pCachedMainHeader;
   m_pCachedMainHeader = NULL;
   QFile::close();
@@ -192,12 +216,18 @@ bool CConcordeFile::readSubHeader(CConcordeFrameHeader*& subHeader, int frame)
   }
   else
   {
-    //TODO: check if frame is in between 1 and number of frames in study
-    W("TODO: check if frame is in between 1 and number of frames in study");
-    //subHeader = new CConcordeFrameHeader(this, frame-1);
-    subHeader = new CConcordeFrameHeader(this, m_pData->frameOrder[frame-1]);
-    if(subHeader)
+    // frame is the index of the frame section in the header (1 = first one),
+    // frameOrder holds the frame numbers of the sections
+    if(frame < 1 || frame > m_pData->frameOrder.count())
+    {
+      E("frame %d does not exist (%d frames in the header)", frame, m_pData->frameOrder.count());
+      subHeader = NULL;
+    }
+    else
+    {
+      subHeader = new CConcordeFrameHeader(this, m_pData->frameOrder[frame-1]);
       result = true;
+    }
   }
   RETURN(result);
   return result;
@@ -260,7 +290,7 @@ CMedIOData* CConcordeFile::createFromFile(const QString& fileName)
       ftype = CConcordeFile::ConcordeMicropet_Image;
     break;
 
-    case CConcordeMainHeader::Unknown:
+    case CConcordeMainHeader::UnknownFile:
     case CConcordeMainHeader::ListMode:
     case CConcordeMainHeader::Blank:
     case CConcordeMainHeader::Scatter:
@@ -307,8 +337,9 @@ bool CConcordeFile::readMatrix(QByteArray*& matrixData, short frame)
         unsigned int iFrameSize = 0;
         if(readMatrix(pTmp, iFrameSize, frame))
         {
-            matrixData = new QByteArray;
-            matrixData->setRawData(pTmp, iFrameSize);
+            // the QByteArray holds a copy of the buffer, which is freed here
+            matrixData = new QByteArray(pTmp, iFrameSize);
+            delete[] pTmp;
             result = true;
         }
     }
@@ -328,9 +359,15 @@ bool CConcordeFile::readMatrix(QByteArray*& matrixData, CConcordeFrameHeader*& s
             unsigned int iFrameSize = 0;
             if(readMatrix(pTmp, iFrameSize, frame))
             {
-                matrixData = new QByteArray;
-                matrixData->setRawData(pTmp, iFrameSize);
+                // the QByteArray holds a copy of the buffer, which is freed here
+                matrixData = new QByteArray(pTmp, iFrameSize);
+                delete[] pTmp;
                 result = true;
+            }
+            else
+            {
+                delete subHeader;
+                subHeader = NULL;
             }
         }
     RETURN(result);
@@ -343,8 +380,15 @@ bool CConcordeFile::readMatrix(char*& matrixData, unsigned int& length, CConcord
     bool result = false;
     if(isOpen())
         if(readSubHeader(subHeader, frame))
+        {
             if(readMatrix(matrixData, length, frame))
                 result = true;
+            else
+            {
+                delete subHeader;
+                subHeader = NULL;
+            }
+        }
     RETURN(result);
     return result;
 }
@@ -382,15 +426,28 @@ bool CConcordeFile::readMatrix(char*& matrixData, unsigned int& matrixSize, shor
   }
   
   // check if desired frame exists
-  if(frame > head->totalFrames())
+  if(frame < 1 || frame > head->totalFrames())
   {
+    E("frame %d does not exist (%d frames)", frame, head->totalFrames());
     RETURN(false);
     return false;
   }
-  
-  // set readpointer to appropriate frame
-  if(seek(static_cast<qint64>(frame-1)*m_pCachedMainHeader->frameSize()) == false)
+
+  // set readpointer to the data of the frame: the data_file_pointer of its
+  // frame header (the one returned by readSubHeader()), the position after
+  // the previous frames if the header gives none
+  qint64 position = static_cast<qint64>(frame-1)*m_pCachedMainHeader->frameSize();
+  if(frame <= m_pData->frameOrder.count())
   {
+    CConcordeFrameHeader frameHeader(this, m_pData->frameOrder[frame-1]);
+    const qint64 pointer = m_pData->dataFilePointer(frameHeader.dataFilePointer());
+    if(pointer >= 0)
+      position = pointer;
+  }
+
+  if(seek(position) == false)
+  {
+    E("unable to seek to the data of frame %d at %lld", frame, position);
     RETURN(false);
     return false;
   }
@@ -401,7 +458,8 @@ bool CConcordeFile::readMatrix(char*& matrixData, unsigned int& matrixSize, shor
   matrixData = new char[matrixSize];
 
   // now we read in the whole data at once
-  if(QFile::read(matrixData, matrixSize) == matrixSize)
+  result = (QFile::read(matrixData, matrixSize) == matrixSize);
+  if(result)
   {
     // now we find out if this machine requires byte swapping or
     // not depending on the input data type and the sysinfo
@@ -490,7 +548,7 @@ bool CConcordeFile::readMatrix(char*& matrixData, unsigned int& matrixSize, shor
 
   if(result == false)
   {
-    delete matrixData;
+    delete[] matrixData;
     matrixData = NULL;
     matrixSize = 0;
   }

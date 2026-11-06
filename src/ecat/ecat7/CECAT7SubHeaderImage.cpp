@@ -595,6 +595,7 @@ if (mainHeader != NULL && mainHeader->headerFormat() == CMedIOHeader::NIFTIMainH
         break;
       }
     }
+    break;
 
     case CMedIOHeader::ECATMainHeader:
     case CMedIOHeader::ConcordeMicroPetMainHeader:
@@ -656,8 +657,14 @@ if (mainHeader != NULL && mainHeader->headerFormat() == CMedIOHeader::NIFTIMainH
         break;
 
         case CPhilipsSubHeader::SignedShort:
-        case CPhilipsSubHeader::UnsignedShort:
           dtype = CECATSubHeader::SunShort;
+        break;
+
+        // unsigned 16 bit values above 32767 do not fit into SunShort: the
+        // caller has to store the matrix data as 32 bit integers
+        case CPhilipsSubHeader::UnsignedShort:
+          W("UnsignedShort found, the matrix data has to be converted to 32 bit integers (SunLong)");
+          dtype = CECATSubHeader::SunLong;
         break;
 
         case CPhilipsSubHeader::Float:
