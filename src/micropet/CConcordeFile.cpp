@@ -290,7 +290,7 @@ CMedIOData* CConcordeFile::createFromFile(const QString& fileName)
       ftype = CConcordeFile::ConcordeMicropet_Image;
     break;
 
-    case CConcordeMainHeader::Unknown:
+    case CConcordeMainHeader::UnknownFile:
     case CConcordeMainHeader::ListMode:
     case CConcordeMainHeader::Blank:
     case CConcordeMainHeader::Scatter:
