@@ -503,6 +503,7 @@ bool CECAT6MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
     case CMedIOHeader::ConcordeMicroPetMainHeader:
     case CMedIOHeader::PhilipsMainHeader:
     case CMedIOHeader::PhilipsSubHeader:
+    case CMedIOHeader::NIFTIMainHeader:
     case CMedIOHeader::PhilipsListviewHeader:
     {
       E("medio mainheader %d conversion not implemented!", mainHeader->headerFormat());

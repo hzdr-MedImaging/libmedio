@@ -742,6 +742,29 @@ bool CPhilipsSubHeader::convertFrom(const CMedIOHeader* subHeader, const CMedIOH
   ENTER();
   bool bResult = false;
 
+  // NIfTI has no sub headers (the NIfTI header may be passed as sub or main
+  // header): convert via the ECAT7 representation (see CNIFTIConverter.h)
+  const CMedIOHeader* niftiHeader = NULL;
+  if(mainHeader != NULL && mainHeader->headerFormat() == CMedIOHeader::NIFTIMainHeader)
+    niftiHeader = mainHeader;
+  else if(subHeader != NULL && subHeader->headerFormat() == CMedIOHeader::NIFTIMainHeader)
+    niftiHeader = subHeader;
+
+  if(niftiHeader != NULL) {
+    CECAT7MainHeader ecatMainHeader;
+    CECAT7SubHeaderImage ecatSubHeader;
+    bResult = ecatMainHeader.convertFrom(niftiHeader, NULL) &&
+              ecatSubHeader.convertFrom(NULL, niftiHeader) &&
+              convertFrom(&ecatSubHeader, &ecatMainHeader);
+    RETURN(bResult);
+    return bResult;
+  }
+
+  if(subHeader == NULL) {
+    RETURN(false);
+    return false;
+  }
+
   // depending on the MedIOHeader format we do have to 
   // distinguish between our copy operations.
   switch(subHeader->headerFormat())
@@ -899,6 +922,10 @@ bool CPhilipsSubHeader::convertFrom(const CMedIOHeader* subHeader, const CMedIOH
     case CMedIOHeader::PhilipsMainHeader:
       // copying a main header into a sub header doesn't make much sense, so we
       // do nothing here
+    break;
+
+    case CMedIOHeader::NIFTIMainHeader:
+      // handled above
     break;
 
     case CMedIOHeader::ConcordeMicroPetMainHeader:

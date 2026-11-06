@@ -48,6 +48,7 @@ message("Using Root Path: ${CMAKE_FIND_ROOT_PATH}")
 find_package(pybind11 REQUIRED)
 find_package(MEDIO REQUIRED)
 find_package(Qt5 REQUIRED COMPONENTS Core)
+find_package(ZLIB REQUIRED)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR}
                     ${MEDIO_INCLUDES}
@@ -60,6 +61,7 @@ pybind11_add_module(pmedio src/pmedio.cpp
 target_link_libraries(pmedio PRIVATE
                       Qt5::Core
                       ${MEDIO_STATIC_LIB}
+                      ZLIB::ZLIB
 )
 
 # EXAMPLE_VERSION_INFO is defined by setup.py and passed into the C++ code as a

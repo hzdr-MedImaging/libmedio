@@ -28,6 +28,7 @@
 #include "CConcordeSinogram.h"
 #include "CConcordeImage.h"
 #include "CPhilipsFile.h"
+#include "CNIFTIFile.h"
 
 #include <rtdebug.h>
 
@@ -41,6 +42,8 @@ CMedIOData::Format CMedIODataFactory::identify(const QString& fileName)
     result = CMedIOData::ECAT;
   else if(CPhilipsFile::isOfType(fileName))
     result = CMedIOData::Philips;
+  else if(CNIFTIFile::isOfType(fileName))
+    result = CMedIOData::NIFTI;
   else if(CConcordeFile::isOfType(fileName))
     result = CMedIOData::ConcordeMicropet;
   else
@@ -59,8 +62,7 @@ CMedIOData::Format CMedIODataFactory::identify(const QString& fileName)
 //! @param file: filename where medical data is located
 //! @return CMedIOData object if format is known otherwise NULL
 ////////////////////////////////////////////////////////////////////////////////
-CMedIOData* CMedIODataFactory::create(const QString& fileName)
-{
+CMedIOData* CMedIODataFactory::create(const QString& fileName) {
   ENTER();
   CMedIOData* mData;
 
@@ -71,6 +73,10 @@ CMedIOData* CMedIODataFactory::create(const QString& fileName)
     D("Concorde microPET format found");
   else if((mData = CPhilipsFile::createFromFile(fileName)))
     D("Philips file found");
+  else if((mData = CNIFTIFile::createFromFile(fileName)))
+  {
+    D("NIfTI file found");
+  }
   else
   {
     E("Can not identify file format");

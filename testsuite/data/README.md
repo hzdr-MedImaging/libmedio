@@ -105,6 +105,7 @@ testsuite/data/
 | `source`      | for `converted` | what the file was created from: another file of the dataset (path relative to `testsuite/data`) or a description of data not part of the test data |
 | `same_reconstruction` | no | whether the file holds exactly the same reconstruction as the original |
 | `layout`      | for `raw/` | `dims`, `data_type` (e.g. `float32`) and `byte_order` (`little`/`big`) of raw voxel data, first dimension varying fastest |
+| `frame`       | no       | frame (starting at 1) of a dynamic dataset a single volume file holds (default: 1) |
 | `landmarks`   | no       | points with known world coordinates (mm, incl. their `coordinate_system`) and their voxel indices per file |
 
 Voxel indices start at 0 and follow the storage order of the file; for
@@ -157,6 +158,11 @@ run the script again instead (`--force` regenerates existing files).
   `slice_spacing_mm`, `image_orientation`, `patient_position`, `units`)
   and per frame its timing, the positions of the first and last slice and
   statistics of the stored and of the rescaled voxel values.
+- **Philips** (`"format": "philips-image"`/`"philips-syntegra"`, written by
+  hand): `frames`, `dims`, `pixel_size_mm`, `data_type` and statistics of the
+  stored voxel values per frame (`volumes`). The `philips_datasets` test also
+  compares the scale factors and the frame timing with the expected values of
+  the ECAT7 file of the same dataset, if there is one.
 - **Interfile** (`"format": "interfile"`): header values (`version_of_keys`,
   `type_of_data`, `byte_order`, `data_offset`, `units`) and per image or
   frame group its dimensions, number format, pixel size, duration, rescale

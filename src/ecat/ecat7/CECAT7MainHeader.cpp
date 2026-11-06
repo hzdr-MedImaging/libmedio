@@ -25,6 +25,10 @@
 #include "CPhilipsMainHeader.h"
 #include "CPhilipsSubHeaderImage.h"
 #include "MedIOUnits.h"
+#include "CNIFTIMainHeader.h"
+#include "CNIFTI1MainHeader.h"
+#include "CNIFTI2MainHeader.h"
+#include "CNIFTIGeometry.h"
 
 #include "config.h"
 
@@ -37,7 +41,7 @@
 #include <unistd.h>
 
 #include <rtdebug.h>
-
+#include <cmath>
 #include "bswap.h"
 
 // we define the private inline class of that one so that we
@@ -427,10 +431,10 @@ bool CECAT7MainHeader::load(void)
   D("Isotope Name            : %s",           m_pData->header.Isotope_Name);
   D("Isotope Halflife        : %f sec",       m_pData->header.Isotope_Halflife);
   D("Radiopharmaca           : %s",           m_pData->header.Radiopharmaceutical);
-  D("Gantry Tilt             : %f°",          m_pData->header.Gantry_Tilt);
-  D("Gantry Rotation         : %f°",          m_pData->header.Gantry_Rotation);
+  D("Gantry Tilt             : %fï¿½",          m_pData->header.Gantry_Tilt);
+  D("Gantry Rotation         : %fï¿½",          m_pData->header.Gantry_Rotation);
   D("Bed elevation           : %f cm",        m_pData->header.Bed_Elevation);
-  D("Intrinsic Tilt          : %f°",          m_pData->header.Intrinsic_Tilt);
+  D("Intrinsic Tilt          : %fï¿½",          m_pData->header.Intrinsic_Tilt);
   D("Wobble Speed            : %d r/min",     m_pData->header.Wobble_Speed);
   D("TransmSrcType           : %d",           m_pData->header.Transm_Source_Type);
   D("Distance Scanned        : %d cm",        m_pData->header.Distance_Scanned);
@@ -1056,6 +1060,48 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
 
     case CMedIOHeader::Unknown:
       // for an unknown header type we do nothing
+    break;
+
+    case CMedIOHeader::NIFTIMainHeader:
+    {
+      const CNIFTIMainHeader* baseNiftiHeader = static_cast<const CNIFTIMainHeader*>(mainHeader); // cast to the nifti header
+      // Default values 
+      // We have to set some default values for the ECAT7 header because we don't have all the information in the NIFTI header (setter functions)
+      setOriginal_File_Name("NIFTI_CONVERTED");
+      setSW_Version(72);
+      setSystem_Type(962);
+      setFile_Type(CECAT7MainHeader::Volume16);
+
+      setRadiopharmaceutical("N/A");
+      setIsotope_Name("N/A");
+      setIsotope_Halflife(0.0f);
+      setTransaxial_FOV(60.0f);
+      setCalibration_Factor(1.0f);
+
+      // Transfer the only available information from the NIFTI header to the ECAT7 header 
+      setStudy_Description("NIFTI_CONVERTED");
+
+
+      // geometry of the corresponding ECAT7 image (see CNIFTIGeometry.h)
+      ECATGeometryFromNIFTI geometry;
+      QString error;
+
+      if(ecatGeometryFromNIFTI(baseNiftiHeader, geometry, &error) == false) {
+        E("%s", error.toLatin1().constData());
+        break;
+      }
+
+      setNum_Planes(geometry.dims[2]);
+      setNum_Frames(geometry.frames);
+      setNum_Gates(1);
+      setNum_Bed_Pos(0);
+
+      // Conversion from mm (NIFTI) to cm (ECAT7)
+      setPlane_Separation(geometry.pixelSize[2] / 10.0);
+      setInit_Bed_Position(geometry.bedPosition / 10.0);
+
+      bResult = true;
+    }
     break;
   }
 
@@ -1803,7 +1849,6 @@ void CECAT7MainHeader::setDose_Start_Time_Qt(const QDateTime& doseStartTime)
 QString CECAT7MainHeaderPrivate::concorde2ECAT7dataUnits(CConcordeMainHeader::CalibrationUnits u) const
 {
   ENTER();
-
   CActivityConcentrationUnit calUnit;
   switch(u)
   {

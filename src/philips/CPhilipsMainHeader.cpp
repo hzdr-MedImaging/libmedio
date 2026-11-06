@@ -2072,6 +2072,17 @@ bool CPhilipsMainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedI
       // do nothing here
     break;
    
+    // NIfTI: via the ECAT7 representation of the NIfTI header (see CNIFTIConverter.h)
+    case CMedIOHeader::NIFTIMainHeader:
+    {
+      CECAT7MainHeader ecatMainHeader;
+      CECAT7SubHeaderImage ecatSubHeader;
+      bResult = ecatMainHeader.convertFrom(mainHeader, NULL) &&
+                ecatSubHeader.convertFrom(NULL, mainHeader) &&
+                convertFrom(&ecatMainHeader, &ecatSubHeader);
+    }
+    break;
+
     case CMedIOHeader::ConcordeMicroPetMainHeader:
     case CMedIOHeader::ConcordeMicroPetFrameHeader:
     case CMedIOHeader::PhilipsMainHeader:

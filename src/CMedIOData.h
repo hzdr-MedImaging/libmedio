@@ -37,17 +37,16 @@ class CMedIOHeader;
 //! This class is an interface for easier handling of different medical data formats.
 //! All data formats which are included in Medical IO Library should use the class
 //! as a baseclass.
-class CMedIOData : public QFile
-{
+class CMedIOData : public QFile {
   public:
     //! @enum enumeration of supported medical data formats
-    enum Format
-    {  
+    enum Format {  
       Unknown = 0,      //!< unknown data which is not supported
       ConcordeMicropet,  //!< data produced by a concorde micropet scanner  
       ECAT,              //!< ECAT6/7 format
       Philips,           //!< data produced by a philips PET/MR scanner
-      PhilipsBin
+      PhilipsBin,
+      NIFTI              //!< NIfTI format
     };
 
     //! @enum enumeration carrying special IO error codes which

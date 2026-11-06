@@ -410,6 +410,7 @@ bool CECAT7SubHeaderScan3D::convertFrom(const CMedIOHeader* subHeader, const CMe
 
     case CMedIOHeader::ConcordeMicroPetFrameHeader:
     case CMedIOHeader::PhilipsSubHeader:
+    case CMedIOHeader::NIFTIMainHeader:
     case CMedIOHeader::PhilipsListviewHeader:
     {
       E("medio subheader %d conversion not implemented!", subHeader->headerFormat());

@@ -25,11 +25,15 @@
 #include "CConcordeFrameHeader.h"
 #include "CPhilipsMainHeader.h"
 #include "CPhilipsSubHeaderImage.h"
+#include "CNIFTIMainHeader.h"
+#include "CNIFTI1MainHeader.h"
+#include "CNIFTI2MainHeader.h"
+#include "CNIFTIGeometry.h"
 
 #include <QtCore/qmath.h>
 
 #include <rtdebug.h>
-
+#include <cmath>
 #include "bswap.h"
 
 // we define the private inline class of that one so that we
@@ -299,7 +303,7 @@ bool CECAT7SubHeaderImage::load(void)
   D("Z_Resolution              : %f cm",    m_pData->header.Z_Resolution);
   D("Num_R_Elements            : %f",       m_pData->header.Num_R_Elements);
   D("Num_Angles                : %f",       m_pData->header.Num_Angles);
-  D("Z_Rotation_Angle          : %f°",      m_pData->header.Z_Rotation_Angle);
+  D("Z_Rotation_Angle          : %fï¿½",      m_pData->header.Z_Rotation_Angle);
   D("Decay_Corr_Fctr           : %f",       m_pData->header.Decay_Corr_Fctr);
   D("Processing_Code           : %d",       m_pData->header.Processing_Code);
   D("Gate_Duration             : %d msec",  m_pData->header.Gate_Duration);
@@ -456,20 +460,100 @@ bool CECAT7SubHeaderImage::save(void) const
 
 }
 
-int CECAT7SubHeaderImage::rawDataSize() const
-{
+int CECAT7SubHeaderImage::rawDataSize() const {
   return 1*ECAT_BLOCKSIZE;
 }
 
-CECATSubHeader::Type CECAT7SubHeaderImage::subHeaderType(void) const
-{
+CECATSubHeader::Type CECAT7SubHeaderImage::subHeaderType(void) const {
   return CECATSubHeader::ECAT7_Image;
 }
 
-bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* subHeader, const CMedIOHeader* mainHeader) 
-{
+bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* subHeader, const CMedIOHeader* mainHeader)  {
   ENTER();
   bool bResult = false;
+
+
+  // NIfTI case 
+  // NIfTI is monolithic and does not have a subheader, so intercept the mainHeader before the switch statement and convert it to an ECAT7 subheader to avoid segmentation faults.
+if (mainHeader != NULL && mainHeader->headerFormat() == CMedIOHeader::NIFTIMainHeader) {
+      const CNIFTIMainHeader* baseNiftiHeader = static_cast<const CNIFTIMainHeader*>(mainHeader);
+
+      // geometry of the corresponding ECAT7 image (see CNIFTIGeometry.h)
+      ECATGeometryFromNIFTI geometry;
+      QString error;
+
+      if(ecatGeometryFromNIFTI(baseNiftiHeader, geometry, &error) == false) {
+        E("%s", error.toLatin1().constData());
+        RETURN(false);
+        return false;
+      }
+
+      double slope = 1.0;
+      short niftiDataType = 0;
+
+      if(baseNiftiHeader->mainHeaderType() == CNIFTIMainHeader::NIFTI1MainHeader) {
+        const CNIFTI1MainHeader* nifti1 = static_cast<const CNIFTI1MainHeader*>(baseNiftiHeader);
+        slope = nifti1->scl_Slope();
+        niftiDataType = nifti1->dataType();
+      } else {
+        const CNIFTI2MainHeader* nifti2 = static_cast<const CNIFTI2MainHeader*>(baseNiftiHeader);
+        slope = nifti2->scl_Slope();
+        niftiDataType = nifti2->dataType();
+      }
+
+      // Map the NIfTI numerical datatype to the closest ECAT7 datatype. Data
+      // types without ECAT7 counterpart (e.g. FLOAT64) have to be converted by
+      // the caller (see CNIFTIConverter).
+      switch (niftiDataType) {
+          case NIFTI_DT_UINT8:
+              setData_Type(CECATSubHeader::ByteData);
+              break;
+
+          case NIFTI_DT_INT16:
+              setData_Type(CECATSubHeader::SunShort);
+              break;
+
+          case NIFTI_DT_INT32:
+              setData_Type(CECATSubHeader::SunLong);
+              break;
+
+          case NIFTI_DT_FLOAT32:
+          case 64:    // DT_FLOAT64
+              setData_Type(CECATSubHeader::IEEEFloat);
+              break;
+
+          default:
+              W("Unsupported NIfTI datatype %d while converting to ECAT7",
+                niftiDataType);
+              setData_Type(CECATSubHeader::UnknownDataType);
+              break;
+      }
+
+      setNum_Dimensions(3);
+      setX_Dimension(geometry.dims[0]);
+      setY_Dimension(geometry.dims[1]);
+      setZ_Dimension(geometry.dims[2]);
+
+      // mm -> cm
+      setX_Pixel_Size(geometry.pixelSize[0] / 10.0);
+      setY_Pixel_Size(geometry.pixelSize[1] / 10.0);
+      setZ_Pixel_Size(geometry.pixelSize[2] / 10.0);
+      setX_Offset(geometry.xOffset / 10.0);
+      setY_Offset(geometry.yOffset / 10.0);
+      setZ_Offset(0.0f);
+
+      setRecon_Zoom(1.0f);
+      if (slope == 0.0 || std::isfinite(slope) == false) slope = 1.0;
+      setScale_Factor(slope); // Scale factor
+
+      // timing of the first frame (s -> ms)
+      setFrame_Duration(static_cast<unsigned int>(geometry.frameDuration * 1000.0 + 0.5));
+      setFrame_Start_Time(static_cast<unsigned int>(geometry.frameStart * 1000.0 + 0.5));
+
+      RETURN(true);
+      return true;
+  }
+
 
   // depending on the MedIOHeader format we do have to 
   // distinguish between our copy operations.
@@ -515,6 +599,7 @@ bool CECAT7SubHeaderImage::convertFrom(const CMedIOHeader* subHeader, const CMed
     case CMedIOHeader::ECATMainHeader:
     case CMedIOHeader::ConcordeMicroPetMainHeader:
     case CMedIOHeader::PhilipsMainHeader:
+    case CMedIOHeader::NIFTIMainHeader:
       // copying a main header into a sub header doesn't make much sense, so we
       // do nothing here
     break;
