@@ -1,5 +1,7 @@
 # libmedio — C++ I/O library for medical imaging formats
 
+[![CI](https://github.com/hzdr-MedImaging/libmedio/actions/workflows/ci.yml/badge.svg)](https://github.com/hzdr-MedImaging/libmedio/actions/workflows/ci.yml)
+
 **libmedio** is a portable, C++-based shared library that provides
 high-level I/O APIs to read and write image and data files commonly used in
 medical imaging. Originating from PET research, libmedio focuses on
@@ -58,6 +60,14 @@ Test datasets in several formats (DICOM, ECAT7, NIfTI, Philips, Interfile,
 raw) are stored in `testsuite/data`; see
 [testsuite/data/README.md](testsuite/data/README.md) for their layout and how
 to add data.
+
+The [CI workflow](.github/workflows/ci.yml) builds libmedio on Linux with
+GCC and Clang (Release and Debug) against
+[librtdebug](https://github.com/hzdr-MedImaging/librtdebug), runs the test
+suite, checks the installed library and the Python bindings and verifies that
+the expected values of the test data are reproducible
+(`testsuite/data/tools/make_expected.py --check`). The example `image2ecat`
+requires the COREG library and is only built if it is found.
 
 ## Conversion to and from NIfTI
 The command line tools `ecat2nifti`/`nifti2ecat` (ECAT7) and
