@@ -443,6 +443,9 @@ class TestMedIOMatrix : public QObject
 
     void concorde();
 
+    void nativeFormat_data();
+    void nativeFormat();
+
     void errors();
 };
 
@@ -1967,6 +1970,87 @@ void TestMedIOMatrix::concorde()
   QVERIFY(file->readVolume(v, 1));
   QVERIFY(file->writeVolume(v, 1) == false);
   QVERIFY(file->readVolume(v, 3) == false);
+}
+
+//=============================================================================================
+// readMainHeader()/readMatrix() without format: the format of the file itself
+
+void TestMedIOMatrix::nativeFormat_data()
+{
+  QTest::addColumn<QString>("file");
+  QTest::addColumn<int>("headerFormat");   // CMedIOHeader::Format of the sub header
+  QTest::addColumn<int>("frame");          // frame to read in addition to the default one
+
+  QTest::newRow("ECAT7")    << medioTestDataDir() + "/ecat/pet-dynamic.v" << static_cast<int>(CMedIOHeader::ECATSubHeader) << 3;
+  QTest::newRow("NIfTI")    << medioTestDataDir() + "/nifti/pet-dynamic.nii.gz" << static_cast<int>(CMedIOHeader::NIFTIMainHeader) << 2;
+  QTest::newRow("Philips")  << medioTestDataDir() + "/philips/pet-dynamic.syn" << static_cast<int>(CMedIOHeader::PhilipsSubHeader) << 2;
+  QTest::newRow("microPET") << tmpFile("mpet_native") << static_cast<int>(CMedIOHeader::ConcordeMicroPetFrameHeader) << 2;
+}
+
+void TestMedIOMatrix::nativeFormat()
+{
+  QFETCH(QString, file);
+  QFETCH(int, headerFormat);
+  QFETCH(int, frame);
+
+  if(file.endsWith("mpet_native"))
+    QVERIFY(writeConcorde(file));
+
+  QScopedPointer<CMedIOData> data(CMedIODataFactory::create(file));
+  QVERIFY(data.data() != NULL);
+  QVERIFY(data->open(QIODevice::ReadOnly));
+
+  // main header
+  CMedIOHeader* mh = NULL;
+  CMedIOHeader* mhFormat = NULL;
+  QVERIFY(data->readMainHeader(mh));
+  QVERIFY(data->readMainHeader(mhFormat, data->dataFormat()));
+  QCOMPARE(static_cast<int>(mh->headerFormat()), static_cast<int>(mhFormat->headerFormat()));
+  delete mh;
+  delete mhFormat;
+
+  // default frame and given frame, QByteArray and char* variants
+  for(int pass=0; pass < 2; pass++) {
+    QByteArray* matrix = NULL;
+    QByteArray* matrixFormat = NULL;
+    CMedIOHeader* sh = NULL;
+    CMedIOHeader* shFormat = NULL;
+    if(pass == 0) {
+      QVERIFY(data->readMatrix(matrix, sh));
+      QVERIFY(data->readMatrix(matrixFormat, shFormat, data->dataFormat()));
+    } else {
+      QVERIFY(data->readMatrix(matrix, sh, frame));
+      QVERIFY(data->readMatrix(matrixFormat, shFormat, data->dataFormat(), frame));
+    }
+    QCOMPARE(static_cast<int>(sh->headerFormat()), headerFormat);
+    QCOMPARE(static_cast<int>(shFormat->headerFormat()), headerFormat);
+    QVERIFY(*matrix == *matrixFormat);
+
+    char* raw = NULL;
+    unsigned int len = 0;
+    CMedIOHeader* shRaw = NULL;
+    QVERIFY(data->readMatrix(raw, len, shRaw, pass == 0 ? -1 : frame));
+    QVERIFY(QByteArray(raw, len) == *matrix);
+    delete[] raw;
+
+    delete matrix; delete matrixFormat; delete sh; delete shFormat; delete shRaw;
+  }
+
+  // the frames differ
+  QByteArray* first = NULL;
+  QByteArray* other = NULL;
+  CMedIOHeader* sh = NULL;
+  QVERIFY(data->readMatrix(first, sh));
+  delete sh;
+  QVERIFY(data->readMatrix(other, sh, frame));
+  delete sh;
+  QVERIFY(*first != *other);
+  delete first;
+  delete other;
+
+  QByteArray* none = NULL;
+  QVERIFY(data->readMatrix(none, sh, 99) == false);
+  QVERIFY(none == NULL && sh == NULL);
 }
 
 //---------------------------------------------------------------------------------------------

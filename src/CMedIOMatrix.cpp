@@ -512,11 +512,20 @@ bool readNativeMatrix(CMedIOData* file, short frame, QByteArray& data, CMedIOHea
     break;
 
     case CMedIOData::ConcordeMicropet: {
+      // CConcordeFile does not check the frame number
       CConcordeFile* concorde = static_cast<CConcordeFile*>(file);
+      CConcordeMainHeader* mainHeader = NULL;
+      const short f = (frame == -1) ? 1 : frame;
+      result = concorde->readMainHeader(mainHeader) && mainHeader != NULL && f >= 1 && f <= mainHeader->totalFrames();
+      delete mainHeader;
+      if(result == false)
+        E("frame %d does not exist", frame);
+
       char* matrix = NULL;
       unsigned int length = 0;
       CConcordeFrameHeader* frameHeader = NULL;
-      result = concorde->readMatrix(matrix, length, frameHeader, frame == -1 ? 1 : frame);
+      if(result)
+        result = concorde->readMatrix(matrix, length, frameHeader, f);
       if(result) {
         data = QByteArray(matrix, length);
         header = frameHeader;

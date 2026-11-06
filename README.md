@@ -161,6 +161,9 @@ for(short frame=1; frame <= frames; frame++) {
 - Philips matrices hold all slices of a frame with one scale factor;
   Philips files are written frame by frame in ascending order. microPET
   files can only be read.
+- Without a format, `readMainHeader(header)` and `readMatrix(data, header, frame)`
+  return the main header and frames in the format of the file itself, e.g.
+  for a file created by `CMedIODataFactory` whose format is not known.
 - `readVolume()`/`writeVolume()` exchange frames as `CMedIOVolume`: voxel
   data, scaling, the position of every voxel (DICOM patient coordinates)
   and the frame timing; `CMedIOVolume::reorient()` reorders the voxels.

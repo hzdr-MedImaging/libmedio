@@ -105,12 +105,17 @@ class CMedIOData : public QFile {
     //
     // If the requested format is the format of the file itself, the
     // matrices and headers of the file are returned unchanged (except for
-    // Philips files, whose slices are combined into one frame).
+    // Philips files, whose slices are combined into one frame). Without a
+    // format, readMainHeader() and readMatrix() use the format of the file.
 
     //! @brief main header of the file in the representation of another format
     //! @param mainHeader the new header (to be deleted by the caller); it is not
     //!        linked to a file, call setMedIOData() before saving it
     bool readMainHeader(CMedIOHeader*& mainHeader, CMedIOData::Format format);
+
+    //! @brief main header of the file in the format of the file itself
+    //!        (same as readMainHeader(mainHeader, dataFormat()))
+    bool readMainHeader(CMedIOHeader*& mainHeader);
 
     //! @brief frame of the file in the representation of another format
     //! @param matrixData voxel data in the voxel order and data type of the
@@ -124,6 +129,11 @@ class CMedIOData : public QFile {
                     CMedIOData::Format format, short frame=-1);
     bool readMatrix(char*& matrixData, unsigned int& len, CMedIOHeader*& subHeader,
                     CMedIOData::Format format, short frame=-1);
+
+    //! @brief frame of the file in the format of the file itself (same as
+    //!        readMatrix(matrixData, subHeader, dataFormat(), frame))
+    bool readMatrix(QByteArray*& matrixData, CMedIOHeader*& subHeader, short frame=-1);
+    bool readMatrix(char*& matrixData, unsigned int& len, CMedIOHeader*& subHeader, short frame=-1);
 
     //! @brief write a frame given in the representation of any format
     //! @param matrixData voxel data as returned by readMatrix() of that

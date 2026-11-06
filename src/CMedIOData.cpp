@@ -137,6 +137,21 @@ bool CMedIOData::readMatrix(char*& matrixData, unsigned int& len, CMedIOHeader*&
   return result;
 }
 
+bool CMedIOData::readMainHeader(CMedIOHeader*& mainHeader)
+{
+  return readMainHeader(mainHeader, dataFormat());
+}
+
+bool CMedIOData::readMatrix(QByteArray*& matrixData, CMedIOHeader*& subHeader, short frame)
+{
+  return readMatrix(matrixData, subHeader, dataFormat(), frame);
+}
+
+bool CMedIOData::readMatrix(char*& matrixData, unsigned int& len, CMedIOHeader*& subHeader, short frame)
+{
+  return readMatrix(matrixData, len, subHeader, dataFormat(), frame);
+}
+
 bool CMedIOData::writeMatrix(const QByteArray& matrixData, const CMedIOHeader& subHeader,
                              short frame, const CMedIOHeader* mainHeader)
 {
