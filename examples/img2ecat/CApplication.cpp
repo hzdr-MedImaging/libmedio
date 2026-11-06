@@ -410,169 +410,42 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
         numFrames = NUMFRAMESLIMIT;
       }
 
-      int minSlice = pPhilipsFile->minSlice();
       for(int frame = 1; frame <= numFrames; ++frame)
       {
-         cout << "Converting Frame: " << (frame) << " of " << numFrames << endl;
+        cout << "Converting Frame: " << (frame) << " of " << numFrames << endl;
 
-        // in philips format every slice has an own subheader, so
-        // we need to hold one sub header of the philips file
-        // to convert it to an ecat7subheader of the whole frame
-
-        // take first subheader of the frame as the header of the whole frame
-        CPhilipsSubHeader* pPhilipsSubHeader = NULL;
-        bool bReadSubHeader = pPhilipsFile->readSubHeader(pPhilipsSubHeader, frame, minSlice);
-        if(bReadSubHeader == false)
-        {
-          cout << "ERROR: When loading image subheader of slice " << dec << minSlice
-               << ", frame " << frame << endl;
-
-          result = false;
-          if(pPhilipsSubHeader != NULL)
-            delete pPhilipsSubHeader;
-
-          break;
-        }
-
-        char* pImageData = NULL;
-        unsigned int len = 0;
-        bool bReadMatrix = pPhilipsFile->readMatrix(pImageData, len, frame);
-        if(bReadMatrix == false)
+        // the frame in the ECAT7 representation of libmedio: all slices of
+        // the frame in ECAT7 voxel order with one scale factor giving the
+        // physical values (the slice wise scale factors of the Philips file
+        // are applied; slices with different scale factors are converted into
+        // physical float values, unsigned 16 bit values into 32 bit integers)
+        QByteArray* pImageData = NULL;
+        CMedIOHeader* pSubHeader = NULL;
+        const short philipsFrame = pPhilipsFile->minFrame() + frame - 1;
+        if(pPhilipsFile->readMatrix(pImageData, pSubHeader, CMedIOData::ECAT, philipsFrame) == false)
         {
           cout << "ERROR: When loading image data of frame " << frame << endl;
           result = false;
-
-          delete pPhilipsSubHeader;
           break;
         }
 
-        // unfortunately the Philips file format contains a slice wise scaling factor
-        // imgscl() which requires that we walk through the array again and rescale
-        // the data accordingly. Better would be to redesign libmedio of course to allow
-        // to directly return a float volume rather than each application having to do
-        // scaling on their own.
-        int minslc = pPhilipsFile->minSlice();
-        int maxslc = pPhilipsFile->maxSlice();
-        int incr = (maxslc-minslc) / (pPhilipsFile->numSlices(frame) - 1);
-        int curSlice = minslc;
-        CPhilipsSubHeader *pSubHeadImg = NULL;
-        D("numSlices: %d", pPhilipsFile->numSlices());
-        for(int z=0; z <= pPhilipsFile->numSlices() && curSlice <= maxslc; ++z, curSlice += incr)
+        CECAT7SubHeaderImage* pEcat7SubHeaderImage = static_cast<CECAT7SubHeaderImage*>(pSubHeader);
+
+        // put in an annotation about being converted by img2ecat
+        QString message = QString("%1 %2").arg(PROJECT_LONGNAME).arg(PROJECT_VERSION);
+        pEcat7SubHeaderImage->setAnnotation(message.toLatin1().data());
+
+        if(pEcat7Image->writeSubHeader(*pEcat7SubHeaderImage, frame) == false ||
+           pEcat7Image->writeMatrix(*pImageData, frame) == false)
         {
-          if(pPhilipsFile->readSubHeader(pSubHeadImg, frame, curSlice))
-          {
-            float imgscl = static_cast<CPhilipsSubHeaderImage*>(pSubHeadImg)->imgscl();
-
-            if(imgscl > 1.0f)
-            {
-              for(int y=0; y <= pSubHeadImg->ydim(); ++y)
-              {
-                for(int x=0; x <= pSubHeadImg->xdim(); ++x)
-                {
-                  int idx = z * (pSubHeadImg->ydim() * pSubHeadImg->xdim()) + y * pSubHeadImg->xdim() + x;
-
-                  switch(pSubHeadImg->datype())
-                  {
-                    case CPhilipsSubHeader::SignedShort:
-                      static_cast<qint16*>((void *)pImageData)[idx] = qRound(static_cast<float>(static_cast<qint16*>((void *)pImageData)[idx]) * imgscl);
-                    break;
-
-                    case CPhilipsSubHeader::UnsignedShort:
-                      static_cast<quint16*>((void *)pImageData)[idx] = qRound(static_cast<float>(static_cast<quint16*>((void *)pImageData)[idx]) * imgscl);
-                    break;
-
-                    case CPhilipsSubHeader::Float:
-                      static_cast<float*>((void *)pImageData)[idx] = qRound(static_cast<float*>((void *)pImageData)[idx] * imgscl);
-                    break;
-
-                    default:
-                    {
-                      cout << "ERROR: Could not handle datatype " << pSubHeadImg->datype() << " of philips image file." << endl;
-                      bUnknownDataType = true;
-                    }
-                  }
-                }
-              }
-            }
-
-            D("converted slice %d (%d)", z+1, curSlice);
-
-            delete pSubHeadImg;
-            pSubHeadImg = NULL;
-          }
-          else
-            cout << "ERROR: reading subheader of slice " << curSlice << endl;
+          cout << "ERROR: When writing frame " << frame << endl;
+          result = false;
         }
 
-        short imgMaxValue = 0;
-        short imgMinValue = SHRT_MAX;
-        CPhilipsSubHeaderImage* pPhilipsSubHeaderImage = static_cast<CPhilipsSubHeaderImage*>(pPhilipsSubHeader);
-        switch(pPhilipsSubHeaderImage->datype())
-        {
-          case CPhilipsSubHeader::SignedShort:
-          {
-            int numElements = len/sizeof(qint16);
-            QByteArray buffer = QByteArray::fromRawData(pImageData, len);
-            CDataArray<qint16> dataArray(&buffer, numElements);
-            imgMaxValue = dataArray.maxValue();
-            imgMinValue = dataArray.minValue();
-          }
-          break;
+        delete pImageData;
+        delete pSubHeader;
 
-          case CPhilipsSubHeader::UnsignedShort:
-          {
-            int numElements = len/sizeof(quint16);
-            QByteArray buffer = QByteArray::fromRawData(pImageData, len);
-            CDataArray<quint16> dataArray(&buffer, numElements);
-            imgMaxValue = dataArray.maxValue();
-            imgMinValue = dataArray.minValue();
-          }
-          break;
-
-          case CPhilipsSubHeader::Float:
-          {
-            int numElements = len/sizeof(float);
-            QByteArray buffer = QByteArray::fromRawData(pImageData, len);
-            CDataArray<float> dataArray(&buffer, numElements);
-            imgMaxValue = dataArray.maxValue();
-            imgMinValue = dataArray.minValue();
-          }
-          break;
-
-          default:
-          {
-            cout << "ERROR: Could not handle datatype " << pPhilipsSubHeaderImage->datype() << " of philips image file." << endl;
-            bUnknownDataType = true;
-          }
-        }
-
-        if((bUnknownDataType == false) && (result != false))
-        {
-          CECAT7SubHeaderImage* pEcat7SubHeaderImage;
-          pEcat7SubHeaderImage = static_cast<CECAT7SubHeaderImage*>(pEcat7Image->createEmptySubHeader());
-
-          // convert the philips data into a working ecat sub header
-          pEcat7SubHeaderImage->convertFrom(pPhilipsSubHeaderImage, pPhilipsMainHeader);
-
-          pEcat7SubHeaderImage->setImage_Min(imgMinValue);
-          pEcat7SubHeaderImage->setImage_Max(imgMaxValue);
-
-          D("imgMin: %d", imgMinValue);
-          D("imgMax: %d", imgMaxValue);
-
-          // put in an annotation about being converted by mp2ecat
-          QString message = QString("%1 %2").arg(PROJECT_LONGNAME).arg(PROJECT_VERSION);
-          pEcat7SubHeaderImage->setAnnotation(message.toLatin1().data());
-
-          pEcat7Image->writeSubHeader(*pEcat7SubHeaderImage, frame);
-          pEcat7Image->writeMatrix(pImageData, len, frame);
-          delete pEcat7SubHeaderImage;
-        }
-
-        if(pPhilipsSubHeaderImage != NULL)
-          delete pPhilipsSubHeaderImage;
-
-        if(bUnknownDataType)
+        if(result == false)
           break;
       }
 
