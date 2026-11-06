@@ -89,6 +89,7 @@ class CPhilipsDirectoryPrivate
     // some private methods 
     CPhilipsDirectoryItem* newDirItem(quint32 matrixID);
     qint64 lastDirItemOffset(void) const;
+    void reserveDirLists(int numItems);
 
     // static method for sorting our QMap by value
     static bool itemIsLessThan(CPhilipsDirectoryItem* s1, CPhilipsDirectoryItem* s2);
@@ -345,7 +346,10 @@ bool CPhilipsDirectory::save() const
   quint32 processedDirItems = 0;
   quint16 curDirList = 0;
   quint32 nextDirPos = currentDirPos;
-  qint64 lastDirListPos = 0;
+
+  // make sure there is a directory list block for every 31 items. Normally
+  // newDirItem() already reserved them before the data of the items was placed.
+  m_pData->reserveDirLists(m_pData->dirItems.count());
 
   // before we iterate through our qmap (which is sorted by keys per default) we 
   // have to extract the values and sort the QList by values instead and iterate over
@@ -374,14 +378,6 @@ bool CPhilipsDirectory::save() const
                                    pDirItem->frame(), 
                                    pDirItem->tilt());
 
-      // we fix a problem where it happened that in case the writeSubHeader()/
-      // writeMatrix() where used separately, the directory got overwritten
-      // but the very next directory item.
-      if(lastDirListPos > 0 && lastDirListPos == pDirItem->dataBlock_Start())
-        pDirItem->setDataBlock_Start(lastDirListPos+PHILIPS_DIRLIST_SIZE);
-      else
-        lastDirListPos = 0;
-   
       // populate the diritem
       dirList.items[i].matrixID = pDirItem->matrixID();
       dirList.items[i].dataBlock_Start = FilePos2PhilipsBlock(pDirItem->dataBlock_Start());
@@ -423,28 +419,12 @@ bool CPhilipsDirectory::save() const
         // further directory item to be added
         if(it.hasNext() == true)
         {
-          qint64 appendPos;
+          // the position of the next directory list was reserved by
+          // reserveDirLists() above
+          ASSERT(m_pData->filePositions.count() > curDirList+1);
+          const qint64 appendPos = m_pData->filePositions[curDirList+1];
 
-          // get the position where the next directorylist will start
-          // so we look into our filePositions ValueVector and if there is
-          // another entry we use it or we create a new directoryList
-          if(m_pData->filePositions.count()-1 == curDirList)
-          {      
-            appendPos = m_pData->lastDirItemOffset()+PHILIPS_BLOCKSIZE;
-
-            // append the position to our FilePositions for DirLists
-            m_pData->filePositions.append(appendPos);
-            
-            D("appended new DirList #%d @ %lld (%lld)", curDirList+1, FilePos2PhilipsBlock(appendPos), appendPos);
-
-            lastDirListPos = appendPos;
-          }
-          else
-            appendPos = m_pData->filePositions[curDirList+1];
-
-          // calculate the block position where the next directory list
-          // starts (the current endsize of the Philips file substracted by one
-          // Philips blocksize [512 bytes])
+          // calculate the block position where the next directory list starts
           nextDirPos = FilePos2PhilipsBlock(appendPos);
           dirList.head.nextDirectory = nextDirPos;
         }
@@ -623,11 +603,27 @@ CPhilipsDirectoryItem* CPhilipsDirectoryPrivate::newDirItem(quint32 matrixID)
     pNewDItem->setDataBlock_End(PhilipsBlock2FilePos(PHILIPS_EXT_HEADER_END));
     pNewDItem->setContentFlag(CPhilipsDirectoryItem::Header);
 
+    // reserve another directory list block if the directory needs one for
+    // the new item
+    reserveDirLists(dirItems.count() + 1);
+
     // insert the new directory item into the directory now.
     dirItems.insert(matrixID, pNewDItem);
   }
   else
   {
+    // if the directory needs another directory list block for the new
+    // item, we have to reserve it before we place the data of the item.
+    // Otherwise save() would put the new directory list behind the last
+    // data written so far, i.e. right where the data of this item goes.
+    // We also count the extended header item, which reWriteMainHeader()
+    // below creates if it doesn't exist yet.
+    int numItems = dirItems.count() + 1;
+    if(dirItems.contains(PHILIPS_EXT_HEADER_ID) == false)
+      numItems++;
+
+    reserveDirLists(numItems);
+
     // now that we generated a new directory item we want to put
     // in our directory immediately, we have to first check at which
     // dataposition it should be placed
@@ -688,6 +684,30 @@ qint64 CPhilipsDirectoryPrivate::lastDirItemOffset(void) const
 
   RETURN(offset);
   return offset;
+}
+
+void CPhilipsDirectoryPrivate::reserveDirLists(int numItems)
+{
+  ENTER();
+
+  // a directory list block holds up to PHILIPS_DIRITEM_NUM items and the
+  // first one is always at PHILIPS_POS_MAINDIR. Every further block we need
+  // is placed behind the end of the data and directory lists written so far,
+  // so it never overlaps the data of an existing item. As the position of a
+  // directory list never changes afterwards, items placed later always go
+  // behind it.
+  if(filePositions.isEmpty())
+    filePositions.append(PhilipsBlock2FilePos(PHILIPS_POS_MAINDIR));
+
+  while(filePositions.count()*PHILIPS_DIRITEM_NUM < numItems)
+  {
+    const qint64 appendPos = lastDirItemOffset()+PHILIPS_BLOCKSIZE;
+    filePositions.append(appendPos);
+
+    D("reserved new DirList #%d @ %lld (%lld)", filePositions.count()-1, FilePos2PhilipsBlock(appendPos), appendPos);
+  }
+
+  LEAVE();
 }
 
 bool CPhilipsDirectoryPrivate::itemIsLessThan(CPhilipsDirectoryItem* s1, CPhilipsDirectoryItem* s2)
