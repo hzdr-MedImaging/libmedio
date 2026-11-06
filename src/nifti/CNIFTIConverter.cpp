@@ -34,6 +34,7 @@
 #include "CPhilipsMainHeader.h"
 #include "CPhilipsSubHeader.h"
 #include "CPhilipsSubHeaderImage.h"
+#include "CPhilipsVolume.h"
 
 #include <QByteArray>
 #include <QFile>
@@ -381,8 +382,6 @@ bool loadPhilips(const QString& fileName, EcatImage& image, QString* error)
 
   const int frames = file->numFrames();
   const int minFrame = file->minFrame();
-  const int minSlice = file->minSlice();
-  const int maxSlice = file->maxSlice();
   if(frames < 1)
     return fail(error, "no frames found in " + fileName);
 
@@ -400,100 +399,37 @@ bool loadPhilips(const QString& fileName, EcatImage& image, QString* error)
     else if(slices != nz)
       return fail(error, "the frames of the Philips file differ in their number of slices");
 
-    // slice numbers of this frame (see CPhilipsFile::readMatrix())
-    const int increment = (nz > 1) ? (maxSlice - minSlice) / (nz - 1) : 1;
-    if(nz < 1 || increment < 1)
-      return fail(error, "invalid slice numbering in " + fileName);
+    // stored values of all slices and their scale factors (see CPhilipsVolume.h)
+    CPhilipsVolume volume;
+    QString message;
+    if(volume.read(*file, mainHeader, frame, &message) == false)
+      return fail(error, message);
 
-    QByteArray frameData;
-    QVector<double> scales;
-    QScopedPointer<CPhilipsSubHeader> frameSubHeader;
-
-    for(int k=0; k < nz; k++) {
-      const int slice = minSlice + k * increment;
-      QByteArray* data = NULL;
-      CPhilipsSubHeader* subHeader = NULL;
-
-      if(file->readMatrix(data, subHeader, frame, slice) == false || data == NULL || subHeader == NULL) {
-        delete data;
-        delete subHeader;
-        return fail(error, QString("unable to read slice %1 of frame %2 of %3").arg(slice).arg(frame).arg(fileName));
-      }
-      QScopedPointer<QByteArray> dataGuard(data);
-      QScopedPointer<CPhilipsSubHeader> subHeaderGuard(subHeader);
-
-      if(subHeader->subHeaderType() != CPhilipsSubHeader::Image && subHeader->subHeaderType() != CPhilipsSubHeader::Syntegra)
-        return fail(error, "only Philips image data can be converted to NIfTI");
-      const CPhilipsSubHeaderImage* s = static_cast<const CPhilipsSubHeaderImage*>(subHeader);
-
-      if(f == 0 && k == 0) {
-        nx = s->xdim();
-        ny = s->ydim();
-        dataType = s->datype();
-      }
-
-      if(s->xdim() != nx || s->ydim() != ny || nx < 1 || ny < 1)
-        return fail(error, "the slices of the Philips file differ in their dimensions");
-      if(s->datype() != dataType)
-        return fail(error, "the slices of the Philips file differ in their data type");
-
-      // stored values as ECAT7 data type: unsigned 16 bit values are kept as 32 bit integers
-      const qint64 voxels = static_cast<qint64>(nx) * ny;
-      int bytes = 0;
-      switch(dataType) {
-        case CPhilipsSubHeader::ByteData:      bytes = 1; break;
-        case CPhilipsSubHeader::SignedShort:
-        case CPhilipsSubHeader::UnsignedShort: bytes = 2; break;
-        case CPhilipsSubHeader::Float:         bytes = 4; break;
-        default:
-          return fail(error, QString("unsupported Philips data type %1").arg(dataType));
-      }
-      if(data->size() < voxels * bytes)
-        return fail(error, QString("slice %1 of frame %2 is too small").arg(slice).arg(frame));
-
-      if(dataType == CPhilipsSubHeader::UnsignedShort) {
-        const quint16* src = reinterpret_cast<const quint16*>(data->constData());
-        QByteArray converted(voxels * 4, '\0');
-        qint32* dst = reinterpret_cast<qint32*>(converted.data());
-        for(qint64 i=0; i < voxels; i++)
-          dst[i] = src[i];
-        frameData.append(converted);
-      } else {
-        frameData.append(data->constData(), voxels * bytes);
-      }
-
-      bool ok = false;
-      double scale = s->ecat_Scale_Factor(ok, mainHeader);
-      if(ok == false || scale <= 0.0 || std::isfinite(scale) == false) {
-        unscaled = true;
-        scale = 1.0;
-      }
-      scales.append(scale);
-
-      if(k == 0)
-        frameSubHeader.reset(subHeaderGuard.take());
+    if(f == 0) {
+      nx = volume.m_Nx;
+      ny = volume.m_Ny;
+      dataType = volume.m_PhilipsDataType;
     }
+
+    if(volume.m_Nx != nx || volume.m_Ny != ny)
+      return fail(error, "the slices of the Philips file differ in their dimensions");
+    if(volume.m_PhilipsDataType != dataType)
+      return fail(error, "the slices of the Philips file differ in their data type");
+
+    if(volume.m_Unscaled)
+      unscaled = true;
 
     // ECAT7 image sub header of this frame from the sub header of its first slice
     CECAT7SubHeaderImage* ecatSubHeader = new CECAT7SubHeaderImage(&image.ecatFile);
     image.subHeaders.append(ecatSubHeader);
-    if(ecatSubHeader->convertFrom(frameSubHeader.data(), mainHeader) == false)
+    if(volume.convertSubHeader(*ecatSubHeader, mainHeader) == false)
       return fail(error, "unable to convert the Philips sub header of " + fileName);
 
-    ecatSubHeader->setZ_Dimension(nz);
-    switch(dataType) {
-      case CPhilipsSubHeader::ByteData:      ecatSubHeader->setData_Type(CECATSubHeader::ByteData); break;
-      case CPhilipsSubHeader::SignedShort:   ecatSubHeader->setData_Type(CECATSubHeader::SunShort); break;
-      case CPhilipsSubHeader::UnsignedShort: ecatSubHeader->setData_Type(CECATSubHeader::SunLong); break;
-      default:                               ecatSubHeader->setData_Type(CECATSubHeader::IEEEFloat); break;
-    }
-    ecatSubHeader->setScale_Factor(scales.first());
-
-    image.matrices.append(frameData);
-    image.planeScales.append(scales);
+    image.matrices.append(volume.m_Data);
+    image.planeScales.append(volume.m_SliceScales);
 
     if(f == 0)
-      firstSubHeader.reset(frameSubHeader.take());
+      firstSubHeader.reset(volume.m_pFirstSubHeader.take());
   }
 
   if(unscaled)
