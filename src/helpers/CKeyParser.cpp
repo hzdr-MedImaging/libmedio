@@ -27,6 +27,7 @@ void CKeyParser::addKey(const QString& Key, QString* Value)
   if(Value!=NULL)
   {
     CKeyValue* KValue = new CKeyValue(CKeyType::ASCII, (void*)Value);
+    delete KeyDictionary.take(Key); // a key added again replaces the previous binding
     KeyDictionary.insert(Key,KValue);
   }
 }
@@ -36,6 +37,7 @@ void CKeyParser::addKey(const QString& Key, double* Value)
   if(Value!=NULL)
   {
     CKeyValue* KValue = new CKeyValue(CKeyType::DOUBLE, (void*)Value);
+    delete KeyDictionary.take(Key); // a key added again replaces the previous binding
     KeyDictionary.insert(Key,KValue);
   }
 }
@@ -45,6 +47,7 @@ void CKeyParser::addKey(const QString& Key, short* Value)
   if(Value!=NULL)
   {
     CKeyValue* KValue = new CKeyValue(CKeyType::SHORT, (void*)Value);
+    delete KeyDictionary.take(Key); // a key added again replaces the previous binding
     KeyDictionary.insert(Key,KValue);
   }
 }
@@ -54,6 +57,7 @@ void CKeyParser::addKey(const QString& Key, unsigned short* Value)
   if(Value!=NULL)
   {
     CKeyValue* KValue = new CKeyValue(CKeyType::USHORT, (void*)Value);
+    delete KeyDictionary.take(Key); // a key added again replaces the previous binding
     KeyDictionary.insert(Key,KValue);
   }
 }
@@ -63,6 +67,7 @@ void CKeyParser::addKey(const QString& Key, int* Value)
   if(Value!=NULL)
   {
     CKeyValue* KValue = new CKeyValue(CKeyType::INT, (void*)Value);
+    delete KeyDictionary.take(Key); // a key added again replaces the previous binding
     KeyDictionary.insert(Key,KValue);
   }
 }
@@ -72,6 +77,7 @@ void CKeyParser::addKey(const QString& Key, unsigned int* Value)
   if(Value!=NULL)
   {
     CKeyValue* KValue = new CKeyValue(CKeyType::UINT, (void*)Value);
+    delete KeyDictionary.take(Key); // a key added again replaces the previous binding
     KeyDictionary.insert(Key,KValue);
   }
 }
@@ -81,6 +87,7 @@ void CKeyParser::addKey(const QString& Key, long* Value)
   if(Value!=NULL)
   {
     CKeyValue* KValue = new CKeyValue(CKeyType::LONG, (void*)Value);
+    delete KeyDictionary.take(Key); // a key added again replaces the previous binding
     KeyDictionary.insert(Key,KValue);
   }
 }
@@ -90,6 +97,7 @@ void CKeyParser::addKey(const QString& Key, unsigned long* Value)
   if(Value!=NULL)
   {
     CKeyValue* KValue = new CKeyValue(CKeyType::ULONG, (void*)Value);
+    delete KeyDictionary.take(Key); // a key added again replaces the previous binding
     KeyDictionary.insert(Key,KValue);
   }
 }
@@ -99,6 +107,7 @@ void CKeyParser::addKey(const QString& Key, float* Value)
   if(Value!=NULL)
   {
     CKeyValue* KValue = new CKeyValue(CKeyType::FLOAT, (void*)Value);
+    delete KeyDictionary.take(Key); // a key added again replaces the previous binding
     KeyDictionary.insert(Key,KValue);
   }
 }
@@ -108,6 +117,7 @@ void CKeyParser::addKey(const QString& Key, void* p2Object, void (*p2Function)(v
   if(p2Object!=NULL)
   {
     CKeyValue* KValue = new CKeyValue(CKeyType::USEROBJECT, p2Object, p2Function);
+    delete KeyDictionary.take(Key); // a key added again replaces the previous binding
     KeyDictionary.insert(Key,KValue);
   }    
 }

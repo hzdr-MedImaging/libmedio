@@ -83,6 +83,7 @@ CConcordeFile::~CConcordeFile()
   ENTER();
 
   delete m_pCachedMainHeader;
+  delete m_pData;
   
   LEAVE();
 }
@@ -307,8 +308,9 @@ bool CConcordeFile::readMatrix(QByteArray*& matrixData, short frame)
         unsigned int iFrameSize = 0;
         if(readMatrix(pTmp, iFrameSize, frame))
         {
-            matrixData = new QByteArray;
-            matrixData->setRawData(pTmp, iFrameSize);
+            // the QByteArray holds a copy of the buffer, which is freed here
+            matrixData = new QByteArray(pTmp, iFrameSize);
+            delete[] pTmp;
             result = true;
         }
     }
@@ -328,9 +330,15 @@ bool CConcordeFile::readMatrix(QByteArray*& matrixData, CConcordeFrameHeader*& s
             unsigned int iFrameSize = 0;
             if(readMatrix(pTmp, iFrameSize, frame))
             {
-                matrixData = new QByteArray;
-                matrixData->setRawData(pTmp, iFrameSize);
+                // the QByteArray holds a copy of the buffer, which is freed here
+                matrixData = new QByteArray(pTmp, iFrameSize);
+                delete[] pTmp;
                 result = true;
+            }
+            else
+            {
+                delete subHeader;
+                subHeader = NULL;
             }
         }
     RETURN(result);
@@ -343,8 +351,15 @@ bool CConcordeFile::readMatrix(char*& matrixData, unsigned int& length, CConcord
     bool result = false;
     if(isOpen())
         if(readSubHeader(subHeader, frame))
+        {
             if(readMatrix(matrixData, length, frame))
                 result = true;
+            else
+            {
+                delete subHeader;
+                subHeader = NULL;
+            }
+        }
     RETURN(result);
     return result;
 }
@@ -401,7 +416,8 @@ bool CConcordeFile::readMatrix(char*& matrixData, unsigned int& matrixSize, shor
   matrixData = new char[matrixSize];
 
   // now we read in the whole data at once
-  if(QFile::read(matrixData, matrixSize) == matrixSize)
+  result = (QFile::read(matrixData, matrixSize) == matrixSize);
+  if(result)
   {
     // now we find out if this machine requires byte swapping or
     // not depending on the input data type and the sysinfo
@@ -490,7 +506,7 @@ bool CConcordeFile::readMatrix(char*& matrixData, unsigned int& matrixSize, shor
 
   if(result == false)
   {
-    delete matrixData;
+    delete[] matrixData;
     matrixData = NULL;
     matrixSize = 0;
   }
