@@ -163,6 +163,13 @@ class CMedIOData : public QFile {
 
   protected :
     int            m_iErrStatus;  //!< error status variable
+
+  private:
+    // The format classes open their files with open(QIODevice::OpenModeFlag),
+    // which hides the open() overloads of QFile. They are declared here
+    // (inaccessible) so that this is explicit and calls with other
+    // arguments do not bypass the format specific open().
+    using QFile::open;
 };
 
 #endif

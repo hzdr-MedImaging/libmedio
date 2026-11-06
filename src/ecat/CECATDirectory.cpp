@@ -294,6 +294,8 @@ bool CECATDirectory::load(void)
     #if defined(DEBUG)
     if(dList.head.ItemsToFollow != iItemsInserted)
       W("ItemsToFollow:%ld != iItemsInserted:%ld", dList.head.ItemsToFollow, iItemsInserted);
+    #else
+    Q_UNUSED(iItemsInserted); // only checked in debug builds
     #endif
 
     if(m_pData->file->seek(ECATBlock2FilePos(dList.head.Next)) == false)

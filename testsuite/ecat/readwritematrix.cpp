@@ -168,7 +168,7 @@ void matrixSizeTest(void)
 //! @param       *argv[] pointer to a array of the commandline options
 //! @return      integer of the exit code.
 ////////////////////////////////////////////////////////////////////////////////
-int main(int argc, char* argv[])
+int main(int /*argc*/, char* /*argv*/[])
 {
   int returnCode = 2; // return an error on default
 

@@ -884,9 +884,9 @@ bool CPhilipsDirectoryItem::writeMatrix(const char* matrixData, unsigned int mat
     if((matrixSize % PHILIPS_BLOCKSIZE) != 0)
     {
       unsigned int fillLen = PHILIPS_BLOCKSIZE - (matrixSize % PHILIPS_BLOCKSIZE);
-      char fillData[fillLen];
+      char fillData[PHILIPS_BLOCKSIZE]; // fillLen < PHILIPS_BLOCKSIZE
 
-      memset(fillData, 0, fillLen*sizeof(char));
+      memset(fillData, 0, sizeof(fillData));
 W("before: %ld", m_pData->file->pos());
       if(m_pData->file->write(fillData, fillLen) != (qint64)fillLen)
       {

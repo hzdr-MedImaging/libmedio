@@ -302,6 +302,8 @@ bool CPhilipsDirectory::load()
     #if defined(DEBUG)
     if(dList.head.itemsToFollow != iItemsInserted)
       W("ItemsToFollow:%ld != iItemsInserted:%ld", dList.head.itemsToFollow, iItemsInserted);
+    #else
+    Q_UNUSED(iItemsInserted); // only checked in debug builds
     #endif
 
     if(m_pData->file->seek(PhilipsBlock2FilePos(dList.head.nextDirectory)) == false)

@@ -973,9 +973,9 @@ bool CECATDirectoryItem::writeMatrix(const char* matrixData, unsigned int matrix
     if((matrixSize % ECAT_BLOCKSIZE) > 0)
     {
       unsigned int fillLen = ECAT_BLOCKSIZE - (matrixSize % ECAT_BLOCKSIZE);
-      char fillData[fillLen];
+      char fillData[ECAT_BLOCKSIZE]; // fillLen < ECAT_BLOCKSIZE
 
-      memset(fillData, 0, fillLen*sizeof(char));
+      memset(fillData, 0, sizeof(fillData));
 
       if(m_pData->file->write(fillData, fillLen) != (qint64)fillLen)
       {

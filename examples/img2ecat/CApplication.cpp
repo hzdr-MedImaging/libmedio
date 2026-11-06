@@ -45,7 +45,6 @@ using namespace std;
 
 CApplication::CApplication()
  : m_bOverWrite(false),
-   m_bPreserveDataType(false),
    m_bRecursive(false),
    m_bEcat2Img(false)
 {
@@ -111,10 +110,6 @@ bool CApplication::parseCmdLine(int argc, char* argv[])
       inputFileNames.removeAll(args.value("-n"));
     }
 
-    if(args.contains("-p"))
-    {
-      m_bPreserveDataType = true;
-    }
 #endif
 
     if(args.contains("-r"))
