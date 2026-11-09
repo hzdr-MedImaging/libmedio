@@ -18,6 +18,8 @@
 */
 
 #include "CNIFTIConverter.h"
+#include "CMedIOMetadata.h"
+#include "CMedIOMetadataMap.h"
 #include "CNIFTIFile.h"
 #include "CNIFTIMainHeader.h"
 #include "CNIFTI1MainHeader.h"
@@ -177,69 +179,6 @@ void setNIFTIData(H* h, bool floatData, double slope, double minValue, double ma
   h->setDescrip("converted by libmedio");
 }
 
-template <class H>
-bool writeNIFTIExtension(H* h, CNIFTIFile& file, const QJsonObject& json)
-{
-  return h->writeHeaderExtension(file, json);
-}
-
-//=============================================================================================
-// ECAT7 metadata <-> JSON
-
-QJsonObject ecatMetadata(const CECAT7MainHeader* mainHeader, const QList<CECAT7SubHeaderImage*>& subHeaders)
-{
-  QJsonObject json;
-
-  json["Original_File_Name"] = QString(mainHeader->original_File_Name());
-  json["Study_Description"] = QString(mainHeader->study_Description());
-  json["Physician_Name"] = QString(mainHeader->physician_Name());
-  json["Operator_Name"] = QString(mainHeader->operator_Name());
-  json["Facility_Name"] = QString(mainHeader->facility_Name());
-  json["Study_Type"] = QString(mainHeader->study_Type());
-  json["Patient_Name"] = QString(mainHeader->patient_Name());
-  json["Patient_ID"] = QString(mainHeader->patient_ID());
-  json["Patient_Sex"] = mainHeader->patient_Sex();
-  json["Patient_Age"] = static_cast<double>(mainHeader->patient_Age());
-  json["Patient_Weight"] = static_cast<double>(mainHeader->patient_Weight());
-  json["Patient_Height"] = static_cast<double>(mainHeader->patient_Height());
-  json["Patient_Birth_Date"] = static_cast<double>(mainHeader->patient_Birth_Date());
-  json["Patient_Orientation"] = mainHeader->patient_Orientation();
-  json["Isotope_Name"] = QString(mainHeader->isotope_Name());
-  json["Isotope_Halflife"] = static_cast<double>(mainHeader->isotope_Halflife());
-  json["Radiopharmaceutical"] = QString(mainHeader->radiopharmaceutical());
-  json["Dosage"] = static_cast<double>(mainHeader->dosage());
-  json["Data_Units"] = QString(mainHeader->data_Units());
-  json["Calibration_Factor"] = static_cast<double>(mainHeader->calibration_Factor());
-  json["Scan_Start_Time"] = static_cast<double>(mainHeader->scan_Start_Time());
-  json["Dose_Start_Time"] = static_cast<double>(mainHeader->dose_Start_Time());
-  json["Calibration_Units"] = static_cast<int>(mainHeader->calibration_Units());
-  json["Calibration_Units_Label"] = static_cast<int>(mainHeader->calibration_Units_Label());
-  json["Acquisition_Type"] = static_cast<int>(mainHeader->acquisition_Type());
-  json["Lwr_True_Thres"] = static_cast<int>(mainHeader->lwr_True_Thres());
-  json["Upr_True_Thres"] = static_cast<int>(mainHeader->upr_True_Thres());
-  json["Lwr_Sctr_Thres"] = static_cast<int>(mainHeader->lwr_Sctr_Thres());
-  json["Init_Bed_Position"] = static_cast<double>(mainHeader->init_Bed_Position());
-  json["Distance_Scanned"] = static_cast<double>(mainHeader->distance_Scanned());
-  json["Transaxial_FOV"] = static_cast<double>(mainHeader->transaxial_FOV());
-  json["Bin_Size"] = static_cast<double>(mainHeader->bin_Size());
-
-  if(subHeaders.isEmpty() == false)
-    json["Recon_Zoom"] = static_cast<double>(subHeaders.first()->recon_Zoom());
-
-  // frame timing in s (BIDS PET naming)
-  QJsonArray start, duration;
-  foreach(const CECAT7SubHeaderImage* subHeader, subHeaders) {
-    start.append(subHeader->frame_Start_Time() / 1000.0);
-    duration.append(subHeader->frame_Duration() / 1000.0);
-  }
-  json["FrameTimesStart"] = start;
-  json["FrameDuration"] = duration;
-
-  json["ConversionSoftware"] = QString("libmedio %1").arg(CMedIO::version());
-
-  return json;
-}
-
 //=============================================================================================
 // Image data in the ECAT7 representation, which is the common intermediate
 // format of all conversions: the ECAT7 main header, one image sub header and
@@ -258,6 +197,11 @@ struct EcatImage
   QList<CECAT7SubHeaderImage*> subHeaders;  // one per frame
   QList<QByteArray> matrices;               // stored values per frame
   QList<QVector<double> > planeScales;      // physical value = stored value x planeScales[frame][plane]
+
+  // format independent metadata of the source (CMedIOHeader::metadata()),
+  // given to the headers of the target
+  QJsonObject mainMetadata;                 // main header
+  QList<QJsonObject> frameMetadata;         // per frame (sub header, first slice, NIfTI "Frames" entry)
 };
 
 //---------------------------------------------------------------------------------------------
@@ -308,12 +252,15 @@ bool loadEcat(const QString& fileName, EcatImage& image, QString* error)
 
     CECAT7SubHeaderImage* s = static_cast<CECAT7SubHeaderImage*>(subHeader);
     image.subHeaders.append(s);
+    image.frameMetadata.append(s->metadata());
 
     double scale = s->scale_Factor();
     if(scale == 0.0 || std::isfinite(scale) == false)
       scale = 1.0;
     image.planeScales.append(QVector<double>(qMax(0, static_cast<int>(s->z_Dimension())), scale * calibration));
   }
+
+  image.mainMetadata = image.mainHeader->metadata();
 
   ecatFile->close();
   return true;
@@ -400,6 +347,7 @@ bool loadPhilips(const QString& fileName, EcatImage& image, QString* error)
 
     image.matrices.append(volume.data());
     image.planeScales.append(scales);
+    image.frameMetadata.append(frameSubHeader->metadata());
 
     if(f == 0)
       firstSubHeader.reset(frameSubHeader.take());
@@ -419,6 +367,8 @@ bool loadPhilips(const QString& fileName, EcatImage& image, QString* error)
 
   // the ECAT7 field holds 31 characters only: use the file name without its path
   image.mainHeader->setOriginal_File_Name(QFileInfo(fileName).fileName().left(31).toLatin1().constData());
+
+  image.mainMetadata = mainHeader->metadata();
 
   file->close();
   return true;
@@ -514,26 +464,48 @@ bool saveNifti(const EcatImage& image, const QString& niftiFileName, const CNIFT
 
   if(result) {
     const double duration = sameDuration ? first->frame_Duration() / 1000.0 : 0.0;
-    const QJsonObject json = ecatMetadata(image.mainHeader, image.subHeaders);
 
-    if(options.niftiVersion == 2) {
-      CNIFTI2MainHeader* h = static_cast<CNIFTI2MainHeader*>(header.data());
-      setNIFTIData(h, storedValues == false, slope, minValue, maxValue, duration);
-      if(options.jsonExtension && niftiFile.isPair() == false)
-        h->setVox_Offset(540 + 4 + h->headerExtensionSize(json));
-    } else {
-      CNIFTI1MainHeader* h = static_cast<CNIFTI1MainHeader*>(header.data());
-      setNIFTIData(h, storedValues == false, slope, minValue, maxValue, duration);
-      if(options.jsonExtension && niftiFile.isPair() == false)
-        h->setVox_Offset(348 + 4 + h->headerExtensionSize(json));
+    if(options.niftiVersion == 2)
+      setNIFTIData(static_cast<CNIFTI2MainHeader*>(header.data()), storedValues == false, slope, minValue, maxValue, duration);
+    else
+      setNIFTIData(static_cast<CNIFTI1MainHeader*>(header.data()), storedValues == false, slope, minValue, maxValue, duration);
+
+    // metadata of the source, the frame metadata of all frames and the frame
+    // timing in s (BIDS PET naming)
+    MedIOMetadata::transfer(image.mainMetadata, *header, MedIOMetadata::frameKeys());
+    QJsonObject json;
+    QJsonArray frameMetadata, start, durations;
+    bool anyFrameMetadata = false;
+    for(int f=0; f < frames; f++) {
+      const QJsonObject m = (f < image.frameMetadata.size()) ? image.frameMetadata[f] : QJsonObject();
+      frameMetadata.append(m);
+      anyFrameMetadata = anyFrameMetadata || (m.isEmpty() == false);
+      start.append(image.subHeaders[f]->frame_Start_Time() / 1000.0);
+      durations.append(image.subHeaders[f]->frame_Duration() / 1000.0);
+    }
+    if(anyFrameMetadata)
+      json[CMedIOMetadata::FramesKey] = frameMetadata;
+    json["FrameTimesStart"] = start;
+    json["FrameDuration"] = durations;
+    json["ConversionSoftware"] = QString("libmedio %1").arg(CMedIO::version());
+    result = header->updateMetadata(json);
+
+    // the metadata as stored in the file (see CNIFTIFile::writeMainHeader())
+    const QJsonObject stored = MedIOMetadata::niftiJson(header->metadata());
+
+    // without header extension: remove the metadata from the header
+    if(result && options.jsonExtension == false) {
+      QJsonObject removed;
+      foreach(const QString& key, header->metadata().keys()) {
+        if(key != "NIfTI")
+          removed[key] = QJsonValue(QJsonValue::Null);
+      }
+      result = header->updateMetadata(removed);
     }
 
-    result = niftiFile.writeMainHeader(*header);
-
-    if(result && options.jsonExtension) {
-      result = (options.niftiVersion == 2) ? writeNIFTIExtension(static_cast<CNIFTI2MainHeader*>(header.data()), niftiFile, json)
-                                           : writeNIFTIExtension(static_cast<CNIFTI1MainHeader*>(header.data()), niftiFile, json);
-    }
+    // the main header with the metadata as JSON header extension
+    if(result)
+      result = niftiFile.writeMainHeader(*header);
 
     if(result)
       result = niftiFile.writeMatrix(data);
@@ -541,7 +513,7 @@ bool saveNifti(const EcatImage& image, const QString& niftiFileName, const CNIFT
     if(result && options.jsonSidecar) {
       QFile sidecar(niftiSidecarFileName(niftiFileName));
       result = sidecar.open(QIODevice::WriteOnly | QIODevice::Truncate) &&
-               sidecar.write(QJsonDocument(json).toJson(QJsonDocument::Indented)) > 0;
+               sidecar.write(QJsonDocument(stored).toJson(QJsonDocument::Indented)) > 0;
     }
   }
 
@@ -612,7 +584,11 @@ bool loadNifti(const QString& niftiFileName, EcatImage& image, QString* error)
   if(image.mainHeader->convertFrom(headerPtr, NULL) == false)
     return fail(error, "unable to convert the NIfTI header of " + niftiFileName);
 
-  applyNIFTIMetadata(*image.mainHeader, json);
+  // metadata of the NIfTI file (incl. those of CNIFTIConverter of earlier
+  // versions, see CMedIOMetadataMap.h)
+  image.mainMetadata = header->metadata();
+  const QJsonArray frameMetadata = image.mainMetadata.take(QString::fromLatin1(CMedIOMetadata::FramesKey)).toArray();
+  MedIOMetadata::transfer(image.mainMetadata, *image.mainHeader, MedIOMetadata::frameKeys());
 
   // the values already contain the calibration factor
   image.mainHeader->setCalibration_Factor(1.0f);
@@ -658,6 +634,10 @@ bool loadNifti(const QString& niftiFileName, EcatImage& image, QString* error)
     if(subHeader->convertFrom(NULL, headerPtr) == false)
       return fail(error, "unable to convert the NIfTI header of " + niftiFileName);
 
+    // metadata of the frame
+    image.frameMetadata.append(f < frameMetadata.size() ? frameMetadata[f].toObject() : QJsonObject());
+    MedIOMetadata::transfer(image.frameMetadata.last(), *subHeader);
+
     subHeader->setData_Type(CECATSubHeader::SunShort);
     subHeader->setScale_Factor(scale);
     subHeader->setImage_Min(minStored);
@@ -669,6 +649,7 @@ bool loadNifti(const QString& niftiFileName, EcatImage& image, QString* error)
     subHeader->setFrame_Start_Time(ecatFrameTime(start));
     subHeader->setFrame_Duration(ecatFrameTime(duration));
 
+    // reconstruction zoom written by earlier versions
     if(json.contains("Recon_Zoom"))
       subHeader->setRecon_Zoom(json["Recon_Zoom"].toDouble());
 
@@ -726,6 +707,10 @@ bool savePhilips(EcatImage& image, const QString& philipsFileName, CPhilipsMainH
   bool result = (mainHeader.data() != NULL) &&
                 mainHeader->convertFrom(image.mainHeader, image.subHeaders.first());
 
+  // metadata of the source (Philips values that ECAT7 cannot store, too)
+  if(result)
+    MedIOMetadata::transfer(image.mainMetadata, *mainHeader, MedIOMetadata::frameKeys());
+
   if(result) {
     mainHeader->setFiltyp(type);
 
@@ -748,6 +733,8 @@ bool savePhilips(EcatImage& image, const QString& philipsFileName, CPhilipsMainH
       QScopedPointer<CPhilipsSubHeader> subHeaderPtr(file.createEmptySubHeader());
       CPhilipsSubHeaderImage* subHeader = static_cast<CPhilipsSubHeaderImage*>(subHeaderPtr.data());
       result = (subHeader != NULL) && subHeader->convertFrom(ecatSubHeader, image.mainHeader);
+      if(result && f < image.frameMetadata.size())
+        MedIOMetadata::transfer(image.frameMetadata[f], *subHeader);
 
       for(int k=0; k < nz && result; k++) {
         const qint16* plane = reinterpret_cast<const qint16*>(image.matrices[f].constData()) + k * planeVoxels;
