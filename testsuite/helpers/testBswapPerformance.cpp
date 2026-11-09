@@ -41,6 +41,18 @@
 
 namespace {
 
+// make the compiler assume that the memory behind p is used, so that it
+// cannot drop the work measured (e.g. a swapped array that is deleted)
+static inline void escape(const void* p)
+{
+#if defined(__GNUC__)
+  asm volatile("" : : "g"(p) : "memory");
+#else
+  static const void* volatile sink = NULL;
+  sink = p;
+#endif
+}
+
 // an array of bytes at offset bytes behind a 64 byte aligned address
 struct Buffer
 {
@@ -74,6 +86,7 @@ void run(qint64 size, int offset, Mode mode)
     case NewArray:
       QBENCHMARK {
         T* result = bswap_matrix<T>(src, matrixSize);
+        escape(result);
         delete[] reinterpret_cast<char*>(result);
       }
     break;
@@ -81,6 +94,7 @@ void run(qint64 size, int offset, Mode mode)
     case OtherArray:
       QBENCHMARK {
         bswap_matrix<T>(src, matrixSize, dst);
+        escape(dst);
       }
     break;
 
@@ -89,6 +103,7 @@ void run(qint64 size, int offset, Mode mode)
       int swaps = 0;
       QBENCHMARK {
         bswap_matrix<T>(inPlace, matrixSize, inPlace);
+        escape(inPlace);
         swaps++;
       }
       if(swaps % 2 != 0)
@@ -98,6 +113,7 @@ void run(qint64 size, int offset, Mode mode)
     case Memcpy:
       QBENCHMARK {
         memcpy(target.data, source.data, size);
+        escape(target.data);
       }
     break;
   }
