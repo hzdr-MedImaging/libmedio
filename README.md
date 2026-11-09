@@ -189,6 +189,45 @@ for(int k=0; k < frames.size(); k++) {
 
 The details are documented in `src/CMedIOData.h` and `src/CMedIOMatrix.h`.
 
+### Python
+The Python module `pmedio` (`python/`, pybind11) offers the format
+independent access with numpy arrays:
+```python
+import numpy as np
+import pmedio
+
+with pmedio.open("image.nii.gz") as f:              # ECAT7, NIfTI, Philips, microPET
+    for frame in f.frame_numbers():
+        v = f.read_volume(frame)                      # pmedio.Volume, voxel order of the file
+        values = v.values()                           # physical values, shape (nx, ny, nz)
+        v.affine                                      # 3 x 4, voxel -> LPS (mm)
+        v.reorient("RAS")                             # e.g. the nibabel convention
+        v.frame_start, v.frame_duration               # s
+
+    # a file in another format with the main header of the source
+    with pmedio.create("image.v", like=f) as out:
+        for k, frame in enumerate(f.frame_numbers()):
+            out.write_volume(f.read_volume(frame), k + 1)
+
+v = pmedio.Volume(np.zeros((64, 64, 32), dtype=np.float32), affine=np.eye(3, 4))
+```
+- `pmedio.Volume` corresponds to `CMedIOVolume`: `stored()` and `values()`
+  return copies of the voxels (x running fastest), `scale_factors`,
+  `intercept`, `affine`, `position()`, `voxel_size`, `orientation`,
+  `reorient()` and the frame timing.
+- `pmedio.create(path, like=source)` takes the format from the file name
+  (`.v`, `.nii`/`.nii.gz`/`.hdr`, `.img`/`.syn`) or from `format=pmedio.Format...`,
+  and replaces an existing file only with `overwrite=True`. The volumes
+  written are converted into the representation of the file (e.g. the
+  datatype and scaling of a NIfTI main header).
+- NIfTI files keep the frame timing of the volumes written as JSON header
+  extension (`FrameTimesStart`, `FrameDuration`, as written by
+  `CNIFTIConverter`), see `CMedIOData::writeMatrix()`.
+
+Build: install libmedio into `PREFIX_PATH`, then build `python/` with CMake
+(see `.github/workflows/ci.yml`) or `cd python && pip install -e .`, and run
+`pytest python/tests`.
+
 ## Format independent header attributes
 Every header (`CMedIOHeader`) describes its attributes as JSON object, so that
 applications can use the attributes of any format without the header classes
@@ -235,9 +274,11 @@ mainHeader->updateAttributes(attributes);            // whole object or single k
   weight of the main header: change them before the frames are written.
 
 The details are documented in `src/CMedIOHeader.h`, `src/CMedIOHeaderDictionary.h`
-and `src/CMedIOHeaderMapping.h`. In Python, `pmedio.attributes(fileName)` returns
-the attributes of a file as dict and `pmedio.readVolume(fileName, frame)` a
-frame as numpy array with its affine.
+and `src/CMedIOHeaderMapping.h`. In Python, `pmedio.open(path).attributes()`
+returns the attributes of a file as dict (incl. the frame attributes in
+`Frames`), and `pmedio.dictionary_entry("(0010,1030)")` an entry of the
+dictionary; files created with `pmedio.create(path, like=source)` get the
+attributes of the source.
 
 ## License
 libmedio is licensed under the **Apache License, Version 2.0.**

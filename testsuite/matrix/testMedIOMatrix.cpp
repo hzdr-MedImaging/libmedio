@@ -452,6 +452,10 @@ class TestMedIOMatrix : public QObject
     void niftiToEcatFile();
     void niftiRequantized();
     void niftiErrors();
+    void niftiVolumeTiming_data();
+    void niftiVolumeTiming();
+    void niftiTimingKeepsMetadata();
+    void niftiTimingWithAttributes();
 
     void philipsDatasets_data();
     void philipsDatasets();
@@ -460,6 +464,7 @@ class TestMedIOMatrix : public QObject
     void philipsSliceScales_data();
     void philipsSliceScales();
     void philipsErrors();
+    void philipsVolumeTiming();
 
     void concorde();
 
@@ -1390,6 +1395,276 @@ void TestMedIOMatrix::niftiRequantized()
 
 //---------------------------------------------------------------------------------------------
 
+//---------------------------------------------------------------------------------------------
+// frame timing of volumes written into a NIfTI file: stored as JSON header
+// extension (FrameTimesStart, FrameDuration), checked on the raw bytes of the
+// file and with readVolume()
+
+// JSON metadata of the first header extension in the raw bytes of a NIfTI-1/2 file
+static QJsonObject rawJsonExtension(const QString& path)
+{
+  QFile file(path);
+  if(file.open(QIODevice::ReadOnly) == false)
+    return QJsonObject();
+  const QByteArray b = file.readAll();
+
+  // sizeof_hdr gives the version and the byte order
+  qint32 sizeofHdr = 0;
+  memcpy(&sizeofHdr, b.constData(), 4);
+  const bool swap = (sizeofHdr != 348 && sizeofHdr != 540);
+  const int headerSize = swap ? (qbswap(sizeofHdr) == 348 ? 348 : 540) : sizeofHdr;
+  if(b.size() < headerSize + 12 || b[headerSize] == 0)
+    return QJsonObject();
+
+  qint32 esize = 0, ecode = 0;
+  memcpy(&esize, b.constData() + headerSize + 4, 4);
+  memcpy(&ecode, b.constData() + headerSize + 8, 4);
+  if(swap) {
+    esize = qbswap(esize);
+    ecode = qbswap(ecode);
+  }
+  if(ecode != 6 || esize % 16 != 0 || esize < 8 || headerSize + 4 + esize > b.size())
+    return QJsonObject();
+
+  QByteArray json = b.mid(headerSize + 12, esize - 8);
+  while(json.endsWith('\0'))
+    json.chop(1);
+  return QJsonDocument::fromJson(json).object();
+}
+
+void TestMedIOMatrix::niftiVolumeTiming_data()
+{
+  QTest::addColumn<QString>("name");
+  QTest::addColumn<int>("version");
+
+  QTest::newRow("NIfTI-1 .nii")    << "timing.nii" << 1;
+  QTest::newRow("NIfTI-1 .nii.gz") << "timing.nii.gz" << 1;
+  QTest::newRow("NIfTI-1 pair")    << "timing.hdr" << 1;
+  QTest::newRow("NIfTI-2 .nii")    << "timing2.nii" << 2;
+}
+
+void TestMedIOMatrix::niftiVolumeTiming()
+{
+  QFETCH(QString, name);
+  QFETCH(int, version);
+
+  EcatFile reference;
+  QVERIFY(reference.read(medioTestDataDir() + "/ecat/pet-dynamic.v"));
+  const int frames = reference.frames();
+
+  CECATFile in(medioTestDataDir() + "/ecat/pet-dynamic.v");
+  QVERIFY(in.open(QIODevice::ReadOnly));
+  CMedIOHeader* mh = NULL;
+  QVERIFY(in.readMainHeader(mh, CMedIOData::NIFTI));
+  QScopedPointer<CMedIOHeader> mhGuard(mh);
+
+  // expected timing: the frames of the source, frame 2 with milliseconds
+  QVector<double> start, duration;
+  for(int f=0; f < frames; f++) {
+    start.append(reference.subHeaders[f]->frame_Start_Time() / 1000.0);
+    duration.append(reference.subHeaders[f]->frame_Duration() / 1000.0);
+  }
+  start[1] = 30.125;
+  duration[1] = 59.75;
+
+  const QString path = tmpFile(name);
+  {
+    CNIFTIFile out(path, version == 2 ? CNIFTIMainHeader::NIFTI2 : CNIFTIMainHeader::NIFTI1);
+    if(version == 2) {
+      QVERIFY(createNifti(out, mh));
+    } else {
+      QVERIFY(out.open(QIODevice::WriteOnly));
+      mh->setMedIOData(&out);
+      QVERIFY(out.writeMainHeader(*static_cast<CNIFTIMainHeader*>(mh)));
+      mh->setMedIOData(NULL);
+    }
+
+    // the volumes in another order than in the file
+    const int order[] = { 3, 1, 2 };
+    for(int i=0; i < frames; i++) {
+      CMedIOVolume v;
+      QVERIFY(in.readVolume(v, order[i]));
+      v.setFrameStart(start[order[i] - 1]);
+      v.setFrameDuration(duration[order[i] - 1]);
+      QVERIFY(out.writeVolume(v, order[i]));
+    }
+    out.close();
+  }
+
+  // the JSON extension in the raw bytes of the file (the header file of a pair):
+  // the header attributes of the source and the timing
+  if(name.endsWith(".gz") == false) {
+    const QJsonObject json = rawJsonExtension(path);
+    if(version == 1)
+      QCOMPARE(json["PatientWeight"].toDouble(), mh->attribute("PatientWeight").toDouble());
+    const QJsonArray s = json["FrameTimesStart"].toArray();
+    const QJsonArray d = json["FrameDuration"].toArray();
+    QCOMPARE(s.size(), frames);
+    QCOMPARE(d.size(), frames);
+    for(int f=0; f < frames; f++) {
+      QCOMPARE(s[f].toDouble(), start[f]);
+      QCOMPARE(d[f].toDouble(), duration[f]);
+    }
+  }
+
+  // read back: timing and voxel values of every frame
+  QScopedPointer<CMedIOData> written(CMedIODataFactory::create(path));
+  QVERIFY(written.data() != NULL);
+  QVERIFY(written->open(QIODevice::ReadOnly));
+  for(int f=1; f <= frames; f++) {
+    CMedIOVolume v;
+    QVERIFY(written->readVolume(v, f));
+    QCOMPARE(v.frameStart(), start[f - 1]);
+    QCOMPARE(v.frameDuration(), duration[f - 1]);
+
+    QByteArray* data = NULL;
+    CMedIOHeader* sh = NULL;
+    QVERIFY(written->readMatrix(data, sh, CMedIOData::ECAT, f));
+    QScopedPointer<QByteArray> dataGuard(data);
+    QScopedPointer<CMedIOHeader> shGuard(sh);
+    const CECAT7SubHeaderImage* e = static_cast<const CECAT7SubHeaderImage*>(sh);
+    QCOMPARE(static_cast<double>(e->frame_Start_Time()), std::floor(start[f - 1] * 1000.0 + 0.5));
+    double largest = 0.0;
+    for(qint64 i=0; i < reference.voxels(); i++)
+      largest = qMax(largest, std::fabs(reference.value(f - 1, i)));
+    const double tolerance = 1e-6 * largest;
+    for(qint64 i=0; i < reference.voxels(); i += 97)
+      QVERIFY(approx(ecatValue(data->constData(), i, e->data_Type()) * e->scale_Factor(), reference.value(f - 1, i), 1e-6, tolerance));
+  }
+}
+
+// other JSON metadata of the file is kept; files with other extensions or
+// without room for the timing get the voxel data, but not the timing
+void TestMedIOMatrix::niftiTimingKeepsMetadata()
+{
+  CECATFile in(medioTestDataDir() + "/ecat/pet-static.v");
+  QVERIFY(in.open(QIODevice::ReadOnly));
+  CMedIOHeader* mh = NULL;
+  QVERIFY(in.readMainHeader(mh, CMedIOData::NIFTI));
+  QScopedPointer<CMedIOHeader> mhGuard(mh);
+  CNIFTI1MainHeader* h = static_cast<CNIFTI1MainHeader*>(mh);
+
+  // a header without header attributes (they are written as JSON extension
+  // by writeMainHeader() and would need more room than given below)
+  QJsonObject noAttributes;
+  foreach(const QString& key, h->attributes().keys()) {
+    if(key != "NIfTI")
+      noAttributes[key] = QJsonValue(QJsonValue::Null);
+  }
+  QVERIFY(h->updateAttributes(noAttributes));
+
+  CMedIOVolume v;
+  QVERIFY(in.readVolume(v, 1));
+  v.setFrameStart(12.5);
+  v.setFrameDuration(1800.0);
+
+  // a JSON extension written before, with room behind it
+  QJsonObject metadata;
+  metadata["Patient_Name"] = QString("anonymous");
+  const QString path = tmpFile("timing-metadata.nii");
+  {
+    CNIFTIFile out(path, CNIFTIMainHeader::NIFTI1);
+    QVERIFY(out.open(QIODevice::WriteOnly));
+    h->setVox_Offset(352 + 1024);
+    h->setMedIOData(&out);
+    QVERIFY(out.writeMainHeader(*h));
+    QVERIFY(h->writeHeaderExtension(out, metadata));
+    h->setMedIOData(NULL);
+    QVERIFY(out.writeVolume(v, 1));
+    out.close();
+  }
+  const QJsonObject json = rawJsonExtension(path);
+  QCOMPARE(json["Patient_Name"].toString(), QString("anonymous"));
+  QCOMPARE(json["FrameTimesStart"].toArray().size(), 1);
+  QCOMPARE(json["FrameTimesStart"].toArray()[0].toDouble(), 12.5);
+  QCOMPARE(json["FrameDuration"].toArray()[0].toDouble(), 1800.0);
+  {
+    // vox_offset was kept, the voxel data follows the room given
+    QScopedPointer<CMedIOData> written(CMedIODataFactory::create(path));
+    QVERIFY(written->open(QIODevice::ReadOnly));
+    CMedIOHeader* wh = NULL;
+    QVERIFY(written->readMainHeader(wh));
+    QScopedPointer<CMedIOHeader> whGuard(wh);
+    QCOMPARE(static_cast<double>(static_cast<CNIFTI1MainHeader*>(wh)->vox_Offset()), 352.0 + 1024.0);
+    CMedIOVolume w;
+    QVERIFY(written->readVolume(w, 1));
+    QCOMPARE(w.frameStart(), 12.5);
+    QVERIFY(w.reorient("LPI"));  // the voxel order of the source
+    QVERIFY(w.data() == v.data());
+  }
+
+  // voxel data written before: vox_offset cannot be moved any more, only the voxels are written
+  const QString full = tmpFile("timing-full.nii");
+  {
+    CNIFTIFile out(full, CNIFTIMainHeader::NIFTI1);
+    QVERIFY(out.open(QIODevice::WriteOnly));
+    h->setVox_Offset(0.0f);
+    h->setMedIOData(&out);
+    QVERIFY(out.writeMainHeader(*h));
+    h->setMedIOData(NULL);
+    QVERIFY(out.writeMatrix(v.data(), 1));   // native write of the volume
+    QVERIFY(out.writeVolume(v, 1));
+    out.close();
+  }
+  QVERIFY(rawJsonExtension(full).isEmpty());
+  QScopedPointer<CMedIOData> written(CMedIODataFactory::create(full));
+  QVERIFY(written->open(QIODevice::ReadOnly));
+  CMedIOVolume w;
+  QVERIFY(written->readVolume(w, 1));
+  QVERIFY(w.reorient("LPI"));
+  QVERIFY(w.data() == v.data());
+}
+
+//---------------------------------------------------------------------------------------------
+// NIfTI file with the header attributes of a Philips file (a large JSON
+// extension written with the main header): the room made for the timing
+// holds the attributes and the timing of all volumes in its widest form, so
+// that later volumes with longer numbers keep their timing
+
+void TestMedIOMatrix::niftiTimingWithAttributes()
+{
+  CPhilipsFile in(medioTestDataDir() + "/philips/pet-dynamic.img");
+  QVERIFY(in.open(QIODevice::ReadOnly));
+  const QList<short> frames = in.frameNumbers();
+  QCOMPARE(frames.size(), 3);
+  CMedIOHeader* mh = NULL;
+  QVERIFY(in.readMainHeader(mh, CMedIOData::NIFTI));
+  QScopedPointer<CMedIOHeader> mhGuard(mh);
+  QVERIFY(mh->attributes()["Philips"].toObject().size() > 100);
+
+  // the first volume with short numbers, the others with the longest ones
+  const double start[3] = { 0.0, 12345.678901234567, -98765.43210987654 };
+  const double duration[3] = { 1.0, 23456.789012345678, 3.141592653589793 };
+
+  const QString path = tmpFile("timing-attributes.nii");
+  {
+    CNIFTIFile out(path, CNIFTIMainHeader::NIFTI1);
+    QVERIFY(out.open(QIODevice::WriteOnly));
+    mh->setMedIOData(&out);
+    QVERIFY(out.writeMainHeader(*static_cast<CNIFTIMainHeader*>(mh)));
+    mh->setMedIOData(NULL);
+    for(int k=0; k < 3; k++) {
+      CMedIOVolume v;
+      QVERIFY(in.readVolume(v, frames[k]));
+      v.setFrameStart(start[k]);
+      v.setFrameDuration(duration[k]);
+      QVERIFY(out.writeVolume(v, k + 1));
+    }
+    out.close();
+  }
+
+  const QJsonObject json = rawJsonExtension(path);
+  QCOMPARE(json["Philips"].toObject(), mh->attributes()["Philips"].toObject());
+  const QJsonArray s = json["FrameTimesStart"].toArray();
+  const QJsonArray d = json["FrameDuration"].toArray();
+  QCOMPARE(s.size(), 3);
+  QCOMPARE(d.size(), 3);
+  for(int k=0; k < 3; k++) {
+    QCOMPARE(s[k].toDouble(), start[k]);
+    QCOMPARE(d[k].toDouble(), duration[k]);
+  }
+}
+
 void TestMedIOMatrix::niftiErrors()
 {
   Synthetic s;
@@ -1853,6 +2128,58 @@ void TestMedIOMatrix::philipsSliceScales()
 }
 
 //---------------------------------------------------------------------------------------------
+
+//---------------------------------------------------------------------------------------------
+// frame timing of volumes written into a Philips file (writeVolume()): the
+// frame start is relative to the acquisition start of the Philips main header
+// (the ECAT7 representation of a volume has no scan start time)
+
+void TestMedIOMatrix::philipsVolumeTiming()
+{
+  EcatFile reference;
+  QVERIFY(reference.read(medioTestDataDir() + "/ecat/pet-dynamic.v"));
+
+  QScopedPointer<CMedIOData> in(CMedIODataFactory::create(medioTestDataDir() + "/ecat/pet-dynamic.v"));
+  QVERIFY(in->open(QIODevice::ReadOnly));
+  CMedIOHeader* mh = NULL;
+  QVERIFY(in->readMainHeader(mh, CMedIOData::Philips));
+  QScopedPointer<CMedIOHeader> mhGuard(mh);
+  QVERIFY(static_cast<CPhilipsMainHeader*>(mh)->acq_date_time() > 0);
+
+  // frames of the source and a frame with milliseconds (start 3.25 s, duration 2.5 s)
+  const QString path = tmpFile("volume-timing.img");
+  {
+    CPhilipsFile out(path, CPhilipsMainHeader::Image);
+    QVERIFY(out.open(QIODevice::WriteOnly));
+    mh->setMedIOData(&out);
+    QVERIFY(out.writeMainHeader(*static_cast<CPhilipsMainHeader*>(mh)));
+    mh->setMedIOData(NULL);
+
+    for(int f=1; f <= reference.frames(); f++) {
+      CMedIOVolume v;
+      QVERIFY(in->readVolume(v, f));
+      QVERIFY(out.writeVolume(v, f));
+    }
+
+    CMedIOVolume v;
+    QVERIFY(in->readVolume(v, 1));
+    v.setFrameStart(3.25);
+    v.setFrameDuration(2.5);
+    QVERIFY(out.writeVolume(v, reference.frames() + 1));
+    out.close();
+  }
+
+  CPhilipsFile written(path);
+  QVERIFY(written.open(QIODevice::ReadOnly));
+  for(int f=1; f <= reference.frames() + 1; f++) {
+    CMedIOVolume v;
+    QVERIFY(written.readVolume(v, f));
+    const double start = (f <= reference.frames()) ? reference.subHeaders[f-1]->frame_Start_Time() / 1000.0 : 3.25;
+    const double duration = (f <= reference.frames()) ? reference.subHeaders[f-1]->frame_Duration() / 1000.0 : 2.5;
+    QVERIFY2(approx(v.frameStart(), start, 0.0, 1e-6), qPrintable(QString("frame %1: start %2 s instead of %3 s").arg(f).arg(v.frameStart()).arg(start)));
+    QVERIFY2(approx(v.frameDuration(), duration, 0.0, 1e-6), qPrintable(QString("frame %1: duration %2 s instead of %3 s").arg(f).arg(v.frameDuration()).arg(duration)));
+  }
+}
 
 void TestMedIOMatrix::philipsErrors()
 {

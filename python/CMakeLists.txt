@@ -55,7 +55,8 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}
 )
 
 pybind11_add_module(pmedio src/pmedio.cpp
-                           src/medio.cpp)
+                           src/medio.cpp
+                           src/volume.cpp)
 
 # define link libraries dependencies
 target_link_libraries(pmedio PRIVATE
@@ -72,6 +73,9 @@ target_compile_definitions(pmedio
 
 # Set some better optimization options
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=generic -std=c++11 -Wall -Wextra -Werror")
-set(CMAKE_CXX_FLAGS_RELEASE, "${CMAKE_CXX_FLAGS_RELEASE} -O3 -fomit-frame-pointer")
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO, "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -O3 -g -fomit-frame-pointer")
-set(CMAKE_CXX_FLAGS_DEBUG, "${CMAKE_CXX_FLAGS_RELEASE} -O0")
+# Append to CMake's per-configuration defaults so that Release keeps -O3 -DNDEBUG,
+# RelWithDebInfo keeps -O2 -g -DNDEBUG and Debug keeps -g (plus -DDEBUG from
+# FindRTDEBUG, where used).
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fomit-frame-pointer")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -fomit-frame-pointer")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")

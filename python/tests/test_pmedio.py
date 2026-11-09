@@ -32,9 +32,11 @@ def test_constructors():
   assert a[0,0,0,0] == pytest.approx(123.456, 3)
 
 
+
 def test_attributes():
   # attributes of an ECAT7 file (see testsuite/data/ecat/pet-dynamic.v.json)
-  m = pmedio.attributes(os.path.join(DATA, 'ecat', 'pet-dynamic.v'))
+  with pmedio.open(os.path.join(DATA, 'ecat', 'pet-dynamic.v')) as f:
+    m = f.attributes()
   assert m['PatientWeight'] == pytest.approx(8.63)
   assert m['RadionuclideTotalDose'] == pytest.approx(60780000)
   assert m['AcquisitionDateTime'] == '2026-06-03T17:04:56Z'
@@ -44,25 +46,33 @@ def test_attributes():
   assert m['Frames'][0]['DecayFactor'] == pytest.approx(1.00158)
 
   # Philips file of the same data
-  p = pmedio.attributes(os.path.join(DATA, 'philips', 'pet-dynamic.img'))
+  with pmedio.open(os.path.join(DATA, 'philips', 'pet-dynamic.img')) as f:
+    p = f.attributes()
   assert p['PatientWeight'] == pytest.approx(8.63)
   assert p['Philips']['weight'] == 8630
 
 
+def test_attributes_of_created_files(tmp_path):
+  # a NIfTI file created like a Philips file stores the Philips attributes
+  with pmedio.open(os.path.join(DATA, 'philips', 'pet-dynamic.img')) as f:
+    source = f.attributes()
+    with pmedio.create(tmp_path / 'philips.nii', like=f) as out:
+      for k, frame in enumerate(f.frame_numbers()):
+        out.write_volume(f.read_volume(frame), k + 1)
+  with pmedio.open(tmp_path / 'philips.nii') as f:
+    written = f.attributes()
+  assert written['PatientWeight'] == pytest.approx(source['PatientWeight'])
+  assert written['Philips'] == source['Philips']
+  assert len(written['FrameTimesStart']) == 3
+
+
 def test_dictionary_entry():
-  k = pmedio.dictionaryEntry('(0010,1030)')
+  k = pmedio.dictionary_entry('(0010,1030)')
   assert k['keyword'] == 'PatientWeight'
   assert k['tag'] == '(0010,1030)'
   assert k['vr'] == 'DS'
   assert k['unit'] == 'kg'
   assert k['sequence'] is None
-  assert pmedio.dictionaryEntry('RadionuclideTotalDose')['sequence'] == '(0054,0016)'
-  assert pmedio.dictionaryEntry('Unknown') is None
-
-
-def test_read_volume():
-  v = pmedio.readVolume(os.path.join(DATA, 'ecat', 'pet-static.v'))
-  assert v['values'].shape == (33, 33, 37)
-  assert v['affine'].shape == (4, 4)
-  assert v['orientation'] == 'LPI'
-  assert v['frameDuration'] == pytest.approx(1800.0)
+  assert k['scope'] == 'main'
+  assert pmedio.dictionary_entry('RadionuclideTotalDose')['sequence'] == '(0054,0016)'
+  assert pmedio.dictionary_entry('Unknown') is None

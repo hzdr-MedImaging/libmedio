@@ -134,6 +134,18 @@ bool philipsSubHeader(const CMedIOFrame& f, const CMedIOVolume& v, const CPhilip
   subHeader->setXdim(v.dimension(0));
   subHeader->setYdim(v.dimension(1));
 
+  // frame timing relative to the acquisition start of the Philips main header,
+  // as it is read back (see CECAT7SubHeaderImage::convertFrom()). The ECAT7
+  // main header of a frame written as volume has no scan start time.
+  const qint64 startMs = s.frame_Start_Time();
+  const qint64 endMs = startMs + s.frame_Duration();
+  subHeader->setStart_date_time(mainHeader->acq_date_time() + static_cast<time_t>(startMs / 1000));
+  subHeader->setStart_date_time_msec(static_cast<unsigned short>(startMs % 1000));
+  subHeader->setEnd_date_time(mainHeader->acq_date_time() + static_cast<time_t>(endMs / 1000));
+  subHeader->setEnd_date_time_msec(static_cast<unsigned short>(endMs % 1000));
+  subHeader->setFrame_ref_date_time(mainHeader->acq_date_time() + static_cast<time_t>(startMs / 1000));
+  subHeader->setFrame_ref_date_time_msec(static_cast<unsigned short>(startMs % 1000));
+
   // attributes of the source frame (all slices of the frame)
   MedIOHeaderMapping::transfer(f.frameAttributes, *subHeader);
 
