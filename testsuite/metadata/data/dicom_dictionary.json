@@ -1,0 +1,237 @@
+{
+  "generator": "pydicom 3.0.2",
+  "keys": {
+    "PatientName": {
+      "tag": "(0010,0010)",
+      "vr": "PN",
+      "vm": "1"
+    },
+    "PatientID": {
+      "tag": "(0010,0020)",
+      "vr": "LO",
+      "vm": "1"
+    },
+    "PatientBirthDate": {
+      "tag": "(0010,0030)",
+      "vr": "DA",
+      "vm": "1"
+    },
+    "PatientSex": {
+      "tag": "(0010,0040)",
+      "vr": "CS",
+      "vm": "1"
+    },
+    "PatientAge": {
+      "tag": "(0010,1010)",
+      "vr": "AS",
+      "vm": "1"
+    },
+    "PatientSize": {
+      "tag": "(0010,1020)",
+      "vr": "DS",
+      "vm": "1"
+    },
+    "PatientWeight": {
+      "tag": "(0010,1030)",
+      "vr": "DS",
+      "vm": "1"
+    },
+    "PatientPosition": {
+      "tag": "(0018,5100)",
+      "vr": "CS",
+      "vm": "1"
+    },
+    "StudyInstanceUID": {
+      "tag": "(0020,000D)",
+      "vr": "UI",
+      "vm": "1"
+    },
+    "SeriesInstanceUID": {
+      "tag": "(0020,000E)",
+      "vr": "UI",
+      "vm": "1"
+    },
+    "FrameOfReferenceUID": {
+      "tag": "(0020,0052)",
+      "vr": "UI",
+      "vm": "1"
+    },
+    "StudyID": {
+      "tag": "(0020,0010)",
+      "vr": "SH",
+      "vm": "1"
+    },
+    "SeriesNumber": {
+      "tag": "(0020,0011)",
+      "vr": "IS",
+      "vm": "1"
+    },
+    "AccessionNumber": {
+      "tag": "(0008,0050)",
+      "vr": "SH",
+      "vm": "1"
+    },
+    "AcquisitionDateTime": {
+      "tag": "(0008,002A)",
+      "vr": "DT",
+      "vm": "1"
+    },
+    "StudyDescription": {
+      "tag": "(0008,1030)",
+      "vr": "LO",
+      "vm": "1"
+    },
+    "SeriesDescription": {
+      "tag": "(0008,103E)",
+      "vr": "LO",
+      "vm": "1"
+    },
+    "InstitutionName": {
+      "tag": "(0008,0080)",
+      "vr": "LO",
+      "vm": "1"
+    },
+    "ReferringPhysicianName": {
+      "tag": "(0008,0090)",
+      "vr": "PN",
+      "vm": "1"
+    },
+    "RequestingPhysician": {
+      "tag": "(0032,1032)",
+      "vr": "PN",
+      "vm": "1"
+    },
+    "OperatorsName": {
+      "tag": "(0008,1070)",
+      "vr": "PN",
+      "vm": "1-n"
+    },
+    "Manufacturer": {
+      "tag": "(0008,0070)",
+      "vr": "LO",
+      "vm": "1"
+    },
+    "ManufacturerModelName": {
+      "tag": "(0008,1090)",
+      "vr": "LO",
+      "vm": "1"
+    },
+    "DeviceSerialNumber": {
+      "tag": "(0018,1000)",
+      "vr": "LO",
+      "vm": "1"
+    },
+    "SoftwareVersions": {
+      "tag": "(0018,1020)",
+      "vr": "LO",
+      "vm": "1-n"
+    },
+    "Radiopharmaceutical": {
+      "tag": "(0018,0031)",
+      "vr": "LO",
+      "vm": "1"
+    },
+    "RadiopharmaceuticalRoute": {
+      "tag": "(0018,1070)",
+      "vr": "LO",
+      "vm": "1"
+    },
+    "RadiopharmaceuticalStartDateTime": {
+      "tag": "(0018,1078)",
+      "vr": "DT",
+      "vm": "1"
+    },
+    "RadionuclideTotalDose": {
+      "tag": "(0018,1074)",
+      "vr": "DS",
+      "vm": "1"
+    },
+    "RadionuclideHalfLife": {
+      "tag": "(0018,1075)",
+      "vr": "DS",
+      "vm": "1"
+    },
+    "RadionuclidePositronFraction": {
+      "tag": "(0018,1076)",
+      "vr": "DS",
+      "vm": "1"
+    },
+    "RadionuclideCodeSequence": {
+      "tag": "(0054,0300)",
+      "vr": "SQ",
+      "vm": "1"
+    },
+    "RadiopharmaceuticalCodeSequence": {
+      "tag": "(0054,0304)",
+      "vr": "SQ",
+      "vm": "1"
+    },
+    "EnergyWindowLowerLimit": {
+      "tag": "(0054,0014)",
+      "vr": "DS",
+      "vm": "1"
+    },
+    "EnergyWindowUpperLimit": {
+      "tag": "(0054,0015)",
+      "vr": "DS",
+      "vm": "1"
+    },
+    "Units": {
+      "tag": "(0054,1001)",
+      "vr": "CS",
+      "vm": "1"
+    },
+    "DecayCorrection": {
+      "tag": "(0054,1102)",
+      "vr": "CS",
+      "vm": "1"
+    },
+    "CorrectedImage": {
+      "tag": "(0028,0051)",
+      "vr": "CS",
+      "vm": "1-n"
+    },
+    "ReconstructionMethod": {
+      "tag": "(0054,1103)",
+      "vr": "LO",
+      "vm": "1"
+    },
+    "AttenuationCorrectionMethod": {
+      "tag": "(0054,1101)",
+      "vr": "LO",
+      "vm": "1"
+    },
+    "ScatterCorrectionMethod": {
+      "tag": "(0054,1105)",
+      "vr": "LO",
+      "vm": "1"
+    },
+    "ActualFrameDuration": {
+      "tag": "(0018,1242)",
+      "vr": "IS",
+      "vm": "1"
+    },
+    "DecayFactor": {
+      "tag": "(0054,1321)",
+      "vr": "DS",
+      "vm": "1"
+    },
+    "DeadTimeFactor": {
+      "tag": "(0054,1324)",
+      "vr": "DS",
+      "vm": "1"
+    }
+  },
+  "sequences": {
+    "RadiopharmaceuticalInformationSequence": {
+      "tag": "(0054,0016)",
+      "vr": "SQ",
+      "vm": "1"
+    },
+    "EnergyWindowRangeSequence": {
+      "tag": "(0054,0013)",
+      "vr": "SQ",
+      "vm": "1"
+    }
+  }
+}

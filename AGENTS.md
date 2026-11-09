@@ -40,6 +40,7 @@ testsuite/                 # QtTest/CTest test suite
   data/                    # test datasets in several formats + expected values (see data/README.md)
   common/MedIOTestData.h   # enumerates the test data for data-driven tests
   ecat/, nifti/, philips/  # tests per format; nifti/data holds synthetic NIfTI fixtures
+  matrix/, metadata/       # format independent matrix access and metadata (CMedIOVolume, CMedIOMetadata)
 python/                    # Python bindings and their tests
 docs/                      # project documentation (e.g. the 2026 summer student report)
 .github/workflows/ci.yml   # CI: build/test matrix, install + Python bindings, test data check
@@ -101,6 +102,7 @@ Run the checks that match the files you touched:
 | `python/` or API used by it | build the bindings (`cmake -S python ...`, see `ci.yml`) and run `pytest python/tests`; they are compiled with `-Werror` |
 | `testsuite/data/` | `python3 testsuite/data/tools/make_expected.py --check` and the `testdata_layout` test |
 | `testsuite/nifti/data/` | regenerate with `generate_fixtures.py` into a temporary directory and compare byte by byte |
+| `testsuite/metadata/data/` | regenerate with `generate_dictionary.py` into a temporary directory and compare byte by byte |
 | Time or date handling | run the tests with several time zones, e.g. `TZ=UTC`, `TZ=Europe/Berlin`, `TZ=Asia/Tokyo` |
 
 The CI (`.github/workflows/ci.yml`) runs all of these on Ubuntu with GCC and
@@ -114,7 +116,8 @@ because librtdebug or COREG were not available).
 - **Do not hand-edit generated files:** the expected values `testsuite/data/**/<file>.json`
   are generated with `testsuite/data/tools/make_expected.py` (except those marked
   `"generator": "manual"`), the NIfTI fixtures in `testsuite/nifti/data/` with
-  `generate_fixtures.py`. Change the script or the data and regenerate.
+  `generate_fixtures.py`, `testsuite/metadata/data/dicom_dictionary.json` with
+  `generate_dictionary.py`. Change the script or the data and regenerate.
 - **Expected values come from independent implementations** (nibabel, numpy,
   pydicom, documented manual values), never from libmedio itself, so libmedio
   is not validated against its own output.
