@@ -33,6 +33,9 @@ libmedio targets PET-centric workflows and currently focuses on:
   in the matrix representation of another format (voxel order, data type,
   scaling, header) and matrices of any format can be written into files of
   another format (`CMedIOData::readMatrix()`/`writeMatrix()`, `CMedIOVolume`)
+- Format independent metadata: every header describes its metadata as JSON
+  object with DICOM keywords as keys (`CMedIOHeader::metadata()`,
+  `CMedIOMetadata`), carried along by all conversions between the formats
 - Cross-platform build with CMake; Qt5 backend
 
 ## Requirements
@@ -89,9 +92,11 @@ nifti2philips input.nii[.gz]|input.hdr[.gz]|input.img[.gz] [output.img|output.sy
 - ECAT7 voxel (i, j, k) is written as NIfTI voxel (i, j, nz-1-k) with qform
   and sform describing its position. NIfTI files of any orientation are
   reordered into the ECAT7 voxel order.
-- The main header values (incl. patient data) and the frame timing are
+- The metadata of the source (see [Format independent metadata](#format-independent-metadata),
+  incl. patient data and all native header fields) and the frame timing are
   stored as JSON header extension (`--sidecar`: also as `<output>.json`) and
-  restored by `nifti2ecat`/`nifti2philips`.
+  restored by `nifti2ecat`/`nifti2philips`. JSON written by earlier versions
+  (ECAT7 fields at the top level) is still read.
 - Philips files are converted via the ECAT7 representation of libmedio; the
   x/y image position of Philips slices is not used.
 
@@ -183,6 +188,56 @@ for(int k=0; k < frames.size(); k++) {
 - Only image data is supported (no sinograms, normalizations, list mode).
 
 The details are documented in `src/CMedIOData.h` and `src/CMedIOMatrix.h`.
+
+## Format independent metadata
+Every header (`CMedIOHeader`) describes its metadata as JSON object, so that
+applications can use the metadata of any format without the header classes
+of the formats:
+```json
+{
+  "PatientWeight": 8.63,
+  "RadionuclideTotalDose": 60780000,
+  "AcquisitionDateTime": "2026-06-03T17:04:56Z",
+  "Units": "BQML",
+  "ECAT7": { "Patient_Weight": 8.63, "Dosage": 60780000, "Data_Units": "Bq/cc" }
+}
+```
+```cpp
+CMedIOHeader* mainHeader = NULL;
+file->readMainHeader(mainHeader);                     // any format
+QJsonObject metadata = mainHeader->metadata();
+double weight = mainHeader->metadataValue("PatientWeight").toDouble();      // keyword
+QJsonValue dose = mainHeader->metadataValue("(0018,1074)");                 // or DICOM tag
+mainHeader->setMetadataValue("PatientName", QString("Doe^Jane"));
+metadata["PatientWeight"] = 72.5;
+mainHeader->updateMetadata(metadata);                 // whole object or single keys
+```
+- The keys are DICOM keywords, e.g. `PatientWeight` for the DICOM attribute
+  (0010,1030), with the meaning and unit of the DICOM attribute (kg, Bq, s,
+  ms, ...) and a JSON value: numbers, ISO 8601 dates and times (`Z` for UTC,
+  without time zone if the format has none), arrays for multiple values,
+  objects for code sequences. `CMedIOMetadata` lists the keys with their
+  DICOM tag (as number and as string `"(0010,1030)"`), VR, unit and the
+  sequence holding them.
+- The values are converted from and into the units of the formats (e.g.
+  Philips weight in g, ECAT7 height in cm, microPET dose in mCi or MBq).
+- The native fields of the format are in a section named after the format
+  (`ECAT7`, `Philips`, `microPET`, `NIfTI`), without the fields describing the
+  size, data type, scaling, geometry or layout of the image data.
+- Values a format cannot store (keys of other formats, unknown keys, values
+  it cannot represent) are kept in the header object and carried along by
+  the conversions between the formats (`readMainHeader(header, format)`,
+  `readMatrix(..., format)`, `writeMatrix()`, `CNIFTIConverter`). NIfTI files
+  store all metadata in their JSON header extension, incl. the frame
+  metadata of all frames (`Frames`) and BIDS keys for other tools.
+- The other formats store only their own fields. The physical values of
+  Philips slices scaled to SUV depend on the dose, times, half life and
+  weight of the main header: change them before the frames are written.
+
+The details are documented in `src/CMedIOHeader.h`, `src/CMedIOMetadata.h`
+and `src/CMedIOMetadataMap.h`. In Python, `pmedio.metadata(fileName)` returns
+the metadata of a file as dict and `pmedio.readVolume(fileName, frame)` a
+frame as numpy array with its affine.
 
 ## License
 libmedio is licensed under the **Apache License, Version 2.0.**
