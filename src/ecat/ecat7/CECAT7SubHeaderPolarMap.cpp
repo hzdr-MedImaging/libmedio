@@ -101,8 +101,9 @@ CECAT7SubHeaderPolarMap::CECAT7SubHeaderPolarMap(const CECAT7SubHeaderPolarMap& 
 
 CECAT7SubHeaderPolarMap& CECAT7SubHeaderPolarMap::operator=(const CECAT7SubHeaderPolarMap& src)
 {
-  copyMetadata(src);
   ENTER();
+
+  copyMetadata(src);
 
   if(m_pData != src.m_pData)
   {

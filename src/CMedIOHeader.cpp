@@ -100,8 +100,9 @@ CMedIOHeader::~CMedIOHeader()
 
 CMedIOHeader& CMedIOHeader::operator=(const CMedIOHeader& src)
 {
-  copyMetadata(src);
   ENTER();
+
+  copyMetadata(src);
 
   convertFrom(&src);
 
