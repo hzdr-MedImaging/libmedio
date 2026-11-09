@@ -155,6 +155,16 @@ class CMedIOData : public QFile {
     bool writeMatrix(const char* matrixData, unsigned int size, const CMedIOHeader& subHeader,
                      short frame=-1, const CMedIOHeader* mainHeader=NULL);
 
+    //! @brief write a frame given in the representation of the format @p format
+    //!
+    //! Same as writeMatrix() without a format, but fails without writing if
+    //! @p subHeader does not describe a matrix of @p format. Counterpart of
+    //! readMatrix(matrixData, subHeader, format, frame).
+    bool writeMatrix(const QByteArray& matrixData, const CMedIOHeader& subHeader,
+                     CMedIOData::Format format, short frame=-1, const CMedIOHeader* mainHeader=NULL);
+    bool writeMatrix(const char* matrixData, unsigned int size, const CMedIOHeader& subHeader,
+                     CMedIOData::Format format, short frame=-1, const CMedIOHeader* mainHeader=NULL);
+
     //! @brief frame as format independent volume in the voxel order of the file
     bool readVolume(CMedIOVolume& volume, short frame=-1);
 

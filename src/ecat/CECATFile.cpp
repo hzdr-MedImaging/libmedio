@@ -1005,6 +1005,24 @@ bool CECATFile::writeMatrix(const char* matrixData, unsigned int size, CECATSubH
   return result;
 }
 
+bool CECATFile::writeMatrix(const QByteArray& matrixData, const CECATSubHeader& subHeader,
+                            CMedIOData::Format format, short frame, const CMedIOHeader* mainHeader)
+{
+  ENTER();
+  bool result = CMedIOData::writeMatrix(matrixData, static_cast<const CMedIOHeader&>(subHeader), format, frame, mainHeader);
+  RETURN(result);
+  return result;
+}
+
+bool CECATFile::writeMatrix(const char* matrixData, unsigned int size, const CECATSubHeader& subHeader,
+                            CMedIOData::Format format, short frame, const CMedIOHeader* mainHeader)
+{
+  ENTER();
+  bool result = CMedIOData::writeMatrix(matrixData, size, static_cast<const CMedIOHeader&>(subHeader), format, frame, mainHeader);
+  RETURN(result);
+  return result;
+}
+
 CECATMainHeader* CECATFile::createEmptyMainHeader(void)
 {
   ENTER();

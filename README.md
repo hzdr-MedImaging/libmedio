@@ -164,6 +164,10 @@ for(short frame=1; frame <= frames; frame++) {
 - Without a format, `readMainHeader(header)` and `readMatrix(data, header, frame)`
   return the main header and frames in the format of the file itself, e.g.
   for a file created by `CMedIODataFactory` whose format is not known.
+- `writeMatrix()` takes the format of the matrix from the type of its sub
+  header. Like `readMatrix()`, it can also be given explicitly:
+  `writeMatrix(data, header, CMedIOData::ECAT, frame, mainHeader)` fails
+  without writing if the sub header does not belong to that format.
 - `readVolume()`/`writeVolume()` exchange frames as `CMedIOVolume`: voxel
   data, scaling, the position of every voxel (DICOM patient coordinates)
   and the frame timing; `CMedIOVolume::reorient()` reorders the voxels.

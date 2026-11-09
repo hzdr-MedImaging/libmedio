@@ -183,6 +183,33 @@ bool CMedIOData::writeMatrix(const char* matrixData, unsigned int size, const CM
   return result;
 }
 
+bool CMedIOData::writeMatrix(const QByteArray& matrixData, const CMedIOHeader& subHeader,
+                             CMedIOData::Format format, short frame, const CMedIOHeader* mainHeader)
+{
+  ENTER();
+  bool result = false;
+
+  if(format == CMedIOData::Unknown || MedIOMatrix::headerDataFormat(subHeader) != format) {
+    E("the sub header does not describe a matrix of data format %d", static_cast<int>(format));
+    m_iErrStatus = MERR_Unspecified;
+  } else {
+    result = writeMatrix(matrixData, subHeader, frame, mainHeader);
+  }
+
+  RETURN(result);
+  return result;
+}
+
+bool CMedIOData::writeMatrix(const char* matrixData, unsigned int size, const CMedIOHeader& subHeader,
+                             CMedIOData::Format format, short frame, const CMedIOHeader* mainHeader)
+{
+  ENTER();
+  bool result = (matrixData != NULL) &&
+                writeMatrix(QByteArray::fromRawData(matrixData, size), subHeader, format, frame, mainHeader);
+  RETURN(result);
+  return result;
+}
+
 bool CMedIOData::readVolume(CMedIOVolume& volume, short frame)
 {
   ENTER();

@@ -106,6 +106,13 @@ class CPhilipsFile : public CMedIOData
     bool writeMatrix(const char* matrixData, unsigned int size, CPhilipsSubHeader::Data_Type type,
                      short frame=-1, short slice=-1, short tilt=-1);
 
+    // same as CMedIOData::writeMatrix() with a format; declared here so that
+    // calls with a CPhilipsSubHeader are not ambiguous with the methods above
+    bool writeMatrix(const QByteArray& matrixData, const CPhilipsSubHeader& subHeader,
+                     CMedIOData::Format format, short frame=-1, const CMedIOHeader* mainHeader=NULL);
+    bool writeMatrix(const char* matrixData, unsigned int size, const CPhilipsSubHeader& subHeader,
+                     CMedIOData::Format format, short frame=-1, const CMedIOHeader* mainHeader=NULL);
+
     // more advanced methods to access the directory list of a philips file
     CPhilipsDirectory* directory() const;
 

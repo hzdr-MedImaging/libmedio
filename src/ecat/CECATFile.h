@@ -120,6 +120,13 @@ class CECATFile : public CMedIOData
     bool writeMatrix(const char* matrixData, unsigned int size, CECATSubHeader::Data_Type type,
                      short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);
 
+    // same as CMedIOData::writeMatrix() with a format; declared here so that
+    // calls with a CECATSubHeader are not ambiguous with the methods above
+    bool writeMatrix(const QByteArray& matrixData, const CECATSubHeader& subHeader,
+                     CMedIOData::Format format, short frame=-1, const CMedIOHeader* mainHeader=NULL);
+    bool writeMatrix(const char* matrixData, unsigned int size, const CECATSubHeader& subHeader,
+                     CMedIOData::Format format, short frame=-1, const CMedIOHeader* mainHeader=NULL);
+
     // methods to generate some objects just for convienence
     CECATMainHeader* createEmptyMainHeader(void);
     CECATSubHeader*  createEmptySubHeader(void);

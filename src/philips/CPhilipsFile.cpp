@@ -928,6 +928,24 @@ bool CPhilipsFile::writeMatrix(const char* matrixData, unsigned int size, CPhili
   return result;
 }
 
+bool CPhilipsFile::writeMatrix(const QByteArray& matrixData, const CPhilipsSubHeader& subHeader,
+                               CMedIOData::Format format, short frame, const CMedIOHeader* mainHeader)
+{
+  ENTER();
+  bool result = CMedIOData::writeMatrix(matrixData, static_cast<const CMedIOHeader&>(subHeader), format, frame, mainHeader);
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsFile::writeMatrix(const char* matrixData, unsigned int size, const CPhilipsSubHeader& subHeader,
+                               CMedIOData::Format format, short frame, const CMedIOHeader* mainHeader)
+{
+  ENTER();
+  bool result = CMedIOData::writeMatrix(matrixData, size, static_cast<const CMedIOHeader&>(subHeader), format, frame, mainHeader);
+  RETURN(result);
+  return result;
+}
+
 CPhilipsDirectory* CPhilipsFile::directory() const
 {
   return m_pData->directory;

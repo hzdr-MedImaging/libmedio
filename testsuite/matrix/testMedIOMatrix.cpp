@@ -465,6 +465,8 @@ class TestMedIOMatrix : public QObject
     void nativeFormat_data();
     void nativeFormat();
 
+    void writeWithFormat();
+
     void errors();
 };
 
@@ -2134,6 +2136,138 @@ void TestMedIOMatrix::nativeFormat()
   QByteArray* none = NULL;
   QVERIFY(data->readMatrix(none, sh, 99) == false);
   QVERIFY(none == NULL && sh == NULL);
+}
+
+//---------------------------------------------------------------------------------------------
+// writeMatrix() with the format of the matrix: the same result as without a
+// format, also through CECATFile and CPhilipsFile with their own sub header
+// types; a format that does not match the sub header is rejected without writing
+
+void TestMedIOMatrix::writeWithFormat()
+{
+  const QString source = medioTestDataDir() + "/ecat/pet-dynamic.v";
+  EcatFile reference;
+  QVERIFY(reference.read(source));
+  QVERIFY(reference.frames() >= 2);
+
+  CECATFile in(source);
+  QVERIFY(in.open(QIODevice::ReadOnly));
+  CMedIOHeader* ecatMain = NULL;
+  CMedIOHeader* niftiMain = NULL;
+  QVERIFY(in.readMainHeader(ecatMain, CMedIOData::ECAT));
+  QVERIFY(in.readMainHeader(niftiMain, CMedIOData::NIFTI));
+  QScopedPointer<CMedIOHeader> ecatMainGuard(ecatMain), niftiMainGuard(niftiMain);
+
+  QByteArray* m[2] = { NULL, NULL };
+  CMedIOHeader* s[2] = { NULL, NULL };
+  QVERIFY(in.readMatrix(m[0], s[0], CMedIOData::ECAT, 1));
+  QVERIFY(in.readMatrix(m[1], s[1], CMedIOData::ECAT, 2));
+  QScopedPointer<QByteArray> m0(m[0]), m1(m[1]);
+  QScopedPointer<CMedIOHeader> s0(s[0]), s1(s[1]);
+  const CECATSubHeader& ecatSub = static_cast<const CECATSubHeader&>(*s[1]);
+
+  // ECAT7 file
+  const QString ecatPath = tmpFile("format.v");
+  {
+    CECATFile out(ecatPath, CECATMainHeader::ECAT7_Volume16);
+    QVERIFY(createEcat(out, *static_cast<CECAT7MainHeader*>(ecatMain)));
+    CMedIOData& data = out;
+
+    // rejected: the format does not match the sub header
+    QVERIFY(data.writeMatrix(*m[1], *s[1], CMedIOData::NIFTI, 2) == false);
+    QVERIFY(out.errorStatus() != CMedIOData::MERR_Ok);
+    QVERIFY(data.writeMatrix(m[1]->constData(), m[1]->size(), *s[1], CMedIOData::Philips, 2) == false);
+    QVERIFY(out.writeMatrix(*m[1], ecatSub, CMedIOData::Unknown, 2) == false);
+    QVERIFY(out.writeMatrix(m[1]->constData(), m[1]->size(), ecatSub, CMedIOData::NIFTI, 2) == false);
+
+    // the format is not taken as frame number: frame -1 is the first frame
+    QVERIFY(data.writeMatrix(*m[0], *s[0], CMedIOData::ECAT));
+    QVERIFY(out.errorStatus() == CMedIOData::MERR_Ok);
+    // CECATFile with its own sub header type and a main header, char* variant
+    QVERIFY(out.writeMatrix(m[1]->constData(), m[1]->size(), ecatSub, CMedIOData::ECAT, 2, ecatMain));
+    out.close();
+  }
+  QVERIFY(ecatMatrix(ecatPath, 1) == reference.matrices[0]);
+  QVERIFY(ecatMatrix(ecatPath, 2) == reference.matrices[1]);
+  QVERIFY(ecatMatrix(ecatPath, 3).isEmpty());
+
+  // NIfTI file: the same file as written without a format
+  QByteArray niftiFile[2];
+  for(int pass=0; pass < 2; pass++) {
+    const QString path = tmpFile(QString("format-%1.nii").arg(pass));
+    {
+      CNIFTIFile out(path, CNIFTIMainHeader::NIFTI1);
+      QVERIFY(createNifti(out, niftiMain));
+      if(pass == 0) {
+        QVERIFY(out.writeMatrix(*m[0], *s[0], 1, ecatMain));
+        QVERIFY(out.writeMatrix(*m[1], *s[1], 2, ecatMain));
+      } else {
+        QVERIFY(out.writeMatrix(*m[1], ecatSub, CMedIOData::NIFTI, 3, ecatMain) == false);
+        QVERIFY(out.writeMatrix(*m[1], *s[1], CMedIOData::ECAT, 2, ecatMain));
+        QVERIFY(out.writeMatrix(*m[0], *s[0], CMedIOData::ECAT, -1, ecatMain));
+      }
+      out.close();
+    }
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    niftiFile[pass] = file.readAll();
+
+    CNIFTIFile written(path);
+    QVERIFY(written.open(QIODevice::ReadOnly));
+    for(short f=1; f <= 2; f++) {
+      QByteArray* data = NULL;
+      QVERIFY(written.readMatrix(data, f));
+      QVERIFY(data->count('\0') < data->size());
+      delete data;
+    }
+  }
+  QVERIFY(niftiFile[0] == niftiFile[1]);
+
+  // Philips file: CPhilipsFile with its own sub header type
+  CPhilipsFile philipsIn(medioTestDataDir() + "/philips/pet-dynamic.syn");
+  QVERIFY(philipsIn.open(QIODevice::ReadOnly));
+  CMedIOHeader* philipsMain = NULL;
+  QVERIFY(philipsIn.readMainHeader(philipsMain, CMedIOData::Philips));
+  QScopedPointer<CMedIOHeader> philipsMainGuard(philipsMain);
+  CPhilipsMainHeader* pmh = static_cast<CPhilipsMainHeader*>(philipsMain);
+
+  // the same file as written without a format
+  QByteArray philipsFile[2];
+  for(int pass=0; pass < 2; pass++) {
+    const QString path = tmpFile(QString("format-%1.syn").arg(pass));
+    {
+      CPhilipsFile out(path, pmh->filtyp());
+      QVERIFY(out.open(QIODevice::WriteOnly));
+      pmh->setMedIOData(&out);
+      QVERIFY(out.writeMainHeader(*pmh));
+      pmh->setMedIOData(NULL);
+
+      for(short f=philipsIn.maxFrame(); f >= philipsIn.minFrame(); f--) {
+        QByteArray* data = NULL;
+        CMedIOHeader* sh = NULL;
+        QVERIFY(philipsIn.readMatrix(data, sh, CMedIOData::Philips, f));
+        QScopedPointer<QByteArray> dataGuard(data);
+        QScopedPointer<CMedIOHeader> shGuard(sh);
+        const CPhilipsSubHeader& philipsSub = static_cast<const CPhilipsSubHeader&>(*sh);
+        if(pass == 0) {
+          QVERIFY(out.writeMatrix(*data, *sh, f, philipsMain));
+        } else {
+          QVERIFY(out.writeMatrix(*data, philipsSub, CMedIOData::ECAT, f, philipsMain) == false);
+          QVERIFY(out.writeMatrix(data->constData(), data->size(), philipsSub, CMedIOData::NIFTI, f, philipsMain) == false);
+          QVERIFY(out.writeMatrix(*data, philipsSub, CMedIOData::Philips, f, philipsMain));
+        }
+      }
+      out.close();
+    }
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    philipsFile[pass] = file.readAll();
+
+    CPhilipsFile written(path);
+    QVERIFY(written.open(QIODevice::ReadOnly));
+    QCOMPARE(written.numFrames(), philipsIn.numFrames());
+  }
+  QVERIFY(philipsFile[0] == philipsFile[1]);
 }
 
 //---------------------------------------------------------------------------------------------
