@@ -20,6 +20,8 @@
 #ifndef _BSWAP_H_
 #define _BSWAP_H_
 
+#include <cstring>
+
 #include <rtdebug.h>
 
 // bswap_XX() byteswap macros. These macros are usually coming from linux. But
@@ -60,133 +62,67 @@
 #define rol32(word, shift)  ((word) << (shift)) | ((word) >> (32 - (shift)))
 #define rol64(word, shift)  ((word) << (shift)) | ((word) >> (64 - (shift)))
 
+// swap the byte order of every value of type T of an array of matrixSize
+// bytes into dstMatrix (a new array if NULL, to be deleted with delete[] as
+// char array; it may be matrixData itself) and return it. The values are
+// accessed with memcpy(), so the arrays need no alignment beyond that of
+// char (accessing them as wider types would be undefined behaviour); the
+// compilers turn this into plain loads and byte swaps.
 template <typename T>
 static inline T* bswap_matrix(const T* matrixData, quint32 matrixSize, T* dstMatrix = NULL)
 {
   // make sure we have a multiple of sizeof(T)
   ASSERT((matrixSize % sizeof(T)) == 0);
 
-  // create a new array
-  T* swappedMatrixData;
+  T* swappedMatrixData = (dstMatrix == NULL) ? reinterpret_cast<T*>(new char[matrixSize]) : dstMatrix;
 
-  if(dstMatrix == NULL)
-    swappedMatrixData = reinterpret_cast<T*>(new char[matrixSize]);
-  else
-    swappedMatrixData = dstMatrix;
+  const char* src = reinterpret_cast<const char*>(matrixData);
+  char* dst = reinterpret_cast<char*>(swappedMatrixData);
+  const quint32 count = matrixSize / sizeof(T);
 
-  // lets swap now
   switch(sizeof(T))
   {
     case sizeof(quint8):
-    {
-      quint32 i;
-      const quint16* matrixData16 = reinterpret_cast<const quint16*>(matrixData);
-      quint16* swappedMatrixData16 = reinterpret_cast<quint16*>(swappedMatrixData);
-
-      for(i=0; i < (matrixSize/sizeof(quint16)); i++)
-      {
-        quint16 tmp = bswap_16(matrixData16[i]);
-        swappedMatrixData16[i] = rol16(tmp, 8);
-      }
-
-      D("matrixSize %% sizeof(quint16) = %d %d", matrixSize % sizeof(quint16), i);
-      switch(matrixSize % sizeof(quint16))
-      {
-        case 0:
-          // do nothing, finished
-        break;
-
-        case sizeof(quint8): // 1
-          reinterpret_cast<quint8*>(swappedMatrixData)[i*2] = bswap_8(reinterpret_cast<const quint8*>(matrixData)[i*2]);
-        break;
-
-        default:
-          // ERROR! only 0 and 1 should happen!
-          ASSERT((matrixSize % sizeof(quint16) == 0));
-        break;
-      }
-    }
+      // nothing to swap
+      if(dst != src)
+        memcpy(dst, src, count);
     break;
 
     case sizeof(quint16):
-    {
-      quint32 i;
-      const quint32* matrixData32 = reinterpret_cast<const quint32*>(matrixData);
-      quint32* swappedMatrixData32 = reinterpret_cast<quint32*>(swappedMatrixData);
-
-      for(i=0; i < (matrixSize/sizeof(quint32)); i++)
+      for(quint32 i=0; i < count; i++)
       {
-        quint32 tmp = bswap_32(matrixData32[i]);
-        swappedMatrixData32[i] = rol32(tmp, 16);
+        quint16 value;
+        memcpy(&value, src + i * sizeof(value), sizeof(value));
+        value = bswap_16(value);
+        memcpy(dst + i * sizeof(value), &value, sizeof(value));
       }
-
-      D("matrixSize %% sizeof(quint32) = %d %d", matrixSize % sizeof(quint32), i);
-      switch(matrixSize % sizeof(quint32))
-      {
-        case 0:
-          // do nothing, finished
-        break;
-
-        case sizeof(quint16): // 2
-          reinterpret_cast<quint16*>(swappedMatrixData)[i*2] = bswap_16(reinterpret_cast<const quint16*>(matrixData)[i*2]);
-        break;
-
-        default:
-          // ERROR! only 0 and 2 should happen!
-          ASSERT((matrixSize % sizeof(quint32) == 0));
-        break;
-      }
-    }
     break;
 
     case sizeof(quint32):
-    {
-      quint32 i;
-      const quint64* matrixData64 = reinterpret_cast<const quint64*>(matrixData);
-      quint64* swappedMatrixData64 = reinterpret_cast<quint64*>(swappedMatrixData);
-
-      for(i=0; i < (matrixSize/sizeof(quint64)); i++)
+      for(quint32 i=0; i < count; i++)
       {
-        quint64 tmp = bswap_64(matrixData64[i]);
-        swappedMatrixData64[i] = rol64(tmp, 32);
+        quint32 value;
+        memcpy(&value, src + i * sizeof(value), sizeof(value));
+        value = bswap_32(value);
+        memcpy(dst + i * sizeof(value), &value, sizeof(value));
       }
-
-      D("matrixSize %% sizeof(quint64) = %d %d", matrixSize % sizeof(quint32), i);
-      switch(matrixSize % sizeof(quint64))
-      {
-        case 0:
-          // do nothing, finished
-        break;
-
-        case sizeof(quint32): // 4
-          reinterpret_cast<quint32*>(swappedMatrixData)[i*2] = bswap_32(reinterpret_cast<const quint32*>(matrixData)[i*2]);
-        break;
-
-        default:
-          // ERROR! only 0 and 4 should happen!
-          ASSERT((matrixSize % sizeof(quint64) == 0));
-        break;
-      }
- 
-    }
     break;
 
     case sizeof(quint64):
-    {
-      const quint64* matrixData64 = reinterpret_cast<const quint64*>(matrixData);
-      quint64* swappedMatrixData64 = reinterpret_cast<quint64*>(swappedMatrixData);
-
-      for(quint32 i=0; i < (matrixSize/sizeof(quint64)); i++)
-        swappedMatrixData64[i] = bswap_64(matrixData64[i]);
-    }
+      for(quint32 i=0; i < count; i++)
+      {
+        quint64 value;
+        memcpy(&value, src + i * sizeof(value), sizeof(value));
+        value = bswap_64(value);
+        memcpy(dst + i * sizeof(value), &value, sizeof(value));
+      }
     break;
 
     default:
-      E("unsupported type passed: %d", sizeof(T));
+      E("unsupported type passed: %d", static_cast<int>(sizeof(T)));
     break;
   }
 
-  RETURN(swappedMatrixData);
   return swappedMatrixData;
 }
 
