@@ -17,17 +17,17 @@
   limitations under the License.
 */
 
-//! @file CMedIOMetadata.cpp
-//! @brief contains the implementation of the class CMedIOMetadata
+//! @file CMedIOHeaderDictionary.cpp
+//! @brief contains the implementation of the class CMedIOHeaderDictionary
 
-#include "CMedIOMetadata.h"
+#include "CMedIOHeaderDictionary.h"
 
 #include <QDateTime>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QRegExp>
 
-const char* const CMedIOMetadata::FramesKey = "Frames";
+const char* const CMedIOHeaderDictionary::FramesKey = "Frames";
 
 namespace {
 
@@ -35,19 +35,19 @@ namespace {
 const quint32 RadiopharmaceuticalInformationSequence = 0x00540016; // (0054,0016)
 const quint32 EnergyWindowRangeSequence = 0x00540013;              // (0054,0013)
 
-#define M CMedIOMetadata::MainHeader
-#define F CMedIOMetadata::FrameHeader
-#define STR CMedIOMetadata::String
-#define NUM CMedIOMetadata::Number
-#define DAT CMedIOMetadata::Date
-#define DTM CMedIOMetadata::DateTime
-#define STRS CMedIOMetadata::Strings
-#define CODE CMedIOMetadata::Code
+#define M CMedIOHeaderDictionary::MainHeader
+#define F CMedIOHeaderDictionary::FrameHeader
+#define STR CMedIOHeaderDictionary::String
+#define NUM CMedIOHeaderDictionary::Number
+#define DAT CMedIOHeaderDictionary::Date
+#define DTM CMedIOHeaderDictionary::DateTime
+#define STRS CMedIOHeaderDictionary::Strings
+#define CODE CMedIOHeaderDictionary::Code
 
-// the keys of the metadata: DICOM keyword, tag, VR, VM, sequence, scope,
+// the keys of the attributes: DICOM keyword, tag, VR, VM, sequence, scope,
 // JSON value, unit (checked against the DICOM data dictionary of pydicom by
-// the metadata test, see testsuite/metadata)
-const CMedIOMetadata::Key keyTable[] = {
+// the attributes test, see testsuite/attributes)
+const CMedIOHeaderDictionary::Entry entryTable[] = {
   // patient
   { "PatientName",                      0x00100010, "PN", "1",   0, M, STR,  ""   }, // (0010,0010)
   { "PatientID",                        0x00100020, "LO", "1",   0, M, STR,  ""   }, // (0010,0020)
@@ -116,7 +116,7 @@ const CMedIOMetadata::Key keyTable[] = {
 #undef STRS
 #undef CODE
 
-const int keyCount = sizeof(keyTable) / sizeof(keyTable[0]);
+const int entryCount = sizeof(entryTable) / sizeof(entryTable[0]);
 
 // strings of the code sequence items
 const char* const codeFields[] = { "CodeValue", "CodingSchemeDesignator", "CodingSchemeVersion", "CodeMeaning" };
@@ -137,37 +137,37 @@ bool isStringArray(const QJsonValue& value)
 
 //=============================================================================================
 
-const CMedIOMetadata::Key* CMedIOMetadata::key(const QString& keywordOrTag)
+const CMedIOHeaderDictionary::Entry* CMedIOHeaderDictionary::entry(const QString& keywordOrTag)
 {
-  for(int i=0; i < keyCount; i++) {
-    if(keywordOrTag == QLatin1String(keyTable[i].keyword))
-      return &keyTable[i];
+  for(int i=0; i < entryCount; i++) {
+    if(keywordOrTag == QLatin1String(entryTable[i].keyword))
+      return &entryTable[i];
   }
 
   quint32 t = 0;
-  return parseTag(keywordOrTag, t) ? key(t) : NULL;
+  return parseTag(keywordOrTag, t) ? entry(t) : NULL;
 }
 
-const CMedIOMetadata::Key* CMedIOMetadata::key(quint32 tag)
+const CMedIOHeaderDictionary::Entry* CMedIOHeaderDictionary::entry(quint32 tag)
 {
-  for(int i=0; i < keyCount; i++) {
-    if(keyTable[i].tag == tag)
-      return &keyTable[i];
+  for(int i=0; i < entryCount; i++) {
+    if(entryTable[i].tag == tag)
+      return &entryTable[i];
   }
   return NULL;
 }
 
-QList<const CMedIOMetadata::Key*> CMedIOMetadata::keys()
+QList<const CMedIOHeaderDictionary::Entry*> CMedIOHeaderDictionary::entries()
 {
-  QList<const Key*> list;
-  for(int i=0; i < keyCount; i++)
-    list.append(&keyTable[i]);
+  QList<const Entry*> list;
+  for(int i=0; i < entryCount; i++)
+    list.append(&entryTable[i]);
   return list;
 }
 
-QString CMedIOMetadata::normalizedKey(const QString& keywordOrTag)
+QString CMedIOHeaderDictionary::normalizedKey(const QString& keywordOrTag)
 {
-  const Key* k = key(keywordOrTag);
+  const Entry* k = entry(keywordOrTag);
   if(k != NULL)
     return QString::fromLatin1(k->keyword);
 
@@ -178,13 +178,13 @@ QString CMedIOMetadata::normalizedKey(const QString& keywordOrTag)
   return keywordOrTag;
 }
 
-QString CMedIOMetadata::tagString(quint32 tag)
+QString CMedIOHeaderDictionary::tagString(quint32 tag)
 {
   return QString("(%1,%2)").arg(tag >> 16, 4, 16, QChar('0'))
                            .arg(tag & 0xFFFF, 4, 16, QChar('0')).toUpper();
 }
 
-bool CMedIOMetadata::parseTag(const QString& text, quint32& tag)
+bool CMedIOHeaderDictionary::parseTag(const QString& text, quint32& tag)
 {
   // "(gggg,eeee)", "gggg,eeee" or "ggggeeee" with hexadecimal digits
   QRegExp pattern("^\\(?([0-9A-Fa-f]{4}),?([0-9A-Fa-f]{4})\\)?$");
@@ -207,9 +207,9 @@ bool CMedIOMetadata::parseTag(const QString& text, quint32& tag)
   return true;
 }
 
-quint32 CMedIOMetadata::tag(const QString& keywordOrTag)
+quint32 CMedIOHeaderDictionary::tag(const QString& keywordOrTag)
 {
-  const Key* k = key(keywordOrTag);
+  const Entry* k = entry(keywordOrTag);
   if(k != NULL)
     return k->tag;
 
@@ -217,9 +217,9 @@ quint32 CMedIOMetadata::tag(const QString& keywordOrTag)
   return parseTag(keywordOrTag, t) ? t : 0;
 }
 
-bool CMedIOMetadata::isValid(const Key& key, const QJsonValue& value)
+bool CMedIOHeaderDictionary::isValid(const Entry& entry, const QJsonValue& value)
 {
-  switch(key.type) {
+  switch(entry.type) {
     case String:
       return value.isString();
 

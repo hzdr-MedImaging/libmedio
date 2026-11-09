@@ -109,7 +109,7 @@ CECAT7SubHeaderAttenCorr& CECAT7SubHeaderAttenCorr::operator=(const CECAT7SubHea
 {
   ENTER();
 
-  copyMetadata(src);
+  copyAttributes(src);
 
   if(m_pData != src.m_pData)
   {

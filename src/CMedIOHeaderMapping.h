@@ -17,35 +17,35 @@
   limitations under the License.
 */
 
-//! @file CMedIOMetadataMap.h
+//! @file CMedIOHeaderMapping.h
 //! @brief private: mapping between the headers of the formats and the
-//!        format independent metadata (CMedIOHeader::metadata())
+//!        format independent header attributes (CMedIOHeader::attributes())
 //!
-//! Every header type with metadata has an adapter: a table of the metadata
-//! keys (DICOM keywords, see CMedIOMetadata) it stores in its own fields,
+//! Every header type with attributes has an adapter: a table of the attributes
+//! keys (DICOM keywords, see CMedIOHeaderDictionary) it stores in its own fields,
 //! and a table of its native fields (the section named after the format).
 //!
 //! - A field reads its value from the header (QJsonValue::Undefined if it is
 //!   not set) and writes it (QJsonValue::Null: not set). The value has been
-//!   checked against the key before (CMedIOMetadata::isValid()).
-//! - A metadata key setter returns false if the format cannot store the value
+//!   checked against the key before (CMedIOHeaderDictionary::isValid()).
+//! - A attribute setter returns false if the format cannot store the value
 //!   (e.g. PatientSex "O" in ECAT7): the field is cleared then and the value
-//!   is kept in the metadata of the header object, like keys of other formats.
+//!   is kept in the attributes of the header object, like keys of other formats.
 //! - A native field setter returns false if the value does not fit.
 //! - The native sections only hold fields describing the data: fields that
 //!   describe the size, data type, scaling, geometry or layout of the image
-//!   data are not part of the metadata.
+//!   data are not part of the attributes.
 //!
 //! Units and times:
-//! - the values of the metadata keys have the units of their DICOM attributes
+//! - the values of the attributes have the units of their DICOM attributes
 //! - Unix times of the formats (seconds since 1970, UTC) are written as
 //!   ISO 8601 with "Z"; date and time without time zone are taken as UTC
 //! - dates stored as Unix time (ECAT7 birth date) are the date of the nearest
 //!   midnight UTC, so that a birth date written at local midnight of any time
 //!   zone up to 12 hours from UTC gives the same date on every machine
 
-#ifndef CMEDIOMETADATAMAP_H
-#define CMEDIOMETADATAMAP_H
+#ifndef CMEDIOHEADERMAPPING_H
+#define CMEDIOHEADERMAPPING_H
 
 #include <QByteArray>
 #include <QtGlobal>
@@ -62,7 +62,7 @@ class CMedIOHeader;
 class CNIFTIFile;
 class CNIFTIMainHeader;
 
-namespace MedIOMetadata {
+namespace MedIOHeaderMapping {
 
 //---------------------------------------------------------------------------------------------
 // adapters
@@ -78,7 +78,7 @@ struct Field {
 
 struct Adapter {
   const char* section;        //!< name of the section of the native fields, e.g. "ECAT7"
-  const Field* keys;          //!< metadata keys stored by the format
+  const Field* keys;          //!< attributes stored by the format
   int keyCount;
   const Field* native;        //!< native fields
   int nativeCount;
@@ -98,41 +98,41 @@ const Adapter* nifti1MainHeaderAdapter();
 const Adapter* nifti2MainHeaderAdapter();
 
 //---------------------------------------------------------------------------------------------
-// NIfTI: the metadata of a NIfTI file are stored in its JSON header extension
+// NIfTI: the attributes of a NIfTI file are stored in its JSON header extension
 // (or a JSON sidecar file, see CNIFTIGeometry.h)
 
-//! metadata of the JSON of a NIfTI file: the keys written by earlier versions of
+//! attributes of the JSON of a NIfTI file: the keys written by earlier versions of
 //! CNIFTIConverter (ECAT7 main header fields at the top level) are moved into
-//! the "ECAT7" section and give the metadata keys they store; BIDS keys of
-//! other tools give the metadata keys that are not set (see niftiJson())
-QJsonObject metadataOfNiftiJson(const QJsonObject& json);
+//! the "ECAT7" section and give the attributes they store; BIDS keys of
+//! other tools give the attributes that are not set (see niftiJson())
+QJsonObject attributesOfNiftiJson(const QJsonObject& json);
 
-//! JSON to store in a NIfTI file: the metadata (without the native NIfTI
+//! JSON to store in a NIfTI file: the attributes (without the native NIfTI
 //! fields) plus BIDS keys derived from them (TracerName, InjectedRadioactivity,
 //! InjectedRadioactivityUnits, ManufacturersModelName, ReconMethodName,
 //! ImageDecayCorrected, DecayCorrectionFactor), empty if there is nothing to store
-QJsonObject niftiJson(const QJsonObject& metadata);
+QJsonObject niftiJson(const QJsonObject& attributes);
 
-//! read the metadata of an opened NIfTI file into its main header
-void readNiftiMetadata(CNIFTIFile& file, CNIFTIMainHeader& header);
+//! read the attributes of an opened NIfTI file into its main header
+void readNiftiAttributes(CNIFTIFile& file, CNIFTIMainHeader& header);
 
 //---------------------------------------------------------------------------------------------
-// metadata of a header (implementation of CMedIOHeader::metadata()/updateMetadata())
+// attributes of a header (implementation of CMedIOHeader::attributes()/updateAttributes())
 
-//! metadata of a header: its native fields and the keys it stores, plus the
-//! metadata kept in the header object (other)
-QJsonObject metadata(const CMedIOHeader& header, const QJsonObject& other);
+//! attributes of a header: its native fields and the keys it stores, plus the
+//! attributes kept in the header object (other)
+QJsonObject attributes(const CMedIOHeader& header, const QJsonObject& other);
 
-//! apply changes (see CMedIOHeader::updateMetadata())
+//! apply changes (see CMedIOHeader::updateAttributes())
 bool update(CMedIOHeader& header, QJsonObject& other, const QJsonObject& changes);
 
-//! copy metadata into another header, e.g. after a conversion with convertFrom():
+//! copy attributes into another header, e.g. after a conversion with convertFrom():
 //! every key on its own, keys that are invalid for the target are skipped
 //! (keys in skip are not copied)
 void transfer(const QJsonObject& source, CMedIOHeader& target, const QStringList& skip = QStringList());
 
 //! keys that are not copied by transfer() between main headers: the frame
-//! metadata and the frame timing of NIfTI files, which belong to the frames
+//! attributes and the frame timing of NIfTI files, which belong to the frames
 QStringList frameKeys();
 
 //---------------------------------------------------------------------------------------------
@@ -269,7 +269,7 @@ inline bool fromJson(const QJsonValue& v, long& out)           { return fromJson
 inline bool fromJson(const QJsonValue& v, long long& out)      { return fromJsonInteger(v, out); }
 inline bool fromJson(const QJsonValue& v, unsigned char& out)  { return fromJsonInteger(v, out); }
 
-} // namespace MedIOMetadata
+} // namespace MedIOHeaderMapping
 
 //---------------------------------------------------------------------------------------------
 // macros for the field tables of the adapters (H: header class)
@@ -278,30 +278,30 @@ inline bool fromJson(const QJsonValue& v, unsigned char& out)  { return fromJson
 #define MEDIO_NATIVE(H, name, getter, setter, T) \
   { name, \
     [](const CMedIOHeader& header) -> QJsonValue { \
-      return MedIOMetadata::toJson(static_cast<const H&>(header).getter()); }, \
+      return MedIOHeaderMapping::toJson(static_cast<const H&>(header).getter()); }, \
     [](CMedIOHeader& header, const QJsonValue& value) -> bool { \
-      T v; if(MedIOMetadata::fromJson(value, v) == false) return false; \
+      T v; if(MedIOHeaderMapping::fromJson(value, v) == false) return false; \
       static_cast<H&>(header).setter(v); return true; } }
 
 //! native text field (const char* getter and setter)
 #define MEDIO_NATIVE_TEXT(H, name, getter, setter) \
   { name, \
     [](const CMedIOHeader& header) -> QJsonValue { \
-      return MedIOMetadata::toJson(static_cast<const H&>(header).getter()); }, \
+      return MedIOHeaderMapping::toJson(static_cast<const H&>(header).getter()); }, \
     [](CMedIOHeader& header, const QJsonValue& value) -> bool { \
-      QByteArray v; if(MedIOMetadata::fromJson(value, v) == false) return false; \
+      QByteArray v; if(MedIOHeaderMapping::fromJson(value, v) == false) return false; \
       static_cast<H&>(header).setter(v.constData()); return true; } }
 
 //! native enumeration field (stored as number)
 #define MEDIO_NATIVE_ENUM(H, name, getter, setter, E) \
   { name, \
     [](const CMedIOHeader& header) -> QJsonValue { \
-      return MedIOMetadata::toJson(static_cast<int>(static_cast<const H&>(header).getter())); }, \
+      return MedIOHeaderMapping::toJson(static_cast<int>(static_cast<const H&>(header).getter())); }, \
     [](CMedIOHeader& header, const QJsonValue& value) -> bool { \
-      int v; if(MedIOMetadata::fromJson(value, v) == false) return false; \
+      int v; if(MedIOHeaderMapping::fromJson(value, v) == false) return false; \
       static_cast<H&>(header).setter(static_cast<E>(v)); return true; } }
 
-//! metadata key (getter: expression of h, setter: statements with h and value)
+//! attribute (getter: expression of h, setter: statements with h and value)
 #define MEDIO_KEY(H, keyword, getExpression, setStatements) \
   { keyword, \
     [](const CMedIOHeader& header) -> QJsonValue { \
@@ -309,4 +309,4 @@ inline bool fromJson(const QJsonValue& v, unsigned char& out)  { return fromJson
     [](CMedIOHeader& header, const QJsonValue& value) -> bool { \
       H& h = static_cast<H&>(header); Q_UNUSED(h); Q_UNUSED(value); setStatements } }
 
-#endif // CMEDIOMETADATAMAP_H
+#endif // CMEDIOHEADERMAPPING_H

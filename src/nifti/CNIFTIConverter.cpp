@@ -18,8 +18,8 @@
 */
 
 #include "CNIFTIConverter.h"
-#include "CMedIOMetadata.h"
-#include "CMedIOMetadataMap.h"
+#include "CMedIOHeaderDictionary.h"
+#include "CMedIOHeaderMapping.h"
 #include "CNIFTIFile.h"
 #include "CNIFTIMainHeader.h"
 #include "CNIFTI1MainHeader.h"
@@ -198,10 +198,10 @@ struct EcatImage
   QList<QByteArray> matrices;               // stored values per frame
   QList<QVector<double> > planeScales;      // physical value = stored value x planeScales[frame][plane]
 
-  // format independent metadata of the source (CMedIOHeader::metadata()),
+  // format independent header attributes of the source (CMedIOHeader::attributes()),
   // given to the headers of the target
-  QJsonObject mainMetadata;                 // main header
-  QList<QJsonObject> frameMetadata;         // per frame (sub header, first slice, NIfTI "Frames" entry)
+  QJsonObject mainAttributes;                 // main header
+  QList<QJsonObject> frameAttributes;         // per frame (sub header, first slice, NIfTI "Frames" entry)
 };
 
 //---------------------------------------------------------------------------------------------
@@ -252,7 +252,7 @@ bool loadEcat(const QString& fileName, EcatImage& image, QString* error)
 
     CECAT7SubHeaderImage* s = static_cast<CECAT7SubHeaderImage*>(subHeader);
     image.subHeaders.append(s);
-    image.frameMetadata.append(s->metadata());
+    image.frameAttributes.append(s->attributes());
 
     double scale = s->scale_Factor();
     if(scale == 0.0 || std::isfinite(scale) == false)
@@ -260,7 +260,7 @@ bool loadEcat(const QString& fileName, EcatImage& image, QString* error)
     image.planeScales.append(QVector<double>(qMax(0, static_cast<int>(s->z_Dimension())), scale * calibration));
   }
 
-  image.mainMetadata = image.mainHeader->metadata();
+  image.mainAttributes = image.mainHeader->attributes();
 
   ecatFile->close();
   return true;
@@ -347,7 +347,7 @@ bool loadPhilips(const QString& fileName, EcatImage& image, QString* error)
 
     image.matrices.append(volume.data());
     image.planeScales.append(scales);
-    image.frameMetadata.append(frameSubHeader->metadata());
+    image.frameAttributes.append(frameSubHeader->attributes());
 
     if(f == 0)
       firstSubHeader.reset(frameSubHeader.take());
@@ -368,7 +368,7 @@ bool loadPhilips(const QString& fileName, EcatImage& image, QString* error)
   // the ECAT7 field holds 31 characters only: use the file name without its path
   image.mainHeader->setOriginal_File_Name(QFileInfo(fileName).fileName().left(31).toLatin1().constData());
 
-  image.mainMetadata = mainHeader->metadata();
+  image.mainAttributes = mainHeader->attributes();
 
   file->close();
   return true;
@@ -470,40 +470,40 @@ bool saveNifti(const EcatImage& image, const QString& niftiFileName, const CNIFT
     else
       setNIFTIData(static_cast<CNIFTI1MainHeader*>(header.data()), storedValues == false, slope, minValue, maxValue, duration);
 
-    // metadata of the source, the frame metadata of all frames and the frame
+    // attributes of the source, the frame attributes of all frames and the frame
     // timing in s (BIDS PET naming)
-    MedIOMetadata::transfer(image.mainMetadata, *header, MedIOMetadata::frameKeys());
+    MedIOHeaderMapping::transfer(image.mainAttributes, *header, MedIOHeaderMapping::frameKeys());
     QJsonObject json;
-    QJsonArray frameMetadata, start, durations;
-    bool anyFrameMetadata = false;
+    QJsonArray frameAttributes, start, durations;
+    bool anyFrameAttributes = false;
     for(int f=0; f < frames; f++) {
-      const QJsonObject m = (f < image.frameMetadata.size()) ? image.frameMetadata[f] : QJsonObject();
-      frameMetadata.append(m);
-      anyFrameMetadata = anyFrameMetadata || (m.isEmpty() == false);
+      const QJsonObject m = (f < image.frameAttributes.size()) ? image.frameAttributes[f] : QJsonObject();
+      frameAttributes.append(m);
+      anyFrameAttributes = anyFrameAttributes || (m.isEmpty() == false);
       start.append(image.subHeaders[f]->frame_Start_Time() / 1000.0);
       durations.append(image.subHeaders[f]->frame_Duration() / 1000.0);
     }
-    if(anyFrameMetadata)
-      json[CMedIOMetadata::FramesKey] = frameMetadata;
+    if(anyFrameAttributes)
+      json[CMedIOHeaderDictionary::FramesKey] = frameAttributes;
     json["FrameTimesStart"] = start;
     json["FrameDuration"] = durations;
     json["ConversionSoftware"] = QString("libmedio %1").arg(CMedIO::version());
-    result = header->updateMetadata(json);
+    result = header->updateAttributes(json);
 
-    // the metadata as stored in the file (see CNIFTIFile::writeMainHeader())
-    const QJsonObject stored = MedIOMetadata::niftiJson(header->metadata());
+    // the attributes as stored in the file (see CNIFTIFile::writeMainHeader())
+    const QJsonObject stored = MedIOHeaderMapping::niftiJson(header->attributes());
 
-    // without header extension: remove the metadata from the header
+    // without header extension: remove the attributes from the header
     if(result && options.jsonExtension == false) {
       QJsonObject removed;
-      foreach(const QString& key, header->metadata().keys()) {
+      foreach(const QString& key, header->attributes().keys()) {
         if(key != "NIfTI")
           removed[key] = QJsonValue(QJsonValue::Null);
       }
-      result = header->updateMetadata(removed);
+      result = header->updateAttributes(removed);
     }
 
-    // the main header with the metadata as JSON header extension
+    // the main header with the attributes as JSON header extension
     if(result)
       result = niftiFile.writeMainHeader(*header);
 
@@ -584,11 +584,11 @@ bool loadNifti(const QString& niftiFileName, EcatImage& image, QString* error)
   if(image.mainHeader->convertFrom(headerPtr, NULL) == false)
     return fail(error, "unable to convert the NIfTI header of " + niftiFileName);
 
-  // metadata of the NIfTI file (incl. those of CNIFTIConverter of earlier
-  // versions, see CMedIOMetadataMap.h)
-  image.mainMetadata = header->metadata();
-  const QJsonArray frameMetadata = image.mainMetadata.take(QString::fromLatin1(CMedIOMetadata::FramesKey)).toArray();
-  MedIOMetadata::transfer(image.mainMetadata, *image.mainHeader, MedIOMetadata::frameKeys());
+  // attributes of the NIfTI file (incl. those of CNIFTIConverter of earlier
+  // versions, see CMedIOHeaderMapping.h)
+  image.mainAttributes = header->attributes();
+  const QJsonArray frameAttributes = image.mainAttributes.take(QString::fromLatin1(CMedIOHeaderDictionary::FramesKey)).toArray();
+  MedIOHeaderMapping::transfer(image.mainAttributes, *image.mainHeader, MedIOHeaderMapping::frameKeys());
 
   // the values already contain the calibration factor
   image.mainHeader->setCalibration_Factor(1.0f);
@@ -634,9 +634,9 @@ bool loadNifti(const QString& niftiFileName, EcatImage& image, QString* error)
     if(subHeader->convertFrom(NULL, headerPtr) == false)
       return fail(error, "unable to convert the NIfTI header of " + niftiFileName);
 
-    // metadata of the frame
-    image.frameMetadata.append(f < frameMetadata.size() ? frameMetadata[f].toObject() : QJsonObject());
-    MedIOMetadata::transfer(image.frameMetadata.last(), *subHeader);
+    // attributes of the frame
+    image.frameAttributes.append(f < frameAttributes.size() ? frameAttributes[f].toObject() : QJsonObject());
+    MedIOHeaderMapping::transfer(image.frameAttributes.last(), *subHeader);
 
     subHeader->setData_Type(CECATSubHeader::SunShort);
     subHeader->setScale_Factor(scale);
@@ -707,9 +707,9 @@ bool savePhilips(EcatImage& image, const QString& philipsFileName, CPhilipsMainH
   bool result = (mainHeader.data() != NULL) &&
                 mainHeader->convertFrom(image.mainHeader, image.subHeaders.first());
 
-  // metadata of the source (Philips values that ECAT7 cannot store, too)
+  // attributes of the source (Philips values that ECAT7 cannot store, too)
   if(result)
-    MedIOMetadata::transfer(image.mainMetadata, *mainHeader, MedIOMetadata::frameKeys());
+    MedIOHeaderMapping::transfer(image.mainAttributes, *mainHeader, MedIOHeaderMapping::frameKeys());
 
   if(result) {
     mainHeader->setFiltyp(type);
@@ -733,8 +733,8 @@ bool savePhilips(EcatImage& image, const QString& philipsFileName, CPhilipsMainH
       QScopedPointer<CPhilipsSubHeader> subHeaderPtr(file.createEmptySubHeader());
       CPhilipsSubHeaderImage* subHeader = static_cast<CPhilipsSubHeaderImage*>(subHeaderPtr.data());
       result = (subHeader != NULL) && subHeader->convertFrom(ecatSubHeader, image.mainHeader);
-      if(result && f < image.frameMetadata.size())
-        MedIOMetadata::transfer(image.frameMetadata[f], *subHeader);
+      if(result && f < image.frameAttributes.size())
+        MedIOHeaderMapping::transfer(image.frameAttributes[f], *subHeader);
 
       for(int k=0; k < nz && result; k++) {
         const qint16* plane = reinterpret_cast<const qint16*>(image.matrices[f].constData()) + k * planeVoxels;

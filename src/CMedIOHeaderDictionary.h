@@ -17,20 +17,20 @@
   limitations under the License.
 */
 
-//! @file CMedIOMetadata.h
-//! @brief contains the definition of the class CMedIOMetadata
+//! @file CMedIOHeaderDictionary.h
+//! @brief contains the definition of the class CMedIOHeaderDictionary
 
-#ifndef CMEDIOMETADATA_H
-#define CMEDIOMETADATA_H
+#ifndef CMEDIOHEADERDICTIONARY_H
+#define CMEDIOHEADERDICTIONARY_H
 
 #include <QJsonValue>
 #include <QList>
 #include <QString>
 
-//! @class CMedIOMetadata
-//! @brief dictionary of the format independent metadata of libmedio
+//! @class CMedIOHeaderDictionary
+//! @brief dictionary of the format independent header attributes of libmedio
 //!
-//! Every header (CMedIOHeader::metadata()) describes its metadata as JSON
+//! Every header (CMedIOHeader::attributes()) describes its attributes as JSON
 //! object. Its keys are the keywords of the DICOM data dictionary (PS3.6),
 //! e.g. "PatientWeight" for the DICOM attribute (0010,1030). A key has the
 //! meaning and the unit of its DICOM attribute (PS3.3), but a JSON value:
@@ -51,18 +51,18 @@
 //!
 //! Attributes that DICOM stores in a sequence item (e.g. RadionuclideTotalDose
 //! (0018,1074) in the RadiopharmaceuticalInformationSequence (0054,0016)) are
-//! stored without the sequence; key() gives the tag of the sequence.
+//! stored without the sequence; entry() gives the tag of the sequence.
 //!
-//! Besides the keys of this dictionary, the metadata of a header holds:
+//! Besides the keys of this dictionary, the attributes of a header hold:
 //! - the native fields of its format in a section named after the format
-//!   ("ECAT7", "Philips", "microPET", "NIfTI"), see CMedIOHeader::metadata(),
-//! - the metadata of other formats and keys unknown to libmedio, which are
+//!   ("ECAT7", "Philips", "microPET", "NIfTI"), see CMedIOHeader::attributes(),
+//! - the attributes of other formats and keys unknown to libmedio, which are
 //!   carried along until a format can store them (NIfTI),
-//! - "Frames" (FramesKey): the frame metadata of all frames (NIfTI main header).
+//! - "Frames" (FramesKey): the frame attributes of all frames (NIfTI main header).
 //!
 //! DICOM tags can be given as number (0x00101030) or as string "(0010,1030)";
 //! parseTag() also accepts "0010,1030" and "00101030".
-class CMedIOMetadata
+class CMedIOHeaderDictionary
 {
   public:
     //! @enum Scope header type a key belongs to
@@ -80,9 +80,9 @@ class CMedIOMetadata
                      Code          //!< code sequence item (object)
                    };
 
-    //! @struct Key
-    //! @brief a key of the dictionary: DICOM keyword, tag, VR and unit
-    struct Key {
+    //! @struct Entry
+    //! @brief an entry of the dictionary: an attribute with its DICOM keyword, tag, VR and unit
+    struct Entry {
       const char* keyword;     //!< DICOM keyword, e.g. "PatientWeight"
       quint32     tag;         //!< DICOM tag, e.g. 0x00101030 = (0010,1030)
       const char* vr;          //!< DICOM value representation, e.g. "DS"
@@ -93,17 +93,17 @@ class CMedIOMetadata
       const char* unit;        //!< unit of the value ("" if none), e.g. "kg"
     };
 
-    //! @brief key of a DICOM keyword ("PatientWeight") or tag ("(0010,1030)")
-    //! @return NULL if libmedio does not know the key
-    static const Key* key(const QString& keywordOrTag);
+    //! @brief entry of a DICOM keyword ("PatientWeight") or tag ("(0010,1030)")
+    //! @return NULL if the dictionary has no entry for it
+    static const Entry* entry(const QString& keywordOrTag);
 
-    //! @brief key of a DICOM tag, e.g. 0x00101030 = (0010,1030)
-    static const Key* key(quint32 tag);
+    //! @brief entry of a DICOM tag, e.g. 0x00101030 = (0010,1030)
+    static const Entry* entry(quint32 tag);
 
-    //! @brief all keys of the dictionary
-    static QList<const Key*> keys();
+    //! @brief all entries of the dictionary
+    static QList<const Entry*> entries();
 
-    //! @brief metadata key of a keyword or tag: the keyword of a known tag
+    //! @brief key of a keyword or tag in the attributes of a header: the keyword of a known tag
     //!        ("(0010,1030)" -> "PatientWeight"), a known keyword unchanged,
     //!        the tag string of an unknown tag ("00291010" -> "(0029,1010)"),
     //!        any other key unchanged
@@ -119,11 +119,11 @@ class CMedIOMetadata
     //! @brief tag of a keyword or tag string, 0 if unknown
     static quint32 tag(const QString& keywordOrTag);
 
-    //! @brief true if value is a valid JSON value of key (see the table above)
-    static bool isValid(const Key& key, const QJsonValue& value);
+    //! @brief true if value is a valid JSON value of the entry (see the table above)
+    static bool isValid(const Entry& entry, const QJsonValue& value);
 
-    //! @brief key of the frame metadata of all frames in a main header ("Frames")
+    //! @brief key of the frame attributes of all frames in a main header ("Frames")
     static const char* const FramesKey;
 };
 
-#endif // CMEDIOMETADATA_H
+#endif // CMEDIOHEADERDICTIONARY_H

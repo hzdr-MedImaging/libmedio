@@ -28,8 +28,8 @@
 //! planes) and a NIfTI-1 header describing the file the frame belongs to.
 
 #include "CMedIOMatrix.h"
-#include "CMedIOMetadataMap.h"
-#include "CMedIOMetadata.h"
+#include "CMedIOHeaderMapping.h"
+#include "CMedIOHeaderDictionary.h"
 #include "CNIFTIFile.h"
 #include "CNIFTIMainHeader.h"
 #include "CNIFTI1MainHeader.h"
@@ -386,10 +386,10 @@ bool niftiMatrixFromFrame(const CMedIOFrame& f, QByteArray& data, CMedIOHeader*&
   if(h) {
     setNiftiFrameTiming(h, f.volume.frameStart(), f.volume.frameDuration());
 
-    // metadata of the source: main metadata and the frame in "Frames"
-    MedIOMetadata::transfer(f.mainMetadata, *h, MedIOMetadata::frameKeys());
-    if(f.frameMetadata.isEmpty() == false)
-      h->updateMetadata(QJsonObject{{CMedIOMetadata::FramesKey, QJsonArray{f.frameMetadata}}});
+    // attributes of the source: main attributes and the frame in "Frames"
+    MedIOHeaderMapping::transfer(f.mainAttributes, *h, MedIOHeaderMapping::frameKeys());
+    if(f.frameAttributes.isEmpty() == false)
+      h->updateAttributes(QJsonObject{{CMedIOHeaderDictionary::FramesKey, QJsonArray{f.frameAttributes}}});
   }
   header = h;
   data = v.data();
@@ -429,18 +429,18 @@ bool niftiMainHeaderFromFrame(const CMedIOFrame& f, CMedIOData* source, CMedIOHe
 
   header = niftiHeader(f, v);
 
-  // frame metadata of all frames of the source
+  // frame attributes of all frames of the source
   if(header != NULL && source != NULL) {
     QJsonArray frames;
     bool any = false;
     foreach(short number, numbers) {
-      QJsonObject mainMetadata, frameMetadata;
-      fileMetadata(source, number, mainMetadata, frameMetadata);
-      frames.append(frameMetadata);
-      any = any || (frameMetadata.isEmpty() == false);
+      QJsonObject mainAttributes, frameAttributes;
+      fileAttributes(source, number, mainAttributes, frameAttributes);
+      frames.append(frameAttributes);
+      any = any || (frameAttributes.isEmpty() == false);
     }
     if(any)
-      header->updateMetadata(QJsonObject{{CMedIOMetadata::FramesKey, frames}});
+      header->updateAttributes(QJsonObject{{CMedIOHeaderDictionary::FramesKey, frames}});
   }
 
   bool result = (header != NULL);

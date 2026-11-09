@@ -17,8 +17,8 @@
   limitations under the License.
 */
 
-//! @file CPhilipsMetadata.cpp
-//! @brief private: format independent metadata of the Philips headers (see CMedIOMetadataMap.h)
+//! @file CPhilipsHeaderMapping.cpp
+//! @brief private: format independent header attributes of the Philips headers (see CMedIOHeaderMapping.h)
 //!
 //! Units of the Philips main header: patient height in mm, weight in g,
 //! activity in MBq, half life in min, energy window in keV, times as Unix
@@ -29,7 +29,7 @@
 //! of the main header (CPhilipsSubHeaderImage::ecat_Scale_Factor()): changing
 //! them changes the values of the slices written before.
 
-#include "CMedIOMetadataMap.h"
+#include "CMedIOHeaderMapping.h"
 #include "CPhilipsMainHeader.h"
 #include "CPhilipsSubHeader.h"
 
@@ -37,7 +37,7 @@
 
 #include <cmath>
 
-namespace MedIOMetadata {
+namespace MedIOHeaderMapping {
 
 namespace {
 
@@ -445,7 +445,7 @@ const Field mainNative[] = {
 };
 
 //---------------------------------------------------------------------------------------------
-// sub header (the metadata of a frame are the ones of its first slice)
+// sub header (the attributes of a frame are the ones of its first slice)
 
 // frame duration (ms) of the start and end time of a slice
 QJsonValue frameDuration(const SH& h)
@@ -521,4 +521,4 @@ const Adapter* philipsSubHeaderAdapter()
   return &subAdapter;
 }
 
-} // namespace MedIOMetadata
+} // namespace MedIOHeaderMapping

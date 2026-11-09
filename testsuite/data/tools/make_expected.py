@@ -41,9 +41,9 @@ Supported formats:
   interfile/  Interfile 3.3 images: a single file holding header and data,
           or a directory holding the header (.hdr) and the data file it names
 
-The ECAT7 and DICOM files also get the expected format independent metadata
-of libmedio ("metadata": DICOM keywords with the units of DICOM, see
-src/CMedIOMetadata.h), converted here from the header values read by nibabel
+The ECAT7 and DICOM files also get the expected format independent header attributes
+of libmedio ("attributes": DICOM keywords with the units of DICOM, see
+src/CMedIOHeaderDictionary.h), converted here from the header values read by nibabel
 and pydicom.
 """
 
@@ -90,7 +90,7 @@ def stats(raw):
 
 
 #------------------------------------------------------------------------------
-# format independent metadata (see src/CMedIOMetadata.h and CMedIOMetadataMap.h)
+# format independent header attributes (see src/CMedIOHeaderDictionary.h and CMedIOHeaderMapping.h)
 
 def float32_number(value, factor=1.0):
     """Value of a float32 field: the shortest decimal number giving the float32;
@@ -109,9 +109,9 @@ def date_of_unix_time(unix_seconds):
     return (datetime.date(1970, 1, 1) + datetime.timedelta(days=days)).isoformat()
 
 
-def put(metadata, key, value):
+def put(attributes, key, value):
     if value is not None and value != '' and value != []:
-        metadata[key] = value
+        attributes[key] = value
 
 
 # ECAT7 patient orientation -> DICOM patient position
@@ -121,8 +121,8 @@ ECAT7_POSITIONS = {0: 'FFP', 1: 'HFP', 2: 'FFS', 3: 'HFS', 4: 'FFDR', 5: 'HFDR',
 ECAT7_UNITS = {'bq/cc': 'BQML', 'bq/ml': 'BQML', 'ecat counts': 'CNTS', 'counts': 'CNTS'}
 
 
-def ecat7_metadata(hdr, subheaders):
-    """Metadata of an ECAT7 main header and its image sub headers (units of
+def ecat7_attributes(hdr, subheaders):
+    """Attributes of an ECAT7 main header and its image sub headers (units of
     ECAT7: height in cm, weight in kg, age in years, half life in s, dosage in
     Bq, thresholds in keV, times as Unix time)."""
     def text(field):
@@ -200,8 +200,8 @@ def dicom_date_time(date, time, offset=None):
     return dt
 
 
-def dicom_metadata(slices_of_frames):
-    """Metadata of a DICOM series: main values of the first slice, frame values
+def dicom_attributes(slices_of_frames):
+    """Attributes of a DICOM series: main values of the first slice, frame values
     of the first slice of every frame."""
     d = slices_of_frames[0][0]
 
@@ -344,7 +344,7 @@ def expected_ecat(path, file_info):
         expected['matrices'].append(matrix)
 
     image_subheaders = [sub.subheaders[i] for i, entry in enumerate(mlist) if entry[0] > 0]
-    expected['metadata'] = ecat7_metadata(hdr, image_subheaders)
+    expected['attributes'] = ecat7_attributes(hdr, image_subheaders)
 
     return expected
 
@@ -504,7 +504,7 @@ def expected_dicom(path, file_info):
         frame.update({'scaled_min': float(scaled.min()), 'scaled_max': float(scaled.max()), 'scaled_sum': float(scaled.sum())})
         expected['frames'].append(frame)
 
-    expected['metadata'] = dicom_metadata(frames)
+    expected['attributes'] = dicom_attributes(frames)
 
     return expected
 

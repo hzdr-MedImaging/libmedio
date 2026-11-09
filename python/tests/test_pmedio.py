@@ -32,9 +32,9 @@ def test_constructors():
   assert a[0,0,0,0] == pytest.approx(123.456, 3)
 
 
-def test_metadata():
-  # metadata of an ECAT7 file (see testsuite/data/ecat/pet-dynamic.v.json)
-  m = pmedio.metadata(os.path.join(DATA, 'ecat', 'pet-dynamic.v'))
+def test_attributes():
+  # attributes of an ECAT7 file (see testsuite/data/ecat/pet-dynamic.v.json)
+  m = pmedio.attributes(os.path.join(DATA, 'ecat', 'pet-dynamic.v'))
   assert m['PatientWeight'] == pytest.approx(8.63)
   assert m['RadionuclideTotalDose'] == pytest.approx(60780000)
   assert m['AcquisitionDateTime'] == '2026-06-03T17:04:56Z'
@@ -44,20 +44,20 @@ def test_metadata():
   assert m['Frames'][0]['DecayFactor'] == pytest.approx(1.00158)
 
   # Philips file of the same data
-  p = pmedio.metadata(os.path.join(DATA, 'philips', 'pet-dynamic.img'))
+  p = pmedio.attributes(os.path.join(DATA, 'philips', 'pet-dynamic.img'))
   assert p['PatientWeight'] == pytest.approx(8.63)
   assert p['Philips']['weight'] == 8630
 
 
-def test_metadata_key():
-  k = pmedio.metadataKey('(0010,1030)')
+def test_dictionary_entry():
+  k = pmedio.dictionaryEntry('(0010,1030)')
   assert k['keyword'] == 'PatientWeight'
   assert k['tag'] == '(0010,1030)'
   assert k['vr'] == 'DS'
   assert k['unit'] == 'kg'
   assert k['sequence'] is None
-  assert pmedio.metadataKey('RadionuclideTotalDose')['sequence'] == '(0054,0016)'
-  assert pmedio.metadataKey('Unknown') is None
+  assert pmedio.dictionaryEntry('RadionuclideTotalDose')['sequence'] == '(0054,0016)'
+  assert pmedio.dictionaryEntry('Unknown') is None
 
 
 def test_read_volume():

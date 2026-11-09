@@ -17,8 +17,8 @@
   limitations under the License.
 */
 
-//! @file CConcordeMetadata.cpp
-//! @brief private: format independent metadata of the microPET headers (see CMedIOMetadataMap.h)
+//! @file CConcordeHeaderMapping.cpp
+//! @brief private: format independent header attributes of the microPET headers (see CMedIOHeaderMapping.h)
 //!
 //! The microPET header gives the units of the dose (mCi, MBq), the subject
 //! weight (g, oz, kg, lb) and length (mm, cm, in); values with unknown units
@@ -27,14 +27,14 @@
 //! time are local times without time zone (e.g. "Mon Jan 1 12:00:00 2001")
 //! and are given as ISO 8601 date and time without time zone.
 
-#include "CMedIOMetadataMap.h"
+#include "CMedIOHeaderMapping.h"
 #include "CConcordeMainHeader.h"
 #include "CConcordeFrameHeader.h"
 
 #include <QDateTime>
 #include <QJsonArray>
 
-namespace MedIOMetadata {
+namespace MedIOHeaderMapping {
 
 namespace {
 
@@ -299,4 +299,4 @@ const Adapter* concordeFrameHeaderAdapter()
   return &frameAdapter;
 }
 
-} // namespace MedIOMetadata
+} // namespace MedIOHeaderMapping

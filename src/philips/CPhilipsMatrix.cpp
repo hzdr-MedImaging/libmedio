@@ -32,7 +32,7 @@
 //! position, the image positions img_pos_x/y of the slices are not used.
 
 #include "CMedIOMatrix.h"
-#include "CMedIOMetadataMap.h"
+#include "CMedIOHeaderMapping.h"
 #include "CPhilipsFile.h"
 #include "CPhilipsDirectory.h"
 #include "CPhilipsMainHeader.h"
@@ -134,8 +134,8 @@ bool philipsSubHeader(const CMedIOFrame& f, const CMedIOVolume& v, const CPhilip
   subHeader->setXdim(v.dimension(0));
   subHeader->setYdim(v.dimension(1));
 
-  // metadata of the source frame (all slices of the frame)
-  MedIOMetadata::transfer(f.frameMetadata, *subHeader);
+  // attributes of the source frame (all slices of the frame)
+  MedIOHeaderMapping::transfer(f.frameAttributes, *subHeader);
 
   // the scale factor (suvscl for calibrated data) has to reproduce the physical values
   bool ok = false;

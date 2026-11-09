@@ -172,7 +172,7 @@ CECAT7MainHeader& CECAT7MainHeader::operator=(const CECAT7MainHeader& src)
 {
   ENTER();
 
-  copyMetadata(src);
+  copyAttributes(src);
 
   if(m_pData != src.m_pData)
   {

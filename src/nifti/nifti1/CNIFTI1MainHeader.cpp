@@ -198,7 +198,7 @@ CNIFTI1MainHeader::CNIFTI1MainHeader(const CNIFTI1MainHeader& src)  : CNIFTIMain
 CNIFTI1MainHeader& CNIFTI1MainHeader::operator=(const CNIFTI1MainHeader& src) {
   ENTER();
 
-  copyMetadata(src);
+  copyAttributes(src);
 
   if(m_pData != src.m_pData) {
     memcpy(&m_pData->header, 

@@ -149,7 +149,7 @@ CECAT7SubHeaderImage& CECAT7SubHeaderImage::operator=(const CECAT7SubHeaderImage
 {
   ENTER();
 
-  copyMetadata(src);
+  copyAttributes(src);
 
   if(m_pData != src.m_pData)
   {

@@ -21,7 +21,7 @@
 
 #include <CMedIODataFactory>
 #include <CMedIOHeader>
-#include <CMedIOMetadata>
+#include <CMedIOHeaderDictionary>
 #include <CMedIOVolume>
 
 #include <QString>
@@ -280,40 +280,40 @@ PYBIND11_MODULE(pmedio, m) {
      py::arg("cols") = std::vector<int>(),
      py::arg("planes") = std::vector<int>());
 
-  // format independent metadata of a file (see CMedIOMetadata.h): the metadata
+  // format independent header attributes of a file (see CMedIOHeaderDictionary.h): the attributes
   // of its main header (DICOM keywords, native fields of the format, ...) and
-  // in "Frames" the metadata of all frames
-  m.def("metadata", [](const QString& fileName) -> py::object
+  // in "Frames" the attributes of all frames
+  m.def("attributes", [](const QString& fileName) -> py::object
   {
     QScopedPointer<CMedIOData> data(openFile(fileName));
 
-    // the NIfTI representation of the main header holds the frame metadata of all frames
+    // the NIfTI representation of the main header holds the frame attributes of all frames
     CMedIOHeader* header = nullptr;
     if(data->readMainHeader(header, CMedIOData::NIFTI) == false || header == nullptr)
-      throw std::runtime_error("unable to read the metadata");
+      throw std::runtime_error("unable to read the attributes");
     QScopedPointer<CMedIOHeader> guard(header);
 
-    QJsonObject json = header->metadata();
+    QJsonObject json = header->attributes();
     if(data->dataFormat() != CMedIOData::NIFTI)
       json.remove("NIfTI");
     return pythonOfJson(json);
   }, py::arg("fileName"));
 
-  // key of the metadata: DICOM keyword ("PatientWeight") or tag ("(0010,1030)")
-  m.def("metadataKey", [](const QString& keywordOrTag) -> py::object
+  // key of the attributes: DICOM keyword ("PatientWeight") or tag ("(0010,1030)")
+  m.def("dictionaryEntry", [](const QString& keywordOrTag) -> py::object
   {
-    const CMedIOMetadata::Key* key = CMedIOMetadata::key(keywordOrTag);
+    const CMedIOHeaderDictionary::Entry* key = CMedIOHeaderDictionary::entry(keywordOrTag);
     if(key == nullptr)
       return py::none();
 
     py::dict d;
     d["keyword"] = key->keyword;
-    d["tag"] = CMedIOMetadata::tagString(key->tag).toStdString();
+    d["tag"] = CMedIOHeaderDictionary::tagString(key->tag).toStdString();
     d["vr"] = key->vr;
     d["vm"] = key->vm;
     d["unit"] = key->unit;
-    d["sequence"] = key->sequence ? py::object(py::str(CMedIOMetadata::tagString(key->sequence).toStdString())) : py::none();
-    d["scope"] = (key->scope == CMedIOMetadata::FrameHeader) ? "frame" : "main";
+    d["sequence"] = key->sequence ? py::object(py::str(CMedIOHeaderDictionary::tagString(key->sequence).toStdString())) : py::none();
+    d["scope"] = (key->scope == CMedIOHeaderDictionary::FrameHeader) ? "frame" : "main";
     return py::object(d);
   }, py::arg("keywordOrTag"));
 

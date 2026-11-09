@@ -18,7 +18,7 @@
 */
 
 #include "CNIFTIFile.h"
-#include "CMedIOMetadataMap.h"
+#include "CMedIOHeaderMapping.h"
 #include "CMedIOData.h"
 #include "CNIFTI1MainHeader.h"
 #include "CNIFTI2MainHeader.h"
@@ -555,8 +555,8 @@ bool CNIFTIFile::open(QIODevice::OpenModeFlag mode) {
       // load the rest of the header data from the file
       if(d->cachedMainHeader != NULL) {
         if(d->cachedMainHeader->load()) {
-          // the metadata of the JSON header extension or sidecar file
-          MedIOMetadata::readNiftiMetadata(*this, *d->cachedMainHeader);
+          // the attributes of the JSON header extension or sidecar file
+          MedIOHeaderMapping::readNiftiAttributes(*this, *d->cachedMainHeader);
           result = true;
         }
         else
@@ -725,10 +725,10 @@ bool CNIFTIFile::readMainHeader(CNIFTIMainHeader*& MainHeader) {
 bool CNIFTIFile::writeMainHeader(CNIFTIMainHeader& MainHeader) {
   ENTER();
 
-  // the metadata of the header are stored as JSON header extension (between
+  // the attributes of the header are stored as JSON header extension (between
   // the header and vox_offset in single files, at the end of the header file
   // of header/image pairs)
-  const QJsonObject json = MedIOMetadata::niftiJson(MainHeader.metadata());
+  const QJsonObject json = MedIOHeaderMapping::niftiJson(MainHeader.attributes());
   const bool nifti2 = (MainHeader.mainHeaderType() == CNIFTIMainHeader::NIFTI2MainHeader);
   CNIFTI1MainHeader* h1 = nifti2 ? NULL : static_cast<CNIFTI1MainHeader*>(&MainHeader);
   CNIFTI2MainHeader* h2 = nifti2 ? static_cast<CNIFTI2MainHeader*>(&MainHeader) : NULL;
@@ -742,7 +742,7 @@ bool CNIFTIFile::writeMainHeader(CNIFTIMainHeader& MainHeader) {
     if(voxOffset < required) {
       // the voxel data must not be moved
       if(QFile::exists(fileName()) && QFileInfo(fileName()).size() > voxOffset && voxOffset > 0) {
-        E("no space for the metadata before the voxel data");
+        E("no space for the attributes before the voxel data");
         RETURN(false);
         return false;
       }

@@ -21,7 +21,7 @@
 //! @brief ECAT7 adapter of the matrix conversion (see CMedIOMatrix.h)
 
 #include "CMedIOMatrix.h"
-#include "CMedIOMetadataMap.h"
+#include "CMedIOHeaderMapping.h"
 #include "CECATFile.h"
 #include "CECATDirectory.h"
 #include "CECATMainHeader.h"
@@ -190,8 +190,8 @@ bool ecatMatrixFromFrame(const CMedIOFrame& f, QByteArray& data, CMedIOHeader*& 
     s->setImage_Max(static_cast<short>(hi));
   }
 
-  // metadata of the source frame
-  MedIOMetadata::transfer(f.frameMetadata, *s);
+  // attributes of the source frame
+  MedIOHeaderMapping::transfer(f.frameAttributes, *s);
 
   data = v.data();
   header = s;

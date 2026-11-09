@@ -17,16 +17,16 @@
   limitations under the License.
 */
 
-//! @file CNIFTIMetadata.cpp
-//! @brief private: format independent metadata of NIfTI files (see CMedIOMetadataMap.h)
+//! @file CNIFTIHeaderMapping.cpp
+//! @brief private: format independent header attributes of NIfTI files (see CMedIOHeaderMapping.h)
 //!
-//! NIfTI headers have no fields for the metadata: all metadata of a NIfTI
+//! NIfTI headers have no fields for the attributes: all attributes of a NIfTI
 //! file are stored in its JSON header extension (or a JSON sidecar file) and
 //! kept in the main header object. Only the descriptive NIfTI fields form the
 //! native section "NIfTI".
 
-#include "CMedIOMetadataMap.h"
-#include "CMedIOMetadata.h"
+#include "CMedIOHeaderMapping.h"
+#include "CMedIOHeaderDictionary.h"
 #include "CNIFTIFile.h"
 #include "CNIFTIMainHeader.h"
 #include "CNIFTI1MainHeader.h"
@@ -38,7 +38,7 @@
 
 #include <rtdebug.h>
 
-namespace MedIOMetadata {
+namespace MedIOHeaderMapping {
 
 namespace {
 
@@ -70,8 +70,8 @@ const Field nifti2Native[] = {
 const Adapter nifti1Adapter = { "NIfTI", NULL, 0, nifti1Native, sizeof(nifti1Native) / sizeof(nifti1Native[0]) };
 const Adapter nifti2Adapter = { "NIfTI", NULL, 0, nifti2Native, sizeof(nifti2Native) / sizeof(nifti2Native[0]) };
 
-// BIDS keys derived from the metadata (written for other tools, not read back
-// from files that have the metadata keys)
+// BIDS keys derived from the attributes (written for other tools, not read back
+// from files that have the attributes)
 const char* const bidsKeys[] = { "TracerName", "InjectedRadioactivity", "InjectedRadioactivityUnits",
                                  "ManufacturersModelName", "ReconMethodName", "ImageDecayCorrected",
                                  "DecayCorrectionFactor" };
@@ -108,7 +108,7 @@ const Adapter* nifti2MainHeaderAdapter()
 
 //=============================================================================================
 
-QJsonObject metadataOfNiftiJson(const QJsonObject& source)
+QJsonObject attributesOfNiftiJson(const QJsonObject& source)
 {
   ENTER();
   QJsonObject json = source;
@@ -131,17 +131,17 @@ QJsonObject metadataOfNiftiJson(const QJsonObject& source)
     if(fields.isEmpty() == false) {
       json["ECAT7"] = fields;
 
-      // the metadata keys of these fields: an ECAT7 header without values
+      // the attributes of these fields: an ECAT7 header without values
       // (no defaults), set to the given fields
       CECAT7MainHeader header;
       QJsonObject cleared;
       for(int i=0; i < ecat->nativeCount; i++)
         cleared[QString::fromLatin1(ecat->native[i].key)] = QJsonValue(QJsonValue::Null);
       cleared["Patient_Orientation"] = static_cast<int>(CECAT7MainHeader::Orient_Unknown);   // 0 is a valid orientation
-      header.updateMetadata(QJsonObject{{"ECAT7", cleared}});
+      header.updateAttributes(QJsonObject{{"ECAT7", cleared}});
       transfer(QJsonObject{{"ECAT7", fields}}, header);
 
-      const QJsonObject derived = header.metadata();
+      const QJsonObject derived = header.attributes();
       for(int i=0; i < ecat->keyCount; i++)
         setIfMissing(json, QString::fromLatin1(ecat->keys[i].key), derived.value(QString::fromLatin1(ecat->keys[i].key)));
     }
@@ -160,11 +160,11 @@ QJsonObject metadataOfNiftiJson(const QJsonObject& source)
     json["Units"] = QString("BQML");
 
   const QJsonArray decay = json.value("DecayCorrectionFactor").toArray();
-  if(decay.isEmpty() == false && json.contains(CMedIOMetadata::FramesKey) == false) {
+  if(decay.isEmpty() == false && json.contains(CMedIOHeaderDictionary::FramesKey) == false) {
     QJsonArray frames;
     for(int i=0; i < decay.size(); i++)
       frames.append(QJsonObject{{"DecayFactor", decay[i]}});
-    json[CMedIOMetadata::FramesKey] = frames;
+    json[CMedIOHeaderDictionary::FramesKey] = frames;
   }
 
   for(unsigned i=0; i < sizeof(bidsKeys) / sizeof(bidsKeys[0]); i++)
@@ -174,10 +174,10 @@ QJsonObject metadataOfNiftiJson(const QJsonObject& source)
   return json;
 }
 
-QJsonObject niftiJson(const QJsonObject& metadata)
+QJsonObject niftiJson(const QJsonObject& attributes)
 {
   ENTER();
-  QJsonObject json = metadata;
+  QJsonObject json = attributes;
   json.remove("NIfTI");
   for(unsigned i=0; i < sizeof(bidsKeys) / sizeof(bidsKeys[0]); i++)
     json.remove(QString::fromLatin1(bidsKeys[i]));
@@ -198,7 +198,7 @@ QJsonObject niftiJson(const QJsonObject& metadata)
   if(json.value("DecayCorrection").isString())
     json["ImageDecayCorrected"] = (json.value("DecayCorrection").toString() != "NONE");
 
-  const QJsonArray frames = json.value(CMedIOMetadata::FramesKey).toArray();
+  const QJsonArray frames = json.value(CMedIOHeaderDictionary::FramesKey).toArray();
   QJsonArray decay;
   for(int i=0; i < frames.size(); i++) {
     const QJsonValue factor = frames[i].toObject().value("DecayFactor");
@@ -215,14 +215,14 @@ QJsonObject niftiJson(const QJsonObject& metadata)
   return json;
 }
 
-void readNiftiMetadata(CNIFTIFile& file, CNIFTIMainHeader& header)
+void readNiftiAttributes(CNIFTIFile& file, CNIFTIMainHeader& header)
 {
   ENTER();
   // the name of the header file (fileName() is a temporary file while compressed files are opened)
   const QJsonObject json = niftiMetadata(file, &header, file.headerFileName());
   if(json.isEmpty() == false)
-    transfer(metadataOfNiftiJson(json), header);
+    transfer(attributesOfNiftiJson(json), header);
   LEAVE();
 }
 
-} // namespace MedIOMetadata
+} // namespace MedIOHeaderMapping

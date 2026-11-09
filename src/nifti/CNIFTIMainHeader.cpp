@@ -50,7 +50,7 @@ CNIFTIMainHeader::CNIFTIMainHeader(const CNIFTIMainHeader& src) : CMedIOHeader(s
 CNIFTIMainHeader& CNIFTIMainHeader::operator=(const CNIFTIMainHeader& src) {
   ENTER();
 
-  copyMetadata(src);
+  copyAttributes(src);
 
   convertFrom(&src);
   

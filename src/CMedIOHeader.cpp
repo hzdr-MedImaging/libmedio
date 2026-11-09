@@ -21,8 +21,8 @@
 //! @brief contains the implementation of the class CMedIOHeader
 
 #include "CMedIOHeader.h"
-#include "CMedIOMetadata.h"
-#include "CMedIOMetadataMap.h"
+#include "CMedIOHeaderDictionary.h"
+#include "CMedIOHeaderMapping.h"
 #include "CMedIOData.h"
 #include "CECATFile.h"
 #include "CPhilipsFile.h"
@@ -44,7 +44,7 @@ class CMedIOHeaderPrivate
 {
   public:
     CMedIOData* medIOData;
-    QJsonObject metadata;   // metadata the format cannot store (see metadata())
+    QJsonObject attributes;   // attributes the format cannot store (see attributes())
 };
  
 CMedIOHeader::CMedIOHeader()
@@ -65,7 +65,7 @@ CMedIOHeader::CMedIOHeader(const CMedIOHeader& src)
   // allocate data from our private instance class
   m_pData = new CMedIOHeaderPrivate();
   m_pData->medIOData = src.medIOData();
-  m_pData->metadata = src.m_pData->metadata;
+  m_pData->attributes = src.m_pData->attributes;
 
   LEAVE();
 }
@@ -102,7 +102,7 @@ CMedIOHeader& CMedIOHeader::operator=(const CMedIOHeader& src)
 {
   ENTER();
 
-  copyMetadata(src);
+  copyAttributes(src);
 
   convertFrom(&src);
 
@@ -110,54 +110,54 @@ CMedIOHeader& CMedIOHeader::operator=(const CMedIOHeader& src)
   return *this;
 }
 
-void CMedIOHeader::copyMetadata(const CMedIOHeader& src)
+void CMedIOHeader::copyAttributes(const CMedIOHeader& src)
 {
   if(m_pData != src.m_pData)
-    m_pData->metadata = src.m_pData->metadata;
+    m_pData->attributes = src.m_pData->attributes;
 }
 
-QJsonObject CMedIOHeader::metadata() const
+QJsonObject CMedIOHeader::attributes() const
 {
   ENTER();
-  const QJsonObject json = MedIOMetadata::metadata(*this, m_pData->metadata);
+  const QJsonObject json = MedIOHeaderMapping::attributes(*this, m_pData->attributes);
   LEAVE();
   return json;
 }
 
-bool CMedIOHeader::updateMetadata(const QJsonObject& changes)
+bool CMedIOHeader::updateAttributes(const QJsonObject& changes)
 {
   ENTER();
 
   // apply the changes to a copy first: nothing is changed if one of them is invalid
   QScopedPointer<CMedIOHeader> copy(clone());
   bool result = (copy.isNull() == false) &&
-                MedIOMetadata::update(*copy, copy->m_pData->metadata, changes) &&
-                MedIOMetadata::update(*this, m_pData->metadata, changes);
+                MedIOHeaderMapping::update(*copy, copy->m_pData->attributes, changes) &&
+                MedIOHeaderMapping::update(*this, m_pData->attributes, changes);
 
   RETURN(result);
   return result;
 }
 
-QJsonValue CMedIOHeader::metadataValue(const QString& keywordOrTag) const
+QJsonValue CMedIOHeader::attribute(const QString& keywordOrTag) const
 {
-  return metadata().value(CMedIOMetadata::normalizedKey(keywordOrTag));
+  return attributes().value(CMedIOHeaderDictionary::normalizedKey(keywordOrTag));
 }
 
-QJsonValue CMedIOHeader::metadataValue(quint32 tag) const
+QJsonValue CMedIOHeader::attribute(quint32 tag) const
 {
-  return metadataValue(CMedIOMetadata::tagString(tag));
+  return attribute(CMedIOHeaderDictionary::tagString(tag));
 }
 
-bool CMedIOHeader::setMetadataValue(const QString& keywordOrTag, const QJsonValue& value)
+bool CMedIOHeader::setAttribute(const QString& keywordOrTag, const QJsonValue& value)
 {
   QJsonObject change;
-  change[CMedIOMetadata::normalizedKey(keywordOrTag)] = value;
-  return updateMetadata(change);
+  change[CMedIOHeaderDictionary::normalizedKey(keywordOrTag)] = value;
+  return updateAttributes(change);
 }
 
-bool CMedIOHeader::setMetadataValue(quint32 tag, const QJsonValue& value)
+bool CMedIOHeader::setAttribute(quint32 tag, const QJsonValue& value)
 {
-  return setMetadataValue(CMedIOMetadata::tagString(tag), value);
+  return setAttribute(CMedIOHeaderDictionary::tagString(tag), value);
 }
 
 CMedIOData* CMedIOHeader::medIOData(void) const

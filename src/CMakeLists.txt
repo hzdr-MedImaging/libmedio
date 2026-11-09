@@ -58,7 +58,7 @@ set(PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/CMedIO.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/CMedIOData.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/CMedIODataFactory.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/CMedIOVolume.h
-                  ${CMAKE_CURRENT_SOURCE_DIR}/CMedIOMetadata.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/CMedIOHeaderDictionary.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/ecat/CECATDirectory.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/ecat/CECATDirectoryItem.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/ecat/CECATFile.h

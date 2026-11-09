@@ -95,7 +95,7 @@ CECAT7SubHeaderNorm& CECAT7SubHeaderNorm::operator=(const CECAT7SubHeaderNorm& s
 {
   ENTER();
 
-  copyMetadata(src);
+  copyAttributes(src);
 
   if(m_pData != src.m_pData)
   {

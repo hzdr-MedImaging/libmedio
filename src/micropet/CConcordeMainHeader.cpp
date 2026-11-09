@@ -214,7 +214,7 @@ CConcordeMainHeader& CConcordeMainHeader::operator=(const CConcordeMainHeader& s
 {
   ENTER();
 
-  copyMetadata(src);
+  copyAttributes(src);
 
   m_pData->header.model = src.model();
   m_pData->header.institution = src.institution();

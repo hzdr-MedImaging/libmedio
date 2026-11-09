@@ -17,15 +17,15 @@
   limitations under the License.
 */
 
-//! @file CECATMetadata.cpp
-//! @brief private: format independent metadata of the ECAT7 headers (see CMedIOMetadataMap.h)
+//! @file CECATHeaderMapping.cpp
+//! @brief private: format independent header attributes of the ECAT7 headers (see CMedIOHeaderMapping.h)
 //!
 //! Units of the ECAT7 main header: patient height in cm, weight in kg, age in
 //! years, isotope half life in s, dosage in Bq (as written by libmedio, e.g.
 //! when converting from Philips, and by ROVER), energy thresholds in keV, scan
 //! and dose start time as Unix time (UTC), birth date as Unix time of midnight.
 
-#include "CMedIOMetadataMap.h"
+#include "CMedIOHeaderMapping.h"
 #include "CECAT7MainHeader.h"
 #include "CECAT7SubHeaderImage.h"
 
@@ -34,7 +34,7 @@
 
 #include <climits>
 
-namespace MedIOMetadata {
+namespace MedIOHeaderMapping {
 
 namespace {
 
@@ -326,4 +326,4 @@ const Adapter* ecat7ImageSubHeaderAdapter()
   return &imageAdapter;
 }
 
-} // namespace MedIOMetadata
+} // namespace MedIOHeaderMapping

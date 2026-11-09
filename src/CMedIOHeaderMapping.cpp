@@ -17,11 +17,11 @@
   limitations under the License.
 */
 
-//! @file CMedIOMetadataMap.cpp
-//! @brief private: format independent metadata of the headers (see CMedIOMetadataMap.h)
+//! @file CMedIOHeaderMapping.cpp
+//! @brief private: format independent header attributes of the headers (see CMedIOHeaderMapping.h)
 
-#include "CMedIOMetadataMap.h"
-#include "CMedIOMetadata.h"
+#include "CMedIOHeaderMapping.h"
+#include "CMedIOHeaderDictionary.h"
 #include "CMedIOHeader.h"
 #include "CECATMainHeader.h"
 #include "CECATSubHeader.h"
@@ -34,7 +34,7 @@
 
 #include <rtdebug.h>
 
-namespace MedIOMetadata {
+namespace MedIOHeaderMapping {
 
 //=============================================================================================
 // adapters
@@ -103,9 +103,9 @@ bool isArrayOfObjects(const QJsonValue& value)
 } // namespace
 
 //=============================================================================================
-// metadata of a header
+// attributes of a header
 
-QJsonObject metadata(const CMedIOHeader& header, const QJsonObject& other)
+QJsonObject attributes(const CMedIOHeader& header, const QJsonObject& other)
 {
   QJsonObject json = other;
 
@@ -137,14 +137,14 @@ bool update(CMedIOHeader& header, QJsonObject& other, const QJsonObject& changes
 
   const Adapter* a = adapter(header);
   const QString section = a ? QString::fromLatin1(a->section) : QString();
-  const QJsonObject before = metadata(header, other);
+  const QJsonObject before = attributes(header, other);
 
   // keys given as tag are stored by their keyword ("(0010,1030)" -> "PatientWeight")
   QJsonObject keys;
   for(QJsonObject::const_iterator it = changes.begin(); it != changes.end(); ++it) {
-    const QString key = CMedIOMetadata::normalizedKey(it.key());
+    const QString key = CMedIOHeaderDictionary::normalizedKey(it.key());
     if(keys.contains(key)) {
-      E("metadata key %s given twice", key.toLatin1().constData());
+      E("attribute %s given twice", key.toLatin1().constData());
       RETURN(false);
       return false;
     }
@@ -152,7 +152,7 @@ bool update(CMedIOHeader& header, QJsonObject& other, const QJsonObject& changes
   }
 
   // native fields of the format of the header (only changed fields, so that
-  // a changed metadata key wins over the unchanged field in the same object)
+  // a changed attribute wins over the unchanged field in the same object)
   if(a != NULL && keys.contains(section)) {
     const QJsonValue value = keys.take(section);
     if(value.isObject()) {
@@ -190,16 +190,16 @@ bool update(CMedIOHeader& header, QJsonObject& other, const QJsonObject& changes
     }
   }
 
-  // metadata keys, other formats and unknown keys
+  // attributes, other formats and unknown keys
   for(QJsonObject::const_iterator it = keys.begin(); it != keys.end(); ++it) {
     const QString key = it.key();
     const QJsonValue value = it.value();
 
-    const CMedIOMetadata::Key* k = CMedIOMetadata::key(key);
+    const CMedIOHeaderDictionary::Entry* k = CMedIOHeaderDictionary::entry(key);
     if(value.isNull() == false && value.isUndefined() == false) {
-      if((k != NULL && CMedIOMetadata::isValid(*k, value) == false) ||
-         (key == QLatin1String(CMedIOMetadata::FramesKey) && isArrayOfObjects(value) == false)) {
-        E("invalid value of metadata key %s", key.toLatin1().constData());
+      if((k != NULL && CMedIOHeaderDictionary::isValid(*k, value) == false) ||
+         (key == QLatin1String(CMedIOHeaderDictionary::FramesKey) && isArrayOfObjects(value) == false)) {
+        E("invalid value of attribute %s", key.toLatin1().constData());
         RETURN(false);
         return false;
       }
@@ -249,22 +249,22 @@ void transfer(const QJsonObject& source, CMedIOHeader& target, const QStringList
         QScopedPointer<CMedIOHeader> copy(target.clone());
         QJsonObject change;
         change[section] = QJsonObject{{field.key(), field.value()}};
-        if(copy.isNull() == false && copy->updateMetadata(change))
+        if(copy.isNull() == false && copy->updateAttributes(change))
           valid[field.key()] = field.value();
         else
           W("native field %s.%s not copied", section.toLatin1().constData(), field.key().toLatin1().constData());
       }
       QJsonObject change;
       change[section] = valid;
-      if(target.updateMetadata(change) == false)
+      if(target.updateAttributes(change) == false)
         W("native fields of %s not copied", section.toLatin1().constData());
       continue;
     }
 
     QJsonObject change;
     change[it.key()] = it.value();
-    if(target.updateMetadata(change) == false)
-      W("metadata key %s not copied", it.key().toLatin1().constData());
+    if(target.updateAttributes(change) == false)
+      W("attribute %s not copied", it.key().toLatin1().constData());
   }
 
   LEAVE();
@@ -272,7 +272,7 @@ void transfer(const QJsonObject& source, CMedIOHeader& target, const QStringList
 
 QStringList frameKeys()
 {
-  return QStringList() << QString::fromLatin1(CMedIOMetadata::FramesKey)
+  return QStringList() << QString::fromLatin1(CMedIOHeaderDictionary::FramesKey)
                        << "FrameTimesStart" << "FrameDuration";
 }
 
@@ -402,4 +402,4 @@ QJsonValue code(const QString& value, const QString& scheme, const QString& vers
   return item.isEmpty() ? QJsonValue(QJsonValue::Undefined) : QJsonValue(item);
 }
 
-} // namespace MedIOMetadata
+} // namespace MedIOHeaderMapping

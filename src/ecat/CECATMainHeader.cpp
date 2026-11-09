@@ -43,7 +43,7 @@ CECATMainHeader& CECATMainHeader::operator=(const CECATMainHeader& src)
 {
   ENTER();
 
-  copyMetadata(src);
+  copyAttributes(src);
 
   convertFrom(&src);
   

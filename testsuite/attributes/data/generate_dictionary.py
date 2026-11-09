@@ -19,8 +19,8 @@
 #
 
 # Generates dicom_dictionary.json: tag, VR and VM of the DICOM keywords used
-# as metadata keys by libmedio (src/CMedIOMetadata.cpp), taken from the DICOM
-# data dictionary of pydicom as independent source. testMedIOMetadata checks
+# as attributes by libmedio (src/CMedIOHeaderDictionary.cpp), taken from the DICOM
+# data dictionary of pydicom as independent source. testMedIOAttributes checks
 # the dictionary of libmedio against this file.
 #
 # Usage: python3 generate_dictionary.py [output directory]
@@ -34,7 +34,7 @@ from pydicom.datadict import dictionary_VM, dictionary_VR, tag_for_keyword
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.dirname(os.path.abspath(__file__))
 
-# the metadata keys of libmedio and the sequences holding some of them
+# the attributes of libmedio and the sequences holding some of them
 KEYWORDS = [
     "PatientName", "PatientID", "PatientBirthDate", "PatientSex", "PatientAge",
     "PatientSize", "PatientWeight", "PatientPosition",

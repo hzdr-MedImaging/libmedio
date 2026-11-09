@@ -341,8 +341,8 @@ class TestNIFTIConversion : public QObject
 
     void philipsRoundTrip_data();
     void philipsRoundTrip();
-    void philipsMetadataRoundTrip_data();
-    void philipsMetadataRoundTrip();
+    void philipsAttributesRoundTrip_data();
+    void philipsAttributesRoundTrip();
 
     void philipsSliceScales_data();
     void philipsSliceScales();
@@ -524,10 +524,10 @@ void TestNIFTIConversion::ecatToNifti()
     QVERIFY(n.voxOffset > (version == 2 ? 544 : 352));
     QCOMPARE(std::fmod(n.voxOffset, 16.0), 0.0);
   }
-  // the metadata keys (expected values converted from the nibabel header, see
+  // the attributes (expected values converted from the nibabel header, see
   // make_expected.py) and the native fields of the ECAT7 main header
-  const QJsonObject expectedMetadata = testFile->expected.value("metadata").toObject();
-  const QJsonObject expectedMain = expectedMetadata.value("main").toObject();
+  const QJsonObject expectedAttributes = testFile->expected.value("attributes").toObject();
+  const QJsonObject expectedMain = expectedAttributes.value("main").toObject();
   QVERIFY(expectedMain.isEmpty() == false);
   foreach(const QString& key, expectedMain.keys()) {
     if(expectedMain[key].isDouble())
@@ -540,13 +540,13 @@ void TestNIFTIConversion::ecatToNifti()
   QVERIFY(ecatFields.contains("Isotope_Name"));
   QCOMPARE(ecatFields.value("Data_Units").toString(), testFile->expected.value("main_header").toObject().value("data_units").toString());
 
-  // frame metadata of all frames (sub headers)
-  const QJsonArray expectedFrames = expectedMetadata.value("frames").toArray();
-  const QJsonArray frameMetadata = n.json.value("Frames").toArray();
-  QCOMPARE(frameMetadata.size(), e.frames);
+  // frame attributes of all frames (sub headers)
+  const QJsonArray expectedFrames = expectedAttributes.value("frames").toArray();
+  const QJsonArray frameAttributes = n.json.value("Frames").toArray();
+  QCOMPARE(frameAttributes.size(), e.frames);
   for(int f=0; f < e.frames; f++) {
-    QCOMPARE(frameMetadata[f].toObject().value("DecayFactor"), expectedFrames[f].toObject().value("DecayFactor"));
-    QVERIFY(frameMetadata[f].toObject().value("ECAT7").toObject().contains("Annotation"));
+    QCOMPARE(frameAttributes[f].toObject().value("DecayFactor"), expectedFrames[f].toObject().value("DecayFactor"));
+    QVERIFY(frameAttributes[f].toObject().value("ECAT7").toObject().contains("Annotation"));
   }
 
   const QJsonArray start = n.json.value("FrameTimesStart").toArray();
@@ -1058,14 +1058,14 @@ void TestNIFTIConversion::philipsToNifti()
   CPhilipsMainHeader* mainHeader = NULL;
   QVERIFY(philipsFile.readMainHeader(mainHeader));
   QScopedPointer<CPhilipsMainHeader> guard(mainHeader);
-  QCOMPARE(p.json.value("Philips").toObject(), mainHeader->metadata().value("Philips").toObject());
+  QCOMPARE(p.json.value("Philips").toObject(), mainHeader->attributes().value("Philips").toObject());
 }
 
 //---------------------------------------------------------------------------------------------
-// Philips -> NIfTI -> Philips: the metadata of the Philips main header and of
-// the first slice of every frame (native fields and metadata keys) are kept
+// Philips -> NIfTI -> Philips: the attributes of the Philips main header and of
+// the first slice of every frame (native fields and attributes) are kept
 
-void TestNIFTIConversion::philipsMetadataRoundTrip_data()
+void TestNIFTIConversion::philipsAttributesRoundTrip_data()
 {
   QTest::addColumn<QString>("philips");
 
@@ -1081,14 +1081,14 @@ void TestNIFTIConversion::philipsMetadataRoundTrip_data()
     QTest::newRow("no Philips test data") << QString();
 }
 
-void TestNIFTIConversion::philipsMetadataRoundTrip()
+void TestNIFTIConversion::philipsAttributesRoundTrip()
 {
   QFETCH(QString, philips);
   if(philips.isEmpty())
     QSKIP("no Philips files in the test data");
 
   const QString suffix = philips.endsWith(".syn") ? ".syn" : ".img";
-  const QString base = tmpFile("metadata-" + QFileInfo(philips).completeBaseName() + suffix.mid(1));
+  const QString base = tmpFile("attributes-" + QFileInfo(philips).completeBaseName() + suffix.mid(1));
   QString error;
   QVERIFY2(CNIFTIConverter::philipsToNifti(philips, base + ".nii", CNIFTIConverter::Options(), &error), qPrintable(error));
   QVERIFY2(CNIFTIConverter::niftiToPhilips(base + ".nii", base + suffix, &error), qPrintable(error));
@@ -1104,8 +1104,8 @@ void TestNIFTIConversion::philipsMetadataRoundTrip()
   QVERIFY(written.readMainHeader(b));
   QScopedPointer<CPhilipsMainHeader> aGuard(a), bGuard(b);
 
-  const QJsonObject ma = a->metadata();
-  const QJsonObject mb = b->metadata();
+  const QJsonObject ma = a->attributes();
+  const QJsonObject mb = b->attributes();
   QStringList different;
   foreach(const QString& key, ma.keys() + mb.keys()) {
     if(ma.value(key) != mb.value(key) && key != "Philips" && different.contains(key) == false)
@@ -1128,7 +1128,7 @@ void TestNIFTIConversion::philipsMetadataRoundTrip()
     QVERIFY(source.readSubHeader(sa, frames[k], -1));
     QVERIFY(written.readSubHeader(sb, written.frameNumbers()[k], -1));
     QScopedPointer<CPhilipsSubHeader> saGuard(sa), sbGuard(sb);
-    QCOMPARE(sb->metadata().value("Philips").toObject(), sa->metadata().value("Philips").toObject());
+    QCOMPARE(sb->attributes().value("Philips").toObject(), sa->attributes().value("Philips").toObject());
   }
 }
 

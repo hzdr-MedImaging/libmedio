@@ -29,23 +29,23 @@ include_directories(${RTDEBUG_INCLUDES}
                     ${MEDIO_INCLUDES}
 )
 
-# tests of the format independent metadata (CMedIOMetadata, CMedIOHeader::metadata())
-add_executable(testMedIOMetadata testMedIOMetadata.cpp)
+# tests of the format independent header attributes (CMedIOHeaderDictionary, CMedIOHeader::attributes())
+add_executable(testMedIOAttributes testMedIOAttributes.cpp)
 
-target_include_directories(testMedIOMetadata PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../common)
-target_compile_definitions(testMedIOMetadata PRIVATE
+target_include_directories(testMedIOAttributes PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../common)
+target_compile_definitions(testMedIOAttributes PRIVATE
                            MEDIO_TEST_DATA_DIR="${MEDIO_TEST_DATA_DIR}"
-                           METADATA_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data"
+                           ATTRIBUTES_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data"
                            NIFTI_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../nifti/data")
 
-target_link_libraries(testMedIOMetadata Qt5::Core
+target_link_libraries(testMedIOAttributes Qt5::Core
                                         Qt5::Test
                                         ZLIB::ZLIB
                                         ${CMAKE_PROJECT_NAME}-static
                                         ${RTDEBUG_STATIC_LIB}
 )
 
-add_test(NAME medio_metadata
-         COMMAND testMedIOMetadata
+add_test(NAME medio_attributes
+         COMMAND testMedIOAttributes
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
