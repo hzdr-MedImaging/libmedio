@@ -4863,6 +4863,11 @@ void CPhilipsMainHeader::setDep_acq_time(const int time)
   m_pData->extHeader.dep_acq_time = time;
 }
 
+void CPhilipsMainHeader::setDep_acq_date(const int date)
+{
+  m_pData->extHeader.dep_acq_date = date;
+}
+
 void CPhilipsMainHeader::setCard_slc_dir(const CPhilipsMainHeader::Card_Slc_Dir direction)
 {
   m_pData->extHeader.card_slc_dir = static_cast<qint16>(direction);

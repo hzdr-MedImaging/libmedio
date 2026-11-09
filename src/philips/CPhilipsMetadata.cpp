@@ -350,8 +350,7 @@ const Field mainNative[] = {
   MEDIO_NATIVE(MH, "card_beats_acc", card_beats_acc, setCard_beats_acc, int),
   MEDIO_NATIVE(MH, "card_skip_beats", card_skip_beats, setCard_skip_beats, short),
   MEDIO_NATIVE(MH, "pvc_threshold", pvc_threshold, setPvc_threshold, short),
-  // read only: setDep_acq_date() is declared but not implemented
-  MEDIO_KEY(MH, "dep_acq_date", toJson(h.dep_acq_date()), return false;),
+  MEDIO_NATIVE(MH, "dep_acq_date", dep_acq_date, setDep_acq_date, int),
   MEDIO_NATIVE_TEXT(MH, "radiopharm_name", radiopharm_name, setRadiopharm_name),
   MEDIO_NATIVE_TEXT(MH, "Dserial_number", Dserial_number, setDserial_number),
   MEDIO_NATIVE_TEXT(MH, "attncor_label", attncor_label, setAttncor_label),

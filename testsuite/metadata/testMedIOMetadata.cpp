@@ -717,8 +717,10 @@ void TestMedIOMetadata::philipsWrite()
   QCOMPARE(header.weight(), 0);
   QCOMPARE(header.metadataValue("PatientWeight").toDouble(), 1.0e9);
 
-  // read only native field
-  QVERIFY(header.updateMetadata(QJsonObject{{"Philips", QJsonObject{{"dep_acq_date", 1}}}}) == false);
+  // native fields
+  QVERIFY(header.updateMetadata(QJsonObject{{"Philips", QJsonObject{{"dep_acq_date", 20260603}}}}));
+  QCOMPARE(header.dep_acq_date(), 20260603);
+  QVERIFY(header.updateMetadata(QJsonObject{{"Philips", QJsonObject{{"nslice", 3}}}}) == false);
 }
 
 //---------------------------------------------------------------------------------------------
