@@ -148,9 +148,21 @@ bool philipsSubHeader(const CMedIOFrame& f, const CMedIOVolume& v, const CPhilip
 
 //=============================================================================================
 
-short philipsFrameNumber(CPhilipsFile* file, int index)
+QList<short> philipsFrameNumbers(CPhilipsFile* file)
 {
-  return static_cast<short>(file->minFrame() + index);
+  ENTER();
+  QList<short> numbers;
+
+  if(file->directory() != NULL) {
+    const short last = file->maxFrame();
+    for(short frame=file->minFrame(); frame <= last; frame++) {
+      if(file->numSlices(frame) > 0)
+        numbers.append(frame);
+    }
+  }
+
+  LEAVE();
+  return numbers;
 }
 
 bool readPhilipsFrameData(CPhilipsFile* file, const CPhilipsMainHeader* mainHeader, short frame,
@@ -281,7 +293,7 @@ bool readPhilipsFrame(CPhilipsFile* file, short frame, CMedIOFrame& f)
     W("frame %d: no valid scale factor for some slices, their stored values are used", frame);
 
   if(result)
-    result = philipsHeaders(mh, firstSlice, f.volume.dimension(2), file->numFrames(), file->fileName(), f);
+    result = philipsHeaders(mh, firstSlice, f.volume.dimension(2), philipsFrameNumbers(file).size(), file->fileName(), f);
 
   if(result)
     setVolumeGeometry(f);

@@ -213,6 +213,14 @@ bool CMedIOData::writeMatrix(const char* matrixData, unsigned int size, const CM
   return result;
 }
 
+QList<short> CMedIOData::frameNumbers()
+{
+  ENTER();
+  const QList<short> numbers = MedIOMatrix::frameNumbers(this);
+  LEAVE();
+  return numbers;
+}
+
 bool CMedIOData::readVolume(CMedIOVolume& volume, short frame)
 {
   ENTER();

@@ -281,11 +281,14 @@ bool loadEcat(const QString& fileName, EcatImage& image, QString* error)
   }
   image.mainHeader = static_cast<CECAT7MainHeader*>(mainHeader);
 
-  // read all frames
-  const int frames = (image.mainHeader->num_Frames() > 1) ? image.mainHeader->num_Frames() : 1;
+  // read all frames, by the frame numbers of the file (they do not have to
+  // start with 1, num_Frames is not used)
+  const QList<short> frames = ecatFile->frameNumbers();
+  if(frames.isEmpty())
+    return fail(error, "no frames found in " + fileName);
   const double calibration = ecatCalibrationFactor(image.mainHeader);
 
-  for(int f=1; f <= frames; f++) {
+  foreach(short f, frames) {
     CECATSubHeader* subHeader = NULL;
     QByteArray* matrix = NULL;
 
@@ -341,8 +344,9 @@ bool loadPhilips(const QString& fileName, EcatImage& image, QString* error)
   if(mainHeader->filtyp() != CPhilipsMainHeader::Image && mainHeader->filtyp() != CPhilipsMainHeader::Syntegra)
     return fail(error, "only Philips image and Syntegra files can be converted to NIfTI");
 
-  const int frames = file->numFrames();
-  const int minFrame = file->minFrame();
+  // the frame numbers of the file (they do not have to start with 1)
+  const QList<short> frameNumbers = file->frameNumbers();
+  const int frames = frameNumbers.size();
   if(frames < 1)
     return fail(error, "no frames found in " + fileName);
 
@@ -352,7 +356,7 @@ bool loadPhilips(const QString& fileName, EcatImage& image, QString* error)
   bool unscaled = false;
 
   for(int f=0; f < frames; f++) {
-    const int frame = minFrame + f;
+    const short frame = frameNumbers[f];
 
     // all slices of the frame (see CPhilipsMatrix.cpp)
     CMedIOVolume volume;

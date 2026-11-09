@@ -37,6 +37,7 @@
 #include <QScopedPointer>
 #include <QVector>
 
+#include <climits>
 #include <cmath>
 #include <cstring>
 
@@ -263,6 +264,29 @@ void setNiftiFrameTiming(CNIFTIMainHeader* header, double start, double duration
 
 //=============================================================================================
 
+QList<short> niftiFrameNumbers(CNIFTIFile* file)
+{
+  ENTER();
+  QList<short> numbers;
+
+  // volumes: dim[4..dim[0]] (see CNIFTIFile::readMatrix(data, frame))
+  CNIFTIMainHeader* h = NULL;
+  if(file->readMainHeader(h) && h != NULL) {
+    const NIFTIValues n = niftiValues(h);
+    qint64 volumes = 1;
+    for(int i=4; i < 8; i++) {
+      if(i <= n.dim[0])
+        volumes *= n.dim[i];
+    }
+    for(qint64 frame=1; frame <= volumes && frame <= SHRT_MAX; frame++)
+      numbers.append(static_cast<short>(frame));
+  }
+  delete h;
+
+  LEAVE();
+  return numbers;
+}
+
 bool readNiftiVolume(CNIFTIFile* file, short frame, CMedIOVolume& v, CNIFTIMainHeader** header, QJsonObject* metadata)
 {
   ENTER();
@@ -379,11 +403,12 @@ bool niftiMainHeaderFromFrame(const CMedIOFrame& f, CMedIOData* source, CMedIOHe
 
   // all frames are stored with the same datatype and scaling: float32 if the
   // frames differ in their representation
+  // (f is the first frame of source, see CMedIOData::readMainHeader())
   bool same = true;
-  const int frames = qMax(1, static_cast<int>(f.mainHeader.num_Frames()));
-  for(int i=1; i < frames && same && source; i++) {
+  const QList<short> numbers = source ? frameNumbers(source) : QList<short>();
+  for(int i=1; i < numbers.size() && same; i++) {
     CMedIOFrame other;
-    if(readFrame(source, frameNumber(source, i), other) == false) {
+    if(readFrame(source, numbers[i], other) == false) {
       same = false;
       break;
     }

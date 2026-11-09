@@ -52,6 +52,7 @@
 #include <CConcordeFile.h>
 #include <CConcordeMainHeader.h>
 #include <CConcordeFrameHeader.h>
+#include <CNIFTIConverter.h>
 
 #include "MedIOTestData.h"
 
@@ -461,6 +462,13 @@ class TestMedIOMatrix : public QObject
     void philipsErrors();
 
     void concorde();
+
+    void frameNumbersRead_data();
+    void frameNumbersRead();
+    void frameNumbersCount_data();
+    void frameNumbersCount();
+    void frameNumbersToNifti_data();
+    void frameNumbersToNifti();
 
     void nativeFormat_data();
     void nativeFormat();
@@ -2060,6 +2068,426 @@ void TestMedIOMatrix::concorde()
 
 //=============================================================================================
 // readMainHeader()/readMatrix() without format: the format of the file itself
+
+//---------------------------------------------------------------------------------------------
+// frame numbering: a file with three frames yields exactly these three frames
+// in every representation and conversion, whatever numbers the format gives
+// them. ECAT7 and Philips files address their frames by the frame numbers
+// stored in the file, which do not have to start with 1 and can have gaps
+// (both formats allow frame 0, see frameNumberRows()); NIfTI volumes and microPET frame sections are
+// addressed by their position (1 = first). The frames of pet-dynamic (three
+// frames with different scale factors) are written with other frame numbers;
+// the expected values are those of ecat/pet-dynamic.v (nibabel), for
+// microPET synthetic values.
+
+// stored and physical value of voxel i of frame k (0-based) of writeConcordeFrames()
+static double concordeStored(int k, qint64 i) { return 1.0 + i + 100.0 * k; }
+static double concordeValue(int k, qint64 i) { return concordeStored(k, i) * 0.5 / (k + 1) / 0.8 * 1000.0; }
+
+// microPET image (4 x 3 x 2 voxels) with one frame section per entry of
+// sectionNumbers (the frame numbers given in the header)
+static bool writeConcordeFrames(const QString& path, const QVector<int>& sectionNumbers)
+{
+  QFile header(path + ".hdr");
+  if(header.open(QIODevice::WriteOnly | QIODevice::Text) == false)
+    return false;
+
+  QTextStream h(&header);
+  h << "# synthetic microPET header (libmedio test)\n"
+    << "model 2000\n"
+    << "file_type 5\n"
+    << "acquisition_mode 3\n"
+    << "total_frames " << sectionNumbers.size() << "\n"
+    << "isotope F-18\n"
+    << "isotope_half_life 6586.2\n"
+    << "isotope_branching_fraction 0.8\n"
+    << "data_type 2\n"
+    << "number_of_dimensions 3\n"
+    << "x_dimension 4\n"
+    << "y_dimension 3\n"
+    << "z_dimension 2\n"
+    << "pixel_size 0.2\n"
+    << "axial_crystal_pitch 0.6\n"
+    << "calibration_units 2\n"
+    << "calibration_factor 1000\n"
+    << "subject_identifier test\n"
+    << "end_of_header\n";
+  for(int k=0; k < sectionNumbers.size(); k++) {
+    h << "frame " << sectionNumbers[k] << "\n"
+      << "event_type 1\n"
+      << "gate 0\n"
+      << "bed 0\n"
+      << "bed_offset 0\n"
+      << "data_file_pointer 0 " << k * 48 << "\n"
+      << "frame_start " << k * 60 << "\n"
+      << "frame_duration " << 60 * (k + 1) << "\n"
+      << "scale_factor " << 0.5 / (k + 1) << "\n"
+      << "minimum " << concordeStored(k, 0) << "\n"
+      << "maximum " << concordeStored(k, 23) << "\n"
+      << "end_of_header\n";
+  }
+  header.close();
+
+  QFile data(path);
+  if(data.open(QIODevice::WriteOnly) == false)
+    return false;
+  for(int k=0; k < sectionNumbers.size(); k++)
+    for(int i=0; i < 24; i++) {
+      const qint16 v = qToLittleEndian(static_cast<qint16>(concordeStored(k, i)));
+      data.write(reinterpret_cast<const char*>(&v), 2);
+    }
+  return true;
+}
+
+// write the three frames of source (ECAT7 or Philips) as the frames numbers[0..2] of a new file
+static bool writeRenumbered(const QString& source, const QString& path, CMedIOData::Format format,
+                            int philipsType, const QVector<int>& numbers)
+{
+  QScopedPointer<CMedIOData> in(CMedIODataFactory::create(source));
+  if(in.data() == NULL || in->open(QIODevice::ReadOnly) == false)
+    return false;
+
+  CMedIOHeader* mh = NULL;
+  if(in->readMainHeader(mh, format) == false || mh == NULL)
+    return false;
+  QScopedPointer<CMedIOHeader> mhGuard(mh);
+
+  QScopedPointer<CMedIOData> out;
+  bool result = false;
+  if(format == CMedIOData::ECAT) {
+    CECATFile* ecat = new CECATFile(path, CECATMainHeader::ECAT7_Volume16);
+    out.reset(ecat);
+    result = createEcat(*ecat, *static_cast<CECAT7MainHeader*>(mh));
+  } else {
+    CPhilipsFile* philips = new CPhilipsFile(path, static_cast<CPhilipsMainHeader::File_Type>(philipsType));
+    out.reset(philips);
+    CPhilipsMainHeader* philipsMain = static_cast<CPhilipsMainHeader*>(mh);
+    result = philips->open(QIODevice::WriteOnly);
+    philipsMain->setMedIOData(philips);
+    result = result && philips->writeMainHeader(*philipsMain);
+    philipsMain->setMedIOData(NULL);
+  }
+
+  for(int k=0; k < numbers.size() && result; k++) {
+    QByteArray* data = NULL;
+    CMedIOHeader* sh = NULL;
+    result = in->readMatrix(data, sh, format, k + 1) &&
+             out->writeMatrix(*data, *sh, numbers[k], mh);
+    delete data;
+    delete sh;
+  }
+  out->close();
+  return result;
+}
+
+// rows: kind of file and the frame numbers stored in it
+static void frameNumberRows()
+{
+  QTest::addColumn<QString>("kind");
+  QTest::addColumn<QVector<int> >("numbers");
+
+  const QVector<int> first1 = QVector<int>() << 1 << 2 << 3;
+  const QVector<int> first3 = QVector<int>() << 3 << 4 << 5;
+  const QVector<int> first0 = QVector<int>() << 0 << 1 << 2;
+  const QVector<int> gaps   = QVector<int>() << 1 << 3 << 5;
+
+  QTest::newRow("ECAT7 frames 1-3")    << "ecat" << first1;
+  QTest::newRow("ECAT7 frames 3-5")    << "ecat" << first3;
+  QTest::newRow("ECAT7 frames 0-2")    << "ecat" << first0;
+  QTest::newRow("ECAT7 frames 1,3,5")  << "ecat" << gaps;
+  QTest::newRow("Philips frames 1-3")  << "philips" << first1;
+  QTest::newRow("Philips frames 3-5")  << "philips" << first3;
+  QTest::newRow("Philips frames 1,3,5") << "philips" << gaps;
+  // Philips image files cannot hold frame 0: frame 0, slice 0 has the
+  // directory ID 0 of an unused entry. Syntegra files number their slices from 1.
+  QTest::newRow("Syntegra frames 3-5") << "syntegra" << first3;
+  QTest::newRow("Syntegra frames 0-2") << "syntegra" << first0;
+  QTest::newRow("NIfTI volumes 1-3")   << "nifti" << first1;
+  QTest::newRow("microPET sections 0-2") << "micropet" << first0;
+  QTest::newRow("microPET sections 3-5") << "micropet" << first3;
+}
+
+// test file of a row: its path, the frame numbers to read its frames with and the expected values
+struct FrameNumberFile
+{
+  QString path;
+  QVector<int> address;   // frame number of the k-th frame for readMatrix()/readVolume()
+  QVector<int> missing;   // frame numbers without a frame
+  EcatFile reference;     // pet-dynamic (not for microPET)
+  bool micropet;
+  double divisor;         // NIfTI file of PMOD: without the ECAT7 calibration factor
+  double step;            // NIfTI file of PMOD: one quantization step (requantized frames)
+
+  double expected(int k, qint64 i) const { return micropet ? concordeValue(k, i) : reference.value(k, i) / divisor; }
+  qint64 voxels() const { return micropet ? 24 : reference.voxels(); }
+  double tolerance(int k) const { return micropet ? 1e-9 : qMax(step, 1e-6 * maxAbs(reference, k) / divisor); }
+};
+
+static bool frameNumberFile(const QString& tag, const QString& kind, const QVector<int>& numbers,
+                            const QString& tmpDir, FrameNumberFile& f)
+{
+  const QString dataDir = medioTestDataDir();
+  const QString base = QDir(tmpDir).filePath(QString(tag).replace(QRegExp("[^a-zA-Z0-9]"), "_"));
+
+  f.micropet = (kind == "micropet");
+  f.divisor = 1.0;
+  f.step = 0.0;
+  if(f.micropet == false && f.reference.read(dataDir + "/ecat/pet-dynamic.v") == false)
+    return false;
+
+  bool result = false;
+  if(kind == "ecat") {
+    f.path = base + ".v";
+    result = writeRenumbered(dataDir + "/ecat/pet-dynamic.v", f.path, CMedIOData::ECAT, 0, numbers);
+  } else if(kind == "philips" || kind == "syntegra") {
+    const bool syntegra = (kind == "syntegra");
+    f.path = base + (syntegra ? ".syn" : ".img");
+    result = writeRenumbered(dataDir + (syntegra ? "/philips/pet-dynamic.syn" : "/philips/pet-dynamic.img"), f.path,
+                             CMedIOData::Philips, syntegra ? CPhilipsMainHeader::Syntegra : CPhilipsMainHeader::Image, numbers);
+  } else if(kind == "nifti") {
+    // PMOD: one scale factor for all frames, without the calibration factor (see datasets.json)
+    f.path = dataDir + "/nifti/pet-dynamic.nii.gz";
+    NiftiHeader n;
+    result = (readAll(f.path, &n).isEmpty() == false);
+    f.divisor = f.reference.mainHeader->calibration_Factor();
+    f.step = n.slope;
+  } else if(kind == "micropet") {
+    f.path = base;
+    result = writeConcordeFrames(f.path, numbers);
+  }
+
+  // ECAT7 and Philips: frame numbers of the file, NIfTI and microPET: position
+  const bool positional = (kind == "nifti" || kind == "micropet");
+  f.address.clear();
+  for(int k=0; k < numbers.size(); k++)
+    f.address.append(positional ? k + 1 : numbers[k]);
+
+  f.missing.clear();
+  if(f.address.first() > 0)
+    f.missing.append(f.address.first() - 1);
+  for(int n=f.address.first() + 1; n < f.address.last(); n++)
+    if(f.address.contains(n) == false)
+      f.missing.append(n);
+  f.missing.append(f.address.last() + 1);
+
+  return result;
+}
+
+// physical values of an ECAT7 matrix of a file whose ECAT7 main header has the calibration factor
+static bool compareEcatMatrix(const QByteArray& data, const CMedIOHeader* sh, double calibration,
+                              const FrameNumberFile& f, int k, QString& message)
+{
+  if(sh == NULL || sh->headerFormat() != CMedIOHeader::ECATSubHeader ||
+     static_cast<const CECATSubHeader*>(sh)->subHeaderType() != CECATSubHeader::ECAT7_Image) {
+    message = "no ECAT7 image sub header";
+    return false;
+  }
+  const CECAT7SubHeaderImage* s = static_cast<const CECAT7SubHeaderImage*>(sh);
+  const double scale = s->scale_Factor() != 0.0 ? s->scale_Factor() : 1.0;
+  if(static_cast<qint64>(s->x_Dimension()) * s->y_Dimension() * s->z_Dimension() != f.voxels()) {
+    message = "wrong dimensions";
+    return false;
+  }
+  const double tolerance = f.tolerance(k);
+  for(qint64 i=0; i < f.voxels(); i++) {
+    const double value = ecatValue(data.constData(), i, s->data_Type()) * scale * calibration;
+    if(approx(value, f.expected(k, i), 1e-5, tolerance) == false) {
+      message = QString("voxel %1: %2 instead of %3 (values of another frame?)").arg(i).arg(value).arg(f.expected(k, i));
+      return false;
+    }
+  }
+  return true;
+}
+
+static double ecatCalibration(const CMedIOHeader* mainHeader)
+{
+  const double c = static_cast<const CECAT7MainHeader*>(mainHeader)->calibration_Factor();
+  return c > 0.0 ? c : 1.0;
+}
+
+void TestMedIOMatrix::frameNumbersRead_data()  { frameNumberRows(); }
+void TestMedIOMatrix::frameNumbersCount_data() { frameNumberRows(); }
+void TestMedIOMatrix::frameNumbersToNifti_data() { frameNumberRows(); }
+
+// frameNumbers() lists the frames, every frame can be read with its frame
+// number, -1 is the first frame, other numbers fail
+void TestMedIOMatrix::frameNumbersRead()
+{
+  QFETCH(QString, kind);
+  QFETCH(QVector<int>, numbers);
+  FrameNumberFile f;
+  QVERIFY(frameNumberFile(QTest::currentDataTag(), kind, numbers, m_tmp.path(), f));
+
+  QScopedPointer<CMedIOData> file(CMedIODataFactory::create(f.path));
+  QVERIFY(file.data() != NULL);
+  QVERIFY(file->frameNumbers().isEmpty()); // not open
+  QVERIFY(file->open(QIODevice::ReadOnly));
+
+  QList<short> expectedNumbers;
+  foreach(int n, f.address)
+    expectedNumbers.append(static_cast<short>(n));
+  QCOMPARE(file->frameNumbers(), expectedNumbers);
+
+  CMedIOHeader* ecatMain = NULL;
+  QVERIFY(file->readMainHeader(ecatMain, CMedIOData::ECAT));
+  QScopedPointer<CMedIOHeader> ecatMainGuard(ecatMain);
+  const double calibration = ecatCalibration(ecatMain);
+
+  QByteArray firstData;
+  for(int k=0; k < f.address.size(); k++) {
+    QByteArray* data = NULL;
+    CMedIOHeader* sh = NULL;
+    QVERIFY2(file->readMatrix(data, sh, CMedIOData::ECAT, f.address[k]), qPrintable(QString("frame %1").arg(f.address[k])));
+    QScopedPointer<QByteArray> dataGuard(data);
+    QScopedPointer<CMedIOHeader> shGuard(sh);
+    QString message;
+    QVERIFY2(compareEcatMatrix(*data, sh, calibration, f, k, message), qPrintable(QString("frame %1: %2").arg(f.address[k]).arg(message)));
+    if(k == 0)
+      firstData = *data;
+
+    CMedIOVolume v;
+    QVERIFY2(file->readVolume(v, f.address[k]), qPrintable(QString("volume of frame %1").arg(f.address[k])));
+    QCOMPARE(v.voxelCount(), f.voxels());
+  }
+
+  // -1: the first frame
+  QByteArray* data = NULL;
+  CMedIOHeader* sh = NULL;
+  QVERIFY(file->readMatrix(data, sh, CMedIOData::ECAT, -1));
+  QScopedPointer<QByteArray> dataGuard(data);
+  QScopedPointer<CMedIOHeader> shGuard(sh);
+  QVERIFY(*data == firstData);
+
+  // frame numbers without a frame
+  foreach(int n, f.missing) {
+    QByteArray* none = NULL;
+    CMedIOHeader* noneHeader = NULL;
+    QVERIFY2(file->readMatrix(none, noneHeader, CMedIOData::ECAT, n) == false, qPrintable(QString("frame %1 does not exist").arg(n)));
+    QVERIFY(none == NULL && noneHeader == NULL);
+  }
+}
+
+// the main headers in the representation of every format give the number of
+// frames (ECAT7 and Philips: also the main headers written by libmedio)
+void TestMedIOMatrix::frameNumbersCount()
+{
+  QFETCH(QString, kind);
+  QFETCH(QVector<int>, numbers);
+  FrameNumberFile f;
+  QVERIFY(frameNumberFile(QTest::currentDataTag(), kind, numbers, m_tmp.path(), f));
+
+  QScopedPointer<CMedIOData> file(CMedIODataFactory::create(f.path));
+  QVERIFY(file.data() != NULL);
+  QVERIFY(file->open(QIODevice::ReadOnly));
+
+  CMedIOHeader* ecatMain = NULL;
+  QVERIFY(file->readMainHeader(ecatMain, CMedIOData::ECAT));
+  QScopedPointer<CMedIOHeader> ecatMainGuard(ecatMain);
+  QCOMPARE(static_cast<int>(static_cast<CECAT7MainHeader*>(ecatMain)->num_Frames()), numbers.size());
+
+  CMedIOHeader* niftiMain = NULL;
+  QVERIFY(file->readMainHeader(niftiMain, CMedIOData::NIFTI));
+  QScopedPointer<CMedIOHeader> niftiMainGuard(niftiMain);
+  QCOMPARE(niftiHeader(niftiMain).dim[4], static_cast<qint64>(numbers.size()));
+
+  // Philips: main header written by libmedio
+  if(kind == "philips" || kind == "syntegra") {
+    CMedIOHeader* philipsMain = NULL;
+    QVERIFY(file->readMainHeader(philipsMain, CMedIOData::Philips));
+    QScopedPointer<CMedIOHeader> philipsMainGuard(philipsMain);
+    QCOMPARE(static_cast<int>(static_cast<CPhilipsMainHeader*>(philipsMain)->nframe()), numbers.size());
+  }
+
+  // NIfTI header of a file holding the frames, as delivered with a frame
+  QByteArray* data = NULL;
+  CMedIOHeader* sh = NULL;
+  QVERIFY(file->readMatrix(data, sh, CMedIOData::NIFTI, f.address.first()));
+  QScopedPointer<QByteArray> dataGuard(data);
+  QScopedPointer<CMedIOHeader> shGuard(sh);
+  QCOMPARE(niftiHeader(sh).dim[4], static_cast<qint64>(numbers.size()));
+}
+
+// NIfTI file with exactly the frames of f, in their order
+static bool checkNiftiFrames(const QString& path, const FrameNumberFile& f, QString& message)
+{
+  const QString name = QFileInfo(path).fileName();
+  CNIFTIFile nifti(path);
+  CMedIOHeader* niftiMain = NULL;
+  CMedIOHeader* ecatMain = NULL;
+  if(nifti.open(QIODevice::ReadOnly) == false || nifti.readMainHeader(niftiMain, CMedIOData::NIFTI) == false ||
+     nifti.readMainHeader(ecatMain, CMedIOData::ECAT) == false) {
+    delete niftiMain;
+    message = name + ": cannot be read";
+    return false;
+  }
+  QScopedPointer<CMedIOHeader> niftiMainGuard(niftiMain), ecatMainGuard(ecatMain);
+
+  const qint64 volumes = niftiHeader(niftiMain).dim[4];
+  if(volumes != f.address.size()) {
+    message = QString("%1: %2 volumes instead of %3").arg(name).arg(volumes).arg(f.address.size());
+    return false;
+  }
+
+  for(int k=0; k < f.address.size(); k++) {
+    QByteArray* data = NULL;
+    CMedIOHeader* sh = NULL;
+    const bool read = nifti.readMatrix(data, sh, CMedIOData::ECAT, k + 1);
+    QScopedPointer<QByteArray> dataGuard(data);
+    QScopedPointer<CMedIOHeader> shGuard(sh);
+    QString error = "cannot be read";
+    if(read == false || compareEcatMatrix(*data, sh, ecatCalibration(ecatMain), f, k, error) == false) {
+      message = QString("%1, volume %2: %3").arg(name).arg(k + 1).arg(error);
+      return false;
+    }
+  }
+  return true;
+}
+
+// conversions into NIfTI contain every frame once, in their order
+void TestMedIOMatrix::frameNumbersToNifti()
+{
+  QFETCH(QString, kind);
+  QFETCH(QVector<int>, numbers);
+  FrameNumberFile f;
+  QVERIFY(frameNumberFile(QTest::currentDataTag(), kind, numbers, m_tmp.path(), f));
+  const QString tag = QString(QTest::currentDataTag()).replace(QRegExp("[^a-zA-Z0-9]"), "_");
+  QString message;
+
+  // CNIFTIConverter (ECAT7 and Philips files)
+  if(kind != "nifti" && kind != "micropet") {
+    const QString converted = tmpFile(tag + "-converted.nii");
+    QString error;
+    QVERIFY2(CNIFTIConverter::toNifti(f.path, converted, CNIFTIConverter::Options(), &error), qPrintable(error));
+    QVERIFY2(checkNiftiFrames(converted, f, message), qPrintable(message));
+  }
+
+  // format independent matrix access: main header and frames in the NIfTI representation
+  QScopedPointer<CMedIOData> file(CMedIODataFactory::create(f.path));
+  QVERIFY(file->open(QIODevice::ReadOnly));
+  CMedIOHeader* mh = NULL;
+  QVERIFY(file->readMainHeader(mh, CMedIOData::NIFTI));
+  QScopedPointer<CMedIOHeader> mhGuard(mh);
+
+  const QString copied = tmpFile(tag + "-copied.nii");
+  {
+    CNIFTIFile out(copied, CNIFTIMainHeader::NIFTI1);
+    QVERIFY(out.open(QIODevice::WriteOnly));
+    mh->setMedIOData(&out);
+    QVERIFY(out.writeMainHeader(*static_cast<CNIFTIMainHeader*>(mh)));
+    mh->setMedIOData(NULL);
+
+    for(int k=0; k < f.address.size(); k++) {
+      QByteArray* data = NULL;
+      CMedIOHeader* sh = NULL;
+      QVERIFY2(file->readMatrix(data, sh, CMedIOData::NIFTI, f.address[k]), qPrintable(QString("frame %1").arg(f.address[k])));
+      QScopedPointer<QByteArray> dataGuard(data);
+      QScopedPointer<CMedIOHeader> shGuard(sh);
+      QVERIFY2(out.writeMatrix(*data, *sh, k + 1), qPrintable(QString("frame %1 as volume %2 of %3").arg(f.address[k]).arg(k + 1).arg(niftiHeader(mh).dim[4])));
+    }
+    out.close();
+  }
+  QVERIFY2(checkNiftiFrames(copied, f, message), qPrintable(message));
+}
 
 void TestMedIOMatrix::nativeFormat_data()
 {

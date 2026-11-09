@@ -35,6 +35,7 @@
 
 #include <QScopedPointer>
 
+#include <climits>
 #include <cmath>
 
 #include <rtdebug.h>
@@ -104,6 +105,23 @@ bool concordeFrame(const QByteArray& data, const CConcordeFrameHeader& frameHead
 } // namespace
 
 //=============================================================================================
+
+QList<short> concordeFrameNumbers(CConcordeFile* file)
+{
+  ENTER();
+  QList<short> numbers;
+
+  // frame k is the k-th frame section of the header (see readConcordeFrame())
+  CConcordeMainHeader* mh = NULL;
+  if(file->readMainHeader(mh) && mh != NULL) {
+    for(int frame=1; frame <= mh->totalFrames() && frame <= SHRT_MAX; frame++)
+      numbers.append(static_cast<short>(frame));
+  }
+  delete mh;
+
+  LEAVE();
+  return numbers;
+}
 
 bool readConcordeFrame(CConcordeFile* file, short frame, CMedIOFrame& f)
 {

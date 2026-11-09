@@ -24,6 +24,7 @@
 #define CMEDIODATA_H
 
 #include <QFile>
+#include <QList>
 #include <QString>
 
 // forward declarations
@@ -167,6 +168,18 @@ class CMedIOData : public QFile {
                      CMedIOData::Format format, short frame=-1, const CMedIOHeader* mainHeader=NULL);
     bool writeMatrix(const char* matrixData, unsigned int size, const CMedIOHeader& subHeader,
                      CMedIOData::Format format, short frame=-1, const CMedIOHeader* mainHeader=NULL);
+
+    //! @brief numbers of the frames of the file in ascending order, as passed
+    //!        to readMatrix() and readVolume() (empty if there are none or the
+    //!        file is not open)
+    //!
+    //! ECAT7 and Philips files address their frames by the frame numbers
+    //! stored in the file, which do not have to start with 1 and can have
+    //! gaps (numFrames() of these classes is the highest frame number, not the
+    //! number of frames). NIfTI volumes and microPET frames are numbered 1..n.
+    //! The number of frames in the main headers returned by readMainHeader()
+    //! for another format is the size of this list.
+    QList<short> frameNumbers();
 
     //! @brief frame as format independent volume in the voxel order of the file
     bool readVolume(CMedIOVolume& volume, short frame=-1);

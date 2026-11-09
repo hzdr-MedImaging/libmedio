@@ -1013,7 +1013,8 @@ void CPhilipsFile::mainHeaderWritten(const CPhilipsMainHeader& mainHeader)
   // stuff in the cached header to be totally correct.
   if(m_pData->cachedMainHeader)
   {
-    m_pData->cachedMainHeader->setNframe(numFrames());
+    // number of frames (numFrames() is the highest frame number)
+    m_pData->cachedMainHeader->setNframe(static_cast<short>(frameNumbers().size()));
     m_pData->cachedMainHeader->setMinfrm(minFrame());
     m_pData->cachedMainHeader->setMaxfrm(maxFrame());
     m_pData->cachedMainHeader->setNslice(numSlices());

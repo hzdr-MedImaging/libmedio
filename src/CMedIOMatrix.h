@@ -46,6 +46,7 @@
 // otherwise the physical values are stored as float32.
 
 #include <QByteArray>
+#include <QList>
 #include <QString>
 
 #include "CMedIOData.h"
@@ -124,8 +125,8 @@ CMedIOData::Format headerDataFormat(const CMedIOHeader& header);
 //! matrix described by subHeader (main header passed to writeMatrix())
 bool mainHeaderFitsMatrix(const CMedIOHeader& subHeader, const CMedIOHeader* mainHeader);
 
-//! frame number of frame index (0-based) of a file
-short frameNumber(CMedIOData* file, int index);
+//! frame numbers of a file (CMedIOData::frameNumbers())
+QList<short> frameNumbers(CMedIOData* file);
 
 //---------------------------------------------------------------------------------------------
 // dispatch to the format adapters
@@ -147,6 +148,8 @@ bool writeNativeMatrix(CMedIOData* file, short frame, const QByteArray& data, co
 //---------------------------------------------------------------------------------------------
 // ECAT7 adapter (src/ecat/CECATMatrix.cpp)
 
+//! frames with a matrix of the default plane, gate, bed and data (as read by readEcatFrame())
+QList<short> ecatFrameNumbers(CECATFile* file);
 bool readEcatFrame(CECATFile* file, short frame, CMedIOFrame& f);
 bool ecatFrameFromMatrix(const QByteArray& data, const CECATSubHeader& subHeader, const CMedIOHeader* mainHeader, CMedIOFrame& f);
 bool ecatMatrixFromFrame(const CMedIOFrame& f, QByteArray& data, CMedIOHeader*& header);
@@ -156,6 +159,8 @@ bool writeEcatFrame(CECATFile* file, short frame, const CMedIOFrame& f);
 //---------------------------------------------------------------------------------------------
 // NIfTI adapter (src/nifti/CNIFTIMatrix.cpp)
 
+//! volumes 1..n (dim[4..7])
+QList<short> niftiFrameNumbers(CNIFTIFile* file);
 bool readNiftiVolume(CNIFTIFile* file, short frame, CMedIOVolume& v, CNIFTIMainHeader** header = NULL, QJsonObject* metadata = NULL);
 bool readNiftiFrame(CNIFTIFile* file, short frame, CMedIOFrame& f);
 bool niftiFrameFromMatrix(const QByteArray& data, const CNIFTIMainHeader& header, CMedIOFrame& f);
@@ -167,7 +172,8 @@ void setNiftiFrameTiming(CNIFTIMainHeader* header, double start, double duration
 //---------------------------------------------------------------------------------------------
 // Philips adapter (src/philips/CPhilipsMatrix.cpp)
 
-short philipsFrameNumber(CPhilipsFile* file, int index);
+//! frames with at least one slice
+QList<short> philipsFrameNumbers(CPhilipsFile* file);
 //! all slices of a frame as volume with a scale factor per slice (shared with CNIFTIConverter)
 bool readPhilipsFrameData(CPhilipsFile* file, const CPhilipsMainHeader* mainHeader, short frame,
                           CMedIOVolume& v, CPhilipsSubHeader*& firstSlice, bool* unscaled = NULL);
@@ -180,6 +186,8 @@ bool writePhilipsFrame(CPhilipsFile* file, short frame, const CMedIOFrame& f);
 //---------------------------------------------------------------------------------------------
 // microPET adapter (src/micropet/CConcordeMatrix.cpp), reading only
 
+//! frames 1..total_frames of the main header
+QList<short> concordeFrameNumbers(CConcordeFile* file);
 bool readConcordeFrame(CConcordeFile* file, short frame, CMedIOFrame& f);
 bool concordeFrameFromMatrix(const QByteArray& data, const CConcordeFrameHeader& frameHeader, const CMedIOHeader* mainHeader,
                              CMedIOFrame& f);

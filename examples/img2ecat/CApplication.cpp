@@ -392,7 +392,10 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
       // the link to the file
       static_cast<CMedIOHeader*>(pEcat7ImageHeader)->convertFrom(pPhilipsFile);
 
-      int numFrames = pPhilipsFile->numFrames();
+      // the frame numbers of the Philips file (they do not have to start
+      // with 1); the ECAT7 file gets the frames 1..numFrames
+      const QList<short> philipsFrames = pPhilipsFile->frameNumbers();
+      int numFrames = philipsFrames.size();
       if(numFrames > NUMFRAMESLIMIT)
       {
         cout << "Warning: Can not create ECAT7 image file with more than "
@@ -416,7 +419,7 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
         // physical float values, unsigned 16 bit values into 32 bit integers)
         QByteArray* pImageData = NULL;
         CMedIOHeader* pSubHeader = NULL;
-        const short philipsFrame = pPhilipsFile->minFrame() + frame - 1;
+        const short philipsFrame = philipsFrames[frame - 1];
         if(pPhilipsFile->readMatrix(pImageData, pSubHeader, CMedIOData::ECAT, philipsFrame) == false)
         {
           cout << "ERROR: When loading image data of frame " << frame << endl;

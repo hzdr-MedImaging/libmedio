@@ -1128,7 +1128,8 @@ void CECATFile::mainHeaderWritten(const CECATMainHeader& mainHeader)
     // Please note that we do not specify any PLANES here as in ECAT7 the
     // planes are normally integrated in one matrix file. So we have to
     // allow the user to specify the planes himself.
-    m_pData->cachedMainHeader->setNum_Frames(numFrames());
+    // number of frames (numFrames() is the highest frame number)
+    m_pData->cachedMainHeader->setNum_Frames(static_cast<short>(frameNumbers().size()));
     m_pData->cachedMainHeader->setNum_Gates(numGates());
     m_pData->cachedMainHeader->setNum_Bed_Pos(numBedPos());
     
@@ -1173,7 +1174,7 @@ bool CECATFilePrivate::syncMainHeader(CECATFile* file) const
   CECATMainHeader* mainHeader = NULL;
   if(file->readMainHeader(mainHeader))
   {
-    if(mainHeader->num_Frames()  != file->numFrames() ||
+    if(mainHeader->num_Frames()  != file->frameNumbers().size() ||
        mainHeader->num_Planes()  != file->numPlanes() ||
        mainHeader->num_Gates()   != file->numGates()  ||
        mainHeader->num_Bed_Pos() != file->numBedPos())

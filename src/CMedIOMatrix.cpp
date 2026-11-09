@@ -314,12 +314,20 @@ bool mainHeaderFitsMatrix(const CMedIOHeader& subHeader, const CMedIOHeader* mai
   return expected != CMedIOHeader::Unknown && mainHeader->headerFormat() == expected;
 }
 
-short frameNumber(CMedIOData* file, int index)
+QList<short> frameNumbers(CMedIOData* file)
 {
-  if(file->dataFormat() == CMedIOData::Philips)
-    return philipsFrameNumber(static_cast<CPhilipsFile*>(file), index);
+  QList<short> numbers;
+  if(file == NULL || file->isOpen() == false)
+    return numbers;
 
-  return static_cast<short>(index + 1);
+  switch(file->dataFormat()) {
+    case CMedIOData::ECAT:             numbers = ecatFrameNumbers(static_cast<CECATFile*>(file)); break;
+    case CMedIOData::NIFTI:            numbers = niftiFrameNumbers(static_cast<CNIFTIFile*>(file)); break;
+    case CMedIOData::Philips:          numbers = philipsFrameNumbers(static_cast<CPhilipsFile*>(file)); break;
+    case CMedIOData::ConcordeMicropet: numbers = concordeFrameNumbers(static_cast<CConcordeFile*>(file)); break;
+    default: break;
+  }
+  return numbers;
 }
 
 //=============================================================================================
@@ -387,6 +395,11 @@ bool readFrame(CMedIOData* file, short frame, CMedIOFrame& f)
       result = unsupported(file->dataFormat(), "reading matrices in another format");
     break;
   }
+
+  // the representations of the main header give the number of frames, not
+  // the highest frame number (ECAT7, Philips)
+  if(result)
+    f.mainHeader.setNum_Frames(static_cast<short>(frameNumbers(file).size()));
 
   RETURN(result);
   return result;

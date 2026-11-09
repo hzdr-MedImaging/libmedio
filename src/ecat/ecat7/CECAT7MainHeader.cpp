@@ -689,7 +689,7 @@ bool CECAT7MainHeader::save(void) const
   // planes are normally integrated in one matrix file. So we have to
   // allow the user to specify the planes himself.
   CECATFile* ecatFile = static_cast<CECATFile*>(mData);
-  m_pData->header.Num_Frames = ecatFile->numFrames();
+  m_pData->header.Num_Frames = static_cast<quint16>(ecatFile->frameNumbers().size()); // numFrames() is the highest frame number
   m_pData->header.Num_Gates = ecatFile->numGates();
   m_pData->header.Num_Bed_Pos = ecatFile->numBedPos();
   

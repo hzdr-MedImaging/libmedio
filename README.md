@@ -113,9 +113,8 @@ file->open(QIODevice::ReadOnly);
 
 CMedIOHeader* mainHeader = NULL;                   // here: CECAT7MainHeader
 file->readMainHeader(mainHeader, CMedIOData::ECAT);
-const int frames = static_cast<CECAT7MainHeader*>(mainHeader)->num_Frames();
 
-for(short frame=1; frame <= frames; frame++) {
+foreach(short frame, file->frameNumbers()) {       // frame numbers of the file
   QByteArray* data = NULL;
   CMedIOHeader* subHeader = NULL;                  // here: CECAT7SubHeaderImage
   if(file->readMatrix(data, subHeader, CMedIOData::ECAT, frame)) {
@@ -138,15 +137,23 @@ nifti.open(QIODevice::WriteOnly);
 niftiHeader->setMedIOData(&nifti);                 // returned headers are not linked to a file
 nifti.writeMainHeader(*static_cast<CNIFTIMainHeader*>(niftiHeader));
 
-for(short frame=1; frame <= frames; frame++) {
+const QList<short> frames = ecatFile.frameNumbers();
+for(int k=0; k < frames.size(); k++) {
   QByteArray* data = NULL;
   CECATSubHeader* subHeader = NULL;
-  ecatFile.readMatrix(data, subHeader, frame);     // ECAT7 matrix
-  nifti.writeMatrix(*data, *subHeader, frame, ecatMainHeader);
+  ecatFile.readMatrix(data, subHeader, frames[k]); // ECAT7 matrix
+  nifti.writeMatrix(*data, *subHeader, k + 1, ecatMainHeader); // NIfTI volume k+1
   delete data;
   delete subHeader;
 }
 ```
+- `frameNumbers()` returns the numbers of the frames of a file. ECAT7 and
+  Philips files address their frames by the frame numbers stored in the
+  file, which do not have to start with 1 and can have gaps (`numFrames()`
+  of `CECATFile`/`CPhilipsFile` is the highest frame number); NIfTI volumes
+  and microPET frames are numbered 1..n. The main headers returned for
+  another format (and the main headers written by libmedio) give the number
+  of frames.
 - Every frame is converted via its ECAT7 representation, using the existing
   header conversions (`convertFrom()`); the geometry of every voxel is kept.
 - Voxel order: ECAT7, Philips and microPET: x towards patient left, y

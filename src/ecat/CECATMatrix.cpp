@@ -22,6 +22,7 @@
 
 #include "CMedIOMatrix.h"
 #include "CECATFile.h"
+#include "CECATDirectory.h"
 #include "CECATMainHeader.h"
 #include "CECATSubHeader.h"
 #include "CECAT7MainHeader.h"
@@ -74,6 +75,26 @@ bool ecatFrame(const QByteArray& data, const CECAT7SubHeaderImage& subHeader, co
 }
 
 } // namespace
+
+QList<short> ecatFrameNumbers(CECATFile* file)
+{
+  ENTER();
+  QList<short> numbers;
+
+  // readEcatFrame() reads the matrix of the frame with the default (smallest)
+  // plane, gate, bed and data number of the file
+  CECATDirectory* directory = file->directory();
+  if(directory != NULL && directory->isEmpty() == false) {
+    const short last = directory->maxFrame();
+    for(short frame=directory->minFrame(); frame <= last; frame++) {
+      if(directory->item(frame) != NULL)
+        numbers.append(frame);
+    }
+  }
+
+  LEAVE();
+  return numbers;
+}
 
 bool readEcatFrame(CECATFile* file, short frame, CMedIOFrame& f)
 {
