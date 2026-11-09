@@ -18,8 +18,8 @@
 #
 
 # Builds libmedio on Linux and runs the test suite (ctest), checks the
-# installed library incl. the Python bindings and verifies that the expected
-# values of the test data are up to date.
+# installed library incl. the Python bindings, builds and checks the R package
+# and verifies that the expected values of the test data are up to date.
 
 name: CI
 
@@ -193,6 +193,46 @@ jobs:
         env:
           CC: clang
           CXX: clang++
+
+  #-------------------------------------------------------------------------------------------
+  # build the self-contained source package of the R interface (r/) with the bundled libmedio
+  # sources and check it like CRAN does
+  r-package:
+    name: R package (Rmedio)
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          # tidy (HTML check of the manual) and checkbashisms (devscripts) for R CMD check --as-cran
+          sudo apt-get install -y --no-install-recommends qtbase5-dev zlib1g-dev pkg-config tidy devscripts
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install R packages
+        run: Rscript -e 'install.packages(c("Rcpp", "jsonlite"))'
+
+      - name: Bundle the libmedio sources and build the source package
+        run: |
+          r/tools/vendor.sh
+          R CMD build r
+
+      - name: Check the source package
+        run: |
+          R CMD check --as-cran --no-manual Rmedio_*.tar.gz
+          if grep -E "^Status: .*(WARNING|ERROR)" Rmedio.Rcheck/00check.log; then
+            echo "::error::R CMD check reported warnings or errors, see the log above"
+            exit 1
+          fi
+
+      - name: Show the output of the tests
+        if: failure()
+        run: cat Rmedio.Rcheck/tests/*.Rout* || true
 
   #-------------------------------------------------------------------------------------------
   # the expected values of the test data and the NIfTI test fixtures must be reproducible

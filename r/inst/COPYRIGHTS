@@ -1,0 +1,17 @@
+Rmedio - R interface to libmedio
+https://github.com/hzdr-MedImaging/libmedio
+
+Copyright (C) 2004-2026 hzdr.de and contributors
+
+The R package and the libmedio C++ library bundled in src/libmedio are
+licensed under the Apache License, Version 2.0. You may obtain a copy of
+the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+src/libmedio contains the sources of libmedio (src/ of the libmedio
+repository), src/rtdebug/rtdebug.h replaces the header of librtdebug
+(https://github.com/hzdr-MedImaging/librtdebug, Apache License 2.0).
+
+The ECAT test datasets in inst/extdata are taken from testsuite/data of the
+libmedio repository (phantom measurements without personal data).

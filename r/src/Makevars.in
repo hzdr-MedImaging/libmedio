@@ -1,0 +1,14 @@
+# Template of src/Makevars (src/Makevars.ucrt on Windows), filled in by
+# configure (configure.ucrt). Do not edit the generated files.
+#
+# The bundled libmedio sources (src/libmedio, see tools/vendor.sh) are
+# compiled together with the R interface into the package library.
+# LIBMEDIO_SOURCES and LIBMEDIO_INCLUDES are defined in src/libmedio/files.mk,
+# which configure puts in front of this file.
+
+RMEDIO_SOURCES = @RMEDIO_SOURCES@
+
+OBJECTS = $(RMEDIO_SOURCES:.cpp=.o) $(LIBMEDIO_SOURCES:.cpp=.o)
+
+PKG_CPPFLAGS = -D__MEDIO_PRIVATE__ -DQT_NO_DEBUG -Irtdebug $(LIBMEDIO_INCLUDES) @QT_CFLAGS@ @ZLIB_CFLAGS@
+PKG_LIBS = @QT_LIBS@ @ZLIB_LIBS@

@@ -12,7 +12,8 @@ formats, primarily from nuclear medicine (PET): ECAT 6/7, NIfTI-1/NIfTI-2
 (image, Syntegra, sinograms, list mode) and Siemens Concorde microPET. It also
 converts complete images between ECAT7/Philips and NIfTI (`CNIFTIConverter`).
 
-- Licensed under Apache-2.0. Python bindings (`pmedio`, pybind11) live in `python/`.
+- Licensed under Apache-2.0. Python bindings (`pmedio`, pybind11) live in `python/`,
+  the R package (`Rmedio`, Rcpp) in `r/`.
 - C++11 with Qt5 (Core); depends on zlib and
   [librtdebug](https://github.com/hzdr-MedImaging/librtdebug).
 - Applications and pipelines use the library on real patient data.
@@ -42,8 +43,9 @@ testsuite/                 # QtTest/CTest test suite
   ecat/, nifti/, philips/  # tests per format; nifti/data holds synthetic NIfTI fixtures
   matrix/, attributes/     # format independent matrix access and attributes (CMedIOVolume, CMedIOHeaderDictionary)
 python/                    # Python bindings and their tests
+r/                         # R package Rmedio (bundles src/ via r/tools/vendor.sh, see r/README.md)
 docs/                      # project documentation (e.g. the 2026 summer student report)
-.github/workflows/ci.yml   # CI: build/test matrix, install + Python bindings, test data check
+.github/workflows/ci.yml   # CI: build/test matrix, install + Python bindings, R package, test data check
 ```
 
 ## Build and test
@@ -76,6 +78,12 @@ Python bindings (`python/`, module `pmedio`): install the library into
 `PREFIX_PATH` first, then `cd python && pip install -e .` and run
 `pytest python/tests` (the CI builds them with CMake, see `ci.yml`).
 
+R package (`r/`, `Rmedio`): it does not use CMake or an installed libmedio but
+compiles the libmedio sources with the compiler of R. `r/tools/vendor.sh`
+copies `src/` and some test data into the package (not tracked in git), then
+`R CMD build r` and `R CMD check --as-cran Rmedio_*.tar.gz`. `R CMD INSTALL r`
+installs it from the checkout. Needs R with `Rcpp` and `jsonlite`.
+
 ## Architecture
 
 - `CMedIODataFactory::identify()`/`create()` identify the format of a file and
@@ -100,6 +108,7 @@ Run the checks that match the files you touched:
 | Library, examples, tests (C++) | build in Release **and** Debug (`-DCMAKE_BUILD_TYPE=Debug` compiles the `D()` debug output) and run `ctest --test-dir build --output-on-failure` |
 | Public headers, install rules | `cmake --install build` and build a small program against the installed headers only |
 | `python/` or API used by it | build the bindings (`cmake -S python ...`, see `ci.yml`) and run `pytest python/tests`; they are compiled with `-Werror` |
+| `r/`, or library sources/API used by it | `r/tools/vendor.sh && R CMD build r && R CMD check --as-cran Rmedio_*.tar.gz` (no warnings or errors) |
 | `testsuite/data/` | `python3 testsuite/data/tools/make_expected.py --check` and the `testdata_layout` test |
 | `testsuite/nifti/data/` | regenerate with `generate_fixtures.py` into a temporary directory and compare byte by byte |
 | `testsuite/attributes/data/` | regenerate with `generate_dictionary.py` into a temporary directory and compare byte by byte |
@@ -220,7 +229,7 @@ precedence over any default attribution behavior of the tool you run in.
 
 - [ ] Release and Debug build pass, `ctest` passes.
 - [ ] New or changed behavior has a test; bug fixes have a regression test.
-- [ ] Public API changes are reflected in `PUBLIC_HEADER`/stubs, the README and the Python bindings if affected.
+- [ ] Public API changes are reflected in `PUBLIC_HEADER`/stubs, the README and the Python bindings and R package if affected.
 - [ ] Nothing generated was edited by hand (expected values, NIfTI fixtures).
 - [ ] No personal data in test data, no machine-dependent tests.
 - [ ] Commits are authored by the requesting human and contain no AI attribution (trailers, footers, session links).
