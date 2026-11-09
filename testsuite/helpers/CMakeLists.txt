@@ -49,3 +49,20 @@ add_test(NAME bswap_matrix
          COMMAND testBswap
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# benchmark of bswap_matrix(): without sanitizers, with the optimization of the
+# build type (only Release builds give meaningful times)
+add_executable(testBswapPerformance testBswapPerformance.cpp)
+
+target_link_libraries(testBswapPerformance Qt5::Core
+                                           Qt5::Test
+                                           ${RTDEBUG_STATIC_LIB}
+)
+
+# every benchmark runs once in the test suite (checks it and its results);
+# for meaningful times run it without -iterations, see testBswapPerformance.cpp
+add_test(NAME bswap_performance
+         COMMAND testBswapPerformance -iterations 1
+         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+set_tests_properties(bswap_performance PROPERTIES LABELS "performance")
