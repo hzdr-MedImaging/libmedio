@@ -82,6 +82,20 @@ check_roundtrip <- function(name)
 check_file("pet-static.v")
 check_file("pet-dynamic.v")
 check_roundtrip("pet-static.v")
+# calibration factor 1000: the stored integers must still use the full range
+check_roundtrip("pet-dynamic.v")
+
+# small values written as integers keep their precision (scale factor for the
+# full range of the type instead of truncation to whole numbers)
+x <- array(seq(-0.5, 1, length.out = 60), dim = c(5, 4, 3))
+for (dtype in c("short", "int"))
+{
+  out <- tempfile(fileext = ".v")
+  writeEcat(x, fname = out, dtype = dtype)
+  y <- as.vector(readEcat(out)[["f1"]])
+  unlink(out)
+  stopifnot(max(abs(y - as.vector(x))) <= 1 / 32767)
+}
 
 # subsetting of volumes, rows, columns and planes
 fname <- system.file("extdata", "pet-dynamic.v", package = "Rmedio", mustWork = TRUE)

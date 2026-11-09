@@ -19,6 +19,7 @@
 
 #include <Rcpp.h>
 
+#include <cmath>
 #include <limits>
 
 #include <QFileInfo>
@@ -290,38 +291,47 @@ RcppExport SEXP writeEcat(SEXP ecat, SEXP vfilename, SEXP overwrite, SEXP dtype)
                 newMax = qMax(newMax, voxel);
               }
             
-              // calculate the scale factor (only for non-float data)
-              float maxValue = qMax(qAbs(newMax), qAbs(newMin));
-              float newScaleFactor = 1.0f;
+              // calculate the scale factor (only for integer data): like
+              // CNIFTIConverter, use the full range of the integer type, so
+              // that small values (e.g. after the division by a large
+              // calibration factor) keep their precision
+              double maxValue = qMax(qAbs(static_cast<double>(newMax)), qAbs(static_cast<double>(newMin)));
+              double typeMin = 0.0;
+              double typeMax = 0.0;
               switch(dataType)
               {
                 case CECATSubHeader::ByteData:
-                  if(maxValue > static_cast<float>(CHAR_MAX))
-                    newScaleFactor = maxValue / static_cast<float>(CHAR_MAX);
+                  typeMin = std::numeric_limits<qint8>::min();
+                  typeMax = std::numeric_limits<qint8>::max();
                 break;
 
                 case CECATSubHeader::SunShort:
-                  if(maxValue > static_cast<float>(SHRT_MAX))
-                    newScaleFactor = maxValue / static_cast<float>(SHRT_MAX);
+                  typeMin = std::numeric_limits<qint16>::min();
+                  typeMax = std::numeric_limits<qint16>::max();
                 break;
 
                 case CECATSubHeader::IEEEFloat:
                 {
-                  newScaleFactor = 1.0f;
                   newMin = 0.0f;
                   newMax = 0.0f;
                 }
                 break;
 
                 case CECATSubHeader::SunLong:
-                  if(maxValue > static_cast<float>(LONG_MAX))
-                    newScaleFactor = maxValue / static_cast<float>(LONG_MAX);
+                  typeMin = std::numeric_limits<qint32>::min();
+                  typeMax = std::numeric_limits<qint32>::max();
                 break;
 
                 default:
                   // nothing
                 break;
               }
+
+              // the scale factor is stored as float in the sub header,
+              // so the stored values are calculated with exactly that value
+              float newScaleFactor = 1.0f;
+              if(typeMax > 0.0 && maxValue > 0.0)
+                newScaleFactor = static_cast<float>(maxValue / typeMax);
  
               // now we iterate through our volumeVector. But we do this
               // here in a fashion that is compatible to the way the ECAT format
@@ -339,7 +349,12 @@ RcppExport SEXP writeEcat(SEXP ecat, SEXP vfilename, SEXP overwrite, SEXP dtype)
                     unsigned int dstIndex = y * x_dimension + x + z * plane_size;
 
                     // calculate the voxel value which we store in the ecat file
-                    float val = volumeVector[srcIndex] / newScaleFactor / ecat_calibration_factor;
+                    double val = volumeVector[srcIndex] / newScaleFactor / ecat_calibration_factor;
+
+                    // round integer values and keep them in the range of the
+                    // type (float rounding of the scale factor)
+                    if(dataType != CECATSubHeader::IEEEFloat)
+                      val = qBound(typeMin, std::floor(val + 0.5), typeMax);
 
                     #if defined(DEBUG)
                     if(x < 20 && y == 0 && z == 0)
@@ -351,22 +366,22 @@ RcppExport SEXP writeEcat(SEXP ecat, SEXP vfilename, SEXP overwrite, SEXP dtype)
                     if(dataType == CECATSubHeader::ByteData)
                     {
                       qint8* mData8 = static_cast<qint8*>(mData);
-                      mData8[dstIndex] = static_cast<qint8>(qRound(val));
+                      mData8[dstIndex] = static_cast<qint8>(val);
                     }
                     else if(dataType == CECATSubHeader::SunShort)
                     {
                       qint16* mData16 = static_cast<qint16*>(mData);
-                      mData16[dstIndex] = static_cast<qint16>(qRound(val));
+                      mData16[dstIndex] = static_cast<qint16>(val);
                     }
                     else if(dataType == CECATSubHeader::IEEEFloat)
                     {
                       float* mDataflt = static_cast<float*>(mData);
-                      mDataflt[dstIndex] = val;
+                      mDataflt[dstIndex] = static_cast<float>(val);
                     }
                     else if(dataType == CECATSubHeader::SunLong)
                     {
                       qint32* mData32 = static_cast<qint32*>(mData);
-                      mData32[dstIndex] = static_cast<qint32>(qRound(val));
+                      mData32[dstIndex] = static_cast<qint32>(val);
                     }
                   }
                 }
