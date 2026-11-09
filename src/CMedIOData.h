@@ -154,6 +154,17 @@ class CMedIOData : public QFile {
     //! writing if a value does not fit into the datatype). Philips: all slices
     //! of a frame with one scale factor; a frame written before is
     //! overwritten if the new data has the same slices.
+    //!
+    //! NIfTI: the start time and duration of every volume written are stored
+    //! as JSON header extension (FrameTimesStart, FrameDuration, as written
+    //! by CNIFTIConverter); other JSON metadata of the file is kept. The
+    //! extension is written between the header and vox_offset (single files)
+    //! or at the end of the header file (header/image pairs). If the voxel
+    //! data of a single file starts directly behind the header and no voxel
+    //! data has been written yet, vox_offset is moved to make room for the
+    //! timing of all volumes; the main header must not be written again
+    //! with the former vox_offset afterwards. Without room, or if the file has
+    //! other header extensions, only the voxel data is written (with a warning).
     bool writeMatrix(const QByteArray& matrixData, const CMedIOHeader& subHeader,
                      short frame=-1, const CMedIOHeader* mainHeader=NULL);
     bool writeMatrix(const char* matrixData, unsigned int size, const CMedIOHeader& subHeader,

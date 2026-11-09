@@ -31,6 +31,7 @@ namespace py = pybind11;
 
 // external modules
 extern void init_medio(py::module_ &);
+extern void init_volume(py::module_ &);
 //extern void init_ecat(py::module_ &);
 //extern void init_ecat7(py::module_ &);
 
@@ -67,7 +68,8 @@ PYBIND11_MODULE(pmedio, m) {
     .value("ConcordeMicropet", CMedIOData::ConcordeMicropet)
     .value("ECAT", CMedIOData::ECAT)
     .value("Philips", CMedIOData::Philips)
-    .value("PhilipsBin", CMedIOData::PhilipsBin);
+    .value("PhilipsBin", CMedIOData::PhilipsBin)
+    .value("NIFTI", CMedIOData::NIFTI);
 
   py::enum_<enum dimTypes>(mi, "DimType")
     .value("UNKNOWN", DM_UNKNOWN)
@@ -281,4 +283,8 @@ PYBIND11_MODULE(pmedio, m) {
      py::arg("dimType") = DM_FRAMES,
      py::arg("dataType") = DT_FLOAT,
      py::arg("format") = CMedIOData::ECAT);
+
+  // format independent access to the frames of all formats (pmedio.Volume,
+  // pmedio.File, pmedio.open(), pmedio.create()), see volume.cpp
+  init_volume(m);
 }
