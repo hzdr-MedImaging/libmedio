@@ -820,6 +820,7 @@ CPhilipsMainHeader::CPhilipsMainHeader(const CPhilipsMainHeader& src)
 
 CPhilipsMainHeader& CPhilipsMainHeader::operator=(const CPhilipsMainHeader& src)
 {
+  copyMetadata(src);
   ENTER();
 
   if(m_pData != src.m_pData)

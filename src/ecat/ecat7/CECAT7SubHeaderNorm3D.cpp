@@ -93,6 +93,7 @@ CECAT7SubHeaderNorm3D::CECAT7SubHeaderNorm3D(const CECAT7SubHeaderNorm3D& src)
 
 CECAT7SubHeaderNorm3D& CECAT7SubHeaderNorm3D::operator=(const CECAT7SubHeaderNorm3D& src)
 {
+  copyMetadata(src);
   ENTER();
 
   if(m_pData != src.m_pData)

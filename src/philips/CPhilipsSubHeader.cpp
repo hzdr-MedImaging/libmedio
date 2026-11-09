@@ -240,6 +240,7 @@ CPhilipsSubHeader::CPhilipsSubHeader(const CPhilipsSubHeader& src)
 
 CPhilipsSubHeader& CPhilipsSubHeader::operator=(const CPhilipsSubHeader& src)
 {
+  copyMetadata(src);
   ENTER();
 
   if(m_pData != src.m_pData)

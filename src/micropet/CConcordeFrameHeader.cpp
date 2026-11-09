@@ -146,6 +146,7 @@ CConcordeFrameHeader::CConcordeFrameHeader(const CConcordeFrameHeader& src)
 
 CMedIOHeader& CConcordeFrameHeader::operator=(const CMedIOHeader& src)
 {
+  copyMetadata(src);
   ENTER();
 
   this->convertFrom(&src);

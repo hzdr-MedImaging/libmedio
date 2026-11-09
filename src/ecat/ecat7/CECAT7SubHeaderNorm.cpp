@@ -93,6 +93,7 @@ CECAT7SubHeaderNorm::CECAT7SubHeaderNorm(const CECAT7SubHeaderNorm& src)
 
 CECAT7SubHeaderNorm& CECAT7SubHeaderNorm::operator=(const CECAT7SubHeaderNorm& src)
 {
+  copyMetadata(src);
   ENTER();
 
   if(m_pData != src.m_pData)

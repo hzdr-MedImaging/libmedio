@@ -212,6 +212,7 @@ CConcordeMainHeader::CConcordeMainHeader(const CConcordeMainHeader& src)
 
 CConcordeMainHeader& CConcordeMainHeader::operator=(const CConcordeMainHeader& src)
 {
+  copyMetadata(src);
   ENTER();
 
   m_pData->header.model = src.model();

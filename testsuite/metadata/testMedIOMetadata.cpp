@@ -25,6 +25,8 @@
 // data/generate_dictionary.py).
 
 #include <CMedIOMetadata.h>
+#include <CMedIOHeader.h>
+#include <CECAT7SubHeaderNorm.h>
 
 #include <QtTest/QtTest>
 #include <QJsonArray>
@@ -46,6 +48,10 @@ class TestMedIOMetadata : public QObject
     void keyLookup();
     void values_data();
     void values();
+
+    void headerMetadata();
+    void headerMetadataErrors();
+    void headerMetadataCopies();
 };
 
 //---------------------------------------------------------------------------------------------
@@ -216,6 +222,103 @@ void TestMedIOMetadata::values()
   const QJsonObject object = QJsonDocument::fromJson(QString("{\"v\": %1}").arg(json).toUtf8()).object();
   QVERIFY(object.contains("v"));
   QCOMPARE(CMedIOMetadata::isValid(*CMedIOMetadata::key(key), object["v"]), valid);
+}
+
+//---------------------------------------------------------------------------------------------
+// metadata kept in the header object (a header type without metadata of its
+// own format: everything is kept in the object)
+
+void TestMedIOMetadata::headerMetadata()
+{
+  CECAT7SubHeaderNorm header;
+  QVERIFY(header.metadata().isEmpty());
+
+  // by keyword, tag string and tag number
+  QVERIFY(header.setMetadataValue("PatientWeight", 8.63));
+  QVERIFY(header.setMetadataValue("(0010,0010)", QString("Doe^John")));
+  QVERIFY(header.setMetadataValue(0x00181074, 60780000.0));   // (0018,1074) RadionuclideTotalDose
+
+  QCOMPARE(header.metadataValue("PatientWeight").toDouble(), 8.63);
+  QCOMPARE(header.metadataValue("(0010,1030)").toDouble(), 8.63);
+  QCOMPARE(header.metadataValue(0x00101030).toDouble(), 8.63);
+  QCOMPARE(header.metadataValue("PatientName").toString(), QString("Doe^John"));
+  QCOMPARE(header.metadataValue("RadionuclideTotalDose").toDouble(), 60780000.0);
+  QVERIFY(header.metadataValue("PatientID").isUndefined());
+
+  // stored under the keyword
+  QJsonObject json = header.metadata();
+  QCOMPARE(json.size(), 3);
+  QVERIFY(json.contains("PatientName") && json.contains("PatientWeight") && json.contains("RadionuclideTotalDose"));
+
+  // unknown keys and tags of private attributes (stored as tag string)
+  QVERIFY(header.setMetadataValue("00291010", QString("private")));
+  QVERIFY(header.setMetadataValue("MyKey", QJsonObject{{"a", 1}}));
+  QCOMPARE(header.metadataValue("(0029,1010)").toString(), QString("private"));
+  QCOMPARE(header.metadataValue(0x00291010).toString(), QString("private"));
+  QVERIFY(header.metadata().contains("(0029,1010)"));
+  QCOMPARE(header.metadataValue("MyKey").toObject()["a"].toInt(), 1);
+
+  // the whole object changed and given back; null removes a key
+  json = header.metadata();
+  json["PatientWeight"] = 9.5;
+  json["PatientName"] = QJsonValue(QJsonValue::Null);
+  QVERIFY(header.updateMetadata(json));
+  QCOMPARE(header.metadataValue("PatientWeight").toDouble(), 9.5);
+  QVERIFY(header.metadataValue("PatientName").isUndefined());
+  QCOMPARE(header.metadataValue("RadionuclideTotalDose").toDouble(), 60780000.0);
+
+  // frame metadata of all frames
+  QJsonArray frames;
+  frames.append(QJsonObject{{"DecayFactor", 1.00158}});
+  QVERIFY(header.setMetadataValue(CMedIOMetadata::FramesKey, frames));
+  QCOMPARE(header.metadataValue("Frames").toArray().size(), 1);
+}
+
+void TestMedIOMetadata::headerMetadataErrors()
+{
+  CECAT7SubHeaderNorm header;
+  QVERIFY(header.setMetadataValue("PatientWeight", 8.63));
+  const QJsonObject before = header.metadata();
+
+  // invalid values: nothing is changed, also not the valid keys of the same call
+  QJsonObject changes;
+  changes["PatientName"] = QString("Doe^John");
+  changes["PatientWeight"] = QString("heavy");
+  QVERIFY(header.updateMetadata(changes) == false);
+  QCOMPARE(header.metadata(), before);
+
+  QVERIFY(header.setMetadataValue("PatientBirthDate", QString("19260603")) == false);
+  QVERIFY(header.setMetadataValue("AcquisitionDateTime", QString("2026-06-03")) == false);
+  QVERIFY(header.setMetadataValue("CorrectedImage", QString("ATTN")) == false);
+  QVERIFY(header.setMetadataValue("Frames", QJsonArray{1, 2}) == false);
+  QCOMPARE(header.metadata(), before);
+
+  // a key given as keyword and as tag
+  changes = QJsonObject();
+  changes["PatientWeight"] = 1.0;
+  changes["(0010,1030)"] = 2.0;
+  QVERIFY(header.updateMetadata(changes) == false);
+  QCOMPARE(header.metadata(), before);
+}
+
+void TestMedIOMetadata::headerMetadataCopies()
+{
+  CECAT7SubHeaderNorm header;
+  QVERIFY(header.setMetadataValue("PatientWeight", 8.63));
+
+  CECAT7SubHeaderNorm copy(header);
+  QCOMPARE(copy.metadata(), header.metadata());
+
+  QScopedPointer<CMedIOHeader> clone(header.clone());
+  QCOMPARE(clone->metadata(), header.metadata());
+
+  CECAT7SubHeaderNorm assigned;
+  assigned = header;
+  QCOMPARE(assigned.metadata(), header.metadata());
+
+  // the copies are independent
+  QVERIFY(copy.setMetadataValue("PatientWeight", 1.0));
+  QCOMPARE(header.metadataValue("PatientWeight").toDouble(), 8.63);
 }
 
 QTEST_GUILESS_MAIN(TestMedIOMetadata)

@@ -196,6 +196,7 @@ CNIFTI1MainHeader::CNIFTI1MainHeader(const CNIFTI1MainHeader& src)  : CNIFTIMain
 
 // Default assignment operator
 CNIFTI1MainHeader& CNIFTI1MainHeader::operator=(const CNIFTI1MainHeader& src) {
+  copyMetadata(src);
   ENTER();
 
   if(m_pData != src.m_pData) {
