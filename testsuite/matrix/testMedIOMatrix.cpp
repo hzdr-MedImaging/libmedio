@@ -460,6 +460,7 @@ class TestMedIOMatrix : public QObject
     void philipsSliceScales_data();
     void philipsSliceScales();
     void philipsErrors();
+    void philipsVolumeTiming();
 
     void concorde();
 
@@ -1853,6 +1854,58 @@ void TestMedIOMatrix::philipsSliceScales()
 }
 
 //---------------------------------------------------------------------------------------------
+
+//---------------------------------------------------------------------------------------------
+// frame timing of volumes written into a Philips file (writeVolume()): the
+// frame start is relative to the acquisition start of the Philips main header
+// (the ECAT7 representation of a volume has no scan start time)
+
+void TestMedIOMatrix::philipsVolumeTiming()
+{
+  EcatFile reference;
+  QVERIFY(reference.read(medioTestDataDir() + "/ecat/pet-dynamic.v"));
+
+  QScopedPointer<CMedIOData> in(CMedIODataFactory::create(medioTestDataDir() + "/ecat/pet-dynamic.v"));
+  QVERIFY(in->open(QIODevice::ReadOnly));
+  CMedIOHeader* mh = NULL;
+  QVERIFY(in->readMainHeader(mh, CMedIOData::Philips));
+  QScopedPointer<CMedIOHeader> mhGuard(mh);
+  QVERIFY(static_cast<CPhilipsMainHeader*>(mh)->acq_date_time() > 0);
+
+  // frames of the source and a frame with milliseconds (start 3.25 s, duration 2.5 s)
+  const QString path = tmpFile("volume-timing.img");
+  {
+    CPhilipsFile out(path, CPhilipsMainHeader::Image);
+    QVERIFY(out.open(QIODevice::WriteOnly));
+    mh->setMedIOData(&out);
+    QVERIFY(out.writeMainHeader(*static_cast<CPhilipsMainHeader*>(mh)));
+    mh->setMedIOData(NULL);
+
+    for(int f=1; f <= reference.frames(); f++) {
+      CMedIOVolume v;
+      QVERIFY(in->readVolume(v, f));
+      QVERIFY(out.writeVolume(v, f));
+    }
+
+    CMedIOVolume v;
+    QVERIFY(in->readVolume(v, 1));
+    v.setFrameStart(3.25);
+    v.setFrameDuration(2.5);
+    QVERIFY(out.writeVolume(v, reference.frames() + 1));
+    out.close();
+  }
+
+  CPhilipsFile written(path);
+  QVERIFY(written.open(QIODevice::ReadOnly));
+  for(int f=1; f <= reference.frames() + 1; f++) {
+    CMedIOVolume v;
+    QVERIFY(written.readVolume(v, f));
+    const double start = (f <= reference.frames()) ? reference.subHeaders[f-1]->frame_Start_Time() / 1000.0 : 3.25;
+    const double duration = (f <= reference.frames()) ? reference.subHeaders[f-1]->frame_Duration() / 1000.0 : 2.5;
+    QVERIFY2(approx(v.frameStart(), start, 0.0, 1e-6), qPrintable(QString("frame %1: start %2 s instead of %3 s").arg(f).arg(v.frameStart()).arg(start)));
+    QVERIFY2(approx(v.frameDuration(), duration, 0.0, 1e-6), qPrintable(QString("frame %1: duration %2 s instead of %3 s").arg(f).arg(v.frameDuration()).arg(duration)));
+  }
+}
 
 void TestMedIOMatrix::philipsErrors()
 {
