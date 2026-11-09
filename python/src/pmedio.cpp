@@ -20,9 +20,15 @@
 #include "pmedio.h"
 
 #include <CMedIODataFactory>
+#include <CMedIOHeader>
+#include <CMedIOMetadata>
+#include <CMedIOVolume>
 
 #include <QString>
 #include <QIODevice>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QScopedPointer>
 
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
@@ -33,6 +39,30 @@ namespace py = pybind11;
 extern void init_medio(py::module_ &);
 //extern void init_ecat(py::module_ &);
 //extern void init_ecat7(py::module_ &);
+
+namespace {
+
+// Python object (dict, list, ...) of a JSON value
+py::object pythonOfJson(const QJsonObject& json)
+{
+  const QByteArray text = QJsonDocument(json).toJson(QJsonDocument::Compact);
+  return py::module_::import("json").attr("loads")(py::str(text.constData(), text.size()));
+}
+
+// opened file of any supported format
+CMedIOData* openFile(const QString& fileName)
+{
+  CMedIOData* data = CMedIODataFactory::create(fileName);
+  if(data == nullptr)
+    throw std::runtime_error("invalid/unsupported file supplied");
+  if(data->open(QIODevice::ReadOnly) == false) {
+    delete data;
+    throw std::runtime_error("unable to open the file");
+  }
+  return data;
+}
+
+} // namespace
 
 // defines the main entries of the pybind module
 PYBIND11_MODULE(pmedio, m) {
@@ -249,6 +279,76 @@ PYBIND11_MODULE(pmedio, m) {
      py::arg("rows") = std::vector<int>(),
      py::arg("cols") = std::vector<int>(),
      py::arg("planes") = std::vector<int>());
+
+  // format independent metadata of a file (see CMedIOMetadata.h): the metadata
+  // of its main header (DICOM keywords, native fields of the format, ...) and
+  // in "Frames" the metadata of all frames
+  m.def("metadata", [](const QString& fileName) -> py::object
+  {
+    QScopedPointer<CMedIOData> data(openFile(fileName));
+
+    // the NIfTI representation of the main header holds the frame metadata of all frames
+    CMedIOHeader* header = nullptr;
+    if(data->readMainHeader(header, CMedIOData::NIFTI) == false || header == nullptr)
+      throw std::runtime_error("unable to read the metadata");
+    QScopedPointer<CMedIOHeader> guard(header);
+
+    QJsonObject json = header->metadata();
+    if(data->dataFormat() != CMedIOData::NIFTI)
+      json.remove("NIfTI");
+    return pythonOfJson(json);
+  }, py::arg("fileName"));
+
+  // key of the metadata: DICOM keyword ("PatientWeight") or tag ("(0010,1030)")
+  m.def("metadataKey", [](const QString& keywordOrTag) -> py::object
+  {
+    const CMedIOMetadata::Key* key = CMedIOMetadata::key(keywordOrTag);
+    if(key == nullptr)
+      return py::none();
+
+    py::dict d;
+    d["keyword"] = key->keyword;
+    d["tag"] = CMedIOMetadata::tagString(key->tag).toStdString();
+    d["vr"] = key->vr;
+    d["vm"] = key->vm;
+    d["unit"] = key->unit;
+    d["sequence"] = key->sequence ? py::object(py::str(CMedIOMetadata::tagString(key->sequence).toStdString())) : py::none();
+    d["scope"] = (key->scope == CMedIOMetadata::FrameHeader) ? "frame" : "main";
+    return py::object(d);
+  }, py::arg("keywordOrTag"));
+
+  // frame of a file as format independent volume: physical values (voxel
+  // order of the file, array index [i, j, k]), affine voxel -> DICOM patient
+  // coordinates (LPS, mm), frame start and duration (s)
+  m.def("readVolume", [](const QString& fileName, short frame) -> py::dict
+  {
+    QScopedPointer<CMedIOData> data(openFile(fileName));
+    CMedIOVolume volume;
+    if(data->readVolume(volume, frame) == false)
+      throw std::runtime_error("unable to read the frame");
+
+    const ssize_t nx = volume.dimension(0), ny = volume.dimension(1), nz = volume.dimension(2);
+    py::array_t<double, py::array::f_style> values({nx, ny, nz});
+    double* v = values.mutable_data();
+    for(qint64 i=0; i < volume.voxelCount(); i++)
+      v[i] = volume.value(i);
+
+    double m[3][4];
+    volume.affine(m);
+    py::array_t<double> affine({4, 4});
+    auto a = affine.mutable_unchecked<2>();
+    for(int r=0; r < 4; r++)
+      for(int c=0; c < 4; c++)
+        a(r, c) = (r < 3) ? m[r][c] : (c == 3 ? 1.0 : 0.0);
+
+    py::dict d;
+    d["values"] = values;
+    d["affine"] = affine;
+    d["orientation"] = volume.orientation().toStdString();
+    d["frameStart"] = volume.frameStart();
+    d["frameDuration"] = volume.frameDuration();
+    return d;
+  }, py::arg("fileName"), py::arg("frame") = -1);
 
   // general pmedio.write() function to write out a medioimage data
   m.def("write", [](MedIOImage& img,
