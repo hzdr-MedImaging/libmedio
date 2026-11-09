@@ -50,6 +50,12 @@ const Adapter* adapter(const CMedIOHeader& header)
         return ecat7ImageSubHeaderAdapter();
     break;
 
+    case CMedIOHeader::PhilipsMainHeader:
+      return philipsMainHeaderAdapter();
+
+    case CMedIOHeader::PhilipsSubHeader:
+      return philipsSubHeaderAdapter();
+
     default:
     break;
   }
@@ -245,7 +251,8 @@ QJsonValue floatNumber(float value)
 
 QJsonValue floatNumber(float value, double factor)
 {
-  return number(floatNumber(value).toDouble() * factor, 9);
+  // float precision: 7 significant digits
+  return number(floatNumber(value).toDouble() * factor, 7);
 }
 
 QJsonValue text(const char* latin1)

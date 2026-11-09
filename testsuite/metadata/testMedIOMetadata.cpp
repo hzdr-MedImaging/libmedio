@@ -31,6 +31,9 @@
 #include <CECAT7MainHeader.h>
 #include <CECAT7SubHeaderImage.h>
 #include <CMedIOVolume.h>
+#include <CPhilipsFile.h>
+#include <CPhilipsMainHeader.h>
+#include <CPhilipsSubHeader.h>
 
 #include "MedIOTestData.h"
 
@@ -106,6 +109,10 @@ class TestMedIOMetadata : public QObject
     void ecatMetadata();
     void ecatWrite();
     void ecatBirthDate();
+
+    void philipsMetadata_data();
+    void philipsMetadata();
+    void philipsWrite();
 
   private:
     QTemporaryDir m_tmp;
@@ -570,6 +577,130 @@ void TestMedIOMetadata::ecatBirthDate()
 
   QVERIFY(header.setMetadataValue("PatientBirthDate", QJsonValue(QJsonValue::Null)));
   QVERIFY(header.metadataValue("PatientBirthDate").isUndefined());
+}
+
+//---------------------------------------------------------------------------------------------
+// Philips: metadata of the test datasets (exported by ROVER from the DICOM
+// series), compared with the DICOM series (pydicom) and with the times of the
+// ECAT7 file of the same export (nibabel; both UTC)
+
+void TestMedIOMetadata::philipsMetadata_data()
+{
+  QTest::addColumn<QString>("file");
+  QTest::addColumn<QString>("ecat");
+  QTest::addColumn<QString>("dicom");
+
+  QTest::newRow("pet-static.img")  << "philips/pet-static.img" << "ecat/pet-static.v" << "dicom/pet-static";
+  QTest::newRow("pet-static.syn")  << "philips/pet-static.syn" << "ecat/pet-static.v" << "dicom/pet-static";
+  QTest::newRow("pet-dynamic.img") << "philips/pet-dynamic.img" << "ecat/pet-dynamic.v" << "dicom/pet-dynamic";
+  QTest::newRow("pet-dynamic.syn") << "philips/pet-dynamic.syn" << "ecat/pet-dynamic.v" << "dicom/pet-dynamic";
+}
+
+void TestMedIOMetadata::philipsMetadata()
+{
+  QFETCH(QString, file);
+  QFETCH(QString, ecat);
+  QFETCH(QString, dicom);
+
+  const QJsonObject original = expectedValues(dicom)["metadata"].toObject();
+  const QJsonObject ecatValues = expectedValues(ecat)["metadata"].toObject();
+  QVERIFY(original.isEmpty() == false && ecatValues.isEmpty() == false);
+
+  CPhilipsFile philips(medioTestDataDir() + "/" + file);
+  QVERIFY(philips.open(QIODevice::ReadOnly));
+  CPhilipsMainHeader* mh = NULL;
+  QVERIFY(philips.readMainHeader(mh));
+  QScopedPointer<CPhilipsMainHeader> mhGuard(mh);
+
+  const QJsonObject main = mh->metadata();
+  COMPARE_METADATA(main, original["main"].toObject(),
+                   QStringList() << "PatientName" << "PatientID" << "PatientBirthDate" << "PatientSex"
+                                 << "PatientSize" << "PatientWeight" << "Radiopharmaceutical"
+                                 << "RadionuclideTotalDose" << "RadionuclideHalfLife");
+  COMPARE_METADATA(main, ecatValues["main"].toObject(),
+                   QStringList() << "AcquisitionDateTime" << "RadiopharmaceuticalStartDateTime");
+
+  // native fields in the units of Philips, without the fields describing the image data
+  const QJsonObject native = main["Philips"].toObject();
+  QCOMPARE(native["weight"].toDouble(), main["PatientWeight"].toDouble() * 1000.0);           // g
+  QCOMPARE(native["height"].toDouble(), main["PatientSize"].toDouble() * 1000.0);             // mm
+  QVERIFY(qAbs(native["activity"].toDouble() * 1.0e6 / main["RadionuclideTotalDose"].toDouble() - 1.0) < 1e-6);  // MBq
+  QVERIFY(qAbs(native["halfLife"].toDouble() * 60.0 / main["RadionuclideHalfLife"].toDouble() - 1.0) < 1e-6);    // min
+  foreach(const QString& field, QStringList() << "file_fmt" << "filtyp" << "nslice" << "nframe" << "dmax" << "slcthk")
+    QVERIFY2(native.contains(field) == false, qPrintable(field));
+
+  // frames (first slice)
+  const QJsonArray originalFrames = original["frames"].toArray();
+  const QList<short> frames = philips.frameNumbers();
+  QCOMPARE(frames.size(), originalFrames.size());
+  for(int i=0; i < frames.size(); i++) {
+    CPhilipsSubHeader* sh = NULL;
+    QVERIFY(philips.readSubHeader(sh, frames[i], -1));
+    QScopedPointer<CPhilipsSubHeader> shGuard(sh);
+    const QJsonObject frame = sh->metadata();
+    COMPARE_METADATA(frame, originalFrames[i].toObject(), QStringList() << "ActualFrameDuration");
+    QVERIFY(frame["Philips"].toObject().contains("suvscl") == false);
+  }
+}
+
+//---------------------------------------------------------------------------------------------
+// Philips: metadata written into a main header
+
+void TestMedIOMetadata::philipsWrite()
+{
+  CPhilipsMainHeader header(NULL, CPhilipsMainHeader::Image);
+  QJsonObject changes;
+  changes["PatientName"] = QString("Doe^Jane");
+  changes["PatientBirthDate"] = QString("1980-02-29");
+  changes["PatientSex"] = QString("O");
+  changes["PatientSize"] = 1.82;
+  changes["PatientWeight"] = 71.5;
+  changes["PatientPosition"] = QString("FFP");
+  changes["AcquisitionDateTime"] = QString("2026-06-03T19:04:56+02:00");
+  changes["RadiopharmaceuticalRoute"] = QString("intravenous");
+  changes["RadionuclideTotalDose"] = 250.5e6;
+  changes["RadionuclideHalfLife"] = 6586.2;
+  changes["RadionuclideCodeSequence"] = QJsonObject{{"CodeValue", "C-111A1"}, {"CodingSchemeDesignator", "SRT"},
+                                                    {"CodeMeaning", "^18^Fluorine"}};
+  changes["SeriesNumber"] = 3;
+  QVERIFY(header.updateMetadata(changes));
+
+  // the native fields in the units of Philips
+  QCOMPARE(header.height(), static_cast<short>(1820));
+  QCOMPARE(header.weight(), 71500);
+  QCOMPARE(header.activity(), 250.5f);
+  QCOMPARE(header.halfLife(), 109.77f);
+  QCOMPARE(header.sex(), 'O');
+  QCOMPARE(header.bthyr(), static_cast<short>(1980));
+  QCOMPARE(header.bthmo(), static_cast<short>(2));
+  QCOMPARE(header.bthday(), static_cast<short>(29));
+  QCOMPARE(header.orient_hf(), CPhilipsMainHeader::Feet_First);
+  QCOMPARE(header.orient_ps(), CPhilipsMainHeader::Prone);
+  QCOMPARE(header.route(), CPhilipsMainHeader::Intravenous);
+  QCOMPARE(static_cast<qint64>(header.acq_date_time()), Q_INT64_C(1780506296));
+  QCOMPARE(QString(header.isotope_code_value()), QString("C-111A1"));
+  QCOMPARE(QString(header.Dpat_name()), QString("Doe^Jane"));
+
+  // read back: DICOM units and texts
+  const QJsonObject json = header.metadata();
+  QCOMPARE(json["PatientSize"].toDouble(), 1.82);
+  QCOMPARE(json["PatientWeight"].toDouble(), 71.5);
+  QCOMPARE(json["RadionuclideTotalDose"].toDouble(), 250.5e6);
+  QCOMPARE(json["RadionuclideHalfLife"].toDouble(), 6586.2);
+  QCOMPARE(json["RadiopharmaceuticalRoute"].toString(), QString("Intravenous"));
+  QCOMPARE(json["AcquisitionDateTime"].toString(), QString("2026-06-03T17:04:56Z"));
+  QCOMPARE(json["RadionuclideCodeSequence"].toObject(), changes["RadionuclideCodeSequence"].toObject());
+
+  // values Philips cannot store are kept in the object
+  QVERIFY(header.setMetadataValue("RadiopharmaceuticalRoute", QString("Intranasal")));
+  QCOMPARE(header.route(), CPhilipsMainHeader::UndefinedRoute);
+  QCOMPARE(header.metadataValue("RadiopharmaceuticalRoute").toString(), QString("Intranasal"));
+  QVERIFY(header.setMetadataValue("PatientWeight", 1.0e9));   // does not fit into the gram field
+  QCOMPARE(header.weight(), 0);
+  QCOMPARE(header.metadataValue("PatientWeight").toDouble(), 1.0e9);
+
+  // read only native field
+  QVERIFY(header.updateMetadata(QJsonObject{{"Philips", QJsonObject{{"dep_acq_date", 1}}}}) == false);
 }
 
 QTEST_GUILESS_MAIN(TestMedIOMetadata)

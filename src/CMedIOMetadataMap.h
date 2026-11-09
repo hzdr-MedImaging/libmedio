@@ -123,7 +123,8 @@ QJsonValue number(double value, int digits = 15);
 //! number of a float field: the shortest decimal number giving the float
 QJsonValue floatNumber(float value);
 
-//! value of a float field converted with a factor (float precision)
+//! value of a float field converted with a factor, rounded to the precision
+//! of a float (7 significant digits)
 QJsonValue floatNumber(float value, double factor);
 
 //! string of a Latin-1 text field, Undefined if empty

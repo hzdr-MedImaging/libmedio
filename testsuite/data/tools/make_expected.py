@@ -93,10 +93,10 @@ def stats(raw):
 # format independent metadata (see src/CMedIOMetadata.h and CMedIOMetadataMap.h)
 
 def float32_number(value, factor=1.0):
-    """Value of a float32 field: the shortest decimal number giving the float32,
-    converted with factor and rounded to 9 significant digits."""
+    """Value of a float32 field: the shortest decimal number giving the float32;
+    converted with a factor, rounded to the precision of a float32 (7 significant digits)."""
     shortest = float(np.format_float_scientific(np.float32(value), unique=True))
-    return float(f'{shortest * factor:.9g}')
+    return shortest if factor == 1.0 else float(f'{shortest * factor:.7g}')
 
 
 def iso_utc(unix_seconds):
