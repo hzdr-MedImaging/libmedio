@@ -179,6 +179,21 @@ jobs:
           cmake --build build-python -j"$(nproc)"
           PYTHONPATH="$PWD/build-python" python -m pytest -v python/tests
 
+      # Clang warns about some problems at once that GCC only reports for code it
+      # emits (e.g. a missing return in an unused inline function); the bindings
+      # are compiled with -Werror
+      - name: Build and test the Python bindings with Clang
+        run: |
+          cmake -S python -B build-python-clang -DCMAKE_BUILD_TYPE=Release -DPREFIX_PATH="$PETLIB" \
+                -Dpybind11_DIR="$(python -c 'import pybind11; print(pybind11.get_cmake_dir())')" \
+                -DPython_EXECUTABLE="$(which python)" \
+                -DCMAKE_CXX_FLAGS="-I$PETLIB/include/rtdebug"
+          cmake --build build-python-clang -j"$(nproc)"
+          PYTHONPATH="$PWD/build-python-clang" python -m pytest -v python/tests
+        env:
+          CC: clang
+          CXX: clang++
+
   #-------------------------------------------------------------------------------------------
   # the expected values of the test data and the NIfTI test fixtures must be reproducible
   # with the independent implementations they were generated with
