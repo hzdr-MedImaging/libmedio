@@ -5179,11 +5179,6 @@ void CPhilipsMainHeader::setPostflt_type(const PostFlt_Type type)
   m_pData->extHeader.postflt_type = type;
 }
 
-void CPhilipsMainHeader::setPostflt_type(const PreFlt_Type type)
-{
-  m_pData->extHeader.postflt_type = type;
-}
-
 void CPhilipsMainHeader::setTr_posttyp(const PostProc_Type type)
 {
   m_pData->extHeader.tr_posttyp = type;

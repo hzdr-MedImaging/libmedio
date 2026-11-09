@@ -365,9 +365,8 @@ void TestPhilipsWrite::unsignedShortHeader()
 }
 
 //---------------------------------------------------------------------------------------------
-// pre- and post-filter types of the main header: setPostflt_type() with the
-// post-filter type (it took the pre-filter type only), written and read back;
-// the overload with the pre-filter type is kept for compatibility
+// pre- and post-filter types of the main header, written and read back
+// (setPostflt_type() took the pre-filter type)
 
 void TestPhilipsWrite::filterTypes()
 {
@@ -400,11 +399,6 @@ void TestPhilipsWrite::filterTypes()
   QScopedPointer<CPhilipsMainHeader> guard(mainHeader);
   QCOMPARE(mainHeader->preflt_type(), CPhilipsMainHeader::Metz_PreFlt);
   QCOMPARE(mainHeader->postflt_type(), CPhilipsMainHeader::PET3D_PostFlt);
-
-  // the deprecated overload stores the value unchanged
-  mainHeader->setPostflt_type(CPhilipsMainHeader::Wiener_PreFlt);
-  QCOMPARE(static_cast<int>(mainHeader->postflt_type()), static_cast<int>(CPhilipsMainHeader::Wiener_PreFlt));
-  QCOMPARE(mainHeader->postflt_type(), CPhilipsMainHeader::Wiener_PostFlt);
 }
 
 QTEST_GUILESS_MAIN(TestPhilipsWrite)
