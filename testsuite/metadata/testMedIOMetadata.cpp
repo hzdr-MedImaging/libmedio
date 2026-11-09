@@ -35,6 +35,10 @@
 #include <CPhilipsMainHeader.h>
 #include <CPhilipsSubHeader.h>
 #include <CConcordeImage.h>
+#include <CNIFTIFile.h>
+#include <CNIFTIMainHeader.h>
+#include <CNIFTI1MainHeader.h>
+#include <CNIFTI2MainHeader.h>
 #include <CConcordeMainHeader.h>
 #include <CConcordeFrameHeader.h>
 
@@ -44,6 +48,10 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+
+#ifndef NIFTI_TEST_DATA_DIR
+#error "NIFTI_TEST_DATA_DIR has to be defined"
+#endif
 
 #ifndef METADATA_TEST_DATA_DIR
 #error "METADATA_TEST_DATA_DIR has to be defined"
@@ -118,6 +126,11 @@ class TestMedIOMetadata : public QObject
     void philipsWrite();
 
     void concordeMetadata();
+
+    void niftiEarlierMetadata();
+    void niftiWrite_data();
+    void niftiWrite();
+    void niftiBids();
 
   private:
     QTemporaryDir m_tmp;
@@ -835,6 +848,177 @@ void TestMedIOMetadata::concordeMetadata()
   QCOMPARE(mh2->dose(), 37.0f);
   QVERIFY(mh2->setMetadataValue("PatientWeight", 0.03));
   QCOMPARE(mh2->subjectWeight(), 30.0f);   // g, the units of the header
+}
+
+//---------------------------------------------------------------------------------------------
+// NIfTI: JSON written by earlier versions of CNIFTIConverter (ECAT7 main header
+// fields at the top level; fixture written with nibabel)
+
+// JSON header extension of a NIfTI file as stored
+static QJsonObject niftiExtension(const QString& path)
+{
+  CNIFTIFile file(path);
+  CNIFTIMainHeader* h = NULL;
+  QJsonObject json;
+  if(file.open(QIODevice::ReadOnly) && file.readMainHeader(h)) {
+    json = (h->mainHeaderType() == CNIFTIMainHeader::NIFTI1MainHeader) ? static_cast<CNIFTI1MainHeader*>(h)->readHeaderExtension(file)
+                                                                      : static_cast<CNIFTI2MainHeader*>(h)->readHeaderExtension(file);
+  }
+  delete h;
+  return json;
+}
+
+void TestMedIOMetadata::niftiEarlierMetadata()
+{
+  CNIFTIFile file(QString(NIFTI_TEST_DATA_DIR) + "/n1_le_int16_ext.nii");
+  QVERIFY(file.open(QIODevice::ReadOnly));
+  CNIFTIMainHeader* h = NULL;
+  QVERIFY(file.readMainHeader(h));
+  QScopedPointer<CNIFTIMainHeader> hGuard(h);
+
+  // {"Isotope_Name": "F-18", "Dosage": 300.5, "Frame_Duration": 600}
+  const QJsonObject json = h->metadata();
+  QCOMPARE(json["ECAT7"].toObject(), QJsonObject({{"Isotope_Name", "F-18"}, {"Dosage", 300.5}}));
+  QCOMPARE(json["RadionuclideTotalDose"].toDouble(), 300.5);
+  QCOMPARE(json["Frame_Duration"].toInt(), 600);
+  QVERIFY(json.contains("NIfTI"));
+
+  // no metadata keys of ECAT7 defaults (e.g. the energy window of a new ECAT7 header)
+  QStringList keys;
+  foreach(const CMedIOMetadata::Key* k, CMedIOMetadata::keys()) {
+    if(json.contains(QString::fromLatin1(k->keyword)))
+      keys.append(QString::fromLatin1(k->keyword));
+  }
+  QCOMPARE(keys, QStringList() << "RadionuclideTotalDose");
+}
+
+//---------------------------------------------------------------------------------------------
+// NIfTI: metadata written as JSON header extension and read back
+
+void TestMedIOMetadata::niftiWrite_data()
+{
+  QTest::addColumn<QString>("name");
+  QTest::addColumn<int>("version");
+
+  QTest::newRow("NIfTI-1")      << "meta1.nii" << 1;
+  QTest::newRow("NIfTI-2")      << "meta2.nii" << 2;
+  QTest::newRow("compressed")   << "meta3.nii.gz" << 1;
+  QTest::newRow("pair")         << "meta4.hdr" << 1;
+}
+
+void TestMedIOMetadata::niftiWrite()
+{
+  QFETCH(QString, name);
+  QFETCH(int, version);
+
+  const QString path = m_tmp.filePath(name);
+  QByteArray data(4 * 3 * 2 * 2, 0);
+  for(int i=0; i < data.size() / 2; i++)
+    reinterpret_cast<qint16*>(data.data())[i] = static_cast<qint16>(i * 7 - 50);
+
+  QJsonObject metadata;
+  metadata["PatientName"] = QString("Doe^Jane");
+  metadata["PatientWeight"] = 71.5;
+  metadata["AcquisitionDateTime"] = QString("2026-06-03T17:04:56Z");
+  metadata["Radiopharmaceutical"] = QString("FDG");
+  metadata["RadionuclideTotalDose"] = 2.505e8;
+  metadata["DecayCorrection"] = QString("START");
+  metadata["CorrectedImage"] = QJsonArray{QString("ATTN"), QString("DECY")};
+  metadata["RadionuclideCodeSequence"] = QJsonObject{{"CodeValue", "C-111A1"}, {"CodeMeaning", "^18^Fluorine"}};
+  metadata["(0029,1010)"] = QString("private");
+  metadata["ECAT7"] = QJsonObject{{"Patient_Dexterity", "R"}, {"Bin_Size", 0.225}};
+  metadata["Frames"] = QJsonArray{QJsonObject{{"DecayFactor", 1.00158}, {"ECAT7", QJsonObject{{"Annotation", "f1"}}}}};
+
+  {
+    CNIFTIFile file(path, version == 2 ? CNIFTIMainHeader::NIFTI2 : CNIFTIMainHeader::NIFTI1);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    QScopedPointer<CNIFTIMainHeader> header(file.createEmptyHeader());
+    if(version == 2) {
+      CNIFTI2MainHeader* h = static_cast<CNIFTI2MainHeader*>(header.data());
+      h->setDim(0, 3); h->setDim(1, 4); h->setDim(2, 3); h->setDim(3, 2);
+      h->setDataType(4); h->setBit_Pix(16);
+      h->setDescrip("metadata test");
+    } else {
+      CNIFTI1MainHeader* h = static_cast<CNIFTI1MainHeader*>(header.data());
+      h->setDim(0, 3); h->setDim(1, 4); h->setDim(2, 3); h->setDim(3, 2);
+      h->setDataType(4); h->setBit_Pix(16);
+      h->setDescrip("metadata test");
+    }
+    QVERIFY(header->updateMetadata(metadata));
+    QVERIFY(file.writeMainHeader(*header));
+    QVERIFY(file.writeMatrix(data));
+    file.close();
+  }
+
+  // the metadata and the BIDS keys derived from them in the header extension
+  const QJsonObject extension = niftiExtension(path);
+  QCOMPARE(extension["PatientWeight"].toDouble(), 71.5);
+  QCOMPARE(extension["TracerName"].toString(), QString("FDG"));
+  QCOMPARE(extension["InjectedRadioactivity"].toDouble(), 250.5);
+  QCOMPARE(extension["InjectedRadioactivityUnits"].toString(), QString("MBq"));
+  QCOMPARE(extension["ImageDecayCorrected"].toBool(), true);
+  QCOMPARE(extension["DecayCorrectionFactor"].toArray(), QJsonArray{1.00158});
+  QVERIFY(extension.contains("NIfTI") == false);
+
+  // read back: the metadata as written, the voxel data unchanged
+  CNIFTIFile file(path);
+  QVERIFY(file.open(QIODevice::ReadOnly));
+  CNIFTIMainHeader* h = NULL;
+  QVERIFY(file.readMainHeader(h));
+  QScopedPointer<CNIFTIMainHeader> hGuard(h);
+  QJsonObject json = h->metadata();
+  QCOMPARE(json["NIfTI"].toObject()["descrip"].toString(), QString("metadata test"));
+  json.remove("NIfTI");
+  QCOMPARE(json, metadata);
+
+  QByteArray* read = NULL;
+  QVERIFY(file.readMatrix(read));
+  QVERIFY(read->left(data.size()) == data);
+  delete read;
+}
+
+//---------------------------------------------------------------------------------------------
+// NIfTI: BIDS keys of other tools (JSON sidecar file)
+
+void TestMedIOMetadata::niftiBids()
+{
+  const QString path = m_tmp.filePath("bids.nii");
+  {
+    CNIFTIFile file(path, CNIFTIMainHeader::NIFTI1);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    QScopedPointer<CNIFTIMainHeader> header(file.createEmptyHeader());
+    CNIFTI1MainHeader* h = static_cast<CNIFTI1MainHeader*>(header.data());
+    h->setDim(0, 3); h->setDim(1, 2); h->setDim(2, 2); h->setDim(3, 2);
+    h->setDataType(4); h->setBit_Pix(16);
+    QVERIFY(file.writeMainHeader(*header));
+    QVERIFY(file.writeMatrix(QByteArray(16, 0)));
+    file.close();
+  }
+
+  QFile sidecar(m_tmp.filePath("bids.json"));
+  QVERIFY(sidecar.open(QIODevice::WriteOnly));
+  sidecar.write("{\"TracerName\": \"FDG\", \"InjectedRadioactivity\": 370, \"InjectedRadioactivityUnits\": \"MBq\","
+                " \"ManufacturersModelName\": \"Biograph\", \"Units\": \"Bq/mL\", \"DecayCorrectionFactor\": [1.01, 1.02],"
+                " \"FrameTimesStart\": [0, 60], \"FrameDuration\": [60, 60], \"PatientWeight\": 70}");
+  sidecar.close();
+
+  CNIFTIFile file(path);
+  QVERIFY(file.open(QIODevice::ReadOnly));
+  CNIFTIMainHeader* h = NULL;
+  QVERIFY(file.readMainHeader(h));
+  QScopedPointer<CNIFTIMainHeader> hGuard(h);
+  const QJsonObject json = h->metadata();
+
+  QCOMPARE(json["Radiopharmaceutical"].toString(), QString("FDG"));
+  QCOMPARE(json["RadionuclideTotalDose"].toDouble(), 3.7e8);
+  QCOMPARE(json["ManufacturerModelName"].toString(), QString("Biograph"));
+  QCOMPARE(json["Units"].toString(), QString("BQML"));
+  QCOMPARE(json["PatientWeight"].toDouble(), 70.0);
+  QCOMPARE(json["Frames"].toArray().size(), 2);
+  QCOMPARE(json["Frames"].toArray()[1].toObject()["DecayFactor"].toDouble(), 1.02);
+  // the frame timing of NIfTI files is kept, the derived BIDS keys are not
+  QVERIFY(json.contains("FrameTimesStart") && json.contains("FrameDuration"));
+  QVERIFY(json.contains("TracerName") == false && json.contains("InjectedRadioactivity") == false);
 }
 
 QTEST_GUILESS_MAIN(TestMedIOMetadata)

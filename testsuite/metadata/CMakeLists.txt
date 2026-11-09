@@ -35,7 +35,8 @@ add_executable(testMedIOMetadata testMedIOMetadata.cpp)
 target_include_directories(testMedIOMetadata PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../common)
 target_compile_definitions(testMedIOMetadata PRIVATE
                            MEDIO_TEST_DATA_DIR="${MEDIO_TEST_DATA_DIR}"
-                           METADATA_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
+                           METADATA_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data"
+                           NIFTI_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../nifti/data")
 
 target_link_libraries(testMedIOMetadata Qt5::Core
                                         Qt5::Test

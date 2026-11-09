@@ -59,6 +59,8 @@
 #include <limits>
 
 class CMedIOHeader;
+class CNIFTIFile;
+class CNIFTIMainHeader;
 
 namespace MedIOMetadata {
 
@@ -92,7 +94,27 @@ const Adapter* philipsMainHeaderAdapter();
 const Adapter* philipsSubHeaderAdapter();
 const Adapter* concordeMainHeaderAdapter();
 const Adapter* concordeFrameHeaderAdapter();
-const Adapter* niftiMainHeaderAdapter();
+const Adapter* nifti1MainHeaderAdapter();
+const Adapter* nifti2MainHeaderAdapter();
+
+//---------------------------------------------------------------------------------------------
+// NIfTI: the metadata of a NIfTI file are stored in its JSON header extension
+// (or a JSON sidecar file, see CNIFTIGeometry.h)
+
+//! metadata of the JSON of a NIfTI file: the keys written by earlier versions of
+//! CNIFTIConverter (ECAT7 main header fields at the top level) are moved into
+//! the "ECAT7" section and give the metadata keys they store; BIDS keys of
+//! other tools give the metadata keys that are not set (see niftiJson())
+QJsonObject metadataOfNiftiJson(const QJsonObject& json);
+
+//! JSON to store in a NIfTI file: the metadata (without the native NIfTI
+//! fields) plus BIDS keys derived from them (TracerName, InjectedRadioactivity,
+//! InjectedRadioactivityUnits, ManufacturersModelName, ReconMethodName,
+//! ImageDecayCorrected, DecayCorrectionFactor), empty if there is nothing to store
+QJsonObject niftiJson(const QJsonObject& metadata);
+
+//! read the metadata of an opened NIfTI file into its main header
+void readNiftiMetadata(CNIFTIFile& file, CNIFTIMainHeader& header);
 
 //---------------------------------------------------------------------------------------------
 // metadata of a header (implementation of CMedIOHeader::metadata()/updateMetadata())

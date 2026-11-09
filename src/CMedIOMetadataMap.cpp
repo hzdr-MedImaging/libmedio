@@ -25,6 +25,7 @@
 #include "CMedIOHeader.h"
 #include "CECATMainHeader.h"
 #include "CECATSubHeader.h"
+#include "CNIFTIMainHeader.h"
 
 #include <QDateTime>
 #include <QJsonArray>
@@ -61,6 +62,13 @@ const Adapter* adapter(const CMedIOHeader& header)
 
     case CMedIOHeader::ConcordeMicroPetFrameHeader:
       return concordeFrameHeaderAdapter();
+
+    case CMedIOHeader::NIFTIMainHeader:
+      if(static_cast<const CNIFTIMainHeader&>(header).mainHeaderType() == CNIFTIMainHeader::NIFTI1MainHeader)
+        return nifti1MainHeaderAdapter();
+      if(static_cast<const CNIFTIMainHeader&>(header).mainHeaderType() == CNIFTIMainHeader::NIFTI2MainHeader)
+        return nifti2MainHeaderAdapter();
+    break;
 
     default:
     break;

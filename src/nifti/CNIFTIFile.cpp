@@ -18,6 +18,7 @@
 */
 
 #include "CNIFTIFile.h"
+#include "CMedIOMetadataMap.h"
 #include "CMedIOData.h"
 #include "CNIFTI1MainHeader.h"
 #include "CNIFTI2MainHeader.h"
@@ -553,8 +554,11 @@ bool CNIFTIFile::open(QIODevice::OpenModeFlag mode) {
 
       // load the rest of the header data from the file
       if(d->cachedMainHeader != NULL) {
-        if(d->cachedMainHeader->load())
+        if(d->cachedMainHeader->load()) {
+          // the metadata of the JSON header extension or sidecar file
+          MedIOMetadata::readNiftiMetadata(*this, *d->cachedMainHeader);
           result = true;
+        }
         else
           W("Error while loading NIfTI header");
       }
@@ -720,8 +724,41 @@ bool CNIFTIFile::readMainHeader(CNIFTIMainHeader*& MainHeader) {
 //------------------------------------------------------------------------------------------------
 bool CNIFTIFile::writeMainHeader(CNIFTIMainHeader& MainHeader) {
   ENTER();
+
+  // the metadata of the header are stored as JSON header extension (between
+  // the header and vox_offset in single files, at the end of the header file
+  // of header/image pairs)
+  const QJsonObject json = MedIOMetadata::niftiJson(MainHeader.metadata());
+  const bool nifti2 = (MainHeader.mainHeaderType() == CNIFTIMainHeader::NIFTI2MainHeader);
+  CNIFTI1MainHeader* h1 = nifti2 ? NULL : static_cast<CNIFTI1MainHeader*>(&MainHeader);
+  CNIFTI2MainHeader* h2 = nifti2 ? static_cast<CNIFTI2MainHeader*>(&MainHeader) : NULL;
+
+  if(json.isEmpty() == false && isPair() == false) {
+    const qint64 headerSize = nifti2 ? 540 : 348;
+    const qint64 extensionSize = nifti2 ? h2->headerExtensionSize(json) : h1->headerExtensionSize(json);
+    const qint64 voxOffset = nifti2 ? h2->vox_Offset() : static_cast<qint64>(h1->vox_Offset());
+    const qint64 required = headerSize + 4 + extensionSize;
+
+    if(voxOffset < required) {
+      // the voxel data must not be moved
+      if(QFile::exists(fileName()) && QFileInfo(fileName()).size() > voxOffset && voxOffset > 0) {
+        E("no space for the metadata before the voxel data");
+        RETURN(false);
+        return false;
+      }
+      if(nifti2)
+        h2->setVox_Offset(required);
+      else
+        h1->setVox_Offset(static_cast<float>(required));
+    }
+  }
+
   // save the header to the file
   bool result = MainHeader.save();
+
+  if(result && json.isEmpty() == false)
+    result = nifti2 ? h2->writeHeaderExtension(*this, json) : h1->writeHeaderExtension(*this, json);
+
   RETURN(result);
   return result;
 }
