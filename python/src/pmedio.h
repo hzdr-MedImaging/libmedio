@@ -291,6 +291,8 @@ class MedIOImage
       m_mioData = img.m_mioData;
       m_data = new float[m_xdim * m_ydim * m_zdim * m_tdim];
       memcpy(m_data, img.m_data, sizeof(float) * (m_xdim * m_ydim * m_zdim * m_tdim));
+
+      return *this;
     }
 
     MedIOImage& operator=(MedIOImage&& img)
@@ -1718,11 +1720,16 @@ namespace PYBIND11_NAMESPACE { namespace detail {
         if (!tmp)
           return false;
 
-        /* convert into a const char */
-        value = static_cast<QIODevice::OpenModeFlag>(PyLong_AsLong(tmp));
+        /* convert into an integer: -1 with a Python error set means failure */
+        const long number = PyLong_AsLong(tmp);
         Py_DECREF(tmp);
+        if (number == -1 && PyErr_Occurred()) {
+          PyErr_Clear();
+          return false;
+        }
 
-        return !(value == -1 && !PyErr_Occurred());
+        value = static_cast<QIODevice::OpenModeFlag>(number);
+        return true;
     }
 
     /**
