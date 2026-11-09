@@ -34,6 +34,9 @@
 #include <CPhilipsFile.h>
 #include <CPhilipsMainHeader.h>
 #include <CPhilipsSubHeader.h>
+#include <CConcordeImage.h>
+#include <CConcordeMainHeader.h>
+#include <CConcordeFrameHeader.h>
 
 #include "MedIOTestData.h"
 
@@ -113,6 +116,8 @@ class TestMedIOMetadata : public QObject
     void philipsMetadata_data();
     void philipsMetadata();
     void philipsWrite();
+
+    void concordeMetadata();
 
   private:
     QTemporaryDir m_tmp;
@@ -701,6 +706,135 @@ void TestMedIOMetadata::philipsWrite()
 
   // read only native field
   QVERIFY(header.updateMetadata(QJsonObject{{"Philips", QJsonObject{{"dep_acq_date", 1}}}}) == false);
+}
+
+//---------------------------------------------------------------------------------------------
+// microPET: metadata of a synthetic header (the units are given by the header)
+
+static bool writeConcordeHeader(const QString& path, int doseUnits)
+{
+  QFile header(path + ".hdr");
+  if(header.open(QIODevice::WriteOnly | QIODevice::Text) == false)
+    return false;
+
+  QTextStream h(&header);
+  h << "# synthetic microPET header (libmedio test)\n"
+    << "model 2000\n"
+    << "institution Test Institute\n"
+    << "file_type 5\n"
+    << "total_frames 2\n"
+    << "isotope F-18\n"
+    << "isotope_half_life 6586.2\n"
+    << "isotope_branching_fraction 0.9673\n"
+    << "lld 350\n"
+    << "uld 650\n"
+    << "data_type 2\n"
+    << "x_dimension 4\n"
+    << "y_dimension 3\n"
+    << "z_dimension 2\n"
+    << "calibration_units 2\n"
+    << "calibration_factor 1000\n"
+    << "operator Operator Name\n"
+    << "study_identifier S-1\n"
+    << "scan_time Wed Jun 3 19:04:56 2026\n"
+    << "injected_compound FDG\n"
+    << "dose_units " << doseUnits << "\n"
+    << "dose 2\n"
+    << "injection_time Wed Jun 3 17:40:00 2026\n"
+    << "subject_identifier mouse-7\n"
+    << "subject_orientation 4\n"
+    << "subject_length_units 2\n"
+    << "subject_length 9\n"
+    << "subject_weight_units 1\n"
+    << "subject_weight 25\n"
+    << "end_of_header\n";
+  for(int f=0; f < 2; f++) {
+    h << "frame " << f << "\n"
+      << "event_type 1\n"
+      << "data_file_pointer 0 " << f * 48 << "\n"
+      << "frame_start " << f * 60 << "\n"
+      << "frame_duration 60\n"
+      << "scale_factor 1\n"
+      << "deadtime_correction 1.05\n"
+      << "decay_correction " << 1.2 + 0.1 * f << "\n"
+      << "end_of_header\n";
+  }
+  header.close();
+
+  QFile data(path);
+  return data.open(QIODevice::WriteOnly) && data.write(QByteArray(96, 0)) == 96;
+}
+
+void TestMedIOMetadata::concordeMetadata()
+{
+  const QString path = m_tmp.filePath("mpet.img");
+  QVERIFY(writeConcordeHeader(path, 1));   // dose in mCi
+
+  CConcordeImage file(path);
+  QVERIFY(file.open(QIODevice::ReadOnly));
+  CConcordeMainHeader* mh = NULL;
+  QVERIFY(file.readMainHeader(mh));
+  QScopedPointer<CConcordeMainHeader> mhGuard(mh);
+
+  QJsonObject expected;
+  expected["PatientID"] = QString("mouse-7");
+  expected["PatientSize"] = 0.09;                 // 9 cm
+  expected["PatientWeight"] = 0.025;              // 25 g
+  expected["PatientPosition"] = QString("HFS");
+  expected["StudyID"] = QString("S-1");
+  expected["InstitutionName"] = QString("Test Institute");
+  expected["OperatorsName"] = QJsonArray{QString("Operator Name")};
+  expected["ManufacturerModelName"] = QString("2000");
+  expected["AcquisitionDateTime"] = QString("2026-06-03T19:04:56");                 // local time, no time zone
+  expected["RadiopharmaceuticalStartDateTime"] = QString("2026-06-03T17:40:00");
+  expected["Radiopharmaceutical"] = QString("FDG");
+  expected["RadionuclideTotalDose"] = 7.4e7;      // 2 mCi
+  expected["RadionuclideHalfLife"] = 6586.2;
+  expected["RadionuclidePositronFraction"] = 0.9673;
+  expected["EnergyWindowLowerLimit"] = 350.0;
+  expected["EnergyWindowUpperLimit"] = 650.0;
+  expected["Units"] = QString("BQML");
+
+  const QJsonObject main = mh->metadata();
+  COMPARE_METADATA(main, expected);
+  const QJsonObject native = main["microPET"].toObject();
+  QCOMPARE(native["dose"].toDouble(), 2.0);
+  QCOMPARE(native["subject_weight"].toDouble(), 25.0);
+  QCOMPARE(native["isotope"].toString(), QString("F-18"));
+  QVERIFY(native.contains("calibration_factor") == false);
+  QVERIFY(native.contains("x_dimension") == false);
+
+  for(int f=1; f <= 2; f++) {
+    CConcordeFrameHeader* fh = NULL;
+    QVERIFY(file.readSubHeader(fh, f));
+    QScopedPointer<CConcordeFrameHeader> fhGuard(fh);
+    const QJsonObject frame = fh->metadata();
+    QJsonObject expectedFrame;
+    expectedFrame["ActualFrameDuration"] = 60000.0;
+    expectedFrame["DecayFactor"] = 1.2 + 0.1 * (f - 1);
+    expectedFrame["DeadTimeFactor"] = 1.05;
+    COMPARE_METADATA(frame, expectedFrame);
+    QVERIFY(frame["microPET"].toObject().contains("scale_factor") == false);
+  }
+  file.close();
+
+  // dose with unknown units: only in the native section
+  const QString unknown = m_tmp.filePath("mpet-units.img");
+  QVERIFY(writeConcordeHeader(unknown, 0));
+  CConcordeImage file2(unknown);
+  QVERIFY(file2.open(QIODevice::ReadOnly));
+  CConcordeMainHeader* mh2 = NULL;
+  QVERIFY(file2.readMainHeader(mh2));
+  QScopedPointer<CConcordeMainHeader> mh2Guard(mh2);
+  QVERIFY(mh2->metadataValue("RadionuclideTotalDose").isUndefined());
+  QCOMPARE(mh2->metadata()["microPET"].toObject()["dose"].toDouble(), 2.0);
+
+  // set in DICOM units: converted into the units of the header
+  QVERIFY(mh2->setMetadataValue("RadionuclideTotalDose", 3.7e7));
+  QCOMPARE(mh2->doseUnits(), CConcordeMainHeader::MBq);
+  QCOMPARE(mh2->dose(), 37.0f);
+  QVERIFY(mh2->setMetadataValue("PatientWeight", 0.03));
+  QCOMPARE(mh2->subjectWeight(), 30.0f);   // g, the units of the header
 }
 
 QTEST_GUILESS_MAIN(TestMedIOMetadata)

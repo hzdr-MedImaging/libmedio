@@ -56,6 +56,12 @@ const Adapter* adapter(const CMedIOHeader& header)
     case CMedIOHeader::PhilipsSubHeader:
       return philipsSubHeaderAdapter();
 
+    case CMedIOHeader::ConcordeMicroPetMainHeader:
+      return concordeMainHeaderAdapter();
+
+    case CMedIOHeader::ConcordeMicroPetFrameHeader:
+      return concordeFrameHeaderAdapter();
+
     default:
     break;
   }
