@@ -599,7 +599,8 @@ bool writeNativeMatrix(CMedIOData* file, short frame, const QByteArray& data, co
 
   switch(file->dataFormat()) {
     case CMedIOData::ECAT:
-      result = static_cast<CECATFile*>(file)->writeMatrix(data, static_cast<const CECATSubHeader&>(header), frame);
+      result = static_cast<CECATFile*>(file)->writeMatrix(data, static_cast<const CECATSubHeader&>(header),
+                                                          ecatWriteFrame(frame));
     break;
 
     default:

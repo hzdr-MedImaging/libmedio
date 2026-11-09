@@ -97,6 +97,11 @@ double ecatCalibration(const CECATMainHeader* mainHeader);
 //! scale factor of an ECAT7 sub header (1 if not set)
 double ecatScale(double scaleFactor);
 
+//! frame number to write into an ECAT7 file: frame -1 is frame 1, as for the
+//! other formats (CECATFile takes the smallest frame of the file instead,
+//! which is 0 in a file without frames)
+inline short ecatWriteFrame(short frame) { return frame == -1 ? 1 : frame; }
+
 //! LPS affine (mm) of ECAT7 voxel (i, j, k):
 //!   x = x_offset + (i - (nx-1)/2) * px, y = y_offset + (j - (ny-1)/2) * py,
 //!   z = init_bed_position + z_offset - k * pz

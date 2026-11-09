@@ -173,6 +173,24 @@ static bool createEcat(CECATFile& file, const CECAT7MainHeader& mainHeader)
   return file.writeMainHeader(mh);
 }
 
+// matrix of frame f of an ECAT7 file (without padding), empty if it cannot be read
+static QByteArray ecatMatrix(const QString& path, short f)
+{
+  CECATFile file(path);
+  QByteArray* data = NULL;
+  CECATSubHeader* sh = NULL;
+  QByteArray result;
+  if(file.open(QIODevice::ReadOnly) && file.readMatrix(data, sh, f) && data && sh &&
+     sh->subHeaderType() == CECATSubHeader::ECAT7_Image) {
+    const CECAT7SubHeaderImage* s = static_cast<const CECAT7SubHeaderImage*>(sh);
+    const qint64 voxels = static_cast<qint64>(s->x_Dimension()) * s->y_Dimension() * s->z_Dimension();
+    result = data->left(EcatFile::ecatSize(s->data_Type()) * voxels);
+  }
+  delete data;
+  delete sh;
+  return result;
+}
+
 
 //---------------------------------------------------------------------------------------------
 // NIfTI helpers
@@ -417,6 +435,7 @@ class TestMedIOMatrix : public QObject
     void ecatVolume_data();
     void ecatVolume();
     void ecatWriteVolume();
+    void ecatDefaultFrame();
     void writeReorientedVolume();
 
     void niftiReferenceFiles_data();
@@ -609,6 +628,50 @@ void TestMedIOMatrix::ecatWriteVolume()
       for(int r=0; r < 3; r++)
         QVERIFY(approx(p[r], q[r], 0.0, 1e-3));
     }
+  }
+}
+
+//---------------------------------------------------------------------------------------------
+// frame -1 written into an ECAT7 file is frame 1, as for NIfTI and Philips,
+// also into a file without frames (CECATFile itself takes frame 0 there)
+
+void TestMedIOMatrix::ecatDefaultFrame()
+{
+  const QString source = medioTestDataDir() + "/ecat/pet-static.v";
+  EcatFile reference;
+  QVERIFY(reference.read(source));
+
+  CECATFile in(source);
+  QVERIFY(in.open(QIODevice::ReadOnly));
+  CMedIOHeader* mh = NULL;
+  QVERIFY(in.readMainHeader(mh, CMedIOData::ECAT));
+  QScopedPointer<CMedIOHeader> mhGuard(mh);
+
+  // pass 0: ECAT7 matrix (written unchanged), 1: NIfTI matrix (converted), 2: volume
+  for(int pass=0; pass < 3; pass++) {
+    const QString path = tmpFile(QString("default-frame-%1.v").arg(pass));
+    {
+      CECATFile out(path, CECATMainHeader::ECAT7_Volume16);
+      QVERIFY(createEcat(out, *static_cast<CECAT7MainHeader*>(mh)));
+      if(pass < 2) {
+        QByteArray* data = NULL;
+        CMedIOHeader* sh = NULL;
+        QVERIFY(in.readMatrix(data, sh, pass == 0 ? CMedIOData::ECAT : CMedIOData::NIFTI, 1));
+        QScopedPointer<QByteArray> dataGuard(data);
+        QScopedPointer<CMedIOHeader> shGuard(sh);
+        QVERIFY(out.writeMatrix(*data, *sh));
+      } else {
+        CMedIOVolume volume;
+        QVERIFY(in.readVolume(volume, 1));
+        QVERIFY(out.writeVolume(volume));
+      }
+      out.close();
+    }
+    QVERIFY(ecatMatrix(path, 0).isEmpty());
+    const QByteArray written = ecatMatrix(path, 1);
+    QVERIFY(written.isEmpty() == false);
+    if(pass == 0)
+      QVERIFY(written == reference.matrices[0]);
   }
 }
 

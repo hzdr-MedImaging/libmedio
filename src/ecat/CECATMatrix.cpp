@@ -192,6 +192,8 @@ bool writeEcatFrame(CECATFile* file, short frame, const CMedIOFrame& f)
 {
   ENTER();
 
+  frame = ecatWriteFrame(frame);
+
   // the main header of the file (written before) provides the bed position and the calibration factor
   CECATMainHeader* mh = NULL;
   if(file->readMainHeader(mh) == false || mh == NULL || mh->mainHeaderType() != CECATMainHeader::ECAT7MainHeader) {
