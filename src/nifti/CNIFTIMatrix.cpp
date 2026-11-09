@@ -28,6 +28,8 @@
 //! planes) and a NIfTI-1 header describing the file the frame belongs to.
 
 #include "CMedIOMatrix.h"
+#include "CMedIOHeaderMapping.h"
+#include "CMedIOHeaderDictionary.h"
 #include "CNIFTIFile.h"
 #include "CNIFTIMainHeader.h"
 #include "CNIFTI1MainHeader.h"
@@ -285,14 +287,16 @@ qint64 jsonExtensionSize(const QByteArray& json)
   return esize + (16 - esize % 16) % 16;
 }
 
-// room reserved for the timing of n volumes: every number may take up to 24
-// characters (17 significant digits, sign, point and exponent)
-qint64 timingExtensionSize(int volumes)
+// room reserved for the JSON metadata with the timing of n volumes: the other
+// entries of the metadata (e.g. the header attributes, see CNIFTIFile::writeMainHeader())
+// and the timing, in which every number may take up to 24 characters (17
+// significant digits, sign, point and exponent)
+qint64 timingExtensionSize(const QJsonObject& metadata, int volumes)
 {
   QJsonArray widest;
   for(int i=0; i < volumes; i++)
     widest.append(-1.2345678901234567e-300);
-  QJsonObject json;
+  QJsonObject json = metadata;
   json["FrameTimesStart"] = widest;
   json["FrameDuration"] = widest;
   return jsonExtensionSize(QJsonDocument(json).toJson(QJsonDocument::Compact));
@@ -340,6 +344,25 @@ void storeFrameTiming(CNIFTIFile* file, H* h, short frame, double start, double 
     return;
   }
 
+  // a single JSON extension filling the room (e.g. the header attributes
+  // written with the main header, see CNIFTIFile::writeMainHeader()) can be
+  // made larger like a file without extensions
+  bool singleJson = false;
+  if(extensions) {
+    qint32 esize = 0;
+    qint32 ecode = 0;
+    if(file->seek(headerSize + 4) &&
+       file->read(reinterpret_cast<char*>(&esize), sizeof(esize)) == sizeof(esize) &&
+       file->read(reinterpret_cast<char*>(&ecode), sizeof(ecode)) == sizeof(ecode)) {
+      if(h->byteOrder() != QSysInfo::ByteOrder) {
+        BSWAP_32(esize);
+        BSWAP_32(ecode);
+      }
+      const qint64 end = file->isPair() ? file->size() : voxOffset;
+      singleJson = (ecode == ECODE_JSON && esize >= 16 && headerSize + 4 + esize == end);
+    }
+  }
+
   // timing of all volumes: as stored before, the timing of the header otherwise
   QJsonArray starts = json["FrameTimesStart"].toArray();
   QJsonArray durations = json["FrameDuration"].toArray();
@@ -365,13 +388,13 @@ void storeFrameTiming(CNIFTIFile* file, H* h, short frame, double start, double 
   qint64 room = 0;
   if(file->isPair()) {
     room = qMax(static_cast<qint64>(0), file->size() - headerSize - 4);
-    if(room == 0)
-      room = qMax(jsonExtensionSize(text), timingExtensionSize(volumes));
+    if(room == 0 || (singleJson && room < jsonExtensionSize(text)))
+      room = qMax(jsonExtensionSize(text), timingExtensionSize(json, volumes));
   } else {
     room = voxOffset - headerSize - 4;
-    if(extensions == false && room < jsonExtensionSize(text) && file->size() <= voxOffset) {
+    if((extensions == false || singleJson) && room < jsonExtensionSize(text) && file->size() <= voxOffset) {
       // no voxel data yet: move the voxel data behind the room for the timing of all volumes
-      room = qMax(jsonExtensionSize(text), timingExtensionSize(volumes));
+      room = qMax(jsonExtensionSize(text), timingExtensionSize(json, volumes));
       h->setVox_Offset(headerSize + 4 + room);
       h->setMedIOData(file);
       if(file->writeMainHeader(*h) == false) {
@@ -518,8 +541,14 @@ bool niftiMatrixFromFrame(const CMedIOFrame& f, QByteArray& data, CMedIOHeader*&
   }
 
   CNIFTI1MainHeader* h = niftiHeader(f, v);
-  if(h)
+  if(h) {
     setNiftiFrameTiming(h, f.volume.frameStart(), f.volume.frameDuration());
+
+    // attributes of the source: main attributes and the frame in "Frames"
+    MedIOHeaderMapping::transfer(f.mainAttributes, *h, MedIOHeaderMapping::frameKeys());
+    if(f.frameAttributes.isEmpty() == false)
+      h->updateAttributes(QJsonObject{{CMedIOHeaderDictionary::FramesKey, QJsonArray{f.frameAttributes}}});
+  }
   header = h;
   data = v.data();
 
@@ -557,6 +586,20 @@ bool niftiMainHeaderFromFrame(const CMedIOFrame& f, CMedIOData* source, CMedIOHe
     v.convertToPhysicalValues();
 
   header = niftiHeader(f, v);
+
+  // frame attributes of all frames of the source
+  if(header != NULL && source != NULL) {
+    QJsonArray frames;
+    bool any = false;
+    foreach(short number, numbers) {
+      QJsonObject mainAttributes, frameAttributes;
+      fileAttributes(source, number, mainAttributes, frameAttributes);
+      frames.append(frameAttributes);
+      any = any || (frameAttributes.isEmpty() == false);
+    }
+    if(any)
+      header->updateAttributes(QJsonObject{{CMedIOHeaderDictionary::FramesKey, frames}});
+  }
 
   bool result = (header != NULL);
   RETURN(result);

@@ -822,6 +822,8 @@ CPhilipsMainHeader& CPhilipsMainHeader::operator=(const CPhilipsMainHeader& src)
 {
   ENTER();
 
+  copyAttributes(src);
+
   if(m_pData != src.m_pData)
   {
     memcpy(&m_pData->header,
@@ -4862,6 +4864,11 @@ void CPhilipsMainHeader::setDep_acq_time(const int time)
   m_pData->extHeader.dep_acq_time = time;
 }
 
+void CPhilipsMainHeader::setDep_acq_date(const int date)
+{
+  m_pData->extHeader.dep_acq_date = date;
+}
+
 void CPhilipsMainHeader::setCard_slc_dir(const CPhilipsMainHeader::Card_Slc_Dir direction)
 {
   m_pData->extHeader.card_slc_dir = static_cast<qint16>(direction);
@@ -5167,7 +5174,7 @@ void CPhilipsMainHeader::setPreflt_type(const PreFlt_Type type)
   m_pData->extHeader.preflt_type = type;
 }
 
-void CPhilipsMainHeader::setPostflt_type(const PreFlt_Type type)
+void CPhilipsMainHeader::setPostflt_type(const PostFlt_Type type)
 {
   m_pData->extHeader.postflt_type = type;
 }

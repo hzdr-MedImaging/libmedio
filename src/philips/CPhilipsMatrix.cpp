@@ -32,6 +32,7 @@
 //! position, the image positions img_pos_x/y of the slices are not used.
 
 #include "CMedIOMatrix.h"
+#include "CMedIOHeaderMapping.h"
 #include "CPhilipsFile.h"
 #include "CPhilipsDirectory.h"
 #include "CPhilipsMainHeader.h"
@@ -144,6 +145,9 @@ bool philipsSubHeader(const CMedIOFrame& f, const CMedIOVolume& v, const CPhilip
   subHeader->setEnd_date_time_msec(static_cast<unsigned short>(endMs % 1000));
   subHeader->setFrame_ref_date_time(mainHeader->acq_date_time() + static_cast<time_t>(startMs / 1000));
   subHeader->setFrame_ref_date_time_msec(static_cast<unsigned short>(startMs % 1000));
+
+  // attributes of the source frame (all slices of the frame)
+  MedIOHeaderMapping::transfer(f.frameAttributes, *subHeader);
 
   // the scale factor (suvscl for calibrated data) has to reproduce the physical values
   bool ok = false;

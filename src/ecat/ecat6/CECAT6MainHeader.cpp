@@ -138,6 +138,8 @@ CECAT6MainHeader& CECAT6MainHeader::operator=(const CECAT6MainHeader& src)
 {
   ENTER();
 
+  copyAttributes(src);
+
   if(m_pData != src.m_pData)
   {
     memcpy(&m_pData->header, 

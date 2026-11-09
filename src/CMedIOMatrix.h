@@ -46,6 +46,7 @@
 // otherwise the physical values are stored as float32.
 
 #include <QByteArray>
+#include <QJsonObject>
 #include <QList>
 #include <QString>
 
@@ -75,6 +76,11 @@ struct CMedIOFrame
   CECAT7MainHeader mainHeader;     //!< calibration factor 1 (included in the volume scale factors)
   CECAT7SubHeaderImage subHeader;  //!< geometry, timing and metadata; data type and scale factor are set for the targets
   CMedIOVolume volume;             //!< ECAT7 voxel order, geometry and timing of the headers
+
+  // format independent header attributes of the source (CMedIOHeader::attributes()), given
+  // to the headers of the targets (not limited to what ECAT7 can store)
+  QJsonObject mainAttributes;        //!< main header of the source
+  QJsonObject frameAttributes;       //!< frame of the source (sub header, first slice, NIfTI "Frames" entry)
 };
 
 namespace MedIOMatrix {
@@ -127,6 +133,10 @@ bool mainHeaderFitsMatrix(const CMedIOHeader& subHeader, const CMedIOHeader* mai
 
 //! frame numbers of a file (CMedIOData::frameNumbers())
 QList<short> frameNumbers(CMedIOData* file);
+
+//! format independent header attributes of a frame of a file: its main header and the
+//! frame (sub header, first slice of Philips frames, NIfTI "Frames" entry)
+void fileAttributes(CMedIOData* file, short frame, QJsonObject& mainAttributes, QJsonObject& frameAttributes);
 
 //---------------------------------------------------------------------------------------------
 // dispatch to the format adapters

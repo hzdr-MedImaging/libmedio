@@ -23,6 +23,8 @@
 #ifndef CMEDIOHEADER_H
 #define CMEDIOHEADER_H
 
+#include <QJsonObject>
+#include <QJsonValue>
 #include <QString>
 
 // forward declarations
@@ -101,9 +103,61 @@ class CMedIOHeader {
     //!        which is in fact used by some subHeader implementation
     virtual void setMedIOData(CMedIOData* data);
 
+    //---------------------------------------------------------------------------------------
+    // Format independent header attributes (see CMedIOHeaderDictionary.h): a JSON object with
+    //
+    // - the attributes (DICOM keywords, e.g. "PatientWeight" for the DICOM
+    //   attribute (0010,1030)) with the values of this header, converted into
+    //   the units of DICOM,
+    // - the native fields of the format in a section named after the format,
+    //   e.g. "ECAT7": {"Patient_Name": ..., ...} (without the fields describing
+    //   the size, data type, scaling, geometry or layout of the image data),
+    // - attributes the format cannot store: keys of other formats, unknown keys
+    //   and values the format cannot represent. They are kept in the header
+    //   object (also by copies), carried along by conversions between the
+    //   formats (CMedIOData::readMainHeader(header, format), readMatrix(...))
+    //   and stored by formats that can store any attributes (NIfTI: JSON header
+    //   extension); the other formats leave them out when saving.
+    //
+    // Example (main header of an ECAT7 file):
+    //   { "PatientWeight": 8.63, "RadionuclideTotalDose": 60780000,
+    //     "AcquisitionDateTime": "2026-06-03T17:04:56Z", ...,
+    //     "ECAT7": { "Patient_Weight": 8.63, "Dosage": 60780000, ... } }
+
+    //! @brief attributes of the header (see above)
+    QJsonObject attributes() const;
+
+    //! @brief change attributes
+    //! @param changes keys and values to change: attributes (keyword or tag
+    //!        string "(0010,1030)"), native fields in the section of the format,
+    //!        any other key; null removes a key (clears the field)
+    //! @return false (and nothing changed) if a value is invalid for its key or
+    //!         a native field does not exist or does not fit
+    //!
+    //! Only values that differ from attributes() are applied, so that the object
+    //! returned by attributes() can be changed and given back as a whole; if an
+    //! attribute and the native field storing it are both changed, the
+    //! attribute wins.
+    bool updateAttributes(const QJsonObject& changes);
+
+    //! @brief value of an attribute: keyword ("PatientWeight") or tag
+    //!        string ("(0010,1030)"); undefined if not set
+    QJsonValue attribute(const QString& keywordOrTag) const;
+
+    //! @brief value of an attribute given by its tag, e.g. 0x00101030 = (0010,1030)
+    QJsonValue attribute(quint32 tag) const;
+
+    //! @brief set (or with null remove) the value of an attribute
+    bool setAttribute(const QString& keywordOrTag, const QJsonValue& value);
+    bool setAttribute(quint32 tag, const QJsonValue& value);
+
   protected:
     //! @return true if header is a main header
     bool isMainHeader(void) const;
+
+    //! @brief copy the attributes kept in the header object (not stored in the
+    //!        fields of the format), for the assignment operators
+    void copyAttributes(const CMedIOHeader& src);
 
   private:
     CMedIOHeaderPrivate* m_pData; //!< private data object carrying all data

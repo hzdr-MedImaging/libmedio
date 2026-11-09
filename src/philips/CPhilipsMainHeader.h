@@ -873,7 +873,7 @@ class CPhilipsMainHeader : public CMedIOHeader
     void setTran_axl_fwhm(const float fwhm);
     void setSurv_mask(const short mask);
     void setPreflt_type(const PreFlt_Type type);
-    void setPostflt_type(const PreFlt_Type type);
+    void setPostflt_type(const PostFlt_Type type);
     void setTr_posttyp(const PostProc_Type type);
     void setAlgtype_tr(const AlgTr_Type type);
     void setIter_tr(const short tr);

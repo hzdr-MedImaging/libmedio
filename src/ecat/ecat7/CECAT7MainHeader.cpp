@@ -172,6 +172,8 @@ CECAT7MainHeader& CECAT7MainHeader::operator=(const CECAT7MainHeader& src)
 {
   ENTER();
 
+  copyAttributes(src);
+
   if(m_pData != src.m_pData)
   {
     memcpy(&m_pData->header, 

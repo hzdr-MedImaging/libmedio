@@ -40,11 +40,19 @@ Supported formats:
           read with pydicom
   interfile/  Interfile 3.3 images: a single file holding header and data,
           or a directory holding the header (.hdr) and the data file it names
+
+The ECAT7 and DICOM files also get the expected format independent header attributes
+of libmedio ("attributes": DICOM keywords with the units of DICOM, see
+src/CMedIOHeaderDictionary.h), converted here from the header values read by nibabel
+and pydicom.
 """
 
 import argparse
+import datetime
 import json
+import math
 import os
+import re
 import sys
 
 import numpy as np
@@ -79,6 +87,197 @@ def stats(raw):
     else:
         raw_sum = float(raw.astype(np.float64).sum())
     return {'raw_min': number(raw.min()), 'raw_max': number(raw.max()), 'raw_sum': raw_sum}
+
+
+#------------------------------------------------------------------------------
+# format independent header attributes (see src/CMedIOHeaderDictionary.h and CMedIOHeaderMapping.h)
+
+def float32_number(value, factor=1.0):
+    """Value of a float32 field: the shortest decimal number giving the float32;
+    converted with a factor, rounded to the precision of a float32 (7 significant digits)."""
+    shortest = float(np.format_float_scientific(np.float32(value), unique=True))
+    return shortest if factor == 1.0 else float(f'{shortest * factor:.7g}')
+
+
+def iso_utc(unix_seconds):
+    return datetime.datetime.fromtimestamp(unix_seconds, datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+
+def date_of_unix_time(unix_seconds):
+    """Date of the nearest midnight UTC."""
+    days = math.floor((unix_seconds + 43200) / 86400)
+    return (datetime.date(1970, 1, 1) + datetime.timedelta(days=days)).isoformat()
+
+
+def put(attributes, key, value):
+    if value is not None and value != '' and value != []:
+        attributes[key] = value
+
+
+# ECAT7 patient orientation -> DICOM patient position
+ECAT7_POSITIONS = {0: 'FFP', 1: 'HFP', 2: 'FFS', 3: 'HFS', 4: 'FFDR', 5: 'HFDR', 6: 'FFDL', 7: 'HFDL'}
+
+# ECAT7 data units -> DICOM units
+ECAT7_UNITS = {'bq/cc': 'BQML', 'bq/ml': 'BQML', 'ecat counts': 'CNTS', 'counts': 'CNTS'}
+
+
+def ecat7_attributes(hdr, subheaders):
+    """Attributes of an ECAT7 main header and its image sub headers (units of
+    ECAT7: height in cm, weight in kg, age in years, half life in s, dosage in
+    Bq, thresholds in keV, times as Unix time)."""
+    def text(field):
+        return hdr[field].item().decode('latin-1').rstrip('\0').strip()
+
+    def positive(field, factor=1.0):
+        value = float(hdr[field])
+        return float32_number(value, factor) if value > 0 else None
+
+    m = {}
+    put(m, 'PatientName', text('patient_name'))
+    put(m, 'PatientID', text('patient_id'))
+    birth = int(np.int32(hdr['patient_birth_date']))
+    put(m, 'PatientBirthDate', date_of_unix_time(birth) if birth else None)
+    sex = text('patient_sex')
+    put(m, 'PatientSex', sex if sex in ('M', 'F') else None)
+    age = float(hdr['patient_age'])
+    put(m, 'PatientAge', f'{round(age):03d}Y' if age > 0 else None)
+    put(m, 'PatientSize', positive('patient_height', 0.01))
+    put(m, 'PatientWeight', positive('patient_weight'))
+    put(m, 'PatientPosition', ECAT7_POSITIONS.get(int(hdr['patient_orientation'])))
+    put(m, 'StudyDescription', text('study_description'))
+    put(m, 'InstitutionName', text('facility_name'))
+    put(m, 'ReferringPhysicianName', text('physician_name'))
+    put(m, 'OperatorsName', [text('operator_name')] if text('operator_name') else None)
+    put(m, 'ManufacturerModelName', str(int(hdr['system_type'])) if int(hdr['system_type']) != 0 else None)
+    put(m, 'DeviceSerialNumber', text('serial_number'))
+    put(m, 'AcquisitionDateTime', iso_utc(int(hdr['scan_start_time'])) if int(hdr['scan_start_time']) else None)
+    put(m, 'Radiopharmaceutical', text('radiopharmaceutical'))
+    put(m, 'RadiopharmaceuticalStartDateTime', iso_utc(int(hdr['dose_start_time'])) if int(hdr['dose_start_time']) else None)
+    put(m, 'RadionuclideTotalDose', positive('dosage'))
+    put(m, 'RadionuclideHalfLife', positive('isotope_halflife'))
+    put(m, 'RadionuclidePositronFraction', positive('branching_fraction'))
+    put(m, 'EnergyWindowLowerLimit', int(hdr['lwr_true_thres']) if int(hdr['lwr_true_thres']) > 0 else None)
+    put(m, 'EnergyWindowUpperLimit', int(hdr['upr_true_thres']) if int(hdr['upr_true_thres']) > 0 else None)
+    # data units as text or as DICOM code (e.g. "BQML" written by ROVER)
+    units = text('data_units')
+    put(m, 'Units', ECAT7_UNITS.get(units.lower(), units if re.fullmatch('[A-Z0-9]{1,16}', units) else None))
+
+    frames = []
+    for sh in subheaders:
+        f = {}
+        put(f, 'ActualFrameDuration', int(sh['frame_duration']) if int(sh['frame_duration']) > 0 else None)
+        put(f, 'DecayFactor', float32_number(sh['decay_corr_fctr']) if float(sh['decay_corr_fctr']) > 0 else None)
+        frames.append(f)
+
+    return {'main': m, 'frames': frames}
+
+
+def dicom_date(value):
+    s = str(value)
+    return f'{s[0:4]}-{s[4:6]}-{s[6:8]}' if len(s) == 8 else None
+
+
+def dicom_time(value):
+    """DICOM TM "hhmmss[.ffffff]" -> "hh:mm:ss[.ffffff]" (a zero fraction is left out)."""
+    s = str(value)
+    if len(s) < 6:
+        return None
+    t = f'{s[0:2]}:{s[2:4]}:{s[4:6]}'
+    if '.' in s and int(s.split('.')[1] or 0) != 0:
+        t += '.' + s.split('.')[1].rstrip('0')
+    return t
+
+
+def dicom_date_time(date, time, offset=None):
+    """ISO 8601 date and time of a DICOM date and time (time zone only if the
+    DICOM data has one)."""
+    if not date or not time:
+        return None
+    dt = f'{dicom_date(date)}T{dicom_time(time)}'
+    if offset:
+        o = str(offset)
+        dt += f'{o[0]}{o[1:3]}:{o[3:5]}'
+    return dt
+
+
+def dicom_attributes(slices_of_frames):
+    """Attributes of a DICOM series: main values of the first slice, frame values
+    of the first slice of every frame."""
+    d = slices_of_frames[0][0]
+
+    def text(keyword):
+        value = d.get(keyword)
+        return str(value).strip() if value is not None else None
+
+    def num(keyword, ds=d):
+        value = ds.get(keyword)
+        return float(value) if value is not None and str(value) != '' else None
+
+    def strings(keyword):
+        value = d.get(keyword)
+        if value is None or str(value) == '':
+            return None
+        return [str(v) for v in value] if isinstance(value, (list, tuple)) or hasattr(value, '__iter__') and not isinstance(value, str) else [str(value)]
+
+    def code(item):
+        if item is None:
+            return None
+        c = {k: str(item.get(k)) for k in ('CodeValue', 'CodingSchemeDesignator', 'CodingSchemeVersion', 'CodeMeaning')
+             if item.get(k) is not None and str(item.get(k)) != ''}
+        return c or None
+
+    offset = d.get('TimezoneOffsetFromUTC')
+    m = {}
+    for keyword in ('PatientName', 'PatientID', 'PatientSex', 'PatientAge', 'PatientPosition',
+                    'StudyInstanceUID', 'SeriesInstanceUID', 'FrameOfReferenceUID', 'StudyID', 'AccessionNumber',
+                    'StudyDescription', 'SeriesDescription', 'InstitutionName', 'ReferringPhysicianName',
+                    'RequestingPhysician', 'Manufacturer', 'ManufacturerModelName', 'DeviceSerialNumber',
+                    'Units', 'DecayCorrection', 'ReconstructionMethod', 'AttenuationCorrectionMethod',
+                    'ScatterCorrectionMethod'):
+        put(m, keyword, text(keyword))
+    put(m, 'PatientBirthDate', dicom_date(d.get('PatientBirthDate', '')))
+    put(m, 'PatientSize', num('PatientSize'))
+    put(m, 'PatientWeight', num('PatientWeight'))
+    put(m, 'SeriesNumber', num('SeriesNumber'))
+    put(m, 'OperatorsName', strings('OperatorsName'))
+    put(m, 'SoftwareVersions', strings('SoftwareVersions'))
+    put(m, 'CorrectedImage', strings('CorrectedImage'))
+    put(m, 'AcquisitionDateTime', dicom_date_time(d.get('AcquisitionDate'), d.get('AcquisitionTime'), offset))
+
+    rs = d.get('RadiopharmaceuticalInformationSequence')
+    if rs:
+        r = rs[0]
+        put(m, 'Radiopharmaceutical', str(r.get('Radiopharmaceutical', '')).strip())
+        put(m, 'RadiopharmaceuticalRoute', str(r.get('RadiopharmaceuticalRoute', '')).strip())
+        put(m, 'RadionuclideTotalDose', num('RadionuclideTotalDose', r))
+        put(m, 'RadionuclideHalfLife', num('RadionuclideHalfLife', r))
+        put(m, 'RadionuclidePositronFraction', num('RadionuclidePositronFraction', r))
+        start = r.get('RadiopharmaceuticalStartDateTime')
+        if start:
+            s = str(start)
+            put(m, 'RadiopharmaceuticalStartDateTime', dicom_date_time(s[0:8], s[8:], offset))
+        else:
+            # start time on the day of the acquisition
+            put(m, 'RadiopharmaceuticalStartDateTime',
+                dicom_date_time(d.get('AcquisitionDate'), r.get('RadiopharmaceuticalStartTime'), offset))
+        put(m, 'RadionuclideCodeSequence', code(r.RadionuclideCodeSequence[0]) if r.get('RadionuclideCodeSequence') else None)
+        put(m, 'RadiopharmaceuticalCodeSequence',
+            code(r.RadiopharmaceuticalCodeSequence[0]) if r.get('RadiopharmaceuticalCodeSequence') else None)
+
+    ew = d.get('EnergyWindowRangeSequence')
+    if ew:
+        put(m, 'EnergyWindowLowerLimit', num('EnergyWindowLowerLimit', ew[0]))
+        put(m, 'EnergyWindowUpperLimit', num('EnergyWindowUpperLimit', ew[0]))
+
+    frames = []
+    for slices in slices_of_frames:
+        f = {}
+        put(f, 'ActualFrameDuration', num('ActualFrameDuration', slices[0]))
+        put(f, 'DecayFactor', num('DecayFactor', slices[0]))
+        put(f, 'DeadTimeFactor', num('DeadTimeFactor', slices[0]))
+        frames.append(f)
+
+    return {'main': m, 'frames': frames}
 
 
 #------------------------------------------------------------------------------
@@ -143,6 +342,9 @@ def expected_ecat(path, file_info):
         })
         matrix.update(stats(raw))
         expected['matrices'].append(matrix)
+
+    image_subheaders = [sub.subheaders[i] for i, entry in enumerate(mlist) if entry[0] > 0]
+    expected['attributes'] = ecat7_attributes(hdr, image_subheaders)
 
     return expected
 
@@ -301,6 +503,8 @@ def expected_dicom(path, file_info):
         frame.update(stats(raw.astype(np.int64) if np.all(raw == np.round(raw)) else raw))
         frame.update({'scaled_min': float(scaled.min()), 'scaled_max': float(scaled.max()), 'scaled_sum': float(scaled.sum())})
         expected['frames'].append(frame)
+
+    expected['attributes'] = dicom_attributes(frames)
 
     return expected
 

@@ -95,6 +95,8 @@ CECAT7SubHeaderNorm& CECAT7SubHeaderNorm::operator=(const CECAT7SubHeaderNorm& s
 {
   ENTER();
 
+  copyAttributes(src);
+
   if(m_pData != src.m_pData)
   {
     memcpy(&m_pData->header, 

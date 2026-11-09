@@ -110,6 +110,8 @@ CECAT7SubHeaderScan& CECAT7SubHeaderScan::operator=(const CECAT7SubHeaderScan& s
 {
   ENTER();
 
+  copyAttributes(src);
+
   if(m_pData != src.m_pData)
   {
     memcpy(&m_pData->header, 

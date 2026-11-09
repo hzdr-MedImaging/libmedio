@@ -455,6 +455,7 @@ class TestMedIOMatrix : public QObject
     void niftiVolumeTiming_data();
     void niftiVolumeTiming();
     void niftiTimingKeepsMetadata();
+    void niftiTimingWithAttributes();
 
     void philipsDatasets_data();
     void philipsDatasets();
@@ -1490,9 +1491,12 @@ void TestMedIOMatrix::niftiVolumeTiming()
     out.close();
   }
 
-  // the JSON extension in the raw bytes of the file (the header file of a pair)
+  // the JSON extension in the raw bytes of the file (the header file of a pair):
+  // the header attributes of the source and the timing
   if(name.endsWith(".gz") == false) {
     const QJsonObject json = rawJsonExtension(path);
+    if(version == 1)
+      QCOMPARE(json["PatientWeight"].toDouble(), mh->attribute("PatientWeight").toDouble());
     const QJsonArray s = json["FrameTimesStart"].toArray();
     const QJsonArray d = json["FrameDuration"].toArray();
     QCOMPARE(s.size(), frames);
@@ -1539,6 +1543,15 @@ void TestMedIOMatrix::niftiTimingKeepsMetadata()
   QVERIFY(in.readMainHeader(mh, CMedIOData::NIFTI));
   QScopedPointer<CMedIOHeader> mhGuard(mh);
   CNIFTI1MainHeader* h = static_cast<CNIFTI1MainHeader*>(mh);
+
+  // a header without header attributes (they are written as JSON extension
+  // by writeMainHeader() and would need more room than given below)
+  QJsonObject noAttributes;
+  foreach(const QString& key, h->attributes().keys()) {
+    if(key != "NIfTI")
+      noAttributes[key] = QJsonValue(QJsonValue::Null);
+  }
+  QVERIFY(h->updateAttributes(noAttributes));
 
   CMedIOVolume v;
   QVERIFY(in.readVolume(v, 1));
@@ -1600,6 +1613,56 @@ void TestMedIOMatrix::niftiTimingKeepsMetadata()
   QVERIFY(written->readVolume(w, 1));
   QVERIFY(w.reorient("LPI"));
   QVERIFY(w.data() == v.data());
+}
+
+//---------------------------------------------------------------------------------------------
+// NIfTI file with the header attributes of a Philips file (a large JSON
+// extension written with the main header): the room made for the timing
+// holds the attributes and the timing of all volumes in its widest form, so
+// that later volumes with longer numbers keep their timing
+
+void TestMedIOMatrix::niftiTimingWithAttributes()
+{
+  CPhilipsFile in(medioTestDataDir() + "/philips/pet-dynamic.img");
+  QVERIFY(in.open(QIODevice::ReadOnly));
+  const QList<short> frames = in.frameNumbers();
+  QCOMPARE(frames.size(), 3);
+  CMedIOHeader* mh = NULL;
+  QVERIFY(in.readMainHeader(mh, CMedIOData::NIFTI));
+  QScopedPointer<CMedIOHeader> mhGuard(mh);
+  QVERIFY(mh->attributes()["Philips"].toObject().size() > 100);
+
+  // the first volume with short numbers, the others with the longest ones
+  const double start[3] = { 0.0, 12345.678901234567, -98765.43210987654 };
+  const double duration[3] = { 1.0, 23456.789012345678, 3.141592653589793 };
+
+  const QString path = tmpFile("timing-attributes.nii");
+  {
+    CNIFTIFile out(path, CNIFTIMainHeader::NIFTI1);
+    QVERIFY(out.open(QIODevice::WriteOnly));
+    mh->setMedIOData(&out);
+    QVERIFY(out.writeMainHeader(*static_cast<CNIFTIMainHeader*>(mh)));
+    mh->setMedIOData(NULL);
+    for(int k=0; k < 3; k++) {
+      CMedIOVolume v;
+      QVERIFY(in.readVolume(v, frames[k]));
+      v.setFrameStart(start[k]);
+      v.setFrameDuration(duration[k]);
+      QVERIFY(out.writeVolume(v, k + 1));
+    }
+    out.close();
+  }
+
+  const QJsonObject json = rawJsonExtension(path);
+  QCOMPARE(json["Philips"].toObject(), mh->attributes()["Philips"].toObject());
+  const QJsonArray s = json["FrameTimesStart"].toArray();
+  const QJsonArray d = json["FrameDuration"].toArray();
+  QCOMPARE(s.size(), 3);
+  QCOMPARE(d.size(), 3);
+  for(int k=0; k < 3; k++) {
+    QCOMPARE(s[k].toDouble(), start[k]);
+    QCOMPARE(d[k].toDouble(), duration[k]);
+  }
 }
 
 void TestMedIOMatrix::niftiErrors()

@@ -341,6 +341,8 @@ class TestNIFTIConversion : public QObject
 
     void philipsRoundTrip_data();
     void philipsRoundTrip();
+    void philipsAttributesRoundTrip_data();
+    void philipsAttributesRoundTrip();
 
     void philipsSliceScales_data();
     void philipsSliceScales();
@@ -522,10 +524,30 @@ void TestNIFTIConversion::ecatToNifti()
     QVERIFY(n.voxOffset > (version == 2 ? 544 : 352));
     QCOMPARE(std::fmod(n.voxOffset, 16.0), 0.0);
   }
-  QVERIFY(n.json.contains("Patient_Name"));
-  QVERIFY(n.json.contains("Isotope_Name"));
-  QCOMPARE(n.json.value("Data_Units").toString(), testFile->expected.value("main_header").toObject().value("data_units").toString());
-  QCOMPARE(n.json.value("Calibration_Factor").toDouble(), e.calibration);
+  // the attributes (expected values converted from the nibabel header, see
+  // make_expected.py) and the native fields of the ECAT7 main header
+  const QJsonObject expectedAttributes = testFile->expected.value("attributes").toObject();
+  const QJsonObject expectedMain = expectedAttributes.value("main").toObject();
+  QVERIFY(expectedMain.isEmpty() == false);
+  foreach(const QString& key, expectedMain.keys()) {
+    if(expectedMain[key].isDouble())
+      QVERIFY2(std::fabs(n.json.value(key).toDouble() - expectedMain[key].toDouble()) <= 1e-9 * std::fabs(expectedMain[key].toDouble()), qPrintable(key));
+    else
+      QVERIFY2(n.json.value(key) == expectedMain[key], qPrintable(key));
+  }
+  const QJsonObject ecatFields = n.json.value("ECAT7").toObject();
+  QVERIFY(ecatFields.contains("Patient_Name"));
+  QVERIFY(ecatFields.contains("Isotope_Name"));
+  QCOMPARE(ecatFields.value("Data_Units").toString(), testFile->expected.value("main_header").toObject().value("data_units").toString());
+
+  // frame attributes of all frames (sub headers)
+  const QJsonArray expectedFrames = expectedAttributes.value("frames").toArray();
+  const QJsonArray frameAttributes = n.json.value("Frames").toArray();
+  QCOMPARE(frameAttributes.size(), e.frames);
+  for(int f=0; f < e.frames; f++) {
+    QCOMPARE(frameAttributes[f].toObject().value("DecayFactor"), expectedFrames[f].toObject().value("DecayFactor"));
+    QVERIFY(frameAttributes[f].toObject().value("ECAT7").toObject().contains("Annotation"));
+  }
 
   const QJsonArray start = n.json.value("FrameTimesStart").toArray();
   const QJsonArray duration = n.json.value("FrameDuration").toArray();
@@ -1026,10 +1048,88 @@ void TestNIFTIConversion::philipsToNifti()
   // frame timing and metadata
   QCOMPARE(p.json.value("FrameTimesStart").toArray(), e.json.value("FrameTimesStart").toArray());
   QCOMPARE(p.json.value("FrameDuration").toArray(), e.json.value("FrameDuration").toArray());
-  QCOMPARE(p.json.value("Patient_Name").toString(), e.json.value("Patient_Name").toString());
-  QCOMPARE(p.json.value("Dosage").toDouble(), e.json.value("Dosage").toDouble());
-  QVERIFY(std::fabs(p.json.value("Patient_Weight").toDouble() - e.json.value("Patient_Weight").toDouble()) < 1e-3);
-  QCOMPARE(p.json.value("Original_File_Name").toString(), QFileInfo(philips).fileName().left(31));
+  QCOMPARE(p.json.value("PatientName").toString(), e.json.value("PatientName").toString());
+  QCOMPARE(p.json.value("RadionuclideTotalDose").toDouble(), e.json.value("RadionuclideTotalDose").toDouble());
+  QVERIFY(std::fabs(p.json.value("PatientWeight").toDouble() - e.json.value("PatientWeight").toDouble()) < 1e-3);
+
+  // the native fields of the Philips main header
+  CPhilipsFile philipsFile(philips);
+  QVERIFY(philipsFile.open(QIODevice::ReadOnly));
+  CPhilipsMainHeader* mainHeader = NULL;
+  QVERIFY(philipsFile.readMainHeader(mainHeader));
+  QScopedPointer<CPhilipsMainHeader> guard(mainHeader);
+  QCOMPARE(p.json.value("Philips").toObject(), mainHeader->attributes().value("Philips").toObject());
+}
+
+//---------------------------------------------------------------------------------------------
+// Philips -> NIfTI -> Philips: the attributes of the Philips main header and of
+// the first slice of every frame (native fields and attributes) are kept
+
+void TestNIFTIConversion::philipsAttributesRoundTrip_data()
+{
+  QTest::addColumn<QString>("philips");
+
+  bool any = false;
+  foreach(const MedIOTestFile& file, m_data.files) {
+    if(file.format == "philips") {
+      QTest::newRow(qPrintable(file.relativePath)) << file.path;
+      any = true;
+    }
+  }
+
+  if(any == false)
+    QTest::newRow("no Philips test data") << QString();
+}
+
+void TestNIFTIConversion::philipsAttributesRoundTrip()
+{
+  QFETCH(QString, philips);
+  if(philips.isEmpty())
+    QSKIP("no Philips files in the test data");
+
+  const QString suffix = philips.endsWith(".syn") ? ".syn" : ".img";
+  const QString base = tmpFile("attributes-" + QFileInfo(philips).completeBaseName() + suffix.mid(1));
+  QString error;
+  QVERIFY2(CNIFTIConverter::philipsToNifti(philips, base + ".nii", CNIFTIConverter::Options(), &error), qPrintable(error));
+  QVERIFY2(CNIFTIConverter::niftiToPhilips(base + ".nii", base + suffix, &error), qPrintable(error));
+
+  CPhilipsFile source(philips);
+  CPhilipsFile written(base + suffix);
+  QVERIFY(source.open(QIODevice::ReadOnly));
+  QVERIFY(written.open(QIODevice::ReadOnly));
+
+  CPhilipsMainHeader* a = NULL;
+  CPhilipsMainHeader* b = NULL;
+  QVERIFY(source.readMainHeader(a));
+  QVERIFY(written.readMainHeader(b));
+  QScopedPointer<CPhilipsMainHeader> aGuard(a), bGuard(b);
+
+  const QJsonObject ma = a->attributes();
+  const QJsonObject mb = b->attributes();
+  QStringList different;
+  foreach(const QString& key, ma.keys() + mb.keys()) {
+    if(ma.value(key) != mb.value(key) && key != "Philips" && different.contains(key) == false)
+      different.append(key);
+  }
+  const QJsonObject na = ma.value("Philips").toObject();
+  const QJsonObject nb = mb.value("Philips").toObject();
+  foreach(const QString& field, na.keys() + nb.keys()) {
+    if(na.value(field) != nb.value(field) && different.contains("Philips." + field) == false)
+      different.append("Philips." + field);
+  }
+  QVERIFY2(different.isEmpty(), qPrintable(different.join(", ")));
+
+  // frames: the first slice
+  const QList<short> frames = source.frameNumbers();
+  QCOMPARE(written.frameNumbers().size(), frames.size());
+  for(int k=0; k < frames.size(); k++) {
+    CPhilipsSubHeader* sa = NULL;
+    CPhilipsSubHeader* sb = NULL;
+    QVERIFY(source.readSubHeader(sa, frames[k], -1));
+    QVERIFY(written.readSubHeader(sb, written.frameNumbers()[k], -1));
+    QScopedPointer<CPhilipsSubHeader> saGuard(sa), sbGuard(sb);
+    QCOMPARE(sb->attributes().value("Philips").toObject(), sa->attributes().value("Philips").toObject());
+  }
 }
 
 //---------------------------------------------------------------------------------------------
@@ -1082,7 +1182,7 @@ void TestNIFTIConversion::philipsRoundTrip()
     QCOMPARE(qint64(philipsFile.numFrames()), a.dim[0] >= 4 ? a.dim[4] : qint64(1));
     QCOMPARE(qint64(philipsFile.numSlices(philipsFile.minFrame())), a.dim[3]);
     QCOMPARE(int(philipsFile.minSlice()), suffix == ".syn" ? 1 : 0);
-    QCOMPARE(QString(mainHeader->patient_name()), a.json.value("Patient_Name").toString());
+    QCOMPARE(QString(mainHeader->patient_name()), a.json.value("PatientName").toString());
   }
 
   // header and geometry
@@ -1107,10 +1207,11 @@ void TestNIFTIConversion::philipsRoundTrip()
   // frame timing and metadata
   QCOMPARE(b.json.value("FrameTimesStart").toArray(), a.json.value("FrameTimesStart").toArray());
   QCOMPARE(b.json.value("FrameDuration").toArray(), a.json.value("FrameDuration").toArray());
-  QCOMPARE(b.json.value("Patient_Name").toString(), a.json.value("Patient_Name").toString());
-  QCOMPARE(b.json.value("Isotope_Name").toString(), a.json.value("Isotope_Name").toString());
-  QCOMPARE(b.json.value("Dosage").toDouble(), a.json.value("Dosage").toDouble());
-  QVERIFY(std::fabs(b.json.value("Patient_Weight").toDouble() - a.json.value("Patient_Weight").toDouble()) < 1e-3);
+  QCOMPARE(b.json.value("PatientName").toString(), a.json.value("PatientName").toString());
+  QCOMPARE(b.json.value("Philips").toObject().value("isotope_name").toString(),
+           a.json.value("ECAT7").toObject().value("Isotope_Name").toString());
+  QCOMPARE(b.json.value("RadionuclideTotalDose").toDouble(), a.json.value("RadionuclideTotalDose").toDouble());
+  QVERIFY(std::fabs(b.json.value("PatientWeight").toDouble() - a.json.value("PatientWeight").toDouble()) < 1e-3);
 }
 
 //---------------------------------------------------------------------------------------------
@@ -1301,7 +1402,8 @@ void TestNIFTIConversion::metadataOptions()
   QFile sidecar(tmpFile("sidecar.json"));
   QVERIFY(sidecar.open(QIODevice::ReadOnly));
   const QJsonObject json = QJsonDocument::fromJson(sidecar.readAll()).object();
-  QVERIFY(json.contains("Patient_Name"));
+  QVERIFY(json.contains("PatientName"));
+  QVERIFY(json.value("ECAT7").toObject().contains("Patient_Name"));
   QVERIFY(json.contains("FrameDuration"));
 
   // the metadata is restored from the sidecar file

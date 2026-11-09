@@ -33,6 +33,7 @@
 #include <CMedIOData>
 #include <CMedIODataFactory>
 #include <CMedIOHeader>
+#include <CMedIOHeaderDictionary>
 #include <CMedIOVolume>
 #include <CECATFile>
 #include <CECATMainHeader>
@@ -45,6 +46,8 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QIODevice>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QString>
 
 #include <cstring>
@@ -515,6 +518,30 @@ representation of the file (e.g. the datatype and scaling of a NIfTI main header
 fails without writing if they do not fit.
 )doc")
 
+    .def("attributes", [](const MedIOFile& self) {
+      if(self.writable())
+        raise(PyExc_ValueError, "the file was created for writing");
+
+      // the NIfTI representation of the main header holds the frame attributes of all frames
+      CMedIOHeader* header = nullptr;
+      if(self.data()->readMainHeader(header, CMedIOData::NIFTI) == false || header == nullptr) {
+        delete header;
+        raise(PyExc_RuntimeError, "unable to read the header attributes of '" + self.fileName() + "'");
+      }
+      std::unique_ptr<CMedIOHeader> guard(header);
+
+      QJsonObject json = header->attributes();
+      if(self.data()->dataFormat() != CMedIOData::NIFTI)
+        json.remove("NIfTI");
+      const QByteArray text = QJsonDocument(json).toJson(QJsonDocument::Compact);
+      return py::module_::import("json").attr("loads")(py::str(text.constData(), text.size()));
+    }, R"doc(
+Format independent header attributes of the file as dict (see CMedIOHeaderDictionary.h):
+DICOM keywords with the units of DICOM (e.g. "PatientWeight" in kg), the native fields
+of the format in a section named after it (e.g. "ECAT7") and in "Frames" the attributes
+of every frame.
+)doc")
+
     .def("close", &MedIOFile::close, "close the file (files created for writing are completed)")
     .def("__enter__", [](py::object self) { return self; })
     .def("__exit__", [](MedIOFile& self, const py::object&, const py::object&, const py::object&) {
@@ -544,6 +571,27 @@ fails without writing if they do not fit.
   }, py::arg("path"), R"doc(
 Open an ECAT7, NIfTI (.nii, .nii.gz, .hdr/.img), Philips (.img, .syn) or microPET file
 for reading.
+)doc");
+
+  m.def("dictionary_entry", [](const QString& keywordOrTag) -> py::object {
+    const CMedIOHeaderDictionary::Entry* entry = CMedIOHeaderDictionary::entry(keywordOrTag);
+    if(entry == nullptr)
+      return py::none();
+
+    py::dict d;
+    d["keyword"] = entry->keyword;
+    d["tag"] = CMedIOHeaderDictionary::tagString(entry->tag).toStdString();
+    d["vr"] = entry->vr;
+    d["vm"] = entry->vm;
+    d["unit"] = entry->unit;
+    d["sequence"] = entry->sequence ? py::object(py::str(CMedIOHeaderDictionary::tagString(entry->sequence).toStdString()))
+                                    : py::object(py::none());
+    d["scope"] = (entry->scope == CMedIOHeaderDictionary::FrameHeader) ? "frame" : "main";
+    return py::object(d);
+  }, py::arg("keyword_or_tag"), R"doc(
+Entry of the dictionary of the header attributes for a DICOM keyword ("PatientWeight")
+or tag ("(0010,1030)"): keyword, tag, VR, VM, unit, sequence holding it and scope
+("main" or "frame"); None if the dictionary has no entry for it.
 )doc");
 
   m.def("create", &createFile, py::arg("path"), py::arg("like"), py::arg("format") = py::none(),
