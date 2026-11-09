@@ -55,7 +55,8 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}
 )
 
 pybind11_add_module(pmedio src/pmedio.cpp
-                           src/medio.cpp)
+                           src/medio.cpp
+                           src/volume.cpp)
 
 # define link libraries dependencies
 target_link_libraries(pmedio PRIVATE
