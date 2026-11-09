@@ -94,6 +94,10 @@ class CConcordeFile : public CMedIOData
 
     virtual CConcordeFile::FileType fileType() const = 0;
 
+    // format independent matrix access of CMedIOData (in the representation of other formats)
+    using CMedIOData::readMainHeader;
+    using CMedIOData::readMatrix;
+
     bool readMatrix(QByteArray*& matrixData, short frame);
     bool readMatrix(QByteArray*& matrixData, CConcordeFrameHeader*& subHeader, short frame);
     bool readMatrix(char*& matrixData, unsigned int& length, short frame);

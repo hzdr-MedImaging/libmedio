@@ -45,7 +45,6 @@ using namespace std;
 
 CApplication::CApplication()
  : m_bOverWrite(false),
-   m_bPreserveDataType(false),
    m_bRecursive(false),
    m_bEcat2Img(false)
 {
@@ -111,10 +110,6 @@ bool CApplication::parseCmdLine(int argc, char* argv[])
       inputFileNames.removeAll(args.value("-n"));
     }
 
-    if(args.contains("-p"))
-    {
-      m_bPreserveDataType = true;
-    }
 #endif
 
     if(args.contains("-r"))
@@ -303,6 +298,7 @@ bool CApplication::process()
     if(m_sInputFileNames.count() > 1)
     {
       cout << "ERROR: only one directory can be specified." << endl;
+      result = false;
     }
     else
       result = walkDirectory(QDir(m_sInputFileNames[0]));
@@ -316,7 +312,7 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
 {
   ENTER();
   bool result = true;
-  bool bUnknownDataType = false;
+  bool bOutputOpened = false;
   CECATFile* pEcat7Image = NULL;
   CECAT7MainHeader* pEcat7ImageHeader = NULL;
   CPhilipsFile* pPhilipsFile = NULL;
@@ -383,6 +379,8 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
       cout << "ERROR: Could not write to outputfile - check permissions of directory or file!." << endl;
       result = false;
     }
+    else
+      bOutputOpened = true;
   }
 
   if(result)
@@ -391,14 +389,27 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
     cout << "OutputFile: " << QFileInfo(m_sOutputFileName).absoluteFilePath().toLatin1().constData() << endl;
 
     pEcat7ImageHeader = static_cast<CECAT7MainHeader*>(pEcat7Image->createEmptyMainHeader());
-    if(pEcat7ImageHeader != NULL)
+    if(pEcat7ImageHeader == NULL)
+    {
+      cout << "ERROR: Could not create the ECAT7 main header" << endl;
+      result = false;
+    }
+    else
     {
       // convert the philips main header into an ECAT main header using
       // the link to the file
       static_cast<CMedIOHeader*>(pEcat7ImageHeader)->convertFrom(pPhilipsFile);
 
-      int numFrames = pPhilipsFile->numFrames();
-      if(numFrames > NUMFRAMESLIMIT)
+      // the frame numbers of the Philips file (they do not have to start
+      // with 1); the ECAT7 file gets the frames 1..numFrames
+      const QList<short> philipsFrames = pPhilipsFile->frameNumbers();
+      int numFrames = philipsFrames.size();
+      if(numFrames == 0)
+      {
+        cout << "ERROR: Input file has no frames" << endl;
+        result = false;
+      }
+      else if(numFrames > NUMFRAMESLIMIT)
       {
         cout << "Warning: Can not create ECAT7 image file with more than "
              << NUMFRAMESLIMIT
@@ -410,186 +421,68 @@ bool CApplication::convert2Ecat(const QFileInfo& inputFile)
         numFrames = NUMFRAMESLIMIT;
       }
 
-      int minSlice = pPhilipsFile->minSlice();
-      for(int frame = 1; frame <= numFrames; ++frame)
+      for(int frame = 1; frame <= numFrames && result; ++frame)
       {
-         cout << "Converting Frame: " << (frame) << " of " << numFrames << endl;
+        cout << "Converting Frame: " << (frame) << " of " << numFrames << endl;
 
-        // in philips format every slice has an own subheader, so
-        // we need to hold one sub header of the philips file
-        // to convert it to an ecat7subheader of the whole frame
-
-        // take first subheader of the frame as the header of the whole frame
-        CPhilipsSubHeader* pPhilipsSubHeader = NULL;
-        bool bReadSubHeader = pPhilipsFile->readSubHeader(pPhilipsSubHeader, frame, minSlice);
-        if(bReadSubHeader == false)
-        {
-          cout << "ERROR: When loading image subheader of slice " << dec << minSlice
-               << ", frame " << frame << endl;
-
-          result = false;
-          if(pPhilipsSubHeader != NULL)
-            delete pPhilipsSubHeader;
-
-          break;
-        }
-
-        char* pImageData = NULL;
-        unsigned int len = 0;
-        bool bReadMatrix = pPhilipsFile->readMatrix(pImageData, len, frame);
-        if(bReadMatrix == false)
+        // the frame in the ECAT7 representation of libmedio: all slices of
+        // the frame in ECAT7 voxel order with one scale factor giving the
+        // physical values (the slice wise scale factors of the Philips file
+        // are applied; slices with different scale factors are converted into
+        // physical float values, unsigned 16 bit values into 32 bit integers)
+        QByteArray* pImageData = NULL;
+        CMedIOHeader* pSubHeader = NULL;
+        const short philipsFrame = philipsFrames[frame - 1];
+        if(pPhilipsFile->readMatrix(pImageData, pSubHeader, CMedIOData::ECAT, philipsFrame) == false)
         {
           cout << "ERROR: When loading image data of frame " << frame << endl;
           result = false;
-
-          delete pPhilipsSubHeader;
           break;
         }
 
-        // unfortunately the Philips file format contains a slice wise scaling factor
-        // imgscl() which requires that we walk through the array again and rescale
-        // the data accordingly. Better would be to redesign libmedio of course to allow
-        // to directly return a float volume rather than each application having to do
-        // scaling on their own.
-        int minslc = pPhilipsFile->minSlice();
-        int maxslc = pPhilipsFile->maxSlice();
-        int incr = (maxslc-minslc) / (pPhilipsFile->numSlices(frame) - 1);
-        int curSlice = minslc;
-        CPhilipsSubHeader *pSubHeadImg = NULL;
-        D("numSlices: %d", pPhilipsFile->numSlices());
-        for(int z=0; z <= pPhilipsFile->numSlices() && curSlice <= maxslc; ++z, curSlice += incr)
+        CECAT7SubHeaderImage* pEcat7SubHeaderImage = static_cast<CECAT7SubHeaderImage*>(pSubHeader);
+
+        // put in an annotation about being converted by img2ecat
+        QString message = QString("%1 %2").arg(PROJECT_LONGNAME).arg(PROJECT_VERSION);
+        pEcat7SubHeaderImage->setAnnotation(message.toLatin1().data());
+
+        if(pEcat7Image->writeSubHeader(*pEcat7SubHeaderImage, frame) == false ||
+           pEcat7Image->writeMatrix(*pImageData, frame) == false)
         {
-          if(pPhilipsFile->readSubHeader(pSubHeadImg, frame, curSlice))
-          {
-            float imgscl = static_cast<CPhilipsSubHeaderImage*>(pSubHeadImg)->imgscl();
-
-            if(imgscl > 1.0f)
-            {
-              for(int y=0; y <= pSubHeadImg->ydim(); ++y)
-              {
-                for(int x=0; x <= pSubHeadImg->xdim(); ++x)
-                {
-                  int idx = z * (pSubHeadImg->ydim() * pSubHeadImg->xdim()) + y * pSubHeadImg->xdim() + x;
-
-                  switch(pSubHeadImg->datype())
-                  {
-                    case CPhilipsSubHeader::SignedShort:
-                      static_cast<qint16*>((void *)pImageData)[idx] = qRound(static_cast<float>(static_cast<qint16*>((void *)pImageData)[idx]) * imgscl);
-                    break;
-
-                    case CPhilipsSubHeader::UnsignedShort:
-                      static_cast<quint16*>((void *)pImageData)[idx] = qRound(static_cast<float>(static_cast<quint16*>((void *)pImageData)[idx]) * imgscl);
-                    break;
-
-                    case CPhilipsSubHeader::Float:
-                      static_cast<float*>((void *)pImageData)[idx] = qRound(static_cast<float*>((void *)pImageData)[idx] * imgscl);
-                    break;
-
-                    default:
-                    {
-                      cout << "ERROR: Could not handle datatype " << pSubHeadImg->datype() << " of philips image file." << endl;
-                      bUnknownDataType = true;
-                    }
-                  }
-                }
-              }
-            }
-
-            D("converted slice %d (%d)", z+1, curSlice);
-
-            delete pSubHeadImg;
-            pSubHeadImg = NULL;
-          }
-          else
-            cout << "ERROR: reading subheader of slice " << curSlice << endl;
+          cout << "ERROR: When writing frame " << frame << endl;
+          result = false;
         }
 
-        short imgMaxValue = 0;
-        short imgMinValue = SHRT_MAX;
-        CPhilipsSubHeaderImage* pPhilipsSubHeaderImage = static_cast<CPhilipsSubHeaderImage*>(pPhilipsSubHeader);
-        switch(pPhilipsSubHeaderImage->datype())
-        {
-          case CPhilipsSubHeader::SignedShort:
-          {
-            int numElements = len/sizeof(qint16);
-            QByteArray buffer = QByteArray::fromRawData(pImageData, len);
-            CDataArray<qint16> dataArray(&buffer, numElements);
-            imgMaxValue = dataArray.maxValue();
-            imgMinValue = dataArray.minValue();
-          }
-          break;
+        delete pImageData;
+        delete pSubHeader;
 
-          case CPhilipsSubHeader::UnsignedShort:
-          {
-            int numElements = len/sizeof(quint16);
-            QByteArray buffer = QByteArray::fromRawData(pImageData, len);
-            CDataArray<quint16> dataArray(&buffer, numElements);
-            imgMaxValue = dataArray.maxValue();
-            imgMinValue = dataArray.minValue();
-          }
-          break;
-
-          case CPhilipsSubHeader::Float:
-          {
-            int numElements = len/sizeof(float);
-            QByteArray buffer = QByteArray::fromRawData(pImageData, len);
-            CDataArray<float> dataArray(&buffer, numElements);
-            imgMaxValue = dataArray.maxValue();
-            imgMinValue = dataArray.minValue();
-          }
-          break;
-
-          default:
-          {
-            cout << "ERROR: Could not handle datatype " << pPhilipsSubHeaderImage->datype() << " of philips image file." << endl;
-            bUnknownDataType = true;
-          }
-        }
-
-        if((bUnknownDataType == false) && (result != false))
-        {
-          CECAT7SubHeaderImage* pEcat7SubHeaderImage;
-          pEcat7SubHeaderImage = static_cast<CECAT7SubHeaderImage*>(pEcat7Image->createEmptySubHeader());
-
-          // convert the philips data into a working ecat sub header
-          pEcat7SubHeaderImage->convertFrom(pPhilipsSubHeaderImage, pPhilipsMainHeader);
-
-          pEcat7SubHeaderImage->setImage_Min(imgMinValue);
-          pEcat7SubHeaderImage->setImage_Max(imgMaxValue);
-
-          D("imgMin: %d", imgMinValue);
-          D("imgMax: %d", imgMaxValue);
-
-          // put in an annotation about being converted by mp2ecat
-          QString message = QString("%1 %2").arg(PROJECT_LONGNAME).arg(PROJECT_VERSION);
-          pEcat7SubHeaderImage->setAnnotation(message.toLatin1().data());
-
-          pEcat7Image->writeSubHeader(*pEcat7SubHeaderImage, frame);
-          pEcat7Image->writeMatrix(pImageData, len, frame);
-          delete pEcat7SubHeaderImage;
-        }
-
-        if(pPhilipsSubHeaderImage != NULL)
-          delete pPhilipsSubHeaderImage;
-
-        if(bUnknownDataType)
+        if(result == false)
           break;
       }
 
-      if(bUnknownDataType == false)
+      if(result)
       {
         cout << "Writing main header and finalizing file" << endl;
 
-        pEcat7Image->writeMainHeader(*pEcat7ImageHeader);
-        result = true;
+        if(pEcat7Image->writeMainHeader(*pEcat7ImageHeader) == false)
+        {
+          cout << "ERROR: When writing the main header" << endl;
+          result = false;
+        }
       }
 
-      pEcat7Image->close();
       delete pEcat7ImageHeader;
     }
   }
 
+  if(bOutputOpened)
+    pEcat7Image->close();
   delete pEcat7Image;
+
+  // do not leave a partial output file behind
+  if(result == false && bOutputOpened)
+    QFile::remove(m_sOutputFileName);
+
   delete pPhilipsMainHeader;
   if(pPhilipsFile != NULL)
   {
@@ -605,7 +498,7 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
 {
   ENTER();
   bool result = true;
-  bool bUnknownDataType = false;
+  bool bOutputOpened = false;
   CECATFile* pEcat7Image = NULL;
   CECATMainHeader *pEcat7MainHeader = NULL;
   CECAT7MainHeader* pEcat7ImageHeader = NULL;
@@ -673,6 +566,8 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
       cout << "ERROR: Could not write to outputfile - check permissions of directory or file!." << endl;
       result = false;
     }
+    else
+      bOutputOpened = true;
   }
 
   if(result)
@@ -681,13 +576,26 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
     cout << "OutputFile: " << QFileInfo(m_sOutputFileName).absoluteFilePath().toLatin1().constData() << endl;
 
     pPhilipsMainHeader = pPhilipsFile->createEmptyMainHeader();
-    if(pPhilipsMainHeader != NULL)
+    if(pPhilipsMainHeader == NULL)
+    {
+      cout << "ERROR: Could not create the Philips main header" << endl;
+      result = false;
+    }
+    else
     {
       // convert the ecat image into a working philips main header
       static_cast<CMedIOHeader*>(pPhilipsMainHeader)->convertFrom(pEcat7Image);
 
-      int numFrames = pEcat7Image->numFrames();
-      if(numFrames > NUMFRAMESLIMIT)
+      // the frame numbers of the ECAT7 file (they do not have to start
+      // with 1); the Philips file gets the frames 1..numFrames
+      const QList<short> ecatFrames = pEcat7Image->frameNumbers();
+      int numFrames = ecatFrames.size();
+      if(numFrames == 0)
+      {
+        cout << "ERROR: Input file has no frames" << endl;
+        result = false;
+      }
+      else if(numFrames > NUMFRAMESLIMIT)
       {
         cout << "Warning: Can not create Philips image file with more than "
              << NUMFRAMESLIMIT
@@ -701,9 +609,10 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
 
       cout << "slices: " << pPhilipsMainHeader->nslice() << endl;
 
-      for(int frame = 1; frame <= numFrames; ++frame)
+      for(int frame = 1; frame <= numFrames && result; ++frame)
       {
          cout << "Converting Frame: " << (frame) << " of " << numFrames << endl;
+        const short ecatFrame = ecatFrames[frame - 1];
 
         // in philips format every slice has an own subheader, so
         // we need to hold one sub header of the ecat file
@@ -712,7 +621,7 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
         // take first subheader of the frame as the header of the whole frame
         CECATSubHeader* pECATSubHeader = NULL;
         CECAT7SubHeaderImage* pECATSubHeaderImage = NULL;
-        bool bReadSubHeader = pEcat7Image->readSubHeader(pECATSubHeader, frame);
+        bool bReadSubHeader = pEcat7Image->readSubHeader(pECATSubHeader, ecatFrame);
         if(bReadSubHeader == false)
         {
           cout << "ERROR: When loading image subheader of frame " << frame << endl;
@@ -726,7 +635,7 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
 
         char* pImageData;
         unsigned int len = 0;
-        bool bReadMatrix = pEcat7Image->readMatrix(pImageData, len, frame);
+        bool bReadMatrix = pEcat7Image->readMatrix(pImageData, len, ecatFrame);
         if(bReadMatrix == false)
         {
           cout << "ERROR: When loading image data of frame " << frame << endl;
@@ -814,7 +723,12 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
             cout << pPhilipsMainHeader->slcthk() << endl;
             cout << "max: " << pPhilipsMainHeader->max_bed_pos() << " min: " << pPhilipsMainHeader->min_bed_pos() << endl;
             cout << "writing matrix of slice " << pPhilipsSubHeaderImage->slcnum() << " (" << z+1 << ")" << endl;
-            pPhilipsFile->writeMatrix(p, matrixSize, *pPhilipsSubHeaderImage, frame, pPhilipsSubHeaderImage->slcnum());
+            if(pPhilipsFile->writeMatrix(p, matrixSize, *pPhilipsSubHeaderImage, frame, pPhilipsSubHeaderImage->slcnum()) == false)
+            {
+              cout << "ERROR: When writing slice " << z+1 << " of frame " << frame << endl;
+              result = false;
+              break;
+            }
   
             // now advance p
             p += matrixSize;
@@ -827,18 +741,28 @@ bool CApplication::convert2Img(const QFileInfo& inputFile)
         delete pECATSubHeaderImage;
       }
 
-      if(bUnknownDataType == false)
+      if(result)
       {
         cout << "Writing main header and finalizing file" << endl;
 
-        pPhilipsFile->writeMainHeader(*pPhilipsMainHeader);
-        result = true;
+        if(pPhilipsFile->writeMainHeader(*pPhilipsMainHeader) == false)
+        {
+          cout << "ERROR: When writing the main header" << endl;
+          result = false;
+        }
       }
 
-      pPhilipsFile->close();
       delete pPhilipsMainHeader;
     }
   }
+
+  if(bOutputOpened)
+    pPhilipsFile->close();
+  delete pPhilipsFile;
+
+  // do not leave a partial output file behind
+  if(result == false && bOutputOpened)
+    QFile::remove(m_sOutputFileName);
 
   delete pEcat7ImageHeader;
   if(pEcat7Image != NULL)
@@ -865,27 +789,25 @@ bool CApplication::walkDirectory(const QDir& dir)
   // this function will recursively walk through a directory and process all *.img files in it
   QFileInfoList dirEntries = dir.entryInfoList(QStringList("*." + extension), QDir::Files | QDir::NoSymLinks | QDir::AllDirs | QDir::NoDotAndDotDot);
 
+  // all files are converted, the result is false if any conversion failed
   QFileInfo dirEntry;
   foreach(dirEntry, dirEntries)
   {
     if(dirEntry.isDir())
     {
-      result = walkDirectory(QDir(dirEntry.absoluteFilePath()));
+      if(walkDirectory(QDir(dirEntry.absoluteFilePath())) == false)
+        result = false;
     }
     else
     {
       // check if we found a filename with a *.img suffix
       if(dirEntry.suffix().toLower() == extension)
       {
-        if(m_bEcat2Img == false)
-          convert2Ecat(dirEntry);
-        else
-          convert2Img(dirEntry);
+        const bool converted = (m_bEcat2Img == false) ? convert2Ecat(dirEntry) : convert2Img(dirEntry);
+        if(converted == false)
+          result = false;
       }
     }
-
-    if(result == false)
-      break;
   }
 
   RETURN(result);

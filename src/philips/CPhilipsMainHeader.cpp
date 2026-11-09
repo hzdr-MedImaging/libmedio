@@ -1540,7 +1540,7 @@ bool CPhilipsMainHeader::save(void) const
   CPhilipsFile* philipsFile = static_cast<CPhilipsFile*>(mData);
   m_pData->header.minfrm = philipsFile->minFrame();
   m_pData->header.maxfrm = philipsFile->maxFrame();
-  m_pData->header.nframe = philipsFile->numFrames();
+  m_pData->header.nframe = static_cast<short>(philipsFile->frameNumbers().size()); // numFrames() is the highest frame number
   m_pData->header.minslc = philipsFile->minSlice();
   m_pData->header.maxslc = philipsFile->maxSlice();
   m_pData->header.nslice = philipsFile->numSlices();

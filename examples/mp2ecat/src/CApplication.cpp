@@ -239,7 +239,7 @@ void CApplication::showVersion()
        << "[ppc]"
        #elif defined(__i386__)
        << "[x86]"
-       #elif defined(__X86_64__)
+       #elif defined(__x86_64__)
        << "[x86_64]"
        #else
        #warning Unknown CPU model
@@ -263,7 +263,7 @@ void CApplication::showVersion()
 bool CApplication::process()
 {
   ENTER();
-  bool result = false;
+  bool result = true;
 
   // now we check out options and either convert bunch of files or a whole directory tree
   if(m_bRecursive == false)
@@ -284,6 +284,7 @@ bool CApplication::process()
     if(m_sInputFileNames.count() > 1)
     {
       cout << "ERROR: only one directory can be specified." << endl;
+      result = false;
     }
     else
       result = walkDirectory(QDir(m_sInputFileNames[0]));
@@ -291,6 +292,31 @@ bool CApplication::process()
 
   RETURN(result);
   return result;
+}
+
+// value range of the stored values of a frame (machine byte order)
+static void storedRange(const QByteArray& data, CECATSubHeader::Data_Type type, double& minValue, double& maxValue)
+{
+  int size = sizeof(qint16);
+  if(type == CECATSubHeader::SunLong || type == CECATSubHeader::IEEEFloat)
+    size = 4;
+
+  const int count = data.size() / size;
+  for(int i=0; i < count; i++)
+  {
+    double value = 0.0;
+    switch(type)
+    {
+      case CECATSubHeader::SunLong:   value = reinterpret_cast<const qint32*>(data.constData())[i]; break;
+      case CECATSubHeader::IEEEFloat: value = reinterpret_cast<const float*>(data.constData())[i]; break;
+      default:                        value = reinterpret_cast<const qint16*>(data.constData())[i]; break;
+    }
+
+    if(i == 0 || value < minValue)
+      minValue = value;
+    if(i == 0 || value > maxValue)
+      maxValue = value;
+  }
 }
 
 bool CApplication::convertFile(const QFileInfo& inputFile)
@@ -424,8 +450,6 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
       }
       
       char* pDestData = NULL;
-      float imgMaxValue = 0.0F;
-      float imgMinValue = 10000.0F;
       float imgScaleFactor = 0.0F;
       CECATSubHeader::Data_Type outputDataType = CECATSubHeader::UnknownDataType;
 
@@ -439,10 +463,6 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
           cout << " (short->short)" << endl;
 
           STARTCLOCK("converting data");
-          int iNumElements = iFramesize/sizeof(qint16);
-          CDataArray<qint32> dataArray(pImgData, iNumElements);
-          imgMaxValue = dataArray.maxValue();
-          imgMinValue = dataArray.minValue();
 
           // as we don't have to rescale any data we simply use the same scale factor
           // and thus we don't need to calculate an own one here or rescale any data
@@ -468,8 +488,6 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
             int iNumElements = iFramesize/sizeof(qint32);
             CDataArray<qint32> dataArray(pImgData, iNumElements);
             pDestData = new char[iNumElements*sizeof(qint16)];
-            imgMaxValue = dataArray.maxValue();
-            imgMinValue = dataArray.minValue();
             imgScaleFactor = dataArray.maxDistance()/float(SHRT_MAX);
             qint16* pDestDataElement = (qint16*)pDestData;
 
@@ -491,8 +509,6 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
             // we just have to set our own rescaling factor to 1 and the min/max values
             // right
             imgScaleFactor = 1.0f;
-            imgMinValue = -32767;
-            imgMaxValue = 32767;
 
             outputDataType = CECATSubHeader::SunLong;
           }
@@ -515,8 +531,6 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
             int iNumElements = iFramesize/sizeof(float);
             CDataArray<float> dataArray(pImgData, iNumElements);
             pDestData = new char[iNumElements*sizeof(qint16)];
-            imgMaxValue = dataArray.maxValue();
-            imgMinValue = dataArray.minValue();
             imgScaleFactor = dataArray.maxDistance()/float(SHRT_MAX);
             qint16* pDestDataElement = (qint16*)pDestData;
 
@@ -537,8 +551,6 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
             // if we keep the same precision we don't have to convert something at all,
             // we simply have to modify the scale factor to include the branching fraction
             imgScaleFactor = 1.0f;
-            imgMinValue = -32767;
-            imgMaxValue = 32767;
 
             outputDataType = CECATSubHeader::IEEEFloat;
           } 
@@ -573,44 +585,56 @@ bool CApplication::convertFile(const QFileInfo& inputFile)
         // the isotope branching fraction.
         pEcat7ImgSubHeader->setScale_Factor(pSrcImgSubHeader->scaleFactor()*imgScaleFactor/pSrcImageHeader->isotopeBranchingFraction());
 
-        D("imgMax: %g (%g,%g), imgMin: %g (%g,%g)", imgMaxValue, imgMaxValue*imgScaleFactor, 1.0f/imgScaleFactor*imgMaxValue, imgMinValue, imgMinValue*imgScaleFactor, 1.0f/imgScaleFactor*imgMinValue);
-
-        if(fabs(imgMaxValue) > fabs(imgMinValue))
-        {
-          pEcat7ImgSubHeader->setImage_Min(qRound(1.0f/imgScaleFactor*imgMinValue));
-          pEcat7ImgSubHeader->setImage_Max(SHRT_MAX);
-        }
-        else
-        {
-          pEcat7ImgSubHeader->setImage_Max(qRound(1.0f/imgScaleFactor*imgMaxValue));
-          pEcat7ImgSubHeader->setImage_Min(SHRT_MIN);
-        }
+        // value range of the stored values as written; the ECAT7 fields hold
+        // 16 bit integers, so values of 32 bit integer or float data outside
+        // their range are limited to it
+        double storedMin = 0.0;
+        double storedMax = 0.0;
+        storedRange(*pImgData, outputDataType, storedMin, storedMax);
+        D("stored values: %g .. %g, scale factor %g", storedMin, storedMax, imgScaleFactor);
+        pEcat7ImgSubHeader->setImage_Min(static_cast<short>(qRound(qBound(double(SHRT_MIN), storedMin, double(SHRT_MAX)))));
+        pEcat7ImgSubHeader->setImage_Max(static_cast<short>(qRound(qBound(double(SHRT_MIN), storedMax, double(SHRT_MAX)))));
 
         // put in an annotation about being converted by mp2ecat
         pEcat7ImgSubHeader->setAnnotation("converted by " PACKAGE_NAME " " PACKAGE_VERSION);
 
-        ecat7Image->writeSubHeader(*pEcat7ImgSubHeader, i+1);
-        ecat7Image->writeMatrix(*pImgData,i+1);
+        if(ecat7Image->writeSubHeader(*pEcat7ImgSubHeader, i+1) == false ||
+           ecat7Image->writeMatrix(*pImgData,i+1) == false)
+        {
+          cout << "ERROR: When writing frame " << i+1 << endl;
+          bResult = false;
+        }
         delete pEcat7ImgSubHeader;
       }
       delete pImgData;
       delete pSrcImgSubHeader;
 
       if(bUnknownDataType)
+        bResult = false;
+
+      if(bResult == false)
         break;
     }
 
-    if(!bUnknownDataType)
+    if(bResult)
     {
       cout << "Writing main header and finalizing file" << endl;
-      ecat7Image->writeMainHeader(*pEcat7ImgHeader);
-      bResult = true;
+      if(ecat7Image->writeMainHeader(*pEcat7ImgHeader) == false)
+      {
+        cout << "ERROR: When writing the main header" << endl;
+        bResult = false;
+      }
     }
     ecat7Image->close();
     delete pEcat7ImgHeader;
   }
 
+  // do not leave a partial output file behind
+  const bool outputCreated = (ecat7Image != NULL);
   delete ecat7Image;
+  if(bResult == false && outputCreated)
+    QFile::remove(m_sOutputFileName);
+
   delete pSrcImageHeader;
   if(pSrcImageVolume)
     pSrcImageVolume->close();
@@ -628,22 +652,21 @@ bool CApplication::walkDirectory(const QDir& dir)
   // this function will recursively walk through a directory and process all *.img files in it
   QFileInfoList dirEntries = dir.entryInfoList(QStringList("*.img"), QDir::Files | QDir::NoSymLinks | QDir::AllDirs | QDir::NoDotAndDotDot);
 
+  // all files are converted, the result is false if any conversion failed
   QFileInfo dirEntry;
   foreach(dirEntry, dirEntries)
   {
     if(dirEntry.isDir())
     {
-      result = walkDirectory(QDir(dirEntry.absoluteFilePath()));
+      if(walkDirectory(QDir(dirEntry.absoluteFilePath())) == false)
+        result = false;
     }
     else
     {
       // check if we found a filename with a *.img suffix
-      if(dirEntry.suffix().toLower() == "img")
-        convertFile(dirEntry);
+      if(dirEntry.suffix().toLower() == "img" && convertFile(dirEntry) == false)
+        result = false;
     }
-
-    if(result == false)
-      break;
   }
 
   RETURN(result);

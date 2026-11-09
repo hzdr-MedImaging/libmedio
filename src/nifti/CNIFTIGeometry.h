@@ -44,6 +44,12 @@
 // tools (e.g. PMOD, ROVER): first axis towards patient left, second axis
 // towards posterior, third axis towards superior.
 
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QString>
 
 #include <cmath>
@@ -385,6 +391,122 @@ static inline bool ecatGeometryFromNIFTI(const CNIFTIMainHeader* header, ECATGeo
     return ecatGeometryFromNIFTIHeader(*static_cast<const CNIFTI1MainHeader*>(header), g, error);
 
   return ecatGeometryFromNIFTIHeader(*static_cast<const CNIFTI2MainHeader*>(header), g, error);
+}
+
+// Index (within one 3D volume) of the NIfTI voxel holding ECAT7 voxel (i, j, k);
+// niftiDims are dim[1..3] of the NIfTI header.
+static inline qint64 niftiVoxelIndex(const ECATGeometryFromNIFTI& g, const qint64 niftiDims[3], int i, int j, int k)
+{
+  const int e[3] = { i, j, k };
+  qint64 v[3];
+  for(int a=0; a < 3; a++)
+    v[g.axis[a]] = g.flip[a] ? g.dims[a] - 1 - e[a] : e[a];
+
+  return v[0] + niftiDims[0] * (v[1] + niftiDims[1] * v[2]);
+}
+
+//=============================================================================================
+// metadata of NIfTI files written by CNIFTIConverter (JSON header extension
+// or JSON sidecar file, see CNIFTIConverter.h)
+
+// NIfTI JSON sidecar file name (<name>.json next to <name>.nii/.nii.gz/.hdr/.img)
+static inline QString niftiSidecarFileName(const QString& niftiFileName)
+{
+  QFileInfo info(niftiFileName);
+  QString base = info.fileName();
+
+  if(base.endsWith(".gz", Qt::CaseInsensitive))
+    base.chop(3);
+  if(base.endsWith(".nii", Qt::CaseInsensitive) ||
+     base.endsWith(".hdr", Qt::CaseInsensitive) ||
+     base.endsWith(".img", Qt::CaseInsensitive))
+    base.chop(4);
+
+  return info.absoluteDir().filePath(base + ".json");
+}
+
+// metadata of an opened NIfTI file: JSON header extension or JSON sidecar file
+static inline QJsonObject niftiMetadata(CNIFTIFile& file, const CNIFTIMainHeader* header, const QString& fileName)
+{
+  QJsonObject json = (header->mainHeaderType() == CNIFTIMainHeader::NIFTI1MainHeader)
+                     ? static_cast<const CNIFTI1MainHeader*>(header)->readHeaderExtension(file)
+                     : static_cast<const CNIFTI2MainHeader*>(header)->readHeaderExtension(file);
+
+  if(json.isEmpty()) {
+    QFile sidecar(niftiSidecarFileName(fileName));
+    if(sidecar.open(QIODevice::ReadOnly))
+      json = QJsonDocument::fromJson(sidecar.readAll()).object();
+  }
+
+  return json;
+}
+
+// start time and duration (s) of volume f (0-based) of a NIfTI file: from
+// the metadata if it holds the timing of all volumes, from the header otherwise
+static inline void niftiFrameTiming(const ECATGeometryFromNIFTI& g, const QJsonObject& json, int f,
+                                    double& start, double& duration)
+{
+  const QJsonArray startTimes = json["FrameTimesStart"].toArray();
+  const QJsonArray durations = json["FrameDuration"].toArray();
+
+  start = g.frameStart + f * g.frameDuration;
+  duration = g.frameDuration;
+
+  if(startTimes.size() == g.frames && durations.size() == g.frames) {
+    start = startTimes[f].toDouble();
+    duration = durations[f].toDouble();
+  } else if(g.frames == 1 && json.contains("Frame_Duration")) {
+    // metadata written by earlier versions (ms)
+    start = json["Frame_Start_Time"].toDouble() / 1000.0;
+    duration = json["Frame_Duration"].toDouble() / 1000.0;
+  }
+}
+
+// ECAT7 frame start time or duration (ms) of a time in s
+static inline unsigned int ecatFrameTime(double seconds)
+{
+  return seconds > 0.0 ? static_cast<unsigned int>(seconds * 1000.0 + 0.5) : 0;
+}
+
+// restore the ECAT7 main header values stored in the metadata by CNIFTIConverter
+static inline void applyNIFTIMetadata(CECAT7MainHeader& h, const QJsonObject& json)
+{
+#define JSON_STRING(key, setter) if(json.contains(key)) h.setter(json[key].toString().toLatin1().constData())
+#define JSON_NUMBER(key, setter, type) if(json.contains(key)) h.setter(static_cast<type>(json[key].toDouble()))
+
+  JSON_STRING("Original_File_Name", setOriginal_File_Name);
+  JSON_STRING("Study_Description", setStudy_Description);
+  JSON_STRING("Physician_Name", setPhysician_Name);
+  JSON_STRING("Operator_Name", setOperator_Name);
+  JSON_STRING("Facility_Name", setFacility_Name);
+  JSON_STRING("Study_Type", setStudy_Type);
+  JSON_STRING("Patient_Name", setPatient_Name);
+  JSON_STRING("Patient_ID", setPatient_ID);
+  JSON_NUMBER("Patient_Sex", setPatient_Sex, CECAT7MainHeader::Patient_Sex);
+  JSON_NUMBER("Patient_Age", setPatient_Age, float);
+  JSON_NUMBER("Patient_Weight", setPatient_Weight, float);
+  JSON_NUMBER("Patient_Height", setPatient_Height, float);
+  JSON_NUMBER("Patient_Birth_Date", setPatient_Birth_Date, int);
+  JSON_NUMBER("Patient_Orientation", setPatient_Orientation, CECAT7MainHeader::Patient_Orientation);
+  JSON_STRING("Isotope_Name", setIsotope_Name);
+  JSON_NUMBER("Isotope_Halflife", setIsotope_Halflife, float);
+  JSON_STRING("Radiopharmaceutical", setRadiopharmaceutical);
+  JSON_NUMBER("Dosage", setDosage, float);
+  JSON_STRING("Data_Units", setData_Units);
+  JSON_NUMBER("Scan_Start_Time", setScan_Start_Time, int);
+  JSON_NUMBER("Dose_Start_Time", setDose_Start_Time, int);
+  JSON_NUMBER("Calibration_Units", setCalibration_Units, CECAT7MainHeader::Calibration_Units);
+  JSON_NUMBER("Calibration_Units_Label", setCalibration_Units_Label, CECAT7MainHeader::Calibration_Units_Label);
+  JSON_NUMBER("Acquisition_Type", setAcquisition_Type, CECAT7MainHeader::Acquisition_Type);
+  JSON_NUMBER("Lwr_True_Thres", setLwr_True_Thres, short);
+  JSON_NUMBER("Upr_True_Thres", setUpr_True_Thres, short);
+  JSON_NUMBER("Lwr_Sctr_Thres", setLwr_Sctr_Thres, short);
+  JSON_NUMBER("Distance_Scanned", setDistance_Scanned, float);
+  JSON_NUMBER("Transaxial_FOV", setTransaxial_FOV, float);
+  JSON_NUMBER("Bin_Size", setBin_Size, float);
+
+#undef JSON_STRING
+#undef JSON_NUMBER
 }
 
 #endif // CNIFTIGEOMETRY_H

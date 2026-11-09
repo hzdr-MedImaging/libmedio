@@ -25,6 +25,8 @@
 #include <QVector>
 #include <QtAlgorithms>
 
+#include <zlib.h>
+
 #include <rtdebug.h>
 
 #include "bswap.h"
@@ -89,6 +91,7 @@ class CPhilipsDirectoryPrivate
     // some private methods 
     CPhilipsDirectoryItem* newDirItem(quint32 matrixID);
     qint64 lastDirItemOffset(void) const;
+    bool reserveSpace(CPhilipsDirectoryItem* item, qint64 matrixSize);
 
     // static method for sorting our QMap by value
     static bool itemIsLessThan(CPhilipsDirectoryItem* s1, CPhilipsDirectoryItem* s2);
@@ -299,6 +302,8 @@ bool CPhilipsDirectory::load()
     #if defined(DEBUG)
     if(dList.head.itemsToFollow != iItemsInserted)
       W("ItemsToFollow:%ld != iItemsInserted:%ld", dList.head.itemsToFollow, iItemsInserted);
+    #else
+    Q_UNUSED(iItemsInserted); // only checked in debug builds
     #endif
 
     if(m_pData->file->seek(PhilipsBlock2FilePos(dList.head.nextDirectory)) == false)
@@ -613,6 +618,16 @@ CPhilipsDirectoryItem* CPhilipsDirectoryPrivate::newDirItem(quint32 matrixID)
 {
   ENTER();
 
+  // The directory lists (PHILIPS_DIRITEM_NUM items each) are stored between
+  // the data blocks. If the new item needs a further directory list, its
+  // position has to be reserved before the item is placed: otherwise save(),
+  // which is already called before the data of the new item is written (via
+  // reWriteMainHeader()), places the directory list at the start of the new
+  // item and the sub header written there later overwrites it.
+  const int lists = (dirItems.count() + PHILIPS_DIRITEM_NUM) / PHILIPS_DIRITEM_NUM;
+  while(filePositions.count() < lists)
+    filePositions.append(lastDirItemOffset() + PHILIPS_BLOCKSIZE);
+
   // create a new directory item with the supplied matrixID
   CPhilipsDirectoryItem* pNewDItem = new CPhilipsDirectoryItem(file, matrixID);
 
@@ -688,6 +703,57 @@ qint64 CPhilipsDirectoryPrivate::lastDirItemOffset(void) const
 
   RETURN(offset);
   return offset;
+}
+
+// Make sure that an existing directory item, which is overwritten, can take
+// a matrix of matrixSize bytes. The matrix is written compressed behind the
+// sub header (see CPhilipsDirectoryItem::writeMatrix()); if its maximum
+// compressed size does not fit into the blocks used by the item so far and
+// the item is not the last one in the file, the item is moved to the end of
+// the file together with its sub header (its old blocks stay unused), as it
+// would overwrite the following blocks otherwise.
+bool CPhilipsDirectoryPrivate::reserveSpace(CPhilipsDirectoryItem* item, qint64 matrixSize)
+{
+  ENTER();
+
+  const qint64 start = item->dataBlock_Start();
+  const qint64 end = item->dataBlock_End();
+
+  // nothing written yet: the item is placed at the end of the file
+  if(end < start || end == 0) {
+    RETURN(true);
+    return true;
+  }
+
+  const qint64 needed = (PHILIPS_BLOCKSIZE + static_cast<qint64>(compressBound(static_cast<uLong>(matrixSize))) +
+                         PHILIPS_BLOCKSIZE - 1) / PHILIPS_BLOCKSIZE;
+  const qint64 available = (end - start) / PHILIPS_BLOCKSIZE + 1;
+
+  if(needed <= available || end >= lastDirItemOffset()) {
+    RETURN(true);
+    return true;
+  }
+
+  // copy the sub header to the end of the file
+  bool result = false;
+  if(file->seek(start)) {
+    const QByteArray subHeader = file->read(PHILIPS_BLOCKSIZE);
+    const qint64 newStart = lastDirItemOffset() + PHILIPS_BLOCKSIZE;
+
+    if(subHeader.size() == PHILIPS_BLOCKSIZE && file->seek(newStart) &&
+       file->write(subHeader) == PHILIPS_BLOCKSIZE) {
+      D("moved directory item %08x from %lld to %lld", item->matrixID(), start, newStart);
+      item->setDataBlock_Start(newStart);
+      item->setDataBlock_End(newStart);
+      result = true;
+    }
+  }
+
+  if(result == false)
+    E("unable to move directory item %08x to the end of the file", item->matrixID());
+
+  RETURN(result);
+  return result;
 }
 
 bool CPhilipsDirectoryPrivate::itemIsLessThan(CPhilipsDirectoryItem* s1, CPhilipsDirectoryItem* s2)
@@ -1153,6 +1219,11 @@ bool CPhilipsDirectory::writeMatrix(const QByteArray& matrixData,
       // create a new DirectoryItem which we put in this Directory
       pNewDItem = m_pData->newDirItem(mID);
     }
+    else if(m_pData->reserveSpace(pNewDItem, matrixData.size()) == false)
+    {
+      RETURN(false);
+      return false;
+    }
 
     // then we make sure the subheader is written to the Philips file.
     result = pNewDItem->writeMatrix(matrixData);
@@ -1190,6 +1261,11 @@ bool CPhilipsDirectory::writeMatrix(const char* matrixData, unsigned int size,
       // create a new DirectoryItem which we put in this Directory
       pNewDItem = m_pData->newDirItem(mID);
     }
+    else if(m_pData->reserveSpace(pNewDItem, size) == false)
+    {
+      RETURN(false);
+      return false;
+    }
 
     // then we make sure the subheader is written to the Philips file.
     result = pNewDItem->writeMatrix(matrixData, size);
@@ -1226,6 +1302,11 @@ bool CPhilipsDirectory::writeMatrix(const QByteArray& matrixData, CPhilipsSubHea
     {
       // create a new DirectoryItem which we put in this Directory
       pNewDItem = m_pData->newDirItem(mID);
+    }
+    else if(m_pData->reserveSpace(pNewDItem, matrixData.size()) == false)
+    {
+      RETURN(false);
+      return false;
     }
 
     // then we make sure the subheader is written to the Philips file.
@@ -1265,6 +1346,11 @@ bool CPhilipsDirectory::writeMatrix(const char* matrixData, unsigned int size,
       // create a new DirectoryItem which we put in this Directory
       pNewDItem = m_pData->newDirItem(mID);
     }
+    else if(m_pData->reserveSpace(pNewDItem, size) == false)
+    {
+      RETURN(false);
+      return false;
+    }
 
     // then we make sure the subheader is written to the Philips file.
     result = pNewDItem->writeMatrix(matrixData, size, type);
@@ -1301,6 +1387,11 @@ bool CPhilipsDirectory::writeMatrix(const QByteArray& matrixData, const CPhilips
     {
       // create a new DirectoryItem which we put in this Directory
       pNewDItem = m_pData->newDirItem(mID);
+    }
+    else if(m_pData->reserveSpace(pNewDItem, matrixData.size()) == false)
+    {
+      RETURN(false);
+      return false;
     }
 
     // then we make sure the subheader is written to the Philips file.
@@ -1339,6 +1430,11 @@ bool CPhilipsDirectory::writeMatrix(const char* matrixData, unsigned int size, c
       D("about to create new dir item");
       // create a new DirectoryItem which we put in this Directory
       pNewDItem = m_pData->newDirItem(mID);
+    }
+    else if(m_pData->reserveSpace(pNewDItem, size) == false)
+    {
+      RETURN(false);
+      return false;
     }
 
       D("about to write matrix");

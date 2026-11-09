@@ -31,9 +31,14 @@ class CKeyParser
 {
   public:
     //constructor
-    CKeyParser(){};    
-    //destructor
-    ~CKeyParser(){};
+    CKeyParser(){};
+    //destructor: frees the key bindings
+    ~CKeyParser(){ qDeleteAll(KeyDictionary); };
+    //the keys are bound to variables of the owner of the parser: a copy
+    //starts without keys and symbols, an assignment keeps the keys and
+    //symbols of the target
+    CKeyParser(const CKeyParser&){};
+    CKeyParser& operator=(const CKeyParser&){ return *this; };
     //methods
     void addKey(const QString& Key, QString* Value);
     void addKey(const QString& Key, double* Value);

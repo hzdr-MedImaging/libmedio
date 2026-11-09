@@ -30,6 +30,8 @@
 #include "CECAT7SubHeaderImage.h"
 #include "CMedIO.h"
 #include "CMedIODataFactory.h"
+#include "CMedIOMatrix.h"
+#include "CMedIOVolume.h"
 #include "CPhilipsFile.h"
 #include "CPhilipsMainHeader.h"
 #include "CPhilipsSubHeader.h"
@@ -62,22 +64,6 @@ bool fail(QString* error, const QString& message)
     *error = message;
   E("%s", message.toLatin1().constData());
   return false;
-}
-
-// NIfTI JSON sidecar file name (<name>.json next to <name>.nii/.nii.gz/.hdr/.img)
-QString sidecarFileName(const QString& niftiFileName)
-{
-  QFileInfo info(niftiFileName);
-  QString base = info.fileName();
-
-  if(base.endsWith(".gz", Qt::CaseInsensitive))
-    base.chop(3);
-  if(base.endsWith(".nii", Qt::CaseInsensitive) ||
-     base.endsWith(".hdr", Qt::CaseInsensitive) ||
-     base.endsWith(".img", Qt::CaseInsensitive))
-    base.chop(4);
-
-  return info.absoluteDir().filePath(base + ".json");
 }
 
 // value of voxel i of an ECAT7 matrix in machine byte order
@@ -254,46 +240,6 @@ QJsonObject ecatMetadata(const CECAT7MainHeader* mainHeader, const QList<CECAT7S
   return json;
 }
 
-void applyEcatMetadata(CECAT7MainHeader& h, const QJsonObject& json)
-{
-#define JSON_STRING(key, setter) if(json.contains(key)) h.setter(json[key].toString().toLatin1().constData())
-#define JSON_NUMBER(key, setter, type) if(json.contains(key)) h.setter(static_cast<type>(json[key].toDouble()))
-
-  JSON_STRING("Original_File_Name", setOriginal_File_Name);
-  JSON_STRING("Study_Description", setStudy_Description);
-  JSON_STRING("Physician_Name", setPhysician_Name);
-  JSON_STRING("Operator_Name", setOperator_Name);
-  JSON_STRING("Facility_Name", setFacility_Name);
-  JSON_STRING("Study_Type", setStudy_Type);
-  JSON_STRING("Patient_Name", setPatient_Name);
-  JSON_STRING("Patient_ID", setPatient_ID);
-  JSON_NUMBER("Patient_Sex", setPatient_Sex, CECAT7MainHeader::Patient_Sex);
-  JSON_NUMBER("Patient_Age", setPatient_Age, float);
-  JSON_NUMBER("Patient_Weight", setPatient_Weight, float);
-  JSON_NUMBER("Patient_Height", setPatient_Height, float);
-  JSON_NUMBER("Patient_Birth_Date", setPatient_Birth_Date, int);
-  JSON_NUMBER("Patient_Orientation", setPatient_Orientation, CECAT7MainHeader::Patient_Orientation);
-  JSON_STRING("Isotope_Name", setIsotope_Name);
-  JSON_NUMBER("Isotope_Halflife", setIsotope_Halflife, float);
-  JSON_STRING("Radiopharmaceutical", setRadiopharmaceutical);
-  JSON_NUMBER("Dosage", setDosage, float);
-  JSON_STRING("Data_Units", setData_Units);
-  JSON_NUMBER("Scan_Start_Time", setScan_Start_Time, int);
-  JSON_NUMBER("Dose_Start_Time", setDose_Start_Time, int);
-  JSON_NUMBER("Calibration_Units", setCalibration_Units, CECAT7MainHeader::Calibration_Units);
-  JSON_NUMBER("Calibration_Units_Label", setCalibration_Units_Label, CECAT7MainHeader::Calibration_Units_Label);
-  JSON_NUMBER("Acquisition_Type", setAcquisition_Type, CECAT7MainHeader::Acquisition_Type);
-  JSON_NUMBER("Lwr_True_Thres", setLwr_True_Thres, short);
-  JSON_NUMBER("Upr_True_Thres", setUpr_True_Thres, short);
-  JSON_NUMBER("Lwr_Sctr_Thres", setLwr_Sctr_Thres, short);
-  JSON_NUMBER("Distance_Scanned", setDistance_Scanned, float);
-  JSON_NUMBER("Transaxial_FOV", setTransaxial_FOV, float);
-  JSON_NUMBER("Bin_Size", setBin_Size, float);
-
-#undef JSON_STRING
-#undef JSON_NUMBER
-}
-
 //=============================================================================================
 // Image data in the ECAT7 representation, which is the common intermediate
 // format of all conversions: the ECAT7 main header, one image sub header and
@@ -335,11 +281,14 @@ bool loadEcat(const QString& fileName, EcatImage& image, QString* error)
   }
   image.mainHeader = static_cast<CECAT7MainHeader*>(mainHeader);
 
-  // read all frames
-  const int frames = (image.mainHeader->num_Frames() > 1) ? image.mainHeader->num_Frames() : 1;
+  // read all frames, by the frame numbers of the file (they do not have to
+  // start with 1, num_Frames is not used)
+  const QList<short> frames = ecatFile->frameNumbers();
+  if(frames.isEmpty())
+    return fail(error, "no frames found in " + fileName);
   const double calibration = ecatCalibrationFactor(image.mainHeader);
 
-  for(int f=1; f <= frames; f++) {
+  foreach(short f, frames) {
     CECATSubHeader* subHeader = NULL;
     QByteArray* matrix = NULL;
 
@@ -395,100 +344,49 @@ bool loadPhilips(const QString& fileName, EcatImage& image, QString* error)
   if(mainHeader->filtyp() != CPhilipsMainHeader::Image && mainHeader->filtyp() != CPhilipsMainHeader::Syntegra)
     return fail(error, "only Philips image and Syntegra files can be converted to NIfTI");
 
-  const int frames = file->numFrames();
-  const int minFrame = file->minFrame();
-  const int minSlice = file->minSlice();
-  const int maxSlice = file->maxSlice();
+  // the frame numbers of the file (they do not have to start with 1)
+  const QList<short> frameNumbers = file->frameNumbers();
+  const int frames = frameNumbers.size();
   if(frames < 1)
     return fail(error, "no frames found in " + fileName);
 
   int nx = 0, ny = 0, nz = 0;
-  int dataType = CPhilipsSubHeader::UnknownDataType;
+  int dataType = CMedIOVolume::UnknownDataType;
   QScopedPointer<CPhilipsSubHeader> firstSubHeader;
   bool unscaled = false;
 
   for(int f=0; f < frames; f++) {
-    const int frame = minFrame + f;
-    const int slices = file->numSlices(frame);
+    const short frame = frameNumbers[f];
 
-    if(f == 0)
-      nz = slices;
-    else if(slices != nz)
+    // all slices of the frame (see CPhilipsMatrix.cpp)
+    CMedIOVolume volume;
+    CPhilipsSubHeader* first = NULL;
+    bool frameUnscaled = false;
+    if(MedIOMatrix::readPhilipsFrameData(file, mainHeader, frame, volume, first, &frameUnscaled) == false)
+      return fail(error, QString("unable to read frame %1 of %2").arg(frame).arg(fileName));
+    QScopedPointer<CPhilipsSubHeader> frameSubHeader(first);
+    unscaled = unscaled || frameUnscaled;
+
+    if(f == 0) {
+      nx = volume.dimension(0);
+      ny = volume.dimension(1);
+      nz = volume.dimension(2);
+      dataType = volume.dataType();
+    } else if(volume.dimension(2) != nz) {
       return fail(error, "the frames of the Philips file differ in their number of slices");
-
-    // slice numbers of this frame (see CPhilipsFile::readMatrix())
-    const int increment = (nz > 1) ? (maxSlice - minSlice) / (nz - 1) : 1;
-    if(nz < 1 || increment < 1)
-      return fail(error, "invalid slice numbering in " + fileName);
-
-    QByteArray frameData;
-    QVector<double> scales;
-    QScopedPointer<CPhilipsSubHeader> frameSubHeader;
-
-    for(int k=0; k < nz; k++) {
-      const int slice = minSlice + k * increment;
-      QByteArray* data = NULL;
-      CPhilipsSubHeader* subHeader = NULL;
-
-      if(file->readMatrix(data, subHeader, frame, slice) == false || data == NULL || subHeader == NULL) {
-        delete data;
-        delete subHeader;
-        return fail(error, QString("unable to read slice %1 of frame %2 of %3").arg(slice).arg(frame).arg(fileName));
-      }
-      QScopedPointer<QByteArray> dataGuard(data);
-      QScopedPointer<CPhilipsSubHeader> subHeaderGuard(subHeader);
-
-      if(subHeader->subHeaderType() != CPhilipsSubHeader::Image && subHeader->subHeaderType() != CPhilipsSubHeader::Syntegra)
-        return fail(error, "only Philips image data can be converted to NIfTI");
-      const CPhilipsSubHeaderImage* s = static_cast<const CPhilipsSubHeaderImage*>(subHeader);
-
-      if(f == 0 && k == 0) {
-        nx = s->xdim();
-        ny = s->ydim();
-        dataType = s->datype();
-      }
-
-      if(s->xdim() != nx || s->ydim() != ny || nx < 1 || ny < 1)
-        return fail(error, "the slices of the Philips file differ in their dimensions");
-      if(s->datype() != dataType)
-        return fail(error, "the slices of the Philips file differ in their data type");
-
-      // stored values as ECAT7 data type: unsigned 16 bit values are kept as 32 bit integers
-      const qint64 voxels = static_cast<qint64>(nx) * ny;
-      int bytes = 0;
-      switch(dataType) {
-        case CPhilipsSubHeader::ByteData:      bytes = 1; break;
-        case CPhilipsSubHeader::SignedShort:
-        case CPhilipsSubHeader::UnsignedShort: bytes = 2; break;
-        case CPhilipsSubHeader::Float:         bytes = 4; break;
-        default:
-          return fail(error, QString("unsupported Philips data type %1").arg(dataType));
-      }
-      if(data->size() < voxels * bytes)
-        return fail(error, QString("slice %1 of frame %2 is too small").arg(slice).arg(frame));
-
-      if(dataType == CPhilipsSubHeader::UnsignedShort) {
-        const quint16* src = reinterpret_cast<const quint16*>(data->constData());
-        QByteArray converted(voxels * 4, '\0');
-        qint32* dst = reinterpret_cast<qint32*>(converted.data());
-        for(qint64 i=0; i < voxels; i++)
-          dst[i] = src[i];
-        frameData.append(converted);
-      } else {
-        frameData.append(data->constData(), voxels * bytes);
-      }
-
-      bool ok = false;
-      double scale = s->ecat_Scale_Factor(ok, mainHeader);
-      if(ok == false || scale <= 0.0 || std::isfinite(scale) == false) {
-        unscaled = true;
-        scale = 1.0;
-      }
-      scales.append(scale);
-
-      if(k == 0)
-        frameSubHeader.reset(subHeaderGuard.take());
+    } else if(volume.dimension(0) != nx || volume.dimension(1) != ny) {
+      return fail(error, "the slices of the Philips file differ in their dimensions");
+    } else if(volume.dataType() != dataType) {
+      return fail(error, "the slices of the Philips file differ in their data type");
     }
+
+    // stored values as ECAT7 data type: unsigned 16 bit values are kept as 32 bit integers
+    if(volume.dataType() == CMedIOVolume::UInt16)
+      MedIOMatrix::convertStoredValues(volume, CMedIOVolume::Int32);
+
+    QVector<double> scales(nz);
+    for(int k=0; k < nz; k++)
+      scales[k] = volume.scaleFactor(k);
 
     // ECAT7 image sub header of this frame from the sub header of its first slice
     CECAT7SubHeaderImage* ecatSubHeader = new CECAT7SubHeaderImage(&image.ecatFile);
@@ -497,15 +395,10 @@ bool loadPhilips(const QString& fileName, EcatImage& image, QString* error)
       return fail(error, "unable to convert the Philips sub header of " + fileName);
 
     ecatSubHeader->setZ_Dimension(nz);
-    switch(dataType) {
-      case CPhilipsSubHeader::ByteData:      ecatSubHeader->setData_Type(CECATSubHeader::ByteData); break;
-      case CPhilipsSubHeader::SignedShort:   ecatSubHeader->setData_Type(CECATSubHeader::SunShort); break;
-      case CPhilipsSubHeader::UnsignedShort: ecatSubHeader->setData_Type(CECATSubHeader::SunLong); break;
-      default:                               ecatSubHeader->setData_Type(CECATSubHeader::IEEEFloat); break;
-    }
+    ecatSubHeader->setData_Type(MedIOMatrix::ecatType(volume.dataType()));
     ecatSubHeader->setScale_Factor(scales.first());
 
-    image.matrices.append(frameData);
+    image.matrices.append(volume.data());
     image.planeScales.append(scales);
 
     if(f == 0)
@@ -646,7 +539,7 @@ bool saveNifti(const EcatImage& image, const QString& niftiFileName, const CNIFT
       result = niftiFile.writeMatrix(data);
 
     if(result && options.jsonSidecar) {
-      QFile sidecar(sidecarFileName(niftiFileName));
+      QFile sidecar(niftiSidecarFileName(niftiFileName));
       result = sidecar.open(QIODevice::WriteOnly | QIODevice::Truncate) &&
                sidecar.write(QJsonDocument(json).toJson(QJsonDocument::Indented)) > 0;
     }
@@ -704,15 +597,8 @@ bool loadNifti(const QString& niftiFileName, EcatImage& image, QString* error)
   QScopedPointer<QByteArray> matrix(matrixPtr);
 
   // metadata: JSON header extension or JSON sidecar file
-  QJsonObject json = nifti1 ? static_cast<CNIFTI1MainHeader*>(headerPtr)->readHeaderExtension(niftiFile)
-                            : static_cast<CNIFTI2MainHeader*>(headerPtr)->readHeaderExtension(niftiFile);
+  const QJsonObject json = niftiMetadata(niftiFile, headerPtr, niftiFileName);
   niftiFile.close();
-
-  if(json.isEmpty()) {
-    QFile sidecar(sidecarFileName(niftiFileName));
-    if(sidecar.open(QIODevice::ReadOnly))
-      json = QJsonDocument::fromJson(sidecar.readAll()).object();
-  }
 
   const int frames = geometry.frames;
   const int nx = geometry.dims[0], ny = geometry.dims[1], nz = geometry.dims[2];
@@ -722,15 +608,11 @@ bool loadNifti(const QString& niftiFileName, EcatImage& image, QString* error)
   // keep the stored values if they are 8/16 bit integers without intercept
   const bool storedValues = (info.datatype == 2 || info.datatype == 256 || info.datatype == 4) && info.inter == 0.0;
 
-  // frame timing (s)
-  QJsonArray startTimes = json["FrameTimesStart"].toArray();
-  QJsonArray durations = json["FrameDuration"].toArray();
-
   image.mainHeader = new CECAT7MainHeader(&image.ecatFile, CECATMainHeader::ECAT7_Volume16);
   if(image.mainHeader->convertFrom(headerPtr, NULL) == false)
     return fail(error, "unable to convert the NIfTI header of " + niftiFileName);
 
-  applyEcatMetadata(*image.mainHeader, json);
+  applyNIFTIMetadata(*image.mainHeader, json);
 
   // the values already contain the calibration factor
   image.mainHeader->setCalibration_Factor(1.0f);
@@ -743,12 +625,7 @@ bool loadNifti(const QString& niftiFileName, EcatImage& image, QString* error)
     for(int k=0; k < nz; k++) {
       for(int j=0; j < ny; j++) {
         for(int i=0; i < nx; i++) {
-          const int e[3] = { i, j, k };
-          qint64 v[3];
-          for(int a=0; a < 3; a++)
-            v[geometry.axis[a]] = geometry.flip[a] ? geometry.dims[a] - 1 - e[a] : e[a];
-
-          const qint64 index = v[0] + dimNifti[0] * (v[1] + dimNifti[1] * (v[2] + dimNifti[2] * f));
+          const qint64 index = niftiVoxelIndex(geometry, dimNifti, i, j, k) + voxels * f;
           double value = niftiValue(matrix->constData(), index, info.datatype);
           if(storedValues == false)
             value = value * info.slope + info.inter;
@@ -787,18 +664,10 @@ bool loadNifti(const QString& niftiFileName, EcatImage& image, QString* error)
     subHeader->setImage_Max(maxStored);
 
     // frame timing from the metadata, the NIfTI header otherwise (s -> ms)
-    double start = geometry.frameStart + f * geometry.frameDuration;
-    double duration = geometry.frameDuration;
-    if(startTimes.size() == frames && durations.size() == frames) {
-      start = startTimes[f].toDouble();
-      duration = durations[f].toDouble();
-    } else if(frames == 1 && json.contains("Frame_Duration")) {
-      // metadata written by earlier versions (ms)
-      start = json["Frame_Start_Time"].toDouble() / 1000.0;
-      duration = json["Frame_Duration"].toDouble() / 1000.0;
-    }
-    subHeader->setFrame_Start_Time(start > 0.0 ? static_cast<unsigned int>(start * 1000.0 + 0.5) : 0);
-    subHeader->setFrame_Duration(duration > 0.0 ? static_cast<unsigned int>(duration * 1000.0 + 0.5) : 0);
+    double start = 0.0, duration = 0.0;
+    niftiFrameTiming(geometry, json, f, start, duration);
+    subHeader->setFrame_Start_Time(ecatFrameTime(start));
+    subHeader->setFrame_Duration(ecatFrameTime(duration));
 
     if(json.contains("Recon_Zoom"))
       subHeader->setRecon_Zoom(json["Recon_Zoom"].toDouble());

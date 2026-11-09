@@ -22,8 +22,12 @@
 
 #include "CMedIOData.h"
 #include "CMedIOHeader.h"
+#include "CMedIOMatrix.h"
+#include "CMedIOVolume.h"
 
 #include <QString>
+
+#include <cstring>
 
 #include <rtdebug.h>
 
@@ -61,4 +65,178 @@ int CMedIOData::userRtti() const
 
   RETURN(-1);
   return -1;
+}
+
+//=============================================================================================
+// format independent access to the image matrices (see CMedIOMatrix.h)
+
+bool CMedIOData::readMainHeader(CMedIOHeader*& mainHeader, CMedIOData::Format format)
+{
+  ENTER();
+  bool result = false;
+  mainHeader = NULL;
+
+  if(format == dataFormat()) {
+    result = MedIOMatrix::readNativeMainHeader(this, mainHeader);
+  } else {
+    CMedIOFrame f;
+    result = MedIOMatrix::readFrame(this, -1, f) &&
+             MedIOMatrix::mainHeaderFromFrame(f, format, this, mainHeader);
+  }
+
+  m_iErrStatus = result ? MERR_Ok : MERR_Unspecified;
+  RETURN(result);
+  return result;
+}
+
+bool CMedIOData::readMatrix(QByteArray*& matrixData, CMedIOHeader*& subHeader,
+                            CMedIOData::Format format, short frame)
+{
+  ENTER();
+  bool result = false;
+  QByteArray data;
+
+  matrixData = NULL;
+  subHeader = NULL;
+
+  // Philips: the slices are combined into one frame
+  if(format == dataFormat() && format != CMedIOData::Philips) {
+    result = MedIOMatrix::readNativeMatrix(this, frame, data, subHeader);
+  } else {
+    CMedIOFrame f;
+    result = MedIOMatrix::readFrame(this, frame, f) &&
+             MedIOMatrix::matrixFromFrame(f, format, data, subHeader);
+  }
+
+  if(result)
+    matrixData = new QByteArray(data);
+
+  m_iErrStatus = result ? MERR_Ok : MERR_Unspecified;
+  RETURN(result);
+  return result;
+}
+
+bool CMedIOData::readMatrix(char*& matrixData, unsigned int& len, CMedIOHeader*& subHeader,
+                            CMedIOData::Format format, short frame)
+{
+  ENTER();
+  QByteArray* data = NULL;
+
+  matrixData = NULL;
+  len = 0;
+
+  bool result = readMatrix(data, subHeader, format, frame);
+  if(result) {
+    matrixData = new char[data->size()];
+    memcpy(matrixData, data->constData(), data->size());
+    len = static_cast<unsigned int>(data->size());
+  }
+  delete data;
+
+  RETURN(result);
+  return result;
+}
+
+bool CMedIOData::readMainHeader(CMedIOHeader*& mainHeader)
+{
+  return readMainHeader(mainHeader, dataFormat());
+}
+
+bool CMedIOData::readMatrix(QByteArray*& matrixData, CMedIOHeader*& subHeader, short frame)
+{
+  return readMatrix(matrixData, subHeader, dataFormat(), frame);
+}
+
+bool CMedIOData::readMatrix(char*& matrixData, unsigned int& len, CMedIOHeader*& subHeader, short frame)
+{
+  return readMatrix(matrixData, len, subHeader, dataFormat(), frame);
+}
+
+bool CMedIOData::writeMatrix(const QByteArray& matrixData, const CMedIOHeader& subHeader,
+                             short frame, const CMedIOHeader* mainHeader)
+{
+  ENTER();
+  bool result = false;
+
+  const CMedIOData::Format format = MedIOMatrix::headerDataFormat(subHeader);
+  if(MedIOMatrix::mainHeaderFitsMatrix(subHeader, mainHeader) == false) {
+    // also rejected where it would not be used (NIfTI, matrices written unchanged)
+    E("the main header does not belong to the format of the matrix");
+  } else if(format == dataFormat() && format == CMedIOData::ECAT) {
+    // matrices of the format of this file are written unchanged (except Philips slices)
+    result = MedIOMatrix::writeNativeMatrix(this, frame, matrixData, subHeader);
+  } else {
+    CMedIOFrame f;
+    result = MedIOMatrix::frameFromMatrix(matrixData, subHeader, mainHeader, f) &&
+             MedIOMatrix::writeFrame(this, frame, f);
+  }
+
+  m_iErrStatus = result ? MERR_Ok : MERR_Unspecified;
+  RETURN(result);
+  return result;
+}
+
+bool CMedIOData::writeMatrix(const char* matrixData, unsigned int size, const CMedIOHeader& subHeader,
+                             short frame, const CMedIOHeader* mainHeader)
+{
+  ENTER();
+  bool result = (matrixData != NULL) &&
+                writeMatrix(QByteArray::fromRawData(matrixData, size), subHeader, frame, mainHeader);
+  RETURN(result);
+  return result;
+}
+
+bool CMedIOData::writeMatrix(const QByteArray& matrixData, const CMedIOHeader& subHeader,
+                             CMedIOData::Format format, short frame, const CMedIOHeader* mainHeader)
+{
+  ENTER();
+  bool result = false;
+
+  if(format == CMedIOData::Unknown || MedIOMatrix::headerDataFormat(subHeader) != format) {
+    E("the sub header does not describe a matrix of data format %d", static_cast<int>(format));
+    m_iErrStatus = MERR_Unspecified;
+  } else {
+    result = writeMatrix(matrixData, subHeader, frame, mainHeader);
+  }
+
+  RETURN(result);
+  return result;
+}
+
+bool CMedIOData::writeMatrix(const char* matrixData, unsigned int size, const CMedIOHeader& subHeader,
+                             CMedIOData::Format format, short frame, const CMedIOHeader* mainHeader)
+{
+  ENTER();
+  bool result = (matrixData != NULL) &&
+                writeMatrix(QByteArray::fromRawData(matrixData, size), subHeader, format, frame, mainHeader);
+  RETURN(result);
+  return result;
+}
+
+QList<short> CMedIOData::frameNumbers()
+{
+  ENTER();
+  const QList<short> numbers = MedIOMatrix::frameNumbers(this);
+  LEAVE();
+  return numbers;
+}
+
+bool CMedIOData::readVolume(CMedIOVolume& volume, short frame)
+{
+  ENTER();
+  bool result = MedIOMatrix::readVolume(this, frame, volume);
+  m_iErrStatus = result ? MERR_Ok : MERR_Unspecified;
+  RETURN(result);
+  return result;
+}
+
+bool CMedIOData::writeVolume(const CMedIOVolume& volume, short frame)
+{
+  ENTER();
+  CMedIOFrame f;
+  bool result = MedIOMatrix::frameFromVolume(volume, f) &&
+                MedIOMatrix::writeFrame(this, frame, f);
+  m_iErrStatus = result ? MERR_Ok : MERR_Unspecified;
+  RETURN(result);
+  return result;
 }

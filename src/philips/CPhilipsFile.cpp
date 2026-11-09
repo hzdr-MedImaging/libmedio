@@ -38,6 +38,8 @@ class CPhilipsFilePrivate
     bool isPhilipsFile(CMedIOData* file) const;
     bool isPhilipsListModeFile(CPhilipsFile *file) const;
     bool syncMainHeader(CPhilipsFile *file) const;
+    bool readFrame(CPhilipsFile* file, short frame, short tilt,
+                   QByteArray*& data, CPhilipsSubHeader** subHeader) const;
 
     CPhilipsMainHeader::File_Type fileType;
     CPhilipsDirectory* directory;
@@ -125,6 +127,89 @@ bool CPhilipsFilePrivate::syncMainHeader(CPhilipsFile* file) const
 
   RETURN(result);
   return result;
+}
+
+// All slices of a frame (readMatrix() with slice -1): the slices
+// minSlice() + k * step, k = 0 .. numSlices(frame)-1, appended without the
+// padding of uncompressed image slices to blocks of 512 bytes. subHeader
+// (optional) receives the sub header of the first slice.
+bool CPhilipsFilePrivate::readFrame(CPhilipsFile* file, short frame, short tilt,
+                                    QByteArray*& data, CPhilipsSubHeader** subHeader) const
+{
+  ENTER();
+
+  data = NULL;
+  if(subHeader)
+    *subHeader = NULL;
+
+  const int slices = file->numSlices(frame);
+  const int minSlice = file->minSlice();
+  const int maxSlice = file->maxSlice();
+  const int step = (slices > 1) ? (maxSlice - minSlice) / (slices - 1) : 1;
+
+  if(slices < 1 || step < 1)
+  {
+    E("invalid slice numbering of frame %d (%d slices from %d to %d)", frame, slices, minSlice, maxSlice);
+    RETURN(false);
+    return false;
+  }
+
+  QByteArray frameData;
+  CPhilipsSubHeader* first = NULL;
+
+  for(int k=0; k < slices; k++)
+  {
+    QByteArray* sliceData = NULL;
+    CPhilipsSubHeader* sliceHeader = NULL;
+
+    if(directory->readMatrix(sliceData, sliceHeader, frame, minSlice + k * step, tilt) == false ||
+       sliceData == NULL || sliceHeader == NULL)
+    {
+      delete sliceData;
+      delete sliceHeader;
+      delete first;
+      RETURN(false);
+      return false;
+    }
+
+    // the voxels of an image slice without the padding of the matrix
+    int size = sliceData->size();
+    if(sliceHeader->subHeaderType() == CPhilipsSubHeader::Image ||
+       sliceHeader->subHeaderType() == CPhilipsSubHeader::Syntegra)
+    {
+      const CPhilipsSubHeaderImage* s = static_cast<const CPhilipsSubHeaderImage*>(sliceHeader);
+      int bytes = 0;
+      switch(s->datype())
+      {
+        case CPhilipsSubHeader::ByteData:      bytes = 1; break;
+        case CPhilipsSubHeader::SignedShort:
+        case CPhilipsSubHeader::UnsignedShort: bytes = 2; break;
+        case CPhilipsSubHeader::Float:         bytes = 4; break;
+        default: break;
+      }
+
+      const int voxelBytes = s->xdim() * s->ydim() * bytes;
+      if(voxelBytes > 0 && voxelBytes <= size)
+        size = voxelBytes;
+    }
+
+    frameData.append(sliceData->constData(), size);
+    delete sliceData;
+
+    if(k == 0)
+      first = sliceHeader;
+    else
+      delete sliceHeader;
+  }
+
+  data = new QByteArray(frameData);
+  if(subHeader)
+    *subHeader = first;
+  else
+    delete first;
+
+  RETURN(true);
+  return true;
 }
 
 CPhilipsFile::CPhilipsFile(const QString& filename, CPhilipsMainHeader::File_Type fileType)
@@ -549,32 +634,10 @@ bool CPhilipsFile::readMatrix(QByteArray*& matrixData,
     // if slice == -1 then we sum all slices of a specified frame
     if(slice == -1)
     {
-      short minsl = minSlice();
-      short maxsl = maxSlice();
-      short incr = (maxsl-minsl)/(numSlices(frame)-1);
-      for(short curSlice=minsl; curSlice <= maxsl; curSlice += incr)
-      {
-        QByteArray* sliceData = NULL;
-        if(m_pData->directory->readMatrix(sliceData, frame, curSlice, tilt))
-        {
-          if(matrixData != NULL)
-          {
-            matrixData->append(*sliceData);
-            delete sliceData;
-          }
-          else
-            matrixData = sliceData;
-
-          result = true;
-        }
-        else
-        {
-          delete matrixData;
-          matrixData = NULL;
-          result = false;
-          break;
-        }
-      }
+      // all slices of the frame
+      if(frame == -1)
+        frame = minFrame();
+      result = m_pData->readFrame(this, frame, tilt, matrixData, NULL);
     }
     else
       result = m_pData->directory->readMatrix(matrixData, frame, slice, tilt);
@@ -644,38 +707,10 @@ bool CPhilipsFile::readMatrix(QByteArray*& matrixData, CPhilipsSubHeader*& subHe
     // if slice == -1 then we sum all slices of a specified frame
     if(slice == -1)
     {
-      short minsl = minSlice();
-      short maxsl = maxSlice();
-      short incr = (maxsl-minsl)/(numSlices(frame)-1);
-
-      // let us first get the subheader which is the same for all slices
-      // (hopefully)
-      if(m_pData->directory->readSubHeader(subHeader, frame, minsl, tilt))
-      {
-        for(short curSlice=minsl; curSlice <= maxsl; curSlice += incr)
-        {
-          QByteArray* sliceData = NULL;
-          if(m_pData->directory->readMatrix(sliceData, frame, curSlice, tilt))
-          {
-            if(matrixData != NULL)
-            {
-              matrixData->append(*sliceData);
-              delete sliceData;
-            }
-            else
-              matrixData = sliceData;
-
-            result = true;
-          }
-          else
-          {
-            delete matrixData;
-            matrixData = NULL;
-            result = false;
-            break;
-          }
-        }
-      }
+      // all slices of the frame with the sub header of the first one
+      if(frame == -1)
+        frame = minFrame();
+      result = m_pData->readFrame(this, frame, tilt, matrixData, &subHeader);
     }
     else
       result = m_pData->directory->readMatrix(matrixData, subHeader, frame, slice, tilt);
@@ -893,6 +928,24 @@ bool CPhilipsFile::writeMatrix(const char* matrixData, unsigned int size, CPhili
   return result;
 }
 
+bool CPhilipsFile::writeMatrix(const QByteArray& matrixData, const CPhilipsSubHeader& subHeader,
+                               CMedIOData::Format format, short frame, const CMedIOHeader* mainHeader)
+{
+  ENTER();
+  bool result = CMedIOData::writeMatrix(matrixData, static_cast<const CMedIOHeader&>(subHeader), format, frame, mainHeader);
+  RETURN(result);
+  return result;
+}
+
+bool CPhilipsFile::writeMatrix(const char* matrixData, unsigned int size, const CPhilipsSubHeader& subHeader,
+                               CMedIOData::Format format, short frame, const CMedIOHeader* mainHeader)
+{
+  ENTER();
+  bool result = CMedIOData::writeMatrix(matrixData, size, static_cast<const CMedIOHeader&>(subHeader), format, frame, mainHeader);
+  RETURN(result);
+  return result;
+}
+
 CPhilipsDirectory* CPhilipsFile::directory() const
 {
   return m_pData->directory;
@@ -960,7 +1013,8 @@ void CPhilipsFile::mainHeaderWritten(const CPhilipsMainHeader& mainHeader)
   // stuff in the cached header to be totally correct.
   if(m_pData->cachedMainHeader)
   {
-    m_pData->cachedMainHeader->setNframe(numFrames());
+    // number of frames (numFrames() is the highest frame number)
+    m_pData->cachedMainHeader->setNframe(static_cast<short>(frameNumbers().size()));
     m_pData->cachedMainHeader->setMinfrm(minFrame());
     m_pData->cachedMainHeader->setMaxfrm(maxFrame());
     m_pData->cachedMainHeader->setNslice(numSlices());
