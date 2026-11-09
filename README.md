@@ -215,8 +215,9 @@ v = pmedio.Volume(np.zeros((64, 64, 32), dtype=np.float32), affine=np.eye(3, 4))
   and replaces an existing file only with `overwrite=True`. The volumes
   written are converted into the representation of the file (e.g. the
   datatype and scaling of a NIfTI main header).
-- NIfTI files written with `create()` do not get the frame timing of the
-  volumes yet; ECAT7 and Philips files do.
+- NIfTI files keep the frame timing of the volumes written as JSON header
+  extension (`FrameTimesStart`, `FrameDuration`, as written by
+  `CNIFTIConverter`), see `CMedIOData::writeMatrix()`.
 
 Build: install libmedio into `PREFIX_PATH`, then build `python/` with CMake
 (see `.github/workflows/ci.yml`) or `cd python && pip install -e .`, and run

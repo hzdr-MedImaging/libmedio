@@ -377,9 +377,7 @@ def test_write_formats(tmp_path, path, key, json_name, suffix):
             assert values.sum() == pytest.approx(raw_sum * expected.scales[k], rel=1e-4)
             assert values.max() == pytest.approx(expected.stats[k][1] * expected.scales[k], rel=1e-4)
 
-            # NIfTI files do not get the frame timing of the volumes written, see
-            # test_write_nifti_frame_timing()
-            if expected.timing is not None and FORMATS[suffix] != pmedio.Format.NIFTI:
+            if expected.timing is not None:
                 assert (v.frame_start, v.frame_duration) == pytest.approx(expected.timing[k], abs=1e-3)
 
             check_landmarks(v, ecat_landmarks(v, dataset_of(key)))
@@ -396,7 +394,7 @@ def test_write_numpy_volume(tmp_path, suffix):
         v.reorient("RAS")
         data = np.asfortranarray(v.stored()[::-1, :, ::-1])  # other values at the positions
         mine = pmedio.Volume(data, affine=v.affine, scale_factor=v.scale_factor,
-                             frame_start=v.frame_start, frame_duration=v.frame_duration)
+                             frame_start=12.5, frame_duration=1799.25)
 
         with pmedio.create(tmp_path / ("out" + suffix), like=source) as out:
             out.write_volume(mine, 1)
@@ -407,21 +405,25 @@ def test_write_numpy_volume(tmp_path, suffix):
         w.reorient("RAS")
         assert np.allclose(w.affine, mine.affine, atol=1e-3)
         assert np.allclose(w.values(), mine.values(), rtol=1e-6)
+        assert (w.frame_start, w.frame_duration) == pytest.approx((12.5, 1799.25), abs=1e-3)
 
 
 @needs_data
-@pytest.mark.xfail(reason="the NIfTI main header written by create() does not hold the frame timing of the "
-                          "source, and write_volume() does not store the timing of the volume")
-def test_write_nifti_frame_timing(tmp_path):
-    expected = Expected("ecat/pet-dynamic.v", "ecat/pet-dynamic.v.json")
+@pytest.mark.parametrize("suffix", [".nii", ".nii.gz", ".hdr"])
+def test_write_nifti_frame_timing(tmp_path, suffix):
+    # NIfTI headers only describe equally spaced volumes: the timing of every
+    # volume is stored as JSON metadata, also if the volumes are written in
+    # another order and have a timing of their own
+    timing = [(0.0, 30.0), (30.125, 59.75), (90.0, 90.0)]
     with pmedio.open(DATA_DIR / "ecat/pet-dynamic.v") as source:
-        with pmedio.create(tmp_path / "out.nii", like=source) as out:
-            for n in source.frame_numbers():
-                out.write_volume(source.read_volume(n), n)
+        with pmedio.create(tmp_path / ("out" + suffix), like=source) as out:
+            for n in (3, 1, 2):
+                v = source.read_volume(n)
+                v.frame_start, v.frame_duration = timing[n - 1]
+                out.write_volume(v, n)
 
-    with pmedio.open(tmp_path / "out.nii") as f:
-        timing = [(f.read_volume(n).frame_start, f.read_volume(n).frame_duration) for n in f.frame_numbers()]
-    assert timing == pytest.approx(expected.timing, abs=1e-3)
+    with pmedio.open(tmp_path / ("out" + suffix)) as f:
+        assert [(f.read_volume(n).frame_start, f.read_volume(n).frame_duration) for n in f.frame_numbers()] == timing
 
 
 @needs_data
