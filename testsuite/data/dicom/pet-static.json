@@ -46,5 +46,61 @@
       "scaled_max": 55113.373126,
       "scaled_sum": 12584875369.023125
     }
-  ]
+  ],
+  "metadata": {
+    "main": {
+      "PatientName": "Phantom_NEMA_Cu61_kontrast8",
+      "PatientID": "03062026",
+      "PatientSex": "O",
+      "PatientAge": "100Y",
+      "PatientPosition": "HFS",
+      "StudyInstanceUID": "1.3.12.2.1107.5.1.4.11031.30000026052607165767100000122",
+      "SeriesInstanceUID": "1.3.12.2.1107.5.1.4.99999.178316508438302",
+      "FrameOfReferenceUID": "1.3.12.2.1107.5.1.4.11031.30000026052607170266600000389",
+      "StudyID": "1",
+      "StudyDescription": "None",
+      "SeriesDescription": "260603_NEMAPhantom_Cu61-LM-00-PSFTOF_000_000.v 6i 5s 6i 5s",
+      "Manufacturer": "SIEMENS",
+      "ManufacturerModelName": "1208",
+      "Units": "BQML",
+      "DecayCorrection": "START",
+      "ReconstructionMethod": "TOF-PSF-OP-OSEM 6i 5s",
+      "AttenuationCorrectionMethod": "xxxxxxxxxx",
+      "ScatterCorrectionMethod": "MODEL-BASED",
+      "PatientBirthDate": "1926-06-03",
+      "PatientSize": 1.0,
+      "PatientWeight": 9.555,
+      "SeriesNumber": 3.0,
+      "SoftwareVersions": [
+        "VG80C"
+      ],
+      "CorrectedImage": [
+        "NORM",
+        "DTIM",
+        "ATTN",
+        "SCAT",
+        "DECY",
+        "RAN"
+      ],
+      "AcquisitionDateTime": "2026-06-03T19:04:56.837",
+      "Radiopharmaceutical": "Cu-61",
+      "RadionuclideTotalDose": 60780000.0,
+      "RadionuclideHalfLife": 12020.4,
+      "RadionuclidePositronFraction": 0.61,
+      "RadiopharmaceuticalStartDateTime": "2026-06-03T17:40:00",
+      "RadionuclideCodeSequence": {
+        "CodeValue": "C-127A1",
+        "CodingSchemeDesignator": "SRT",
+        "CodeMeaning": "^61^Copper"
+      },
+      "EnergyWindowLowerLimit": 435.0,
+      "EnergyWindowUpperLimit": 585.0
+    },
+    "frames": [
+      {
+        "ActualFrameDuration": 1800000.0,
+        "DecayFactor": 1.0528
+      }
+    ]
+  }
 }

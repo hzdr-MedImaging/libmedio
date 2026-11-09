@@ -23,6 +23,8 @@
 #include "CMedIOMetadataMap.h"
 #include "CMedIOMetadata.h"
 #include "CMedIOHeader.h"
+#include "CECATMainHeader.h"
+#include "CECATSubHeader.h"
 
 #include <QDateTime>
 #include <QJsonArray>
@@ -38,6 +40,16 @@ namespace MedIOMetadata {
 const Adapter* adapter(const CMedIOHeader& header)
 {
   switch(header.headerFormat()) {
+    case CMedIOHeader::ECATMainHeader:
+      if(static_cast<const CECATMainHeader&>(header).mainHeaderType() == CECATMainHeader::ECAT7MainHeader)
+        return ecat7MainHeaderAdapter();
+    break;
+
+    case CMedIOHeader::ECATSubHeader:
+      if(static_cast<const CECATSubHeader&>(header).subHeaderType() == CECATSubHeader::ECAT7_Image)
+        return ecat7ImageSubHeaderAdapter();
+    break;
+
     default:
     break;
   }

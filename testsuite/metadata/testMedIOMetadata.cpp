@@ -27,6 +27,12 @@
 #include <CMedIOMetadata.h>
 #include <CMedIOHeader.h>
 #include <CECAT7SubHeaderNorm.h>
+#include <CECATFile.h>
+#include <CECAT7MainHeader.h>
+#include <CECAT7SubHeaderImage.h>
+#include <CMedIOVolume.h>
+
+#include "MedIOTestData.h"
 
 #include <QtTest/QtTest>
 #include <QJsonArray>
@@ -36,6 +42,49 @@
 #ifndef METADATA_TEST_DATA_DIR
 #error "METADATA_TEST_DATA_DIR has to be defined"
 #endif
+
+//---------------------------------------------------------------------------------------------
+// helpers
+
+// expected values of a test data file (<file>.json, see testsuite/data)
+static QJsonObject expectedValues(const QString& file)
+{
+  QString error;
+  return medioReadJson(medioTestDataDir() + "/" + file + ".json", &error);
+}
+
+// true if the metadata keys of actual are the expected ones (numbers with a
+// relative tolerance); keys: all metadata keys, or the given ones
+static bool sameMetadata(const QJsonObject& actual, const QJsonObject& expected,
+                         QString* message, QStringList keys = QStringList())
+{
+  if(keys.isEmpty()) {
+    foreach(const CMedIOMetadata::Key* k, CMedIOMetadata::keys())
+      keys.append(QString::fromLatin1(k->keyword));
+  }
+
+  foreach(const QString& key, keys) {
+    const QJsonValue a = actual.value(key);
+    const QJsonValue e = expected.value(key);
+    bool same = (a == e);
+    if(a.isDouble() && e.isDouble())
+      same = qAbs(a.toDouble() - e.toDouble()) <= 1e-9 * qMax(qAbs(e.toDouble()), 1.0);
+    if(same == false) {
+      if(message)
+        *message = QString("%1: %2 instead of %3").arg(key)
+                     .arg(QString(QJsonDocument(QJsonObject{{"v", a}}).toJson(QJsonDocument::Compact)))
+                     .arg(QString(QJsonDocument(QJsonObject{{"v", e}}).toJson(QJsonDocument::Compact)));
+      return false;
+    }
+  }
+  return true;
+}
+
+#define COMPARE_METADATA(actual, expected, ...) \
+  do { QString message; \
+       QVERIFY2(sameMetadata(actual, expected, &message, ##__VA_ARGS__), qPrintable(message)); } while(0)
+
+//=============================================================================================
 
 class TestMedIOMetadata : public QObject
 {
@@ -52,6 +101,14 @@ class TestMedIOMetadata : public QObject
     void headerMetadata();
     void headerMetadataErrors();
     void headerMetadataCopies();
+
+    void ecatMetadata_data();
+    void ecatMetadata();
+    void ecatWrite();
+    void ecatBirthDate();
+
+  private:
+    QTemporaryDir m_tmp;
 };
 
 //---------------------------------------------------------------------------------------------
@@ -319,6 +376,200 @@ void TestMedIOMetadata::headerMetadataCopies()
   // the copies are independent
   QVERIFY(copy.setMetadataValue("PatientWeight", 1.0));
   QCOMPARE(header.metadataValue("PatientWeight").toDouble(), 8.63);
+}
+
+//---------------------------------------------------------------------------------------------
+// ECAT7: metadata of the test datasets, compared with the values of the
+// nibabel header (<file>.json) and with the DICOM series the files were
+// exported from (dicom/<name>.json, pydicom)
+
+void TestMedIOMetadata::ecatMetadata_data()
+{
+  QTest::addColumn<QString>("file");
+  QTest::addColumn<QString>("dicom");
+
+  QTest::newRow("pet-static")  << "ecat/pet-static.v" << "dicom/pet-static";
+  QTest::newRow("pet-dynamic") << "ecat/pet-dynamic.v" << "dicom/pet-dynamic";
+}
+
+void TestMedIOMetadata::ecatMetadata()
+{
+  QFETCH(QString, file);
+  QFETCH(QString, dicom);
+
+  const QJsonObject expected = expectedValues(file)["metadata"].toObject();
+  const QJsonObject original = expectedValues(dicom)["metadata"].toObject();
+  QVERIFY(expected.isEmpty() == false && original.isEmpty() == false);
+
+  CECATFile ecat(medioTestDataDir() + "/" + file);
+  QVERIFY(ecat.open(QIODevice::ReadOnly));
+  CECATMainHeader* mh = NULL;
+  QVERIFY(ecat.readMainHeader(mh));
+  QScopedPointer<CECATMainHeader> mhGuard(mh);
+
+  const QJsonObject main = mh->metadata();
+  COMPARE_METADATA(main, expected["main"].toObject());
+
+  // the values that ECAT7 stores like DICOM, as far as the file has them (the
+  // times are UTC in ECAT7 and local time without time zone in the DICOM
+  // series, PatientSex O is no ECAT7 value)
+  QStringList same;
+  foreach(const QString& key, QStringList() << "PatientName" << "PatientID" << "PatientBirthDate" << "PatientSize"
+                                            << "PatientWeight" << "Radiopharmaceutical" << "RadionuclideTotalDose"
+                                            << "RadionuclideHalfLife" << "EnergyWindowLowerLimit"
+                                            << "EnergyWindowUpperLimit" << "Units") {
+    if(main.contains(key))
+      same.append(key);
+  }
+  QVERIFY(same.size() >= 9);
+  COMPARE_METADATA(main, original["main"].toObject(), same);
+
+  // native fields of the main header, without the fields describing the image data
+  const QJsonObject native = main["ECAT7"].toObject();
+  QCOMPARE(native["Patient_Weight"].toDouble(), main["PatientWeight"].toDouble());
+  QCOMPARE(native["Patient_Height"].toDouble(), 100.0);
+  QCOMPARE(native["Data_Units"].toString(), expectedValues(file)["main_header"].toObject()["data_units"].toString());
+  QCOMPARE(native["Patient_Sex"].toString(), QString("U"));
+  foreach(const QString& field, QStringList() << "Magic_Number" << "File_Type" << "Num_Planes" << "Num_Frames"
+                                              << "Calibration_Factor" << "Plane_Separation" << "Init_Bed_Position")
+    QVERIFY2(native.contains(field) == false, qPrintable(field));
+
+  // frames
+  const QJsonArray expectedFrames = expected["frames"].toArray();
+  const QJsonArray originalFrames = original["frames"].toArray();
+  const QList<short> frames = ecat.frameNumbers();
+  QCOMPARE(frames.size(), expectedFrames.size());
+  QCOMPARE(frames.size(), originalFrames.size());
+  for(int i=0; i < frames.size(); i++) {
+    CECATSubHeader* sh = NULL;
+    QVERIFY(ecat.readSubHeader(sh, frames[i]));
+    QScopedPointer<CECATSubHeader> shGuard(sh);
+    const QJsonObject frame = sh->metadata();
+    COMPARE_METADATA(frame, expectedFrames[i].toObject());
+    COMPARE_METADATA(frame, originalFrames[i].toObject(), QStringList() << "ActualFrameDuration" << "DecayFactor");
+    QVERIFY(frame["ECAT7"].toObject().contains("Annotation"));
+    QVERIFY(frame["ECAT7"].toObject().contains("Scale_Factor") == false);
+  }
+}
+
+//---------------------------------------------------------------------------------------------
+// ECAT7: metadata written into a file
+
+void TestMedIOMetadata::ecatWrite()
+{
+  const QString path = m_tmp.filePath("metadata.v");
+
+  CECAT7MainHeader header(NULL, CECATMainHeader::ECAT7_Volume16);
+  QJsonObject changes;
+  changes["PatientName"] = QString("Doe^Jane");
+  changes["(0010,0020)"] = QString("P-123");                  // PatientID as tag string
+  changes["PatientBirthDate"] = QString("1980-02-29");
+  changes["PatientSex"] = QString("O");                       // no ECAT7 value
+  changes["PatientAge"] = QString("046Y");
+  changes["PatientSize"] = 1.82;
+  changes["PatientWeight"] = 71.5;
+  changes["PatientPosition"] = QString("HFS");
+  changes["AcquisitionDateTime"] = QString("2026-06-03T19:04:56+02:00");
+  changes["RadiopharmaceuticalStartDateTime"] = QString("2026-06-03T15:40:00Z");
+  changes["RadionuclideTotalDose"] = 250.5e6;
+  changes["RadionuclideHalfLife"] = 6586.2;
+  changes["EnergyWindowLowerLimit"] = 435.0;
+  changes["Units"] = QString("BQML");
+  changes["SeriesInstanceUID"] = QString("1.2.3.4");          // no ECAT7 field
+  changes["Philips"] = QJsonObject{{"weight", 71500}};         // other format
+  QVERIFY(header.updateMetadata(changes));
+
+  // the native fields in the units of ECAT7
+  QCOMPARE(QString(header.patient_ID()), QString("P-123"));
+  QCOMPARE(header.patient_Height(), 182.0f);
+  QCOMPARE(header.patient_Weight(), 71.5f);
+  QCOMPARE(static_cast<qint64>(header.scan_Start_Time()), Q_INT64_C(1780506296));   // 17:04:56 UTC
+  QCOMPARE(header.patient_Sex(), CECAT7MainHeader::Sex_Unknown);
+  QCOMPARE(header.patient_Orientation(), CECAT7MainHeader::HF_Supine);
+  QCOMPARE(QString(header.data_Units()), QString("Bq/ml"));
+  QCOMPARE(header.dosage(), 250.5e6f);
+
+  // values ECAT7 cannot store are kept in the object
+  QJsonObject json = header.metadata();
+  QCOMPARE(json["PatientSex"].toString(), QString("O"));
+  QCOMPARE(json["SeriesInstanceUID"].toString(), QString("1.2.3.4"));
+  QCOMPARE(json["Philips"].toObject()["weight"].toInt(), 71500);
+  QCOMPARE(json["AcquisitionDateTime"].toString(), QString("2026-06-03T17:04:56Z"));
+  QCOMPARE(json["PatientSize"].toDouble(), 1.82);
+
+  // native fields: changed through the section of the format
+  QVERIFY(header.updateMetadata(QJsonObject{{"ECAT7", QJsonObject{{"Patient_Weight", 70.0}, {"Isotope_Name", "F-18"}}}}));
+  QCOMPARE(header.metadataValue("PatientWeight").toDouble(), 70.0);
+  QCOMPARE(QString(header.isotope_Name()), QString("F-18"));
+  QVERIFY(header.updateMetadata(QJsonObject{{"ECAT7", QJsonObject{{"Num_Planes", 2}}}}) == false);
+  QVERIFY(header.updateMetadata(QJsonObject{{"ECAT7", QJsonObject{{"Lwr_True_Thres", 70000}}}}) == false);
+  QVERIFY(header.updateMetadata(QJsonObject{{"PatientPosition", "XYZ"}}));   // kept in the object
+  QCOMPARE(header.patient_Orientation(), CECAT7MainHeader::Orient_Unknown);
+  QVERIFY(header.updateMetadata(QJsonObject{{"PatientPosition", "HFS"}}));
+
+  // the whole object changed and given back: the changed metadata key wins
+  json = header.metadata();
+  json["PatientWeight"] = 72.0;
+  QVERIFY(header.updateMetadata(json));
+  QCOMPARE(header.patient_Weight(), 72.0f);
+
+  // write and read back: the keys ECAT7 stores
+  json = header.metadata();
+  {
+    CECATFile file(path, CECATMainHeader::ECAT7_Volume16);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    header.setMedIOData(&file);
+    QVERIFY(file.writeMainHeader(header));
+    header.setMedIOData(NULL);
+
+    // a frame, so that the file can be read
+    CMedIOVolume volume;
+    QVERIFY(volume.setData(2, 2, 2, CMedIOVolume::Int16, QByteArray(16, 0)));
+    QVERIFY(file.writeVolume(volume, 1));
+    file.close();
+  }
+  CECATFile file(path);
+  QVERIFY(file.open(QIODevice::ReadOnly));
+  CECATMainHeader* mh = NULL;
+  QVERIFY(file.readMainHeader(mh));
+  QScopedPointer<CECATMainHeader> mhGuard(mh);
+  const QJsonObject written = mh->metadata();
+  COMPARE_METADATA(written, json, QStringList() << "PatientName" << "PatientID" << "PatientBirthDate" << "PatientAge"
+                                                << "PatientSize" << "PatientWeight" << "PatientPosition"
+                                                << "AcquisitionDateTime" << "RadiopharmaceuticalStartDateTime"
+                                                << "RadionuclideTotalDose" << "RadionuclideHalfLife"
+                                                << "EnergyWindowLowerLimit" << "Units");
+  QVERIFY(written.contains("PatientSex") == false);
+  QVERIFY(written.contains("SeriesInstanceUID") == false);
+  QVERIFY(written.contains("Philips") == false);
+}
+
+//---------------------------------------------------------------------------------------------
+// ECAT7 birth dates: Unix time of midnight in the time zone of the writer;
+// the date is the same on every machine
+
+void TestMedIOMetadata::ecatBirthDate()
+{
+  CECAT7MainHeader header;
+  const qint64 midnightUTC = static_cast<qint64>(QDate(1970, 1, 1).daysTo(QDate(1926, 6, 3))) * 86400;
+
+  // written at midnight UTC, Europe/Berlin (+01:00), Asia/Tokyo (+09:00), Pacific/Honolulu (-10:00)
+  foreach(int offsetHours, QList<int>() << 0 << 1 << 9 << -10) {
+    header.setPatient_Birth_Date(static_cast<time_t>(midnightUTC - offsetHours * 3600));
+    QCOMPARE(header.metadataValue("PatientBirthDate").toString(), QString("1926-06-03"));
+  }
+
+  // written by libmedio: midnight UTC
+  CECAT7MainHeader written;
+  QVERIFY(written.setMetadataValue("PatientBirthDate", QString("1926-06-03")));
+  QCOMPARE(static_cast<qint64>(written.patient_Birth_Date()), midnightUTC);
+
+  // an unchanged date is not written again
+  QVERIFY(header.setMetadataValue("PatientBirthDate", QString("1926-06-03")));
+  QCOMPARE(static_cast<qint64>(header.patient_Birth_Date()), midnightUTC + 10 * 3600);
+
+  QVERIFY(header.setMetadataValue("PatientBirthDate", QJsonValue(QJsonValue::Null)));
+  QVERIFY(header.metadataValue("PatientBirthDate").isUndefined());
 }
 
 QTEST_GUILESS_MAIN(TestMedIOMetadata)
