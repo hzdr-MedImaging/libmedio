@@ -5174,6 +5174,11 @@ void CPhilipsMainHeader::setPreflt_type(const PreFlt_Type type)
   m_pData->extHeader.preflt_type = type;
 }
 
+void CPhilipsMainHeader::setPostflt_type(const PostFlt_Type type)
+{
+  m_pData->extHeader.postflt_type = type;
+}
+
 void CPhilipsMainHeader::setPostflt_type(const PreFlt_Type type)
 {
   m_pData->extHeader.postflt_type = type;

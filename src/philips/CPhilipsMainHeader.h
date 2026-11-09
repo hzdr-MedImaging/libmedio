@@ -873,6 +873,9 @@ class CPhilipsMainHeader : public CMedIOHeader
     void setTran_axl_fwhm(const float fwhm);
     void setSurv_mask(const short mask);
     void setPreflt_type(const PreFlt_Type type);
+    void setPostflt_type(const PostFlt_Type type);
+    // deprecated: takes the type of setPreflt_type(), use the one above (kept
+    // for source and binary compatibility; stores the value unchanged)
     void setPostflt_type(const PreFlt_Type type);
     void setTr_posttyp(const PostProc_Type type);
     void setAlgtype_tr(const AlgTr_Type type);

@@ -724,6 +724,8 @@ void TestMedIOAttributes::philipsWrite()
   // native fields
   QVERIFY(header.updateAttributes(QJsonObject{{"Philips", QJsonObject{{"dep_acq_date", 20260603}}}}));
   QCOMPARE(header.dep_acq_date(), 20260603);
+  QVERIFY(header.updateAttributes(QJsonObject{{"Philips", QJsonObject{{"postflt_type", 3}}}}));
+  QCOMPARE(header.postflt_type(), CPhilipsMainHeader::PET3D_PostFlt);
   QVERIFY(header.updateAttributes(QJsonObject{{"Philips", QJsonObject{{"nslice", 3}}}}) == false);
 }
 

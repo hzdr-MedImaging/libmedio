@@ -133,6 +133,7 @@ class TestPhilipsWrite : public QObject
     void overwrite();
     void readFrame();
     void unsignedShortHeader();
+    void filterTypes();
 };
 
 void TestPhilipsWrite::writeOrder_data()
@@ -361,6 +362,49 @@ void TestPhilipsWrite::unsignedShortHeader()
   philips.setDatype(CPhilipsSubHeader::SignedShort);
   QVERIFY(ecat.convertFrom(&philips, &mainHeader));
   QCOMPARE(static_cast<int>(ecat.data_Type()), static_cast<int>(CECATSubHeader::SunShort));
+}
+
+//---------------------------------------------------------------------------------------------
+// pre- and post-filter types of the main header: setPostflt_type() with the
+// post-filter type (it took the pre-filter type only), written and read back;
+// the overload with the pre-filter type is kept for compatibility
+
+void TestPhilipsWrite::filterTypes()
+{
+  const QString path = m_tmp.filePath("filters.img");
+  {
+    CPhilipsFile file(path, CPhilipsMainHeader::Image);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    QScopedPointer<CPhilipsMainHeader> mainHeader(file.createEmptyMainHeader());
+    mainHeader->setFiltyp(CPhilipsMainHeader::Image);
+    mainHeader->setPreflt_type(CPhilipsMainHeader::Metz_PreFlt);
+    mainHeader->setPostflt_type(CPhilipsMainHeader::PET3D_PostFlt);
+    QCOMPARE(mainHeader->postflt_type(), CPhilipsMainHeader::PET3D_PostFlt);
+    QVERIFY(file.writeMainHeader(*mainHeader));
+
+    QScopedPointer<CPhilipsSubHeader> subHeaderPtr(file.createEmptySubHeader());
+    CPhilipsSubHeaderImage* subHeader = static_cast<CPhilipsSubHeaderImage*>(subHeaderPtr.data());
+    subHeader->setDatype(CPhilipsSubHeader::SignedShort);
+    subHeader->setXdim(nx);
+    subHeader->setYdim(ny);
+    subHeader->setImgscl(1.0f);
+    const QByteArray plane = slice(1, 0, 1);
+    QVERIFY(file.writeMatrix(plane.constData(), plane.size(), *subHeader, 1, 0));
+    file.close();
+  }
+
+  CPhilipsFile file(path);
+  QVERIFY(file.open(QIODevice::ReadOnly));
+  CPhilipsMainHeader* mainHeader = NULL;
+  QVERIFY(file.readMainHeader(mainHeader));
+  QScopedPointer<CPhilipsMainHeader> guard(mainHeader);
+  QCOMPARE(mainHeader->preflt_type(), CPhilipsMainHeader::Metz_PreFlt);
+  QCOMPARE(mainHeader->postflt_type(), CPhilipsMainHeader::PET3D_PostFlt);
+
+  // the deprecated overload stores the value unchanged
+  mainHeader->setPostflt_type(CPhilipsMainHeader::Wiener_PreFlt);
+  QCOMPARE(static_cast<int>(mainHeader->postflt_type()), static_cast<int>(CPhilipsMainHeader::Wiener_PreFlt));
+  QCOMPARE(mainHeader->postflt_type(), CPhilipsMainHeader::Wiener_PostFlt);
 }
 
 QTEST_GUILESS_MAIN(TestPhilipsWrite)

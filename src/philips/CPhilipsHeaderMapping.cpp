@@ -397,8 +397,7 @@ const Field mainNative[] = {
   MEDIO_NATIVE(MH, "tran_axl_fwhm", tran_axl_fwhm, setTran_axl_fwhm, float),
   MEDIO_NATIVE(MH, "surv_mask", surv_mask, setSurv_mask, short),
   MEDIO_NATIVE_ENUM(MH, "preflt_type", preflt_type, setPreflt_type, CPhilipsMainHeader::PreFlt_Type),
-  // setPostflt_type() takes the type of setPreflt_type() (public API, kept as it is)
-  MEDIO_NATIVE_ENUM(MH, "postflt_type", postflt_type, setPostflt_type, CPhilipsMainHeader::PreFlt_Type),
+  MEDIO_NATIVE_ENUM(MH, "postflt_type", postflt_type, setPostflt_type, CPhilipsMainHeader::PostFlt_Type),
   MEDIO_NATIVE_ENUM(MH, "tr_posttyp", tr_posttyp, setTr_posttyp, CPhilipsMainHeader::PostProc_Type),
   MEDIO_NATIVE_ENUM(MH, "algtype_tr", algtype_tr, setAlgtype_tr, CPhilipsMainHeader::AlgTr_Type),
   MEDIO_NATIVE(MH, "iter_tr", iter_tr, setIter_tr, short),
