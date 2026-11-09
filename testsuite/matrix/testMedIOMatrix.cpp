@@ -466,6 +466,7 @@ class TestMedIOMatrix : public QObject
     void nativeFormat();
 
     void writeWithFormat();
+    void writeMainHeaderFormat();
 
     void errors();
 };
@@ -2268,6 +2269,89 @@ void TestMedIOMatrix::writeWithFormat()
     QCOMPARE(written.numFrames(), philipsIn.numFrames());
   }
   QVERIFY(philipsFile[0] == philipsFile[1]);
+}
+
+//---------------------------------------------------------------------------------------------
+// writeMatrix(): a main header that does not belong to the format of the
+// matrix is rejected without writing, also where it would not be used (NIfTI
+// matrices, ECAT7 matrices written unchanged into an ECAT7 file)
+
+void TestMedIOMatrix::writeMainHeaderFormat()
+{
+  const QString source = medioTestDataDir() + "/ecat/pet-static.v";
+  EcatFile reference;
+  QVERIFY(reference.read(source));
+
+  CECATFile in(source);
+  QVERIFY(in.open(QIODevice::ReadOnly));
+  CMedIOHeader* ecatMain = NULL;
+  CMedIOHeader* niftiMain = NULL;
+  CMedIOHeader* philipsMain = NULL;
+  QVERIFY(in.readMainHeader(ecatMain, CMedIOData::ECAT));
+  QVERIFY(in.readMainHeader(niftiMain, CMedIOData::NIFTI));
+  QVERIFY(in.readMainHeader(philipsMain, CMedIOData::Philips));
+  QScopedPointer<CMedIOHeader> ecatMainGuard(ecatMain), niftiMainGuard(niftiMain), philipsMainGuard(philipsMain);
+
+  QByteArray* ecatData = NULL;
+  QByteArray* niftiData = NULL;
+  CMedIOHeader* ecatSub = NULL;
+  CMedIOHeader* niftiSub = NULL;
+  QVERIFY(in.readMatrix(ecatData, ecatSub, CMedIOData::ECAT, 1));
+  QVERIFY(in.readMatrix(niftiData, niftiSub, CMedIOData::NIFTI, 1));
+  QScopedPointer<QByteArray> ecatDataGuard(ecatData), niftiDataGuard(niftiData);
+  QScopedPointer<CMedIOHeader> ecatSubGuard(ecatSub), niftiSubGuard(niftiSub);
+
+  // pass 0: main headers of other formats are rejected, 1: fitting main headers
+  for(int pass=0; pass < 2; pass++) {
+    // ECAT7 file: ECAT7 matrix written unchanged (frame 1), NIfTI matrix converted (frame 2)
+    const QString ecatPath = tmpFile(QString("main-header-%1.v").arg(pass));
+    {
+      CECATFile out(ecatPath, CECATMainHeader::ECAT7_Volume16);
+      QVERIFY(createEcat(out, *static_cast<CECAT7MainHeader*>(ecatMain)));
+      if(pass == 0) {
+        QVERIFY(out.writeMatrix(*ecatData, *ecatSub, 1, philipsMain) == false);
+        QVERIFY(out.errorStatus() != CMedIOData::MERR_Ok);
+        QVERIFY(out.writeMatrix(*ecatData, *ecatSub, 1, niftiMain) == false);
+        QVERIFY(out.writeMatrix(*ecatData, *ecatSub, 1, ecatSub) == false);   // a sub header
+        QVERIFY(out.writeMatrix(*ecatData, *ecatSub, CMedIOData::ECAT, 1, philipsMain) == false);
+        QVERIFY(out.writeMatrix(*niftiData, *niftiSub, 2, ecatMain) == false);
+        QVERIFY(out.writeMatrix(niftiData->constData(), niftiData->size(), *niftiSub, 2, philipsMain) == false);
+      } else {
+        QVERIFY(out.writeMatrix(*ecatData, *ecatSub, 1, ecatMain));
+        QVERIFY(out.errorStatus() == CMedIOData::MERR_Ok);
+        QVERIFY(out.writeMatrix(*niftiData, *niftiSub, 2, niftiMain));
+      }
+      out.close();
+    }
+    QCOMPARE(ecatMatrix(ecatPath, 1).isEmpty(), pass == 0);
+    QCOMPARE(ecatMatrix(ecatPath, 2).isEmpty(), pass == 0);
+    if(pass == 1)
+      QVERIFY(ecatMatrix(ecatPath, 1) == reference.matrices[0]);
+
+    // NIfTI file: the main header of NIfTI matrices is not used
+    const QString niftiPath = tmpFile(QString("main-header-%1.nii").arg(pass));
+    {
+      CNIFTIFile out(niftiPath, CNIFTIMainHeader::NIFTI1);
+      QVERIFY(createNifti(out, niftiMain));
+      if(pass == 0) {
+        QVERIFY(out.writeMatrix(*niftiData, *niftiSub, 1, ecatMain) == false);
+        QVERIFY(out.writeMatrix(*niftiData, *niftiSub, CMedIOData::NIFTI, 1, philipsMain) == false);
+        QVERIFY(out.writeMatrix(*ecatData, *ecatSub, 1, niftiMain) == false);
+      } else {
+        QVERIFY(out.writeMatrix(*niftiData, *niftiSub, 1, niftiMain));
+      }
+      out.close();
+    }
+    CNIFTIFile written(niftiPath);
+    QVERIFY(written.open(QIODevice::ReadOnly));
+    QByteArray* data = NULL;
+    const bool read = written.readMatrix(data, 1);
+    QScopedPointer<QByteArray> dataGuard(data);
+    if(pass == 0)
+      QVERIFY(read == false || data->count('\0') == data->size());
+    else
+      QVERIFY(read && *data == *niftiData);
+  }
 }
 
 //---------------------------------------------------------------------------------------------

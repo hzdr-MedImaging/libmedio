@@ -120,6 +120,10 @@ CECATSubHeader::Data_Type ecatType(CMedIOVolume::DataType type);
 //! file format whose matrices are described by a header
 CMedIOData::Format headerDataFormat(const CMedIOHeader& header);
 
+//! true if mainHeader is NULL or the main header of the format of the
+//! matrix described by subHeader (main header passed to writeMatrix())
+bool mainHeaderFitsMatrix(const CMedIOHeader& subHeader, const CMedIOHeader* mainHeader);
+
 //! frame number of frame index (0-based) of a file
 short frameNumber(CMedIOData* file, int index);
 

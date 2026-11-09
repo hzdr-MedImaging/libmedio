@@ -297,6 +297,23 @@ CMedIOData::Format headerDataFormat(const CMedIOHeader& header)
   return CMedIOData::Unknown;
 }
 
+bool mainHeaderFitsMatrix(const CMedIOHeader& subHeader, const CMedIOHeader* mainHeader)
+{
+  if(mainHeader == NULL)
+    return true;
+
+  CMedIOHeader::Format expected = CMedIOHeader::Unknown;
+  switch(headerDataFormat(subHeader)) {
+    case CMedIOData::ECAT:             expected = CMedIOHeader::ECATMainHeader; break;
+    case CMedIOData::NIFTI:            expected = CMedIOHeader::NIFTIMainHeader; break;
+    case CMedIOData::Philips:          expected = CMedIOHeader::PhilipsMainHeader; break;
+    case CMedIOData::ConcordeMicropet: expected = CMedIOHeader::ConcordeMicroPetMainHeader; break;
+    default: break;
+  }
+
+  return expected != CMedIOHeader::Unknown && mainHeader->headerFormat() == expected;
+}
+
 short frameNumber(CMedIOData* file, int index)
 {
   if(file->dataFormat() == CMedIOData::Philips)

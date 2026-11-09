@@ -158,9 +158,12 @@ bool CMedIOData::writeMatrix(const QByteArray& matrixData, const CMedIOHeader& s
   ENTER();
   bool result = false;
 
-  // matrices of the format of this file are written unchanged (except Philips slices)
   const CMedIOData::Format format = MedIOMatrix::headerDataFormat(subHeader);
-  if(format == dataFormat() && format == CMedIOData::ECAT) {
+  if(MedIOMatrix::mainHeaderFitsMatrix(subHeader, mainHeader) == false) {
+    // also rejected where it would not be used (NIfTI, matrices written unchanged)
+    E("the main header does not belong to the format of the matrix");
+  } else if(format == dataFormat() && format == CMedIOData::ECAT) {
+    // matrices of the format of this file are written unchanged (except Philips slices)
     result = MedIOMatrix::writeNativeMatrix(this, frame, matrixData, subHeader);
   } else {
     CMedIOFrame f;

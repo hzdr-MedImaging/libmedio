@@ -167,7 +167,9 @@ for(short frame=1; frame <= frames; frame++) {
 - `writeMatrix()` takes the format of the matrix from the type of its sub
   header. Like `readMatrix()`, it can also be given explicitly:
   `writeMatrix(data, header, CMedIOData::ECAT, frame, mainHeader)` fails
-  without writing if the sub header does not belong to that format.
+  without writing if the sub header does not belong to that format. The main
+  header passed with the matrix has to be a main header of the format of the
+  matrix as well, otherwise nothing is written.
 - `readVolume()`/`writeVolume()` exchange frames as `CMedIOVolume`: voxel
   data, scaling, the position of every voxel (DICOM patient coordinates)
   and the frame timing; `CMedIOVolume::reorient()` reorders the voxels.

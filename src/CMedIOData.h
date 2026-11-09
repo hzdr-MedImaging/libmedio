@@ -142,7 +142,10 @@ class CMedIOData : public QFile {
     //!        type determines the format of the matrix
     //! @param mainHeader main header of the matrix format: ECAT7 (bed
     //!        position, calibration factor; optional), Philips (scale factors;
-    //!        required), microPET (required); unused for NIfTI
+    //!        required), microPET (required); unused for NIfTI and for ECAT7
+    //!        matrices written into an ECAT7 file (written unchanged). The
+    //!        method fails without writing if it is not a main header of the
+    //!        format of the matrix, also where it is not used.
     //!
     //! The main header of this file has to be written before. The values are
     //! converted into the representation of this file (NIfTI: datatype,
