@@ -132,6 +132,10 @@ class TestMedIOMetadata : public QObject
     void niftiWrite();
     void niftiBids();
 
+    void conversionPhilipsNifti();
+    void conversionConcordeEcat();
+    void conversionEcatFrames();
+
   private:
     QTemporaryDir m_tmp;
 };
@@ -1021,6 +1025,157 @@ void TestMedIOMetadata::niftiBids()
   // the frame timing of NIfTI files is kept, the derived BIDS keys are not
   QVERIFY(json.contains("FrameTimesStart") && json.contains("FrameDuration"));
   QVERIFY(json.contains("TracerName") == false && json.contains("InjectedRadioactivity") == false);
+}
+
+//---------------------------------------------------------------------------------------------
+// conversions between the formats (CMedIOData::readMainHeader(header, format),
+// readMatrix(..., format), writeMatrix()): the metadata are carried along,
+// not limited to what ECAT7 can store
+
+void TestMedIOMetadata::conversionPhilipsNifti()
+{
+  const QString source = medioTestDataDir() + "/philips/pet-dynamic.img";
+  CPhilipsFile philips(source);
+  QVERIFY(philips.open(QIODevice::ReadOnly));
+  CPhilipsMainHeader* philipsMain = NULL;
+  QVERIFY(philips.readMainHeader(philipsMain));
+  QScopedPointer<CPhilipsMainHeader> philipsMainGuard(philipsMain);
+  const QJsonObject original = philipsMain->metadata();
+  const QList<short> frames = philips.frameNumbers();
+
+  // Philips -> NIfTI file
+  const QString path = m_tmp.filePath("philips.nii");
+  {
+    CMedIOHeader* mh = NULL;
+    QVERIFY(philips.readMainHeader(mh, CMedIOData::NIFTI));
+    QScopedPointer<CMedIOHeader> mhGuard(mh);
+    COMPARE_METADATA(mh->metadata(), original);
+    QCOMPARE(mh->metadata()["Philips"].toObject(), original["Philips"].toObject());
+    QCOMPARE(mh->metadata()["Frames"].toArray().size(), frames.size());
+
+    CNIFTIFile out(path, CNIFTIMainHeader::NIFTI1);
+    QVERIFY(out.open(QIODevice::WriteOnly));
+    mh->setMedIOData(&out);
+    QVERIFY(out.writeMainHeader(*static_cast<CNIFTIMainHeader*>(mh)));
+    for(int k=0; k < frames.size(); k++) {
+      QByteArray* data = NULL;
+      CMedIOHeader* sh = NULL;
+      QVERIFY(philips.readMatrix(data, sh, frames[k]));
+      QVERIFY(out.writeMatrix(*data, *sh, k + 1, philipsMain));
+      delete data;
+      delete sh;
+    }
+    out.close();
+  }
+
+  // NIfTI file -> Philips: the native Philips fields come back unchanged
+  CNIFTIFile nifti(path);
+  QVERIFY(nifti.open(QIODevice::ReadOnly));
+  CMedIOHeader* niftiMain = NULL;
+  QVERIFY(nifti.readMainHeader(niftiMain));
+  QScopedPointer<CMedIOHeader> niftiMainGuard(niftiMain);
+  COMPARE_METADATA(niftiMain->metadata(), original);
+  QCOMPARE(niftiMain->metadata()["Frames"].toArray().size(), frames.size());
+
+  CMedIOHeader* back = NULL;
+  QVERIFY(nifti.readMainHeader(back, CMedIOData::Philips));
+  QScopedPointer<CMedIOHeader> backGuard(back);
+  COMPARE_METADATA(back->metadata(), original);
+  QCOMPARE(back->metadata()["Philips"].toObject(), original["Philips"].toObject());
+
+  // frames: the Philips sub header of the first slice
+  for(int k=0; k < frames.size(); k++) {
+    CPhilipsSubHeader* first = NULL;
+    QVERIFY(philips.readSubHeader(first, frames[k], -1));
+    QScopedPointer<CPhilipsSubHeader> firstGuard(first);
+
+    QByteArray* data = NULL;
+    CMedIOHeader* sh = NULL;
+    QVERIFY(nifti.readMatrix(data, sh, CMedIOData::Philips, k + 1));
+    QScopedPointer<QByteArray> dataGuard(data);
+    QScopedPointer<CMedIOHeader> shGuard(sh);
+    QCOMPARE(sh->metadata()["Philips"].toObject(), first->metadata()["Philips"].toObject());
+  }
+}
+
+void TestMedIOMetadata::conversionConcordeEcat()
+{
+  const QString path = m_tmp.filePath("mpet-ecat.img");
+  QVERIFY(writeConcordeHeader(path, 2));   // dose in MBq
+
+  CConcordeImage file(path);
+  QVERIFY(file.open(QIODevice::ReadOnly));
+  CMedIOHeader* mh = NULL;
+  QVERIFY(file.readMainHeader(mh, CMedIOData::ECAT));
+  QScopedPointer<CMedIOHeader> mhGuard(mh);
+  QCOMPARE(mh->headerFormat(), CMedIOHeader::ECATMainHeader);
+  const CECAT7MainHeader* ecat = static_cast<const CECAT7MainHeader*>(mh);
+
+  // the metadata keys in the ECAT7 fields, in ECAT7 units
+  QCOMPARE(QString(ecat->patient_ID()), QString("mouse-7"));
+  QCOMPARE(ecat->patient_Weight(), 0.025f);
+  QCOMPARE(ecat->patient_Height(), 9.0f);            // cm
+  QCOMPARE(ecat->dosage(), 2.0e6f);                  // 2 MBq in Bq
+  QCOMPARE(ecat->patient_Orientation(), CECAT7MainHeader::HF_Supine);
+  QCOMPARE(QString(ecat->radiopharmaceutical()), QString("FDG"));
+  // local time of the microPET header without time zone, stored as UTC
+  QCOMPARE(mh->metadataValue("AcquisitionDateTime").toString(), QString("2026-06-03T19:04:56Z"));
+
+  // the fields ECAT7 cannot store are kept: the microPET section
+  const QJsonObject json = mh->metadata();
+  QCOMPARE(json["microPET"].toObject()["subject_weight"].toDouble(), 25.0);
+  QCOMPARE(json["microPET"].toObject()["isotope"].toString(), QString("F-18"));
+
+  // frames
+  QByteArray* data = NULL;
+  CMedIOHeader* sh = NULL;
+  QVERIFY(file.readMatrix(data, sh, CMedIOData::ECAT, 2));
+  QScopedPointer<QByteArray> dataGuard(data);
+  QScopedPointer<CMedIOHeader> shGuard(sh);
+  QCOMPARE(sh->metadataValue("DecayFactor").toDouble(), 1.3);
+  QCOMPARE(static_cast<const CECAT7SubHeaderImage*>(sh)->decay_Corr_Fctr(), 1.3f);
+  QCOMPARE(sh->metadataValue("DeadTimeFactor").toDouble(), 1.05);   // no ECAT7 field: kept in the object
+}
+
+void TestMedIOMetadata::conversionEcatFrames()
+{
+  const QString file = "ecat/pet-dynamic.v";
+  const QJsonArray expectedFrames = expectedValues(file)["metadata"].toObject()["frames"].toArray();
+
+  CECATFile ecat(medioTestDataDir() + "/" + file);
+  QVERIFY(ecat.open(QIODevice::ReadOnly));
+  const QList<short> frames = ecat.frameNumbers();
+
+  // NIfTI main header: the frame metadata of all frames
+  CMedIOHeader* mh = NULL;
+  QVERIFY(ecat.readMainHeader(mh, CMedIOData::NIFTI));
+  QScopedPointer<CMedIOHeader> mhGuard(mh);
+  const QJsonArray niftiFrames = mh->metadataValue("Frames").toArray();
+  QCOMPARE(niftiFrames.size(), frames.size());
+
+  for(int k=0; k < frames.size(); k++) {
+    COMPARE_METADATA(niftiFrames[k].toObject(), expectedFrames[k].toObject());
+    QVERIFY(niftiFrames[k].toObject()["ECAT7"].toObject().contains("Annotation"));
+
+    // Philips sub header: the decay factor (no Philips field) kept in the object
+    QByteArray* data = NULL;
+    CMedIOHeader* sh = NULL;
+    QVERIFY(ecat.readMatrix(data, sh, CMedIOData::Philips, frames[k]));
+    QScopedPointer<QByteArray> dataGuard(data);
+    QScopedPointer<CMedIOHeader> shGuard(sh);
+    COMPARE_METADATA(sh->metadata(), expectedFrames[k].toObject(), QStringList() << "DecayFactor");
+    QVERIFY(sh->metadata()["ECAT7"].toObject().contains("Annotation"));
+
+    // NIfTI representation of the frame: main metadata and the frame in "Frames"
+    QByteArray* niftiData = NULL;
+    CMedIOHeader* niftiHeader = NULL;
+    QVERIFY(ecat.readMatrix(niftiData, niftiHeader, CMedIOData::NIFTI, frames[k]));
+    QScopedPointer<QByteArray> niftiDataGuard(niftiData);
+    QScopedPointer<CMedIOHeader> niftiHeaderGuard(niftiHeader);
+    QCOMPARE(niftiHeader->metadataValue("Frames").toArray().size(), 1);
+    COMPARE_METADATA(niftiHeader->metadataValue("Frames").toArray()[0].toObject(), expectedFrames[k].toObject());
+    QCOMPARE(niftiHeader->metadataValue("PatientWeight").toDouble(), 8.63);
+  }
 }
 
 QTEST_GUILESS_MAIN(TestMedIOMetadata)

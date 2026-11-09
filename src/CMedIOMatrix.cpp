@@ -21,6 +21,8 @@
 //! @brief conversion of matrix data between the file formats (see CMedIOMatrix.h)
 
 #include "CMedIOMatrix.h"
+#include "CMedIOMetadataMap.h"
+#include "CMedIOMetadata.h"
 #include "CMedIOHeader.h"
 #include "CECATFile.h"
 #include "CECATSubHeader.h"
@@ -33,6 +35,7 @@
 #include "CConcordeMainHeader.h"
 #include "CConcordeFrameHeader.h"
 
+#include <QJsonArray>
 #include <QVector>
 
 #include <cmath>
@@ -330,6 +333,62 @@ QList<short> frameNumbers(CMedIOData* file)
   return numbers;
 }
 
+void fileMetadata(CMedIOData* file, short frame, QJsonObject& mainMetadata, QJsonObject& frameMetadata)
+{
+  ENTER();
+  mainMetadata = QJsonObject();
+  frameMetadata = QJsonObject();
+
+  const QList<short> numbers = frameNumbers(file);
+  if(frame == -1 && numbers.isEmpty() == false)
+    frame = numbers.first();
+
+  CMedIOHeader* mh = NULL;
+  if(readNativeMainHeader(file, mh) && mh != NULL)
+    mainMetadata = mh->metadata();
+  delete mh;
+
+  switch(file->dataFormat()) {
+    case CMedIOData::ECAT: {
+      CECATSubHeader* sh = NULL;
+      if(static_cast<CECATFile*>(file)->readSubHeader(sh, frame) && sh != NULL)
+        frameMetadata = sh->metadata();
+      delete sh;
+    }
+    break;
+
+    case CMedIOData::Philips: {
+      CPhilipsSubHeader* sh = NULL;
+      if(static_cast<CPhilipsFile*>(file)->readSubHeader(sh, frame, -1) && sh != NULL)
+        frameMetadata = sh->metadata();
+      delete sh;
+    }
+    break;
+
+    case CMedIOData::ConcordeMicropet: {
+      CConcordeFrameHeader* fh = NULL;
+      if(static_cast<CConcordeFile*>(file)->readSubHeader(fh, frame) && fh != NULL)
+        frameMetadata = fh->metadata();
+      delete fh;
+    }
+    break;
+
+    case CMedIOData::NIFTI: {
+      // the frame metadata of all frames are stored with the main header
+      const QJsonArray frames = mainMetadata.take(QString::fromLatin1(CMedIOMetadata::FramesKey)).toArray();
+      const int index = numbers.indexOf(frame);
+      if(index >= 0 && index < frames.size())
+        frameMetadata = frames[index].toObject();
+    }
+    break;
+
+    default:
+    break;
+  }
+
+  LEAVE();
+}
+
 //=============================================================================================
 // dispatch to the format adapters
 
@@ -401,6 +460,10 @@ bool readFrame(CMedIOData* file, short frame, CMedIOFrame& f)
   if(result)
     f.mainHeader.setNum_Frames(static_cast<short>(frameNumbers(file).size()));
 
+  // metadata of the frame for the targets
+  if(result)
+    fileMetadata(file, frame, f.mainMetadata, f.frameMetadata);
+
   RETURN(result);
   return result;
 }
@@ -433,6 +496,19 @@ bool frameFromMatrix(const QByteArray& data, const CMedIOHeader& header, const C
     default:
       result = unsupported(headerDataFormat(header), "writing matrices of this format into another format");
     break;
+  }
+
+  // metadata of the matrix for the targets (the NIfTI representation of a
+  // frame holds the main metadata and the frame in "Frames")
+  if(result) {
+    if(headerDataFormat(header) == CMedIOData::NIFTI) {
+      f.mainMetadata = header.metadata();
+      const QJsonArray frames = f.mainMetadata.take(QString::fromLatin1(CMedIOMetadata::FramesKey)).toArray();
+      f.frameMetadata = frames.isEmpty() ? QJsonObject() : frames.first().toObject();
+    } else {
+      f.frameMetadata = header.metadata();
+      f.mainMetadata = mainHeader ? mainHeader->metadata() : QJsonObject();
+    }
   }
 
   RETURN(result);
@@ -490,6 +566,10 @@ bool mainHeaderFromFrame(const CMedIOFrame& f, CMedIOData::Format format, CMedIO
       result = unsupported(format, "converting main headers into this format");
     break;
   }
+
+  // metadata of the source (the frame metadata belong to the frames)
+  if(result && header != NULL)
+    MedIOMetadata::transfer(f.mainMetadata, *header, MedIOMetadata::frameKeys());
 
   RETURN(result);
   return result;

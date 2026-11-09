@@ -30,6 +30,7 @@
 #include <QDateTime>
 #include <QJsonArray>
 #include <QRegExp>
+#include <QScopedPointer>
 
 #include <rtdebug.h>
 
@@ -172,6 +173,16 @@ bool update(CMedIOHeader& header, QJsonObject& other, const QJsonObject& changes
           return false;
         }
       }
+
+      // setters can change other fields (e.g. Philips date and time fields
+      // set the deprecated fields of the same time): set them again
+      for(int pass=0; pass < 2; pass++) {
+        for(QJsonObject::const_iterator it = fields.begin(); it != fields.end(); ++it) {
+          const Field* field = findField(a->native, a->nativeCount, it.key());
+          if(field->get(header) != it.value())
+            field->set(header, it.value());
+        }
+      }
     } else if(value.isNull() == false) {
       E("the native fields of %s have to be an object", section.toLatin1().constData());
       RETURN(false);
@@ -221,9 +232,35 @@ void transfer(const QJsonObject& source, CMedIOHeader& target, const QStringList
 {
   ENTER();
 
+  const Adapter* a = adapter(target);
+  const QString section = a ? QString::fromLatin1(a->section) : QString();
+
   for(QJsonObject::const_iterator it = source.begin(); it != source.end(); ++it) {
     if(skip.contains(it.key()))
       continue;
+
+    // native fields of the target format: the fields that can be set (a
+    // field that cannot, e.g. a read only one, does not stop the others),
+    // set together (setters can change other fields, see update())
+    if(a != NULL && it.key() == section && it.value().isObject()) {
+      const QJsonObject fields = it.value().toObject();
+      QJsonObject valid;
+      for(QJsonObject::const_iterator field = fields.begin(); field != fields.end(); ++field) {
+        QScopedPointer<CMedIOHeader> copy(target.clone());
+        QJsonObject change;
+        change[section] = QJsonObject{{field.key(), field.value()}};
+        if(copy.isNull() == false && copy->updateMetadata(change))
+          valid[field.key()] = field.value();
+        else
+          W("native field %s.%s not copied", section.toLatin1().constData(), field.key().toLatin1().constData());
+      }
+      QJsonObject change;
+      change[section] = valid;
+      if(target.updateMetadata(change) == false)
+        W("native fields of %s not copied", section.toLatin1().constData());
+      continue;
+    }
+
     QJsonObject change;
     change[it.key()] = it.value();
     if(target.updateMetadata(change) == false)

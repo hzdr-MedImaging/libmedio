@@ -28,6 +28,8 @@
 //! planes) and a NIfTI-1 header describing the file the frame belongs to.
 
 #include "CMedIOMatrix.h"
+#include "CMedIOMetadataMap.h"
+#include "CMedIOMetadata.h"
 #include "CNIFTIFile.h"
 #include "CNIFTIMainHeader.h"
 #include "CNIFTI1MainHeader.h"
@@ -381,8 +383,14 @@ bool niftiMatrixFromFrame(const CMedIOFrame& f, QByteArray& data, CMedIOHeader*&
   }
 
   CNIFTI1MainHeader* h = niftiHeader(f, v);
-  if(h)
+  if(h) {
     setNiftiFrameTiming(h, f.volume.frameStart(), f.volume.frameDuration());
+
+    // metadata of the source: main metadata and the frame in "Frames"
+    MedIOMetadata::transfer(f.mainMetadata, *h, MedIOMetadata::frameKeys());
+    if(f.frameMetadata.isEmpty() == false)
+      h->updateMetadata(QJsonObject{{CMedIOMetadata::FramesKey, QJsonArray{f.frameMetadata}}});
+  }
   header = h;
   data = v.data();
 
@@ -420,6 +428,20 @@ bool niftiMainHeaderFromFrame(const CMedIOFrame& f, CMedIOData* source, CMedIOHe
     v.convertToPhysicalValues();
 
   header = niftiHeader(f, v);
+
+  // frame metadata of all frames of the source
+  if(header != NULL && source != NULL) {
+    QJsonArray frames;
+    bool any = false;
+    foreach(short number, numbers) {
+      QJsonObject mainMetadata, frameMetadata;
+      fileMetadata(source, number, mainMetadata, frameMetadata);
+      frames.append(frameMetadata);
+      any = any || (frameMetadata.isEmpty() == false);
+    }
+    if(any)
+      header->updateMetadata(QJsonObject{{CMedIOMetadata::FramesKey, frames}});
+  }
 
   bool result = (header != NULL);
   RETURN(result);
