@@ -32,11 +32,11 @@ class CKeyValue
     CKeyValue(CKeyType::Type kType, void* p2Object, void (*p2Function)(void* p2Object, QString KeyValue));
     
     //detructors
-    ~CKeyValue(){Value = 0;};
+    ~CKeyValue(){Value = 0;}
     
     //methods
-    CKeyType::Type getType(){return KType;};
-    void* getPToValue(){return Value;};
+    CKeyType::Type getType(){return KType;}
+    void* getPToValue(){return Value;}
     void callBack(QString KeyValue);
 
   private:

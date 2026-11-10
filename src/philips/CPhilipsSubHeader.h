@@ -243,7 +243,7 @@ class CPhilipsSubHeader : public CMedIOHeader
     void setRecon_method(const char* str);
     void setStart_date_time(const time_t start_date_time);
     void setEnd_date_time(const time_t end_date_time);
-    void setLaterality(const Laterality_Type laterality);;
+    void setLaterality(const Laterality_Type laterality);
     void setAnatomy(const Anatomy_Type anatomy);
     void setFrame_ref_date_time(const time_t frame_ref_date_time);
     void setCard_rr_time(const int card_rr_time);
