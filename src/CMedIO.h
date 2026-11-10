@@ -35,6 +35,9 @@ class CMedIO
     static unsigned int minorVersion();
     static unsigned int buildVersion();
     static QString version();
+    //! @brief date and time when the library was compiled ("Mmm dd yyyy hh:mm:ss",
+    //! from __DATE__ and __TIME__). Compilers that honor SOURCE_DATE_EPOCH (GCC,
+    //! Clang) use that time instead, for reproducible builds.
     static QString buildDate();
     static QString copyright();    
     static QString name();

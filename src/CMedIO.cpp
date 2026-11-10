@@ -45,6 +45,11 @@ QString CMedIO::name()
   return QString(PROJECT_LONGNAME);
 }
 
+// __DATE__ and __TIME__ are kept on purpose: buildDate() is public API and
+// shown by the tools. They only trigger -Wdate-time (not part of -Wall or
+// -pedantic, but e.g. of Debian's default build flags), which warns that the
+// build is not reproducible. Builds that need to be reproducible set
+// SOURCE_DATE_EPOCH, which GCC and Clang use for __DATE__ and __TIME__.
 QString CMedIO::buildDate()
 {
   return QString(__DATE__) + " " + QString(__TIME__);

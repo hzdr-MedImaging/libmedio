@@ -37,7 +37,7 @@ class CPhilipsSubHeaderPrivate
   #pragma pack(1)
   struct HeaderData
   {
-    char magic_number[14];            // 000: 14 chars identifying a subheader (0x010000010016FFFF0019003E003F)
+    char magic_number[14];            // 000: 14 chars identifying a subheader (0x010000010016FFFF0019003E004F)
     qint16 version;                   // 014: 0 -> original version (w/ reconinfo), 1 -> no reconinfo; w/ DICOM recon data
     char atten_corr[16];              // 016: Description of the attenuation correction used, “NONE” if none used
                                       //      Note: Strings to be used are defined in attnstr but currently not used by other code. This needs to
@@ -272,33 +272,23 @@ void CPhilipsSubHeader::clear()
   // clear our header structure first
   memset(&m_pData->header, 0, sizeof(struct CPhilipsSubHeaderPrivate::HeaderData));
 
-  // set the fill bytes
-  m_pData->header.magic_number[0]  = 0x01;
-  m_pData->header.magic_number[1]  = 0x00;
-  m_pData->header.magic_number[2]  = 0x00;
-  m_pData->header.magic_number[3]  = 0x01;
-  m_pData->header.magic_number[4]  = 0x00;
-  m_pData->header.magic_number[5]  = 0x16;
-  m_pData->header.magic_number[6]  = 0xFF;
-  m_pData->header.magic_number[7]  = 0xFF;
-  m_pData->header.magic_number[8]  = 0x00;
-  m_pData->header.magic_number[9]  = 0x19;
-  m_pData->header.magic_number[10] = 0x00;
-  m_pData->header.magic_number[11] = 0x3E;
-  m_pData->header.magic_number[12] = 0x00;
-  m_pData->header.magic_number[13] = 0x4F;
+  // set the fill bytes. They are copied from unsigned char arrays, because
+  // assigning a value like 0xFF to a (signed) char is an out of range
+  // conversion.
+  static const unsigned char magicNumber[] = { 0x01, 0x00, 0x00, 0x01, 0x00, 0x16, 0xFF, 0xFF,
+                                               0x00, 0x19, 0x00, 0x3E, 0x00, 0x4F };
+  static_assert(sizeof(magicNumber) == sizeof(m_pData->header.magic_number), "size of magic_number");
+  memcpy(m_pData->header.magic_number, magicNumber, sizeof(magicNumber));
 
   // magic number 2: 0x0025FFFF
-  m_pData->header.magic2[0] = 0x00;
-  m_pData->header.magic2[1] = 0x25;
-  m_pData->header.magic2[2] = 0xFF;
-  m_pData->header.magic2[3] = 0xFF;
+  static const unsigned char magic2[] = { 0x00, 0x25, 0xFF, 0xFF };
+  static_assert(sizeof(magic2) == sizeof(m_pData->header.magic2), "size of magic2");
+  memcpy(m_pData->header.magic2, magic2, sizeof(magic2));
 
   // magic number 3: 0x0011FFFF
-  m_pData->header.magic3[0] = 0x00;
-  m_pData->header.magic3[1] = 0x11;
-  m_pData->header.magic3[2] = 0xFF;
-  m_pData->header.magic3[3] = 0xFF;
+  static const unsigned char magic3[] = { 0x00, 0x11, 0xFF, 0xFF };
+  static_assert(sizeof(magic3) == sizeof(m_pData->header.magic3), "size of magic3");
+  memcpy(m_pData->header.magic3, magic3, sizeof(magic3));
 
   // set some default values
   m_pData->header.version = 1; // the current version

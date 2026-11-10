@@ -43,10 +43,38 @@
 #define bswap_8(x)  ((x) & 0xff)
 #endif
 
-// macro for byteswapping float (32bit) values using
-// a GNU extension
-#define bswap_flt(x) ({ union { quint32 i; float f;} u; u.f = x; u.i = bswap_32(u.i); u.f; })
-#define bswap_dbl(x) ({ union { quint64 i; double d;} u; u.d = x; u.i = bswap_64(u.i); u.d; })
+// byteswapping of float (32bit) and double (64bit) values: the bits are
+// copied into an integer of the same size with memcpy() (standard C++, unlike
+// a GNU statement expression or type punning through a union), swapped and
+// copied back. Compilers turn this into plain register moves and a byte swap.
+// GCC and Clang inline them also without optimization (-O0, Debug builds), where
+// a call per value would make BSWAP_FLT()/BSWAP_DBL() up to twice as slow as the
+// former macros.
+#if defined(__GNUC__)
+#define BSWAP_ALWAYS_INLINE inline __attribute__((always_inline))
+#else
+#define BSWAP_ALWAYS_INLINE inline
+#endif
+
+static BSWAP_ALWAYS_INLINE float bswap_flt(float x)
+{
+  static_assert(sizeof(float) == sizeof(quint32), "float must have 32 bits");
+  quint32 i;
+  memcpy(&i, &x, sizeof(i));
+  i = bswap_32(i);
+  memcpy(&x, &i, sizeof(x));
+  return x;
+}
+
+static BSWAP_ALWAYS_INLINE double bswap_dbl(double x)
+{
+  static_assert(sizeof(double) == sizeof(quint64), "double must have 64 bits");
+  quint64 i;
+  memcpy(&i, &x, sizeof(i));
+  i = bswap_64(i);
+  memcpy(&x, &i, sizeof(x));
+  return x;
+}
 
 // common BSWAP_X() macros replacing the same
 // variable which is going to be swapped

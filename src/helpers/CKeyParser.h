@@ -31,14 +31,14 @@ class CKeyParser
 {
   public:
     //constructor
-    CKeyParser(){};
+    CKeyParser(){}
     //destructor: frees the key bindings
-    ~CKeyParser(){ qDeleteAll(KeyDictionary); };
+    ~CKeyParser(){ qDeleteAll(KeyDictionary); }
     //the keys are bound to variables of the owner of the parser: a copy
     //starts without keys and symbols, an assignment keeps the keys and
     //symbols of the target
-    CKeyParser(const CKeyParser&){};
-    CKeyParser& operator=(const CKeyParser&){ return *this; };
+    CKeyParser(const CKeyParser&){}
+    CKeyParser& operator=(const CKeyParser&){ return *this; }
     //methods
     void addKey(const QString& Key, QString* Value);
     void addKey(const QString& Key, double* Value);
@@ -55,15 +55,15 @@ class CKeyParser
 
     bool parse(const QString Filename);
 
-    void addSeparator(const QString Sep){Separators.append(Sep);};
-    void addComment(const QString Com){Comments.append(Com);};
-    void addStartSymbol(const QString Start){StartSymbols.append(Start);};
-    void addStopSymbol(const QString Stop){StopSymbols.append(Stop);};
+    void addSeparator(const QString Sep){Separators.append(Sep);}
+    void addComment(const QString Com){Comments.append(Com);}
+    void addStartSymbol(const QString Start){StartSymbols.append(Start);}
+    void addStopSymbol(const QString Stop){StopSymbols.append(Stop);}
 
-    void clearSeparators(){Separators.clear();};
-    void clearComments(){Comments.clear();};
-    void clearStartSymbols(){StartSymbols.clear();};
-    void clearStopSymbols(){StopSymbols.clear();};
+    void clearSeparators(){Separators.clear();}
+    void clearComments(){Comments.clear();}
+    void clearStartSymbols(){StartSymbols.clear();}
+    void clearStopSymbols(){StopSymbols.clear();}
     
   protected:
 
