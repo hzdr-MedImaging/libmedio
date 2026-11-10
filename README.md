@@ -228,6 +228,19 @@ Build: install libmedio into `PREFIX_PATH`, then build `python/` with CMake
 (see `.github/workflows/ci.yml`) or `cd python && pip install -e .`, and run
 `pytest python/tests`.
 
+### R
+The R package `Rmedio` (`r/`, Rcpp) reads and writes ECAT image volumes:
+```r
+library(Rmedio)
+ecat <- readEcat("image.v")          # list of 3D arrays with the headers as attributes
+writeEcat(ecat, fname = "copy.v")
+```
+The package bundles the libmedio sources and compiles them with the compiler
+of R, so it does not need an installed libmedio (see `r/README.md`):
+`R CMD INSTALL r` installs it from the git checkout,
+`r/tools/vendor.sh && R CMD build r` creates the self-contained source
+tarball for CRAN and other repositories.
+
 ## Format independent header attributes
 Every header (`CMedIOHeader`) describes its attributes as JSON object, so that
 applications can use the attributes of any format without the header classes

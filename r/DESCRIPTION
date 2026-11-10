@@ -1,0 +1,22 @@
+Package: Rmedio
+Type: Package
+Title: Read and Write Medical Imaging Data with 'libmedio'
+Version: 1.5.0
+Authors@R: c(
+    person("Jens", "Maus", email = "mail@jens-maus.de", role = c("aut", "cre")),
+    person("Helmholtz-Zentrum Dresden-Rossendorf (HZDR)", role = "cph",
+           comment = "copyright holder of the bundled 'libmedio' sources"))
+Description: Interface to the 'libmedio' C++ library
+    <https://github.com/hzdr-MedImaging/libmedio>, which reads and writes
+    medical imaging data formats used in nuclear medicine (PET). The
+    package currently reads and writes ECAT 6 and ECAT 7 image volumes.
+    The 'libmedio' sources are bundled with the package.
+License: Apache License (== 2.0)
+Copyright: see file COPYRIGHTS
+URL: https://github.com/hzdr-MedImaging/libmedio
+BugReports: https://github.com/hzdr-MedImaging/libmedio/issues
+Imports: Rcpp (>= 0.11.2)
+LinkingTo: Rcpp
+Suggests: jsonlite
+SystemRequirements: Qt5 (Core module), zlib, pkg-config
+Encoding: UTF-8

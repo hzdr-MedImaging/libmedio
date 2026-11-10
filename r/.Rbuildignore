@@ -1,0 +1,7 @@
+^\.gitignore$
+^README\.md$
+^src/Makevars$
+^src/Makevars\.ucrt$
+\.o$
+\.so$
+\.dll$
