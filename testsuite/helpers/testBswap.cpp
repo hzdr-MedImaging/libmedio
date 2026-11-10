@@ -24,6 +24,10 @@
 // multiple of 4). The expected bytes are the bytes of every value in reverse
 // order. Where the compiler supports it, the test is built with the
 // alignment sanitizer, so that misaligned accesses abort it.
+//
+// Also tests the macros BSWAP_16/32/64/FLT/DBL(x), which swap a single value
+// in place (also a member of a packed structure, as used for the Philips
+// headers), and bswap_flt()/bswap_dbl().
 
 #include <QtGlobal>
 #include <QByteArray>
@@ -109,6 +113,25 @@ void checkSwap(int count, int offset)
   }
 }
 
+// the bytes of a value
+template <typename T>
+QByteArray bytesOf(const T& value)
+{
+  return QByteArray(reinterpret_cast<const char*>(&value), sizeof(value));
+}
+
+#pragma pack(1)
+struct Packed
+{
+  char c;      // the following members are not aligned
+  qint16 s;
+  qint32 i;
+  quint64 l;
+  float f;
+  double d;
+};
+#pragma pack()
+
 } // namespace
 
 class TestBswap : public QObject
@@ -119,6 +142,8 @@ class TestBswap : public QObject
     void swap_data();
     void swap();
     void values();
+    void macros();
+    void floats();
 };
 
 void TestBswap::swap_data()
@@ -176,6 +201,100 @@ void TestBswap::values()
   quint64 swapped = 0;
   bswap_matrix<quint64>(&big, sizeof(big), &swapped);
   QCOMPARE(swapped, Q_UINT64_C(0x0807060504030201));
+}
+
+// BSWAP_X(x) swaps x in place and has the swapped value
+void TestBswap::macros()
+{
+  qint16 s = 0x0102;
+  QCOMPARE(BSWAP_16(s), static_cast<qint16>(0x0201));
+  QCOMPARE(s, static_cast<qint16>(0x0201));
+
+  quint16 us = 0xfeff;
+  BSWAP_16(us);
+  QCOMPARE(us, static_cast<quint16>(0xfffe));
+
+  qint32 i = 0x01020304;
+  QCOMPARE(BSWAP_32(i), static_cast<qint32>(0x04030201));
+  QCOMPARE(i, static_cast<qint32>(0x04030201));
+
+  quint64 l = Q_UINT64_C(0x0102030405060708);
+  QCOMPARE(BSWAP_64(l), Q_UINT64_C(0x0807060504030201));
+  QCOMPARE(l, Q_UINT64_C(0x0807060504030201));
+
+  // 1.5f is 0x3fc00000, 1.5 is 0x3ff8000000000000
+  float f = 1.5f;
+  const QByteArray fBytes = bytesOf(f);
+  BSWAP_FLT(f);
+  QCOMPARE(bytesOf(f), reversed(fBytes, sizeof(f)));
+  quint32 fBits = 0;
+  memcpy(&fBits, &f, sizeof(fBits));
+  QCOMPARE(fBits, static_cast<quint32>(0x0000c03f));
+  QCOMPARE(BSWAP_FLT(f), 1.5f);
+  QCOMPARE(f, 1.5f);
+
+  double d = 1.5;
+  const QByteArray dBytes = bytesOf(d);
+  BSWAP_DBL(d);
+  QCOMPARE(bytesOf(d), reversed(dBytes, sizeof(d)));
+  quint64 dBits = 0;
+  memcpy(&dBits, &d, sizeof(dBits));
+  QCOMPARE(dBits, Q_UINT64_C(0x000000000000f83f));
+  QCOMPARE(BSWAP_DBL(d), 1.5);
+  QCOMPARE(d, 1.5);
+
+  // members of a packed structure
+  Packed p;
+  memset(&p, 0, sizeof(p));
+  p.s = 0x0102;
+  p.i = 0x01020304;
+  p.l = Q_UINT64_C(0x0102030405060708);
+  p.f = -2.25f;
+  p.d = -2.25;
+  const QByteArray before = bytesOf(p);
+  BSWAP_16(p.s);
+  BSWAP_32(p.i);
+  BSWAP_64(p.l);
+  BSWAP_FLT(p.f);
+  BSWAP_DBL(p.d);
+  const QByteArray after = bytesOf(p);
+  QCOMPARE(after.mid(0, 1), before.mid(0, 1));
+  QCOMPARE(after.mid(1, 2), reversed(before.mid(1, 2), 2));
+  QCOMPARE(after.mid(3, 4), reversed(before.mid(3, 4), 4));
+  QCOMPARE(after.mid(7, 8), reversed(before.mid(7, 8), 8));
+  QCOMPARE(after.mid(15, 4), reversed(before.mid(15, 4), 4));
+  QCOMPARE(after.mid(19, 8), reversed(before.mid(19, 8), 8));
+  BSWAP_FLT(p.f);
+  BSWAP_DBL(p.d);
+  const float pf = p.f; // QCOMPARE() would bind a reference to the unaligned member
+  const double pd = p.d;
+  QCOMPARE(pf, -2.25f);
+  QCOMPARE(pd, -2.25);
+}
+
+// bswap_flt() and bswap_dbl() return the swapped value and keep the argument
+void TestBswap::floats()
+{
+  // 0x3fc00000 (1.5f) swapped is 0x0000c03f, and back
+  const quint32 fIn = 0x3fc00000;
+  float f;
+  memcpy(&f, &fIn, sizeof(f));
+  const float fSwapped = bswap_flt(f);
+  quint32 fOut = 0;
+  memcpy(&fOut, &fSwapped, sizeof(fOut));
+  QCOMPARE(fOut, static_cast<quint32>(0x0000c03f));
+  QCOMPARE(f, 1.5f);
+  QCOMPARE(bswap_flt(fSwapped), 1.5f);
+
+  // 0x400921fb54442d18 (pi) swapped is 0x182d4454fb210940
+  const quint64 dIn = Q_UINT64_C(0x400921fb54442d18);
+  double d;
+  memcpy(&d, &dIn, sizeof(d));
+  const double dSwapped = bswap_dbl(d);
+  quint64 dOut = 0;
+  memcpy(&dOut, &dSwapped, sizeof(dOut));
+  QCOMPARE(dOut, Q_UINT64_C(0x182d4454fb210940));
+  QCOMPARE(bswap_dbl(dSwapped), d);
 }
 
 QTEST_GUILESS_MAIN(TestBswap)
