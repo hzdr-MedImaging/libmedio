@@ -134,6 +134,7 @@ class TestPhilipsWrite : public QObject
     void readFrame();
     void unsignedShortHeader();
     void filterTypes();
+    void magicNumbers();
 };
 
 void TestPhilipsWrite::writeOrder_data()
@@ -399,6 +400,73 @@ void TestPhilipsWrite::filterTypes()
   QScopedPointer<CPhilipsMainHeader> guard(mainHeader);
   QCOMPARE(mainHeader->preflt_type(), CPhilipsMainHeader::Metz_PreFlt);
   QCOMPARE(mainHeader->postflt_type(), CPhilipsMainHeader::PET3D_PostFlt);
+}
+
+//---------------------------------------------------------------------------------------------
+// the fixed bytes ("magic numbers") of a written main header and sub header,
+// as found in the files of the scanner (e.g. testsuite/data/philips/pet-static.img)
+
+void TestPhilipsWrite::magicNumbers()
+{
+  const QString path = m_tmp.filePath("magic.img");
+  {
+    CPhilipsFile file(path, CPhilipsMainHeader::Image);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    QScopedPointer<CPhilipsMainHeader> mainHeader(file.createEmptyMainHeader());
+    mainHeader->setFiltyp(CPhilipsMainHeader::Image);
+    QVERIFY(file.writeMainHeader(*mainHeader));
+
+    QScopedPointer<CPhilipsSubHeader> subHeaderPtr(file.createEmptySubHeader());
+    CPhilipsSubHeaderImage* subHeader = static_cast<CPhilipsSubHeaderImage*>(subHeaderPtr.data());
+    subHeader->setDatype(CPhilipsSubHeader::SignedShort);
+    subHeader->setXdim(nx);
+    subHeader->setYdim(ny);
+    subHeader->setImgscl(1.0f);
+    const QByteArray plane = slice(1, 0, 1);
+    QVERIFY(file.writeMatrix(plane.constData(), plane.size(), *subHeader, 1, 0));
+    file.close();
+  }
+
+  QFile file(path);
+  QVERIFY(file.open(QIODevice::ReadOnly));
+  const QByteArray data = file.readAll();
+
+  // main header at the start of the file (offset, bytes)
+  const struct { int offset; const char* hex; } mainMagic[] = {
+    {   0, "010000000016" },
+    {  12, "0040005b" },
+    {  48, "0007ffff" },
+    {  62, "0020ffff" },
+    { 126, "001bffff" },
+    { 180, "0021ffff" },
+  };
+  for(unsigned int i=0; i < sizeof(mainMagic) / sizeof(mainMagic[0]); i++) {
+    const QByteArray expected = QByteArray::fromHex(mainMagic[i].hex);
+    QVERIFY2(data.mid(mainMagic[i].offset, expected.size()) == expected,
+             qPrintable(QString("main header @ %1: %2").arg(mainMagic[i].offset).arg(QString(data.mid(mainMagic[i].offset, expected.size()).toHex()))));
+  }
+
+  // sub header at the first block of the slice: the only directory item
+  // besides the extended main header (item 7fffffff)
+  int items = 0;
+  QList<Block> blocks = directoryBlocks(path, &items);
+  QCOMPARE(items, 2);
+  int start = -1;
+  foreach(const Block& block, blocks)
+    if(block.what.startsWith("item ") && block.what != "item 7fffffff")
+      start = static_cast<int>(block.start);
+  QVERIFY2(start > 2, "no directory item of the slice");
+  const int sub = (start - 1) * 512;
+  const struct { int offset; const char* hex; } subMagic[] = {
+    {   0, "010000010016ffff0019003e004f" },
+    {  48, "0025ffff" },
+    { 122, "0011ffff" },
+  };
+  for(unsigned int i=0; i < sizeof(subMagic) / sizeof(subMagic[0]); i++) {
+    const QByteArray expected = QByteArray::fromHex(subMagic[i].hex);
+    QVERIFY2(data.mid(sub + subMagic[i].offset, expected.size()) == expected,
+             qPrintable(QString("sub header @ %1: %2").arg(subMagic[i].offset).arg(QString(data.mid(sub + subMagic[i].offset, expected.size()).toHex()))));
+  }
 }
 
 QTEST_GUILESS_MAIN(TestPhilipsWrite)

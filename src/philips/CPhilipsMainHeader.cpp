@@ -855,43 +855,37 @@ void CPhilipsMainHeader::clear()
   memset(&m_pData->header, 0, sizeof(struct CPhilipsMainHeaderPrivate::HeaderData));
   memset(&m_pData->extHeader, 0, sizeof(struct CPhilipsMainHeaderPrivate::ExtHeaderData));
 
-  // lets set some empty header elements to the predefined magic number
-  m_pData->header.magic_number[0] = 0x01;
-  m_pData->header.magic_number[1] = 0x00;
-  m_pData->header.magic_number[2] = 0x00;
-  m_pData->header.magic_number[3] = 0x00;
-  m_pData->header.magic_number[4] = 0x00;
-  m_pData->header.magic_number[5] = 0x16;
+  // lets set some empty header elements to the predefined magic number. They
+  // are copied from unsigned char arrays, because assigning a value like 0xFF
+  // to a (signed) char is an out of range conversion.
+  static const unsigned char magicNumber[] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x16 };
+  static_assert(sizeof(magicNumber) == sizeof(m_pData->header.magic_number), "size of magic_number");
+  memcpy(m_pData->header.magic_number, magicNumber, sizeof(magicNumber));
 
   // magic number 2 @ 012: 0x0040005B
-  m_pData->header.magic2[0] = 0x00;
-  m_pData->header.magic2[1] = 0x40;
-  m_pData->header.magic2[2] = 0x00;
-  m_pData->header.magic2[3] = 0x5B;
+  static const unsigned char magic2[] = { 0x00, 0x40, 0x00, 0x5B };
+  static_assert(sizeof(magic2) == sizeof(m_pData->header.magic2), "size of magic2");
+  memcpy(m_pData->header.magic2, magic2, sizeof(magic2));
 
   // magic number 3 @ 048: 0x0007FFFF
-  m_pData->header.magic3[0] = 0x00;
-  m_pData->header.magic3[1] = 0x07;
-  m_pData->header.magic3[2] = 0xFF;
-  m_pData->header.magic3[3] = 0xFF;
-  
+  static const unsigned char magic3[] = { 0x00, 0x07, 0xFF, 0xFF };
+  static_assert(sizeof(magic3) == sizeof(m_pData->header.magic3), "size of magic3");
+  memcpy(m_pData->header.magic3, magic3, sizeof(magic3));
+
   // magic number 4 @ 062: 0x0020FFFF
-  m_pData->header.magic4[0] = 0x00;
-  m_pData->header.magic4[1] = 0x20;
-  m_pData->header.magic4[2] = 0xFF;
-  m_pData->header.magic4[3] = 0xFF;
+  static const unsigned char magic4[] = { 0x00, 0x20, 0xFF, 0xFF };
+  static_assert(sizeof(magic4) == sizeof(m_pData->header.magic4), "size of magic4");
+  memcpy(m_pData->header.magic4, magic4, sizeof(magic4));
 
   // magic number 5 @ 126: 0x001BFFFF
-  m_pData->header.magic5[0] = 0x00;
-  m_pData->header.magic5[1] = 0x1B;
-  m_pData->header.magic5[2] = 0xFF;
-  m_pData->header.magic5[3] = 0xFF;
+  static const unsigned char magic5[] = { 0x00, 0x1B, 0xFF, 0xFF };
+  static_assert(sizeof(magic5) == sizeof(m_pData->header.magic5), "size of magic5");
+  memcpy(m_pData->header.magic5, magic5, sizeof(magic5));
 
   // magic number 6 @ 180: 0x0021FFFF
-  m_pData->header.magic6[0] = 0x00;
-  m_pData->header.magic6[1] = 0x21;
-  m_pData->header.magic6[2] = 0xFF;
-  m_pData->header.magic6[3] = 0xFF;
+  static const unsigned char magic6[] = { 0x00, 0x21, 0xFF, 0xFF };
+  static_assert(sizeof(magic6) == sizeof(m_pData->header.magic6), "size of magic6");
+  memcpy(m_pData->header.magic6, magic6, sizeof(magic6));
 
   // set some default values for the new Main Header
   m_pData->header.file_fmt = MAINHEADER_VERSION;
