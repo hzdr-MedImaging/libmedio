@@ -223,6 +223,11 @@ jobs:
           R CMD build r
 
       - name: Check the source package
+        env:
+          # skip the CRAN incoming checks that query the CRAN servers (package
+          # index, URLs): they only matter for a submission and abort the check
+          # when CRAN does not answer in time
+          _R_CHECK_CRAN_INCOMING_REMOTE_: false
         run: |
           R CMD check --as-cran --no-manual Rmedio_*.tar.gz
           if grep -E "^Status: .*(WARNING|ERROR)" Rmedio.Rcheck/00check.log; then
