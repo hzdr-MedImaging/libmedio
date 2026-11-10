@@ -47,7 +47,16 @@
 // copied into an integer of the same size with memcpy() (standard C++, unlike
 // a GNU statement expression or type punning through a union), swapped and
 // copied back. Compilers turn this into plain register moves and a byte swap.
-static inline float bswap_flt(float x)
+// GCC and Clang inline them also without optimization (-O0, Debug builds), where
+// a call per value would make BSWAP_FLT()/BSWAP_DBL() up to twice as slow as the
+// former macros.
+#if defined(__GNUC__)
+#define BSWAP_ALWAYS_INLINE inline __attribute__((always_inline))
+#else
+#define BSWAP_ALWAYS_INLINE inline
+#endif
+
+static BSWAP_ALWAYS_INLINE float bswap_flt(float x)
 {
   static_assert(sizeof(float) == sizeof(quint32), "float must have 32 bits");
   quint32 i;
@@ -57,7 +66,7 @@ static inline float bswap_flt(float x)
   return x;
 }
 
-static inline double bswap_dbl(double x)
+static BSWAP_ALWAYS_INLINE double bswap_dbl(double x)
 {
   static_assert(sizeof(double) == sizeof(quint64), "double must have 64 bits");
   quint64 i;
