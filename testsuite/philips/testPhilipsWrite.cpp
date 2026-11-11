@@ -135,6 +135,8 @@ class TestPhilipsWrite : public QObject
     void unsignedShortHeader();
     void filterTypes();
     void magicNumbers();
+    void damagedData_data();
+    void damagedData();
 };
 
 void TestPhilipsWrite::writeOrder_data()
@@ -467,6 +469,100 @@ void TestPhilipsWrite::magicNumbers()
     QVERIFY2(data.mid(sub + subMagic[i].offset, expected.size()) == expected,
              qPrintable(QString("sub header @ %1: %2").arg(subMagic[i].offset).arg(QString(data.mid(sub + subMagic[i].offset, expected.size()).toHex()))));
   }
+}
+
+// slices whose data cannot be read completely (the file is truncated within
+// the data of the last slice) or not be uncompressed (the data of the last
+// slice is overwritten) are not returned: readMatrix() reported success
+// with uninitialized or empty data before
+void TestPhilipsWrite::damagedData_data()
+{
+  QTest::addColumn<bool>("truncate");
+
+  QTest::newRow("truncated file")   << true;
+  QTest::newRow("corrupt data")     << false;
+}
+
+void TestPhilipsWrite::damagedData()
+{
+  QFETCH(bool, truncate);
+
+  // one frame of 2 slices that hardly compress (several blocks each)
+  const QString path = m_tmp.filePath(truncate ? "truncated.img" : "corrupt.img");
+  {
+    CPhilipsFile file(path, CPhilipsMainHeader::Image);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    QScopedPointer<CPhilipsMainHeader> mainHeader(file.createEmptyMainHeader());
+    mainHeader->setFiltyp(CPhilipsMainHeader::Image);
+    QVERIFY(file.writeMainHeader(*mainHeader));
+    QScopedPointer<CPhilipsSubHeader> subHeaderPtr(file.createEmptySubHeader());
+    CPhilipsSubHeaderImage* subHeader = static_cast<CPhilipsSubHeaderImage*>(subHeaderPtr.data());
+    subHeader->setDatype(CPhilipsSubHeader::SignedShort);
+    subHeader->setXdim(nx);
+    subHeader->setYdim(ny);
+    subHeader->setImgscl(1.0f);
+    for(int k=0; k < 2; k++) {
+      const QByteArray plane = slice(1, k, 1);
+      subHeader->setSlcnum(k);
+      QVERIFY(file.writeMatrix(plane.constData(), plane.size(), *subHeader, 1, k));
+    }
+    file.close();
+  }
+
+  // the item stored last in the file (sub header block, then the data)
+  int items = 0;
+  QList<Block> blocks = directoryBlocks(path, &items);
+  QCOMPARE(items, 3);  // main header + 2 slices
+  Block last = blocks.first();
+  foreach(const Block& b, blocks) {
+    if(b.end > last.end)
+      last = b;
+  }
+  QVERIFY(last.what.startsWith("item"));
+  QVERIFY(last.end > last.start + 1);
+
+  {
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::ReadWrite));
+    if(truncate) {
+      // within the last block of the data
+      QVERIFY(file.resize(static_cast<qint64>(last.end - 1) * 512 + 100));
+    } else {
+      // the start of the compressed data (zlib header)
+      QVERIFY(file.seek(static_cast<qint64>(last.start) * 512));
+      QVERIFY(file.write(QByteArray(64, '\xff')) == 64);
+    }
+    file.close();
+  }
+
+  CPhilipsFile file(path);
+  QVERIFY(file.open(QIODevice::ReadOnly));
+  int failed = 0, failedRaw = 0;
+  for(int k=0; k < 2; k++) {
+    // the variant with a char pointer (returned 0 bytes for corrupt data)
+    char* raw = NULL;
+    unsigned int length = 0;
+    if(file.readMatrix(raw, length, 1, k) == false) {
+      QVERIFY(raw == NULL && length == 0);
+      failedRaw++;
+    }
+    delete[] raw;
+
+    QByteArray* data = NULL;
+    CPhilipsSubHeader* subHeader = NULL;
+    if(file.readMatrix(data, subHeader, 1, k) == false) {
+      QVERIFY(data == NULL);
+      failed++;
+      delete subHeader;
+      continue;
+    }
+    QScopedPointer<QByteArray> dataGuard(data);
+    QScopedPointer<CPhilipsSubHeader> subHeaderGuard(subHeader);
+    QVERIFY2(data->left(nx * ny * 2) == slice(1, k, 1), qPrintable(QString("data of slice %1").arg(k)));
+  }
+  QCOMPARE(failedRaw, 1);
+  QCOMPARE(failed, 1);
+  file.close();
 }
 
 QTEST_GUILESS_MAIN(TestPhilipsWrite)

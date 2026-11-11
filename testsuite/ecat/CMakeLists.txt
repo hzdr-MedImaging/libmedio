@@ -61,3 +61,17 @@ add_test(NAME ecat7_datasets
          COMMAND testECAT7Datasets
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# reading synthetic ECAT7 files (e.g. truncated ones)
+add_executable(testECATFile testECATFile.cpp)
+
+target_link_libraries(testECATFile Qt5::Core
+                                   Qt5::Test
+                                   ${CMAKE_PROJECT_NAME}-static
+                                   ${RTDEBUG_STATIC_LIB}
+)
+
+add_test(NAME ecat_file
+         COMMAND testECATFile
+         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
