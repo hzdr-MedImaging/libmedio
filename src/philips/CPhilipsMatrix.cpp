@@ -408,7 +408,10 @@ bool philipsMainHeaderFromFrame(const CMedIOFrame& f, CMedIOHeader*& header)
   ENTER();
 
   CMedIOVolume v = f.volume;
-  fitDataType(v, philipsTypes, false, false);
+  if(fitDataType(v, philipsTypes, false, false) == false) {
+    RETURN(false);
+    return false;
+  }
 
   QScopedPointer<CPhilipsMainHeader> mainHeader(new CPhilipsMainHeader(NULL, CPhilipsMainHeader::Image));
   const CECAT7SubHeaderImage s = ecatSubHeaderFor(f, v);

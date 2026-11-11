@@ -26,6 +26,7 @@
 #include <QtTest/QtTest>
 
 #include <cmath>
+#include <limits>
 
 // 4 x 3 x 2 int16 volume with stored value = 1 + linear index
 static CMedIOVolume makeVolume(const double m[3][4])
@@ -64,6 +65,7 @@ class TestMedIOVolume : public QObject
     void reorient();
     void planeScales();
     void errors();
+    void largeVolume();
 };
 
 void TestMedIOVolume::values()
@@ -204,6 +206,39 @@ void TestMedIOVolume::errors()
   QVERIFY(bad.setData(0, 3, 2, CMedIOVolume::Int16, QByteArray()) == false);
   QVERIFY(bad.setData(1, 1, 1, CMedIOVolume::UnknownDataType, QByteArray(1, '\0')) == false);
   QVERIFY(bad.isEmpty());
+}
+
+// physical values that do not fit into the voxel data of a volume (a
+// QByteArray, < 2 GB): 1024 x 1024 x 513 uint8 voxels (538 MB) are 2.16 GB
+// as float32. The conversion fails and leaves the volume unchanged.
+void TestMedIOVolume::largeVolume()
+{
+  const int nx = 1024, ny = 1024, nz = 513;
+  const qint64 voxels = static_cast<qint64>(nx) * ny * nz;
+  QVERIFY(voxels * 4 > std::numeric_limits<int>::max());
+
+  CMedIOVolume v;
+  QVERIFY(v.setData(nx, ny, nz, CMedIOVolume::UInt8, QByteArray(static_cast<int>(voxels), '\1')));
+  const double lps[3][4] = { { 2, 0, 0, 0 }, { 0, 2, 0, 0 }, { 0, 0, 3, 0 } };
+  v.setAffine(lps);
+  v.setScaleFactor(2.0);
+  v.setScaleFactor(1, 4.0);
+
+  QVERIFY(v.convertToPhysicalValues() == false);
+  QCOMPARE(static_cast<int>(v.dataType()), static_cast<int>(CMedIOVolume::UInt8));
+  QCOMPARE(static_cast<qint64>(v.data().size()), voxels);
+  QCOMPARE(v.scaleFactor(1), 4.0);
+  QCOMPARE(v.value(0), 2.0);
+
+  // reorienting the planes needs the physical values (different scale factors)
+  QVERIFY(v.reorient("SLP") == false);
+  QCOMPARE(v.orientation(), QString("LPS"));
+  QCOMPARE(static_cast<int>(v.dataType()), static_cast<int>(CMedIOVolume::UInt8));
+
+  // the planes stay planes: no conversion needed
+  QVERIFY(v.reorient("RPS"));
+  QCOMPARE(v.orientation(), QString("RPS"));
+  QCOMPARE(v.scaleFactor(1), 4.0);
 }
 
 QTEST_GUILESS_MAIN(TestMedIOVolume)

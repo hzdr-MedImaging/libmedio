@@ -26,8 +26,13 @@
 
 #include <cmath>
 #include <cstring>
+#include <limits>
 
 #include <rtdebug.h>
+
+// largest voxel data of a volume: its size is an int (QByteArray), Qt5 needs
+// some bytes of it for its own header (same limit as MedIOMatrix::MaxDataSize)
+static const qint64 MaxDataSize = std::numeric_limits<int>::max() - 64;
 
 class CMedIOVolumePrivate {
   public:
@@ -208,13 +213,20 @@ double CMedIOVolume::intercept() const
   return m_pData->intercept;
 }
 
-void CMedIOVolume::convertToPhysicalValues()
+bool CMedIOVolume::convertToPhysicalValues()
 {
   ENTER();
 
   const qint64 voxels = voxelCount();
   const bool doubles = (m_pData->type == Float64);
-  QByteArray physical(voxels * (doubles ? 8 : 4), '\0');
+  const qint64 size = voxels * (doubles ? 8 : 4);
+  if(size > MaxDataSize) {
+    E("the physical values of %lld voxels (%lld bytes) do not fit into a volume", voxels, size);
+    RETURN(false);
+    return false;
+  }
+
+  QByteArray physical(static_cast<int>(size), '\0');
 
   for(qint64 i=0; i < voxels; i++) {
     if(doubles)
@@ -228,7 +240,8 @@ void CMedIOVolume::convertToPhysicalValues()
   m_pData->scales.fill(1.0);
   m_pData->intercept = 0.0;
 
-  LEAVE();
+  RETURN(true);
+  return true;
 }
 
 void CMedIOVolume::setAffine(const double m[3][4])
@@ -363,8 +376,10 @@ bool CMedIOVolume::reorient(const QString& code, bool* oblique)
   }
 
   // scale factors per plane only survive if the planes stay planes
-  if(perm[2] != 2 && hasUniformScaleFactor() == false)
-    convertToPhysicalValues();
+  if(perm[2] != 2 && hasUniformScaleFactor() == false && convertToPhysicalValues() == false) {
+    RETURN(false);
+    return false;
+  }
 
   const int n = bytesPerVoxel(d->type);
   const qint64 srcDims[3] = { d->dims[0], d->dims[1], d->dims[2] };
