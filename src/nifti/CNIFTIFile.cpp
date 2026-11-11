@@ -1007,11 +1007,19 @@ bool CNIFTIFile::writeMatrix(const char* matrixData, unsigned int size) {
       qint64 bytesWritten = 0;
 
       // vox_offset is used so that header extensions are not overwritten
-      if(swapSize > 0) {
-        // the voxel data has to be stored in the byte order of the main header
-        QByteArray swappedData(matrixData, size);
-        swapMatrix(swappedData.data(), matrixSize, swapSize);
-        bytesWritten = file->write(swappedData);
+      if(swapSize > 1) {
+        // the voxel data has to be stored in the byte order of the main
+        // header: swapped in chunks (it can be larger than a QByteArray)
+        const qint64 chunkSize = (16 * 1024 * 1024 / swapSize) * swapSize;
+        QByteArray chunk;
+        while(bytesWritten < matrixSize) {
+          const qint64 n = qMin(chunkSize, matrixSize - bytesWritten);
+          chunk = QByteArray(matrixData + bytesWritten, static_cast<int>(n));
+          swapMatrix(chunk.data(), n, swapSize);
+          if(file->write(chunk) != n)
+            break;
+          bytesWritten += n;
+        }
       } else {
         bytesWritten = file->write(matrixData, size);
       }

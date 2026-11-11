@@ -235,6 +235,7 @@ class TestNIFTIFormat : public QObject
     void testConvertVersion_data();
     void testConvertVersion();
     void testConvertToNIFTI1Limits();
+    void testSwappedMatrixChunks();
 
   private:
     QString dataFile(const QString& name) const { return QString(NIFTI_TEST_DATA_DIR) + "/" + name; }
@@ -881,6 +882,48 @@ void TestNIFTIFormat::testConvertToNIFTI1Limits()
   // NIfTI-1 only supports 16 bit dimensions
   nifti2.setDim(1, 40000);
   QVERIFY(nifti1.convertFrom(&nifti2) == false);
+}
+
+// a voxel matrix in the other byte order is swapped in chunks of 16 MB when
+// it is written: 256 x 256 x 200 int16 voxels (26 MB) in big endian order
+void TestNIFTIFormat::testSwappedMatrixChunks()
+{
+  QTemporaryDir tmpDir;
+  QVERIFY(tmpDir.isValid());
+  const QString fileName = tmpDir.filePath("chunks.nii");
+  const qint64 dims[8] = { 3, 256, 256, 200, 1, 1, 1, 1 };
+  const qint64 voxels = 256 * 256 * 200;
+  const QByteArray matrix = patternMatrix(voxels);
+  QVERIFY(matrix.size() > 16 * 1024 * 1024);
+
+  {
+    CNIFTIFile niftiFile(fileName, CNIFTIMainHeader::NIFTI1);
+    QVERIFY(niftiFile.open(QIODevice::WriteOnly));
+    QScopedPointer<CNIFTIMainHeader> header(niftiFile.createEmptyHeader());
+    fillHeader(static_cast<CNIFTI1MainHeader*>(header.data()), dims, QSysInfo::BigEndian);
+    QVERIFY(niftiFile.writeMainHeader(*header));
+    QVERIFY(niftiFile.writeMatrix(matrix.constData(), static_cast<unsigned int>(matrix.size())));
+    niftiFile.close();
+  }
+
+  // big endian in the file
+  const QByteArray content = fileContent(fileName);
+  QCOMPARE(static_cast<qint64>(content.size()), 352 + voxels * 2);
+  const char* data = content.constData() + 352;
+  for(qint64 i=0; i < voxels; i++) {
+    const qint16 value = qFromBigEndian<qint16>(reinterpret_cast<const uchar*>(data + i * 2));
+    if(value != static_cast<qint16>(patternValue(i, DT_INT16)))
+      QFAIL(qPrintable(QString("voxel %1: %2 instead of %3").arg(i).arg(value).arg(patternValue(i, DT_INT16))));
+  }
+
+  // and read back in machine byte order
+  CNIFTIFile niftiFile(fileName);
+  QVERIFY(niftiFile.open(QIODevice::ReadOnly));
+  QByteArray* read = NULL;
+  QVERIFY(niftiFile.readMatrix(read) && read != NULL);
+  QVERIFY(*read == matrix);
+  delete read;
+  niftiFile.close();
 }
 
 QTEST_GUILESS_MAIN(TestNIFTIFormat)

@@ -38,6 +38,7 @@
 #include <rtdebug.h>
 
 #include "bswap.h"
+#include "MedIOLimits.h"
 
 class CConcordeFilePrivate
 {
@@ -338,9 +339,14 @@ bool CConcordeFile::readMatrix(QByteArray*& matrixData, short frame)
         if(readMatrix(pTmp, iFrameSize, frame))
         {
             // the QByteArray holds a copy of the buffer, which is freed here
-            matrixData = new QByteArray(pTmp, iFrameSize);
+            if(MedIOLimits::fitsByteArray(iFrameSize))
+            {
+                matrixData = new QByteArray(pTmp, static_cast<int>(iFrameSize));
+                result = true;
+            }
+            else
+                E("frame %d (%u bytes) is too large for a QByteArray", frame, iFrameSize);
             delete[] pTmp;
-            result = true;
         }
     }
     RETURN(result);
@@ -357,15 +363,18 @@ bool CConcordeFile::readMatrix(QByteArray*& matrixData, CConcordeFrameHeader*& s
         {
             char* pTmp = NULL;
             unsigned int iFrameSize = 0;
-            if(readMatrix(pTmp, iFrameSize, frame))
+            if(readMatrix(pTmp, iFrameSize, frame) && MedIOLimits::fitsByteArray(iFrameSize))
             {
                 // the QByteArray holds a copy of the buffer, which is freed here
-                matrixData = new QByteArray(pTmp, iFrameSize);
+                matrixData = new QByteArray(pTmp, static_cast<int>(iFrameSize));
                 delete[] pTmp;
                 result = true;
             }
             else
             {
+                if(pTmp != NULL)
+                    E("frame %d (%u bytes) is too large for a QByteArray", frame, iFrameSize);
+                delete[] pTmp;
                 delete subHeader;
                 subHeader = NULL;
             }
@@ -453,8 +462,14 @@ bool CConcordeFile::readMatrix(char*& matrixData, unsigned int& matrixSize, shor
   }
 
   // then we allocate some memory for loading the matrixdata
-  // this should be:
+  // (frameSize() is 0 for invalid dimensions or frames of more than 4 GB)
   matrixSize = m_pCachedMainHeader->frameSize();
+  if(matrixSize == 0)
+  {
+    E("invalid size of frame %d", frame);
+    RETURN(false);
+    return false;
+  }
   matrixData = new char[matrixSize];
 
   // now we read in the whole data at once

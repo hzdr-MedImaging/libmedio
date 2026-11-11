@@ -31,6 +31,7 @@
 #include <CConcordeMainHeader.h>
 #include <CConcordeFrameHeader.h>
 #include <CMedIODataFactory.h>
+#include <CMedIOVolume.h>
 
 #include <QtTest/QtTest>
 #include <QTemporaryDir>
@@ -121,6 +122,7 @@ class TestConcordeFile : public QObject
     void frameOrder();
     void frameRange();
     void closeWithoutOpen();
+    void frameSizeOverflow();
 };
 
 // all variants of readMatrix() return the frames of the file
@@ -305,6 +307,63 @@ void TestConcordeFile::closeWithoutOpen()
   CConcordeImage missing(m_tmp.filePath("missing"));
   QVERIFY(missing.open(QIODevice::ReadOnly) == false);
   missing.close();
+}
+
+// a frame larger than 4 GB (4097 x 4096 x 512 int16 voxels, 16 GB): the
+// size computed with int and unsigned int overflowed to 4 MB, so the first
+// 4 MB of the data file were returned as frame. frameSize() is 0 now and
+// reading the frame fails.
+void TestConcordeFile::frameSizeOverflow()
+{
+  const QString path = m_tmp.filePath("overflow");
+  {
+    QFile header(path + ".hdr");
+    QVERIFY(header.open(QIODevice::WriteOnly | QIODevice::Text));
+    QTextStream h(&header);
+    h << "model 2000\n"
+      << "file_type 5\n"
+      << "acquisition_mode 3\n"
+      << "total_frames 1\n"
+      << "data_type 2\n"
+      << "number_of_dimensions 3\n"
+      << "x_dimension 4097\n"
+      << "y_dimension 4096\n"
+      << "z_dimension 512\n"
+      << "pixel_size 0.2\n"
+      << "calibration_factor 1\n"
+      << "end_of_header\n"
+      << "frame 0\n"
+      << "data_file_pointer 0 0\n"
+      << "scale_factor 1\n"
+      << "end_of_header\n";
+  }
+  {
+    // as much data as the overflowed size
+    QFile data(path);
+    QVERIFY(data.open(QIODevice::WriteOnly));
+    QVERIFY(data.write(QByteArray(4 * 1024 * 1024, '\1')) == 4 * 1024 * 1024);
+  }
+
+  CConcordeImage file(path);
+  QVERIFY(file.open(QIODevice::ReadOnly));
+
+  CConcordeMainHeader* mainHeader = NULL;
+  QVERIFY(file.readMainHeader(mainHeader) && mainHeader != NULL);
+  QCOMPARE(mainHeader->frameSize(), 0u);
+  delete mainHeader;
+
+  char* raw = NULL;
+  unsigned int length = 0;
+  QVERIFY(file.readMatrix(raw, length, 1) == false);
+  QVERIFY(raw == NULL && length == 0);
+
+  QByteArray* data = NULL;
+  QVERIFY(file.readMatrix(data, 1) == false);
+  QVERIFY(data == NULL);
+
+  CMedIOVolume volume;
+  QVERIFY(file.readVolume(volume, 1) == false);
+  file.close();
 }
 
 QTEST_GUILESS_MAIN(TestConcordeFile)

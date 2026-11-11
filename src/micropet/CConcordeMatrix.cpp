@@ -32,6 +32,7 @@
 #include "CConcordeFile.h"
 #include "CConcordeMainHeader.h"
 #include "CConcordeFrameHeader.h"
+#include "MedIOLimits.h"
 
 #include <QScopedPointer>
 
@@ -149,7 +150,11 @@ bool readConcordeFrame(CConcordeFile* file, short frame, CMedIOFrame& f)
   CConcordeFrameHeader* fh = NULL;
   bool result = file->readMatrix(data, length, fh, frame) && data != NULL && fh != NULL;
   QScopedPointer<CConcordeFrameHeader> frameHeader(fh);
-  const QByteArray matrix(data, result ? length : 0);
+  if(result && MedIOLimits::fitsByteArray(length) == false) {
+    E("frame %d (%u bytes) is too large for a QByteArray", frame, length);
+    result = false;
+  }
+  const QByteArray matrix(data, result ? static_cast<int>(length) : 0);
   delete[] data;
 
   if(result)
