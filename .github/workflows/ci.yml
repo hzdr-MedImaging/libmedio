@@ -95,7 +95,7 @@ jobs:
         run: |
           for tz in Europe/Berlin Asia/Tokyo; do
             echo "TZ=$tz"
-            TZ="$tz" ctest --test-dir build --output-on-failure
+            TZ="$tz" ctest --test-dir build --output-on-failure -LE large
           done
 
   #-------------------------------------------------------------------------------------------

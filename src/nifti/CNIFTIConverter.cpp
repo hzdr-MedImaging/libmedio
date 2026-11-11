@@ -60,6 +60,10 @@ namespace {
 //=============================================================================================
 // helpers
 
+// largest buffer the conversions allocate as QByteArray: the size of a
+// QByteArray is an int, Qt5 needs some bytes of it for its own header
+const qint64 MaxBufferSize = std::numeric_limits<int>::max() - 64;
+
 bool fail(QString* error, const QString& message)
 {
   if(error)
@@ -377,6 +381,35 @@ bool loadPhilips(const QString& fileName, EcatImage& image, QString* error)
 //---------------------------------------------------------------------------------------------
 // EcatImage -> NIfTI file
 
+// voxel data of a frame in NIfTI voxel order (machine byte order): the
+// stored values or the physical values as float
+void niftiFrameData(const EcatImage& image, int frame, bool storedValues, char* dst)
+{
+  const CECAT7SubHeaderImage* s = image.subHeaders[frame];
+  const CECATSubHeader::Data_Type type = s->data_Type();
+  const int bytesPerVoxel = storedValues ? ecatBytesPerVoxel(type) : 4;
+  const int nz = s->z_Dimension();
+  const qint64 planeVoxels = static_cast<qint64>(s->x_Dimension()) * s->y_Dimension();
+  const char* src = image.matrices[frame].constData();
+
+  // NIfTI stores the planes in reversed order (see CNIFTIGeometry.h)
+  for(int k=0; k < nz; k++) {
+    const qint64 srcPlane = k * planeVoxels;
+    const qint64 dstPlane = (nz - 1 - k) * planeVoxels;
+
+    if(storedValues) {
+      // the matrices are in machine byte order
+      memcpy(dst + dstPlane * bytesPerVoxel, src + srcPlane * bytesPerVoxel, planeVoxels * bytesPerVoxel);
+    } else {
+      const double scale = image.planeScales[frame][k];
+      float* values = reinterpret_cast<float*>(dst) + dstPlane;
+
+      for(qint64 i=0; i < planeVoxels; i++)
+        values[i] = static_cast<float>(ecatValue(src, srcPlane + i, type) * scale);
+    }
+  }
+}
+
 bool saveNifti(const EcatImage& image, const QString& niftiFileName, const CNIFTIConverter::Options& options, QString* error)
 {
   const int frames = image.subHeaders.size();
@@ -422,32 +455,28 @@ bool saveNifti(const EcatImage& image, const QString& niftiFileName, const CNIFT
   }
 
   const int bytesPerVoxel = storedValues ? ecatBytesPerVoxel(first->data_Type()) : 4;
-  QByteArray data(voxels * frames * bytesPerVoxel, '\0');
+
+  // the voxel data is converted and written frame by frame, as the whole
+  // image may be larger than a QByteArray can hold (2 GB)
+  const qint64 frameBytes = voxels * bytesPerVoxel;
+  if(frameBytes > MaxBufferSize)
+    return fail(error, QString("a frame of %1 bytes is too large to be converted").arg(frameBytes));
+  if(frames > std::numeric_limits<short>::max())
+    return fail(error, QString("too many frames (%1) to be converted").arg(frames));
+
+  // value range of all frames, which the header written before the voxel data contains
   double minValue = std::numeric_limits<double>::max();
   double maxValue = -std::numeric_limits<double>::max();
 
   for(int f=0; f < frames; f++) {
-    const CECAT7SubHeaderImage* s = image.subHeaders[f];
+    const CECATSubHeader::Data_Type type = image.subHeaders[f]->data_Type();
     const char* src = image.matrices[f].constData();
-    char* dst = data.data() + f * voxels * bytesPerVoxel;
 
-    // NIfTI stores the planes in reversed order (see CNIFTIGeometry.h)
     for(int k=0; k < nz; k++) {
-      const qint64 srcPlane = k * planeVoxels;
-      const qint64 dstPlane = (nz - 1 - k) * planeVoxels;
       const double scale = image.planeScales[f][k];
 
-      if(storedValues) {
-        // the matrices are in machine byte order
-        memcpy(dst + dstPlane * bytesPerVoxel, src + srcPlane * bytesPerVoxel, planeVoxels * bytesPerVoxel);
-      }
-
-      for(qint64 i=0; i < planeVoxels; i++) {
-        const double value = ecatValue(src, srcPlane + i, s->data_Type()) * scale;
-
-        if(storedValues == false)
-          reinterpret_cast<float*>(dst)[dstPlane + i] = static_cast<float>(value);
-
+      for(qint64 i=k * planeVoxels; i < (k + 1) * planeVoxels; i++) {
+        const double value = ecatValue(src, i, type) * scale;
         minValue = qMin(minValue, value);
         maxValue = qMax(maxValue, value);
       }
@@ -461,6 +490,7 @@ bool saveNifti(const EcatImage& image, const QString& niftiFileName, const CNIFT
 
   QScopedPointer<CNIFTIMainHeader> header(niftiFile.createEmptyHeader());
   bool result = (header.data() != NULL) && header->convertFrom(image.mainHeader, first);
+  QJsonObject sidecarJson;
 
   if(result) {
     const double duration = sameDuration ? first->frame_Duration() / 1000.0 : 0.0;
@@ -503,26 +533,58 @@ bool saveNifti(const EcatImage& image, const QString& niftiFileName, const CNIFT
       result = header->updateAttributes(removed);
     }
 
+    // the number of volumes of the header (from num_Frames of the ECAT7 main
+    // header) has to match the frames of the file, the volumes are written one by one
+    if(result) {
+      const NIFTIInfo info = (options.niftiVersion == 2) ? niftiInfo(static_cast<const CNIFTI2MainHeader*>(header.data()))
+                                                         : niftiInfo(static_cast<const CNIFTI1MainHeader*>(header.data()));
+      qint64 volumes = 1;
+      for(int i=4; i <= info.dim[0] && i < 8; i++)
+        volumes *= info.dim[i];
+
+      if(volumes != frames) {
+        E("the main header defines %lld frames, the file contains %d frames", volumes, frames);
+        result = false;
+      }
+    }
+
     // the main header with the attributes as JSON header extension
     if(result)
       result = niftiFile.writeMainHeader(*header);
 
-    if(result)
-      result = niftiFile.writeMatrix(data);
+    // the voxel data of each frame
+    QByteArray data;
+    for(int f=0; f < frames && result; f++) {
+      if(data.isEmpty())
+        data = QByteArray(static_cast<int>(frameBytes), '\0');
 
-    if(result && options.jsonSidecar) {
-      QFile sidecar(niftiSidecarFileName(niftiFileName));
-      result = sidecar.open(QIODevice::WriteOnly | QIODevice::Truncate) &&
-               sidecar.write(QJsonDocument(stored).toJson(QJsonDocument::Indented)) > 0;
+      niftiFrameData(image, f, storedValues, data.data());
+      result = niftiFile.writeMatrix(data, static_cast<short>(f + 1));
     }
+
+    sidecarJson = stored;
   }
 
+  // a compressed file is written when closing it (errors are reported by errorStatus())
   niftiFile.close();
+  result = result && (niftiFile.errorStatus() == CMedIOData::MERR_Ok);
+
+  // the JSON sidecar file once the NIfTI file is complete
+  bool sidecarWritten = false;
+  if(result && options.jsonSidecar) {
+    QFile sidecar(niftiSidecarFileName(niftiFileName));
+    sidecarWritten = sidecar.open(QIODevice::WriteOnly | QIODevice::Truncate);
+    result = sidecarWritten &&
+             sidecar.write(QJsonDocument(sidecarJson).toJson(QJsonDocument::Indented)) > 0 &&
+             sidecar.flush();
+  }
 
   if(result == false) {
     // single file or both files of a header/image pair
     QFile::remove(niftiFile.headerFileName());
     QFile::remove(niftiFile.imageFileName());
+    if(sidecarWritten)
+      QFile::remove(niftiSidecarFileName(niftiFileName));
     return fail(error, "unable to write " + niftiFileName);
   }
 
@@ -563,19 +625,20 @@ bool loadNifti(const QString& niftiFileName, EcatImage& image, QString* error)
   if(bytesPerVoxel == 0)
     return fail(error, QString("unsupported NIfTI datatype %1").arg(info.datatype));
 
-  QByteArray* matrixPtr = NULL;
-  if(niftiFile.readMatrix(matrixPtr) == false || matrixPtr == NULL)
-    return fail(error, "unable to read the voxel data of " + niftiFileName);
-  QScopedPointer<QByteArray> matrix(matrixPtr);
-
   // metadata: JSON header extension or JSON sidecar file
   const QJsonObject json = niftiMetadata(niftiFile, headerPtr, niftiFileName);
-  niftiFile.close();
 
   const int frames = geometry.frames;
   const int nx = geometry.dims[0], ny = geometry.dims[1], nz = geometry.dims[2];
   const qint64 voxels = static_cast<qint64>(nx) * ny * nz;
   const qint64 dimNifti[3] = { info.dim[1], info.dim[2], info.dim[3] };
+
+  // the voxel data is read and converted frame by frame, as the whole image
+  // may be larger than a QByteArray can hold (2 GB)
+  if(voxels * bytesPerVoxel > MaxBufferSize || voxels * static_cast<qint64>(sizeof(qint16)) > MaxBufferSize)
+    return fail(error, QString("a frame of %1 voxels is too large to be converted").arg(voxels));
+  if(frames > std::numeric_limits<short>::max())
+    return fail(error, QString("too many frames (%1) to be converted").arg(frames));
 
   // keep the stored values if they are 8/16 bit integers without intercept
   const bool storedValues = (info.datatype == 2 || info.datatype == 256 || info.datatype == 4) && info.inter == 0.0;
@@ -594,39 +657,46 @@ bool loadNifti(const QString& niftiFileName, EcatImage& image, QString* error)
   image.mainHeader->setCalibration_Factor(1.0f);
 
   for(int f=0; f < frames; f++) {
-    // reorder the voxels of this frame into the ECAT7 voxel order
-    QVector<double> values(voxels);
-    double maxAbs = 0.0;
+    QByteArray* matrixPtr = NULL;
+    if(niftiFile.readMatrix(matrixPtr, static_cast<short>(f + 1)) == false || matrixPtr == NULL)
+      return fail(error, QString("unable to read the voxel data of frame %1 of %2").arg(f + 1).arg(niftiFileName));
+    QScopedPointer<QByteArray> matrix(matrixPtr);
+    const char* src = matrix->constData();
 
-    for(int k=0; k < nz; k++) {
-      for(int j=0; j < ny; j++) {
-        for(int i=0; i < nx; i++) {
-          const qint64 index = niftiVoxelIndex(geometry, dimNifti, i, j, k) + voxels * f;
-          double value = niftiValue(matrix->constData(), index, info.datatype);
-          if(storedValues == false)
-            value = value * info.slope + info.inter;
+    // value of NIfTI voxel index of this frame
+    auto value = [&](qint64 index) -> double {
+      const double v = niftiValue(src, index, info.datatype);
+      return storedValues ? v : v * info.slope + info.inter;
+    };
 
-          values[i + nx * (j + static_cast<qint64>(ny) * k)] = value;
-          maxAbs = qMax(maxAbs, std::fabs(value));
-        }
-      }
+    // 16 bit integers with a scale factor per frame (from the largest
+    // absolute value of all voxels of the frame)
+    double scale = info.slope;
+    if(storedValues == false) {
+      double maxAbs = 0.0;
+      for(qint64 i=0; i < voxels; i++)
+        maxAbs = qMax(maxAbs, std::fabs(value(i)));
+      scale = (maxAbs > 0.0) ? maxAbs / 32767.0 : 1.0;
     }
 
-    // 16 bit integers with a scale factor per frame
-    double scale = info.slope;
-    if(storedValues == false)
-      scale = (maxAbs > 0.0) ? maxAbs / 32767.0 : 1.0;
-
-    QByteArray data(voxels * sizeof(qint16), '\0');
+    // reorder the voxels of this frame into the ECAT7 voxel order
+    QByteArray data(static_cast<int>(voxels * sizeof(qint16)), '\0');
     qint16* dst = reinterpret_cast<qint16*>(data.data());
     qint16 minStored = std::numeric_limits<qint16>::max();
     qint16 maxStored = std::numeric_limits<qint16>::min();
 
-    for(qint64 i=0; i < voxels; i++) {
-      const double stored = storedValues ? values[i] : std::floor(values[i] / scale + 0.5);
-      dst[i] = static_cast<qint16>(qBound(-32768.0, stored, 32767.0));
-      minStored = qMin(minStored, dst[i]);
-      maxStored = qMax(maxStored, dst[i]);
+    for(int k=0; k < nz; k++) {
+      for(int j=0; j < ny; j++) {
+        for(int i=0; i < nx; i++) {
+          const double v = value(niftiVoxelIndex(geometry, dimNifti, i, j, k));
+          const double stored = storedValues ? v : std::floor(v / scale + 0.5);
+          qint16& d = dst[i + nx * (j + static_cast<qint64>(ny) * k)];
+
+          d = static_cast<qint16>(qBound(-32768.0, stored, 32767.0));
+          minStored = qMin(minStored, d);
+          maxStored = qMax(maxStored, d);
+        }
+      }
     }
 
     CECAT7SubHeaderImage* subHeader = new CECAT7SubHeaderImage(&image.ecatFile);
@@ -657,6 +727,7 @@ bool loadNifti(const QString& niftiFileName, EcatImage& image, QString* error)
     image.planeScales.append(QVector<double>(nz, scale));
   }
 
+  niftiFile.close();
   return true;
 }
 
