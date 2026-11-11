@@ -350,7 +350,7 @@ bool CPhilipsDirectoryItem::readMatrix(QByteArray*& matrixData)
 bool CPhilipsDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 {
   ENTER();
-  bool result = true;
+  bool result = false;
 
   // clear the ptrs first
   matrixData = NULL;
@@ -404,13 +404,18 @@ bool CPhilipsDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSi
     matrixSize = static_cast<unsigned int>(size);
     matrixData = new char[matrixSize];
 
-    // now we read in the whole data at once
-    if(m_pData->file->read(matrixData, matrixSize) == matrixSize)
+    // now we read in the whole data at once (fewer bytes: the file is
+    // truncated or the directory entry points past its end)
+    const qint64 bytesRead = m_pData->file->read(matrixData, matrixSize);
+    if(bytesRead != static_cast<qint64>(matrixSize))
+      E("only %lld of %u bytes of the matrix data could be read", bytesRead, matrixSize);
+    else
     {
       // now we find out if this machine requires byte swapping or
       // not depending on the input data type and the sysinfo
       int dataTypeSize = sizeof(char);
       bool byteSwapping = false;
+      result = true;
 
       switch(subHeader->datype())
       {
@@ -438,7 +443,7 @@ bool CPhilipsDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSi
           
         default:
         {
-          D("Data type not supported");
+          E("data type %d not supported", static_cast<int>(subHeader->datype()));
           result = false;
         }
       }
@@ -446,7 +451,7 @@ bool CPhilipsDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSi
       // before caring about byte swapping the data we check the
       // compression flag and eventually uncompress the whole matrixData
       // first
-      if(m_pData->compressionFlag == Compressed)
+      if(result && m_pData->compressionFlag == Compressed)
       {
         STARTCLOCK("uncompress");
 
@@ -460,20 +465,28 @@ bool CPhilipsDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSi
         stream << uncompressedMatrixSize;
         compressedData.prepend(zlibHeader);
 
-        // lets uncompress the data
+        // lets uncompress the data (empty if the data is corrupt)
         QByteArray uncompressedData = qUncompress(compressedData);
 
-        // lets copy the uncompressedData to matrixData
-        delete[] matrixData;
-        matrixSize = uncompressedData.size();
-        matrixData = new char[matrixSize];
-        memcpy(matrixData, uncompressedData.constData(), matrixSize);
+        if(uncompressedData.isEmpty())
+        {
+          E("unable to uncompress the matrix data");
+          result = false;
+        }
+        else
+        {
+          // lets copy the uncompressedData to matrixData
+          delete[] matrixData;
+          matrixSize = uncompressedData.size();
+          matrixData = new char[matrixSize];
+          memcpy(matrixData, uncompressedData.constData(), matrixSize);
+        }
 
         STOPCLOCK("uncompress");
       }
 
       // lets perform the byte swapping if required
-      if(byteSwapping == true)
+      if(result && byteSwapping == true)
       {
         STARTCLOCK("byteswap");
 
@@ -496,8 +509,6 @@ bool CPhilipsDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSi
 
         STOPCLOCK("byteswap");
       }
-      
-      result = true;
     }
 
     // now we delete the subHeader we loaded temporarly
@@ -505,7 +516,7 @@ bool CPhilipsDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSi
 
     if(result == false)
     {
-      delete matrixData;
+      delete[] matrixData;
       matrixData = NULL;
       matrixSize = 0;
     }

@@ -380,7 +380,7 @@ bool CECATDirectoryItem::readMatrix(QByteArray*& matrixData)
 bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 {
   ENTER();
-  bool result = true;
+  bool result = false;
     
   // clear the ptrs first
   matrixData = NULL;
@@ -438,8 +438,12 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
     matrixSize = static_cast<unsigned int>(size);
     matrixData = new char[matrixSize];
 
-    // now we read in the whole data at once
-    if(m_pData->file->read(matrixData, matrixSize) == matrixSize)
+    // now we read in the whole data at once (fewer bytes: the file is
+    // truncated or the directory entry points past its end)
+    const qint64 bytesRead = m_pData->file->read(matrixData, matrixSize);
+    if(bytesRead != static_cast<qint64>(matrixSize))
+      E("only %lld of %u bytes of the matrix data could be read", bytesRead, matrixSize);
+    else
     {
       // now we find out if this machine requires byte swapping or
       // not depending on the input data type and the sysinfo
@@ -536,7 +540,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 
     if(result == false)
     {
-      delete matrixData;
+      delete[] matrixData;
       matrixData = NULL;
       matrixSize = 0;
     }
