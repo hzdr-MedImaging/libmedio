@@ -93,7 +93,8 @@ class CConcordeMainHeader : public CMedIOHeader
     bool save() const;
     CMedIOHeader::Format headerFormat() const;
     
-    //! @return framesize of a sinogram in bytes
+    //! @return framesize of a sinogram in bytes (0 for invalid dimensions or
+    //!         a frame of more than 4 GB)
     virtual unsigned int frameSize() = 0;
 
     // clone methods

@@ -19,6 +19,7 @@
 
 #include "CConcordeMainHeaderImage.h"
 #include "CConcordeMainHeader.h"
+#include "MedIOLimits.h"
 
 #include <rtdebug.h>
 
@@ -40,7 +41,8 @@ CConcordeMainHeaderImage::CConcordeMainHeaderImage(CConcordeFile* file)
 //  Class: CConcordeMainHeaderImage
 //  Method: frameSize
 //!
-//! @return framesize of a imagevolume in bytes
+//! @return framesize of a imagevolume in bytes (0 for invalid dimensions
+//!         or a frame of more than 4 GB)
 ////////////////////////////////////////////////////////////////////////////////
 unsigned int CConcordeMainHeaderImage::frameSize()
 {  
@@ -78,7 +80,13 @@ unsigned int CConcordeMainHeaderImage::frameSize()
     break;
   }
   
-  framesize = xDimension()*yDimension()*zDimension()*typesize;
+  // 0 for invalid dimensions or a frame larger than a length of type
+  // unsigned int can describe (computed in 64 bit, the product overflows int)
+  const qint64 size = static_cast<qint64>(xDimension()) * yDimension() * zDimension() * typesize;
+  if(xDimension() < 0 || yDimension() < 0 || zDimension() < 0 || size > MedIOLimits::MaxUnsignedSize)
+    E("invalid size of an image frame: %d x %d x %d voxels of %u bytes", xDimension(), yDimension(), zDimension(), typesize);
+  else
+    framesize = static_cast<unsigned int>(size);
 
   RETURN(framesize);
   return framesize;

@@ -63,3 +63,20 @@ add_test(NAME medio_matrix
          COMMAND testMedIOMatrix
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# single matrices of 2 to 4 GB: needs about 2.3 GB of memory and 2.2 GB of
+# temporary disk space (ctest -LE large skips it)
+add_executable(testLargeMatrices testLargeMatrices.cpp)
+
+target_link_libraries(testLargeMatrices Qt5::Core
+                                        Qt5::Test
+                                        ZLIB::ZLIB
+                                        ${CMAKE_PROJECT_NAME}-static
+                                        ${RTDEBUG_STATIC_LIB}
+)
+
+add_test(NAME large_matrices
+         COMMAND testLargeMatrices
+         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+set_tests_properties(large_matrices PROPERTIES LABELS large)

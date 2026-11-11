@@ -34,6 +34,7 @@
 #include "CConcordeFile.h"
 #include "CConcordeMainHeader.h"
 #include "CConcordeFrameHeader.h"
+#include "MedIOLimits.h"
 
 #include <QJsonArray>
 #include <QVector>
@@ -640,8 +641,13 @@ bool readNativeMatrix(CMedIOData* file, short frame, QByteArray& data, CMedIOHea
       unsigned int length = 0;
       CConcordeFrameHeader* frameHeader = NULL;
       result = concorde->readMatrix(matrix, length, frameHeader, frame == -1 ? 1 : frame);
+      if(result && MedIOLimits::fitsByteArray(length) == false) {
+        E("frame %d (%u bytes) is too large for a QByteArray", frame, length);
+        delete frameHeader;
+        result = false;
+      }
       if(result) {
-        data = QByteArray(matrix, length);
+        data = QByteArray(matrix, static_cast<int>(length));
         header = frameHeader;
       }
       delete[] matrix;

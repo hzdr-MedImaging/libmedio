@@ -21,6 +21,7 @@
 #include "CPhilipsBinFile.h"
 
 #include "bswap.h"
+#include "MedIOLimits.h"
 
 #define BIN_FILE_MAGIC_NUMBER 0x7c1e40d4
 
@@ -211,8 +212,22 @@ bool CPhilipsBinFile::readMatrix(char*& data, unsigned int& length)
   if(isOpen() &&
      isReadable())
   {
-    quint32 dataSize = numberOfElements() * elementSize();
-    if(dataSize > 0)
+    // size of the data, checked step by step (the product of the dimensions
+    // overflows 32 bit, the length is an unsigned int)
+    const quint64 maxSize = MedIOLimits::MaxUnsignedSize;
+    const quint32 dims[3] = { m_header.xDim, m_header.yDim, m_header.zDim };
+    quint64 size = elementSize();
+    bool tooLarge = false;
+    for(int i=0; i < 3 && size > 0; i++) {
+      if(dims[i] > 0 && size > maxSize / dims[i])
+        tooLarge = true;
+      size = tooLarge ? 0 : size * dims[i];
+    }
+    const quint32 dataSize = static_cast<quint32>(size);
+
+    if(tooLarge)
+      E("the data of %u x %u x %u elements is larger than 4 GB", m_header.xDim, m_header.yDim, m_header.zDim);
+    else if(dataSize > 0)
     {
       data = new char[dataSize];
       qint64 bytesRead = 0;

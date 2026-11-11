@@ -19,6 +19,7 @@
 
 #include "CConcordeMainHeaderSinogram.h"
 #include "CConcordeMainHeader.h"
+#include "MedIOLimits.h"
 
 #include <rtdebug.h>
 
@@ -73,10 +74,17 @@ unsigned int CConcordeMainHeaderSinogram::frameSize()
     break;
   }
   
+  qint64 sinograms = 0;
   for(unsigned int i = 0; i < 11; i++)
-    framesize += deltaElements(i);
-  
-  framesize = framesize*xDimension()*yDimension()*typesize;
+    sinograms += deltaElements(i);
+
+  // 0 for invalid dimensions or a frame larger than a length of type
+  // unsigned int can describe (computed in 64 bit, the product overflows int)
+  const qint64 size = sinograms * xDimension() * yDimension() * typesize;
+  if(sinograms < 0 || xDimension() < 0 || yDimension() < 0 || size > MedIOLimits::MaxUnsignedSize)
+    E("invalid size of a sinogram frame: %lld sinograms of %d x %d bins of %u bytes", sinograms, xDimension(), yDimension(), typesize);
+  else
+    framesize = static_cast<unsigned int>(size);
 
   RETURN(framesize);
   return framesize;

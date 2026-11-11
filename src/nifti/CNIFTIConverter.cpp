@@ -38,6 +38,7 @@
 #include "CPhilipsMainHeader.h"
 #include "CPhilipsSubHeader.h"
 #include "CPhilipsSubHeaderImage.h"
+#include "MedIOLimits.h"
 
 #include <QByteArray>
 #include <QFile>
@@ -60,9 +61,8 @@ namespace {
 //=============================================================================================
 // helpers
 
-// largest buffer the conversions allocate as QByteArray: the size of a
-// QByteArray is an int, Qt5 needs some bytes of it for its own header
-const qint64 MaxBufferSize = std::numeric_limits<int>::max() - 64;
+// largest buffer the conversions allocate as QByteArray
+const qint64 MaxBufferSize = MedIOLimits::MaxByteArraySize;
 
 bool fail(QString* error, const QString& message)
 {

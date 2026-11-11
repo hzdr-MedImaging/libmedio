@@ -30,6 +30,8 @@
 #include <QDataStream>
 #include <rtdebug.h>
 
+#include "MedIOLimits.h"
+
 #include "bswap.h"
 
 // we define the private inline class of that one so that we
@@ -330,9 +332,15 @@ bool CPhilipsDirectoryItem::readMatrix(QByteArray*& matrixData)
   if(readMatrix(data, dataLen) && dataLen > 0)
   {
     // copy the raw data into a QByteArray
-    matrixData = new QByteArray(data, dataLen);
+    if(MedIOLimits::fitsByteArray(dataLen))
+    {
+      matrixData = new QByteArray(data, static_cast<int>(dataLen));
+      result = true;
+    }
+    else
+      E("the matrix data (%u bytes) is too large for a QByteArray", dataLen);
+
     delete [] data;
-    result = true;
   }
 
   RETURN(result);
@@ -383,8 +391,17 @@ bool CPhilipsDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSi
     SHOWVALUE(m_pData->file->pos());
 
     // then we allocate some memory for loading the matrixdata
-    // this should be:
-    matrixSize = m_pData->dataBlock_End - m_pData->dataBlock_Start - subHeader->rawDataSize() + PHILIPS_BLOCKSIZE;
+    // (up to the end of its last block)
+    const qint64 size = m_pData->dataBlock_End - m_pData->dataBlock_Start - subHeader->rawDataSize() + PHILIPS_BLOCKSIZE;
+    if(size <= 0 || size > MedIOLimits::MaxUnsignedSize)
+    {
+      E("invalid size of the matrix data: %lld bytes", size);
+      delete subHeader;
+
+      RETURN(false);
+      return false;
+    }
+    matrixSize = static_cast<unsigned int>(size);
     matrixData = new char[matrixSize];
 
     // now we read in the whole data at once
@@ -511,9 +528,19 @@ bool CPhilipsDirectoryItem::readMatrix(QByteArray*& matrixData, CPhilipsSubHeade
   if(readMatrix(data, dataLen, subHeader) && dataLen > 0)
   {
     // copy the raw data into a QByteArray
-    matrixData = new QByteArray(data, dataLen);
+    if(MedIOLimits::fitsByteArray(dataLen))
+    {
+      matrixData = new QByteArray(data, static_cast<int>(dataLen));
+      result = true;
+    }
+    else
+    {
+      E("the matrix data (%u bytes) is too large for a QByteArray", dataLen);
+      delete subHeader;
+      subHeader = NULL;
+    }
+
     delete [] data;
-    result = true;
   }
 
   RETURN(result);
@@ -742,10 +769,18 @@ bool CPhilipsDirectoryItem::writeMatrix(const char* matrixData, unsigned int mat
 {
   ENTER();
   bool result = true;
-  
+
   // check if the file associated with this item is writeable at all
   if(m_pData->file == NULL || m_pData->file->isWritable() == false)
   {
+    RETURN(false);
+    return false;
+  }
+
+  // the data is compressed as QByteArray (qCompress())
+  if(MedIOLimits::fitsByteArray(matrixSize) == false)
+  {
+    E("the matrix data (%u bytes) is too large for a QByteArray", matrixSize);
     RETURN(false);
     return false;
   }

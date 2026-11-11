@@ -26,13 +26,13 @@
 
 #include <cmath>
 #include <cstring>
-#include <limits>
 
 #include <rtdebug.h>
 
-// largest voxel data of a volume: its size is an int (QByteArray), Qt5 needs
-// some bytes of it for its own header (same limit as MedIOMatrix::MaxDataSize)
-static const qint64 MaxDataSize = std::numeric_limits<int>::max() - 64;
+#include "MedIOLimits.h"
+
+// largest voxel data of a volume (a QByteArray)
+static const qint64 MaxDataSize = MedIOLimits::MaxByteArraySize;
 
 class CMedIOVolumePrivate {
   public:

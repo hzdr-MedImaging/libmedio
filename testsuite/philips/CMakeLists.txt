@@ -55,3 +55,17 @@ add_test(NAME philips_write
          COMMAND testPhilipsWrite
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# reading Philips .bin files
+add_executable(testPhilipsBinFile testPhilipsBinFile.cpp)
+
+target_link_libraries(testPhilipsBinFile Qt5::Core
+                                         Qt5::Test
+                                         ${CMAKE_PROJECT_NAME}-static
+                                         ${RTDEBUG_STATIC_LIB}
+)
+
+add_test(NAME philips_bin_file
+         COMMAND testPhilipsBinFile
+         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

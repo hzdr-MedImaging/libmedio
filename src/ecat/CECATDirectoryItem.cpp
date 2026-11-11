@@ -29,6 +29,7 @@
 #include "CECAT7SubHeaderScan3D.h"
 
 #include "bswap.h"
+#include "MedIOLimits.h"
 
 #include <rtdebug.h>
 
@@ -361,9 +362,15 @@ bool CECATDirectoryItem::readMatrix(QByteArray*& matrixData)
   if(readMatrix(data, dataLen) && dataLen > 0)
   {
     // copy the raw data into a QByteArray
-    matrixData = new QByteArray(data, dataLen);
+    if(MedIOLimits::fitsByteArray(dataLen))
+    {
+      matrixData = new QByteArray(data, static_cast<int>(dataLen));
+      result = true;
+    }
+    else
+      E("the matrix data (%u bytes) is too large for a QByteArray", dataLen);
+
     delete [] data;
-    result = true;
   }
 
   RETURN(result);
@@ -418,8 +425,17 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
     ASSERT(m_pData->file->pos() == (m_pData->dataBlock_Start+subHeader->rawDataSize()));
 
     // then we allocate some memory for loading the matrixdata
-    // this should be:
-    matrixSize = m_pData->dataBlock_End-m_pData->dataBlock_Start-subHeader->rawDataSize()+ECAT_BLOCKSIZE;
+    // (up to the end of its last block)
+    const qint64 size = m_pData->dataBlock_End-m_pData->dataBlock_Start-subHeader->rawDataSize()+ECAT_BLOCKSIZE;
+    if(size <= 0 || size > MedIOLimits::MaxUnsignedSize)
+    {
+      E("invalid size of the matrix data: %lld bytes", size);
+      delete subHeader;
+
+      RETURN(false);
+      return false;
+    }
+    matrixSize = static_cast<unsigned int>(size);
     matrixData = new char[matrixSize];
 
     // now we read in the whole data at once
@@ -546,9 +562,19 @@ bool CECATDirectoryItem::readMatrix(QByteArray*& matrixData, CECATSubHeader*& su
   if(readMatrix(data, dataLen, subHeader) && dataLen > 0)
   {
     // copy the raw data into a QByteArray
-    matrixData = new QByteArray(data, dataLen);
+    if(MedIOLimits::fitsByteArray(dataLen))
+    {
+      matrixData = new QByteArray(data, static_cast<int>(dataLen));
+      result = true;
+    }
+    else
+    {
+      E("the matrix data (%u bytes) is too large for a QByteArray", dataLen);
+      delete subHeader;
+      subHeader = NULL;
+    }
+
     delete [] data;
-    result = true;
   }
 
   RETURN(result);

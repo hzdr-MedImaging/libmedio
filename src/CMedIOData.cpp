@@ -24,12 +24,25 @@
 #include "CMedIOHeader.h"
 #include "CMedIOMatrix.h"
 #include "CMedIOVolume.h"
+#include "MedIOLimits.h"
 
 #include <QString>
 
 #include <cstring>
 
 #include <rtdebug.h>
+
+// matrix data given as pointer and length is wrapped into a QByteArray: false
+// (error status set) if the length does not fit into one
+static bool matrixFitsByteArray(unsigned int size, int& errorStatus)
+{
+  if(MedIOLimits::fitsByteArray(size))
+    return true;
+
+  E("the matrix data (%u bytes) is too large for a QByteArray", size);
+  errorStatus = CMedIOData::MERR_Unspecified;
+  return false;
+}
 
 //  Class: CMedIOData
 //  Constructor: CMedIOData
@@ -180,8 +193,8 @@ bool CMedIOData::writeMatrix(const char* matrixData, unsigned int size, const CM
                              short frame, const CMedIOHeader* mainHeader)
 {
   ENTER();
-  bool result = (matrixData != NULL) &&
-                writeMatrix(QByteArray::fromRawData(matrixData, size), subHeader, frame, mainHeader);
+  bool result = (matrixData != NULL) && matrixFitsByteArray(size, m_iErrStatus) &&
+                writeMatrix(QByteArray::fromRawData(matrixData, static_cast<int>(size)), subHeader, frame, mainHeader);
   RETURN(result);
   return result;
 }
@@ -207,8 +220,8 @@ bool CMedIOData::writeMatrix(const char* matrixData, unsigned int size, const CM
                              CMedIOData::Format format, short frame, const CMedIOHeader* mainHeader)
 {
   ENTER();
-  bool result = (matrixData != NULL) &&
-                writeMatrix(QByteArray::fromRawData(matrixData, size), subHeader, format, frame, mainHeader);
+  bool result = (matrixData != NULL) && matrixFitsByteArray(size, m_iErrStatus) &&
+                writeMatrix(QByteArray::fromRawData(matrixData, static_cast<int>(size)), subHeader, format, frame, mainHeader);
   RETURN(result);
   return result;
 }
