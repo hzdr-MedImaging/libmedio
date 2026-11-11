@@ -283,6 +283,18 @@ def test_volume_defaults_and_errors():
     assert v.position(0, 0, 0) == pytest.approx((5.0, 6.0, 7.0))
 
 
+def test_volume_physical_values_too_large():
+    # 1024 x 1024 x 513 uint8 voxels (538 MB) are 2.16 GB as float32, more
+    # than the voxel data of a volume can hold (formerly a crash)
+    v = pmedio.Volume(np.zeros((1024, 1024, 513), dtype=np.uint8))
+    with pytest.raises(ValueError, match="larger than 2 GiB"):
+        v.values()
+    with pytest.raises(ValueError, match="larger than 2 GiB"):
+        v.convert_to_physical_values()
+    assert v.dtype == np.uint8
+    assert v.shape == (1024, 1024, 513)
+
+
 def test_volume_plane_scale_factors():
     data = np.ones((2, 2, 3), dtype=np.int16)
     v = pmedio.Volume(data)

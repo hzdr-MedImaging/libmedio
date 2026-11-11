@@ -97,7 +97,14 @@ bool convertStoredValues(CMedIOVolume& v, CMedIOVolume::DataType type)
   }
 
   const qint64 voxels = v.voxelCount();
-  QByteArray data(voxels * CMedIOVolume::bytesPerVoxel(type), '\0');
+  const qint64 size = voxels * CMedIOVolume::bytesPerVoxel(type);
+  if(size > MaxDataSize) {
+    E("%lld voxels of data type %d (%lld bytes) do not fit into a volume", voxels, static_cast<int>(type), size);
+    RETURN(false);
+    return false;
+  }
+
+  QByteArray data(static_cast<int>(size), '\0');
   for(qint64 i=0; i < voxels; i++)
     setStored(data.data(), i, type, v.storedValue(i));
 
@@ -162,9 +169,15 @@ bool fitDataType(CMedIOVolume& v, unsigned allowed, bool planeScales, bool inter
   }
 
   // physical values as float32 (float64 if the target supports it)
-  v.convertToPhysicalValues();
-  if(v.dataType() == CMedIOVolume::Float64 && (allowed & typeBit(CMedIOVolume::Float64)) == 0)
-    convertStoredValues(v, CMedIOVolume::Float32);
+  if(v.convertToPhysicalValues() == false) {
+    RETURN(false);
+    return false;
+  }
+  if(v.dataType() == CMedIOVolume::Float64 && (allowed & typeBit(CMedIOVolume::Float64)) == 0 &&
+     convertStoredValues(v, CMedIOVolume::Float32) == false) {
+    RETURN(false);
+    return false;
+  }
 
   bool result = (allowed & typeBit(v.dataType())) != 0;
   if(result == false)

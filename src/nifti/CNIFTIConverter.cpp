@@ -332,8 +332,8 @@ bool loadPhilips(const QString& fileName, EcatImage& image, QString* error)
     }
 
     // stored values as ECAT7 data type: unsigned 16 bit values are kept as 32 bit integers
-    if(volume.dataType() == CMedIOVolume::UInt16)
-      MedIOMatrix::convertStoredValues(volume, CMedIOVolume::Int32);
+    if(volume.dataType() == CMedIOVolume::UInt16 && MedIOMatrix::convertStoredValues(volume, CMedIOVolume::Int32) == false)
+      return fail(error, QString("frame %1 of %2 is too large to be converted").arg(frame).arg(fileName));
 
     QVector<double> scales(nz);
     for(int k=0; k < nz; k++)

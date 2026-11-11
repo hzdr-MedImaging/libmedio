@@ -50,6 +50,8 @@
 #include <QList>
 #include <QString>
 
+#include <limits>
+
 #include "CMedIOData.h"
 #include "CMedIOVolume.h"
 #include "CECATMainHeader.h"
@@ -90,6 +92,10 @@ namespace MedIOMatrix {
 
 //! bit of a CMedIOVolume data type in a mask of allowed data types
 inline unsigned typeBit(CMedIOVolume::DataType type) { return 1u << static_cast<int>(type); }
+
+//! largest voxel data of a frame (bytes): it is held in a QByteArray, whose
+//! size is an int; Qt5 needs some bytes of it for its own header
+const qint64 MaxDataSize = std::numeric_limits<int>::max() - 64;
 
 //! convert the data type of v into one of the allowed types (see above);
 //! planeScales/intercept: the target supports scale factors per plane/an intercept

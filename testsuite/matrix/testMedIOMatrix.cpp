@@ -482,6 +482,7 @@ class TestMedIOMatrix : public QObject
     void writeMainHeaderFormat();
 
     void errors();
+    void largeFrames();
 };
 
 void TestMedIOMatrix::initTestCase()
@@ -3136,6 +3137,76 @@ void TestMedIOMatrix::errors()
   QVERIFY(createEcat(out2, CECAT7MainHeader(NULL, CECATMainHeader::ECAT7_Volume16)));
   QVERIFY(out2.writeVolume(CMedIOVolume(), 1) == false);
   out2.close();
+}
+
+//---------------------------------------------------------------------------------------------
+// frames close to the size limit of the voxel data of a volume (a QByteArray, < 2 GB)
+
+void TestMedIOMatrix::largeFrames()
+{
+  // uint16 volume of 1024 x 1024 x 513 voxels (1.08 GB) written into an ECAT7
+  // file: ECAT7 has no uint16, the values would be widened to 32 bit
+  // integers (2.16 GB). The frame is rejected (no crash).
+  {
+    const int nx = 1024, ny = 1024, nz = 513;
+    const qint64 voxels = static_cast<qint64>(nx) * ny * nz;
+    QVERIFY(voxels * 4 > std::numeric_limits<int>::max());
+
+    CMedIOVolume volume;
+    QVERIFY(volume.setData(nx, ny, nz, CMedIOVolume::UInt16, QByteArray(static_cast<int>(voxels * 2), '\x7f')));
+    const double lpi[3][4] = { { 2, 0, 0, 0 }, { 0, 2, 0, 0 }, { 0, 0, -3, 0 } };  // ECAT7 voxel order
+    volume.setAffine(lpi);
+
+    CECATFile out(tmpFile("large.v"), CECATMainHeader::ECAT7_Volume16);
+    CECAT7MainHeader mainHeader(NULL, CECATMainHeader::ECAT7_Volume16);
+    mainHeader.setCalibration_Factor(1.0f);
+    QVERIFY(createEcat(out, mainHeader));
+    QVERIFY(out.writeVolume(volume, 1) == false);
+    QVERIFY(out.frameNumbers().isEmpty());
+    out.close();
+  }
+
+  // uint8 frame of 1024 x 1024 x 257 voxels written into a NIfTI file with
+  // another scaling: the values are converted into the datatype of the file
+  // (the former intermediate buffer of doubles needed 2.16 GB)
+  {
+    Synthetic s;
+    s.nx = 1024; s.ny = 1024; s.nz = 257;
+    s.datatype = 2; // DT_UINT8
+    const qint64 voxels = s.voxels();
+    QVERIFY(voxels * static_cast<qint64>(sizeof(double)) > std::numeric_limits<int>::max());
+
+    QByteArray values(static_cast<int>(voxels), '\0');
+    for(qint64 n=0; n < voxels; n++)
+      values[static_cast<int>(n)] = static_cast<char>(n % 128);
+
+    CNIFTIFile file(tmpFile("large.nii"), CNIFTIMainHeader::NIFTI1);
+    QVERIFY(createNifti(file, s));
+
+    // physical value = stored value x 2: stored as 2 x value with scl_slope 1
+    CECAT7SubHeaderImage sub;
+    sub.setData_Type(CECATSubHeader::ByteData);
+    sub.setScale_Factor(2.0f);
+    sub.setX_Dimension(s.nx); sub.setY_Dimension(s.ny); sub.setZ_Dimension(s.nz);
+    QVERIFY(file.writeMatrix(values, sub, 1));
+    file.close();
+    values.clear();
+
+    // ECAT7 voxel (i, j, k) is NIfTI voxel (i, j, nz-1-k)
+    const QByteArray written = readAll(tmpFile("large.nii"));
+    QCOMPARE(static_cast<qint64>(written.size()), voxels);
+    const qint64 planeVoxels = static_cast<qint64>(s.nx) * s.ny;
+    const quint8* stored = reinterpret_cast<const quint8*>(written.constData());
+    for(int k=0; k < s.nz; k++) {
+      const qint64 ecat = k * planeVoxels;
+      const qint64 nifti = (s.nz - 1 - k) * planeVoxels;
+      for(qint64 n=0; n < planeVoxels; n++) {
+        if(stored[nifti + n] != 2 * ((ecat + n) % 128))
+          QFAIL(qPrintable(QString("plane %1, voxel %2: %3 instead of %4").arg(k).arg(n).arg(stored[nifti + n]).arg(2 * ((ecat + n) % 128))));
+      }
+    }
+    QVERIFY(QFile::remove(tmpFile("large.nii")));
+  }
 }
 
 QTEST_GUILESS_MAIN(TestMedIOMatrix)

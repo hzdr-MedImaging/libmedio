@@ -582,8 +582,10 @@ bool niftiMainHeaderFromFrame(const CMedIOFrame& f, CMedIOData* source, CMedIOHe
     same = fitDataType(w, niftiTypes, false, true) && w.dataType() == v.dataType() &&
            w.scaleFactor() == v.scaleFactor() && w.intercept() == v.intercept();
   }
-  if(same == false)
-    v.convertToPhysicalValues();
+  if(same == false && v.convertToPhysicalValues() == false) {
+    RETURN(false);
+    return false;
+  }
 
   header = niftiHeader(f, v);
 
@@ -667,7 +669,17 @@ bool writeNiftiFrame(CNIFTIFile* file, short frame, const CMedIOFrame& f)
       }
     }
 
-    QVector<double> stored(voxels);
+    // store the values with the type of the file (without an intermediate
+    // buffer of doubles, which would need 8 bytes per voxel)
+    const qint64 size = voxels * CMedIOVolume::bytesPerVoxel(type);
+    if(size > MaxDataSize) {
+      E("%lld voxels of NIfTI datatype %d (%lld bytes) are too large for a frame", voxels, n.datatype, size);
+      RETURN(false);
+      return false;
+    }
+
+    QByteArray typed(static_cast<int>(size), '\0');
+    char* d = typed.data();
     for(qint64 i=0; i < voxels; i++) {
       double value = (v.value(i) - n.inter) / n.slope;
       if(integer) {
@@ -679,25 +691,23 @@ bool writeNiftiFrame(CNIFTIFile* file, short frame, const CMedIOFrame& f)
           return false;
         }
       }
-      stored[i] = value;
-    }
 
-    // store the values with the type of the file
-    QByteArray typed(voxels * CMedIOVolume::bytesPerVoxel(type), '\0');
-    for(qint64 i=0; i < voxels; i++) {
-      char* d = typed.data();
       switch(type) {
-        case CMedIOVolume::UInt8:   reinterpret_cast<quint8*>(d)[i] = static_cast<quint8>(stored[i]); break;
-        case CMedIOVolume::Int8:    reinterpret_cast<qint8*>(d)[i] = static_cast<qint8>(stored[i]); break;
-        case CMedIOVolume::Int16:   reinterpret_cast<qint16*>(d)[i] = static_cast<qint16>(stored[i]); break;
-        case CMedIOVolume::UInt16:  reinterpret_cast<quint16*>(d)[i] = static_cast<quint16>(stored[i]); break;
-        case CMedIOVolume::Int32:   reinterpret_cast<qint32*>(d)[i] = static_cast<qint32>(stored[i]); break;
-        case CMedIOVolume::UInt32:  reinterpret_cast<quint32*>(d)[i] = static_cast<quint32>(stored[i]); break;
-        case CMedIOVolume::Float32: reinterpret_cast<float*>(d)[i] = static_cast<float>(stored[i]); break;
-        default:                    reinterpret_cast<double*>(d)[i] = stored[i]; break;
+        case CMedIOVolume::UInt8:   reinterpret_cast<quint8*>(d)[i] = static_cast<quint8>(value); break;
+        case CMedIOVolume::Int8:    reinterpret_cast<qint8*>(d)[i] = static_cast<qint8>(value); break;
+        case CMedIOVolume::Int16:   reinterpret_cast<qint16*>(d)[i] = static_cast<qint16>(value); break;
+        case CMedIOVolume::UInt16:  reinterpret_cast<quint16*>(d)[i] = static_cast<quint16>(value); break;
+        case CMedIOVolume::Int32:   reinterpret_cast<qint32*>(d)[i] = static_cast<qint32>(value); break;
+        case CMedIOVolume::UInt32:  reinterpret_cast<quint32*>(d)[i] = static_cast<quint32>(value); break;
+        case CMedIOVolume::Float32: reinterpret_cast<float*>(d)[i] = static_cast<float>(value); break;
+        default:                    reinterpret_cast<double*>(d)[i] = value; break;
       }
     }
-    converted.setData(v.dimension(0), v.dimension(1), v.dimension(2), type, typed);
+
+    if(converted.setData(v.dimension(0), v.dimension(1), v.dimension(2), type, typed) == false) {
+      RETURN(false);
+      return false;
+    }
   }
 
   // reorder from the ECAT7 voxel order into the voxel order of the file

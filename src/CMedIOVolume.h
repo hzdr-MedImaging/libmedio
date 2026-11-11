@@ -96,8 +96,10 @@ class CMedIOVolume {
     double intercept() const;
 
     //! convert the stored values into physical values (Float32, or Float64 if
-    //! the data is Float64), scale factor 1 and intercept 0
-    void convertToPhysicalValues();
+    //! the data is Float64), scale factor 1 and intercept 0; false (volume
+    //! unchanged) if the physical values do not fit into the voxel data of a
+    //! volume (a QByteArray, i.e. less than 2 GB)
+    bool convertToPhysicalValues();
 
     //! geometry: affine m (3 x 4) transforming voxel (i, j, k) into LPS (mm)
     void setAffine(const double m[3][4]);
@@ -115,7 +117,10 @@ class CMedIOVolume {
     //! reorder the voxels so that the voxel axes point to the patient
     //! directions of the given orientation code (e.g. "LPI"); the geometry
     //! is adjusted, so every voxel keeps its position. Oblique axes are
-    //! assigned to the closest patient axis (oblique is set to true).
+    //! assigned to the closest patient axis (oblique is set to true). Planes
+    //! with different scale factors that do not stay planes are converted
+    //! into physical values first (false if that is not possible, see
+    //! convertToPhysicalValues()).
     bool reorient(const QString& orientation, bool* oblique = NULL);
 
     //! frame timing (s)

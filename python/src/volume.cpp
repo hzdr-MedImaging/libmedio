@@ -398,11 +398,14 @@ scale factor, intercept and frame timing (s).
     .def("stored", &storedArray, "the stored values as numpy array of shape (nx, ny, nz) (a copy)")
     .def("values", [](const CMedIOVolume& self) {
       CMedIOVolume physical(self);
-      physical.convertToPhysicalValues();
+      if(physical.convertToPhysicalValues() == false)
+        raise(PyExc_ValueError, "the physical values are larger than 2 GiB");
       return storedArray(physical);
     }, "the physical values as float32 array (float64 for float64 data) of shape (nx, ny, nz)")
-    .def("convert_to_physical_values", &CMedIOVolume::convertToPhysicalValues,
-         "store the physical values (float32, float64 for float64 data) with scale factor 1 and intercept 0")
+    .def("convert_to_physical_values", [](CMedIOVolume& self) {
+      if(self.convertToPhysicalValues() == false)
+        raise(PyExc_ValueError, "the physical values are larger than 2 GiB");
+    }, "store the physical values (float32, float64 for float64 data) with scale factor 1 and intercept 0")
 
     .def_property("scale_factor",
       [](const CMedIOVolume& self) {
