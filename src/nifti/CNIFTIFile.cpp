@@ -643,14 +643,27 @@ void CNIFTIFile::close(void) {
   CNIFTIFilePrivate* d = m_pData;
 
   // compress the temporary files of a compressed file opened for writing
-  const bool compress = d->compressed && d->temporaryFile != NULL && isWritable();
+  const bool writing = isOpen() && isWritable();
+  const bool compress = d->compressed && d->temporaryFile != NULL && writing;
+
+  // data still buffered is written now: errors (e.g. a full disk) are reported
+  // by errorStatus()
+  bool result = true;
+  if(writing) {
+    result = QFile::flush();
+    if(d->imageFile && d->imageFile->isOpen())
+      result = d->imageFile->flush() && result;
+  }
 
   QFile::close();
   if(d->imageFile)
     d->imageFile->close();
 
-  if(compress) {
-    bool result = compressGzipFile(d->temporaryFile->fileName(), d->headerFileName);
+  if(writing && result == false)
+    E("Unable to write NIfTI file %s", d->originalFileName.toLocal8Bit().constData());
+
+  if(compress && result) {
+    result = compressGzipFile(d->temporaryFile->fileName(), d->headerFileName);
 
     if(result && d->pair && d->imageTemporaryFile)
       result = compressGzipFile(d->imageTemporaryFile->fileName(), d->imageFileName);
@@ -660,6 +673,9 @@ void CNIFTIFile::close(void) {
     else
       E("Unable to compress NIfTI file %s", d->originalFileName.toLocal8Bit().constData());
   }
+
+  if(writing)
+    m_iErrStatus = result ? MERR_Ok : MERR_Unspecified;
 
   d->release();
 
@@ -1097,10 +1113,14 @@ bool CNIFTIFile::writeMatrix(const QByteArray& matrixData, short frame) {
     if(matrixData.size() != size) {
       E("size of the volume (%d bytes) does not match the main header (%lld bytes)", matrixData.size(), size);
     } else if(file->seek(offset)) {
-      // the voxel data has to be stored in the byte order of the main header
-      QByteArray data(matrixData);
-      swapMatrix(data.data(), size, swapSize);
-      result = (file->write(data) == size);
+      if(swapSize > 1) {
+        // the voxel data has to be stored in the byte order of the main header
+        QByteArray data(matrixData);
+        swapMatrix(data.data(), size, swapSize);
+        result = (file->write(data) == size);
+      } else {
+        result = (file->write(matrixData) == size);
+      }
     }
   }
 

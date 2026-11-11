@@ -1487,11 +1487,66 @@ void TestNIFTIConversion::errors()
   QVERIFY(CNIFTIConverter::ecatToNifti(tmpFile("error.v"), tmpFile("blocked.hdr"), CNIFTIConverter::Options(), &error) == false);
   QVERIFY(QFile::exists(tmpFile("blocked.hdr")) == false);
 
+  // the compressed file cannot be created (a directory of that name): no
+  // sidecar file is left behind (a compressed file that cannot be written
+  // when it is closed is tested in testNIFTIFormat)
+  QVERIFY(QDir(m_tmp.path()).mkdir("blocked.nii.gz"));
+  CNIFTIConverter::Options sidecarOptions;
+  sidecarOptions.jsonSidecar = true;
+  QVERIFY(CNIFTIConverter::ecatToNifti(tmpFile("error.v"), tmpFile("blocked.nii.gz"), sidecarOptions, &error) == false);
+  QVERIFY(QFileInfo(tmpFile("blocked.nii.gz")).isDir());
+  QVERIFY(QFile::exists(tmpFile("blocked.json")) == false);
+
   // NIfTI pair without image file
   QVERIFY2(CNIFTIConverter::ecatToNifti(tmpFile("error.v"), tmpFile("noimage.hdr"), CNIFTIConverter::Options(), &error), qPrintable(error));
   QVERIFY(QFile::remove(tmpFile("noimage.img")));
   QVERIFY(CNIFTIConverter::niftiToEcat(tmpFile("noimage.hdr"), tmpFile("noimage.v"), &error) == false);
   QVERIFY(QFile::exists(tmpFile("noimage.v")) == false);
+
+  // the ECAT7 main header defines more frames (num_Frames) than the file
+  // contains: no incomplete NIfTI file is written
+  {
+    CECATFile file(tmpFile("frames.v"), CECATMainHeader::ECAT7_Volume16);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+
+    CECAT7MainHeader mainHeader(&file, CECATMainHeader::ECAT7_Volume16);
+    mainHeader.setNum_Frames(3);
+    mainHeader.setNum_Planes(2);
+    mainHeader.setCalibration_Factor(1.0f);
+    QVERIFY(file.writeMainHeader(mainHeader));
+
+    QByteArray matrix(4 * 3 * 2 * sizeof(qint16), '\1');
+    for(short f=1; f <= 2; f++) {
+      CECAT7SubHeaderImage subHeader(&file);
+      subHeader.setData_Type(CECATSubHeader::SunShort);
+      subHeader.setNum_Dimensions(3);
+      subHeader.setX_Dimension(4);
+      subHeader.setY_Dimension(3);
+      subHeader.setZ_Dimension(2);
+      subHeader.setScale_Factor(f);
+      QVERIFY(file.writeSubHeader(subHeader, f));
+      QVERIFY(file.writeMatrix(matrix, f));
+    }
+    file.close();
+  }
+  {
+    // CECATFile keeps num_Frames in sync with the frames: set it in the file
+    // (big endian short at offset 354 of the ECAT7 main header)
+    QFile file(tmpFile("frames.v"));
+    const char numFrames[2] = { 0, 3 };
+    QVERIFY(file.open(QIODevice::ReadWrite) && file.seek(354) && file.write(numFrames, 2) == 2);
+    file.close();
+
+    CECATFile ecat(tmpFile("frames.v"));
+    CECATMainHeader* mainHeader = NULL;
+    QVERIFY(ecat.open(QIODevice::ReadOnly) && ecat.readMainHeader(mainHeader) && mainHeader != NULL);
+    QCOMPARE(static_cast<int>(static_cast<CECAT7MainHeader*>(mainHeader)->num_Frames()), 3);
+    QCOMPARE(ecat.frameNumbers().size(), 2);
+    delete mainHeader;
+    ecat.close();
+  }
+  QVERIFY(CNIFTIConverter::ecatToNifti(tmpFile("frames.v"), tmpFile("frames.nii"), CNIFTIConverter::Options(), &error) == false);
+  QVERIFY(QFile::exists(tmpFile("frames.nii")) == false);
 }
 
 QTEST_GUILESS_MAIN(TestNIFTIConversion)

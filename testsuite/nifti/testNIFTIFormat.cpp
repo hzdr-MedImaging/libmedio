@@ -718,6 +718,28 @@ void TestNIFTIFormat::testPairFiles()
     CNIFTIFile niftiFile(tmpDir.filePath("missing/dir.nii.gz"), CNIFTIMainHeader::NIFTI1);
     QVERIFY(niftiFile.open(QIODevice::WriteOnly) == false);
   }
+
+  // a compressed file is written when it is closed: errorStatus() reports
+  // whether that succeeded (here the file is replaced by a directory before)
+  const qint64 dims[8] = { 3, 5, 4, 3, 1, 1, 1, 1 };
+  const char* names[] = { "closed.nii.gz", "notclosed.nii.gz" };
+  for(int n=0; n < 2; n++) {
+    const QString fileName = tmpDir.filePath(names[n]);
+    CNIFTIFile niftiFile(fileName, CNIFTIMainHeader::NIFTI1);
+    QVERIFY(niftiFile.open(QIODevice::WriteOnly));
+
+    QScopedPointer<CNIFTIMainHeader> header(niftiFile.createEmptyHeader());
+    fillHeader(static_cast<CNIFTI1MainHeader*>(header.data()), dims, QSysInfo::LittleEndian);
+    QVERIFY(niftiFile.writeMainHeader(*header));
+    QVERIFY(niftiFile.writeMatrix(patternMatrix(5 * 4 * 3)));
+
+    if(n == 1)
+      QVERIFY(QFile::remove(fileName) && QDir(tmpDir.path()).mkdir(names[n]));
+
+    niftiFile.close();
+    QCOMPARE(niftiFile.errorStatus(), static_cast<int>(n == 0 ? CMedIOData::MERR_Ok : CMedIOData::MERR_Unspecified));
+    QCOMPARE(QFileInfo(fileName).isFile(), n == 0);
+  }
 }
 
 //---------------------------------------------------------------------------------------------

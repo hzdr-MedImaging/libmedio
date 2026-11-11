@@ -68,6 +68,23 @@ add_test(NAME nifti_conversion
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+# conversion of an image larger than 2 GB: needs about 3.3 GB of temporary
+# disk space and 1.5 GB of memory (ctest -LE large skips it)
+add_executable(testNIFTILargeImage testNIFTILargeImage.cpp)
+
+target_link_libraries(testNIFTILargeImage Qt5::Core
+                                          Qt5::Test
+                                          ZLIB::ZLIB
+                                          ${CMAKE_PROJECT_NAME}-static
+                                          ${RTDEBUG_STATIC_LIB}
+)
+
+add_test(NAME nifti_large_image
+         COMMAND testNIFTILargeImage
+         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+set_tests_properties(nifti_large_image PROPERTIES LABELS large)
+
 add_executable(testNIFTIDatasets testNIFTIDatasets.cpp)
 
 target_include_directories(testNIFTIDatasets PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../common)
