@@ -108,6 +108,11 @@ class CNIFTIFile : public CMedIOData { // CNIFTIFile class inherits from CMedIOD
         bool readMatrix(char*& matrixData, unsigned int& len);
 
     // methods to write out headers/data to the file.
+    // writeMainHeader() is the same as MainHeader.save() for a header of this
+    // file: it writes the header and stores its attributes (see
+    // CMedIOHeader::attributes()) as JSON and DICOM header extensions, readable
+    // by nibabel and PMOD, and sets descrip as PMOD writes it ("<patient name>
+    // [<study type>] <study description>") unless it was set to something else
         bool writeMainHeader(CNIFTIMainHeader& MainHeader);
 
         bool writeMatrix(const QByteArray& matrixData);
@@ -119,6 +124,14 @@ class CNIFTIFile : public CMedIOData { // CNIFTIFile class inherits from CMedIOD
     // header has to be written first; the volumes can be written in any order.
         bool readMatrix(QByteArray*& matrixData, short frame);
         bool writeMatrix(const QByteArray& matrixData, short frame);
+
+    // as writeMatrix(matrixData, frame), storing the start time and duration
+    // (s) of the volume (dim[4]) in the metadata header extensions (JSON:
+    // FrameTimesStart/FrameDuration, DICOM: frame timing of PMOD), as the
+    // NIfTI header can only describe equally spaced volumes (toffset,
+    // pixdim[4]). Fails without writing if the timing cannot be stored (e.g.
+    // other header extensions than the metadata, or volumes of dim[5..7]).
+        bool writeMatrix(const QByteArray& matrixData, short frame, double frameStart, double frameDuration);
 
 //=============================================================================================
 

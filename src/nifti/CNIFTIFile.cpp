@@ -19,6 +19,7 @@
 
 #include "CNIFTIFile.h"
 #include "CMedIOHeaderMapping.h"
+#include "CMedIOMatrix.h"
 #include "CMedIOData.h"
 #include "CNIFTI1MainHeader.h"
 #include "CNIFTI2MainHeader.h"
@@ -742,52 +743,11 @@ bool CNIFTIFile::readMainHeader(CNIFTIMainHeader*& MainHeader) {
 bool CNIFTIFile::writeMainHeader(CNIFTIMainHeader& MainHeader) {
   ENTER();
 
-  // the attributes of the header are stored as JSON and DICOM header
+  // the header saves itself with its attributes as JSON and DICOM header
   // extensions (between the header and vox_offset in single files, at the end
-  // of the header file of header/image pairs, see CNIFTIExtensions.h)
-  const QJsonObject attributes = MainHeader.attributes();
-  const QJsonObject json = MedIOHeaderMapping::niftiJson(attributes);
-  const bool nifti2 = (MainHeader.mainHeaderType() == CNIFTIMainHeader::NIFTI2MainHeader);
-  CNIFTI1MainHeader* h1 = nifti2 ? NULL : static_cast<CNIFTI1MainHeader*>(&MainHeader);
-  CNIFTI2MainHeader* h2 = nifti2 ? static_cast<CNIFTI2MainHeader*>(&MainHeader) : NULL;
-
-  // descrip as written by PMOD ("<patient name> [<study type>] <study
-  // description>"), unless it was set to something else than libmedio's default
-  const char* descrip = nifti2 ? h2->descrip() : h1->descrip();
-  const QByteArray current = QByteArray(descrip, static_cast<int>(qstrnlen(descrip, 80))).trimmed();
-  const QString description = NIFTIExtensions::niftiDescription(attributes);
-  if(description.isEmpty() == false && (current.isEmpty() || current == "converted by libmedio")) {
-    if(nifti2)
-      h2->setDescrip(description.toLatin1().constData());
-    else
-      h1->setDescrip(description.toLatin1().constData());
-  }
-
-  if(json.isEmpty() == false && isPair() == false) {
-    const qint64 headerSize = nifti2 ? 540 : 348;
-    const qint64 extensionSize = nifti2 ? h2->headerExtensionSize(json) : h1->headerExtensionSize(json);
-    const qint64 voxOffset = nifti2 ? h2->vox_Offset() : static_cast<qint64>(h1->vox_Offset());
-    const qint64 required = headerSize + 4 + extensionSize;
-
-    if(voxOffset < required) {
-      // the voxel data must not be moved
-      if(QFile::exists(fileName()) && QFileInfo(fileName()).size() > voxOffset && voxOffset > 0) {
-        E("no space for the attributes before the voxel data");
-        RETURN(false);
-        return false;
-      }
-      if(nifti2)
-        h2->setVox_Offset(required);
-      else
-        h1->setVox_Offset(static_cast<float>(required));
-    }
-  }
-
-  // save the header to the file
+  // of the header file of header/image pairs) and the descrip of PMOD, see
+  // CNIFTIExtensions.h, so that a direct save() of the header writes the same
   bool result = MainHeader.save();
-
-  if(result && json.isEmpty() == false)
-    result = nifti2 ? h2->writeHeaderExtension(*this, json) : h1->writeHeaderExtension(*this, json);
 
   RETURN(result);
   return result;
@@ -1144,6 +1104,26 @@ bool CNIFTIFile::writeMatrix(const QByteArray& matrixData, short frame) {
         result = (file->write(matrixData) == size);
       }
     }
+  }
+
+  RETURN(result);
+  return result;
+}
+//------------------------------------------------------------------------------------------------
+bool CNIFTIFile::writeMatrix(const QByteArray& matrixData, short frame, double frameStart, double frameDuration) {
+  ENTER();
+  bool result = false;
+  qint64 offset = 0;
+  qint64 size = 0;
+  int swapSize = 0;
+
+  // the size is checked before the timing is stored (which may move vox_offset)
+  if(isWritable() == false || m_pData->volumeLayout(frame, offset, size, swapSize) == false) {
+    E("the NIfTI main header has to be written first");
+  } else if(matrixData.size() != size) {
+    E("size of the volume (%d bytes) does not match the main header (%lld bytes)", matrixData.size(), size);
+  } else if(MedIOMatrix::storeNiftiFrameTiming(this, frame, frameStart, frameDuration)) {
+    result = writeMatrix(matrixData, frame);
   }
 
   RETURN(result);

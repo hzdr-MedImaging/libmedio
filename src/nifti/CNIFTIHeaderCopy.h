@@ -20,10 +20,14 @@
 #ifndef CNIFTIHEADERCOPY_H
 #define CNIFTIHEADERCOPY_H
 
-// private helper (not installed) used by the NIfTI-1/NIfTI-2 main header
-// classes to convert between both header versions.
+// private helpers (not installed) used by the NIfTI-1/NIfTI-2 main header
+// classes to convert between both header versions and from other formats.
 
 #include <QtGlobal>
+
+#include "CMedIOHeader.h"
+#include "CMedIOHeaderMapping.h"
+#include "CMedIOMatrix.h"
 
 // Copy all header fields of a NIfTI-1/NIfTI-2 header into another one. Fields
 // which are file specific (sizeof_hdr, magic, vox_offset, byte order) are left
@@ -86,6 +90,17 @@ static bool copyNIFTIHeaderFields(DST& dst, const SRC& src, qint64 maxValue)
   }
 
   return true;
+}
+
+// Give a NIfTI header converted from an ECAT7 or Philips main header and the
+// sub header of a frame the attributes of the source (see
+// MedIOMatrix::niftiAttributesOfSource()): CNIFTIFile::writeMainHeader() stores
+// them as header extensions, as for the files of CNIFTIConverter.
+template <class H>
+static void transferSourceAttributes(H& h, const CMedIOHeader* mainHeader, const CMedIOHeader* subHeader)
+{
+  const int volumes = (h.dim(0) >= 4 && h.dim(4) > 1) ? static_cast<int>(h.dim(4)) : 1;
+  MedIOHeaderMapping::transfer(MedIOMatrix::niftiAttributesOfSource(mainHeader, subHeader, volumes), h);
 }
 
 #endif // CNIFTIHEADERCOPY_H

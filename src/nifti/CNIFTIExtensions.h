@@ -91,6 +91,30 @@ QByteArray metadataExtensions(const QJsonObject& json, bool swap, qint64 size = 
 //! whatever the start times and durations are
 qint64 reservedSize(const QJsonObject& json, int volumes);
 
+//! what the save() of a NIfTI main header writes for its attributes (see
+//! prepareHeaderMetadata())
+struct HeaderMetadata {
+  bool setDescrip;     //!< descrip is replaced
+  QByteArray descrip;  //!< the new descrip (empty clears it)
+  qint64 voxOffset;    //!< vox_offset of a single file (unchanged if no room is needed)
+  QByteArray block;    //!< written behind the main header (extension indicator and
+                       //!< extensions, filling the room up to vox_offset), empty: nothing
+  qint64 fileSize;     //!< size of the header file of a pair afterwards, -1: unchanged
+};
+
+//! metadata of a NIfTI main header to be written (see CNIFTIFile::writeMainHeader()):
+//! the attributes as JSON and DICOM extensions (see MedIOHeaderMapping::niftiJson()),
+//! filling the room before the voxel data of single files (vox_offset is moved
+//! behind them if the file has no voxel data yet), and the descrip of PMOD if
+//! descrip is empty, the default of libmedio or a descrip of PMOD written for
+//! other attributes (cleared if the attributes give none, so that changed or
+//! removed attributes do not remain in descrip). Metadata extensions written
+//! before are overwritten completely (also when the attributes are removed),
+//! other extensions only if there are attributes to store. False if a single
+//! file with voxel data has no room for the extensions.
+bool prepareHeaderMetadata(QIODevice& file, bool pair, const QJsonObject& attributes, const QByteArray& descrip,
+                           qint64 headerSize, qint64 voxOffset, bool swap, HeaderMetadata& metadata);
+
 //! descrip of a NIfTI file written for the attributes, as PMOD writes it:
 //! "<PatientName> [<ECAT7 Study_Type>] <StudyDescription or SeriesDescription>",
 //! empty if the attributes have none of them

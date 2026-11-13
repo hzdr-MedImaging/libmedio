@@ -35,6 +35,7 @@
 #include <rtdebug.h>
 #include <iostream>
 
+#include <QPointer>
 #include <QScopedPointer>
 
 // we define the private inline class of that one so that we
@@ -43,7 +44,10 @@
 class CMedIOHeaderPrivate
 {
   public:
-    CMedIOData* medIOData;
+    // the file of the header: becomes NULL when the file object is destroyed,
+    // so that headers outliving their file (e.g. copies of the cached header)
+    // never refer to a deleted file
+    QPointer<CMedIOData> medIOData;
     QJsonObject attributes;   // attributes the format cannot store (see attributes())
 };
  
@@ -170,7 +174,7 @@ void CMedIOHeader::setMedIOData(CMedIOData* data)
   ENTER();
 
   m_pData->medIOData = data;
-  SHOWPOINTER(m_pData->medIOData);
+  SHOWPOINTER(m_pData->medIOData.data());
   
   LEAVE();
 }

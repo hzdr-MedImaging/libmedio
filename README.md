@@ -115,6 +115,33 @@ nifti2philips input.nii[.gz]|input.hdr[.gz]|input.img[.gz] [output.img|output.sy
 - Philips files are converted via the ECAT7 representation of libmedio; the
   x/y image position of Philips slices is not used.
 
+Applications get the same metadata when they write NIfTI files themselves:
+
+- With the generic interface (`writeMainHeader()`/`writeVolume()` of
+  `CMedIOData`), see [Format independent matrix access](#format-independent-matrix-access).
+- With the NIfTI classes directly:
+  - `CNIFTIFile::writeMainHeader()` and the `save()` of a NIfTI header store
+    its attributes as JSON and DICOM extensions and set `descrip`.
+  - `convertFrom()` of a NIfTI header takes over the attributes of the ECAT7,
+    Philips or other NIfTI version headers. While the source main header
+    belongs to an open file, this includes the timing of all frames.
+  - `CNIFTIFile::writeMatrix(data, frame, start, duration)` stores the timing
+    of a volume.
+  - A header changed and saved again (e.g. anonymized) replaces the metadata
+    extensions completely.
+  - `convertFrom()` of the ECAT7 headers takes over the attributes and frame
+    timing of a NIfTI header.
+
+```cpp
+CNIFTIFile nifti("out.nii.gz", CNIFTIMainHeader::NIFTI1);
+nifti.open(QIODevice::WriteOnly);
+QScopedPointer<CNIFTIMainHeader> header(nifti.createEmptyHeader());
+header->convertFrom(ecatMainHeader, ecatSubHeader);   // geometry, attributes, timing
+header->updateAttributes(QJsonObject{{"PatientWeight", 72.5}});
+nifti.writeMainHeader(*header);                      // header + JSON/DICOM extensions
+nifti.writeMatrix(volume, 1, 0.0, 30.0);             // volume 1, start 0 s, duration 30 s
+```
+
 An output name ending with `.hdr`/`.img` writes a header/image pair. The
 details are documented in `src/nifti/CNIFTIConverter.h`. Analyze 7.5 files
 (`.hdr`/`.img` without NIfTI magic) are not supported. The NIfTI support was

@@ -36,6 +36,10 @@
 #include "CNIFTI2MainHeader.h"
 #include "CNIFTIGeometry.h"
 #include "CNIFTIExtensions.h"
+#include "CECATFile.h"
+#include "CECATSubHeader.h"
+#include "CPhilipsFile.h"
+#include "CPhilipsSubHeader.h"
 #include "bswap.h"
 
 #include <QJsonArray>
@@ -294,11 +298,11 @@ bool writeMetadataExtensions(CNIFTIFile* file, const H* h, const QJsonObject& js
 
 // store the timing of volume frame (1-based) in the JSON metadata of the file
 template <class H>
-void storeFrameTiming(CNIFTIFile* file, H* h, short frame, double start, double duration)
+bool storeFrameTiming(CNIFTIFile* file, H* h, short frame, double start, double duration)
 {
   const int volumes = timingVolumes(h);
   if(frame < 1 || frame > volumes)
-    return; // further volumes of dim[5..7] have no timing of their own
+    return false; // further volumes of dim[5..7] have no timing of their own
 
   // start of the voxel data of a single file: at least behind the header and
   // the extension indicator (as CNIFTIFile and the header save() take it)
@@ -330,7 +334,7 @@ void storeFrameTiming(CNIFTIFile* file, H* h, short frame, double start, double 
   }
   if(extensions && (own == false || hasJson == false)) {
     W("the NIfTI file has other header extensions than the metadata, the frame timing is not stored");
-    return;
+    return false;
   }
 
   // metadata extensions filling the room (e.g. the header attributes written
@@ -375,18 +379,131 @@ void storeFrameTiming(CNIFTIFile* file, H* h, short frame, double start, double 
       h->setMedIOData(file);
       if(file->writeMainHeader(*h) == false) {
         W("unable to make room for the frame timing in the NIfTI file");
-        return;
+        return false;
       }
     }
   }
 
-  if(room < needed || room % 16 != 0)
+  if(room < needed || room % 16 != 0) {
     W("no room for the frame timing in the NIfTI file, only the timing of the header is stored");
-  else if(writeMetadataExtensions(file, h, json, room) == false)
+    return false;
+  }
+  if(writeMetadataExtensions(file, h, json, room) == false) {
     W("unable to write the frame timing into the NIfTI file");
+    return false;
+  }
+  return true;
+}
+
+// start time and duration (s) of the frame of an ECAT7 or Philips image sub
+// header (Philips: via its ECAT7 representation)
+bool sourceFrameTiming(const CMedIOHeader* subHeader, const CMedIOHeader* mainHeader, double& start, double& duration)
+{
+  if(subHeader == NULL)
+    return false;
+
+  if(subHeader->headerFormat() == CMedIOHeader::ECATSubHeader) {
+    if(static_cast<const CECATSubHeader*>(subHeader)->subHeaderType() != CECATSubHeader::ECAT7_Image)
+      return false;
+    const CECAT7SubHeaderImage* s = static_cast<const CECAT7SubHeaderImage*>(subHeader);
+    start = s->frame_Start_Time() / 1000.0;
+    duration = s->frame_Duration() / 1000.0;
+    return true;
+  }
+
+  if(subHeader->headerFormat() == CMedIOHeader::PhilipsSubHeader && mainHeader != NULL &&
+     mainHeader->headerFormat() == CMedIOHeader::PhilipsMainHeader) {
+    CECAT7SubHeaderImage s;
+    if(s.convertFrom(subHeader, mainHeader) == false)
+      return false;
+    start = s.frame_Start_Time() / 1000.0;
+    duration = s.frame_Duration() / 1000.0;
+    return true;
+  }
+
+  return false;
+}
+
+// sub header of a frame of an ECAT or Philips file (Philips: first slice), NULL if unavailable
+CMedIOHeader* readSourceSubHeader(CMedIOData* file, short frame)
+{
+  switch(file->dataFormat()) {
+    case CMedIOData::ECAT: {
+      CECATSubHeader* sh = NULL;
+      if(static_cast<CECATFile*>(file)->readSubHeader(sh, frame))
+        return sh;
+      delete sh;
+    }
+    break;
+
+    case CMedIOData::Philips: {
+      CPhilipsSubHeader* sh = NULL;
+      if(static_cast<CPhilipsFile*>(file)->readSubHeader(sh, frame, -1))
+        return sh;
+      delete sh;
+    }
+    break;
+
+    default:
+    break;
+  }
+  return NULL;
 }
 
 } // namespace
+
+QJsonObject niftiAttributesOfSource(const CMedIOHeader* mainHeader, const CMedIOHeader* subHeader, int volumes)
+{
+  ENTER();
+
+  QJsonObject json = mainHeader->attributes();
+  foreach(const QString& key, MedIOHeaderMapping::frameKeys())
+    json.remove(key);
+
+  // attributes and timing of the frames: of all frames of the file the main
+  // header belongs to (if it is open for reading and has as many frames as
+  // the volumes), of the given sub header for a single volume
+  QList<QJsonObject> frameAttributes;
+  QJsonArray starts, durations;
+  CMedIOData* file = mainHeader->medIOData();
+  if(volumes > 1 && file != NULL && file->isOpen() && file->isReadable()) {
+    const QList<short> numbers = frameNumbers(file);
+    if(numbers.size() == volumes) {
+      foreach(short number, numbers) {
+        QScopedPointer<CMedIOHeader> sh(readSourceSubHeader(file, number));
+        double start = 0.0, duration = 0.0;
+        if(sh.isNull() || sourceFrameTiming(sh.data(), mainHeader, start, duration) == false)
+          break;
+        frameAttributes.append(sh->attributes());
+        starts.append(start);
+        durations.append(duration);
+      }
+    }
+  } else if(volumes == 1) {
+    double start = 0.0, duration = 0.0;
+    if(sourceFrameTiming(subHeader, mainHeader, start, duration)) {
+      frameAttributes.append(subHeader->attributes());
+      starts.append(start);
+      durations.append(duration);
+    }
+  }
+
+  if(frameAttributes.size() == volumes) {
+    QJsonArray frames;
+    bool any = false;
+    foreach(const QJsonObject& f, frameAttributes) {
+      frames.append(f);
+      any = any || (f.isEmpty() == false);
+    }
+    if(any)
+      json[QString::fromLatin1(CMedIOHeaderDictionary::FramesKey)] = frames;
+    json["FrameTimesStart"] = starts;
+    json["FrameDuration"] = durations;
+  }
+
+  LEAVE();
+  return json;
+}
 
 //! the header of a NIfTI matrix describes the file it belongs to, with the
 //! start time and duration of the frame as toffset and pixdim[4]
@@ -704,6 +821,37 @@ bool writeNiftiFrame(CNIFTIFile* file, short frame, const CMedIOFrame& f)
     storeFrameTiming(file, static_cast<CNIFTI2MainHeader*>(h), frame, v.frameStart(), v.frameDuration());
 
   bool result = file->writeMatrix(data, frame);
+
+  RETURN(result);
+  return result;
+}
+
+bool storeNiftiFrameTiming(CNIFTIFile* file, short frame, double start, double duration)
+{
+  ENTER();
+
+  CNIFTIMainHeader* h = NULL;
+  if(file->readMainHeader(h) == false || h == NULL) {
+    E("the NIfTI main header has to be written first");
+    RETURN(false);
+    return false;
+  }
+  QScopedPointer<CNIFTIMainHeader> headerGuard(h);
+
+  if(std::isfinite(start) == false || std::isfinite(duration) == false || start < 0.0 || duration < 0.0) {
+    E("invalid frame timing (start %g s, duration %g s)", start, duration);
+    RETURN(false);
+    return false;
+  }
+
+  bool result = false;
+  if(h->mainHeaderType() == CNIFTIMainHeader::NIFTI1MainHeader)
+    result = storeFrameTiming(file, static_cast<CNIFTI1MainHeader*>(h), frame, start, duration);
+  else
+    result = storeFrameTiming(file, static_cast<CNIFTI2MainHeader*>(h), frame, start, duration);
+
+  if(result == false)
+    E("the timing of volume %d cannot be stored in the NIfTI file", frame);
 
   RETURN(result);
   return result;

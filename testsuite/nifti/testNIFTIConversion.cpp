@@ -45,6 +45,7 @@
 #include <CPhilipsSubHeader.h>
 #include <CPhilipsSubHeaderImage.h>
 #include <CMedIODataFactory.h>
+#include <CNIFTIExtensions.h>
 
 #include "MedIOTestData.h"
 
@@ -226,6 +227,14 @@ static void niftiFields(H* h, CNIFTIFile& file, NiftiVolume& v)
   v.json = h->readHeaderExtension(file);
 }
 
+// bytes of one volume and number of volumes (dim[4]) described by a header
+template <class H>
+static qint64 volumeBytes(const H* h, int& frames)
+{
+  frames = (h->dim(0) >= 4) ? static_cast<int>(h->dim(4)) : 1;
+  return h->dim(1) * h->dim(2) * h->dim(3) * h->bit_Pix() / 8;
+}
+
 static bool readNifti(const QString& fileName, NiftiVolume& v)
 {
   CNIFTIFile file(fileName);
@@ -347,6 +356,9 @@ class TestNIFTIConversion : public QObject
     void philipsSliceScales_data();
     void philipsSliceScales();
     void philipsHeaderConversion();
+
+    void directHeaderConversion_data();
+    void directHeaderConversion();
 
     void metadataOptions();
     void errors();
@@ -1373,6 +1385,182 @@ void TestNIFTIConversion::philipsHeaderConversion()
     QCOMPARE(sformCode, 1);
     niftiFile.close();
   }
+}
+
+//---------------------------------------------------------------------------------------------
+// applications using the NIfTI classes directly: a NIfTI header converted
+// from the ECAT7 or Philips headers (convertFrom()) is written with the
+// attributes and the frame timing of the source as header extensions and
+// descrip, like the files of CNIFTIConverter. With the main header still
+// linked to its open file the timing of all frames comes from the file,
+// otherwise it is given to writeMatrix(data, frame, start, duration).
+
+void TestNIFTIConversion::directHeaderConversion_data()
+{
+  QTest::addColumn<QString>("source");
+  QTest::addColumn<int>("version");
+  QTest::addColumn<bool>("linked");
+  QTest::addColumn<QString>("suffix");
+
+  bool any = false;
+  foreach(const MedIOTestFile& file, m_data.files) {
+    if(file.format != "ecat" && file.format != "philips")
+      continue;
+    any = true;
+    QTest::newRow(qPrintable(file.relativePath + " nifti1")) << file.relativePath << 1 << true << ".nii";
+    QTest::newRow(qPrintable(file.relativePath + " nifti2 pair")) << file.relativePath << 2 << true << ".hdr";
+    QTest::newRow(qPrintable(file.relativePath + " nifti1 gz unlinked")) << file.relativePath << 1 << false << ".nii.gz";
+  }
+
+  if(any == false)
+    QTest::newRow("no ECAT7/Philips test data") << QString() << 1 << true << ".nii";
+}
+
+void TestNIFTIConversion::directHeaderConversion()
+{
+  QFETCH(QString, source);
+  QFETCH(int, version);
+  QFETCH(bool, linked);
+  QFETCH(QString, suffix);
+  if(source.isEmpty())
+    QSKIP("no ECAT7/Philips files in the test data");
+
+  const MedIOTestFile* testFile = NULL;
+  foreach(const MedIOTestFile& f, m_data.files)
+    if(f.relativePath == source)
+      testFile = &f;
+  QVERIFY(testFile);
+
+  // expected values: the ECAT7 file of the dataset (nibabel, see make_expected.py),
+  // Philips files hold the same frames (see datasets.json)
+  const MedIOTestFile* ecatFile = NULL;
+  foreach(const MedIOTestFile& f, m_data.files)
+    if(f.format == "ecat" && f.dataset == testFile->dataset)
+      ecatFile = &f;
+  QVERIFY(ecatFile);
+  const QJsonArray matrices = ecatFile->expected.value("matrices").toArray();
+  const int volumes = matrices.size();
+  QVector<double> starts, durations;
+  foreach(const QJsonValue& m, matrices) {
+    starts.append(m.toObject().value("frame_start_time_ms").toDouble() / 1000.0);
+    durations.append(m.toObject().value("frame_duration_ms").toDouble() / 1000.0);
+  }
+
+  // the main header and the sub header of the first frame (Philips: first slice)
+  QScopedPointer<CECATFile> ecat(new CECATFile(testFile->path));
+  QScopedPointer<CPhilipsFile> philips(new CPhilipsFile(testFile->path));
+  QScopedPointer<CMedIOHeader> mainHeader, subHeader;
+  if(testFile->format == "ecat") {
+    QVERIFY(ecat->open(QIODevice::ReadOnly));
+    CECATMainHeader* m = NULL;
+    CECATSubHeader* s = NULL;
+    QVERIFY(ecat->readMainHeader(m));
+    mainHeader.reset(m);
+    QVERIFY(ecat->readSubHeader(s, static_cast<short>(matrices[0].toObject().value("frame").toInt())));
+    subHeader.reset(s);
+  } else {
+    QVERIFY(philips->open(QIODevice::ReadOnly));
+    CPhilipsMainHeader* m = NULL;
+    CPhilipsSubHeader* s = NULL;
+    QVERIFY(philips->readMainHeader(m));
+    mainHeader.reset(m);
+    QVERIFY(philips->readSubHeader(s, philips->minFrame(), philips->minSlice()));
+    subHeader.reset(s);
+  }
+  if(linked == false) {
+    // the headers outlive their file (the timing of the frames is not available)
+    ecat.reset();
+    philips.reset();
+    QVERIFY(mainHeader->medIOData() == NULL);
+  }
+  const QJsonObject sourceAttributes = mainHeader->attributes();
+
+  const QString fileName = tmpFile(QString("direct-%1-%2-%3%4").arg(testFile->dataset, testFile->format)
+                                   .arg(version).arg(suffix));
+  {
+    CNIFTIFile nifti(fileName, version == 2 ? CNIFTIMainHeader::NIFTI2 : CNIFTIMainHeader::NIFTI1);
+    QVERIFY(nifti.open(QIODevice::WriteOnly));
+    QScopedPointer<CNIFTIMainHeader> header(nifti.createEmptyHeader());
+    QVERIFY(header->convertFrom(mainHeader.data(), subHeader.data()));
+    QVERIFY(nifti.writeMainHeader(*header));
+
+    int frames = 0;
+    const qint64 bytes = (version == 2) ? volumeBytes(static_cast<CNIFTI2MainHeader*>(header.data()), frames)
+                                        : volumeBytes(static_cast<CNIFTI1MainHeader*>(header.data()), frames);
+    QCOMPARE(frames, volumes);
+    const QByteArray zeros(static_cast<int>(bytes), '\0');
+    for(int k=0; k < volumes; k++) {
+      if(linked)
+        QVERIFY(nifti.writeMatrix(zeros, static_cast<short>(k + 1)));
+      else
+        QVERIFY(nifti.writeMatrix(zeros, static_cast<short>(k + 1), starts[k], durations[k]));
+    }
+    nifti.close();
+  }
+
+  // the attributes read back: as those of the source (ECAT7: as expected)
+  CNIFTIFile nifti(fileName);
+  QVERIFY(nifti.open(QIODevice::ReadOnly));
+  CNIFTIMainHeader* h = NULL;
+  QVERIFY(nifti.readMainHeader(h) && h != NULL);
+  QScopedPointer<CNIFTIMainHeader> guard(h);
+  const QJsonObject a = h->attributes();
+
+  const QJsonObject expectedMain = (testFile->format == "ecat")
+                                   ? testFile->expected.value("attributes").toObject().value("main").toObject()
+                                   : sourceAttributes;
+  QVERIFY(expectedMain.value("PatientName").toString().isEmpty() == false);
+  foreach(const QString& key, expectedMain.keys()) {
+    if(key == "Frames" || key == "FrameTimesStart" || key == "FrameDuration")
+      continue;
+    if(expectedMain[key].isDouble())
+      QVERIFY2(std::fabs(a.value(key).toDouble() - expectedMain[key].toDouble()) <= 1e-9 * std::fabs(expectedMain[key].toDouble()), qPrintable(key));
+    else if(expectedMain[key].isObject() == false)
+      QVERIFY2(a.value(key) == expectedMain[key], qPrintable(key));
+  }
+  const QString section = (testFile->format == "ecat") ? "ECAT7" : "Philips";
+  QVERIFY(a.value(section).toObject().isEmpty() == false);
+
+  // timing of all volumes
+  const QJsonArray start = a.value("FrameTimesStart").toArray();
+  const QJsonArray duration = a.value("FrameDuration").toArray();
+  QCOMPARE(start.size(), volumes);
+  QCOMPARE(duration.size(), volumes);
+  for(int k=0; k < volumes; k++) {
+    QVERIFY(std::fabs(start[k].toDouble() - starts[k]) < 1e-6);
+    QVERIFY(std::fabs(duration[k].toDouble() - durations[k]) < 1e-6);
+  }
+
+  // frame attributes: of all frames from the linked file or of a single frame
+  if(linked || volumes == 1) {
+    QCOMPARE(a.value("Frames").toArray().size(), volumes);
+    if(testFile->format == "ecat") {
+      const QJsonArray expectedFrames = testFile->expected.value("attributes").toObject().value("frames").toArray();
+      for(int k=0; k < volumes; k++)
+        QCOMPARE(a.value("Frames").toArray()[k].toObject().value("DecayFactor"), expectedFrames[k].toObject().value("DecayFactor"));
+    }
+  }
+
+  // descrip as PMOD writes it and the DICOM extension with the frame timing of PMOD
+  const QString descrip = QString::fromLatin1(version == 2 ? static_cast<CNIFTI2MainHeader*>(h)->descrip()
+                                                          : static_cast<CNIFTI1MainHeader*>(h)->descrip());
+  QVERIFY2(descrip.startsWith(expectedMain.value("PatientName").toString() + " ["), qPrintable(descrip));
+
+  const qint64 headerSize = (version == 2) ? 540 : 348;
+  const qint64 voxOffset = (version == 2) ? static_cast<CNIFTI2MainHeader*>(h)->vox_Offset()
+                                          : static_cast<qint64>(static_cast<CNIFTI1MainHeader*>(h)->vox_Offset());
+  const QList<NIFTIExtensions::Extension> extensions =
+    NIFTIExtensions::read(nifti, headerSize, nifti.isPair() ? nifti.size() : voxOffset, false);
+  QCOMPARE(extensions.size(), 2);
+  QCOMPARE(extensions[0].code, NIFTIExtensions::JsonCode);
+  QCOMPARE(extensions[1].code, NIFTIExtensions::DicomCode);
+  bool pmod = false;
+  const QJsonObject dicom = NIFTIExtensions::metadataOfDicomDataSet(extensions[1].data, &pmod);
+  QVERIFY(pmod);
+  QCOMPARE(dicom.value("PatientName").toString(), expectedMain.value("PatientName").toString());
+  QCOMPARE(dicom.value("FrameDuration").toArray().size(), volumes);
+  for(int k=0; k < volumes; k++)
+    QVERIFY(std::fabs(dicom.value("FrameDuration").toArray()[k].toDouble() - durations[k]) < 1e-6);
 }
 
 //---------------------------------------------------------------------------------------------

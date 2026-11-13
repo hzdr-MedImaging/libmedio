@@ -848,6 +848,88 @@ qint64 reservedSize(const QJsonObject& json, int volumes)
   return metadataExtensions(timing, false).size() + 16;
 }
 
+bool prepareHeaderMetadata(QIODevice& file, bool pair, const QJsonObject& attributes, const QByteArray& descrip,
+                           qint64 headerSize, qint64 voxOffset, bool swap, HeaderMetadata& metadata)
+{
+  ENTER();
+  metadata.setDescrip = false;
+  metadata.descrip.clear();
+  metadata.voxOffset = voxOffset;
+  metadata.block.clear();
+  metadata.fileSize = -1;
+
+  const QJsonObject json = MedIOHeaderMapping::niftiJson(attributes);
+
+  // descrip as written by PMOD ("<patient name> [<study type>] <study
+  // description>"), unless it was set to something else than libmedio's
+  // default or a descrip of this form (e.g. of attributes changed since)
+  const QByteArray current = descrip.trimmed();
+  const QByteArray description = niftiDescription(attributes).toLatin1().left(79);  // descrip holds 79 characters
+  const bool replaceable = current.isEmpty() || current == "converted by libmedio" ||
+                           attributesOfNiftiDescription(QString::fromLatin1(current)).isEmpty() == false;
+  if(replaceable && description != current && (description.isEmpty() == false || current.isEmpty() == false)) {
+    metadata.setDescrip = true;
+    metadata.descrip = description;
+  }
+
+  // extensions present (files opened for reading and writing): those of the
+  // metadata are replaced as a whole, so that no removed value is left behind
+  const qint64 dataStart = qMax(voxOffset, headerSize + 4);
+  const qint64 fileSize = file.size();
+  bool present = false;
+  bool own = true;
+  QList<Extension> existing;
+  if(file.isReadable() && fileSize >= headerSize + 4)
+    existing = read(file, headerSize, pair ? fileSize : qMin(dataStart, fileSize), swap, &present);
+  foreach(const Extension& e, existing)
+    own = own && (e.code == JsonCode || e.code == DicomCode);
+
+  if(json.isEmpty()) {
+    // no attributes: remove the metadata extensions of the file
+    if(present && own) {
+      if(pair) {
+        metadata.block = QByteArray(4, '\0');
+        metadata.fileSize = headerSize + 4;
+      } else {
+        metadata.block = QByteArray(static_cast<int>(qMin(dataStart, fileSize) - headerSize), '\0');
+      }
+    }
+    RETURN(true);
+    return true;
+  }
+
+  const QByteArray indicator("\x01\0\0\0", 4);
+  const QByteArray extensions = metadataExtensions(json, swap);
+
+  if(pair) {
+    // the extensions end the header file
+    metadata.block = indicator + extensions;
+    metadata.fileSize = headerSize + metadata.block.size();
+    RETURN(true);
+    return true;
+  }
+
+  // single file: the extensions fill the room up to vox_offset
+  qint64 offset = voxOffset;
+  const qint64 required = headerSize + 4 + extensions.size();
+  if(offset < required) {
+    // the voxel data must not be moved
+    if(offset > 0 && fileSize > offset) {
+      E("no space for the attributes before the voxel data");
+      RETURN(false);
+      return false;
+    }
+    offset = required;
+    metadata.voxOffset = offset;
+  }
+  const qint64 room = offset - headerSize - 4;
+  metadata.block = indicator + metadataExtensions(json, swap, room - room % 16) +
+                   QByteArray(static_cast<int>(room % 16), '\0');
+
+  RETURN(true);
+  return true;
+}
+
 //=============================================================================================
 
 QString niftiDescription(const QJsonObject& attributes)

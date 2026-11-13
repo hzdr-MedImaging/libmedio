@@ -29,6 +29,11 @@
 #include "CNIFTI1MainHeader.h"
 #include "CNIFTI2MainHeader.h"
 #include "CNIFTIGeometry.h"
+#include "CMedIOHeaderMapping.h"
+#include "CMedIOHeaderDictionary.h"
+
+#include <QJsonArray>
+#include <QJsonObject>
 
 #include <QtCore/qmath.h>
 
@@ -548,9 +553,18 @@ if (mainHeader != NULL && mainHeader->headerFormat() == CMedIOHeader::NIFTIMainH
       if (slope == 0.0 || std::isfinite(slope) == false) slope = 1.0;
       setScale_Factor(slope); // Scale factor
 
-      // timing of the first frame (s -> ms)
-      setFrame_Duration(static_cast<unsigned int>(geometry.frameDuration * 1000.0 + 0.5));
-      setFrame_Start_Time(static_cast<unsigned int>(geometry.frameStart * 1000.0 + 0.5));
+      // timing of the first frame (s -> ms): of the metadata if it holds the
+      // timing of all volumes (header extensions), of the header otherwise
+      const QJsonObject attributes = baseNiftiHeader->attributes();
+      double start = 0.0, duration = 0.0;
+      niftiFrameTiming(geometry, attributes, 0, start, duration);
+      setFrame_Duration(ecatFrameTime(duration));
+      setFrame_Start_Time(ecatFrameTime(start));
+
+      // the attributes of the first frame (e.g. the decay factor)
+      const QJsonArray frames = attributes.value(QString::fromLatin1(CMedIOHeaderDictionary::FramesKey)).toArray();
+      if(frames.isEmpty() == false && frames.first().isObject())
+        MedIOHeaderMapping::transfer(frames.first().toObject(), *this);
 
       RETURN(true);
       return true;

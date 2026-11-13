@@ -29,6 +29,7 @@
 #include "CNIFTI1MainHeader.h"
 #include "CNIFTI2MainHeader.h"
 #include "CNIFTIGeometry.h"
+#include "CMedIOHeaderMapping.h"
 
 #include "config.h"
 
@@ -1101,6 +1102,10 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
       // Conversion from mm (NIFTI) to cm (ECAT7)
       setPlane_Separation(geometry.pixelSize[2] / 10.0);
       setInit_Bed_Position(geometry.bedPosition / 10.0);
+
+      // the attributes of the NIfTI header (metadata header extensions, e.g.
+      // patient, dose, isotope, units; the frames belong to the sub headers)
+      MedIOHeaderMapping::transfer(baseNiftiHeader->attributes(), *this, MedIOHeaderMapping::frameKeys());
 
       bResult = true;
     }

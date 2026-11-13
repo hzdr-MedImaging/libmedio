@@ -25,8 +25,11 @@
 #include <QtTest/QtTest>
 #include <QTemporaryDir>
 #include <QtEndian>
+#include <QJsonArray>
+#include <QJsonDocument>
 #include <QJsonObject>
 
+#include <cmath>
 #include <cstring>
 #include <zlib.h>
 
@@ -251,6 +254,12 @@ class TestNIFTIFormat : public QObject
     void testDicomTrailingZeros();
     void testTracerRadionuclide_data();
     void testTracerRadionuclide();
+    void testConvertVersionAttributes();
+    void testEcatFromNiftiHeader();
+    void testSaveRewritesMetadata_data();
+    void testSaveRewritesMetadata();
+    void testWriteMatrixTiming_data();
+    void testWriteMatrixTiming();
 
   private:
     QString dataFile(const QString& name) const { return QString(NIFTI_TEST_DATA_DIR) + "/" + name; }
@@ -957,22 +966,37 @@ static QJsonObject fileAttributes(const QString& fileName)
   return header->attributes();
 }
 
-// codes and data of the header extensions of a single NIfTI-1 file (raw bytes)
+// codes and data of the header extensions of a NIfTI-1/NIfTI-2 single file or
+// header file of a pair (raw bytes)
 static QList<QPair<qint32, QByteArray> > rawExtensions(const QByteArray& content)
 {
   QList<QPair<qint32, QByteArray> > list;
   qint32 sizeofHdr = 0;
   memcpy(&sizeofHdr, content.constData(), 4);
-  const bool swap = (sizeofHdr != 348);
-  float voxOffset = 0.0f;
-  memcpy(&voxOffset, content.constData() + 108, 4);
+  const bool swap = (sizeofHdr != 348 && sizeofHdr != 540);
   if(swap)
-    voxOffset = qFromBigEndian<float>(content.constData() + 108);
-  if(content.size() < 352 || content[348] == 0)
+    sizeofHdr = qbswap(sizeofHdr);
+  const qint64 headerSize = sizeofHdr;
+
+  // vox_offset: float at 108 (NIfTI-1), int64 at 168 (NIfTI-2); 0 for pairs
+  qint64 voxOffset = 0;
+  if(headerSize == 348) {
+    float v = 0.0f;
+    memcpy(&v, content.constData() + 108, 4);
+    if(swap)
+      v = qFromBigEndian<float>(content.constData() + 108);
+    voxOffset = static_cast<qint64>(v);
+  } else {
+    memcpy(&voxOffset, content.constData() + 168, 8);
+    if(swap)
+      voxOffset = qbswap(voxOffset);
+  }
+  const qint64 end = (voxOffset > headerSize) ? voxOffset : content.size();
+  if(content.size() < headerSize + 4 || content[static_cast<int>(headerSize)] == 0)
     return list;
 
-  qint64 pos = 352;
-  while(pos + 8 <= static_cast<qint64>(voxOffset)) {
+  qint64 pos = headerSize + 4;
+  while(pos + 8 <= end) {
     qint32 esize = 0, ecode = 0;
     memcpy(&esize, content.constData() + pos, 4);
     memcpy(&ecode, content.constData() + pos + 4, 4);
@@ -980,12 +1004,21 @@ static QList<QPair<qint32, QByteArray> > rawExtensions(const QByteArray& content
       esize = qbswap(esize);
       ecode = qbswap(ecode);
     }
-    if(esize < 16 || esize % 16 != 0)
+    if(esize < 16 || esize % 16 != 0 || pos + esize > end)
       break;
     list.append(qMakePair(ecode, content.mid(static_cast<int>(pos + 8), esize - 8)));
     pos += esize;
   }
   return list;
+}
+
+// JSON object of the data of a JSON header extension (without padding)
+static QJsonObject extensionJson(const QByteArray& data)
+{
+  QByteArray text = data;
+  while(text.endsWith('\0'))
+    text.chop(1);
+  return QJsonDocument::fromJson(text).object();
 }
 
 // a file written by PMOD (data/pmod_le_int16_4d.nii, see generate_fixtures.py):
@@ -1217,6 +1250,273 @@ void TestNIFTIFormat::testTracerRadionuclide()
   const QJsonObject json = MedIOHeaderMapping::niftiJson(attributes);
   QCOMPARE(json.contains("TracerRadionuclide"), expected.isEmpty() == false);
   QCOMPARE(json.value("TracerRadionuclide").toString(), expected);
+}
+
+//---------------------------------------------------------------------------------------------
+// applications using the NIfTI classes directly (not CMedIOData::writeVolume())
+// get the same metadata as the files of CNIFTIConverter
+
+// a header converted into the other NIfTI version keeps the attributes (the
+// header extensions of data/n1_be_float32_dicom.nii, see generate_fixtures.py)
+void TestNIFTIFormat::testConvertVersionAttributes()
+{
+  QTemporaryDir tmpDir;
+  QVERIFY(tmpDir.isValid());
+  const QString names[3] = { QString(NIFTI_TEST_DATA_DIR) + "/n1_be_float32_dicom.nii",
+                             tmpDir.filePath("nifti2.nii"), tmpDir.filePath("nifti1.hdr") };
+  const CNIFTIMainHeader::Type types[2] = { CNIFTIMainHeader::NIFTI2, CNIFTIMainHeader::NIFTI1 };
+
+  // NIfTI-1 (fixture) -> NIfTI-2 -> NIfTI-1 header/image pair
+  for(int i=0; i < 2; i++) {
+    CNIFTIFile source(names[i]);
+    QVERIFY(source.open(QIODevice::ReadOnly));
+    CNIFTIMainHeader* h = NULL;
+    QVERIFY(source.readMainHeader(h) && h != NULL);
+    QScopedPointer<CNIFTIMainHeader> guard(h);
+    QByteArray* data = NULL;
+    QVERIFY(source.readMatrix(data) && data != NULL);
+    QScopedPointer<QByteArray> dataGuard(data);
+
+    CNIFTIFile target(names[i + 1], types[i]);
+    QVERIFY(target.open(QIODevice::WriteOnly));
+    QScopedPointer<CNIFTIMainHeader> header(target.createEmptyHeader());
+    QVERIFY(header->convertFrom(h));
+    QVERIFY(target.writeMainHeader(*header));
+    QVERIFY(target.writeMatrix(*data));
+    target.close();
+
+    // values of the JSON extension, then of the DICOM extension (fixture)
+    const QJsonObject a = fileAttributes(names[i + 1]);
+    QCOMPARE(a.value("PatientWeight").toDouble(), 70.5);
+    QCOMPARE(a.value("StudyDescription").toString(), QString("from JSON"));
+    QCOMPARE(a.value("PatientName").toString(), QString::fromUtf8("M\xc3\xbcller^Hans"));
+    QCOMPARE(a.value("PatientID").toString(), QString("ID-0815"));
+    QCOMPARE(a.value("Units").toString(), QString("BQML"));
+    QCOMPARE(a.value("FrameTimesStart").toArray(), (QJsonArray{0, 60}));
+    QCOMPARE(a.value("FrameDuration").toArray(), (QJsonArray{60, 120}));
+
+    const QList<QPair<qint32, QByteArray> > extensions = rawExtensions(fileContent(names[i + 1]));
+    QCOMPARE(extensions.size(), 2);
+    QCOMPARE(extensions[0].first, 6);
+    QCOMPARE(extensions[1].first, 2);
+    QCOMPARE(extensionJson(extensions[0].second).value("TracerRadionuclide").toString(), QString("F18"));
+  }
+}
+
+// an ECAT7 main and sub header converted from a NIfTI header take the
+// attributes and the frame timing of its header extensions (fixture values)
+void TestNIFTIFormat::testEcatFromNiftiHeader()
+{
+  CNIFTIFile source(QString(NIFTI_TEST_DATA_DIR) + "/n1_be_float32_dicom.nii");
+  QVERIFY(source.open(QIODevice::ReadOnly));
+  CNIFTIMainHeader* h = NULL;
+  QVERIFY(source.readMainHeader(h) && h != NULL);
+  QScopedPointer<CNIFTIMainHeader> guard(h);
+
+  CECAT7MainHeader mainHeader;
+  QVERIFY(mainHeader.convertFrom(h));
+  QCOMPARE(QString::fromLatin1(mainHeader.patient_Name()), QString::fromUtf8("M\xc3\xbcller^Hans"));
+  QCOMPARE(mainHeader.patient_Weight(), 70.5f);
+  QCOMPARE(QString::fromLatin1(mainHeader.study_Description()), QString("from JSON"));
+  QCOMPARE(QString::fromLatin1(mainHeader.radiopharmaceutical()), QString("FDG"));
+  QCOMPARE(mainHeader.num_Frames(), short(2));
+  const QJsonObject a = mainHeader.attributes();
+  QCOMPARE(a.value("PatientID").toString(), QString("ID-0815"));
+  QCOMPARE(a.value("Units").toString(), QString("BQML"));
+  QCOMPARE(a.value("RadionuclideTotalDose").toDouble(), 3.7e8);
+
+  // the first frame: timing of the metadata (header: toffset 0, pixdim[4] 1)
+  CECAT7SubHeaderImage subHeader;
+  QVERIFY(subHeader.convertFrom(NULL, h));
+  QCOMPARE(subHeader.frame_Start_Time(), 0u);
+  QCOMPARE(subHeader.frame_Duration(), 60000u);
+}
+
+// save() of a header read from a file opened for reading and writing (e.g.
+// to anonymize it) rewrites the metadata extensions and descrip completely:
+// changed and removed values do not remain in the file, the voxel data is kept
+void TestNIFTIFormat::testSaveRewritesMetadata_data()
+{
+  QTest::addColumn<QString>("name");
+  QTest::addColumn<int>("version");
+
+  QTest::newRow("nifti1 single") << "anon.nii" << 1;
+  QTest::newRow("nifti1 pair") << "anon.hdr" << 1;
+  QTest::newRow("nifti2 single") << "anon.nii" << 2;
+}
+
+void TestNIFTIFormat::testSaveRewritesMetadata()
+{
+  QFETCH(QString, name);
+  QFETCH(int, version);
+
+  QTemporaryDir tmpDir;
+  QVERIFY(tmpDir.isValid());
+  const QString fileName = tmpDir.filePath(name);
+  const CNIFTIMainHeader::Type type = (version == 2) ? CNIFTIMainHeader::NIFTI2 : CNIFTIMainHeader::NIFTI1;
+  const qint64 dims[8] = { 3, 4, 3, 2, 1, 1, 1, 1 };
+  const QByteArray voxels = patternMatrix(4 * 3 * 2);
+
+  {
+    CNIFTIFile file(fileName, type);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    QScopedPointer<CNIFTIMainHeader> header(file.createEmptyHeader());
+    // descrip empty: written for the attributes (an own descrip is kept)
+    if(version == 2) {
+      fillHeader(static_cast<CNIFTI2MainHeader*>(header.data()), dims, QSysInfo::LittleEndian);
+      static_cast<CNIFTI2MainHeader*>(header.data())->setDescrip("");
+    } else {
+      fillHeader(static_cast<CNIFTI1MainHeader*>(header.data()), dims, QSysInfo::LittleEndian);
+      static_cast<CNIFTI1MainHeader*>(header.data())->setDescrip("");
+    }
+    QVERIFY(header->updateAttributes(QJsonObject{{"PatientName", "Doe^Jane"}, {"PatientID", "ID-4711"},
+                                                 {"PatientWeight", 81.5}, {"StudyDescription", "secret study"}}));
+    QVERIFY(file.writeMainHeader(*header));
+    QVERIFY(file.writeMatrix(voxels));
+    file.close();
+  }
+  QVERIFY(fileContent(fileName).contains("Doe^Jane [] secret study"));  // descrip
+  QVERIFY(fileContent(fileName).contains("ID-4711"));
+  QCOMPARE(fileAttributes(fileName).value("PatientWeight").toDouble(), 81.5);
+
+  const char* removed[] = { "Doe^Jane", "ID-4711", "secret study", "81.5" };
+  const qint64 headerSize = (version == 2) ? 540 : 348;
+  const int descripOffset = (version == 2) ? 240 : 148;
+
+  for(int step=0; step < 2; step++) {
+    {
+      CNIFTIFile file(fileName);
+      QVERIFY(file.open(QIODevice::ReadWrite));
+      CNIFTIMainHeader* h = NULL;
+      QVERIFY(file.readMainHeader(h) && h != NULL);
+      QScopedPointer<CNIFTIMainHeader> guard(h);
+
+      QJsonObject changes;
+      if(step == 0) {
+        // anonymized: another name, the other values removed
+        changes["PatientName"] = QString("Anonymous");
+        changes["PatientID"] = QJsonValue(QJsonValue::Null);
+        changes["PatientWeight"] = QJsonValue(QJsonValue::Null);
+        changes["StudyDescription"] = QJsonValue(QJsonValue::Null);
+      } else {
+        // all attributes removed
+        foreach(const QString& key, h->attributes().keys())
+          if(key != "NIfTI")
+            changes[key] = QJsonValue(QJsonValue::Null);
+      }
+      QVERIFY(h->updateAttributes(changes));
+      QVERIFY(h->save());
+      file.close();
+    }
+
+    const QByteArray content = fileContent(fileName);
+    for(unsigned i=0; i < sizeof(removed) / sizeof(removed[0]); i++)
+      QVERIFY2(content.contains(removed[i]) == false, removed[i]);
+    const QString descrip = QString::fromLatin1(content.constData() + descripOffset,
+                                                static_cast<int>(qstrnlen(content.constData() + descripOffset, 80)));
+    const QJsonObject a = fileAttributes(fileName);
+    if(step == 0) {
+      QCOMPARE(descrip, QString("Anonymous []"));
+      QCOMPARE(a.value("PatientName").toString(), QString("Anonymous"));
+      QVERIFY(a.contains("PatientID") == false);
+      QVERIFY(a.contains("PatientWeight") == false);
+      const QList<QPair<qint32, QByteArray> > extensions = rawExtensions(content);
+      QCOMPARE(extensions.size(), 2);
+      QCOMPARE(extensionJson(extensions[0].second).value("PatientName").toString(), QString("Anonymous"));
+    } else {
+      QVERIFY(content.contains("Anonymous") == false);
+      QCOMPARE(descrip, QString());
+      QCOMPARE(int(content[static_cast<int>(headerSize)]), 0);  // no extensions
+      QVERIFY(a.contains("PatientName") == false);
+    }
+
+    // the voxel data is kept
+    CNIFTIFile file(fileName);
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    QByteArray* data = NULL;
+    QVERIFY(file.readMatrix(data) && data != NULL);
+    QScopedPointer<QByteArray> dataGuard(data);
+    QVERIFY(*data == voxels);
+  }
+}
+
+// writeMatrix(data, frame, start, duration) stores the timing of every volume
+// in the metadata extensions (JSON and the frame timing of PMOD), also
+// without attributes and in any order of the volumes
+void TestNIFTIFormat::testWriteMatrixTiming_data()
+{
+  QTest::addColumn<QString>("name");
+  QTest::addColumn<int>("version");
+
+  QTest::newRow("nifti1 single") << "timing.nii" << 1;
+  QTest::newRow("nifti1 compressed") << "timing.nii.gz" << 1;
+  QTest::newRow("nifti1 pair") << "timing.hdr" << 1;
+  QTest::newRow("nifti2 single") << "timing.nii" << 2;
+}
+
+void TestNIFTIFormat::testWriteMatrixTiming()
+{
+  QFETCH(QString, name);
+  QFETCH(int, version);
+
+  QTemporaryDir tmpDir;
+  QVERIFY(tmpDir.isValid());
+  const QString fileName = tmpDir.filePath(name);
+  const qint64 dims[8] = { 4, 4, 3, 2, 3, 1, 1, 1 };
+  const int volumeSize = 4 * 3 * 2 * 2;
+  const QByteArray voxels = patternMatrix(4 * 3 * 2 * 3);
+  const double starts[3] = { 0.0, 30.5, 90.0 };
+  const double durations[3] = { 30.5, 59.5, 90.0 };
+
+  {
+    CNIFTIFile file(fileName, version == 2 ? CNIFTIMainHeader::NIFTI2 : CNIFTIMainHeader::NIFTI1);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    QScopedPointer<CNIFTIMainHeader> header(file.createEmptyHeader());
+    if(version == 2)
+      fillHeader(static_cast<CNIFTI2MainHeader*>(header.data()), dims, QSysInfo::LittleEndian);
+    else
+      fillHeader(static_cast<CNIFTI1MainHeader*>(header.data()), dims, QSysInfo::LittleEndian);
+    QVERIFY(file.writeMainHeader(*header));
+
+    // invalid timing, size or volume: nothing is written
+    QVERIFY(file.writeMatrix(voxels.mid(0, volumeSize), 1, -1.0, 10.0) == false);
+    QVERIFY(file.writeMatrix(voxels.mid(0, volumeSize - 2), 1, 0.0, 10.0) == false);
+    QVERIFY(file.writeMatrix(voxels.mid(0, volumeSize), 4, 0.0, 10.0) == false);
+
+    const int order[3] = { 2, 0, 1 };
+    for(int i=0; i < 3; i++) {
+      const int k = order[i];
+      QVERIFY(file.writeMatrix(voxels.mid(k * volumeSize, volumeSize), static_cast<short>(k + 1), starts[k], durations[k]));
+    }
+    file.close();
+  }
+
+  const QJsonObject a = fileAttributes(fileName);
+  QCOMPARE(a.value("FrameTimesStart").toArray(), (QJsonArray{0, 30.5, 90}));
+  QCOMPARE(a.value("FrameDuration").toArray(), (QJsonArray{30.5, 59.5, 90}));
+
+  const QList<QPair<qint32, QByteArray> > extensions = rawExtensions(fileContent(fileName));
+  QCOMPARE(extensions.size(), 2);
+  QCOMPARE(extensions[0].first, 6);
+  QCOMPARE(extensions[1].first, 2);
+  QCOMPARE(extensionJson(extensions[0].second).value("FrameDuration").toArray(), (QJsonArray{30.5, 59.5, 90}));
+  bool pmod = false;
+  const QJsonObject dicom = NIFTIExtensions::metadataOfDicomDataSet(extensions[1].second, &pmod);
+  QVERIFY(pmod);
+  const QJsonArray pmodDurations = dicom.value("FrameDuration").toArray();
+  QCOMPARE(pmodDurations.size(), 3);
+  for(int k=0; k < 3; k++) {
+    QVERIFY(std::fabs(dicom.value("FrameTimesStart").toArray()[k].toDouble() - starts[k]) < 1e-9);
+    QVERIFY(std::fabs(pmodDurations[k].toDouble() - durations[k]) < 1e-9);
+  }
+
+  // the voxel data of all volumes
+  CNIFTIFile file(fileName);
+  QVERIFY(file.open(QIODevice::ReadOnly));
+  QByteArray* data = NULL;
+  QVERIFY(file.readMatrix(data) && data != NULL);
+  QScopedPointer<QByteArray> dataGuard(data);
+  QVERIFY(*data == voxels);
 }
 
 QTEST_GUILESS_MAIN(TestNIFTIFormat)

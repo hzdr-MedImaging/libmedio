@@ -61,6 +61,13 @@
 //   is written like PMOD writes it (see CNIFTIExtensions.h). NIfTI files
 //   without the JSON metadata provide the values of a DICOM extension (e.g.
 //   written by PMOD) or the frame timing of toffset and pixdim[4] (4D data only).
+// - The metadata is written by the NIfTI classes themselves, so applications
+//   using them directly get the same: the header save()/CNIFTIFile::
+//   writeMainHeader() stores the attributes, convertFrom() of a NIfTI header
+//   takes them over from the ECAT7/Philips (and the other NIfTI version)
+//   headers, CNIFTIFile::writeMatrix(data, frame, start, duration) stores the
+//   timing of a volume, and convertFrom() of the ECAT7 headers takes over the
+//   attributes and timing of a NIfTI header.
 //
 // Philips image and Syntegra files
 // - Philips files are converted via the ECAT7 representation of libmedio
