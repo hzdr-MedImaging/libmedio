@@ -532,6 +532,8 @@ void TestNIFTIConversion::ecatToNifti()
   foreach(const QString& key, expectedMain.keys()) {
     if(expectedMain[key].isDouble())
       QVERIFY2(std::fabs(n.json.value(key).toDouble() - expectedMain[key].toDouble()) <= 1e-9 * std::fabs(expectedMain[key].toDouble()), qPrintable(key));
+    else if(key == "Units" && expectedMain[key] == QJsonValue("BQML"))
+      QCOMPARE(n.json.value(key).toString(), QString("Bq/mL"));  // BIDS notation of the DICOM code
     else
       QVERIFY2(n.json.value(key) == expectedMain[key], qPrintable(key));
   }

@@ -55,9 +55,12 @@
 // - All frames of dynamic data are converted (4D NIfTI <-> ECAT7 frames).
 // - The ECAT7 main header values (incl. patient data) and the frame timing
 //   (FrameTimesStart, FrameDuration in s) are stored as JSON header extension
-//   (and optionally as JSON sidecar file) and restored when converting back
-//   to ECAT7. NIfTI files without this metadata provide the frame timing by
-//   toffset and pixdim[4] (4D data only).
+//   with BIDS PET keys (and optionally as JSON sidecar file) and restored when
+//   converting back to ECAT7. A DICOM header extension holds the same
+//   attributes and the frame timing in the private tags of PMOD, and descrip
+//   is written like PMOD writes it (see CNIFTIExtensions.h). NIfTI files
+//   without the JSON metadata provide the values of a DICOM extension (e.g.
+//   written by PMOD) or the frame timing of toffset and pixdim[4] (4D data only).
 //
 // Philips image and Syntegra files
 // - Philips files are converted via the ECAT7 representation of libmedio
@@ -84,7 +87,7 @@ class CNIFTIConverter
 
       int niftiVersion;     // NIfTI version to write (1 or 2)
       bool floatData;       // always store float32 voxel values
-      bool jsonExtension;   // store the metadata as JSON header extension
+      bool jsonExtension;   // store the metadata as header extensions (JSON and DICOM)
       bool jsonSidecar;     // also store the metadata as <name>.json next to the NIfTI file
     };
 

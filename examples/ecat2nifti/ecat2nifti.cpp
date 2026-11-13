@@ -38,7 +38,7 @@ static void usage(const char* name)
        << "  -2              write NIfTI-2 instead of NIfTI-1" << endl
        << "  --float         always write float32 values (Bq/ml), also for static data" << endl
        << "  --sidecar       also write the metadata as JSON sidecar file (<output>.json)" << endl
-       << "  --no-extension  do not store the metadata as JSON header extension" << endl
+       << "  --no-extension  do not store the metadata as header extensions (DICOM, JSON)" << endl
        << endl
        << "The output defaults to the input file name with the extension .nii. An output" << endl
        << "name ending with .hdr/.img (.hdr.gz/.img.gz) writes a NIfTI header/image pair." << endl;

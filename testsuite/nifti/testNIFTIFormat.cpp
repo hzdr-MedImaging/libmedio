@@ -31,6 +31,13 @@
 #include <zlib.h>
 
 #include "CMedIODataFactory.h"
+#include "CMedIOHeaderMapping.h"
+#include "CMedIOVolume.h"
+#include "CECATFile.h"
+#include "CECAT7MainHeader.h"
+#include "CECAT7SubHeaderImage.h"
+#include "CNIFTIConverter.h"
+#include "CNIFTIExtensions.h"
 #include "CNIFTIFile.h"
 #include "CNIFTIMainHeader.h"
 #include "CNIFTI1MainHeader.h"
@@ -236,6 +243,14 @@ class TestNIFTIFormat : public QObject
     void testConvertVersion();
     void testConvertToNIFTI1Limits();
     void testSwappedMatrixChunks();
+
+    void testPmodMetadata();
+    void testDicomExtension();
+    void testWriteMetadataExtensions_data();
+    void testWriteMetadataExtensions();
+    void testDicomTrailingZeros();
+    void testTracerRadionuclide_data();
+    void testTracerRadionuclide();
 
   private:
     QString dataFile(const QString& name) const { return QString(NIFTI_TEST_DATA_DIR) + "/" + name; }
@@ -924,6 +939,284 @@ void TestNIFTIFormat::testSwappedMatrixChunks()
   QVERIFY(*read == matrix);
   delete read;
   niftiFile.close();
+}
+
+//---------------------------------------------------------------------------------------------
+// metadata in header extensions (see CNIFTIExtensions.h)
+
+// header attributes of a NIfTI file read with the generic interface
+static QJsonObject fileAttributes(const QString& fileName)
+{
+  QScopedPointer<CMedIOData> file(CMedIODataFactory::create(fileName));
+  if(file.isNull() || file->open(QIODevice::ReadOnly) == false)
+    return QJsonObject();
+  CMedIOHeader* header = NULL;
+  if(file->readMainHeader(header) == false || header == NULL)
+    return QJsonObject();
+  QScopedPointer<CMedIOHeader> guard(header);
+  return header->attributes();
+}
+
+// codes and data of the header extensions of a single NIfTI-1 file (raw bytes)
+static QList<QPair<qint32, QByteArray> > rawExtensions(const QByteArray& content)
+{
+  QList<QPair<qint32, QByteArray> > list;
+  qint32 sizeofHdr = 0;
+  memcpy(&sizeofHdr, content.constData(), 4);
+  const bool swap = (sizeofHdr != 348);
+  float voxOffset = 0.0f;
+  memcpy(&voxOffset, content.constData() + 108, 4);
+  if(swap)
+    voxOffset = qFromBigEndian<float>(content.constData() + 108);
+  if(content.size() < 352 || content[348] == 0)
+    return list;
+
+  qint64 pos = 352;
+  while(pos + 8 <= static_cast<qint64>(voxOffset)) {
+    qint32 esize = 0, ecode = 0;
+    memcpy(&esize, content.constData() + pos, 4);
+    memcpy(&ecode, content.constData() + pos + 4, 4);
+    if(swap) {
+      esize = qbswap(esize);
+      ecode = qbswap(ecode);
+    }
+    if(esize < 16 || esize % 16 != 0)
+      break;
+    list.append(qMakePair(ecode, content.mid(static_cast<int>(pos + 8), esize - 8)));
+    pos += esize;
+  }
+  return list;
+}
+
+// a file written by PMOD (data/pmod_le_int16_4d.nii, see generate_fixtures.py):
+// the units and frame timing of its DICOM extension and the patient name, study
+// type and description of descrip
+void TestNIFTIFormat::testPmodMetadata()
+{
+  const QString fileName = dataFile("pmod_le_int16_4d.nii");
+  const QJsonObject a = fileAttributes(fileName);
+  QCOMPARE(a.value("PatientName").toString(), QString("Test^Patient"));
+  QCOMPARE(a.value("StudyDescription").toString(), QString("PET test study"));
+  QCOMPARE(a.value("ECAT7").toObject().value("Study_Type").toString(), QString("DYNAMIC\\IMA"));
+  QCOMPARE(a.value("Units").toString(), QString("BQML"));
+  QCOMPARE(a.value("FrameTimesStart").toArray(), (QJsonArray{0, 15, 45}));
+  QCOMPARE(a.value("FrameDuration").toArray(), (QJsonArray{15, 30, 45}));
+
+  // the timing of the volumes
+  QScopedPointer<CMedIOData> file(CMedIODataFactory::create(fileName));
+  QVERIFY(file->open(QIODevice::ReadOnly));
+  CMedIOVolume v;
+  QVERIFY(file->readVolume(v, 3));
+  QCOMPARE(v.frameStart(), 45.0);
+  QCOMPARE(v.frameDuration(), 45.0);
+  file->close();
+
+  // converted into ECAT7
+  QTemporaryDir tmpDir;
+  QVERIFY(tmpDir.isValid());
+  const QString ecatName = tmpDir.filePath("pmod.v");
+  QString error;
+  QVERIFY2(CNIFTIConverter::niftiToEcat(fileName, ecatName, &error), qPrintable(error));
+  CECATFile ecat(ecatName);
+  QVERIFY(ecat.open(QIODevice::ReadOnly));
+  CECATMainHeader* mh = NULL;
+  QVERIFY(ecat.readMainHeader(mh) && mh != NULL);
+  QScopedPointer<CECATMainHeader> mhGuard(mh);
+  const CECAT7MainHeader* m = static_cast<const CECAT7MainHeader*>(mh);
+  QCOMPARE(QString(m->patient_Name()), QString("Test^Patient"));
+  QCOMPARE(QString(m->study_Type()), QString("DYNAMIC\\IMA"));
+  QCOMPARE(QString(m->study_Description()), QString("PET test study"));
+  QCOMPARE(QString(m->data_Units()), QString("Bq/ml"));
+  const unsigned int starts[3] = { 0, 15000, 45000 }, durations[3] = { 15000, 30000, 45000 };
+  for(short f=1; f <= 3; f++) {
+    CECATSubHeader* sh = NULL;
+    QVERIFY(ecat.readSubHeader(sh, f) && sh != NULL);
+    QScopedPointer<CECATSubHeader> shGuard(sh);
+    QCOMPARE(static_cast<const CECAT7SubHeaderImage*>(sh)->frame_Start_Time(), starts[f - 1]);
+    QCOMPARE(static_cast<const CECAT7SubHeaderImage*>(sh)->frame_Duration(), durations[f - 1]);
+  }
+}
+
+// a DICOM extension with attributes in sequences and a Latin-1 patient name
+// (big endian, data/n1_be_float32_dicom.nii): the values the JSON extension
+// does not have are taken from it
+void TestNIFTIFormat::testDicomExtension()
+{
+  const QJsonObject a = fileAttributes(dataFile("n1_be_float32_dicom.nii"));
+
+  // JSON extension first
+  QCOMPARE(a.value("PatientWeight").toDouble(), 70.5);
+  QCOMPARE(a.value("StudyDescription").toString(), QString("from JSON"));
+
+  // DICOM extension
+  QCOMPARE(a.value("PatientName").toString(), QString::fromUtf8("M\xc3\xbcller^Hans"));
+  QCOMPARE(a.value("PatientID").toString(), QString("ID-0815"));
+  QCOMPARE(a.value("PatientBirthDate").toString(), QString("1970-01-02"));
+  QCOMPARE(a.value("PatientSex").toString(), QString("M"));
+  QCOMPARE(a.value("PatientSize").toDouble(), 1.78);
+  QCOMPARE(a.value("AcquisitionDateTime").toString(), QString("2024-02-27T14:13:44"));
+  QCOMPARE(a.value("Radiopharmaceutical").toString(), QString("FDG"));
+  QCOMPARE(a.value("RadiopharmaceuticalStartDateTime").toString(), QString("2024-02-27T13:15:00"));
+  QCOMPARE(a.value("RadionuclideTotalDose").toDouble(), 370000000.0);
+  QCOMPARE(a.value("RadionuclideHalfLife").toDouble(), 6586.2);
+  const QJsonObject code = a.value("RadionuclideCodeSequence").toObject();
+  QCOMPARE(code.value("CodeValue").toString(), QString("C-111A1"));
+  QCOMPARE(code.value("CodingSchemeDesignator").toString(), QString("SRT"));
+  QCOMPARE(code.value("CodeMeaning").toString(), QString("^18^Fluorine"));
+  QCOMPARE(a.value("Units").toString(), QString("BQML"));
+  QCOMPARE(a.value("DecayCorrection").toString(), QString("START"));
+  QCOMPARE(a.value("FrameTimesStart").toArray(), (QJsonArray{0, 60}));
+  QCOMPARE(a.value("FrameDuration").toArray(), (QJsonArray{60, 120}));
+}
+
+void TestNIFTIFormat::testWriteMetadataExtensions_data()
+{
+  QTest::addColumn<QSysInfo::Endian>("byteOrder");
+
+  QTest::newRow("little endian") << QSysInfo::LittleEndian;
+  QTest::newRow("big endian")    << QSysInfo::BigEndian;
+}
+
+// the attributes of a header are written as JSON extension (first, as before)
+// and as DICOM extension (explicit VR little endian, also in big endian files),
+// descrip like PMOD; the DICOM extension alone gives the attributes as well
+// (the data set is checked independently with pydicom by the Python tests)
+void TestNIFTIFormat::testWriteMetadataExtensions()
+{
+  QFETCH(QSysInfo::Endian, byteOrder);
+
+  QTemporaryDir tmpDir;
+  QVERIFY(tmpDir.isValid());
+  const QString fileName = tmpDir.filePath("metadata.nii");
+  const qint64 dims[8] = { 4, 4, 3, 2, 2, 1, 1, 1 };
+
+  QJsonObject attributes;
+  attributes["PatientName"] = QString::fromUtf8("M\xc3\xbcller^Hans");
+  attributes["PatientWeight"] = 72.25;
+  attributes["StudyDescription"] = QString("brain study");
+  attributes["AcquisitionDateTime"] = QString("2024-02-27T14:13:44Z");
+  attributes["RadiopharmaceuticalStartDateTime"] = QString("2024-02-27T13:43:44Z");
+  attributes["RadionuclideTotalDose"] = 3.7e8;
+  attributes["RadionuclideCodeSequence"] = QJsonObject{{"CodeValue", "C-111A1"}, {"CodingSchemeDesignator", "SRT"},
+                                                       {"CodeMeaning", "^18^Fluorine"}};
+  attributes["Units"] = QString("BQML");
+  attributes["DecayCorrection"] = QString("ADMIN");
+  attributes["ECAT7"] = QJsonObject{{"Study_Type", "STATIC"}};
+  attributes["FrameTimesStart"] = QJsonArray{0, 60.5};
+  attributes["FrameDuration"] = QJsonArray{60.5, 120};
+
+  {
+    CNIFTIFile niftiFile(fileName, CNIFTIMainHeader::NIFTI1);
+    QVERIFY(niftiFile.open(QIODevice::WriteOnly));
+    QScopedPointer<CNIFTIMainHeader> header(niftiFile.createEmptyHeader());
+    fillHeader(static_cast<CNIFTI1MainHeader*>(header.data()), dims, byteOrder);
+    static_cast<CNIFTI1MainHeader*>(header.data())->setDescrip("converted by libmedio");
+    QVERIFY(header->updateAttributes(attributes));
+    QVERIFY(niftiFile.writeMainHeader(*header));
+    QVERIFY(niftiFile.writeMatrix(patternMatrix(4 * 3 * 2 * 2)));
+    niftiFile.close();
+  }
+
+  // descrip like PMOD writes it, JSON extension first, then the DICOM extension
+  QByteArray content = fileContent(fileName);
+  QCOMPARE(QString::fromLatin1(content.constData() + 148, qstrnlen(content.constData() + 148, 80)),
+           QString::fromLatin1("M\xfcller^Hans [STATIC] brain study"));
+  const QList<QPair<qint32, QByteArray> > extensions = rawExtensions(content);
+  QCOMPARE(extensions.size(), 2);
+  QCOMPARE(extensions[0].first, 6);
+  QCOMPARE(extensions[1].first, 2);
+
+  // BIDS keys of the JSON extension
+  QByteArray text = extensions[0].second;
+  while(text.endsWith('\0'))
+    text.chop(1);
+  const QJsonObject json = QJsonDocument::fromJson(text).object();
+  QCOMPARE(json.value("Units").toString(), QString("Bq/mL"));
+  QCOMPARE(json.value("TracerRadionuclide").toString(), QString("F18"));
+  QCOMPARE(json.value("TimeZero").toString(), QString("14:13:44"));
+  QCOMPARE(json.value("ScanStart").toDouble(), 0.0);
+  QCOMPARE(json.value("InjectionStart").toDouble(), -1800.0);
+  QCOMPARE(json.value("ImageDecayCorrected").toBool(), true);
+  QCOMPARE(json.value("ImageDecayCorrectionTime").toDouble(), -1800.0);
+  QCOMPARE(json.value("InjectedRadioactivity").toDouble(), 370.0);
+
+  // DICOM data set: explicit VR little endian, starting with (0008,0005) CS
+  const QByteArray dicom = extensions[1].second;
+  QCOMPARE(dicom.left(6), QByteArray("\x08\x00\x05\x00" "CS", 6));
+
+  // without the JSON extension (code changed to 0, ignored): the attributes of the DICOM extension
+  const int jsonCodeOffset = 352 + 4;
+  const qint32 ignore = 0;
+  memcpy(content.data() + jsonCodeOffset, &ignore, 4);
+  const QString dicomOnly = tmpDir.filePath("dicom-only.nii");
+  {
+    QFile f(dicomOnly);
+    QVERIFY(f.open(QIODevice::WriteOnly));
+    QCOMPARE(f.write(content), static_cast<qint64>(content.size()));
+  }
+  const QJsonObject a = fileAttributes(dicomOnly);
+  foreach(const QString& key, QStringList() << "PatientName" << "PatientWeight" << "StudyDescription"
+                                            << "AcquisitionDateTime" << "RadiopharmaceuticalStartDateTime"
+                                            << "RadionuclideTotalDose" << "RadionuclideCodeSequence"
+                                            << "Units" << "DecayCorrection" << "FrameTimesStart" << "FrameDuration")
+    QVERIFY2(a.value(key) == attributes.value(key), qPrintable(key));
+}
+
+// readers like nibabel remove the trailing zero bytes of an extension: a data
+// set whose last value ends with a zero byte (here a frame duration of 0) is
+// completed by trailing padding, so that it can still be read without them
+void TestNIFTIFormat::testDicomTrailingZeros()
+{
+  QJsonObject json;
+  json["Units"] = QString("Bq/mL");
+  json["FrameTimesStart"] = QJsonArray{0, 30};
+  json["FrameDuration"] = QJsonArray{30, 0};
+
+  QByteArray dicom = NIFTIExtensions::dicomDataSet(json);
+  QVERIFY(dicom.endsWith('\0') == false);
+  while(dicom.endsWith('\0'))
+    dicom.chop(1);
+  bool pmod = false;
+  const QJsonObject read = NIFTIExtensions::metadataOfDicomDataSet(dicom, &pmod);
+  QVERIFY(pmod);
+  QCOMPARE(read.value("Units").toString(), QString("BQML"));
+  QCOMPARE(read.value("FrameDuration").toArray(), (QJsonArray{30, 0}));
+}
+
+// BIDS TracerRadionuclide (chemical symbol and mass number, e.g. "F18") of the
+// isotope names of the formats and the radionuclide code of the attributes
+void TestNIFTIFormat::testTracerRadionuclide_data()
+{
+  QTest::addColumn<QString>("section");
+  QTest::addColumn<QString>("name");
+  QTest::addColumn<QString>("expected");
+
+  QTest::newRow("ecat-symbol") << "ECAT7" << "F-18" << "F18";
+  QTest::newRow("ecat-metastable") << "ECAT7" << "Tc-99m" << "Tc99m";
+  QTest::newRow("ecat-mass-first") << "ECAT7" << "64Cu" << "Cu64";
+  QTest::newRow("ecat-lanthanum") << "ECAT7" << "La-133" << "La133";
+  QTest::newRow("ecat-lanthanum-name") << "ECAT7" << "Lanthanum-133" << "La133";
+  QTest::newRow("philips-gallium") << "Philips" << "Ga-68" << "Ga68";
+  QTest::newRow("code-fluorine") << "RadionuclideCodeSequence" << "^18^Fluorine" << "F18";
+  QTest::newRow("code-lanthanum") << "RadionuclideCodeSequence" << "^133^Lanthanum" << "La133";
+  QTest::newRow("code-unknown") << "RadionuclideCodeSequence" << "^1^Unobtainium" << "";
+}
+
+void TestNIFTIFormat::testTracerRadionuclide()
+{
+  QFETCH(QString, section);
+  QFETCH(QString, name);
+  QFETCH(QString, expected);
+
+  const QString key = section == "ECAT7" ? "Isotope_Name"
+                    : section == "Philips" ? "isotope_name" : "CodeMeaning";
+  QJsonObject attributes;
+  attributes["PatientName"] = QString("Doe^Jane");
+  attributes[section] = QJsonObject{{key, name}};
+
+  const QJsonObject json = MedIOHeaderMapping::niftiJson(attributes);
+  QCOMPARE(json.contains("TracerRadionuclide"), expected.isEmpty() == false);
+  QCOMPARE(json.value("TracerRadionuclide").toString(), expected);
 }
 
 QTEST_GUILESS_MAIN(TestNIFTIFormat)

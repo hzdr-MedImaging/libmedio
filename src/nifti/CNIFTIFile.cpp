@@ -22,6 +22,7 @@
 #include "CMedIOData.h"
 #include "CNIFTI1MainHeader.h"
 #include "CNIFTI2MainHeader.h"
+#include "CNIFTIExtensions.h"
 
 #include <QFileInfo>
 #include <QTemporaryFile>
@@ -741,13 +742,26 @@ bool CNIFTIFile::readMainHeader(CNIFTIMainHeader*& MainHeader) {
 bool CNIFTIFile::writeMainHeader(CNIFTIMainHeader& MainHeader) {
   ENTER();
 
-  // the attributes of the header are stored as JSON header extension (between
-  // the header and vox_offset in single files, at the end of the header file
-  // of header/image pairs)
-  const QJsonObject json = MedIOHeaderMapping::niftiJson(MainHeader.attributes());
+  // the attributes of the header are stored as JSON and DICOM header
+  // extensions (between the header and vox_offset in single files, at the end
+  // of the header file of header/image pairs, see CNIFTIExtensions.h)
+  const QJsonObject attributes = MainHeader.attributes();
+  const QJsonObject json = MedIOHeaderMapping::niftiJson(attributes);
   const bool nifti2 = (MainHeader.mainHeaderType() == CNIFTIMainHeader::NIFTI2MainHeader);
   CNIFTI1MainHeader* h1 = nifti2 ? NULL : static_cast<CNIFTI1MainHeader*>(&MainHeader);
   CNIFTI2MainHeader* h2 = nifti2 ? static_cast<CNIFTI2MainHeader*>(&MainHeader) : NULL;
+
+  // descrip as written by PMOD ("<patient name> [<study type>] <study
+  // description>"), unless it was set to something else than libmedio's default
+  const char* descrip = nifti2 ? h2->descrip() : h1->descrip();
+  const QByteArray current = QByteArray(descrip, static_cast<int>(qstrnlen(descrip, 80))).trimmed();
+  const QString description = NIFTIExtensions::niftiDescription(attributes);
+  if(description.isEmpty() == false && (current.isEmpty() || current == "converted by libmedio")) {
+    if(nifti2)
+      h2->setDescrip(description.toLatin1().constData());
+    else
+      h1->setDescrip(description.toLatin1().constData());
+  }
 
   if(json.isEmpty() == false && isPair() == false) {
     const qint64 headerSize = nifti2 ? 540 : 348;

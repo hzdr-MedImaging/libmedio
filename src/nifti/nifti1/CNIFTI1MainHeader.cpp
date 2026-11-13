@@ -960,12 +960,14 @@ void CNIFTI1MainHeader::setByteOrder(QSysInfo::Endian order) {
 //=============================================================================================
 // Header extension
 
-// size in bytes of the header extension holding the given JSON metadata
+// size in bytes of the header extensions holding the given metadata (JSON
+// and DICOM extension, see CNIFTIExtensions.h)
 int CNIFTI1MainHeader::headerExtensionSize(const QJsonObject& json) const {
   return jsonExtensionSize(json);
 }
 
-// Write the JSON metadata as header extension directly after the NIfTI-1 main header.
+// Write the metadata as header extensions (JSON and DICOM extension) directly
+// after the NIfTI-1 main header.
 // In single files vox_offset has to account for the extension (see
 // headerExtensionSize()), in header/image pairs the extension ends the header file.
 bool CNIFTI1MainHeader::writeHeaderExtension(CNIFTIFile& niftiFile, const QJsonObject& json) {

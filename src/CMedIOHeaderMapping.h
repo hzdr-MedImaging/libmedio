@@ -108,9 +108,11 @@ const Adapter* nifti2MainHeaderAdapter();
 QJsonObject attributesOfNiftiJson(const QJsonObject& json);
 
 //! JSON to store in a NIfTI file: the attributes (without the native NIfTI
-//! fields) plus BIDS keys derived from them (TracerName, InjectedRadioactivity,
-//! InjectedRadioactivityUnits, ManufacturersModelName, ReconMethodName,
-//! ImageDecayCorrected, DecayCorrectionFactor), empty if there is nothing to store
+//! fields) plus BIDS PET keys derived from them (TracerName, TracerRadionuclide,
+//! InjectedRadioactivity, InjectedRadioactivityUnits, ManufacturersModelName,
+//! ReconMethodName, ImageDecayCorrected, ImageDecayCorrectionTime,
+//! DecayCorrectionFactor, TimeZero, ScanStart, InjectionStart; Units in BIDS
+//! notation, e.g. "Bq/mL"), empty if there is nothing to store
 QJsonObject niftiJson(const QJsonObject& attributes);
 
 //! read the attributes of an opened NIfTI file into its main header

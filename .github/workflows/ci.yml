@@ -116,7 +116,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends $APT_PACKAGES
           python -m pip install --upgrade pip
-          python -m pip install pybind11 pytest numpy
+          python -m pip install pybind11 pytest numpy nibabel pydicom
           echo "PETLIB=$RUNNER_TEMP/petlib" >> "$GITHUB_ENV"
 
       - name: Build librtdebug ${{ env.RTDEBUG_VERSION }}

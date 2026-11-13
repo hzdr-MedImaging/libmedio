@@ -15,7 +15,7 @@ libmedio targets PET-centric workflows and currently focuses on:
 - **ECAT 6 / ECAT 7** images and sinograms (Siemens/CTI)
 - **NIfTI-1 / NIfTI-2** single files (`.nii`, `.nii.gz`) and header/image
   pairs (`.hdr`/`.img`, `.hdr.gz`/`.img.gz`), both byte orders, incl. JSON
-  header extensions
+  and DICOM header extensions (metadata readable by nibabel and PMOD)
 - **Philips PET** image data, including **Syntegra**-related variants
 - **microPET** (Siemens Concorde)
 
@@ -28,7 +28,7 @@ libmedio targets PET-centric workflows and currently focuses on:
 - Robust metadata handling and endian-safe I/O
 - Conversion of ECAT7 and Philips images to NIfTI and back
   (`CNIFTIConverter`), incl. dynamic (4D) data, patient orientation/geometry,
-  physical units and the metadata (stored as JSON header extension)
+  physical units and the metadata (stored as JSON and DICOM header extensions)
 - Format independent access to image matrices: every image file can be read
   in the matrix representation of another format (voxel order, data type,
   scaling, header) and matrices of any format can be written into files of
@@ -94,9 +94,24 @@ nifti2philips input.nii[.gz]|input.hdr[.gz]|input.img[.gz] [output.img|output.sy
   reordered into the ECAT7 voxel order.
 - The attributes of the source (see [Format independent header attributes](#format-independent-header-attributes),
   incl. patient data and all native header fields) and the frame timing are
-  stored as JSON header extension (`--sidecar`: also as `<output>.json`) and
-  restored by `nifti2ecat`/`nifti2philips`. JSON written by earlier versions
-  (ECAT7 fields at the top level) is still read.
+  stored as JSON header extension with BIDS PET keys (`--sidecar`: also as
+  `<output>.json`) and restored by `nifti2ecat`/`nifti2philips`. JSON written
+  by earlier versions (ECAT7 fields at the top level) is still read.
+- For other tools, a DICOM header extension holds the same attributes as
+  DICOM data set and the frame timing in the private tags of PMOD, and
+  `descrip` holds `<patient name> [<study type>] <study description>` like
+  in the NIfTI files of PMOD. PMOD reads the units and the frame timing from
+  them; in Python, nibabel returns the extensions of a file:
+  ```python
+  import json, nibabel as nib
+  ext = {e.get_code(): e for e in nib.load("out.nii.gz").header.extensions}
+  metadata = json.loads(ext[6].get_content())  # BIDS keys, e.g. metadata["FrameTimesStart"]
+  ds = ext[2].get_content()                    # pydicom data set, e.g. ds.PatientWeight
+  ```
+- NIfTI files of other tools without this JSON metadata provide the values
+  of their DICOM header extension (e.g. the units and frame timing of PMOD)
+  and, for files of PMOD, the patient name, study type and description of
+  `descrip`. `--no-extension` writes neither extension.
 - Philips files are converted via the ECAT7 representation of libmedio; the
   x/y image position of Philips slices is not used.
 
@@ -281,7 +296,11 @@ mainHeader->updateAttributes(attributes);            // whole object or single k
   the conversions between the formats (`readMainHeader(header, format)`,
   `readMatrix(..., format)`, `writeMatrix()`, `CNIFTIConverter`). NIfTI files
   store all attributes in their JSON header extension, incl. the frame
-  attributes of all frames (`Frames`) and BIDS keys for other tools.
+  attributes of all frames (`Frames`) and BIDS keys for other tools, and the
+  attributes of the dictionary in a DICOM header extension (see
+  `src/nifti/CNIFTIExtensions.h`); this holds for every file written by
+  libmedio, whether by the converters, `writeMainHeader()`/`writeVolume()`
+  or `pmedio.create()`.
 - The other formats store only their own fields. The physical values of
   Philips slices scaled to SUV depend on the dose, times, half life and
   weight of the main header: change them before the frames are written.

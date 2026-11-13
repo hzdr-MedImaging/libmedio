@@ -22,8 +22,9 @@
 //!
 //! NIfTI headers have no fields for the attributes: all attributes of a NIfTI
 //! file are stored in its JSON header extension (or a JSON sidecar file) and
-//! kept in the main header object. Only the descriptive NIfTI fields form the
-//! native section "NIfTI".
+//! kept in the main header object; a DICOM header extension holds them for
+//! other tools (see CNIFTIExtensions.h). Only the descriptive NIfTI fields
+//! form the native section "NIfTI".
 
 #include "CMedIOHeaderMapping.h"
 #include "CMedIOHeaderDictionary.h"
@@ -35,6 +36,7 @@
 #include "CECAT7MainHeader.h"
 
 #include <QJsonArray>
+#include <QRegExp>
 
 #include <rtdebug.h>
 
@@ -74,7 +76,81 @@ const Adapter nifti2Adapter = { "NIfTI", NULL, 0, nifti2Native, sizeof(nifti2Nat
 // from files that have the attributes)
 const char* const bidsKeys[] = { "TracerName", "InjectedRadioactivity", "InjectedRadioactivityUnits",
                                  "ManufacturersModelName", "ReconMethodName", "ImageDecayCorrected",
-                                 "DecayCorrectionFactor" };
+                                 "DecayCorrectionFactor", "TracerRadionuclide", "TimeZero", "ScanStart",
+                                 "InjectionStart", "ImageDecayCorrectionTime" };
+
+// chemical symbols of the radionuclides used in PET and SPECT, for names like "^18^Fluorine"
+const struct { const char* name; const char* symbol; } elements[] = {
+  { "Arsenic", "As" }, { "Bromine", "Br" }, { "Carbon", "C" }, { "Cobalt", "Co" }, { "Copper", "Cu" },
+  { "Fluorine", "F" }, { "Gallium", "Ga" }, { "Indium", "In" }, { "Iodine", "I" }, { "Lanthanum", "La" },
+  { "Lutetium", "Lu" },
+  { "Manganese", "Mn" }, { "Nitrogen", "N" }, { "Oxygen", "O" }, { "Rubidium", "Rb" },
+  { "Scandium", "Sc" }, { "Technetium", "Tc" }, { "Terbium", "Tb" }, { "Thallium", "Tl" },
+  { "Titanium", "Ti" }, { "Yttrium", "Y" }, { "Zirconium", "Zr" },
+};
+
+// BIDS radionuclide ("F18", "Cu64", "Tc99m") of a name like "F-18", "18F",
+// "Cu-64", "^18^Fluorine" or "Fluorine-18", empty if unknown
+QString bidsRadionuclide(const QString& name)
+{
+  const QString s = QString(name).remove(QChar('^')).trimmed();
+  QRegExp symbolFirst("^([A-Za-z]+)[\\s_-]*(\\d{1,3})(m?)$");
+  QRegExp massFirst("^(\\d{1,3})(m?)[\\s_-]*([A-Za-z]+)$");
+
+  QString element, mass, metastable;
+  if(symbolFirst.exactMatch(s)) {
+    element = symbolFirst.cap(1);
+    mass = symbolFirst.cap(2);
+    metastable = symbolFirst.cap(3);
+  } else if(massFirst.exactMatch(s)) {
+    mass = massFirst.cap(1);
+    metastable = massFirst.cap(2);
+    element = massFirst.cap(3);
+  } else {
+    return QString();
+  }
+
+  QString symbol;
+  if(element.size() <= 2) {
+    symbol = element.left(1).toUpper() + element.mid(1).toLower();
+  } else {
+    for(unsigned i=0; i < sizeof(elements) / sizeof(elements[0]); i++) {
+      if(element.compare(QLatin1String(elements[i].name), Qt::CaseInsensitive) == 0)
+        symbol = QString::fromLatin1(elements[i].symbol);
+    }
+  }
+  if(symbol.isEmpty())
+    return QString();
+
+  return symbol + QString::number(mass.toInt()) + metastable;
+}
+
+// BIDS radionuclide of the attributes: the isotope of the native sections or
+// the radionuclide code
+QString radionuclideOf(const QJsonObject& json)
+{
+  const QJsonValue candidates[] = {
+    json.value("ECAT7").toObject().value("Isotope_Name"),
+    json.value("Philips").toObject().value("isotope_name"),
+    json.value("microPET").toObject().value("isotope"),
+    json.value("RadionuclideCodeSequence").toObject().value("CodeMeaning"),
+  };
+  for(unsigned i=0; i < sizeof(candidates) / sizeof(candidates[0]); i++) {
+    const QString nuclide = bidsRadionuclide(candidates[i].toString());
+    if(nuclide.isEmpty() == false)
+      return nuclide;
+  }
+  return QString();
+}
+
+// "hh:mm:ss" of an ISO 8601 date and time, empty if it has no time
+QString timeOfDay(const QString& dateTime)
+{
+  QRegExp time("T(\\d{2}:\\d{2})(:\\d{2})?");
+  if(time.indexIn(dateTime) < 0)
+    return QString();
+  return time.cap(1) + (time.cap(2).isEmpty() ? QString(":00") : time.cap(2));
+}
 
 // factor of the BIDS radioactivity units to Bq
 double radioactivityFactor(const QString& units)
@@ -197,6 +273,31 @@ QJsonObject niftiJson(const QJsonObject& attributes)
   }
   if(json.value("DecayCorrection").isString())
     json["ImageDecayCorrected"] = (json.value("DecayCorrection").toString() != "NONE");
+
+  // BIDS PET: units, radionuclide and the times relative to TimeZero (the scan start)
+  if(json.value("Units").toString() == "BQML")
+    json["Units"] = QString("Bq/mL");
+  const QString nuclide = radionuclideOf(json);
+  if(nuclide.isEmpty() == false)
+    json["TracerRadionuclide"] = nuclide;
+  const QString timeZero = timeOfDay(json.value("AcquisitionDateTime").toString());
+  if(timeZero.isEmpty() == false) {
+    json["TimeZero"] = timeZero;
+    json["ScanStart"] = 0;
+
+    qint64 scan = 0, injection = 0;
+    const bool injectionKnown = json.value("RadiopharmaceuticalStartDateTime").isString() &&
+                                unixTimeOfDateTime(json.value("AcquisitionDateTime"), scan) &&
+                                unixTimeOfDateTime(json.value("RadiopharmaceuticalStartDateTime"), injection);
+    if(injectionKnown)
+      json["InjectionStart"] = static_cast<double>(injection - scan);
+
+    const QString decay = json.value("DecayCorrection").toString();
+    if(decay == "START")
+      json["ImageDecayCorrectionTime"] = 0;
+    else if(decay == "ADMIN" && injectionKnown)
+      json["ImageDecayCorrectionTime"] = static_cast<double>(injection - scan);
+  }
 
   const QJsonArray frames = json.value(CMedIOHeaderDictionary::FramesKey).toArray();
   QJsonArray decay;
