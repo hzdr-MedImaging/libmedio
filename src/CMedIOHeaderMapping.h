@@ -39,7 +39,10 @@
 //! Units and times:
 //! - the values of the attributes have the units of their DICOM attributes
 //! - Unix times of the formats (seconds since 1970, UTC) are written as
-//!   ISO 8601 with "Z"; date and time without time zone are taken as UTC
+//!   ISO 8601 with "Z"; date and time without time zone (e.g. of DICOM,
+//!   microPET or the BIDS sidecars of dcm2niix) are taken as local time of
+//!   this machine (the time zone of the TZ environment variable), as they are
+//!   the local time of the scanner
 //! - dates stored as Unix time (ECAT7 birth date) are the date of the nearest
 //!   midnight UTC, so that a birth date written at local midnight of any time
 //!   zone up to 12 hours from UTC gives the same date on every machine
@@ -104,7 +107,10 @@ const Adapter* nifti2MainHeaderAdapter();
 //! attributes of the JSON of a NIfTI file: the keys written by earlier versions of
 //! CNIFTIConverter (ECAT7 main header fields at the top level) are moved into
 //! the "ECAT7" section and give the attributes they store; BIDS keys of
-//! other tools give the attributes that are not set (see niftiJson())
+//! other tools give the attributes that are not set (see niftiJson()), incl.
+//! the radionuclide (TracerRadionuclide or the half-life of a PET
+//! radionuclide, as ECAT7 isotope name and radionuclide code) and the
+//! injection time (TimeZero, ScanStart and InjectionStart)
 QJsonObject attributesOfNiftiJson(const QJsonObject& json);
 
 //! JSON to store in a NIfTI file: the attributes (without the native NIfTI
@@ -161,7 +167,7 @@ QByteArray latin1(const QJsonValue& value);
 //! ISO 8601 date and time (UTC) of a Unix time, Undefined for 0
 QJsonValue dateTimeOfUnixTime(qint64 seconds);
 
-//! Unix time of an ISO 8601 date and time (without time zone: UTC), 0 for Null
+//! Unix time of an ISO 8601 date and time (without time zone: local time), 0 for Null
 bool unixTimeOfDateTime(const QJsonValue& value, qint64& seconds);
 
 //! date of the nearest midnight UTC of a Unix time, Undefined for 0

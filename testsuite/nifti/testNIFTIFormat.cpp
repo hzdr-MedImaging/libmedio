@@ -45,6 +45,7 @@
 #include "CNIFTIMainHeader.h"
 #include "CNIFTI1MainHeader.h"
 #include "CNIFTI2MainHeader.h"
+#include "MedIOTestTimeZone.h"
 
 Q_DECLARE_METATYPE(QSysInfo::Endian)
 
@@ -260,6 +261,8 @@ class TestNIFTIFormat : public QObject
     void testSaveRewritesMetadata();
     void testWriteMatrixTiming_data();
     void testWriteMatrixTiming();
+    void testOtherToolMetadata_data();
+    void testOtherToolMetadata();
 
   private:
     QString dataFile(const QString& name) const { return QString(NIFTI_TEST_DATA_DIR) + "/" + name; }
@@ -1118,6 +1121,9 @@ void TestNIFTIFormat::testWriteMetadataExtensions()
 {
   QFETCH(QSysInfo::Endian, byteOrder);
 
+  // BIDS TimeZero is the local time of day (Central European Time, UTC+1)
+  MedIOTestTimeZone timeZone("Europe/Berlin");
+
   QTemporaryDir tmpDir;
   QVERIFY(tmpDir.isValid());
   const QString fileName = tmpDir.filePath("metadata.nii");
@@ -1166,7 +1172,7 @@ void TestNIFTIFormat::testWriteMetadataExtensions()
   const QJsonObject json = QJsonDocument::fromJson(text).object();
   QCOMPARE(json.value("Units").toString(), QString("Bq/mL"));
   QCOMPARE(json.value("TracerRadionuclide").toString(), QString("F18"));
-  QCOMPARE(json.value("TimeZero").toString(), QString("14:13:44"));
+  QCOMPARE(json.value("TimeZero").toString(), QString("15:13:44"));  // 14:13:44 UTC
   QCOMPARE(json.value("ScanStart").toDouble(), 0.0);
   QCOMPARE(json.value("InjectionStart").toDouble(), -1800.0);
   QCOMPARE(json.value("ImageDecayCorrected").toBool(), true);
@@ -1517,6 +1523,126 @@ void TestNIFTIFormat::testWriteMatrixTiming()
   QVERIFY(file.readMatrix(data) && data != NULL);
   QScopedPointer<QByteArray> dataGuard(data);
   QVERIFY(*data == voxels);
+}
+
+//---------------------------------------------------------------------------------------------
+// metadata of other tools: a JSON sidecar as dcm2niix (before 2023) writes it
+// for DICOM PET series (DICOM keywords, local time without time zone,
+// FrameDuration and FrameReferenceTime but no FrameTimesStart, the half-life
+// but no radionuclide) and BIDS PET keys (TimeZero, InjectionStart,
+// TracerRadionuclide). Expected values: computed by hand from the sidecar
+// (frame start = reference time - duration / 2, local time of the time zone).
+void TestNIFTIFormat::testOtherToolMetadata_data()
+{
+  QTest::addColumn<QByteArray>("zone");
+  QTest::addColumn<QJsonObject>("sidecar");
+  QTest::addColumn<QString>("acquisition");
+  QTest::addColumn<QString>("injection");
+  QTest::addColumn<QJsonArray>("starts");
+  QTest::addColumn<QString>("isotope");
+  QTest::addColumn<QString>("meaning");
+
+  const QJsonObject dcm2niix{{"Modality", "PT"}, {"PatientName", "Phantom"}, {"PatientWeight", 8.63},
+                             {"AcquisitionDateTime", "2026-06-03T19:04:56.837000"}, {"Radiopharmaceutical", "FDG"},
+                             {"RadionuclideTotalDose", 6.078e7}, {"RadionuclideHalfLife", 6586.2}, {"Units", "BQML"},
+                             {"SeriesDescription", "series"}, {"FrameDuration", QJsonArray{30, 60, 90}},
+                             {"FrameReferenceTime", QJsonArray{15, 60, 135}}};
+
+  // the scan in Central European Summer Time (UTC+2) and Japan Standard Time (UTC+9)
+  QTest::newRow("dcm2niix Europe/Berlin") << QByteArray("Europe/Berlin") << dcm2niix << "2026-06-03T17:04:56Z" << ""
+                                          << QJsonArray{0, 30, 90} << "F-18" << "^18^Fluorine";
+  QTest::newRow("dcm2niix Asia/Tokyo") << QByteArray("Asia/Tokyo") << dcm2niix << "2026-06-03T10:04:56Z" << ""
+                                       << QJsonArray{0, 30, 90} << "F-18" << "^18^Fluorine";
+
+  // reference times of frames with gaps, overlapping (not the middle of the
+  // frames: the frames follow each other) or none
+  QJsonObject gaps = dcm2niix;
+  gaps["FrameReferenceTime"] = QJsonArray{15, 75, 165};
+  QTest::newRow("reference times with gaps") << QByteArray("UTC") << gaps << "2026-06-03T19:04:56Z" << ""
+                                             << QJsonArray{0, 45, 120} << "F-18" << "^18^Fluorine";
+  QJsonObject overlapping = dcm2niix;
+  overlapping["FrameReferenceTime"] = QJsonArray{15, 40, 135};
+  QTest::newRow("overlapping reference times") << QByteArray("UTC") << overlapping << "2026-06-03T19:04:56Z" << ""
+                                               << QJsonArray{0, 30, 90} << "F-18" << "^18^Fluorine";
+  QJsonObject durations = dcm2niix;
+  durations.remove("FrameReferenceTime");
+  durations["RadionuclideHalfLife"] = 1.0e9;   // no known radionuclide
+  QTest::newRow("durations only") << QByteArray("UTC") << durations << "2026-06-03T19:04:56Z" << ""
+                                  << QJsonArray{0, 30, 90} << "" << "";
+
+  // BIDS PET: injection 5096 s before TimeZero 19:04:56 CEST = 15:40:00 UTC
+  const QJsonObject bids{{"PatientName", "Phantom"}, {"AcquisitionDateTime", "2026-06-03T19:04:56"},
+                         {"TimeZero", "19:04:56"}, {"ScanStart", 0}, {"InjectionStart", -5096},
+                         {"TracerRadionuclide", "Cu64"}, {"SeriesDescription", "series"},
+                         {"FrameTimesStart", QJsonArray{0, 30, 90}}, {"FrameDuration", QJsonArray{30, 60, 90}}};
+  QTest::newRow("BIDS PET") << QByteArray("Europe/Berlin") << bids << "2026-06-03T17:04:56Z" << "2026-06-03T15:40:00Z"
+                            << QJsonArray{0, 30, 90} << "Cu-64" << "^64^Copper";
+}
+
+void TestNIFTIFormat::testOtherToolMetadata()
+{
+  QFETCH(QByteArray, zone);
+  QFETCH(QJsonObject, sidecar);
+  QFETCH(QString, acquisition);
+  QFETCH(QString, injection);
+  QFETCH(QJsonArray, starts);
+  QFETCH(QString, isotope);
+  QFETCH(QString, meaning);
+
+  MedIOTestTimeZone timeZone(zone.constData());
+  QTemporaryDir tmpDir;
+  QVERIFY(tmpDir.isValid());
+  const QString fileName = tmpDir.filePath("tool.nii");
+  const qint64 dims[8] = { 4, 4, 3, 2, 3, 1, 1, 1 };
+  {
+    CNIFTIFile file(fileName, CNIFTIMainHeader::NIFTI1);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    QScopedPointer<CNIFTIMainHeader> header(file.createEmptyHeader());
+    fillHeader(static_cast<CNIFTI1MainHeader*>(header.data()), dims, QSysInfo::LittleEndian);
+    QVERIFY(file.writeMainHeader(*header));
+    QVERIFY(file.writeMatrix(patternMatrix(4 * 3 * 2 * 3)));
+    file.close();
+  }
+  QFile json(tmpDir.filePath("tool.json"));
+  QVERIFY(json.open(QIODevice::WriteOnly));
+  json.write(QJsonDocument(sidecar).toJson());
+  json.close();
+
+  // the attributes of the file
+  const QJsonObject a = fileAttributes(fileName);
+  QCOMPARE(a.value("FrameTimesStart").toArray(), starts);
+  QCOMPARE(a.value("FrameDuration").toArray(), (QJsonArray{30, 60, 90}));
+  QCOMPARE(a.value("ECAT7").toObject().value("Isotope_Name").toString(), isotope);
+  QCOMPARE(a.value("RadionuclideCodeSequence").toObject().value("CodeMeaning").toString(), meaning);
+  QCOMPARE(a.value("RadiopharmaceuticalStartDateTime").toString(), injection);
+
+  // the volumes read with the generic interface
+  QScopedPointer<CMedIOData> data(CMedIODataFactory::create(fileName));
+  QVERIFY(data.isNull() == false && data->open(QIODevice::ReadOnly));
+  for(int k=0; k < 3; k++) {
+    CMedIOVolume v;
+    QVERIFY(data->readVolume(v, static_cast<short>(k + 1)));
+    QCOMPARE(v.frameStart(), starts[k].toDouble());
+    QCOMPARE(v.frameDuration(), 30.0 * (k + 1));
+  }
+
+  // the ECAT7 headers of the NIfTI header
+  CNIFTIFile file(fileName);
+  QVERIFY(file.open(QIODevice::ReadOnly));
+  CNIFTIMainHeader* h = NULL;
+  QVERIFY(file.readMainHeader(h) && h != NULL);
+  QScopedPointer<CNIFTIMainHeader> guard(h);
+  CECAT7MainHeader mainHeader;
+  QVERIFY(mainHeader.convertFrom(h));
+  const QJsonObject e = mainHeader.attributes();
+  QCOMPARE(e.value("AcquisitionDateTime").toString(), acquisition);
+  QCOMPARE(e.value("RadiopharmaceuticalStartDateTime").toString(), injection);
+  QCOMPARE(QString::fromLatin1(mainHeader.isotope_Name()), isotope.isEmpty() ? QString("N/A") : isotope);
+  QCOMPARE(QString::fromLatin1(mainHeader.study_Description()), QString("series"));
+  CECAT7SubHeaderImage subHeader;
+  QVERIFY(subHeader.convertFrom(NULL, h));
+  QCOMPARE(subHeader.frame_Start_Time(), 0u);
+  QCOMPARE(subHeader.frame_Duration(), 30000u);
 }
 
 QTEST_GUILESS_MAIN(TestNIFTIFormat)

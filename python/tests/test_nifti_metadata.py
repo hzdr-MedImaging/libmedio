@@ -95,7 +95,8 @@ def test_written_metadata(tmp_path, name, suffix):
     assert metadata["PatientName"] == attributes["PatientName"]
     scan = datetime.datetime.fromisoformat(attributes["AcquisitionDateTime"].replace("Z", "+00:00"))
     injection = datetime.datetime.fromisoformat(attributes["RadiopharmaceuticalStartDateTime"].replace("Z", "+00:00"))
-    assert metadata["TimeZero"] == scan.strftime("%H:%M:%S")
+    # TimeZero: local time of day (the time zone of the process, as libmedio)
+    assert metadata["TimeZero"] == scan.astimezone().strftime("%H:%M:%S")
     assert metadata["ScanStart"] == 0
     assert metadata["InjectionStart"] == pytest.approx((injection - scan).total_seconds())
     assert metadata["InjectedRadioactivity"] == pytest.approx(attributes["RadionuclideTotalDose"] / 1e6)

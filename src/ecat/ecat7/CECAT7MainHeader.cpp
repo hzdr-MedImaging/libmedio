@@ -1105,7 +1105,14 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
 
       // the attributes of the NIfTI header (metadata header extensions, e.g.
       // patient, dose, isotope, units; the frames belong to the sub headers)
-      MedIOHeaderMapping::transfer(baseNiftiHeader->attributes(), *this, MedIOHeaderMapping::frameKeys());
+      const QJsonObject attributes = baseNiftiHeader->attributes();
+      MedIOHeaderMapping::transfer(attributes, *this, MedIOHeaderMapping::frameKeys());
+
+      // without study description: the series description (e.g. of DICOM)
+      if(attributes.contains("StudyDescription") == false &&
+         attributes.value("ECAT7").toObject().contains("Study_Description") == false &&
+         attributes.value("SeriesDescription").isString())
+        setStudy_Description(attributes.value("SeriesDescription").toString().toLatin1().constData());
 
       bResult = true;
     }

@@ -35,8 +35,12 @@
 #include "CNIFTIGeometry.h"
 #include "CECAT7MainHeader.h"
 
+#include <QDateTime>
 #include <QJsonArray>
 #include <QRegExp>
+#include <QTime>
+
+#include <cmath>
 
 #include <rtdebug.h>
 
@@ -125,6 +129,51 @@ QString bidsRadionuclide(const QString& name)
   return symbol + QString::number(mass.toInt()) + metastable;
 }
 
+// half-lives (s) of PET radionuclides, to recognize the radionuclide of
+// metadata that has only the half-life (e.g. the BIDS sidecars of dcm2niix)
+const struct { const char* nuclide; double halfLife; } halfLives[] = {
+  { "O15", 122.24 },     { "N13", 597.9 },      { "C11", 1221.8 },    { "Cu62", 584.4 },
+  { "Rb82", 75.45 },     { "Ga68", 4062.6 },    { "F18", 6586.2 },    { "Ti45", 11088.0 },
+  { "Cu61", 12020.4 },   { "La133", 14083.2 },  { "Sc44", 14551.2 },  { "Cu64", 45720.0 },
+  { "Y86", 53064.0 },    { "Br76", 58320.0 },   { "Zr89", 282276.0 }, { "I124", 360806.4 },
+};
+
+// BIDS radionuclide of a half-life (s): the only radionuclide of the table
+// within 1 %, empty otherwise
+QString radionuclideOfHalfLife(const QJsonValue& value)
+{
+  const double halfLife = value.toDouble();
+  if(value.isDouble() == false || halfLife <= 0.0)
+    return QString();
+
+  QString nuclide;
+  for(unsigned i=0; i < sizeof(halfLives) / sizeof(halfLives[0]); i++) {
+    if(std::fabs(halfLife - halfLives[i].halfLife) <= 0.01 * halfLives[i].halfLife) {
+      if(nuclide.isEmpty() == false)
+        return QString(); // ambiguous
+      nuclide = QString::fromLatin1(halfLives[i].nuclide);
+    }
+  }
+  return nuclide;
+}
+
+// ECAT7 isotope name ("F-18", "Tc-99m") and DICOM code meaning
+// ("^18^Fluorine") of a BIDS radionuclide ("F18")
+void radionuclideNames(const QString& nuclide, QString& isotope, QString& meaning)
+{
+  isotope.clear();
+  meaning.clear();
+  QRegExp parts("^([A-Z][a-z]?)(\\d{1,3})(m?)$");
+  if(parts.exactMatch(nuclide) == false)
+    return;
+
+  isotope = parts.cap(1) + "-" + parts.cap(2) + parts.cap(3);
+  for(unsigned i=0; i < sizeof(elements) / sizeof(elements[0]); i++) {
+    if(parts.cap(1) == QLatin1String(elements[i].symbol))
+      meaning = "^" + parts.cap(2) + parts.cap(3) + "^" + QString::fromLatin1(elements[i].name);
+  }
+}
+
 // BIDS radionuclide of the attributes: the isotope of the native sections or
 // the radionuclide code
 QString radionuclideOf(const QJsonObject& json)
@@ -143,13 +192,15 @@ QString radionuclideOf(const QJsonObject& json)
   return QString();
 }
 
-// "hh:mm:ss" of an ISO 8601 date and time, empty if it has no time
-QString timeOfDay(const QString& dateTime)
+// "hh:mm:ss" local time of day of an ISO 8601 date and time (BIDS TimeZero:
+// the clock time of the scanner, see unixTimeOfDateTime()), empty if it has no time
+QString timeOfDay(const QJsonValue& dateTime)
 {
-  QRegExp time("T(\\d{2}:\\d{2})(:\\d{2})?");
-  if(time.indexIn(dateTime) < 0)
+  qint64 seconds = 0;
+  if(QRegExp(".*T\\d{2}:\\d{2}.*").exactMatch(dateTime.toString()) == false ||
+     unixTimeOfDateTime(dateTime, seconds) == false || seconds == 0)
     return QString();
-  return time.cap(1) + (time.cap(2).isEmpty() ? QString(":00") : time.cap(2));
+  return QDateTime::fromMSecsSinceEpoch(seconds * 1000, Qt::LocalTime).time().toString("hh:mm:ss");
 }
 
 // factor of the BIDS radioactivity units to Bq
@@ -235,6 +286,47 @@ QJsonObject attributesOfNiftiJson(const QJsonObject& source)
   if(json.value("Units").toString().compare("Bq/mL", Qt::CaseInsensitive) == 0)
     json["Units"] = QString("BQML");
 
+  // the radionuclide of other tools (no native section of a format written by
+  // libmedio): BIDS TracerRadionuclide or the half-life of a PET radionuclide
+  // (as ECAT7 isotope name and radionuclide code)
+  // (of the JSON as given: the ECAT7 fields of earlier versions, incl. the
+  // isotope name, are moved into the "ECAT7" section above)
+  const bool otherTool = source.contains("ECAT7") == false && source.contains("Philips") == false &&
+                         source.contains("microPET") == false && source.contains("Isotope_Name") == false;
+  if(otherTool && radionuclideOf(json).isEmpty()) {
+    QString nuclide = bidsRadionuclide(json.value("TracerRadionuclide").toString());
+    if(nuclide.isEmpty())
+      nuclide = radionuclideOfHalfLife(json.value("RadionuclideHalfLife"));
+    QString isotope, meaning;
+    radionuclideNames(nuclide, isotope, meaning);
+    if(isotope.isEmpty() == false) {
+      QJsonObject ecat = json.value("ECAT7").toObject();
+      ecat["Isotope_Name"] = isotope;
+      json["ECAT7"] = ecat;
+    }
+    if(meaning.isEmpty() == false)
+      setIfMissing(json, "RadionuclideCodeSequence", QJsonObject{{"CodeMeaning", meaning}});
+  }
+
+  // the injection of BIDS PET metadata of other tools: InjectionStart (s)
+  // relative to TimeZero (local clock time, on the day of the scan start
+  // AcquisitionDateTime - ScanStart)
+  qint64 scan = 0;
+  const QTime timeZero = QTime::fromString(json.value("TimeZero").toString().left(8), "hh:mm:ss");
+  if(json.contains("RadiopharmaceuticalStartDateTime") == false && timeZero.isValid() &&
+     json.value("InjectionStart").isDouble() && json.value("AcquisitionDateTime").isString() &&
+     unixTimeOfDateTime(json.value("AcquisitionDateTime"), scan) && scan != 0) {
+    const QDateTime reference = QDateTime::fromMSecsSinceEpoch(scan * 1000, Qt::LocalTime)
+                                .addMSecs(qRound64(-json.value("ScanStart").toDouble() * 1000.0));
+    QDateTime zero(reference.date(), timeZero, Qt::LocalTime);
+    if(zero.secsTo(reference) > 12 * 3600)
+      zero = QDateTime(reference.date().addDays(1), timeZero, Qt::LocalTime);
+    else if(reference.secsTo(zero) > 12 * 3600)
+      zero = QDateTime(reference.date().addDays(-1), timeZero, Qt::LocalTime);
+    const qint64 injection = zero.toMSecsSinceEpoch() / 1000 + qRound64(json.value("InjectionStart").toDouble());
+    json["RadiopharmaceuticalStartDateTime"] = dateTimeOfUnixTime(injection);
+  }
+
   const QJsonArray decay = json.value("DecayCorrectionFactor").toArray();
   if(decay.isEmpty() == false && json.contains(CMedIOHeaderDictionary::FramesKey) == false) {
     QJsonArray frames;
@@ -280,7 +372,7 @@ QJsonObject niftiJson(const QJsonObject& attributes)
   const QString nuclide = radionuclideOf(json);
   if(nuclide.isEmpty() == false)
     json["TracerRadionuclide"] = nuclide;
-  const QString timeZero = timeOfDay(json.value("AcquisitionDateTime").toString());
+  const QString timeZero = timeOfDay(json.value("AcquisitionDateTime"));
   if(timeZero.isEmpty() == false) {
     json["TimeZero"] = timeZero;
     json["ScanStart"] = 0;

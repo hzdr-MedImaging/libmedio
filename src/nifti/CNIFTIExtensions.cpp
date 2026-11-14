@@ -1003,6 +1003,42 @@ QJsonObject fileMetadata(CNIFTIFile& file, const CNIFTIMainHeader* header, const
     break;
   }
 
+  // frame start times of BIDS metadata without FrameTimesStart (e.g. of
+  // dcm2niix before 2023: FrameDuration and FrameReferenceTime, the middle of
+  // the frame for most scanners); without valid reference times the frames
+  // follow each other
+  if(json.contains("FrameTimesStart") == false && json.contains("FrameDuration")) {
+    QJsonArray durations = json.value("FrameDuration").toArray();
+    if(json.value("FrameDuration").isDouble())
+      durations.append(json.value("FrameDuration"));
+    const QJsonArray references = json.value("FrameReferenceTime").toArray();
+
+    bool valid = durations.isEmpty() == false;
+    foreach(const QJsonValue& d, durations)
+      valid = valid && d.isDouble() && d.toDouble() >= 0.0;
+
+    if(valid) {
+      QJsonArray starts;
+      bool fromReferences = (references.size() == durations.size());
+      for(int i=0; i < durations.size() && fromReferences; i++) {
+        const double start = references[i].toDouble() - durations[i].toDouble() / 2.0;
+        const double previousEnd = (i > 0) ? starts[i - 1].toDouble() + durations[i - 1].toDouble() : 0.0;
+        fromReferences = references[i].isDouble() && start >= previousEnd - 1e-3;
+        starts.append(qMax(start, 0.0));
+      }
+      if(fromReferences == false) {
+        starts = QJsonArray();
+        double start = 0.0;
+        foreach(const QJsonValue& d, durations) {
+          starts.append(start);
+          start += d.toDouble();
+        }
+      }
+      json["FrameTimesStart"] = starts;
+      json["FrameDuration"] = durations;
+    }
+  }
+
   // the descrip of files written by PMOD
   if(pmod && metadata == false) {
     const char* descrip = nifti1 ? h1->descrip() : h2->descrip();

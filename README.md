@@ -112,6 +112,15 @@ nifti2philips input.nii[.gz]|input.hdr[.gz]|input.img[.gz] [output.img|output.sy
   of their DICOM header extension (e.g. the units and frame timing of PMOD)
   and, for files of PMOD, the patient name, study type and description of
   `descrip`. `--no-extension` writes neither extension.
+- JSON sidecars of other tools (BIDS PET, dcm2niix) are read as well:
+  - without `FrameTimesStart` (dcm2niix before 2023), the frame start times
+    are `FrameReferenceTime - FrameDuration / 2`, or follow each other;
+  - the radionuclide comes from `TracerRadionuclide`, or from the half-life
+    of a PET radionuclide (dcm2niix writes only `RadionuclideHalfLife`);
+  - the injection time comes from `TimeZero` and `InjectionStart`.
+
+  Dates and times without time zone (DICOM, dcm2niix, microPET) are taken as
+  local time of the machine (`TZ`), BIDS `TimeZero` is written in local time.
 - Philips files are converted via the ECAT7 representation of libmedio; the
   x/y image position of Philips slices is not used.
 
@@ -309,7 +318,9 @@ mainHeader->updateAttributes(attributes);            // whole object or single k
 - The keys are DICOM keywords, e.g. `PatientWeight` for the DICOM attribute
   (0010,1030), with the meaning and unit of the DICOM attribute (kg, Bq, s,
   ms, ...) and a JSON value: numbers, ISO 8601 dates and times (`Z` for UTC,
-  without time zone if the format has none), arrays for multiple values,
+  without time zone if the format has none; these are taken as local time of
+  the machine, as DICOM times are the local time of the scanner, so set `TZ`
+  when converting data of another time zone), arrays for multiple values,
   objects for code sequences. `CMedIOHeaderDictionary` lists the keys with their
   DICOM tag (as number and as string `"(0010,1030)"`), VR, unit and the
   sequence holding them.

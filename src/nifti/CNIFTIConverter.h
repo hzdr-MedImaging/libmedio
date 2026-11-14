@@ -61,6 +61,11 @@
 //   is written like PMOD writes it (see CNIFTIExtensions.h). NIfTI files
 //   without the JSON metadata provide the values of a DICOM extension (e.g.
 //   written by PMOD) or the frame timing of toffset and pixdim[4] (4D data only).
+// - JSON sidecars of other tools (BIDS PET, dcm2niix): without FrameTimesStart
+//   the frame start times are FrameReferenceTime - FrameDuration / 2 (or the
+//   frames follow each other), the radionuclide comes from TracerRadionuclide
+//   or the half-life of a PET radionuclide, the injection time from TimeZero
+//   and InjectionStart. Dates and times without time zone are local time.
 // - The metadata is written by the NIfTI classes themselves, so applications
 //   using them directly get the same: the header save()/CNIFTIFile::
 //   writeMainHeader() stores the attributes, convertFrom() of a NIfTI header
