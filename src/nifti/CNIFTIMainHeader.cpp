@@ -18,6 +18,7 @@
 */
 
 #include "CNIFTIMainHeader.h"
+#include "CNIFTIExtensions.h"
 
 #include <QJsonDocument>
 #include <QJsonParseError>
@@ -74,35 +75,20 @@ CMedIOHeader::Format CNIFTIMainHeader::headerFormat() const {
 // a multiple of 16 which includes the 8 bytes for esize and ecode) and its code
 // (ecode), followed by the extension data.
 
-// size in bytes of the extension holding the given JSON metadata
+// size in bytes of the extensions holding the given metadata: a DICOM
+// extension for other tools (e.g. PMOD) and the JSON extension (see CNIFTIExtensions.h)
 int CNIFTIMainHeader::jsonExtensionSize(const QJsonObject& json) {
-  // 8 bytes for esize + ecode followed by the compact JSON text
-  int esize = 8 + QJsonDocument(json).toJson(QJsonDocument::Compact).size();
-
-  // every NIfTI extension must be a multiple of 16 bytes
-  return esize + (16 - (esize % 16)) % 16;
+  return static_cast<int>(NIFTIExtensions::metadataExtensions(json, false).size());
 }
 
-// write the extension indicator and a single extension holding the JSON metadata
+// write the extension indicator and the extensions holding the metadata
 // directly after the main header
 bool CNIFTIMainHeader::writeJsonExtension(QIODevice& file, qint64 headerSize, const QJsonObject& json, bool swap) {
   ENTER();
 
-  QByteArray jsonData = QJsonDocument(json).toJson(QJsonDocument::Compact);
-  qint32 esize = jsonExtensionSize(json);
-  qint32 ecode = NIFTI_ECODE_JSON;
-
-  if(swap) {
-    BSWAP_32(esize);
-    BSWAP_32(ecode);
-  }
-
   QByteArray extension;
   extension.append("\x01\0\0\0", 4); // extension indicator
-  extension.append(reinterpret_cast<const char*>(&esize), sizeof(esize));
-  extension.append(reinterpret_cast<const char*>(&ecode), sizeof(ecode));
-  extension.append(jsonData);
-  extension.append(QByteArray(4 + jsonExtensionSize(json) - extension.size(), '\0')); // padding
+  extension.append(NIFTIExtensions::metadataExtensions(json, swap));
 
   bool result = file.seek(headerSize) &&
                 file.write(extension) == extension.size();

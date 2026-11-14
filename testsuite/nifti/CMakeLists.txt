@@ -32,6 +32,8 @@ include_directories(${RTDEBUG_INCLUDES}
 # specify the executable we are going to build
 add_executable(testNIFTIFormat testNIFTIFormat.cpp)
 
+target_include_directories(testNIFTIFormat PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../common)
+
 # reference NIfTI files (written with nibabel, see data/generate_fixtures.py)
 target_compile_definitions(testNIFTIFormat PRIVATE
                            NIFTI_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")

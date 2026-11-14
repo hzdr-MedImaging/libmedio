@@ -63,6 +63,11 @@ class CNIFTIMainHeader : public CMedIOHeader { // CNIFTIMainHeader class inherit
 //==================================================================================================
     // Pure virtual methods to load/save information
     // prepresented by this class
+    // save() writes the header into the file it belongs to together with its
+    // attributes as JSON and DICOM header extensions (replacing the metadata
+    // extensions written before) and sets descrip as PMOD writes it; it can
+    // move vox_offset (and keeps the moved value) as long as the file has no
+    // voxel data yet (see CNIFTIFile::writeMainHeader())
     virtual bool load()  = 0;
     virtual bool save() const = 0;
 
@@ -93,7 +98,11 @@ class CNIFTIMainHeader : public CMedIOHeader { // CNIFTIMainHeader class inherit
     // copy all meta information
     virtual CMedIOHeader* clone() const = 0;
 
-    // conversion methods
+    // conversion methods: from the main header and the image sub header of a
+    // frame of ECAT7 or Philips data (geometry, data type, scaling, timing of
+    // the frame and the attributes of the source, incl. the attributes and
+    // timing of all frames while the main header belongs to its open file) or
+    // from a NIfTI-1/NIfTI-2 header (incl. its attributes)
     virtual bool convertFrom(const CMedIOHeader* mainHeader, const CMedIOHeader* subHeader=NULL) = 0;
 
   protected:

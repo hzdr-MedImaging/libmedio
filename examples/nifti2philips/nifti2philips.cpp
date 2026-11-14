@@ -36,7 +36,9 @@ static void usage(const char* name)
   cout << "Usage: " << name << " <input.nii|.nii.gz|.hdr|.img|.hdr.gz|.img.gz> [output.img|output.syn]" << endl
        << endl
        << "The metadata (patient, isotope, frame timing, ...) is restored from the" << endl
-       << "JSON header extension of the input file or from a JSON sidecar file next to it." << endl
+       << "JSON header extension of the input file or from a JSON sidecar file next to it;" << endl
+       << "values missing there are taken from a DICOM header extension (e.g. the frame" << endl
+       << "timing of PMOD) and, for files written by PMOD, from descrip." << endl
        << "An output name ending with .syn writes a Syntegra file, any other name an image" << endl
        << "file. The output defaults to the input file name with the extension .img (for an" << endl
        << "input header/image pair: <name>.philips.img, so that the NIfTI image file is kept)." << endl;

@@ -184,6 +184,20 @@ bool niftiMainHeaderFromFrame(const CMedIOFrame& f, CMedIOData* source, CMedIOHe
 bool writeNiftiFrame(CNIFTIFile* file, short frame, const CMedIOFrame& f);
 void setNiftiFrameTiming(CNIFTIMainHeader* header, double start, double duration);
 
+//! attributes of a NIfTI header converted from an ECAT7 or Philips main
+//! header and the sub header of a frame (see CNIFTI1MainHeader::convertFrom()):
+//! the attributes of the main header plus "Frames", FrameTimesStart and
+//! FrameDuration (s) of all volumes, read from the file the main header belongs
+//! to if it is open for reading and has as many frames (otherwise only for a
+//! single volume, from the given sub header)
+QJsonObject niftiAttributesOfSource(const CMedIOHeader* mainHeader, const CMedIOHeader* subHeader, int volumes);
+
+//! store the start time and duration (s) of volume frame (1-based) in the
+//! metadata header extensions of a NIfTI file whose main header was written
+//! (see CNIFTIFile::writeMatrix(data, frame, start, duration)); false if the
+//! frame has no timing of its own or the timing cannot be stored
+bool storeNiftiFrameTiming(CNIFTIFile* file, short frame, double start, double duration);
+
 //---------------------------------------------------------------------------------------------
 // Philips adapter (src/philips/CPhilipsMatrix.cpp)
 
