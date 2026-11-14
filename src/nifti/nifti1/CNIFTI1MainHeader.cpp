@@ -22,6 +22,7 @@
 #include "CNIFTI2MainHeader.h"
 #include "CNIFTIHeaderCopy.h"
 #include "CNIFTIGeometry.h"
+#include "CNIFTIExtensions.h"
 #include "CECATMainHeader.h"
 #include "CECAT7MainHeader.h"
 #include "CECAT7SubHeaderImage.h"
@@ -454,6 +455,26 @@ bool CNIFTI1MainHeader::save(void) const {
 
   CNIFTIFile* niftiFile = static_cast<CNIFTIFile*>(mData);
 
+  // the attributes are stored as JSON and DICOM header extensions behind the
+  // header (see CNIFTIExtensions.h), descrip as PMOD writes it
+  NIFTIExtensions::HeaderMetadata metadata;
+  if(NIFTIExtensions::prepareHeaderMetadata(*niftiFile, niftiFile->isPair(), attributes(),
+                                            QByteArray(m_pData->header.Descrip, static_cast<int>(qstrnlen(m_pData->header.Descrip, 80))),
+                                            MAINHEADER_SIZE, static_cast<qint64>(m_pData->header.Vox_Offset), m_pData->byteOrder != QSysInfo::ByteOrder, metadata) == false ||
+     mData->seek(0) == false) {
+    RETURN(false);
+    return false;
+  }
+
+  // descrip and vox_offset (room for the extensions) are kept in the header
+  // object as written (the file caches a copy of it, see mainHeaderWritten())
+  if(metadata.setDescrip) {
+    strncpy(m_pData->header.Descrip, metadata.descrip.constData(), sizeof(m_pData->header.Descrip) - 1);
+    m_pData->header.Descrip[sizeof(m_pData->header.Descrip) - 1] = '\0';
+  }
+  if(niftiFile->isPair() == false && metadata.voxOffset != static_cast<qint64>(m_pData->header.Vox_Offset))
+    m_pData->header.Vox_Offset = static_cast<float>(metadata.voxOffset);
+
   // work on a copy so that the fields required for a valid file
   // do not modify the header data itself
   struct CNIFTI1MainHeaderPrivate::HeaderData header;
@@ -478,7 +499,9 @@ bool CNIFTI1MainHeader::save(void) const {
 //------------------------------------------------------------------------------------
   // Write out the main header to the file
   bool result = false;
-  if(mData->write(reinterpret_cast<char*>(&header), sizeof(header)) == MAINHEADER_SIZE) {
+  if(mData->write(reinterpret_cast<char*>(&header), sizeof(header)) == MAINHEADER_SIZE &&
+     (metadata.block.isEmpty() || mData->write(metadata.block) == metadata.block.size()) &&
+     (metadata.fileSize < 0 || mData->size() <= metadata.fileSize || mData->resize(metadata.fileSize))) {
     niftiFile->mainHeaderWritten(*this);
     result = true;
   }
@@ -519,6 +542,8 @@ bool CNIFTI1MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIO
 
       if(bResult == false)
         E("%s", error.toLatin1().constData());
+      else
+        transferSourceAttributes(*this, mainHeader, subHeader);
     }
     break;
 
@@ -530,6 +555,8 @@ bool CNIFTI1MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIO
       bResult = convertNIFTIFromPhilips(*this, static_cast<const CPhilipsMainHeader*>(mainHeader), static_cast<const CPhilipsSubHeader*>(subHeader), &error);
       if(bResult == false)
         E("%s", error.toLatin1().constData());
+      else
+        transferSourceAttributes(*this, mainHeader, subHeader);
     }
     break;
 
@@ -551,6 +578,10 @@ bool CNIFTI1MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIO
       }
       else if(niftiHeader->mainHeaderType() == CNIFTIMainHeader::NIFTI2MainHeader) {
         bResult = copyNIFTIHeaderFields(*this, *static_cast<const CNIFTI2MainHeader*>(niftiHeader), 32767);
+
+        // the attributes (stored as header extensions, see CNIFTIFile::writeMainHeader())
+        if(bResult)
+          copyAttributes(*niftiHeader);
 
         if(bResult == false)
           E("NIfTI-2 header values exceed the limits of a NIfTI-1 header");
@@ -960,12 +991,14 @@ void CNIFTI1MainHeader::setByteOrder(QSysInfo::Endian order) {
 //=============================================================================================
 // Header extension
 
-// size in bytes of the header extension holding the given JSON metadata
+// size in bytes of the header extensions holding the given metadata (JSON
+// and DICOM extension, see CNIFTIExtensions.h)
 int CNIFTI1MainHeader::headerExtensionSize(const QJsonObject& json) const {
   return jsonExtensionSize(json);
 }
 
-// Write the JSON metadata as header extension directly after the NIfTI-1 main header.
+// Write the metadata as header extensions (JSON and DICOM extension) directly
+// after the NIfTI-1 main header.
 // In single files vox_offset has to account for the extension (see
 // headerExtensionSize()), in header/image pairs the extension ends the header file.
 bool CNIFTI1MainHeader::writeHeaderExtension(CNIFTIFile& niftiFile, const QJsonObject& json) {

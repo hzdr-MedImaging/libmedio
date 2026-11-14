@@ -63,6 +63,7 @@
 #include "CNIFTIMainHeader.h"
 #include "CNIFTI1MainHeader.h"
 #include "CNIFTI2MainHeader.h"
+#include "CNIFTIExtensions.h"
 
 // NIfTI datatype codes and units
 #define NIFTI_DT_UINT8     2
@@ -425,20 +426,11 @@ static inline QString niftiSidecarFileName(const QString& niftiFileName)
   return info.absoluteDir().filePath(base + ".json");
 }
 
-// metadata of an opened NIfTI file: JSON header extension or JSON sidecar file
+// metadata of an opened NIfTI file: JSON header extension or JSON sidecar
+// file, completed by a DICOM header extension (see CNIFTIExtensions.h)
 static inline QJsonObject niftiMetadata(CNIFTIFile& file, const CNIFTIMainHeader* header, const QString& fileName)
 {
-  QJsonObject json = (header->mainHeaderType() == CNIFTIMainHeader::NIFTI1MainHeader)
-                     ? static_cast<const CNIFTI1MainHeader*>(header)->readHeaderExtension(file)
-                     : static_cast<const CNIFTI2MainHeader*>(header)->readHeaderExtension(file);
-
-  if(json.isEmpty()) {
-    QFile sidecar(niftiSidecarFileName(fileName));
-    if(sidecar.open(QIODevice::ReadOnly))
-      json = QJsonDocument::fromJson(sidecar.readAll()).object();
-  }
-
-  return json;
+  return NIFTIExtensions::fileMetadata(file, header, fileName);
 }
 
 // start time and duration (s) of volume f (0-based) of a NIfTI file: from

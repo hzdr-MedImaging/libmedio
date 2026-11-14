@@ -43,6 +43,7 @@
 #include <CConcordeFrameHeader.h>
 
 #include "MedIOTestData.h"
+#include "MedIOTestTimeZone.h"
 
 #include <QtTest/QtTest>
 #include <QJsonArray>
@@ -1102,6 +1103,8 @@ void TestMedIOAttributes::conversionPhilipsNifti()
 
 void TestMedIOAttributes::conversionConcordeEcat()
 {
+  // the microPET header holds local time (Central European Summer Time, UTC+2)
+  MedIOTestTimeZone timeZone("Europe/Berlin");
   const QString path = m_tmp.filePath("mpet-ecat.img");
   QVERIFY(writeConcordeHeader(path, 2));   // dose in MBq
 
@@ -1120,8 +1123,8 @@ void TestMedIOAttributes::conversionConcordeEcat()
   QCOMPARE(ecat->dosage(), 2.0e6f);                  // 2 MBq in Bq
   QCOMPARE(ecat->patient_Orientation(), CECAT7MainHeader::HF_Supine);
   QCOMPARE(QString(ecat->radiopharmaceutical()), QString("FDG"));
-  // local time of the microPET header without time zone, stored as UTC
-  QCOMPARE(mh->attribute("AcquisitionDateTime").toString(), QString("2026-06-03T19:04:56Z"));
+  // local time of the microPET header without time zone (19:04:56 CEST), stored as UTC
+  QCOMPARE(mh->attribute("AcquisitionDateTime").toString(), QString("2026-06-03T17:04:56Z"));
 
   // the fields ECAT7 cannot store are kept: the microPET section
   const QJsonObject json = mh->attributes();

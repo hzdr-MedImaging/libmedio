@@ -342,9 +342,10 @@ bool unixTimeOfDateTime(const QJsonValue& value, qint64& seconds)
   if(dt.isValid() == false)
     return false;
 
-  // without time zone: UTC (and not the time zone of the machine)
+  // without time zone: local time of this machine (as in DICOM, where date
+  // and time are the local time of the scanner)
   if(QRegExp(".*(Z|[+-]\\d{2}:\\d{2})$").exactMatch(s) == false)
-    dt = QDateTime(dt.date(), dt.time(), Qt::UTC);
+    dt = QDateTime(dt.date(), dt.time(), Qt::LocalTime);
 
   seconds = dt.toMSecsSinceEpoch() / 1000;
   return true;

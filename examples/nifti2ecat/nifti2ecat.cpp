@@ -35,7 +35,9 @@ static void usage(const char* name)
   cout << "Usage: " << name << " <input.nii|.nii.gz|.hdr|.img|.hdr.gz|.img.gz> [output.v]" << endl
        << endl
        << "The ECAT7 metadata (patient, isotope, frame timing, ...) is restored from the" << endl
-       << "JSON header extension of the input file or from a JSON sidecar file next to it." << endl
+       << "JSON header extension of the input file or from a JSON sidecar file next to it;" << endl
+       << "values missing there are taken from a DICOM header extension (e.g. the frame" << endl
+       << "timing of PMOD) and, for files written by PMOD, from descrip." << endl
        << "The output defaults to the input file name with the extension .v." << endl;
 }
 

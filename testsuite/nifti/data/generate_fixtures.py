@@ -35,6 +35,7 @@ import sys
 
 import nibabel as nib
 import numpy as np
+import pydicom
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.dirname(os.path.abspath(__file__))
 
@@ -139,3 +140,83 @@ print('written analyze.hdr/.img')
 # minimal NIfTI-1 pair without extensions written by nibabel from a single file image
 nib.save(N1(pattern((4, 3, 2), np.int16), AFFINE), os.path.join(OUT, 'n1_pair.img'))
 print('written n1_pair.hdr/.img')
+
+
+# metadata in a DICOM header extension (code 2), written with pydicom
+# (https://pydicom.github.io) as nibabel's Nifti1DicomExtension
+
+# a file like those written by PMOD: no qform/sform, descrip
+# "<patient name> [<study type>] <study description>" and a DICOM extension
+# holding the units and the frame timing in the private tags of PMOD
+# (start times in s, durations in ms)
+PMOD_STARTS = [0.0, 15.0, 45.0]
+PMOD_DURATIONS_MS = [15000.0, 30000.0, 45000.0]
+
+
+def pmod_dataset():
+    ds = pydicom.Dataset()
+    ds.add_new((0x0054, 0x1001), 'CS', 'BQML')
+    ds.add_new((0x0055, 0x0010), 'LO', 'PMOD_1')
+    ds.add_new((0x0055, 0x1001), 'FD', PMOD_STARTS)
+    ds.add_new((0x0055, 0x1004), 'FD', PMOD_DURATIONS_MS)
+    return ds
+
+
+def make_pmod():
+    img = N1(pattern((4, 3, 2, 3), np.int16), None)
+    img.set_qform(None, 0)
+    img.set_sform(None, 0)
+    img.header.set_xyzt_units('mm', 'sec')
+    img.header['pixdim'][1:4] = [2.0, 2.5, 3.0]
+    img.header['descrip'] = b'Test^Patient [DYNAMIC\\IMA] PET test study'
+    img.header.extensions.append(nib.nifti1.Nifti1DicomExtension(2, pmod_dataset()))
+    return img
+
+
+# a big endian file with a DICOM extension holding attributes (incl. sequences
+# and a Latin-1 patient name) and a JSON extension: the JSON metadata comes
+# first, the DICOM extension provides the values the JSON metadata does not have.
+# The data set is big endian like the file (nibabel writes it so with
+# parent_hdr, but reads DICOM extensions as little endian, as libmedio writes them).
+DICOM_JSON = {"PatientWeight": 70.5, "StudyDescription": "from JSON"}
+
+
+def full_dataset():
+    ds = pydicom.Dataset()
+    ds.SpecificCharacterSet = 'ISO_IR 100'
+    ds.AcquisitionDateTime = '20240227141344'
+    ds.StudyDescription = 'from DICOM'
+    ds.PatientName = 'Müller^Hans'
+    ds.PatientID = 'ID-0815'
+    ds.PatientBirthDate = '19700102'
+    ds.PatientSex = 'M'
+    ds.PatientWeight = '80'
+    ds.PatientSize = '1.78'
+    code = pydicom.Dataset()
+    code.CodeValue = 'C-111A1'
+    code.CodingSchemeDesignator = 'SRT'
+    code.CodeMeaning = '^18^Fluorine'
+    info = pydicom.Dataset()
+    info.Radiopharmaceutical = 'FDG'
+    info.RadiopharmaceuticalStartDateTime = '20240227131500'
+    info.RadionuclideTotalDose = '370000000'
+    info.RadionuclideHalfLife = '6586.2'
+    info.RadionuclideCodeSequence = pydicom.Sequence([code])
+    ds.RadiopharmaceuticalInformationSequence = pydicom.Sequence([info])
+    ds.Units = 'BQML'
+    ds.DecayCorrection = 'START'
+    ds.add_new((0x0055, 0x0010), 'LO', 'PMOD_1')
+    ds.add_new((0x0055, 0x1001), 'FD', [0.0, 60.0])
+    ds.add_new((0x0055, 0x1004), 'FD', [60000.0, 120000.0])
+    return ds
+
+
+def make_dicom_be():
+    img = make(N1, (4, 3, 2, 2), np.float32, '>')
+    img.header.extensions.append(nib.nifti1.Nifti1Extension(6, json.dumps(DICOM_JSON).encode()))
+    img.header.extensions.append(nib.nifti1.Nifti1DicomExtension(2, full_dataset(), parent_hdr=img.header))
+    return img
+
+
+save(make_pmod(), 'pmod_le_int16_4d.nii')
+save(make_dicom_be(), 'n1_be_float32_dicom.nii')
