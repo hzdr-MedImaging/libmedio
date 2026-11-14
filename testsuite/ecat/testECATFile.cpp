@@ -73,6 +73,7 @@ class TestECATFile : public QObject
     void initTestCase() { QVERIFY(m_tmp.isValid()); }
     void readMatrix();
     void truncatedFile();
+    void fullTextFields();
 };
 
 // the matrix is returned in machine byte order
@@ -125,6 +126,68 @@ void TestECATFile::truncatedFile()
 
   CMedIOVolume volume;
   QVERIFY(file.readVolume(volume, 1) == false);
+  file.close();
+}
+
+// ECAT7 text fields filled up to their size have no terminating zero (e.g.
+// a study description of 32 characters written by the scanner software):
+// they are written and read completely, the getters return them zero
+// terminated without the following fields
+void TestECATFile::fullTextFields()
+{
+  const QByteArray description("None|260603_NEMAPhantom_Cu61-LM-");   // 32 characters
+  const QByteArray name("Patient^Name^With^32^Characters!");
+  QCOMPARE(description.size(), 32);
+  QCOMPARE(name.size(), 32);
+
+  const QString path = m_tmp.filePath("text.v");
+  {
+    CECATFile file(path, CECATMainHeader::ECAT7_Volume16);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    CECAT7MainHeader mainHeader(&file, CECATMainHeader::ECAT7_Volume16);
+    mainHeader.setNum_Frames(1);
+    mainHeader.setNum_Planes(nz);
+    mainHeader.setStudy_Description(description.constData());
+    mainHeader.setPatient_Name((name + "longer than the field").constData());   // cut to 32 characters
+    mainHeader.setPhysician_Name("Physician");
+    mainHeader.setAcquisition_Type(CECAT7MainHeader::DynamicEmission);   // non-zero field behind the description
+    QCOMPARE(QByteArray(mainHeader.study_Description()), description);
+    QCOMPARE(QByteArray(mainHeader.patient_Name()), name);
+
+    CECAT7SubHeaderImage subHeader(&file);
+    subHeader.setData_Type(CECATSubHeader::SunShort);
+    subHeader.setNum_Dimensions(3);
+    subHeader.setX_Dimension(nx);
+    subHeader.setY_Dimension(ny);
+    subHeader.setZ_Dimension(nz);
+    subHeader.setScale_Factor(1.0f);
+    QVERIFY(file.writeMainHeader(mainHeader));
+    QVERIFY(file.writeSubHeader(subHeader, 1));
+    QVERIFY(file.writeMatrix(QByteArray(nx * ny * nz * 2, '\0'), 1));
+    file.close();
+  }
+
+  // the fields in the file: Patient_Name at byte 182, Study_Description at
+  // byte 296 (ECAT7 main header), both 32 bytes
+  QFile raw(path);
+  QVERIFY(raw.open(QIODevice::ReadOnly));
+  const QByteArray header = raw.read(512);
+  QCOMPARE(header.mid(182, 32), name);
+  QCOMPARE(header.mid(296, 32), description);
+  raw.close();
+
+  CECATFile file(path);
+  QVERIFY(file.open(QIODevice::ReadOnly));
+  CECATMainHeader* h = NULL;
+  QVERIFY(file.readMainHeader(h) && h != NULL);
+  QScopedPointer<CECATMainHeader> guard(h);
+  const CECAT7MainHeader* mainHeader = static_cast<const CECAT7MainHeader*>(h);
+  const char* studyDescription = mainHeader->study_Description();
+  const char* patientName = mainHeader->patient_Name();
+  QCOMPARE(QByteArray(studyDescription), description);   // both pointers valid together
+  QCOMPARE(QByteArray(patientName), name);
+  QCOMPARE(QByteArray(mainHeader->physician_Name()), QByteArray("Physician"));
+  QCOMPARE(h->attributes().value("StudyDescription").toString(), QString::fromLatin1(description));
   file.close();
 }
 
