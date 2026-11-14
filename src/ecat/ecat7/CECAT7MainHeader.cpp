@@ -47,10 +47,36 @@
 // we define the private inline class of that one so that we
 // are able to hide the private methods & data of that class in the
 // public headers
+// set a text field of the header: up to its whole size (ECAT7 has no
+// terminating zero in full fields), the rest filled with zeros
+static void setTextField(char* field, size_t size, const char* text)
+{
+  const size_t n = (text != NULL) ? qstrnlen(text, static_cast<uint>(size)) : 0;
+  if(n > 0)
+    memcpy(field, text, n);
+  memset(field + n, 0, size - n);
+}
+
 class CECAT7MainHeaderPrivate
 {
   public:
     void updateMagicNumber(void);
+
+    // text fields of the header: ECAT7 fills them up to their size without
+    // terminating zero, so the getters return a zero terminated copy (one
+    // buffer per field: the pointers of all fields stay valid together)
+    enum TextField { OriginalFileName = 0, SerialNumber, IsotopeName, Radiopharmaceutical, StudyType,
+                     PatientID, PatientName, PhysicianName, OperatorName, StudyDescription,
+                     FacilityName, UserProcessCode, DataUnits, TextFields };
+    const char* text(TextField field, const char* data, size_t size) const
+    {
+      char* buffer = textBuffer[field];
+      const size_t n = qMin(size, sizeof(textBuffer[field]) - 1);
+      memcpy(buffer, data, n);
+      buffer[n] = '\0';
+      return buffer;
+    }
+    mutable char textBuffer[TextFields][33];
 
     // helper methods for converting the header from concorde to ecat7
     QString concorde2ECAT7dataUnits(CConcordeMainHeader::CalibrationUnits u) const;
@@ -424,15 +450,15 @@ bool CECAT7MainHeader::load(void)
   D("ECAT7 Main Header loaded:");
   D("------------------------");
   D("Magic_Number            : %s",           m_pData->header.Magic_Number);
-  D("Original_File_Name      : %s",           m_pData->header.Original_File_Name);
+  D("Original_File_Name      : %s",           original_File_Name());
   D("SW_Version              : %d",           m_pData->header.SW_Version);
   D("System_Type             : %d",           m_pData->header.System_Type);
   D("File_Type               : %d",           m_pData->header.File_Type);
-  D("Serial_Number           : %s",           m_pData->header.Serial_Number);
+  D("Serial_Number           : %s",           serial_Number());
   D("Scan_Start_Time         : %s (%d)",      scan_Start_Time_Qt().toString().toLatin1().constData(), m_pData->header.Scan_Start_Time);
-  D("Isotope Name            : %s",           m_pData->header.Isotope_Name);
+  D("Isotope Name            : %s",           isotope_Name());
   D("Isotope Halflife        : %f sec",       m_pData->header.Isotope_Halflife);
-  D("Radiopharmaca           : %s",           m_pData->header.Radiopharmaceutical);
+  D("Radiopharmaca           : %s",           radiopharmaceutical());
   D("Gantry Tilt             : %f�",          m_pData->header.Gantry_Tilt);
   D("Gantry Rotation         : %f�",          m_pData->header.Gantry_Rotation);
   D("Bed elevation           : %f cm",        m_pData->header.Bed_Elevation);
@@ -448,21 +474,21 @@ bool CECAT7MainHeader::load(void)
   D("Calibration Units       : %d",           m_pData->header.Calibration_Units);
   D("Calibration Units Label : %d",           m_pData->header.Calibration_Units_Label);
   D("Compression Code        : %d",           m_pData->header.Compression_Code);
-  D("Studytype               : %s",           m_pData->header.Study_Type);
-  D("Patient ID              : %s",           m_pData->header.Patient_ID);
-  D("Patient Name            : %s",           m_pData->header.Patient_Name);
+  D("Studytype               : %s",           study_Type());
+  D("Patient ID              : %s",           patient_ID());
+  D("Patient Name            : %s",           patient_Name());
   D("Patient Sex             : %c",           m_pData->header.Patient_Sex[0]);
   D("Patient Dexterity       : %c",           m_pData->header.Patient_Dexterity[0]);
   D("Patient Age             : %f years",     m_pData->header.Patient_Age);
   D("Patient Height          : %f cm",        m_pData->header.Patient_Height);
   D("Patient Weight          : %f kg",        m_pData->header.Patient_Weight);
   D("Patient Birthdate       : %s (%d)",      patient_Birth_Date_Qt().toString().toLatin1().constData(), m_pData->header.Patient_Birth_Date);
-  D("Physician Name          : %s",           m_pData->header.Physician_Name);
-  D("Operator Name           : %s",           m_pData->header.Operator_Name);
-  D("Study Description       : %s",           m_pData->header.Study_Description);
+  D("Physician Name          : %s",           physician_Name());
+  D("Operator Name           : %s",           operator_Name());
+  D("Study Description       : %s",           study_Description());
   D("Acquisition Type        : %d",           m_pData->header.Acquisition_Type);
   D("Patient Orientation     : %d",           m_pData->header.Patient_Orientation);
-  D("Facility Name           : %s",           m_pData->header.Facility_Name);
+  D("Facility Name           : %s",           facility_Name());
   D("Planes                  : %d",           m_pData->header.Num_Planes);
   D("Frames                  : %d",           m_pData->header.Num_Frames);
   D("Gates                   : %d",           m_pData->header.Num_Gates);
@@ -474,14 +500,14 @@ bool CECAT7MainHeader::load(void)
   D("Lowest Threshold Scatter: %d KeV",       m_pData->header.Lwr_Sctr_Thres);
   D("Lower Threshold Trues   : %d KeV",       m_pData->header.Lwr_True_Thres);
   D("Upper Threshold Trues   : %d KeV",       m_pData->header.Upr_True_Thres);
-  D("User Process Code       : %s",           m_pData->header.User_Process_Code);
+  D("User Process Code       : %s",           user_Process_Code());
   D("Acquisition Mode        : %d",           m_pData->header.Acquisition_Mode);
   D("Bin Size                : %f cm",        m_pData->header.Bin_Size);
   D("Branching Fraction      : %f",           m_pData->header.Branching_Fraction);
   D("Dose start time         : %s (%d)",      dose_Start_Time_Qt().toString().toLatin1().constData(), m_pData->header.Dose_Start_Time);
   D("Dosage                  : %f Bq/cc",     m_pData->header.Dosage);
   D("Well counter corr factor: %f",           m_pData->header.Well_Counter_Corr_Factor);
-  D("Data units              : %s",           m_pData->header.Data_Units);
+  D("Data units              : %s",           data_Units());
   D("Septa state             : %d",           m_pData->header.Septa_State);
   for(int i=0; i < 6; i++)
     D("CTI reserved        [%2d]: %lx", i,    m_pData->header.CTI_Reserved[i]);
@@ -518,7 +544,7 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
       if(typeString == "MAGIC_NUMBER")
         strncpy(mHeader.m_pData->header.Magic_Number, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Magic_Number)-1);
       else if(typeString == "ORIGINAL_FILE_NAME")
-        strncpy(mHeader.m_pData->header.Original_File_Name, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Original_File_Name)-1);
+        setTextField(mHeader.m_pData->header.Original_File_Name, sizeof(mHeader.m_pData->header.Original_File_Name), dataString.toLatin1());
       else if(typeString == "SW_VERSION")
         mHeader.m_pData->header.SW_Version = dataString.toShort(&convertSuccess);
       else if(typeString == "SYSTEM_TYPE")
@@ -526,15 +552,15 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
       else if(typeString == "FILE_TYPE")
         mHeader.m_pData->header.File_Type = dataString.toShort(&convertSuccess);
       else if(typeString == "SERIAL_NUMBER")
-        strncpy(mHeader.m_pData->header.Serial_Number, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Serial_Number)-1);
+        setTextField(mHeader.m_pData->header.Serial_Number, sizeof(mHeader.m_pData->header.Serial_Number), dataString.toLatin1());
       else if(typeString == "SCAN_START_TIME")
         mHeader.m_pData->header.Scan_Start_Time = dataString.toInt(&convertSuccess);
       else if(typeString == "ISOTOPE_NAME")
-        strncpy(mHeader.m_pData->header.Isotope_Name, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Isotope_Name)-1);
+        setTextField(mHeader.m_pData->header.Isotope_Name, sizeof(mHeader.m_pData->header.Isotope_Name), dataString.toLatin1());
       else if(typeString == "ISOTOPE_HALFLIFE")
         mHeader.m_pData->header.Isotope_Halflife = dataString.toFloat(&convertSuccess);
       else if(typeString == "RADIOPHARMACEUTICAL")
-        strncpy(mHeader.m_pData->header.Radiopharmaceutical, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Radiopharmaceutical)-1);
+        setTextField(mHeader.m_pData->header.Radiopharmaceutical, sizeof(mHeader.m_pData->header.Radiopharmaceutical), dataString.toLatin1());
       else if(typeString == "GANTRY_TILT")
         mHeader.m_pData->header.Gantry_Tilt = dataString.toFloat(&convertSuccess);
       else if(typeString == "ROTATION_TILT")
@@ -566,11 +592,11 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
       else if(typeString == "COMPRESSION_CODE")
         mHeader.m_pData->header.Compression_Code = dataString.toShort(&convertSuccess);
       else if(typeString == "STUDY_TYPE")
-        strncpy(mHeader.m_pData->header.Study_Type, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Study_Type)-1);
+        setTextField(mHeader.m_pData->header.Study_Type, sizeof(mHeader.m_pData->header.Study_Type), dataString.toLatin1());
       else if(typeString == "PATIENT_ID")
-        strncpy(mHeader.m_pData->header.Patient_ID, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Patient_ID)-1);
+        setTextField(mHeader.m_pData->header.Patient_ID, sizeof(mHeader.m_pData->header.Patient_ID), dataString.toLatin1());
       else if(typeString == "PATIENT_NAME")
-        strncpy(mHeader.m_pData->header.Patient_Name, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Patient_Name)-1);
+        setTextField(mHeader.m_pData->header.Patient_Name, sizeof(mHeader.m_pData->header.Patient_Name), dataString.toLatin1());
       else if(typeString == "PATIENT_SEX")
         mHeader.m_pData->header.Patient_Sex[0] = dataString.toLatin1()[0];
       else if(typeString == "PATIENT_DEXTERITY")
@@ -584,17 +610,17 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
       else if(typeString == "PATIENT_BIRTH_DATE")
         mHeader.m_pData->header.Patient_Birth_Date = dataString.toInt(&convertSuccess);
       else if(typeString == "PHYSICIAN_NAME")
-        strncpy(mHeader.m_pData->header.Physician_Name, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Physician_Name)-1);
+        setTextField(mHeader.m_pData->header.Physician_Name, sizeof(mHeader.m_pData->header.Physician_Name), dataString.toLatin1());
       else if(typeString == "OPERATOR_NAME")
-        strncpy(mHeader.m_pData->header.Operator_Name, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Operator_Name)-1);
+        setTextField(mHeader.m_pData->header.Operator_Name, sizeof(mHeader.m_pData->header.Operator_Name), dataString.toLatin1());
       else if(typeString == "STUDY_DESCRIPTION")
-        strncpy(mHeader.m_pData->header.Study_Description, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Study_Description)-1);
+        setTextField(mHeader.m_pData->header.Study_Description, sizeof(mHeader.m_pData->header.Study_Description), dataString.toLatin1());
       else if(typeString == "ACQUISITION_TYPE")
         mHeader.m_pData->header.Acquisition_Type = dataString.toShort(&convertSuccess);
       else if(typeString == "PATIENT_ORIENTATION")
         mHeader.m_pData->header.Patient_Orientation = dataString.toShort(&convertSuccess);
       else if(typeString == "FACILITY_NAME")
-        strncpy(mHeader.m_pData->header.Facility_Name, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Facility_Name)-1);
+        setTextField(mHeader.m_pData->header.Facility_Name, sizeof(mHeader.m_pData->header.Facility_Name), dataString.toLatin1());
       else if(typeString == "NUM_PLANES")
         mHeader.m_pData->header.Num_Planes = dataString.toShort(&convertSuccess);
       else if(typeString == "NUM_FRAMES")
@@ -625,7 +651,7 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
       else if(typeString == "UPR_TRUE_THRES")
         mHeader.m_pData->header.Upr_True_Thres = dataString.toShort(&convertSuccess);
       else if(typeString == "USER_PROCESS_CODE")
-        strncpy(mHeader.m_pData->header.User_Process_Code, dataString.toLatin1(), sizeof(mHeader.m_pData->header.User_Process_Code)-1);
+        setTextField(mHeader.m_pData->header.User_Process_Code, sizeof(mHeader.m_pData->header.User_Process_Code), dataString.toLatin1());
       else if(typeString == "ACQUISITION_MODE")
         mHeader.m_pData->header.Acquisition_Mode = dataString.toShort(&convertSuccess);
       else if(typeString == "BIN_SIZE")
@@ -639,7 +665,7 @@ QTextStream& operator>>(QTextStream& stream, CECAT7MainHeader& mHeader)
       else if(typeString == "WELL_COUNTER_CORR_FACTOR")
         mHeader.m_pData->header.Well_Counter_Corr_Factor = dataString.toFloat(&convertSuccess);
       else if(typeString == "DATA_UNITS")
-        strncpy(mHeader.m_pData->header.Data_Units, dataString.toLatin1(), sizeof(mHeader.m_pData->header.Data_Units)-1);
+        setTextField(mHeader.m_pData->header.Data_Units, sizeof(mHeader.m_pData->header.Data_Units), dataString.toLatin1());
       else if(typeString == "SEPTA_STATE")
         mHeader.m_pData->header.Septa_State = dataString.toShort(&convertSuccess);
       else if(typeString == "FILL")
@@ -1080,6 +1106,11 @@ bool CECAT7MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIOH
       setTransaxial_FOV(60.0f);
       setCalibration_Factor(1.0f);
 
+      // the energy window is unknown (not the one of the HR+ scanner of the
+      // defaults): 0, set by the attributes of the NIfTI file if it has them
+      setLwr_True_Thres(0);
+      setUpr_True_Thres(0);
+
       // Transfer the only available information from the NIFTI header to the ECAT7 header 
       setStudy_Description("NIFTI_CONVERTED");
 
@@ -1128,7 +1159,7 @@ const char* CECAT7MainHeader::magic_Number(void) const
 
 const char* CECAT7MainHeader::original_File_Name(void) const
 {
-  return m_pData->header.Original_File_Name;
+  return m_pData->text(CECAT7MainHeaderPrivate::OriginalFileName, m_pData->header.Original_File_Name, sizeof(m_pData->header.Original_File_Name));
 }
 
 short CECAT7MainHeader::sw_Version(void) const
@@ -1148,7 +1179,7 @@ CECAT7MainHeader::File_Type CECAT7MainHeader::file_Type(void)  const
 
 const char* CECAT7MainHeader::serial_Number(void) const
 {
-  return m_pData->header.Serial_Number;
+  return m_pData->text(CECAT7MainHeaderPrivate::SerialNumber, m_pData->header.Serial_Number, sizeof(m_pData->header.Serial_Number));
 }
 
 time_t CECAT7MainHeader::scan_Start_Time(void) const
@@ -1158,7 +1189,7 @@ time_t CECAT7MainHeader::scan_Start_Time(void) const
 
 const char* CECAT7MainHeader::isotope_Name(void) const
 {
-  return m_pData->header.Isotope_Name;
+  return m_pData->text(CECAT7MainHeaderPrivate::IsotopeName, m_pData->header.Isotope_Name, sizeof(m_pData->header.Isotope_Name));
 }
 
 float CECAT7MainHeader::isotope_Halflife(void) const
@@ -1168,7 +1199,7 @@ float CECAT7MainHeader::isotope_Halflife(void) const
 
 const char* CECAT7MainHeader::radiopharmaceutical(void) const
 {
-  return m_pData->header.Radiopharmaceutical;
+  return m_pData->text(CECAT7MainHeaderPrivate::Radiopharmaceutical, m_pData->header.Radiopharmaceutical, sizeof(m_pData->header.Radiopharmaceutical));
 }
 
 float CECAT7MainHeader::gantry_Tilt(void) const
@@ -1248,17 +1279,17 @@ CECAT7MainHeader::Compression_Code CECAT7MainHeader::compression_Code(void) cons
 
 const char* CECAT7MainHeader::study_Type(void) const                        
 {
-  return m_pData->header.Study_Type;
+  return m_pData->text(CECAT7MainHeaderPrivate::StudyType, m_pData->header.Study_Type, sizeof(m_pData->header.Study_Type));
 }
 
 const char* CECAT7MainHeader::patient_ID(void) const                          
 {
-  return m_pData->header.Patient_ID;
+  return m_pData->text(CECAT7MainHeaderPrivate::PatientID, m_pData->header.Patient_ID, sizeof(m_pData->header.Patient_ID));
 }
 
 const char* CECAT7MainHeader::patient_Name(void) const                        
 {
-  return m_pData->header.Patient_Name;
+  return m_pData->text(CECAT7MainHeaderPrivate::PatientName, m_pData->header.Patient_Name, sizeof(m_pData->header.Patient_Name));
 }
 
 CECAT7MainHeader::Patient_Sex CECAT7MainHeader::patient_Sex(void) const                          
@@ -1293,17 +1324,17 @@ time_t CECAT7MainHeader::patient_Birth_Date(void) const
 
 const char* CECAT7MainHeader::physician_Name(void) const                    
 {
-  return m_pData->header.Physician_Name;
+  return m_pData->text(CECAT7MainHeaderPrivate::PhysicianName, m_pData->header.Physician_Name, sizeof(m_pData->header.Physician_Name));
 }
 
 const char* CECAT7MainHeader::operator_Name(void) const                        
 {
-  return m_pData->header.Operator_Name;
+  return m_pData->text(CECAT7MainHeaderPrivate::OperatorName, m_pData->header.Operator_Name, sizeof(m_pData->header.Operator_Name));
 }
 
 const char* CECAT7MainHeader::study_Description(void) const                    
 {
-  return m_pData->header.Study_Description;
+  return m_pData->text(CECAT7MainHeaderPrivate::StudyDescription, m_pData->header.Study_Description, sizeof(m_pData->header.Study_Description));
 }
 
 CECAT7MainHeader::Acquisition_Type CECAT7MainHeader::acquisition_Type(void) const              
@@ -1318,7 +1349,7 @@ CECAT7MainHeader::Patient_Orientation CECAT7MainHeader::patient_Orientation(void
 
 const char* CECAT7MainHeader::facility_Name(void) const                      
 {
-  return m_pData->header.Facility_Name;
+  return m_pData->text(CECAT7MainHeaderPrivate::FacilityName, m_pData->header.Facility_Name, sizeof(m_pData->header.Facility_Name));
 }
 
 short CECAT7MainHeader::num_Planes(void) const                              
@@ -1373,7 +1404,7 @@ short CECAT7MainHeader::upr_True_Thres(void) const
 
 const char* CECAT7MainHeader::user_Process_Code(void) const                  
 {
-  return m_pData->header.User_Process_Code;
+  return m_pData->text(CECAT7MainHeaderPrivate::UserProcessCode, m_pData->header.User_Process_Code, sizeof(m_pData->header.User_Process_Code));
 }
 
 CECAT7MainHeader::Acquisition_Mode CECAT7MainHeader::acquisition_Mode(void) const              
@@ -1407,7 +1438,7 @@ float CECAT7MainHeader::well_Counter_Corr_Factor(void) const
 
 const char* CECAT7MainHeader::data_Units(void) const                        
 {
-  return m_pData->header.Data_Units;
+  return m_pData->text(CECAT7MainHeaderPrivate::DataUnits, m_pData->header.Data_Units, sizeof(m_pData->header.Data_Units));
 }
 
 CECAT7MainHeader::Septa_State CECAT7MainHeader::septa_State(void) const                        
@@ -1432,7 +1463,7 @@ void CECAT7MainHeader::setMagic_Number(const char* mn)
 
 void CECAT7MainHeader::setOriginal_File_Name(const char* name)
 {
-  strncpy(m_pData->header.Original_File_Name, name, sizeof(m_pData->header.Original_File_Name)-1);
+  setTextField(m_pData->header.Original_File_Name, sizeof(m_pData->header.Original_File_Name), name);
 }
 
 void CECAT7MainHeader::setSW_Version(const short ver)
@@ -1453,7 +1484,7 @@ void CECAT7MainHeader::setFile_Type(const File_Type fType)
 
 void CECAT7MainHeader::setSerial_Number(const char* num)
 {
-  strncpy(m_pData->header.Serial_Number, num, sizeof(m_pData->header.Serial_Number)-1);
+  setTextField(m_pData->header.Serial_Number, sizeof(m_pData->header.Serial_Number), num);
 }
 
 void CECAT7MainHeader::setScan_Start_Time(const time_t time)
@@ -1463,7 +1494,7 @@ void CECAT7MainHeader::setScan_Start_Time(const time_t time)
 
 void CECAT7MainHeader::setIsotope_Name(const char* name)
 {
-  strncpy(m_pData->header.Isotope_Name, name, sizeof(m_pData->header.Isotope_Name)-1);
+  setTextField(m_pData->header.Isotope_Name, sizeof(m_pData->header.Isotope_Name), name);
 }
 
 void CECAT7MainHeader::setIsotope_Halflife(const float hlf)                              
@@ -1473,7 +1504,7 @@ void CECAT7MainHeader::setIsotope_Halflife(const float hlf)
 
 void CECAT7MainHeader::setRadiopharmaceutical(const char* str)                          
 {
-  strncpy(m_pData->header.Radiopharmaceutical, str, sizeof(m_pData->header.Radiopharmaceutical)-1);
+  setTextField(m_pData->header.Radiopharmaceutical, sizeof(m_pData->header.Radiopharmaceutical), str);
 }
 
 void CECAT7MainHeader::setGantry_Tilt(const float tilt)                                  
@@ -1553,17 +1584,17 @@ void CECAT7MainHeader::setCompression_Code(const Compression_Code code)
 
 void CECAT7MainHeader::setStudy_Type(const char* type)                                  
 {
-  strncpy(m_pData->header.Study_Type, type, sizeof(m_pData->header.Study_Type)-1);
+  setTextField(m_pData->header.Study_Type, sizeof(m_pData->header.Study_Type), type);
 }
 
 void CECAT7MainHeader::setPatient_ID(const char* id)                                  
 {
-  strncpy(m_pData->header.Patient_ID, id, sizeof(m_pData->header.Patient_ID)-1);
+  setTextField(m_pData->header.Patient_ID, sizeof(m_pData->header.Patient_ID), id);
 }
 
 void CECAT7MainHeader::setPatient_Name(const char* name)
 {
-  strncpy(m_pData->header.Patient_Name, name, sizeof(m_pData->header.Patient_Name)-1);
+  setTextField(m_pData->header.Patient_Name, sizeof(m_pData->header.Patient_Name), name);
 }
 
 void CECAT7MainHeader::setPatient_Sex(const Patient_Sex sex)                            
@@ -1598,17 +1629,17 @@ void CECAT7MainHeader::setPatient_Birth_Date(const time_t date)
 
 void CECAT7MainHeader::setPhysician_Name(const char* name)                              
 {
-  strncpy(m_pData->header.Physician_Name, name, sizeof(m_pData->header.Physician_Name)-1);
+  setTextField(m_pData->header.Physician_Name, sizeof(m_pData->header.Physician_Name), name);
 }
 
 void CECAT7MainHeader::setOperator_Name(const char* name)                              
 {
-  strncpy(m_pData->header.Operator_Name, name, sizeof(m_pData->header.Operator_Name)-1);
+  setTextField(m_pData->header.Operator_Name, sizeof(m_pData->header.Operator_Name), name);
 }
 
 void CECAT7MainHeader::setStudy_Description(const char* descr)                        
 {
-  strncpy(m_pData->header.Study_Description, descr, sizeof(m_pData->header.Study_Description)-1);
+  setTextField(m_pData->header.Study_Description, sizeof(m_pData->header.Study_Description), descr);
 }
 
 void CECAT7MainHeader::setAcquisition_Type(const Acquisition_Type type)                
@@ -1623,7 +1654,7 @@ void CECAT7MainHeader::setPatient_Orientation(const Patient_Orientation orient)
 
 void CECAT7MainHeader::setFacility_Name(const char* name)                              
 {
-  strncpy(m_pData->header.Facility_Name, name, sizeof(m_pData->header.Facility_Name)-1);
+  setTextField(m_pData->header.Facility_Name, sizeof(m_pData->header.Facility_Name), name);
 }
 
 void CECAT7MainHeader::setNum_Planes(const short num)                                  
@@ -1678,7 +1709,7 @@ void CECAT7MainHeader::setUpr_True_Thres(const short thres)
 
 void CECAT7MainHeader::setUser_Process_Code(const char* code)                          
 {
-  strncpy(m_pData->header.User_Process_Code, code, sizeof(m_pData->header.User_Process_Code)-1);
+  setTextField(m_pData->header.User_Process_Code, sizeof(m_pData->header.User_Process_Code), code);
 }
 
 void CECAT7MainHeader::setAcquisition_Mode(const Acquisition_Mode mode)                
@@ -1713,7 +1744,7 @@ void CECAT7MainHeader::setWell_Counter_Corr_Factor(const float fac)
 
 void CECAT7MainHeader::setData_Units(const char* units)                                
 { 
-  strncpy(m_pData->header.Data_Units, units, sizeof(m_pData->header.Data_Units)-1);
+  setTextField(m_pData->header.Data_Units, sizeof(m_pData->header.Data_Units), units);
 }
 
 void CECAT7MainHeader::setSepta_State(const Septa_State state)                        
@@ -1734,15 +1765,15 @@ QTextStream& operator<<(QTextStream& stream, const CECAT7MainHeader& mHeader)
   // save all header data to the textstream
   stream << qSetRealNumberPrecision(6)
          << "MAGIC_NUMBER "             << mHeader.m_pData->header.Magic_Number              << Qt::endl
-         << "ORIGINAL_FILE_NAME "       << mHeader.m_pData->header.Original_File_Name        << Qt::endl
+         << "ORIGINAL_FILE_NAME "       << mHeader.original_File_Name()        << Qt::endl
          << "SW_VERSION "               << mHeader.m_pData->header.SW_Version                << Qt::endl
          << "SYSTEM_TYPE "              << mHeader.m_pData->header.System_Type               << Qt::endl
          << "FILE_TYPE "                << mHeader.m_pData->header.File_Type                 << Qt::endl
-         << "SERIAL_NUMBER "            << mHeader.m_pData->header.Serial_Number             << Qt::endl
+         << "SERIAL_NUMBER "            << mHeader.serial_Number()             << Qt::endl
          << "SCAN_START_TIME "          << mHeader.m_pData->header.Scan_Start_Time           << Qt::endl
-         << "ISOTOPE_NAME "             << mHeader.m_pData->header.Isotope_Name              << Qt::endl
+         << "ISOTOPE_NAME "             << mHeader.isotope_Name()              << Qt::endl
          << "ISOTOPE_HALFLIFE "         << mHeader.m_pData->header.Isotope_Halflife          << Qt::endl
-         << "RADIOPHARMACEUTICAL "      << mHeader.m_pData->header.Radiopharmaceutical       << Qt::endl
+         << "RADIOPHARMACEUTICAL "      << mHeader.radiopharmaceutical()       << Qt::endl
          << "GANTRY_TILT "              << mHeader.m_pData->header.Gantry_Tilt               << Qt::endl
          << "ROTATION_TILT "            << mHeader.m_pData->header.Gantry_Rotation           << Qt::endl
          << "BED_ELEVATION "            << mHeader.m_pData->header.Bed_Elevation             << Qt::endl
@@ -1758,21 +1789,21 @@ QTextStream& operator<<(QTextStream& stream, const CECAT7MainHeader& mHeader)
          << "CALIBRATION_UNITS "        << mHeader.m_pData->header.Calibration_Units         << Qt::endl
          << "CALIBRATION_UNITS_LABEL "  << mHeader.m_pData->header.Calibration_Units_Label   << Qt::endl
          << "COMPRESSION_CODE "         << mHeader.m_pData->header.Compression_Code          << Qt::endl
-         << "STUDY_TYPE "               << mHeader.m_pData->header.Study_Type                << Qt::endl
-         << "PATIENT_ID "               << mHeader.m_pData->header.Patient_ID                << Qt::endl
-         << "PATIENT_NAME "             << mHeader.m_pData->header.Patient_Name              << Qt::endl
+         << "STUDY_TYPE "               << mHeader.study_Type()                << Qt::endl
+         << "PATIENT_ID "               << mHeader.patient_ID()                << Qt::endl
+         << "PATIENT_NAME "             << mHeader.patient_Name()              << Qt::endl
          << "PATIENT_SEX "              << mHeader.m_pData->header.Patient_Sex[0]            << Qt::endl
          << "PATIENT_DEXTERITY "        << mHeader.m_pData->header.Patient_Dexterity[0]      << Qt::endl
          << "PATIENT_AGE "              << mHeader.m_pData->header.Patient_Age               << Qt::endl
          << "PATIENT_HEIGHT "           << mHeader.m_pData->header.Patient_Height            << Qt::endl
          << "PATIENT_WEIGHT "           << mHeader.m_pData->header.Patient_Weight            << Qt::endl
          << "PATIENT_BIRTH_DATE "       << mHeader.m_pData->header.Patient_Birth_Date        << Qt::endl
-         << "PHYSICIAN_NAME "           << mHeader.m_pData->header.Physician_Name            << Qt::endl
-         << "OPERATOR_NAME "            << mHeader.m_pData->header.Operator_Name             << Qt::endl
-         << "STUDY_DESCRIPTION "        << mHeader.m_pData->header.Study_Description         << Qt::endl
+         << "PHYSICIAN_NAME "           << mHeader.physician_Name()            << Qt::endl
+         << "OPERATOR_NAME "            << mHeader.operator_Name()             << Qt::endl
+         << "STUDY_DESCRIPTION "        << mHeader.study_Description()         << Qt::endl
          << "ACQUISITION_TYPE "         << mHeader.m_pData->header.Acquisition_Type          << Qt::endl
          << "PATIENT_ORIENTATION "      << mHeader.m_pData->header.Patient_Orientation       << Qt::endl
-         << "FACILITY_NAME "            << mHeader.m_pData->header.Facility_Name             << Qt::endl
+         << "FACILITY_NAME "            << mHeader.facility_Name()             << Qt::endl
          << "NUM_PLANES "               << mHeader.m_pData->header.Num_Planes                << Qt::endl
          << "NUM_FRAMES "               << mHeader.m_pData->header.Num_Frames                << Qt::endl
          << "NUM_GATES "                << mHeader.m_pData->header.Num_Gates                 << Qt::endl
@@ -1788,14 +1819,14 @@ QTextStream& operator<<(QTextStream& stream, const CECAT7MainHeader& mHeader)
          << "LWR_SCTR_THRES "           << mHeader.m_pData->header.Lwr_Sctr_Thres            << Qt::endl
          << "LWR_TRUE_THRES "           << mHeader.m_pData->header.Lwr_True_Thres            << Qt::endl
          << "UPR_TRUE_THRES "           << mHeader.m_pData->header.Upr_True_Thres            << Qt::endl
-         << "USER_PROCESS_CODE "        << mHeader.m_pData->header.User_Process_Code         << Qt::endl
+         << "USER_PROCESS_CODE "        << mHeader.user_Process_Code()         << Qt::endl
          << "ACQUISITION_MODE "         << mHeader.m_pData->header.Acquisition_Mode          << Qt::endl
          << "BIN_SIZE "                 << mHeader.m_pData->header.Bin_Size                  << Qt::endl
          << "BRANCHING_FRACTION "       << mHeader.m_pData->header.Branching_Fraction        << Qt::endl
          << "DOSE_START_TIME "          << mHeader.m_pData->header.Dose_Start_Time           << Qt::endl
          << "DOSAGE "                   << mHeader.m_pData->header.Dosage                    << Qt::endl
          << "WELL_COUNTER_CORR_FACTOR " << mHeader.m_pData->header.Well_Counter_Corr_Factor  << Qt::endl
-         << "DATA_UNITS "               << mHeader.m_pData->header.Data_Units                << Qt::endl
+         << "DATA_UNITS "               << mHeader.data_Units()                << Qt::endl
          << "SEPTA_STATE "              << mHeader.m_pData->header.Septa_State               << Qt::endl
          << "FILL";
 

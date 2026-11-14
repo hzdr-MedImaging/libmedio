@@ -185,6 +185,22 @@ struct NiftiVolume
   }
 };
 
+// energy window (keV) of the ECAT7 main header of a file
+static bool ecatEnergyWindow(const QString& fileName, int& lower, int& upper)
+{
+  CECATFile file(fileName);
+  CECATMainHeader* mainHeader = NULL;
+  if(file.open(QIODevice::ReadOnly) == false || file.readMainHeader(mainHeader) == false || mainHeader == NULL)
+    return false;
+  QScopedPointer<CECATMainHeader> guard(mainHeader);
+  const CECAT7MainHeader* h = dynamic_cast<const CECAT7MainHeader*>(mainHeader);
+  if(h == NULL)
+    return false;
+  lower = h->lwr_True_Thres();
+  upper = h->upr_True_Thres();
+  return true;
+}
+
 static double niftiValue(const char* data, qint64 i, int type)
 {
   switch(type) {
@@ -1437,6 +1453,18 @@ void TestNIFTIConversion::metadataOptions()
   QCOMPARE(c.frames, 1);
   QCOMPARE(c.frameInfo[0].durationMs, 0u);
   QCOMPARE(c.frameInfo[0].startMs, 0u);
+
+  // the energy window: restored from the metadata, unknown (0) without it
+  // instead of the window of the HR+ scanner (350-650 keV) of the ECAT7 defaults
+  int lower = -1, upper = -1, sourceLower = -1, sourceUpper = -1;
+  QVERIFY(ecatEnergyWindow(ecat, sourceLower, sourceUpper));
+  QVERIFY(sourceLower > 0 && sourceUpper > sourceLower);   // pet-dynamic.v: 435-585 keV
+  QVERIFY(ecatEnergyWindow(tmpFile("sidecar.v"), lower, upper));
+  QCOMPARE(lower, sourceLower);
+  QCOMPARE(upper, sourceUpper);
+  QVERIFY(ecatEnergyWindow(tmpFile("plain.v"), lower, upper));
+  QCOMPARE(lower, 0);
+  QCOMPARE(upper, 0);
 }
 
 //---------------------------------------------------------------------------------------------
