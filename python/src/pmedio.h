@@ -102,16 +102,15 @@ class MedIOImage
                const CMedIOData::Format& format = CMedIOData::ECAT,
                const enum dimTypes type = DM_FRAMES)
      : 
-       MedIOImage(info.shape[0],
-                  info.ndim > 1 ? info.shape[1] : 1,
-                  info.ndim > 2 ? info.shape[2] : 1,
-                  info.ndim > 3 ? info.shape[3] : 1, format, type)
+       // the order of evaluation of the arguments is unspecified: check for each of them
+       MedIOImage(checkedBuffer(info).shape[0],
+                  checkedBuffer(info).shape[1],
+                  checkedBuffer(info).shape[2],
+                  checkedBuffer(info).ndim > 3 ? info.shape[3] : 1, format, type)
     {
       // check buffer being valid
       if(info.format != py::format_descriptor<float>::format())
         throw std::runtime_error("incompatible input data format '" + info.format + "' != float32");
-      if(info.ndim < 3)
-        throw std::runtime_error("only 3 and 4 dimensional data supported yet");
 
       // check format and create a fresh medio object
       if(format != CMedIOData::ECAT)
@@ -176,7 +175,8 @@ class MedIOImage
             m_mhead["num_planes"] = py::cast(m_zdim);
             m_mhead["num_frames"] = py::cast(0);
             m_mhead["num_gates"] = py::cast(0);
-            m_mhead["num_bed_pos"] = py::cast(m_tdim);
+            // number of the last bed position, the numbering starts at 0
+            m_mhead["num_bed_pos"] = py::cast(m_tdim > 0 ? m_tdim - 1 : 0);
           break;
 
           case DM_DATA:
@@ -330,13 +330,23 @@ class MedIOImage
 
     float operator()(const size_t x, const size_t y=0, const size_t z=0, const size_t t=0) const
     {
-      return m_data[x + y * m_xdim + z * m_xdim*m_ydim + t * m_ydim*m_ydim*m_zdim];
+      return m_data[x + y * m_xdim + z * m_xdim*m_ydim + t * m_xdim*m_ydim*m_zdim];
     } 
 
     float& operator()(const size_t x, const size_t y=0, const size_t z=0, const size_t t=0)
     {
-      return m_data[x + y * m_xdim + z * m_xdim*m_ydim + t * m_ydim*m_ydim*m_zdim];
+      return m_data[x + y * m_xdim + z * m_xdim*m_ydim + t * m_xdim*m_ydim*m_zdim];
     } 
+
+    // returns the buffer if it has 3 or 4 dimensions and throws otherwise, before
+    // its shape is used (a scalar, e.g. None converted to an array, has no dimension)
+    static const py::buffer_info& checkedBuffer(const py::buffer_info& info)
+    {
+      if(info.ndim < 3 || info.ndim > 4)
+        throw std::runtime_error("only 3 and 4 dimensional data supported yet");
+
+      return info;
+    }
 
     float* data() { return m_data; }
     CMedIOData* medIOData() { return m_mioData; }
@@ -1062,6 +1072,9 @@ class MedIOImage
                 int num_frames = e7MainHeader->num_Frames();
                 int num_gates = e7MainHeader->num_Gates();
                 int num_bed_pos = e7MainHeader->num_Bed_Pos();
+                // the main header has no number of data indices, it comes from
+                // the matrix directory (the numbering starts at 0)
+                int num_data = eFile->maxData() + 1;
                 double ecatCalibrationFactor = e7MainHeader->calibration_Factor();
 
                 enum dimTypes which_to_use = DM_FRAMES;
@@ -1072,7 +1085,17 @@ class MedIOImage
                 int num_volumes = 0;
 
                 // now we have to check wether to use frames, gates or beds as volumes
-                if( (num_frames > 1) && (num_gates <= 1) && ((num_bed_pos+1) <= 1) )
+                if( (num_frames <= 1) && (num_gates <= 1) && ((num_bed_pos+1) <= 1) && (num_data > 1) )
+                {
+                  // use the data index
+                  which_to_use = DM_DATA;
+                  num_volumes = num_data;
+                }
+                else if(num_data > 1)
+                {
+                  throw std::runtime_error("can handle only a single dynamic index (one of frame/gate/bed/data)");
+                }
+                else if( (num_frames > 1) && (num_gates <= 1) && ((num_bed_pos+1) <= 1) )
                 {
                   // use frames
                   which_to_use = DM_FRAMES;
@@ -1277,7 +1300,7 @@ class MedIOImage
                               for(size_t x=0; x < m_xdim; ++x)
                               {
                                 size_t srcIndex = x + y * m_xdim + z * planeSize;
-                                size_t dstIndex = (m_xdim-1 - x) + (m_ydim-1 - y) * m_xdim + (m_zdim-1 - z) * planeSize + (m_tdim-1 - t) * volumeSize;
+                                size_t dstIndex = (m_xdim-1 - x) + (m_ydim-1 - y) * m_xdim + (m_zdim-1 - z) * planeSize + t * volumeSize;
 
                                 switch(dataType)
                                 {
@@ -1469,7 +1492,7 @@ class MedIOImage
                   {
                     // calculate the srcIndex in our m_data float data vector and the dstIndex
                     // to put the data in an order the ECAT format defines.
-                    size_t srcIndex = (m_xdim-1 - x) + (m_ydim-1 - y) * m_xdim + (m_zdim-1 - z) * planeSize + (m_tdim-1 - t) * volumeSize;
+                    size_t srcIndex = (m_xdim-1 - x) + (m_ydim-1 - y) * m_xdim + (m_zdim-1 - z) * planeSize + t * volumeSize;
                     float voxel = m_data[srcIndex] / ecatCalibrationFactor;
                     newMin = qMin(newMin, voxel);
                     newMax = qMax(newMax, voxel);
@@ -1534,7 +1557,7 @@ class MedIOImage
                 {
                   // calculate the srcIndex in our m_data float data vector and the dstIndex
                   // to put the data in an order the ECAT format defines.
-                  size_t srcIndex = (m_xdim-1 - x) + (m_ydim-1 - y) * m_xdim + (m_zdim-1 - z) * planeSize + (m_tdim-1 - t) * volumeSize;
+                  size_t srcIndex = (m_xdim-1 - x) + (m_ydim-1 - y) * m_xdim + (m_zdim-1 - z) * planeSize + t * volumeSize;
                   size_t dstIndex = x + y * m_xdim + z * planeSize;
 
                   // calculate the voxel value which we store in the ecat file
@@ -1592,8 +1615,8 @@ class MedIOImage
             {
               case DM_FRAMES: f=t+1; p=1; g=1, b=0; d=0; break;
               case DM_GATES:  f=1; p=1; g=t+1, b=0; d=0; break;
-              case DM_BEDS:   f=1; p=1; g=1; b=t+1; d=0; break;
-              case DM_DATA:   f=1; p=1; g=1; b=0; d=t+1; break;
+              case DM_BEDS:   f=1; p=1; g=1; b=t; d=0; break; // numbering of beds starts at 0
+              case DM_DATA:   f=1; p=1; g=1; b=0; d=t; break; // numbering of datas starts at 0
               case DM_UNKNOWN: /* nothing */ break;
             }
 
@@ -1621,6 +1644,12 @@ class MedIOImage
           }
 
           ecatFile->close();
+        }
+        else
+        {
+          // do not report a file as written that could not be created
+          ecatFile->close();
+          throw std::runtime_error("could not open output file '" + fileName.toStdString() + "' for writing");
         }
       }
       else
