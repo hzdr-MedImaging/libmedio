@@ -32,8 +32,6 @@ namespace py = pybind11;
 // external modules
 extern void init_medio(py::module_ &);
 extern void init_volume(py::module_ &);
-//extern void init_ecat(py::module_ &);
-//extern void init_ecat7(py::module_ &);
 
 // defines the main entries of the pybind module
 PYBIND11_MODULE(pmedio, m) {
@@ -49,12 +47,6 @@ PYBIND11_MODULE(pmedio, m) {
 
   // CMedIO
   init_medio(m);
-
-  // CECAT
-  //init_ecat(m);
-
-  // CECAT7
-  //init_ecat7(m);
 
   ///////////////////////////////////////////////////////////
   // general purpose helper "MedIOImage" class to access PET image
