@@ -30,6 +30,8 @@
 
 #include "pmedio.h"
 
+#include <nanobind/stl/unique_ptr.h>
+
 #include <CMedIOData>
 #include <CMedIODataFactory>
 #include <CMedIOHeader>
@@ -56,7 +58,7 @@
 #include <string>
 #include <vector>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
 namespace {
 
@@ -67,40 +69,52 @@ namespace {
 [[noreturn]] void raise(PyObject* type, const QString& message)
 {
   PyErr_SetString(type, message.toUtf8().constData());
-  throw py::error_already_set();
+  throw py::python_error();
 }
 
 // file name of a str or os.PathLike object
 QString pathOf(const py::object& path)
 {
-  py::object fspath = py::module_::import("os").attr("fspath")(path);
+  py::object fspath = py::module_::import_("os").attr("fspath")(path);
   if(py::isinstance<py::str>(fspath) == false)
     raise(PyExc_TypeError, "the file name has to be a str or an os.PathLike object of str");
-  return fspath.cast<QString>();
+  return py::cast<QString>(fspath);
 }
 
-// numpy dtype of a CMedIOVolume data type
-py::dtype numpyType(CMedIOVolume::DataType type)
+py::module_ numpy()
+{
+  return py::module_::import_("numpy");
+}
+
+// name of the numpy dtype of a CMedIOVolume data type
+const char* numpyTypeName(CMedIOVolume::DataType type)
 {
   switch(type) {
-    case CMedIOVolume::UInt8:   return py::dtype::of<quint8>();
-    case CMedIOVolume::Int8:    return py::dtype::of<qint8>();
-    case CMedIOVolume::Int16:   return py::dtype::of<qint16>();
-    case CMedIOVolume::UInt16:  return py::dtype::of<quint16>();
-    case CMedIOVolume::Int32:   return py::dtype::of<qint32>();
-    case CMedIOVolume::UInt32:  return py::dtype::of<quint32>();
-    case CMedIOVolume::Float32: return py::dtype::of<float>();
-    case CMedIOVolume::Float64: return py::dtype::of<double>();
+    case CMedIOVolume::UInt8:   return "uint8";
+    case CMedIOVolume::Int8:    return "int8";
+    case CMedIOVolume::Int16:   return "int16";
+    case CMedIOVolume::UInt16:  return "uint16";
+    case CMedIOVolume::Int32:   return "int32";
+    case CMedIOVolume::UInt32:  return "uint32";
+    case CMedIOVolume::Float32: return "float32";
+    case CMedIOVolume::Float64: return "float64";
     default: break;
   }
   raise(PyExc_ValueError, "the volume has no data");
 }
 
-// CMedIOVolume data type of a numpy dtype (UnknownDataType if not supported)
-CMedIOVolume::DataType volumeType(const py::dtype& dtype)
+// numpy dtype (native byte order) of a CMedIOVolume data type
+py::object numpyType(CMedIOVolume::DataType type)
 {
-  const char kind = dtype.kind();
-  const py::ssize_t size = dtype.itemsize();
+  return numpy().attr("dtype")(numpyTypeName(type));
+}
+
+// CMedIOVolume data type of a numpy dtype (UnknownDataType if not supported)
+CMedIOVolume::DataType volumeType(const py::object& dtype)
+{
+  const std::string kindName = py::cast<std::string>(dtype.attr("kind"));
+  const char kind = kindName.size() == 1 ? kindName[0] : '?';
+  const Py_ssize_t size = py::cast<Py_ssize_t>(dtype.attr("itemsize"));
 
   if(kind == 'u') {
     switch(size) {
@@ -126,74 +140,68 @@ CMedIOVolume::DataType volumeType(const py::dtype& dtype)
 
 // voxels of a 3D array with x running fastest (Fortran order), in the byte
 // order of this machine
-template <typename T>
-QByteArray voxelBytes(const py::array& array)
+QByteArray voxelBytes(const py::object& array, CMedIOVolume::DataType type)
 {
-  auto a = py::array_t<T, py::array::f_style | py::array::forcecast>::ensure(array);
-  if(!a)
-    throw py::error_already_set();
-  if(a.nbytes() > std::numeric_limits<int>::max())
+  py::object native = numpy().attr("asarray")(array, py::arg("dtype") = numpyType(type), py::arg("order") = "F");
+  auto a = py::cast<py::ndarray<py::ro, py::f_contig, py::device::cpu>>(native);
+  if(a.nbytes() > static_cast<size_t>(std::numeric_limits<int>::max()))
     raise(PyExc_ValueError, "the voxel data is larger than 2 GiB");
   return QByteArray(reinterpret_cast<const char*>(a.data()), static_cast<int>(a.nbytes()));
 }
 
 // stored values of a volume as numpy array of shape (nx, ny, nz), x running fastest
-py::array storedArray(const CMedIOVolume& volume)
+py::object storedArray(const CMedIOVolume& volume)
 {
   if(volume.isEmpty())
     raise(PyExc_ValueError, "the volume has no data");
 
-  const py::dtype dtype = numpyType(volume.dataType());
-  const py::ssize_t item = dtype.itemsize();
-  const std::vector<py::ssize_t> shape = { volume.dimension(0), volume.dimension(1), volume.dimension(2) };
-  const std::vector<py::ssize_t> strides = { item, item * shape[0], item * shape[0] * shape[1] };
-
-  py::array result(dtype, shape, strides);
-  std::memcpy(result.mutable_data(), volume.data().constData(), static_cast<size_t>(volume.data().size()));
+  py::object result = numpy().attr("empty")(py::make_tuple(volume.dimension(0), volume.dimension(1), volume.dimension(2)),
+                                            py::arg("dtype") = numpyType(volume.dataType()), py::arg("order") = "F");
+  auto a = py::cast<py::ndarray<py::f_contig, py::device::cpu>>(result);
+  std::memcpy(a.data(), volume.data().constData(), static_cast<size_t>(volume.data().size()));
   return result;
 }
 
 // 3 x 4 or 4 x 4 (last row 0 0 0 1) affine
 void affineOf(const py::object& object, double m[3][4])
 {
-  auto a = py::array_t<double, py::array::c_style | py::array::forcecast>::ensure(object);
-  if(!a || a.ndim() != 2 || a.shape(1) != 4 || (a.shape(0) != 3 && a.shape(0) != 4))
+  py::ndarray<const double, py::c_contig, py::device::cpu> a;
+  try {
+    a = py::cast<py::ndarray<const double, py::c_contig, py::device::cpu>>(
+          numpy().attr("asarray")(object, py::arg("dtype") = "float64", py::arg("order") = "C"));
+  } catch(const std::exception&) {
+    PyErr_Clear();
+  }
+  if(!a.is_valid() || a.ndim() != 2 || a.shape(1) != 4 || (a.shape(0) != 3 && a.shape(0) != 4))
     raise(PyExc_ValueError, "the affine has to be a 3 x 4 or 4 x 4 array");
 
-  auto r = a.unchecked<2>();
-  if(a.shape(0) == 4 && (r(3, 0) != 0.0 || r(3, 1) != 0.0 || r(3, 2) != 0.0 || r(3, 3) != 1.0))
+  const double* r = a.data();
+  if(a.shape(0) == 4 && (r[12] != 0.0 || r[13] != 0.0 || r[14] != 0.0 || r[15] != 1.0))
     raise(PyExc_ValueError, "the last row of a 4 x 4 affine has to be 0 0 0 1");
 
   for(int i=0; i < 3; i++)
     for(int j=0; j < 4; j++)
-      m[i][j] = r(i, j);
+      m[i][j] = r[i * 4 + j];
 }
 
 // volume from a 3D numpy array (stored values)
-CMedIOVolume volumeFromArray(const py::array& array, const py::object& affine, double scaleFactor,
+CMedIOVolume volumeFromArray(const py::object& data, const py::object& affine, double scaleFactor,
                              double intercept, double frameStart, double frameDuration)
 {
-  if(array.ndim() != 3)
-    raise(PyExc_ValueError, QString("the voxel data has to be a 3D array (x, y, z), not %1D").arg(array.ndim()));
+  const py::object array = numpy().attr("asarray")(data);
+  const size_t ndim = py::cast<size_t>(array.attr("ndim"));
+  if(ndim != 3)
+    raise(PyExc_ValueError, QString("the voxel data has to be a 3D array (x, y, z), not %1D").arg(ndim));
 
-  const CMedIOVolume::DataType type = volumeType(array.dtype());
-  QByteArray bytes;
-  switch(type) {
-    case CMedIOVolume::UInt8:   bytes = voxelBytes<quint8>(array);  break;
-    case CMedIOVolume::Int8:    bytes = voxelBytes<qint8>(array);   break;
-    case CMedIOVolume::Int16:   bytes = voxelBytes<qint16>(array);  break;
-    case CMedIOVolume::UInt16:  bytes = voxelBytes<quint16>(array); break;
-    case CMedIOVolume::Int32:   bytes = voxelBytes<qint32>(array);  break;
-    case CMedIOVolume::UInt32:  bytes = voxelBytes<quint32>(array); break;
-    case CMedIOVolume::Float32: bytes = voxelBytes<float>(array);   break;
-    case CMedIOVolume::Float64: bytes = voxelBytes<double>(array);  break;
-    default:
-      raise(PyExc_TypeError, QString("unsupported data type '%1': uint8, int8, int16, uint16, int32, uint32, float32 "
-                                     "and float64 are supported").arg(py::str(array.dtype()).cast<QString>()));
-  }
+  const CMedIOVolume::DataType type = volumeType(array.attr("dtype"));
+  if(type == CMedIOVolume::UnknownDataType)
+    raise(PyExc_TypeError, QString("unsupported data type '%1': uint8, int8, int16, uint16, int32, uint32, float32 "
+                                   "and float64 are supported").arg(py::cast<QString>(py::steal<py::object>(PyObject_Str(array.attr("dtype").ptr())))));
+  const QByteArray bytes = voxelBytes(array, type);
+  const py::tuple shape = array.attr("shape");
 
   CMedIOVolume volume;
-  if(volume.setData(static_cast<int>(array.shape(0)), static_cast<int>(array.shape(1)), static_cast<int>(array.shape(2)),
+  if(volume.setData(py::cast<int>(shape[0]), py::cast<int>(shape[1]), py::cast<int>(shape[2]),
                     type, bytes) == false)
     raise(PyExc_ValueError, "invalid voxel data");
 
@@ -257,7 +265,11 @@ CMedIOData::Format createFormat(const QString& fileName, const py::object& forma
   philipsType = name.endsWith(".syn") ? CPhilipsMainHeader::Syntegra : CPhilipsMainHeader::Image;
 
   if(format.is_none() == false)
-    return format.cast<CMedIOData::Format>();
+  {
+    if(py::isinstance<py::str>(format) == false)
+      throw std::runtime_error("the format has to be a str (pmedio.Format)");
+    return formatOfName(py::cast<QString>(format));
+  }
 
   if(name.endsWith(".v"))
     return CMedIOData::ECAT;
@@ -371,25 +383,25 @@ to inferior). ``reorient()`` reorders the voxels, every voxel keeps its position
 )doc");
 
   volume.def(py::init<>())
-    .def(py::init([](const py::array& data, const py::object& affine, double scaleFactor, double intercept,
-                     double frameStart, double frameDuration) {
-           return volumeFromArray(data, affine, scaleFactor, intercept, frameStart, frameDuration);
-         }),
-         py::arg("data"), py::arg("affine") = py::none(), py::arg("scale_factor") = 1.0, py::arg("intercept") = 0.0,
+    .def("__init__", [](CMedIOVolume* self, const py::object& data, const py::object& affine, double scaleFactor,
+                        double intercept, double frameStart, double frameDuration) {
+           new (self) CMedIOVolume(volumeFromArray(data, affine, scaleFactor, intercept, frameStart, frameDuration));
+         },
+         py::arg("data"), py::arg("affine").none() = py::none(), py::arg("scale_factor") = 1.0, py::arg("intercept") = 0.0,
          py::arg("frame_start") = 0.0, py::arg("frame_duration") = 0.0, R"doc(
 Volume from the stored values ``data`` (3D array (x, y, z) of uint8, int8, int16, uint16,
 int32, uint32, float32 or float64) with the 3 x 4 (or 4 x 4) LPS affine (default: identity),
 scale factor, intercept and frame timing (s).
 )doc")
 
-    .def_property_readonly("shape", [](const CMedIOVolume& self) {
+    .def_prop_ro("shape", [](const CMedIOVolume& self) {
       return py::make_tuple(self.dimension(0), self.dimension(1), self.dimension(2));
     }, "dimensions (nx, ny, nz)")
-    .def_property_readonly("dtype", [](const CMedIOVolume& self) {
+    .def_prop_ro("dtype", [](const CMedIOVolume& self) {
       return numpyType(self.dataType());
     }, "numpy data type of the stored values")
     .def("__len__", [](const CMedIOVolume& self) {
-      return static_cast<py::ssize_t>(self.voxelCount());
+      return static_cast<Py_ssize_t>(self.voxelCount());
     })
     .def("__bool__", [](const CMedIOVolume& self) {
       return self.isEmpty() == false;
@@ -407,7 +419,7 @@ scale factor, intercept and frame timing (s).
         raise(PyExc_ValueError, "the physical values are larger than 2 GiB");
     }, "store the physical values (float32, float64 for float64 data) with scale factor 1 and intercept 0")
 
-    .def_property("scale_factor",
+    .def_prop_rw("scale_factor",
       [](const CMedIOVolume& self) {
         if(self.hasUniformScaleFactor() == false)
           raise(PyExc_ValueError, "the planes have different scale factors, see scale_factors");
@@ -415,7 +427,7 @@ scale factor, intercept and frame timing (s).
       },
       [](CMedIOVolume& self, double factor) { self.setScaleFactor(factor); },
       "scale factor of all planes (setting it sets all planes)")
-    .def_property_readonly("scale_factors", [](const CMedIOVolume& self) {
+    .def_prop_ro("scale_factors", [](const CMedIOVolume& self) {
       std::vector<double> factors;
       for(int k=0; k < self.dimension(2); k++)
         factors.push_back(self.scaleFactor(k));
@@ -426,23 +438,24 @@ scale factor, intercept and frame timing (s).
         raise(PyExc_IndexError, QString("plane %1 does not exist (%2 planes)").arg(plane).arg(self.dimension(2)));
       self.setScaleFactor(plane, factor);
     }, py::arg("plane"), py::arg("factor"), "set the scale factor of a plane (0-based)")
-    .def_property("intercept", &CMedIOVolume::intercept, &CMedIOVolume::setIntercept,
+    .def_prop_rw("intercept", &CMedIOVolume::intercept, &CMedIOVolume::setIntercept,
                   "physical value = stored value x scale factor + intercept")
 
-    .def_property("affine",
+    .def_prop_rw("affine",
       [](const CMedIOVolume& self) {
-        py::array_t<double> a({ 3, 4 });
-        auto w = a.mutable_unchecked<2>();
+        double* w = new double[12];
         for(int i=0; i < 3; i++)
           for(int j=0; j < 4; j++)
-            w(i, j) = self.affine(i, j);
-        return a;
+            w[i * 4 + j] = self.affine(i, j);
+        py::capsule owner(w, [](void* p) noexcept { delete[] static_cast<double*>(p); });
+        return py::ndarray<py::numpy, double, py::c_contig>(w, { 3, 4 }, owner);
       },
       [](CMedIOVolume& self, const py::object& affine) {
         double m[3][4];
         affineOf(affine, m);
         self.setAffine(m);
       },
+      py::rv_policy::move,
       "3 x 4 transformation of voxel (i, j, k) into DICOM patient coordinates (LPS, mm); "
       "a 4 x 4 matrix with the last row 0 0 0 1 is accepted as well")
     .def("position", [](const CMedIOVolume& self, double i, double j, double k) {
@@ -450,10 +463,10 @@ scale factor, intercept and frame timing (s).
       self.position(i, j, k, p);
       return py::make_tuple(p[0], p[1], p[2]);
     }, py::arg("i"), py::arg("j"), py::arg("k"), "position (LPS, mm) of voxel (i, j, k), 0-based")
-    .def_property_readonly("voxel_size", [](const CMedIOVolume& self) {
+    .def_prop_ro("voxel_size", [](const CMedIOVolume& self) {
       return py::make_tuple(self.voxelSize(0), self.voxelSize(1), self.voxelSize(2));
     }, "voxel size (mm) along the voxel axes")
-    .def_property_readonly("orientation", [](const CMedIOVolume& self) {
+    .def_prop_ro("orientation", [](const CMedIOVolume& self) {
       return self.orientation();
     }, "patient direction of every voxel axis, e.g. 'LPI' or 'RAS'")
     .def("reorient", [](CMedIOVolume& self, const QString& orientation) {
@@ -468,14 +481,14 @@ every voxel keeps its position. Returns True if oblique axes were assigned to th
 patient axis.
 )doc")
 
-    .def_property("frame_start", &CMedIOVolume::frameStart, &CMedIOVolume::setFrameStart, "frame start (s)")
-    .def_property("frame_duration", &CMedIOVolume::frameDuration, &CMedIOVolume::setFrameDuration, "frame duration (s)")
+    .def_prop_rw("frame_start", &CMedIOVolume::frameStart, &CMedIOVolume::setFrameStart, "frame start (s)")
+    .def_prop_rw("frame_duration", &CMedIOVolume::frameDuration, &CMedIOVolume::setFrameDuration, "frame duration (s)")
 
     .def("__repr__", [](const CMedIOVolume& self) {
       if(self.isEmpty())
         return std::string("<pmedio.Volume (empty)>");
       return QString("<pmedio.Volume %1x%2x%3 %4 %5>").arg(self.dimension(0)).arg(self.dimension(1)).arg(self.dimension(2))
-               .arg(py::str(numpyType(self.dataType())).cast<QString>()).arg(self.orientation()).toStdString();
+               .arg(numpyTypeName(self.dataType())).arg(self.orientation()).toStdString();
     });
 
   //-------------------------------------------------------------------------------------------
@@ -484,12 +497,12 @@ patient axis.
 An image file of any supported format, opened with ``pmedio.open()`` for reading or created
 with ``pmedio.create()`` for writing. It can be used as context manager.
 )doc")
-    .def_property_readonly("format", [](const MedIOFile& self) {
+    .def_prop_ro("format", [](const MedIOFile& self) {
       return self.data()->dataFormat();
     }, "data format of the file (pmedio.Format)")
-    .def_property_readonly("filename", &MedIOFile::fileName, "absolute file name")
-    .def_property_readonly("writable", &MedIOFile::writable, "True for files created with pmedio.create()")
-    .def_property_readonly("closed", &MedIOFile::closed)
+    .def_prop_ro("filename", &MedIOFile::fileName, "absolute file name")
+    .def_prop_ro("writable", &MedIOFile::writable, "True for files created with pmedio.create()")
+    .def_prop_ro("closed", &MedIOFile::closed)
 
     .def("frame_numbers", [](const MedIOFile& self) {
       const QList<short> frames = self.data()->frameNumbers();
@@ -537,7 +550,7 @@ fails without writing if they do not fit.
       if(self.data()->dataFormat() != CMedIOData::NIFTI)
         json.remove("NIfTI");
       const QByteArray text = QJsonDocument(json).toJson(QJsonDocument::Compact);
-      return py::module_::import("json").attr("loads")(py::str(text.constData(), text.size()));
+      return py::module_::import_("json").attr("loads")(py::str(text.constData(), text.size()));
     }, R"doc(
 Format independent header attributes of the file as dict (see CMedIOHeaderDictionary.h):
 DICOM keywords with the units of DICOM (e.g. "PatientWeight" in kg), the native fields
@@ -550,7 +563,7 @@ of every frame.
     .def("__exit__", [](MedIOFile& self, const py::object&, const py::object&, const py::object&) {
       self.close();
       return false;
-    })
+    }, py::arg("type").none(), py::arg("value").none(), py::arg("traceback").none())
     .def("__repr__", [](const MedIOFile& self) {
       if(self.closed())
         return std::string("<pmedio.File (closed)>");
@@ -587,7 +600,7 @@ for reading.
     d["vr"] = entry->vr;
     d["vm"] = entry->vm;
     d["unit"] = entry->unit;
-    d["sequence"] = entry->sequence ? py::object(py::str(CMedIOHeaderDictionary::tagString(entry->sequence).toStdString()))
+    d["sequence"] = entry->sequence ? py::object(py::cast(CMedIOHeaderDictionary::tagString(entry->sequence)))
                                     : py::object(py::none());
     d["scope"] = (entry->scope == CMedIOHeaderDictionary::FrameHeader) ? "frame" : "main";
     return py::object(d);
@@ -597,7 +610,7 @@ or tag ("(0010,1030)"): keyword, tag, VR, VM, unit, sequence holding it and scop
 ("main" or "frame"); None if the dictionary has no entry for it.
 )doc");
 
-  m.def("create", &createFile, py::arg("path"), py::arg("like"), py::arg("format") = py::none(),
+  m.def("create", &createFile, py::arg("path"), py::arg("like"), py::arg("format").none() = py::none(),
         py::arg("overwrite") = false, R"doc(
 Create a file for writing with the main header of the file ``like`` (opened with
 ``pmedio.open()``), converted into the target format: number of frames, patient and

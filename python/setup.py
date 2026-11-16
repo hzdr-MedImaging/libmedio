@@ -60,12 +60,16 @@ class CMakeBuild(build_ext):
         # Can be set with Conda-Build, for example.
         cmake_generator = os.environ.get("CMAKE_GENERATOR", "")
 
-        # Set Python_EXECUTABLE instead if you use PYBIND11_FINDPYTHON
+        # nanobind uses the Python found by FindPython (Python_EXECUTABLE) and is
+        # found by its CMake directory.
         # EXAMPLE_VERSION_INFO shows you how to pass a value into the C++ code
         # from Python.
+        import nanobind
+
         cmake_args = [
             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}{os.sep}",
-            f"-DPYTHON_EXECUTABLE={sys.executable}",
+            f"-DPython_EXECUTABLE={sys.executable}",
+            f"-Dnanobind_DIR={nanobind.cmake_dir()}",
             f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
             f"-DPREFIX_PATH={build_prefix}",
             #f"-DCMAKE_FIND_DEBUG_MODE=ON",
@@ -157,5 +161,5 @@ setup(
     cmdclass={"build_ext": CMakeBuild},
     zip_safe=False,
     extras_require={"test": ["pytest>=6.0"]},
-    python_requires=">=3.7",
+    python_requires=">=3.10",
 )

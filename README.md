@@ -241,7 +241,7 @@ for(int k=0; k < frames.size(); k++) {
 The details are documented in `src/CMedIOData.h` and `src/CMedIOMatrix.h`.
 
 ### Python
-The Python module `pmedio` (`python/`, pybind11) offers the format
+The Python module `pmedio` (`python/`, nanobind) offers the format
 independent access with numpy arrays:
 ```python
 import numpy as np
@@ -277,7 +277,8 @@ v = pmedio.Volume(np.zeros((64, 64, 32), dtype=np.float32), affine=np.eye(3, 4))
 
 Build: install libmedio into `PREFIX_PATH`, then build `python/` with CMake
 (see `.github/workflows/ci.yml`) or `cd python && pip install -e .`, and run
-`pytest python/tests`.
+`pytest python/tests`. The bindings need Python 3.10 or newer, nanobind
+(`pip install nanobind`) and a C++17 compiler; the library itself stays C++11.
 
 ### R
 The R package `Rmedio` (`r/`, Rcpp) reads and writes ECAT image volumes:

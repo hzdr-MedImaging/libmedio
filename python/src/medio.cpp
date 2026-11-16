@@ -26,9 +26,9 @@
 
 #include <QIODevice>
 
-namespace py = pybind11;
+namespace py = nanobind;
 
-// pybind init function for CMedIO classes
+// init function for the CMedIO classes
 void init_medio(py::module_ &m)
 {
   // CMedIO
@@ -82,7 +82,7 @@ void init_medio(py::module_ &m)
              .def("convertFrom", static_cast<bool (CMedIOHeader::*)(const CMedIOHeader*, const CMedIOHeader*)>(&CMedIOHeader::convertFrom), py::arg("header1"), py::arg("header2") = nullptr)
              .def("userRtti", &CMedIOHeader::userRtti)
              .def("clone", &CMedIOHeader::clone)
-             .def_property("medIOData", &CMedIOHeader::medIOData, &CMedIOHeader::setMedIOData);
+             .def_prop_rw("medIOData", &CMedIOHeader::medIOData, &CMedIOHeader::setMedIOData);
 
   py::enum_<CMedIOHeader::Format>(medioHeader, "Format")
     .value("Unknown", CMedIOHeader::Unknown)

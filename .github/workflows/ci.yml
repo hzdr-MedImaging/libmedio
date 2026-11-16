@@ -116,7 +116,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends $APT_PACKAGES
           python -m pip install --upgrade pip
-          python -m pip install pybind11 pytest numpy nibabel pydicom
+          python -m pip install nanobind pytest numpy nibabel pydicom
           echo "PETLIB=$RUNNER_TEMP/petlib" >> "$GITHUB_ENV"
 
       - name: Build librtdebug ${{ env.RTDEBUG_VERSION }}
@@ -173,7 +173,7 @@ jobs:
       - name: Build and test the Python bindings
         run: |
           cmake -S python -B build-python -DCMAKE_BUILD_TYPE=Release -DPREFIX_PATH="$PETLIB" \
-                -Dpybind11_DIR="$(python -c 'import pybind11; print(pybind11.get_cmake_dir())')" \
+                -Dnanobind_DIR="$(python -m nanobind --cmake_dir)" \
                 -DPython_EXECUTABLE="$(which python)" \
                 -DCMAKE_CXX_FLAGS="-I$PETLIB/include/rtdebug"
           cmake --build build-python -j"$(nproc)"
@@ -185,7 +185,7 @@ jobs:
       - name: Build and test the Python bindings with Clang
         run: |
           cmake -S python -B build-python-clang -DCMAKE_BUILD_TYPE=Release -DPREFIX_PATH="$PETLIB" \
-                -Dpybind11_DIR="$(python -c 'import pybind11; print(pybind11.get_cmake_dir())')" \
+                -Dnanobind_DIR="$(python -m nanobind --cmake_dir)" \
                 -DPython_EXECUTABLE="$(which python)" \
                 -DCMAKE_CXX_FLAGS="-I$PETLIB/include/rtdebug"
           cmake --build build-python-clang -j"$(nproc)"

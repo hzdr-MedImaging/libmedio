@@ -12,7 +12,7 @@ formats, primarily from nuclear medicine (PET): ECAT 6/7, NIfTI-1/NIfTI-2
 (image, Syntegra, sinograms, list mode) and Siemens Concorde microPET. It also
 converts complete images between ECAT7/Philips and NIfTI (`CNIFTIConverter`).
 
-- Licensed under Apache-2.0. Python bindings (`pmedio`, pybind11) live in `python/`,
+- Licensed under Apache-2.0. Python bindings (`pmedio`, nanobind) live in `python/`,
   the R package (`Rmedio`, Rcpp) in `r/`.
 - C++11 with Qt5 (Core); depends on zlib and
   [librtdebug](https://github.com/hzdr-MedImaging/librtdebug).
@@ -151,7 +151,8 @@ because librtdebug or COREG were not available).
 
 ## Coding conventions
 
-- C++11; the library is compiled with `-Wall -Wextra`, the Python bindings
+- C++11 (the Python bindings in `python/` are C++17, as nanobind requires it);
+  the library is compiled with `-Wall -Wextra`, the Python bindings
   additionally with `-Werror`. Do not introduce new warnings.
 - Use Qt types for portability: `QString` (not `std::string`),
   `QFile`/`QByteArray`/`QIODevice`, and the Qt integer types (`quint8`,
