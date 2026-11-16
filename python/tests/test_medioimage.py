@@ -27,6 +27,7 @@
 # MEDIO_TEST_DATA_DIR.
 
 import datetime
+import io
 import json
 import os
 import pathlib
@@ -259,8 +260,9 @@ def test_default_headers():
 
     m = MedIOImage(ramp(), dimType="gates").mhead
     assert (m["num_planes"], m["num_frames"], m["num_gates"], m["num_bed_pos"]) == (4, 0, 5, 0)
+    # the bed positions are numbered from 0, num_bed_pos is the number of the last one
     m = MedIOImage(ramp(), dimType="beds").mhead
-    assert (m["num_planes"], m["num_frames"], m["num_gates"], m["num_bed_pos"]) == (4, 0, 0, 5)
+    assert (m["num_planes"], m["num_frames"], m["num_gates"], m["num_bed_pos"]) == (4, 0, 0, 4)
 
 
 def test_attributes():
@@ -384,10 +386,12 @@ def test_toarray():
         assert np.array_equal(values, a)
     assert np.array_equal(img.toarray(copy=False), a)
 
-    # a copy is independent of the image and outlives it
-    values = img.toarray(copy=True)
-    values[0, 0, 0, 0] = 99.0
-    assert img[0, 0, 0, 0] == 0.0
+    # the array is a copy with and without copy: it is independent of the image and
+    # outlives it (np.asarray(img) uses the memory of the image)
+    for copy in (False, True):
+        values = img.toarray(copy=copy)
+        values[0, 0, 0, 0] = 99.0
+        assert img[0, 0, 0, 0] == 0.0
     del img
     assert values[1, 2, 3, 4] == a[1, 2, 3, 4]
 
@@ -487,14 +491,93 @@ def test_write_array(tmp_path, dtype, order):
     assert np.array_equal(np.asarray(read)[..., 0], ramp()[..., 2])
 
 
-def test_write_gates(tmp_path):
+@pytest.mark.parametrize("dim_type, counts", [
+    # num_frames, num_gates, num_bed_pos of the main header: the bed positions are numbered
+    # from 0 and num_bed_pos is the number of the last one, there is no number of data indices
+    ("frames", (5, 1, 0)),
+    ("gates", (1, 5, 0)),
+    ("beds", (1, 1, 4)),
+    ("data", (1, 1, 0)),
+])
+def test_write_dimension_types(tmp_path, dim_type, counts):
+    # the 4th dimension is stored as frames, gates, bed positions or data indices
     a = ramp()
     name = str(tmp_path / "image.v")
-    pmedio.write(a, name, dimType="gates")
+    pmedio.write(a, name, dimType=dim_type)
     read = pmedio.read(name)
-    assert read.dimType == "gates"
-    assert read.mhead["num_gates"] == 5
+    assert read.dimType == dim_type
+    assert read.shape == SHAPE
+    assert len(read.shead) == 5
+    assert (read.mhead["num_frames"], read.mhead["num_gates"], read.mhead["num_bed_pos"]) == counts
     assert np.array_equal(np.asarray(read), a)
+
+    # a single volume
+    pmedio.write(a[..., 3], name, overwrite=True, dimType=dim_type)
+    read = pmedio.read(name)
+    assert read.shape == (2, 3, 4, 1)
+    assert np.array_equal(np.asarray(read)[..., 0], a[..., 3])
+
+
+def test_write_frame_order(tmp_path):
+    # frame k + 1 of the file is img[..., k] and img.shead[k], checked with nibabel
+    nib = pytest.importorskip("nibabel")
+    nib_ecat = pytest.importorskip("nibabel.ecat")
+    a = ramp()
+    img = MedIOImage(a)
+    for k, s in enumerate(img.shead):
+        s["frame_start"] = 1000 * k
+        s["frame_duration"] = 100 * (k + 1)
+    name = str(tmp_path / "image.v")
+    img.write(name)
+
+    # nibabel keeps a file open, so it gets the content of the file
+    holder = nib.FileHolder(fileobj=io.BytesIO(pathlib.Path(name).read_bytes()))
+    written = nib_ecat.EcatImage.from_file_map({"header": holder, "image": holder})
+    assert written.shape == SHAPE
+    subheaders = written.get_subheaders().subheaders
+    for k in range(SHAPE[3]):
+        assert np.array_equal(written.get_frame(k), a[..., k]), k
+        assert subheaders[k]["frame_start_time"] == 1000 * k
+        assert subheaders[k]["frame_duration"] == 100 * (k + 1)
+
+    # the format independent interface returns the volumes in the voxel order of the file
+    with pmedio.open(name) as f:
+        assert f.frame_numbers() == [1, 2, 3, 4, 5]
+        for k in range(SHAPE[3]):
+            assert np.array_equal(f.read_volume(k + 1).stored()[::-1, ::-1, ::-1], a[..., k]), k
+
+
+def test_read_volumes(tmp_path):
+    a = ramp()
+    img = MedIOImage(a)
+    for k, s in enumerate(img.shead):
+        s["frame_start"] = 1000 * k
+    name = str(tmp_path / "image.v")
+    img.write(name)
+
+    # the volumes are numbered from 1 and returned in the given order
+    for volumes in ([1], [5], [1, 3], [4, 2], [2, 2, 5], [1, 2, 3, 4, 5]):
+        read = pmedio.read(name, volumes)
+        assert read.shape == (2, 3, 4, len(volumes))
+        assert [s["frame_start"] for s in read.shead] == [1000 * (v - 1) for v in volumes]
+        for k, v in enumerate(volumes):
+            assert np.array_equal(np.asarray(read)[..., k], a[..., v - 1]), (volumes, k)
+    assert np.array_equal(np.asarray(pmedio.read(name, volumes=[3]))[..., 0], a[..., 2])
+
+    for volumes in ([0], [6], [1, 6], [-1]):
+        with pytest.raises(RuntimeError, match="exceeding boundaries: there are 5 volumes"):
+            pmedio.read(name, volumes)
+
+    # rows, cols and planes are checked only, the complete volumes are returned
+    read = pmedio.read(name, [2], [1, 3], [2], [1, 4])
+    assert read.shape == (2, 3, 4, 1)
+    assert np.array_equal(np.asarray(read)[..., 0], a[..., 1])
+    with pytest.raises(RuntimeError, match="index in rows vector .4. is out of bounds"):
+        pmedio.read(name, rows=[4])
+    with pytest.raises(RuntimeError, match="index in cols vector .3. is out of bounds"):
+        pmedio.read(name, cols=[3])
+    with pytest.raises(RuntimeError, match="index in planes vector .0. is out of bounds"):
+        pmedio.read(name, planes=[0])
 
 
 def test_write_errors(tmp_path):
@@ -510,6 +593,19 @@ def test_write_errors(tmp_path):
         pmedio.write(a, str(name), dataType=5)
     with pytest.raises(TypeError):
         pmedio.write(a, str(name), overwrite="yes")
+    # a file that cannot be created is an error
+    missing = str(tmp_path / "missing" / "image.v")
+    with pytest.raises(RuntimeError, match="could not open output file"):
+        pmedio.write(MedIOImage(a), missing)
+    with pytest.raises(RuntimeError, match="could not open output file"):
+        pmedio.write(a, missing)
+    with pytest.raises(RuntimeError, match="could not open output file"):
+        MedIOImage(a).write(missing)
+    # at most 16 bed positions and 8 data indices can be stored
+    with pytest.raises(RuntimeError):
+        pmedio.write(ramp((2, 3, 4, 17)), str(name), dimType="beds")
+    with pytest.raises(RuntimeError):
+        pmedio.write(ramp((2, 3, 4, 9)), str(name), dimType="data")
     # nothing is left behind
     assert list(tmp_path.iterdir()) == []
 
@@ -624,13 +720,9 @@ def test_read_dataset_headers(path, timezone):
 
 
 @needs_data
-@pytest.mark.parametrize("path", [
-    "ecat/pet-static.v",
-    # known problem: MedIOImage stores the frames in reverse order (the last frame of the
-    # file is img[..., 0]), while img.shead is in the order of the file
-    pytest.param("ecat/pet-dynamic.v", marks=pytest.mark.xfail(strict=True, reason="frames in reverse order")),
-])
+@pytest.mark.parametrize("path", ["ecat/pet-static.v", "ecat/pet-dynamic.v"])
 def test_read_dataset_values(path):
+    # img[..., k] is frame k + 1 of the file
     expected = expected_values(path)
     calibration = expected["main_header"]["calibration_factor"]
 

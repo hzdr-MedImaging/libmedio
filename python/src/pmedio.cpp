@@ -212,7 +212,10 @@ PYBIND11_MODULE(pmedio, m) {
           sizeof(float) * self.m_xdim * self.m_ydim * self.m_zdim // T (frames/gates/bed/data)
         }
       ), capsule);
-    }, py::arg("copy") = false)
+    }, py::arg("copy") = false,
+       "Voxels as numpy array (x, y, z, t) of float32. The array is always a copy of the\n"
+       "voxels, with and without ``copy``; ``numpy.asarray(img)`` uses the memory of the\n"
+       "image instead.")
 
     // Provide buffer access
     .def_buffer([](MedIOImage& self) -> py::buffer_info {
@@ -254,7 +257,13 @@ PYBIND11_MODULE(pmedio, m) {
      py::arg("volumes") = std::vector<int>(),
      py::arg("rows") = std::vector<int>(),
      py::arg("cols") = std::vector<int>(),
-     py::arg("planes") = std::vector<int>());
+     py::arg("planes") = std::vector<int>(),
+     "Read an ECAT7 image file as MedIOImage.\n\n"
+     "``volumes`` selects the frames (or gates, bed positions, data indices) to read in\n"
+     "the given order, numbered from 1 in the order of the file; by default all of them\n"
+     "are read. ``img[..., k]`` and ``img.shead[k]`` belong to the same volume.\n"
+     "``rows``, ``cols`` and ``planes`` (numbered from 1) are only checked against the\n"
+     "dimensions of the file, the complete volumes are returned.");
 
   // general pmedio.write() function to write out a medioimage data
   m.def("write", [](MedIOImage& img,
