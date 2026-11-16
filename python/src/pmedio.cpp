@@ -156,7 +156,9 @@ PYBIND11_MODULE(pmedio, m) {
     // Bare bones interface
     .def("__getitem__",
       [](const MedIOImage& self, std::tuple<py::ssize_t, py::ssize_t, py::ssize_t, py::ssize_t> i) {
-        if(std::get<0>(i) >= static_cast<int>(self.m_xdim) || std::get<1>(i) >= static_cast<int>(self.m_ydim) || 
+        // negative indices are not supported and must not address memory in front of the data
+        if(std::get<0>(i) < 0 || std::get<1>(i) < 0 || std::get<2>(i) < 0 || std::get<3>(i) < 0 ||
+           std::get<0>(i) >= static_cast<int>(self.m_xdim) || std::get<1>(i) >= static_cast<int>(self.m_ydim) ||
            std::get<2>(i) >= static_cast<int>(self.m_zdim) || std::get<3>(i) >= static_cast<int>(self.m_tdim)) {
           throw py::index_error();
         }
@@ -164,7 +166,9 @@ PYBIND11_MODULE(pmedio, m) {
     })
     .def("__setitem__",
       [](MedIOImage& self, std::tuple<py::ssize_t, py::ssize_t, py::ssize_t, py::ssize_t> i, float v) {
-        if(std::get<0>(i) >= static_cast<int>(self.m_xdim) || std::get<1>(i) >= static_cast<int>(self.m_ydim) || 
+        // negative indices are not supported and must not address memory in front of the data
+        if(std::get<0>(i) < 0 || std::get<1>(i) < 0 || std::get<2>(i) < 0 || std::get<3>(i) < 0 ||
+           std::get<0>(i) >= static_cast<int>(self.m_xdim) || std::get<1>(i) >= static_cast<int>(self.m_ydim) ||
            std::get<2>(i) >= static_cast<int>(self.m_zdim) || std::get<3>(i) >= static_cast<int>(self.m_tdim)) {
           throw py::index_error();
         }

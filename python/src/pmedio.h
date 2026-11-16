@@ -102,16 +102,15 @@ class MedIOImage
                const CMedIOData::Format& format = CMedIOData::ECAT,
                const enum dimTypes type = DM_FRAMES)
      : 
-       MedIOImage(info.shape[0],
-                  info.ndim > 1 ? info.shape[1] : 1,
-                  info.ndim > 2 ? info.shape[2] : 1,
-                  info.ndim > 3 ? info.shape[3] : 1, format, type)
+       // the order of evaluation of the arguments is unspecified: check for each of them
+       MedIOImage(checkedBuffer(info).shape[0],
+                  checkedBuffer(info).shape[1],
+                  checkedBuffer(info).shape[2],
+                  checkedBuffer(info).ndim > 3 ? info.shape[3] : 1, format, type)
     {
       // check buffer being valid
       if(info.format != py::format_descriptor<float>::format())
         throw std::runtime_error("incompatible input data format '" + info.format + "' != float32");
-      if(info.ndim < 3)
-        throw std::runtime_error("only 3 and 4 dimensional data supported yet");
 
       // check format and create a fresh medio object
       if(format != CMedIOData::ECAT)
@@ -330,13 +329,23 @@ class MedIOImage
 
     float operator()(const size_t x, const size_t y=0, const size_t z=0, const size_t t=0) const
     {
-      return m_data[x + y * m_xdim + z * m_xdim*m_ydim + t * m_ydim*m_ydim*m_zdim];
+      return m_data[x + y * m_xdim + z * m_xdim*m_ydim + t * m_xdim*m_ydim*m_zdim];
     } 
 
     float& operator()(const size_t x, const size_t y=0, const size_t z=0, const size_t t=0)
     {
-      return m_data[x + y * m_xdim + z * m_xdim*m_ydim + t * m_ydim*m_ydim*m_zdim];
+      return m_data[x + y * m_xdim + z * m_xdim*m_ydim + t * m_xdim*m_ydim*m_zdim];
     } 
+
+    // returns the buffer if it has 3 or 4 dimensions and throws otherwise, before
+    // its shape is used (a scalar, e.g. None converted to an array, has no dimension)
+    static const py::buffer_info& checkedBuffer(const py::buffer_info& info)
+    {
+      if(info.ndim < 3 || info.ndim > 4)
+        throw std::runtime_error("only 3 and 4 dimensional data supported yet");
+
+      return info;
+    }
 
     float* data() { return m_data; }
     CMedIOData* medIOData() { return m_mioData; }
