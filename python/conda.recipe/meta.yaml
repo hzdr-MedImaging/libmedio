@@ -28,23 +28,29 @@ source:
 
 build:
   number: 0
-  # the run requirements below provide the dependencies of the package
-  script: {{ PYTHON }} -m pip install . --no-deps -vvv
+  # libmedio, Qt and zlib are taken from the host environment ($PREFIX), which
+  # the run requirements are derived from; the run requirements also provide
+  # the dependencies of the Python package
+  script:
+    - export CMAKE_ARGS="${CMAKE_ARGS} -DPREFIX_PATH=${PREFIX}"
+    - {{ PYTHON }} -m pip install . --no-deps -vvv
 
 requirements:
   build:
     - "{{ compiler('cxx') }}"
-    - python
-    - pip
-    - nanobind
     - cmake
     - ninja
-    - qt-main
-    - libmedio
 
+  # conda-build runs pip without build isolation: the build requirements of
+  # pyproject.toml have to be available to the Python of the host environment
   host:
     - python
     - pip
+    - scikit-build-core
+    - nanobind
+    - qt-main
+    - zlib
+    - libmedio
 
   run:
     - python

@@ -17,12 +17,20 @@
 # limitations under the License.
 #
 
+# Tests that need the test data (testsuite/data) are skipped if it is not
+# available (e.g. in the conda package test); the data directory can be set
+# with MEDIO_TEST_DATA_DIR.
+
 import os
 
 import pmedio
 import pytest
 
-DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'testsuite', 'data')
+DATA = os.environ.get('MEDIO_TEST_DATA_DIR',
+                      os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'testsuite', 'data'))
+
+needs_data = pytest.mark.skipif(not os.path.isfile(os.path.join(DATA, 'datasets.json')),
+                                reason='test data (testsuite/data) not available')
 
 def test_constructors():
   a = pmedio.MedIOImage(1,1,1,1)
@@ -33,6 +41,7 @@ def test_constructors():
 
 
 
+@needs_data
 def test_attributes():
   # attributes of an ECAT7 file (see testsuite/data/ecat/pet-dynamic.v.json)
   with pmedio.open(os.path.join(DATA, 'ecat', 'pet-dynamic.v')) as f:
@@ -52,6 +61,7 @@ def test_attributes():
   assert p['Philips']['weight'] == 8630
 
 
+@needs_data
 def test_attributes_of_created_files(tmp_path):
   # a NIfTI file created like a Philips file stores the Philips attributes
   with pmedio.open(os.path.join(DATA, 'philips', 'pet-dynamic.img')) as f:

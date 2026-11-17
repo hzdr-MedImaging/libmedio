@@ -1,6 +1,8 @@
 ## Conda build
 In order to create conda package:
-1. Run: `conda build -c conda-forge conda.recipe`
+1. Run: `conda build -c conda-forge --use-local conda.recipe`
+   (needs the conda packages of librtdebug and libmedio, e.g. built with
+   their `conda.recipe` into the local channel before)
 2. Install locally with `conda install -c conda-forge --use-local pmedio` (optional)
 3. Install to local conda channel via `umask 022` followed by e.g:
    `cp ~/conda-bld/linux-64/pmedio-0.2.0-py310h2bc3f7f_0.tar.bz2 /usr/local/petlib/conda-pet/linux-64/`
