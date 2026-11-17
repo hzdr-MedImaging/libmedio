@@ -236,6 +236,22 @@ for(int k=0; k < frames.size(); k++) {
 - `readVolume()`/`writeVolume()` exchange frames as `CMedIOVolume`: voxel
   data, scaling, the position of every voxel (DICOM patient coordinates)
   and the frame timing; `CMedIOVolume::reorient()` reorders the voxels.
+- `CMedIOData::mainHeaderFromVolume(volume, format, numFrames, header)` makes
+  the main header of a new ECAT7, NIfTI or Philips file from a volume, for
+  writing volumes without a source file. The header has the geometry and
+  number of frames, the defaults of the format otherwise (change them with
+  `updateAttributes()`); a NIfTI file stores all frames with the data type
+  and scaling of this volume, Philips planes are centered:
+  ```cpp
+  CMedIOHeader* header = NULL;
+  CMedIOData::mainHeaderFromVolume(volume, CMedIOData::NIFTI, 3, header);
+  CNIFTIFile out("new.nii", CNIFTIMainHeader::NIFTI1);
+  out.open(QIODevice::WriteOnly);
+  header->setMedIOData(&out);
+  out.writeMainHeader(*static_cast<CNIFTIMainHeader*>(header));
+  out.writeVolume(volume, 1);                        // frames 1..3
+  delete header;
+  ```
 - Only image data is supported (no sinograms, normalizations, list mode).
 
 The details are documented in `src/CMedIOData.h` and `src/CMedIOMatrix.h`.

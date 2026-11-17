@@ -480,6 +480,9 @@ class TestMedIOMatrix : public QObject
 
     void writeWithFormat();
     void writeMainHeaderFormat();
+    void mainHeaderFromVolume_data();
+    void mainHeaderFromVolume();
+    void mainHeaderFromVolumeErrors();
 
     void errors();
     void largeFrames();
@@ -3210,4 +3213,160 @@ void TestMedIOMatrix::largeFrames()
 }
 
 QTEST_GUILESS_MAIN(TestMedIOMatrix)
+//---------------------------------------------------------------------------------------------
+// CMedIOData::mainHeaderFromVolume(): a file of every writable format created from volumes
+// alone (without a source file) holds the frames as they were written: values, position of
+// every voxel and timing
+
+// synthetic frame k (0-based) of 5 x 4 x 3 voxels: axes towards right, anterior and
+// superior (not the voxel order of any of the formats), int16 with scale factor 0.25,
+// value = (1 + linear index + 100 k) x 0.25
+static CMedIOVolume syntheticFrame(int k)
+{
+  const double ras[3][4] = { { -2, 0, 0, 10 }, { 0, -2.5, 0, -20 }, { 0, 0, 3, -30 } };
+  QByteArray values(60 * 2, '\0');
+  for(int i=0; i < 60; i++)
+    reinterpret_cast<qint16*>(values.data())[i] = static_cast<qint16>(1 + i + 100 * k);
+  CMedIOVolume v;
+  v.setData(5, 4, 3, CMedIOVolume::Int16, values);
+  v.setAffine(ras);
+  v.setScaleFactor(0.25);
+  v.setFrameStart(60.0 * k);
+  v.setFrameDuration(30.0 + k);
+  return v;
+}
+
+// write the main header with the class of the file
+static bool writeNewMainHeader(CMedIOData* file, CMedIOHeader* header)
+{
+  header->setMedIOData(file);
+  switch(file->dataFormat()) {
+    case CMedIOData::ECAT:    return static_cast<CECATFile*>(file)->writeMainHeader(*static_cast<CECATMainHeader*>(header));
+    case CMedIOData::NIFTI:   return static_cast<CNIFTIFile*>(file)->writeMainHeader(*static_cast<CNIFTIMainHeader*>(header));
+    case CMedIOData::Philips: return static_cast<CPhilipsFile*>(file)->writeMainHeader(*static_cast<CPhilipsMainHeader*>(header));
+    default:                  return false;
+  }
+}
+
+void TestMedIOMatrix::mainHeaderFromVolume_data()
+{
+  QTest::addColumn<QString>("name");
+  QTest::addColumn<int>("format");
+  QTest::addColumn<int>("frames");
+
+  QTest::newRow("ECAT7")            << "new.v"      << static_cast<int>(CMedIOData::ECAT)    << 3;
+  QTest::newRow("ECAT7 one frame")  << "new1.v"     << static_cast<int>(CMedIOData::ECAT)    << 1;
+  QTest::newRow("NIfTI .nii")       << "new.nii"    << static_cast<int>(CMedIOData::NIFTI)   << 3;
+  QTest::newRow("NIfTI .nii.gz")    << "new.nii.gz" << static_cast<int>(CMedIOData::NIFTI)   << 3;
+  QTest::newRow("NIfTI .hdr")       << "new.hdr"    << static_cast<int>(CMedIOData::NIFTI)   << 3;
+  QTest::newRow("NIfTI one frame")  << "new1.nii"   << static_cast<int>(CMedIOData::NIFTI)   << 1;
+  QTest::newRow("Philips image")    << "new.img"    << static_cast<int>(CMedIOData::Philips) << 3;
+  QTest::newRow("Philips Syntegra") << "new.syn"    << static_cast<int>(CMedIOData::Philips) << 3;
+}
+
+void TestMedIOMatrix::mainHeaderFromVolume()
+{
+  QFETCH(QString, name);
+  QFETCH(int, format);
+  QFETCH(int, frames);
+  const CMedIOData::Format target = static_cast<CMedIOData::Format>(format);
+  const bool syntegra = name.endsWith(".syn");
+  const QString path = tmpFile(name);
+
+  {
+    CMedIOHeader* header = NULL;
+    QVERIFY(CMedIOData::mainHeaderFromVolume(syntheticFrame(0), target, frames, header));
+    QVERIFY(header != NULL);
+    QScopedPointer<CMedIOHeader> headerGuard(header);
+    QVERIFY(header->medIOData() == NULL);
+
+    QScopedPointer<CMedIOData> out;
+    switch(target) {
+      case CMedIOData::ECAT:
+        QCOMPARE(static_cast<int>(header->headerFormat()), static_cast<int>(CMedIOHeader::ECATMainHeader));
+        out.reset(new CECATFile(path, CECATMainHeader::ECAT7_Volume16));
+      break;
+      case CMedIOData::NIFTI:
+        out.reset(new CNIFTIFile(path, CNIFTIMainHeader::NIFTI1));
+      break;
+      default:
+        QCOMPARE(static_cast<int>(header->headerFormat()), static_cast<int>(CMedIOHeader::PhilipsMainHeader));
+        QCOMPARE(static_cast<int>(static_cast<CPhilipsMainHeader*>(header)->filtyp()), static_cast<int>(CPhilipsMainHeader::Image));
+        if(syntegra)
+          static_cast<CPhilipsMainHeader*>(header)->setFiltyp(CPhilipsMainHeader::Syntegra);
+        out.reset(new CPhilipsFile(path, syntegra ? CPhilipsMainHeader::Syntegra : CPhilipsMainHeader::Image));
+      break;
+    }
+    QVERIFY(out->open(QIODevice::WriteOnly));
+    QVERIFY(writeNewMainHeader(out.data(), header));
+    for(int k=0; k < frames; k++)
+      QVERIFY2(out->writeVolume(syntheticFrame(k), k + 1), qPrintable(QString("frame %1").arg(k + 1)));
+    out->close();
+  }
+
+  QScopedPointer<CMedIOData> in(CMedIODataFactory::create(path));
+  QVERIFY(in.data() != NULL);
+  QCOMPARE(static_cast<int>(in->dataFormat()), format);
+  QVERIFY(in->open(QIODevice::ReadOnly));
+  const QList<short> numbers = in->frameNumbers();
+  QCOMPARE(numbers.size(), frames);
+
+  for(int k=0; k < frames; k++) {
+    const CMedIOVolume expected = syntheticFrame(k);
+    CMedIOVolume v;
+    QVERIFY(in->readVolume(v, numbers[k]));
+
+    // the voxels in the order of the volume written: same positions and physical values
+    QVERIFY(v.reorient(expected.orientation()));
+    QCOMPARE(v.orientation(), expected.orientation());
+    for(int a=0; a < 3; a++)
+      QCOMPARE(v.dimension(a), expected.dimension(a));
+    // (Philips files store no position within the planes: their center is at x = y = 0)
+    for(int r=0; r < 3; r++)
+      for(int c=0; c < 4; c++) {
+        double e = expected.affine(r, c);
+        if(target == CMedIOData::Philips && c == 3 && r < 2)
+          e = -(expected.dimension(r) - 1) / 2.0 * expected.affine(r, r);
+        QVERIFY2(approx(v.affine(r, c), e, 0.0, 1e-3),
+                 qPrintable(QString("affine(%1,%2) = %3, expected %4").arg(r).arg(c).arg(v.affine(r, c)).arg(e)));
+      }
+    for(qint64 i=0; i < expected.voxelCount(); i++)
+      QVERIFY2(approx(v.value(i), expected.value(i), 1e-6),
+               qPrintable(QString("frame %1, voxel %2: %3, expected %4").arg(k + 1).arg(i).arg(v.value(i)).arg(expected.value(i))));
+
+    QCOMPARE(v.frameStart(), expected.frameStart());
+    QCOMPARE(v.frameDuration(), expected.frameDuration());
+  }
+}
+
+void TestMedIOMatrix::mainHeaderFromVolumeErrors()
+{
+  CMedIOHeader* header = reinterpret_cast<CMedIOHeader*>(1);
+
+  // an empty volume
+  QVERIFY(CMedIOData::mainHeaderFromVolume(CMedIOVolume(), CMedIOData::ECAT, 1, header) == false);
+  QVERIFY(header == NULL);
+
+  // formats that cannot be written
+  const CMedIOData::Format formats[] = { CMedIOData::ConcordeMicropet, CMedIOData::PhilipsBin, CMedIOData::Unknown };
+  for(CMedIOData::Format format : formats) {
+    header = reinterpret_cast<CMedIOHeader*>(1);
+    QVERIFY(CMedIOData::mainHeaderFromVolume(syntheticFrame(0), format, 1, header) == false);
+    QVERIFY(header == NULL);
+  }
+
+  // numbers of frames outside 1..32767
+  const int numbers[] = { 0, -1, 32768 };
+  for(int n : numbers) {
+    header = reinterpret_cast<CMedIOHeader*>(1);
+    QVERIFY(CMedIOData::mainHeaderFromVolume(syntheticFrame(0), CMedIOData::NIFTI, n, header) == false);
+    QVERIFY(header == NULL);
+  }
+
+  // the largest number of frames
+  QVERIFY(CMedIOData::mainHeaderFromVolume(syntheticFrame(0), CMedIOData::ECAT, 32767, header));
+  QScopedPointer<CMedIOHeader> guard(header);
+  QCOMPARE(static_cast<int>(static_cast<CECAT7MainHeader*>(header)->num_Frames()), 32767);
+}
+
 #include "testMedIOMatrix.moc"
