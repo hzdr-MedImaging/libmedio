@@ -200,6 +200,27 @@ jobs:
           BUILD_PREFIX="$PETLIB" "$RUNNER_TEMP/venv/bin/pip" install "./python[test]" nibabel pydicom
           "$RUNNER_TEMP/venv/bin/python" -m pytest -v python/tests
 
+      # a newer Python than the one the wheel is built with, not used for anything else
+      - uses: actions/setup-python@v5
+        id: newer-python
+        with:
+          python-version: '3.13'
+          update-environment: false
+
+      # the wheel is built for the stable ABI (cp312-abi3): one wheel for Python 3.12
+      # and all newer versions
+      - name: Build a wheel and test it with a newer Python
+        run: |
+          BUILD_PREFIX="$PETLIB" python -m pip wheel ./python --no-deps -w "$RUNNER_TEMP/wheels"
+          ls "$RUNNER_TEMP/wheels"
+          wheel="$(ls "$RUNNER_TEMP"/wheels/pmedio-*-cp312-abi3-*.whl)"
+          "$NEWER_PYTHON" -m venv "$RUNNER_TEMP/venv-newer"
+          "$RUNNER_TEMP/venv-newer/bin/pip" install "$wheel" pytest nibabel pydicom
+          "$RUNNER_TEMP/venv-newer/bin/python" -c "import sys, pmedio; print(sys.version, pmedio.__file__)"
+          "$RUNNER_TEMP/venv-newer/bin/python" -m pytest -v python/tests
+        env:
+          NEWER_PYTHON: ${{ steps.newer-python.outputs.python-path }}
+
   #-------------------------------------------------------------------------------------------
   # build the self-contained source package of the R interface (r/) with the bundled libmedio
   # sources and check it like CRAN does

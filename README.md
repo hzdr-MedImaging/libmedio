@@ -282,11 +282,15 @@ pip install ./python                              # libmedio in /usr/local/petli
 BUILD_PREFIX=/path/to/prefix pip install ./python # libmedio in another prefix
 ```
 `pip install -e ./python` installs it for development, `pip wheel ./python`
-builds a wheel, and `CMAKE_ARGS` passes further options to CMake. The module
+builds a wheel, and `CMAKE_ARGS` passes further options to CMake. With Python
+3.12 or newer the module is built for the stable ABI of Python: the wheel
+(`cp312-abi3`) can be installed with all newer Python versions as well; Python
+3.10 and 3.11 get a wheel for their version. The module
 can also be built with CMake alone (see `.github/workflows/ci.yml`); run the
 tests with `pytest python/tests`. The bindings need Python 3.10 or newer and a
 C++17 compiler; pip provides the build requirements (scikit-build-core,
-nanobind, CMake), a plain CMake build needs `pip install nanobind`. The library
+nanobind, CMake), a plain CMake build needs `pip install nanobind` (and builds
+for the stable ABI with `-DPMEDIO_STABLE_ABI=ON`). The library
 itself stays C++11. A conda package is built with `python/conda.recipe`.
 
 ### R
