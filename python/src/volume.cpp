@@ -311,7 +311,7 @@ bool writeMainHeader(CMedIOData* file, CMedIOHeader* mainHeader, CMedIOData::For
   return result;
 }
 
-std::unique_ptr<MedIOFile> createFile(const py::object& path, const MedIOFile& like, const py::object& format, bool overwrite)
+std::unique_ptr<MedIOFile> createFile(const py::object& path, const MedIOFile& like, const py::object& format, Flag overwrite)
 {
   if(like.writable())
     raise(PyExc_ValueError, "the source file 'like' has to be opened for reading with pmedio.open()");
@@ -456,6 +456,8 @@ scale factor, intercept and frame timing (s).
         self.setAffine(m);
       },
       py::rv_policy::move,
+      // None is reported like every other object that is no affine
+      py::for_setter(py::arg("affine").none()),
       "3 x 4 transformation of voxel (i, j, k) into DICOM patient coordinates (LPS, mm); "
       "a 4 x 4 matrix with the last row 0 0 0 1 is accepted as well")
     .def("position", [](const CMedIOVolume& self, double i, double j, double k) {
@@ -611,7 +613,7 @@ or tag ("(0010,1030)"): keyword, tag, VR, VM, unit, sequence holding it and scop
 )doc");
 
   m.def("create", &createFile, py::arg("path"), py::arg("like"), py::arg("format").none() = py::none(),
-        py::arg("overwrite") = false, R"doc(
+        py::arg("overwrite").none() = Flag{false}, R"doc(
 Create a file for writing with the main header of the file ``like`` (opened with
 ``pmedio.open()``), converted into the target format: number of frames, patient and
 isotope data, calibration, and for NIfTI files the datatype, scaling and orientation.

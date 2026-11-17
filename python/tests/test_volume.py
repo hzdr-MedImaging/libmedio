@@ -277,6 +277,10 @@ def test_volume_defaults_and_errors():
         pmedio.Volume(np.zeros((2, 2, 2), dtype=np.int16), affine=np.eye(3))
     with pytest.raises(ValueError, match="0 0 0 1"):
         v.affine = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 1, 1]]
+    # None and other objects that are no affine
+    for affine in (None, "abc", 5):
+        with pytest.raises(ValueError, match="3 x 4 or 4 x 4"):
+            v.affine = affine
 
     # a 4 x 4 affine
     v.affine = [[1, 0, 0, 5], [0, 1, 0, 6], [0, 0, 1, 7], [0, 0, 0, 1]]

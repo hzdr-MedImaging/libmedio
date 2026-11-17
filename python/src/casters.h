@@ -171,6 +171,14 @@ inline enum dataTypes dataTypeOfName(const QString& name)
   return value;
 }
 
+// A bool argument that also takes objects with a truth value of their own
+// (int, numpy.bool_, ...) and None (false), but no str or containers. This is
+// what pybind11 accepted; the bool caster of nanobind only takes True and False.
+struct Flag {
+  bool value;
+  operator bool() const { return value; }
+};
+
 NAMESPACE_BEGIN(NB_NAMESPACE)
 NAMESPACE_BEGIN(detail)
 
@@ -196,6 +204,38 @@ template <> struct type_caster<QString> {
   static handle from_cpp(const QString& src, rv_policy, cleanup_list*) noexcept {
     const QByteArray utf8 = src.toUtf8();
     return PyUnicode_FromStringAndSize(utf8.constData(), utf8.size());
+  }
+};
+
+// see Flag
+template <> struct type_caster<Flag> {
+  NB_TYPE_CASTER(Flag, const_name("bool"))
+
+  bool from_python(handle src, uint32_t, cleanup_list*) noexcept {
+    PyObject* object = src.ptr();
+    if(object == Py_True || object == Py_False || object == Py_None) {
+      value.value = (object == Py_True);
+      return true;
+    }
+
+    // only types that define __bool__ (not the length of a str or list)
+    typedef int (*inquiry_t)(PyObject*);
+    inquiry_t truth = reinterpret_cast<inquiry_t>(PyType_GetSlot(Py_TYPE(object), Py_nb_bool));
+    if(truth == nullptr)
+      return false;
+
+    const int result = truth(object);
+    if(result != 0 && result != 1) {
+      PyErr_Clear();
+      return false;
+    }
+
+    value.value = (result == 1);
+    return true;
+  }
+
+  static handle from_cpp(Flag src, rv_policy, cleanup_list*) noexcept {
+    return handle(src.value ? Py_True : Py_False).inc_ref();
   }
 };
 

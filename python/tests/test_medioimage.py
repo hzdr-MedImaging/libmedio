@@ -186,7 +186,8 @@ def test_construct_from_array_shapes():
     for data in (np.float32(1.0), np.zeros(()), 1.5, np.zeros((2, 2, 2, 2, 2), dtype=np.float32)):
         with pytest.raises(RuntimeError, match="only 3 and 4 dimensional data"):
             MedIOImage(data)
-    with pytest.raises((RuntimeError, TypeError)):
+    # None is converted by numpy like every other object (to a scalar)
+    with pytest.raises(RuntimeError, match="only 3 and 4 dimensional data"):
         MedIOImage(None)
 
 
@@ -433,7 +434,7 @@ def test_write_read(tmp_path):
         pmedio.read(name.encode())
     with pytest.raises(TypeError):
         pmedio.write(img, 5)
-    with pytest.raises((RuntimeError, TypeError)):
+    with pytest.raises(RuntimeError, match="only 3 and 4 dimensional data"):
         pmedio.write(None, name)
     with pytest.raises(RuntimeError, match="invalid/unsupported file"):
         pmedio.read(str(tmp_path / "missing.v"))
@@ -456,6 +457,56 @@ def test_write_overwrite(tmp_path):
     assert np.array_equal(np.asarray(pmedio.read(name)), ramp() + 1)
     pmedio.write(ramp() + 2, name, overwrite=True)
     assert np.array_equal(np.asarray(pmedio.read(name)), ramp() + 2)
+
+
+@pytest.mark.parametrize("flag", [True, 1, np.True_, np.int64(1), 2.5])
+def test_flags_true(tmp_path, flag):
+    # bool arguments take every object with a truth value of its own, not only True and False
+    a = ramp()
+    name = str(tmp_path / "image.v")
+    pmedio.write(a, name)
+    pmedio.write(a + 1, name, flag)
+    pmedio.write(MedIOImage(a + 2), name, overwrite=flag)
+    img = pmedio.read(name)
+    assert np.array_equal(np.asarray(img), a + 2)
+    img.write(name, flag)
+    assert np.array_equal(img.toarray(flag), a + 2)
+    with pmedio.open(name) as f:
+        pmedio.create(tmp_path / "copy.v", like=f).close()
+        pmedio.create(tmp_path / "copy.v", like=f, overwrite=flag).close()
+
+
+@pytest.mark.parametrize("flag", [False, 0, np.False_, np.int64(0), 0.0, None])
+def test_flags_false(tmp_path, flag):
+    a = ramp()
+    name = str(tmp_path / "image.v")
+    img = pmedio.write(a, name)
+    with pytest.raises(RuntimeError, match="already exists"):
+        pmedio.write(a, name, flag)
+    with pytest.raises(RuntimeError, match="already exists"):
+        pmedio.write(MedIOImage(a), name, overwrite=flag)
+    with pytest.raises(RuntimeError, match="already exists"):
+        img.write(name, flag)
+    assert np.array_equal(img.toarray(copy=flag), a)
+    with pmedio.open(name) as f:
+        with pytest.raises(FileExistsError):
+            pmedio.create(name, like=f, overwrite=flag)
+
+
+@pytest.mark.parametrize("flag", ["yes", "", [], [1], {}, b"1"])
+def test_flags_invalid(tmp_path, flag):
+    # the length of a str or container is no truth value
+    a = ramp()
+    name = str(tmp_path / "image.v")
+    with pytest.raises(TypeError):
+        pmedio.write(a, name, flag)
+    with pytest.raises(TypeError):
+        pmedio.write(MedIOImage(a), name, overwrite=flag)
+    with pytest.raises(TypeError):
+        MedIOImage(a).write(name, flag)
+    with pytest.raises(TypeError):
+        MedIOImage(a).toarray(flag)
+    assert list(tmp_path.iterdir()) == []
 
 
 @pytest.mark.parametrize("data_type, code", [("float", 5), ("short", 6), ("int", 7), ("byte", 1),

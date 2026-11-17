@@ -168,7 +168,7 @@ NB_MODULE(pmedio, m) {
     .def("__init__", [](MedIOImage* self, const py::object& img, const QString& format, const QString& dimType) {
            new (self) MedIOImage(floatArray(img), formatOfName(format), dimTypeOfName(dimType));
          },
-              py::arg("img"),
+              py::arg("img").none(), // None is converted by numpy like every other object
               py::arg("format") = formatName(CMedIOData::ECAT),
               py::arg("dimType") = dimTypeName(DM_FRAMES))
 
@@ -201,13 +201,13 @@ NB_MODULE(pmedio, m) {
     })
     .def("write", [](MedIOImage& self,
                      const QString& fileName = QString(),
-                     const bool overwrite = false) -> MedIOImage {
+                     const Flag overwrite = Flag{false}) -> MedIOImage {
       if(fileName.isEmpty())
         return self.writeImage(self.m_filename, true);
       else
         return self.writeImage(fileName, overwrite);
     }, py::arg("filename") = QString(),
-       py::arg("overwrite") = false)
+       py::arg("overwrite").none() = Flag{false})
 
     // Bare bones interface
     .def("__getitem__",
@@ -234,7 +234,7 @@ NB_MODULE(pmedio, m) {
     // toarray method to directly return as numpy.array; the array is a copy
     // of the voxels with and without copy
     .def("toarray",
-      [](MedIOImage& self, const bool /* copy */) {
+      [](MedIOImage& self, const Flag /* copy */) {
       const size_t size = self.m_xdim * self.m_ydim * self.m_zdim * self.m_tdim;
       float* clone = new float[size];
       memcpy(clone, self.data(), size * sizeof(float));
@@ -244,7 +244,7 @@ NB_MODULE(pmedio, m) {
 
       return py::ndarray<py::numpy, float, py::f_contig>(clone, { self.m_xdim, self.m_ydim, self.m_zdim, self.m_tdim },
                                                          owner);
-    }, py::arg("copy") = false,
+    }, py::arg("copy").none() = Flag{false},
        "Voxels as numpy array (x, y, z, t) of float32. The array is always a copy of the\n"
        "voxels, with and without ``copy``; ``numpy.asarray(img)`` uses the memory of the\n"
        "image instead.");
@@ -283,7 +283,7 @@ NB_MODULE(pmedio, m) {
   // general pmedio.write() function to write out a medioimage data
   m.def("write", [](MedIOImage& img,
                     const QString& fileName,
-                    const bool overwrite,
+                    const Flag overwrite,
                     const QString& dimType,
                     const QString& dataType,
                     const QString& format) -> MedIOImage
@@ -291,14 +291,14 @@ NB_MODULE(pmedio, m) {
     return img.writeImage(fileName, overwrite, dimTypeOfName(dimType), dataTypeOfName(dataType), formatOfName(format));
   }, py::arg("img"),
      py::arg("fileName"),
-     py::arg("overwrite") = false,
+     py::arg("overwrite").none() = Flag{false},
      py::arg("dimType") = dimTypeName(DM_UNKNOWN),
      py::arg("dataType") = dataTypeName(DT_FLOAT),
      py::arg("format") = formatName(CMedIOData::Unknown));
 
   m.def("write", [](const py::object& img,
                     const QString& fileName,
-                    const bool overwrite,
+                    const Flag overwrite,
                     const QString& dimTypeName,
                     const QString& dataTypeName,
                     const QString& formatName) -> MedIOImage
@@ -308,9 +308,9 @@ NB_MODULE(pmedio, m) {
     const CMedIOData::Format format = formatOfName(formatName);
     MedIOImage medioImage(floatArray(img), format, dimType);
     return medioImage.writeImage(fileName, overwrite, dimType, dataType, format);
-  }, py::arg("img"),
+  }, py::arg("img").none(),
      py::arg("fileName"),
-     py::arg("overwrite") = false,
+     py::arg("overwrite").none() = Flag{false},
      py::arg("dimType") = dimTypeName(DM_FRAMES),
      py::arg("dataType") = dataTypeName(DT_FLOAT),
      py::arg("format") = formatName(CMedIOData::ECAT));
