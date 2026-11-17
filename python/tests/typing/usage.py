@@ -88,6 +88,29 @@ def create_without_source(target: pathlib.Path) -> dict[str, Any]:
     return written
 
 
+def load_save(source: str, target: pathlib.Path) -> float:
+    image: pmedio.Image = pmedio.load(source, frames=[1, 2], orientation="RAS")
+    data: npt.NDArray[Any] = image.data
+    affine: npt.NDArray[np.float64] = image.affine
+    shape: tuple[int, int, int, int] = image.shape
+    timing: list[float] = image.frame_start + image.frame_duration
+    attributes: dict[str, Any] = image.attributes
+    loaded_from: str | None = image.filename
+    file_format: str | None = image.format
+    image.data = data * 2.0
+    image.affine = np.eye(4)
+    image.frame_start = [0.0, 60.0]
+    image.frame_duration = (60.0, 60.0)
+    image.attributes = {"PatientWeight": 72.5}
+    volume: pmedio.Volume = image.volume(0)
+    image.save(target, format=pmedio.Format.NIFTI, overwrite=True)
+    pmedio.save(target, image, overwrite=True)
+    pmedio.save(target, np.zeros((4, 4, 2), dtype=np.int16), overwrite=True)
+    with pmedio.open(source) as like:
+        pmedio.save(target, pmedio.Image(data, affine=affine, frame_start=timing[:shape[3]]), like=like, overwrite=True)
+    return float(len(image)) + len(attributes) + len(str(loaded_from)) + len(str(file_format)) + volume.shape[0]
+
+
 def library() -> str:
     major: int = pmedio.MedIO.majorVersion()
     return f"{pmedio.MedIO.name()} {pmedio.MedIO.version()} {major} {pmedio.__version__}"
@@ -101,6 +124,10 @@ def mistakes(img: pmedio.MedIOImage, volume: pmedio.Volume, f: pmedio.File) -> N
     pmedio.create("image.v", like="other.v")  # type: ignore[arg-type]
     pmedio.create("image.v", frames="2")  # type: ignore[arg-type]
     pmedio.create("image.v", attributes=["PatientWeight"])  # type: ignore[arg-type]
+    pmedio.load("image.v", frames=1)  # type: ignore[arg-type]
+    pmedio.save("image.v", np.zeros((2, 2, 2)), like="other.v")  # type: ignore[arg-type]
+    pmedio.Image(np.zeros((2, 2, 2))).filename = "image.v"  # type: ignore[misc]
+    pmedio.Image(np.zeros((2, 2, 2))).frame_start = 0.0  # type: ignore[assignment]
     img.xdim = 5  # type: ignore[misc]
     img.shape = (1, 2, 3, 4)  # type: ignore[misc]
     img[0, 0, 0] = 1.0  # type: ignore[index]

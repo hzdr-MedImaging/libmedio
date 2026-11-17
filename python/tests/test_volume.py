@@ -465,7 +465,10 @@ def test_write_errors(tmp_path):
     # the dimensions have to match the main header written
     with pytest.raises(RuntimeError, match="unable to write frame 1"):
         out.write_volume(pmedio.Volume(np.zeros((2, 2, 2), dtype=np.float32)), 1)
-    out.close()
+    # a NIfTI file without its voxel data is not left behind
+    with pytest.raises(ValueError, match="only 0 of the 1 frames"):
+        out.close()
+    assert not (tmp_path / "out.nii").exists()
 
     # the format given explicitly
     with pmedio.create(tmp_path / "ecat.data", like=source, format=pmedio.Format.ECAT) as f:

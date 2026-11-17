@@ -258,7 +258,33 @@ The details are documented in `src/CMedIOData.h` and `src/CMedIOMatrix.h`.
 
 ### Python
 The Python module `pmedio` (`python/`, nanobind) offers the format
-independent access with numpy arrays:
+independent access with numpy arrays. `pmedio.load()` and `pmedio.save()`
+read and write all frames of an image at once:
+```python
+import pmedio
+
+image = pmedio.load("image.v", orientation="RAS")    # ECAT7, NIfTI, Philips, microPET
+image.data                                            # physical values (nx, ny, nz, frames), float32
+image.affine                                          # 3 x 4, voxel -> LPS (mm)
+image.frame_start, image.frame_duration               # s, one per frame
+image.attributes["PatientWeight"]                     # header attributes (dict)
+image.data = image.data * 2.0
+image.save("image.nii.gz")                            # or pmedio.save(path, image)
+```
+- `pmedio.load(path, frames=[...], orientation=...)` selects frames by their
+  numbers and reorders the voxels (default: the voxel order of the file). All
+  frames need the same geometry; files with other frames are read with
+  `pmedio.open()`.
+- `pmedio.Image(data, affine=..., frame_start=..., frame_duration=...,
+  attributes=...)` makes an image from a 3D or 4D array; `pmedio.save(path,
+  array)` writes an array with identity affine. `save()` writes like
+  `pmedio.create()` (below), with `like=`, `format=` and `overwrite=`: the
+  main header is made from the image or converted from `like`, the attributes
+  of the image are set in it. Invalid images create no file, and no file is
+  left behind if writing fails.
+
+`pmedio.open()` and `pmedio.create()` read and write single volumes
+(`pmedio.Volume`):
 ```python
 import numpy as np
 import pmedio
@@ -295,7 +321,8 @@ with pmedio.create("new.nii.gz", frames=2, attributes={"PatientWeight": 72.5}) a
   (`CMedIOData::mainHeaderFromVolume()`). `frames=n` gives the number of
   frames, which a NIfTI file needs in advance; a NIfTI file of several frames
   stores the physical values as float32. A file closed without a volume, and
-  a NIfTI file without all of its frames, is removed.
+  a NIfTI file without all of its frames (with `like`: the frames of the
+  source), is removed.
 - `attributes={...}` sets header attributes (DICOM keywords such as
   `"PatientWeight"`, or native fields in the section of the format, as
   returned by `File.attributes()`); invalid values raise an error before the
