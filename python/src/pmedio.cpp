@@ -170,7 +170,9 @@ NB_MODULE(pmedio, m) {
          },
               py::arg("img").none(), // None is converted by numpy like every other object
               py::arg("format") = formatName(CMedIOData::ECAT),
-              py::arg("dimType") = dimTypeName(DM_FRAMES))
+              py::arg("dimType") = dimTypeName(DM_FRAMES),
+              py::sig("def __init__(self, img: numpy.typing.ArrayLike, format: str = 'ecat', "
+                      "dimType: str = 'frames') -> None"))
 
     // accessor methods
     .def_ro("ndim", &MedIOImage::m_numdim)
@@ -180,14 +182,18 @@ NB_MODULE(pmedio, m) {
     .def_ro("tdim", &MedIOImage::m_tdim)
     .def_ro("dimType", &MedIOImage::m_tdimType)
     .def_ro("format", &MedIOImage::m_format)
-    .def_rw("mhead", &MedIOImage::m_mhead)
-    .def_rw("shead", &MedIOImage::m_shead)
+    .def_rw("mhead", &MedIOImage::m_mhead,
+            py::for_getter(py::sig("def mhead(self, /) -> dict[str, typing.Any]")),
+            py::for_setter(py::sig("def mhead(self, arg: dict[str, typing.Any], /) -> None")))
+    .def_rw("shead", &MedIOImage::m_shead,
+            py::for_getter(py::sig("def shead(self, /) -> list[dict[str, typing.Any]]")),
+            py::for_setter(py::sig("def shead(self, arg: list[dict[str, typing.Any]], /) -> None")))
     .def_rw("filename", &MedIOImage::m_filename)
 
     // provide shape function similar to numpy.ndarray
     .def_prop_ro("shape", [](MedIOImage& self) -> py::tuple {
       return py::make_tuple(self.m_xdim, self.m_ydim, self.m_zdim, self.m_tdim);
-    })
+    }, py::sig("def shape(self, /) -> tuple[int, int, int, int]"))
     .def_prop_ro("size", [](MedIOImage& self) -> ssize_t {
       return self.m_xdim * self.m_ydim * self.m_zdim * self.m_tdim;
     })
@@ -314,6 +320,8 @@ NB_MODULE(pmedio, m) {
      py::arg("dimType") = dimTypeName(DM_FRAMES),
      py::arg("dataType") = dataTypeName(DT_FLOAT),
      py::arg("format") = formatName(CMedIOData::ECAT),
+     py::sig("def write(img: numpy.typing.ArrayLike, fileName: str, overwrite: bool | None = False, "
+             "dimType: str = 'frames', dataType: str = 'float', format: str = 'ecat') -> MedIOImage"),
      "Write an image or an array (x, y, z[, t]) as ECAT7 image file.\n\n"
      "``dataType`` is the type of the stored values: ``float`` (32 bit), ``short`` (16 bit),\n"
      "``int`` (32 bit) or ``byte`` (8 bit, unsigned). The integer types store every volume\n"

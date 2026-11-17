@@ -118,6 +118,21 @@ target_compile_definitions(pmedio
 # the module is the content of the Python package (wheel)
 install(TARGETS pmedio LIBRARY DESTINATION .)
 
+# Type stubs of the module for editors and type checkers (mypy, pyright). They are
+# generated from the built module, which is imported for it, and installed as the
+# stub package pmedio-stubs next to the module (PEP 561: a module that is a single
+# file gets its stubs from <name>-stubs/__init__.pyi).
+option(PMEDIO_STUBS "generate type stubs (pmedio-stubs) from the built module" ON)
+if(PMEDIO_STUBS)
+  nanobind_add_stub(pmedio_stubs
+    MODULE pmedio
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/pmedio-stubs/__init__.pyi"
+    PYTHON_PATH $<TARGET_FILE_DIR:pmedio>
+    PATTERN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/pmedio.stubs.pat"
+    DEPENDS pmedio)
+  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/pmedio-stubs/__init__.pyi" DESTINATION pmedio-stubs)
+endif()
+
 # Set some better optimization options
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=generic")
 # the warnings are errors for the bindings, but not for the sources of nanobind

@@ -388,7 +388,10 @@ to inferior). ``reorient()`` reorders the voxels, every voxel keeps its position
            new (self) CMedIOVolume(volumeFromArray(data, affine, scaleFactor, intercept, frameStart, frameDuration));
          },
          py::arg("data"), py::arg("affine").none() = py::none(), py::arg("scale_factor") = 1.0, py::arg("intercept") = 0.0,
-         py::arg("frame_start") = 0.0, py::arg("frame_duration") = 0.0, R"doc(
+         py::arg("frame_start") = 0.0, py::arg("frame_duration") = 0.0,
+         py::sig("def __init__(self, data: numpy.typing.ArrayLike, affine: numpy.typing.ArrayLike | None = None, "
+                 "scale_factor: float = 1.0, intercept: float = 0.0, frame_start: float = 0.0, "
+                 "frame_duration: float = 0.0) -> None"), R"doc(
 Volume from the stored values ``data`` (3D array (x, y, z) of uint8, int8, int16, uint16,
 int32, uint32, float32 or float64) with the 3 x 4 (or 4 x 4) LPS affine (default: identity),
 scale factor, intercept and frame timing (s).
@@ -396,10 +399,10 @@ scale factor, intercept and frame timing (s).
 
     .def_prop_ro("shape", [](const CMedIOVolume& self) {
       return py::make_tuple(self.dimension(0), self.dimension(1), self.dimension(2));
-    }, "dimensions (nx, ny, nz)")
+    }, py::sig("def shape(self, /) -> tuple[int, int, int]"), "dimensions (nx, ny, nz)")
     .def_prop_ro("dtype", [](const CMedIOVolume& self) {
       return numpyType(self.dataType());
-    }, "numpy data type of the stored values")
+    }, py::sig("def dtype(self, /) -> numpy.dtype[typing.Any]"), "numpy data type of the stored values")
     .def("__len__", [](const CMedIOVolume& self) {
       return static_cast<Py_ssize_t>(self.voxelCount());
     })
@@ -407,13 +410,15 @@ scale factor, intercept and frame timing (s).
       return self.isEmpty() == false;
     })
 
-    .def("stored", &storedArray, "the stored values as numpy array of shape (nx, ny, nz) (a copy)")
+    .def("stored", &storedArray, py::sig("def stored(self) -> numpy.typing.NDArray[typing.Any]"),
+         "the stored values as numpy array of shape (nx, ny, nz) (a copy)")
     .def("values", [](const CMedIOVolume& self) {
       CMedIOVolume physical(self);
       if(physical.convertToPhysicalValues() == false)
         raise(PyExc_ValueError, "the physical values are larger than 2 GiB");
       return storedArray(physical);
-    }, "the physical values as float32 array (float64 for float64 data) of shape (nx, ny, nz)")
+    }, py::sig("def values(self) -> numpy.typing.NDArray[numpy.float32] | numpy.typing.NDArray[numpy.float64]"),
+       "the physical values as float32 array (float64 for float64 data) of shape (nx, ny, nz)")
     .def("convert_to_physical_values", [](CMedIOVolume& self) {
       if(self.convertToPhysicalValues() == false)
         raise(PyExc_ValueError, "the physical values are larger than 2 GiB");
@@ -458,16 +463,19 @@ scale factor, intercept and frame timing (s).
       py::rv_policy::move,
       // None is reported like every other object that is no affine
       py::for_setter(py::arg("affine").none()),
+      py::for_setter(py::sig("def affine(self, affine: numpy.typing.ArrayLike) -> None")),
       "3 x 4 transformation of voxel (i, j, k) into DICOM patient coordinates (LPS, mm); "
       "a 4 x 4 matrix with the last row 0 0 0 1 is accepted as well")
     .def("position", [](const CMedIOVolume& self, double i, double j, double k) {
       double p[3];
       self.position(i, j, k, p);
       return py::make_tuple(p[0], p[1], p[2]);
-    }, py::arg("i"), py::arg("j"), py::arg("k"), "position (LPS, mm) of voxel (i, j, k), 0-based")
+    }, py::arg("i"), py::arg("j"), py::arg("k"),
+       py::sig("def position(self, i: float, j: float, k: float) -> tuple[float, float, float]"),
+       "position (LPS, mm) of voxel (i, j, k), 0-based")
     .def_prop_ro("voxel_size", [](const CMedIOVolume& self) {
       return py::make_tuple(self.voxelSize(0), self.voxelSize(1), self.voxelSize(2));
-    }, "voxel size (mm) along the voxel axes")
+    }, py::sig("def voxel_size(self, /) -> tuple[float, float, float]"), "voxel size (mm) along the voxel axes")
     .def_prop_ro("orientation", [](const CMedIOVolume& self) {
       return self.orientation();
     }, "patient direction of every voxel axis, e.g. 'LPI' or 'RAS'")
@@ -553,7 +561,7 @@ fails without writing if they do not fit.
         json.remove("NIfTI");
       const QByteArray text = QJsonDocument(json).toJson(QJsonDocument::Compact);
       return py::module_::import_("json").attr("loads")(py::str(text.constData(), text.size()));
-    }, R"doc(
+    }, py::sig("def attributes(self) -> dict[str, typing.Any]"), R"doc(
 Format independent header attributes of the file as dict (see CMedIOHeaderDictionary.h):
 DICOM keywords with the units of DICOM (e.g. "PatientWeight" in kg), the native fields
 of the format in a section named after it (e.g. "ECAT7") and in "Frames" the attributes
@@ -561,7 +569,7 @@ of every frame.
 )doc")
 
     .def("close", &MedIOFile::close, "close the file (files created for writing are completed)")
-    .def("__enter__", [](py::object self) { return self; })
+    .def("__enter__", [](py::object self) { return self; }, py::sig("def __enter__(self) -> File"))
     .def("__exit__", [](MedIOFile& self, const py::object&, const py::object&, const py::object&) {
       self.close();
       return false;
@@ -586,7 +594,7 @@ of every frame.
     if(data->open(QIODevice::ReadOnly) == false)
       raise(PyExc_OSError, "unable to open '" + fileName + "'");
     return file;
-  }, py::arg("path"), R"doc(
+  }, py::arg("path"), py::sig("def open(path: str | os.PathLike[str]) -> File"), R"doc(
 Open an ECAT7, NIfTI (.nii, .nii.gz, .hdr/.img), Philips (.img, .syn) or microPET file
 for reading.
 )doc");
@@ -606,14 +614,17 @@ for reading.
                                     : py::object(py::none());
     d["scope"] = (entry->scope == CMedIOHeaderDictionary::FrameHeader) ? "frame" : "main";
     return py::object(d);
-  }, py::arg("keyword_or_tag"), R"doc(
+  }, py::arg("keyword_or_tag"),
+     py::sig("def dictionary_entry(keyword_or_tag: str) -> dict[str, typing.Any] | None"), R"doc(
 Entry of the dictionary of the header attributes for a DICOM keyword ("PatientWeight")
 or tag ("(0010,1030)"): keyword, tag, VR, VM, unit, sequence holding it and scope
 ("main" or "frame"); None if the dictionary has no entry for it.
 )doc");
 
   m.def("create", &createFile, py::arg("path"), py::arg("like"), py::arg("format").none() = py::none(),
-        py::arg("overwrite").none() = Flag{false}, R"doc(
+        py::arg("overwrite").none() = Flag{false},
+        py::sig("def create(path: str | os.PathLike[str], like: File, format: str | None = None, "
+                "overwrite: bool | None = False) -> File"), R"doc(
 Create a file for writing with the main header of the file ``like`` (opened with
 ``pmedio.open()``), converted into the target format: number of frames, patient and
 isotope data, calibration, and for NIfTI files the datatype, scaling and orientation.

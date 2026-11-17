@@ -200,6 +200,13 @@ jobs:
           BUILD_PREFIX="$PETLIB" "$RUNNER_TEMP/venv/bin/pip" install "./python[test]" nibabel pydicom
           "$RUNNER_TEMP/venv/bin/python" -m pytest -v python/tests
 
+      # the type stubs installed with the package (pmedio-stubs) describe the interface:
+      # correct use passes the type checker and the mistakes of the file are detected
+      - name: Check the type stubs of the Python package
+        run: |
+          "$RUNNER_TEMP/venv/bin/pip" install mypy
+          "$RUNNER_TEMP/venv/bin/mypy" --strict python/tests/typing/usage.py
+
       # a newer Python than the one the wheel is built with, not used for anything else
       - uses: actions/setup-python@v5
         id: newer-python
