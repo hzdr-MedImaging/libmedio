@@ -173,7 +173,6 @@ jobs:
       - name: Build and test the Python bindings
         run: |
           cmake -S python -B build-python -DCMAKE_BUILD_TYPE=Release -DPREFIX_PATH="$PETLIB" \
-                -Dnanobind_DIR="$(python -m nanobind --cmake_dir)" \
                 -DPython_EXECUTABLE="$(which python)" \
                 -DCMAKE_CXX_FLAGS="-I$PETLIB/include/rtdebug"
           cmake --build build-python -j"$(nproc)"
@@ -185,7 +184,6 @@ jobs:
       - name: Build and test the Python bindings with Clang
         run: |
           cmake -S python -B build-python-clang -DCMAKE_BUILD_TYPE=Release -DPREFIX_PATH="$PETLIB" \
-                -Dnanobind_DIR="$(python -m nanobind --cmake_dir)" \
                 -DPython_EXECUTABLE="$(which python)" \
                 -DCMAKE_CXX_FLAGS="-I$PETLIB/include/rtdebug"
           cmake --build build-python-clang -j"$(nproc)"
@@ -193,6 +191,14 @@ jobs:
         env:
           CC: clang
           CXX: clang++
+
+      # the way users install the package from a checkout: pip builds it with
+      # scikit-build-core (python/pyproject.toml) into a fresh virtual environment
+      - name: Install the Python package with pip and test it
+        run: |
+          python -m venv "$RUNNER_TEMP/venv"
+          BUILD_PREFIX="$PETLIB" "$RUNNER_TEMP/venv/bin/pip" install "./python[test]" nibabel pydicom
+          "$RUNNER_TEMP/venv/bin/python" -m pytest -v python/tests
 
   #-------------------------------------------------------------------------------------------
   # build the self-contained source package of the R interface (r/) with the bundled libmedio

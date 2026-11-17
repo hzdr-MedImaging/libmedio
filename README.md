@@ -275,10 +275,19 @@ v = pmedio.Volume(np.zeros((64, 64, 32), dtype=np.float32), affine=np.eye(3, 4))
   extension (`FrameTimesStart`, `FrameDuration`, as written by
   `CNIFTIConverter`), see `CMedIOData::writeMatrix()`.
 
-Build: install libmedio into `PREFIX_PATH`, then build `python/` with CMake
-(see `.github/workflows/ci.yml`) or `cd python && pip install -e .`, and run
-`pytest python/tests`. The bindings need Python 3.10 or newer, nanobind
-(`pip install nanobind`) and a C++17 compiler; the library itself stays C++11.
+Install: install libmedio into `PREFIX_PATH` first, then install the package
+from the checkout with pip, which builds it with scikit-build-core:
+```bash
+pip install ./python                              # libmedio in /usr/local/petlib
+BUILD_PREFIX=/path/to/prefix pip install ./python # libmedio in another prefix
+```
+`pip install -e ./python` installs it for development, `pip wheel ./python`
+builds a wheel, and `CMAKE_ARGS` passes further options to CMake. The module
+can also be built with CMake alone (see `.github/workflows/ci.yml`); run the
+tests with `pytest python/tests`. The bindings need Python 3.10 or newer and a
+C++17 compiler; pip provides the build requirements (scikit-build-core,
+nanobind, CMake), a plain CMake build needs `pip install nanobind`. The library
+itself stays C++11. A conda package is built with `python/conda.recipe`.
 
 ### R
 The R package `Rmedio` (`r/`, Rcpp) reads and writes ECAT image volumes:

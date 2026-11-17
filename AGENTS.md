@@ -75,7 +75,8 @@ The `Makefile` wraps CMake with build directories named `build-$(OS)` (e.g.
 Windows builds are cross-compiled with MXE toolchains (`OS=w64`/`OS=w32`).
 
 Python bindings (`python/`, module `pmedio`): install the library into
-`PREFIX_PATH` first, then `cd python && pip install -e .` and run
+`PREFIX_PATH` first, then `pip install -e ./python` (scikit-build-core; the
+environment variable `BUILD_PREFIX` selects another prefix) and run
 `pytest python/tests` (the CI builds them with CMake, see `ci.yml`).
 
 R package (`r/`, `Rmedio`): it does not use CMake or an installed libmedio but
@@ -108,6 +109,7 @@ Run the checks that match the files you touched:
 | Library, examples, tests (C++) | build in Release **and** Debug (`-DCMAKE_BUILD_TYPE=Debug` compiles the `D()` debug output) and run `ctest --test-dir build --output-on-failure` |
 | Public headers, install rules | `cmake --install build` and build a small program against the installed headers only |
 | `python/` or API used by it | build the bindings (`cmake -S python ...`, see `ci.yml`) and run `pytest python/tests`; they are compiled with `-Werror` |
+| `python/pyproject.toml`, `python/CMakeLists.txt` (packaging) | `pip install ./python` into a fresh virtual environment (`BUILD_PREFIX` selects the prefix of libmedio) and run `pytest python/tests` with it |
 | `r/`, or library sources/API used by it | `r/tools/vendor.sh && R CMD build r && R CMD check --as-cran Rmedio_*.tar.gz` (no warnings or errors) |
 | `testsuite/data/` | `python3 testsuite/data/tools/make_expected.py --check` and the `testdata_layout` test |
 | `testsuite/nifti/data/` | regenerate with `generate_fixtures.py` into a temporary directory and compare byte by byte |

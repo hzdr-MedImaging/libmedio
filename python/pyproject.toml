@@ -17,27 +17,44 @@
 # limitations under the License.
 #
 
+# The package is built with scikit-build-core, which runs the CMake build of
+# CMakeLists.txt (it provides CMake and Ninja if they are not installed).
 [build-system]
 requires = [
-    "setuptools>=42",
-    "wheel",
-    "ninja",
-    "cmake>=3.15",
+    "scikit-build-core>=0.10",
     "nanobind",
 ]
-build-backend = "setuptools.build_meta"
+build-backend = "scikit_build_core.build"
 
-[tool.mypy]
-files = "setup.py"
-python_version = "3.10"
-strict = true
-show_error_codes = true
-enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
-warn_unreachable = true
+[project]
+name = "pmedio"
+version = "0.2.1"
+description = "python interface to support libmedio supported medical imaging data"
+authors = [{ name = "Jens Maus", email = "j.maus@hzdr.de" }]
+license = { text = "Apache-2.0" }
+requires-python = ">=3.10"
+# the module converts images and volumes with numpy
+dependencies = ["numpy>=1.18"]
 
-[[tool.mypy.overrides]]
-module = ["ninja", "nanobind"]
-ignore_missing_imports = true
+[project.optional-dependencies]
+test = ["pytest>=6.0"]
+
+[project.urls]
+Homepage = "https://github.com/hzdr-MedImaging/libmedio"
+
+[tool.scikit-build]
+minimum-version = "build-system.requires"
+cmake.version = ">=3.15"
+cmake.build-type = "Release"
+# the module is the only content of the package, installed by CMake
+wheel.packages = []
+sdist.exclude = ["**/__pycache__", "conda.recipe", ".gitignore"]
+
+# libmedio is searched in PREFIX_PATH, which is taken from the environment
+# variable BUILD_PREFIX (set by conda-build); without it CMakeLists.txt uses
+# its default. More CMake options can be given with CMAKE_ARGS.
+[tool.scikit-build.cmake.define]
+PREFIX_PATH = { env = "BUILD_PREFIX", default = "" }
 
 
 [tool.pytest.ini_options]
