@@ -331,6 +331,24 @@ class MedIOImage
       }
     }
 
+    // checks the indices (numbered from 1) selected along a dimension of the given size; an
+    // empty selection is replaced by all indices
+    static void selectIndices(std::vector<int>& indices, const size_t size, const char* name)
+    {
+      if(indices.empty())
+      {
+        for(size_t i = 1; i <= size; ++i)
+          indices.push_back(static_cast<int>(i));
+        return;
+      }
+
+      for(const int index : indices)
+      {
+        if(index < 1 || index > static_cast<int>(size))
+          throw std::runtime_error("index in " + std::string(name) + " vector (" + std::to_string(index) + ") is out of bounds: there are " + std::to_string(size) + " " + name + " in this file");
+      }
+    }
+
     float* data() { return m_data; }
     CMedIOData* medIOData() { return m_mioData.get(); }
     size_t numdim() const { return m_numdim; }
@@ -1153,6 +1171,11 @@ class MedIOImage
                 delete[] m_data;
                 m_data = nullptr;
 
+                // dimensions of the volumes of the file, set by the first volume
+                size_t fileXdim = 0;
+                size_t fileYdim = 0;
+                size_t fileZdim = 0;
+
                 std::vector<int>::iterator it;
                 size_t t=0;
                 for(t=0, it = volumes.begin(); it != volumes.end(); ++it, ++t)
@@ -1174,7 +1197,8 @@ class MedIOImage
 
                     // parse sub header and append to sub header
                     // list
-                    m_shead.append(parseSubHeader(ecatSubHeader));
+                    py::dict shead = parseSubHeader(ecatSubHeader);
+                    m_shead.append(shead);
 
                     if(ecatSubHeader->subHeaderType() == CECATSubHeader::ECAT7_Image)
                     {
@@ -1182,120 +1206,70 @@ class MedIOImage
                       int dataType = e7SubHeaderImage->data_Type();
                       double scaleFactor = e7SubHeaderImage->scale_Factor();
 
-                      // set global m_xdim once or check
-                      if(m_xdim != 0)
+                      // dimensions of the volumes of the file: all of them have to agree
+                      const size_t xdim = e7SubHeaderImage->x_Dimension();
+                      const size_t ydim = e7SubHeaderImage->y_Dimension();
+                      const size_t zdim = e7SubHeaderImage->z_Dimension();
+                      if(t == 0)
                       {
-                        if(m_xdim != static_cast<size_t>(e7SubHeaderImage->x_Dimension()))
-                          throw std::runtime_error("unequal X dimensions in dataset (" + std::to_string(m_xdim) + " != " + std::to_string(e7SubHeaderImage->x_Dimension()) + ")");
-                      }
-                      else
-                        m_xdim = e7SubHeaderImage->x_Dimension();
+                        fileXdim = xdim;
+                        fileYdim = ydim;
+                        fileZdim = zdim;
 
-                      // set global m_ydim once or check
-                      if(m_ydim != 0)
-                      {
-                        if(m_ydim != static_cast<size_t>(e7SubHeaderImage->y_Dimension()))
-                          throw std::runtime_error("unequal Y dimensions in dataset (" + std::to_string(m_ydim) + " != " + std::to_string(e7SubHeaderImage->y_Dimension()) + ")");
-                      }
-                      else
-                        m_ydim = e7SubHeaderImage->y_Dimension();
+                        // rows, cols and planes select the voxels of every volume; without
+                        // them all are taken
+                        selectIndices(rows, fileYdim, "rows");
+                        selectIndices(cols, fileXdim, "cols");
+                        selectIndices(planes, fileZdim, "planes");
 
-                      // set global m_zdim once or check
-                      if(m_zdim != 0)
-                      {
-                        if(m_zdim != static_cast<size_t>(e7SubHeaderImage->z_Dimension()))
-                          throw std::runtime_error("unequal Z dimensions in dataset (" + std::to_string(m_zdim) + " != " + std::to_string(e7SubHeaderImage->z_Dimension()) + ")");
-                      }
-                      else
-                        m_zdim = e7SubHeaderImage->z_Dimension();
+                        // dimensions of the image
+                        m_xdim = cols.size();
+                        m_ydim = rows.size();
+                        m_zdim = planes.size();
+                        m_mhead["num_planes"] = py::cast(m_zdim);
 
-                      // check if rows, cols and/or planes index arrays are given
-                      // if not take all of them
-                      bool exceeding_boundaries = false;
-                      if(rows.size() == 0)
-                      {
-                        for(size_t i = 1; i <= m_ydim; i++)
-                          rows.push_back(i);
-                      }
-                      else
-                      {
-                        // we have to check if the index std::vector exceeds the boundaries
-                        std::vector<int>::iterator it;
-                        for(it = rows.begin(); it < rows.end(); ++it)
-                        {
-                          if( (*it < 1) || (*it > static_cast<int>(m_ydim)) )
-                          {
-                            throw std::runtime_error("index in rows vector (" + std::to_string(*it) + ") is out of bounds: there are " + std::to_string(m_ydim) + " rows in this file");
-                            exceeding_boundaries = true;
-                          }
-                        }
-                      }
-
-                      if(cols.size() == 0)
-                      {
-                        for(size_t i = 1; i <= m_xdim; i++)
-                          cols.push_back(i);
-                      }
-                      else
-                      {
-                        // we have to check if the index std::vector exceeds the boundaries
-                        std::vector<int>::iterator it;
-                        for(it = cols.begin(); it < cols.end(); ++it)
-                        {
-                          if( (*it < 1) || (*it > static_cast<int>(m_xdim)) )
-                          {
-                            throw std::runtime_error("index in cols vector (" + std::to_string(*it) + ") is out of bounds: there are " + std::to_string(m_xdim) + " cols in this file");
-                            exceeding_boundaries = true;
-                          }
-                        }
-                      }
-
-                      if(planes.size() == 0)
-                      {
-                        for(size_t i = 1; i <= m_zdim; i++)
-                          planes.push_back(i);
-                      }
-                      else
-                      {
-                        // we have to check if the index std::vector exceeds the boundaries
-                        std::vector<int>::iterator it;
-                        for(it = planes.begin(); it < planes.end(); ++it)
-                        {
-                          if( (*it < 1) || (*it > static_cast<int>(m_zdim)))
-                          {
-                            throw std::runtime_error("index in planes vector (" + std::to_string(*it) + ") is out of bounds: there are " + std::to_string(m_zdim) + " planes in this file");
-                            exceeding_boundaries = true;
-                          }
-                        }
-                      }
-        
-                      if(exceeding_boundaries == true)
-                        break;
-
-                      // create data array with (volumes * xdim * ydim * zdim) space
-                      if(m_data == nullptr)
+                        // create data array with (volumes * xdim * ydim * zdim) space
                         m_data = new float[m_xdim * m_ydim * m_zdim * volumes.size()];
+                      }
+                      else
+                      {
+                        if(fileXdim != xdim)
+                          throw std::runtime_error("unequal X dimensions in dataset (" + std::to_string(fileXdim) + " != " + std::to_string(xdim) + ")");
+                        if(fileYdim != ydim)
+                          throw std::runtime_error("unequal Y dimensions in dataset (" + std::to_string(fileYdim) + " != " + std::to_string(ydim) + ")");
+                        if(fileZdim != zdim)
+                          throw std::runtime_error("unequal Z dimensions in dataset (" + std::to_string(fileZdim) + " != " + std::to_string(zdim) + ")");
+                      }
+
+                      // the sub header describes the selected part of the volume
+                      shead["x_dimension"] = py::cast(m_xdim);
+                      shead["y_dimension"] = py::cast(m_ydim);
+                      shead["z_dimension"] = py::cast(m_zdim);
 
                       char* byteData = NULL;
                       unsigned int byteDataSize = 0;
 
                       if(eFile->readMatrix(byteData, byteDataSize, frame, 1, gate, bed, data) == true)
                       {
-                        size_t planeSize = m_xdim * m_ydim;
-                        size_t volumeSize = m_xdim * m_ydim * m_zdim;
+                        const size_t planeSize = m_xdim * m_ydim;
+                        const size_t volumeSize = m_xdim * m_ydim * m_zdim;
+                        const size_t filePlaneSize = fileXdim * fileYdim;
 
                         if(volumeSize > 0)
                         {
                           void* mData = byteData;
 
+                          // The image has the voxels of the file in reverse order along x, y and
+                          // z. rows, cols and planes are indices (from 1) of the image, so voxel
+                          // i of the image is voxel (dimension - i) of the file, counted from 0.
                           for(size_t z=0; z < m_zdim; ++z)
                           {
                             for(size_t y=0; y < m_ydim; ++y)
                             {
                               for(size_t x=0; x < m_xdim; ++x)
                               {
-                                size_t srcIndex = x + y * m_xdim + z * planeSize;
-                                size_t dstIndex = (m_xdim-1 - x) + (m_ydim-1 - y) * m_xdim + (m_zdim-1 - z) * planeSize + t * volumeSize;
+                                size_t srcIndex = (fileXdim - cols[x]) + (fileYdim - rows[y]) * fileXdim + (fileZdim - planes[z]) * filePlaneSize;
+                                size_t dstIndex = x + y * m_xdim + z * planeSize + t * volumeSize;
 
                                 switch(dataType)
                                 {
