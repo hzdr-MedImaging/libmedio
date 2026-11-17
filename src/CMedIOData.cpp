@@ -28,6 +28,7 @@
 
 #include <QString>
 
+#include <climits>
 #include <cstring>
 
 #include <rtdebug.h>
@@ -239,6 +240,34 @@ bool CMedIOData::readVolume(CMedIOVolume& volume, short frame)
   ENTER();
   bool result = MedIOMatrix::readVolume(this, frame, volume);
   m_iErrStatus = result ? MERR_Ok : MERR_Unspecified;
+  RETURN(result);
+  return result;
+}
+
+bool CMedIOData::mainHeaderFromVolume(const CMedIOVolume& volume, CMedIOData::Format format,
+                                      int numFrames, CMedIOHeader*& mainHeader)
+{
+  ENTER();
+  bool result = false;
+  mainHeader = NULL;
+
+  if(numFrames < 1 || numFrames > SHRT_MAX) {
+    E("invalid number of frames %d", numFrames);
+  } else {
+    // the volume as frame of an ECAT7 file, the common representation of the formats
+    // (see CMedIOMatrix.h); without a source file there are no attributes to transfer
+    CMedIOFrame f;
+    if(MedIOMatrix::frameFromVolume(volume, f)) {
+      f.mainHeader.setNum_Frames(static_cast<short>(numFrames));
+      result = MedIOMatrix::mainHeaderFromFrame(f, format, NULL, mainHeader);
+    }
+  }
+
+  if(result == false) {
+    delete mainHeader;
+    mainHeader = NULL;
+  }
+
   RETURN(result);
   return result;
 }

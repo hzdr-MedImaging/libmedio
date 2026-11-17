@@ -291,6 +291,7 @@ bool frameFromVolume(const CMedIOVolume& volume, CMedIOFrame& f)
   f.subHeader.setFrame_Duration(v.frameDuration() > 0.0 ? static_cast<unsigned int>(v.frameDuration() * 1000.0 + 0.5) : 0);
 
   f.mainHeader.setInit_Bed_Position(p[2] / 10.0);
+  f.mainHeader.setPlane_Separation(v.voxelSize(2) / 10.0);
   f.mainHeader.setNum_Planes(nz);
   f.mainHeader.setNum_Frames(1);
   f.mainHeader.setCalibration_Factor(1.0f);

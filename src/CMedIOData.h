@@ -198,6 +198,28 @@ class CMedIOData : public QFile {
     //! @brief write a volume as frame of the file (main header written before)
     bool writeVolume(const CMedIOVolume& volume, short frame=-1);
 
+    //! @brief main header for a new file, made from a volume instead of a source file
+    //! @param volume a frame of the image to be written: dimensions, voxel size,
+    //!        position, orientation and timing; for NIfTI also data type and scaling
+    //! @param format ECAT, NIFTI or Philips (Philips: an image file, change the file
+    //!        type with setFiltyp() for a Syntegra file)
+    //! @param numFrames number of frames the file will hold (NIfTI: volumes of dim[4])
+    //! @param mainHeader the new header (to be deleted by the caller); it is not linked
+    //!        to a file, call setMedIOData() before saving it
+    //! @return false (and mainHeader NULL) for an empty volume, a format that cannot be
+    //!         written or a number of frames outside 1..32767
+    //!
+    //! Write the header into the new file with the writeMainHeader() of its class, then
+    //! the frames with writeVolume(). The header gets the defaults of the format for
+    //! everything a volume does not describe (patient, isotope, ...); set them with
+    //! updateAttributes() before writing it. A NIfTI file stores all frames with the
+    //! data type and scaling of this volume: the other frames are converted into them
+    //! and writeVolume() fails if their values do not fit, so pass a volume with
+    //! physical values (CMedIOVolume::convertToPhysicalValues()) if the frames differ.
+    //! Philips files store no position within the planes: the planes are centered.
+    static bool mainHeaderFromVolume(const CMedIOVolume& volume, CMedIOData::Format format,
+                                     int numFrames, CMedIOHeader*& mainHeader);
+
   protected :
     int            m_iErrStatus;  //!< error status variable
 
