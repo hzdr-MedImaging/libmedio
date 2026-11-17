@@ -37,6 +37,10 @@
 
 #include <iostream>
 #include <cfloat>
+#include <cmath>
+#include <limits>
+#include <memory>
+#include <vector>
 
 namespace py = nanobind;
 
@@ -49,6 +53,7 @@ typedef py::ndarray<const float, py::f_contig, py::device::cpu> FloatArray;
 class MedIOImage
 {
   public:
+    // takes the ownership of mioData
     MedIOImage(CMedIOData* mioData=nullptr)
       : m_numdim(0),
         m_xdim(0),
@@ -63,25 +68,6 @@ class MedIOImage
         m_mioData(mioData),
         m_data(nullptr)
     { }
-
-    MedIOImage(CMedIOData* mioData,
-               const MedIOImage& img)
-      : m_numdim(img.m_numdim),
-        m_xdim(img.m_xdim),
-        m_ydim(img.m_ydim),
-        m_zdim(img.m_zdim),
-        m_tdim(img.m_tdim),
-        m_tdimType(img.m_tdimType),
-        m_mhead(img.m_mhead),
-        m_shead(img.m_shead),
-        m_filename(img.m_filename),
-        m_format(img.m_format),
-        m_mioData(mioData),
-        m_data(nullptr)
-    {
-      m_data = new float[m_xdim * m_ydim * m_zdim * m_tdim];
-      memcpy(m_data, img.m_data, sizeof(float) * (m_xdim * m_ydim * m_zdim * m_tdim));
-    }
 
     MedIOImage(const FloatArray& img,
                const CMedIOData::Format& format = CMedIOData::ECAT,
@@ -125,7 +111,7 @@ class MedIOImage
         throw std::runtime_error("only ECAT supported as target data format");
 
       // create fresh mioData object
-      m_mioData = new CECATFile(CECATMainHeader::ECAT7_Volume16);
+      m_mioData.reset(new CECATFile(CECATMainHeader::ECAT7_Volume16));
       if(m_mioData != nullptr)
       {
         // populate with fresh mainheader entries
@@ -328,8 +314,25 @@ class MedIOImage
       return img;
     }
 
+    // throws if the voxels cannot be stored with the data type: the integer data types have
+    // no NaN and infinity, and ECAT byte data is unsigned
+    void checkStorable(const enum dataTypes dtype) const
+    {
+      if(dtype == DT_FLOAT || m_data == nullptr)
+        return;
+
+      const size_t size = m_xdim * m_ydim * m_zdim * m_tdim;
+      for(size_t i = 0; i < size; ++i)
+      {
+        if(std::isfinite(m_data[i]) == false)
+          throw std::runtime_error("NaN and infinite values cannot be stored with an integer data type, use the data type float");
+        if(dtype == DT_BYTE && m_data[i] < 0.0f)
+          throw std::runtime_error("negative values cannot be stored as byte data (0 ... 255), use the data type short, int or float");
+      }
+    }
+
     float* data() { return m_data; }
-    CMedIOData* medIOData() { return m_mioData; }
+    CMedIOData* medIOData() { return m_mioData.get(); }
     size_t numdim() const { return m_numdim; }
     size_t ndim() const { return m_numdim; }
     size_t xdim() const { return m_xdim; }
@@ -646,11 +649,11 @@ class MedIOImage
         {
           case CMedIOData::ECAT:
           {
-            CECATFile* ecatFile = static_cast<CECATFile*>(m_mioData);
-            CECAT7MainHeader* pMainHeader = static_cast<CECAT7MainHeader*>(ecatFile->createEmptyMainHeader());
-            
+            CECATFile* ecatFile = static_cast<CECATFile*>(m_mioData.get());
+            std::unique_ptr<CECATMainHeader> pMainHeader(ecatFile->createEmptyMainHeader());
+
             // parse main header
-            mhead = parseMainHeader(pMainHeader);
+            mhead = parseMainHeader(pMainHeader.get());
           }
           break;
 
@@ -663,9 +666,9 @@ class MedIOImage
       return mhead;
     }
 
-    CMedIOHeader* createMainHeader()
+    std::unique_ptr<CMedIOHeader> createMainHeader()
     {
-      CMedIOHeader* pMainHeader = nullptr;
+      std::unique_ptr<CMedIOHeader> pMainHeader;
 
       if(m_mioData != nullptr)
       {
@@ -673,10 +676,10 @@ class MedIOImage
         {
           case CMedIOData::ECAT:
           {
-            CECATFile* ecatFile = static_cast<CECATFile*>(m_mioData);
+            CECATFile* ecatFile = static_cast<CECATFile*>(m_mioData.get());
 
-            pMainHeader = ecatFile->createEmptyMainHeader();
-            CECAT7MainHeader* ecat7MainHeader = static_cast<CECAT7MainHeader*>(pMainHeader);
+            pMainHeader.reset(ecatFile->createEmptyMainHeader());
+            CECAT7MainHeader* ecat7MainHeader = static_cast<CECAT7MainHeader*>(pMainHeader.get());
 
             QString magic_number = py::cast<QString>(m_mhead["magic_number"]);
             QString original_file_name = py::cast<QString>(m_mhead["original_file_name"]);
@@ -845,11 +848,11 @@ class MedIOImage
         {
           case CMedIOData::ECAT:
           {
-            CECATFile* ecatFile = static_cast<CECATFile*>(m_mioData);
-            CECAT7SubHeaderImage* pSubHeader = static_cast<CECAT7SubHeaderImage*>(ecatFile->createEmptySubHeader());
-            
-            // parse main header
-            shead = parseSubHeader(pSubHeader);
+            CECATFile* ecatFile = static_cast<CECATFile*>(m_mioData.get());
+            std::unique_ptr<CECATSubHeader> pSubHeader(ecatFile->createEmptySubHeader());
+
+            // parse sub header
+            shead = parseSubHeader(pSubHeader.get());
           }
           break;
 
@@ -862,9 +865,9 @@ class MedIOImage
       return shead;
     }
 
-    CMedIOHeader* createSubHeader(const py::dict& shead)
+    std::unique_ptr<CMedIOHeader> createSubHeader(const py::dict& shead)
     {
-      CMedIOHeader* pSubHeader = nullptr;
+      std::unique_ptr<CMedIOHeader> pSubHeader;
 
       if(m_mioData != nullptr)
       {
@@ -872,10 +875,10 @@ class MedIOImage
         {
           case CMedIOData::ECAT:
           {
-            CECATFile* ecatFile = static_cast<CECATFile*>(m_mioData);
+            CECATFile* ecatFile = static_cast<CECATFile*>(m_mioData.get());
 
-            pSubHeader = ecatFile->createEmptySubHeader();
-            CECAT7SubHeaderImage* ecat7SubHeaderImage = static_cast<CECAT7SubHeaderImage*>(pSubHeader);
+            pSubHeader.reset(ecatFile->createEmptySubHeader());
+            CECAT7SubHeaderImage* ecat7SubHeaderImage = static_cast<CECAT7SubHeaderImage*>(pSubHeader.get());
 
             int data_type = py::cast<int>(shead["data_type"]);
             short num_dimensions = py::cast<short>(shead["num_dimensions"]);
@@ -1032,9 +1035,15 @@ class MedIOImage
       {
         if(m_mioData->open(QIODevice::ReadOnly))
         {
+          // the file is closed as well if reading fails
+          struct Closer {
+            CMedIOData* file;
+            ~Closer() { file->close(); }
+          } closer = { m_mioData.get() };
+
           if(m_mioData->dataFormat() == CMedIOData::ECAT)
           {
-            CECATFile* eFile = static_cast<CECATFile*>(m_mioData);
+            CECATFile* eFile = static_cast<CECATFile*>(m_mioData.get());
 
             m_filename = QFileInfo(*eFile).absoluteFilePath();
             m_format = CMedIOData::ECAT;
@@ -1042,6 +1051,9 @@ class MedIOImage
             CECATMainHeader* ecatMainHeader = nullptr;
             if(eFile->readMainHeader(ecatMainHeader) == true)
             {
+              // the header is a copy that belongs to us
+              std::unique_ptr<CECATMainHeader> mainHeaderOwner(ecatMainHeader);
+
               // parse/fill mainHeader
               m_mhead = parseMainHeader(ecatMainHeader);
 
@@ -1157,6 +1169,9 @@ class MedIOImage
                   CECATSubHeader* ecatSubHeader = nullptr;
                   if(eFile->readSubHeader(ecatSubHeader, frame, 1, gate, bed, data) == true)
                   {
+                    // the header is a copy that belongs to us
+                    std::unique_ptr<CECATSubHeader> subHeaderOwner(ecatSubHeader);
+
                     // parse sub header and append to sub header
                     // list
                     m_shead.append(parseSubHeader(ecatSubHeader));
@@ -1286,8 +1301,9 @@ class MedIOImage
                                 {
                                   case CECATSubHeader::ByteData:
                                   {
-                                    qint8* pint8 = static_cast<qint8*>(mData);
-                                    m_data[dstIndex] = static_cast<float>(pint8[srcIndex]) * scaleFactor * ecatCalibrationFactor;
+                                    // unsigned, like CMedIOVolume::UInt8 of libmedio
+                                    quint8* puint8 = static_cast<quint8*>(mData);
+                                    m_data[dstIndex] = static_cast<float>(puint8[srcIndex]) * scaleFactor * ecatCalibrationFactor;
                                   }
                                   break;
 
@@ -1354,7 +1370,7 @@ class MedIOImage
         if(fileName.isEmpty())
           throw std::runtime_error("no target filename specified");
 
-        m_mioData = new CECATFile(CECATMainHeader::ECAT7_Volume16);
+        m_mioData.reset(new CECATFile(CECATMainHeader::ECAT7_Volume16));
       }
 
       // if we have a valid MedIOData object now go and use
@@ -1370,7 +1386,7 @@ class MedIOImage
         if(m_mioData->dataFormat() != CMedIOData::ECAT)
           throw std::runtime_error("only ECAT supported as target data format");
 
-        CECATFile* ecatFile = static_cast<CECATFile*>(m_mioData);
+        CECATFile* ecatFile = static_cast<CECATFile*>(m_mioData.get());
         ecatFile->setFileType(CECATMainHeader::ECAT7_Volume16);
 
         // check if mioData is valid
@@ -1378,6 +1394,9 @@ class MedIOImage
           throw std::runtime_error("only ECAT7 supported as target data format");
         if(ecatFile->fileType() != CECATMainHeader::ECAT7_Volume16)
           throw std::runtime_error("only ECAT7 Volume16 image data format supported");
+
+        // values that cannot be stored are reported before a file is created or replaced
+        checkStorable(dtype);
 
         // check if overwrite mode is enabled or not
         if(QFileInfo(fileName).exists())
@@ -1399,131 +1418,117 @@ class MedIOImage
 
         // set new output filename
         ecatFile->setFileName(fileName);
-        if(ecatFile->open(QIODevice::ReadWrite) && ecatFile->format() != CECATFile::Undefined)
+        if(ecatFile->open(QIODevice::ReadWrite) == false || ecatFile->format() == CECATFile::Undefined)
+        {
+          // do not report a file as written that could not be created
+          ecatFile->close();
+          throw std::runtime_error("could not open output file '" + fileName.toStdString() + "' for writing");
+        }
+
+        // nothing is left behind if writing fails
+        try
         {
           m_filename = QFileInfo(*ecatFile).absoluteFilePath();
           m_format = CMedIOData::ECAT;
 
           // create fresh main header and write it out
-          CECAT7MainHeader* e7MainHeader = static_cast<CECAT7MainHeader*>(createMainHeader());
+          std::unique_ptr<CMedIOHeader> mainHeader = createMainHeader();
+          CECAT7MainHeader* e7MainHeader = static_cast<CECAT7MainHeader*>(mainHeader.get());
           if(ecatFile->writeMainHeader(*e7MainHeader) == false)
-          {
-            ecatFile->close();
-            ecatFile->remove();
-
             throw std::runtime_error("could not write target main header.");
-          }
 
           // get ecat calibration factor
-          double ecatCalibrationFactor = e7MainHeader->calibration_Factor();
+          const double ecatCalibrationFactor = e7MainHeader->calibration_Factor();
+
+          const size_t planeSize = m_xdim * m_ydim;
+          const size_t volumeSize = m_xdim * m_ydim * m_zdim;
 
           // now we write the matrix data to the file
           // therefore we need to check and use tdim as the volume/time dimension
           for(size_t t=0; t < m_tdim; ++t)
           {
-            //std::cout << "volume/t: " << t << std::endl;
-
             // get subheader
             py::dict shead = m_shead[t];
 
-            //std::cout << "x_pixelsize: " << py::cast<float>(shead["x_pixelsize"]);
-
-            // calculate plane and data size 
-            size_t planeSize = m_xdim * m_ydim;
-            size_t volumeSize = m_xdim * m_ydim * m_zdim;
+            // size, range and ECAT data type of the stored values
             size_t dataTypeSize = 0;
+            double storedMin = 0.0;
+            double storedMax = 0.0;
             switch(dtype)
             {
-              case DT_BYTE:
-                dataTypeSize = sizeof(qint8);
+              case DT_BYTE: // unsigned, like CMedIOVolume::UInt8 of libmedio
+                dataTypeSize = sizeof(quint8);
+                storedMin = 0.0;
+                storedMax = std::numeric_limits<quint8>::max();
+                shead["data_type"] = static_cast<short>(CECATSubHeader::ByteData);
               break;
 
               case DT_SHORT:
                 dataTypeSize = sizeof(qint16);
+                storedMin = std::numeric_limits<qint16>::min();
+                storedMax = std::numeric_limits<qint16>::max();
+                shead["data_type"] = static_cast<short>(CECATSubHeader::SunShort);
               break;
 
               case DT_FLOAT:
                 dataTypeSize = sizeof(float);
+                shead["data_type"] = static_cast<short>(CECATSubHeader::IEEEFloat);
               break;
 
               case DT_LONG:
                 dataTypeSize = sizeof(qint32);
+                storedMin = std::numeric_limits<qint32>::min();
+                storedMax = std::numeric_limits<qint32>::max();
+                shead["data_type"] = static_cast<short>(CECATSubHeader::SunLong);
               break;
             }
 
             if(dataTypeSize == 0)
               throw std::runtime_error("invalid dataTypeSize");
 
-            // calculate 3D matrix size
-            size_t matrixDataSize = volumeSize * dataTypeSize;
-            char* matrixData = new char[matrixDataSize];
-            float newMin = FLT_MAX;
-            float newMax = -FLT_MAX;
+            // 3D matrix of the volume
+            std::vector<char> matrix(volumeSize * dataTypeSize);
+            char* matrixData = matrix.data();
+            const unsigned int matrixDataSize = static_cast<unsigned int>(matrix.size());
 
-            // search for the new min and max values in case we have not float as the target
-            // data type
-            if(dtype != DT_FLOAT)
+            // The integer data types store value / scale factor, rounded to an integer. The
+            // scale factor makes the largest value use the full range of the data type, so
+            // that the rounding error is small compared to the values. Volumes that only
+            // contain integers within the range of the data type are stored as they are
+            // (scale factor 1) and stay exact.
+            double newMin = 0.0;
+            double newMax = 0.0;
+            double newScaleFactor = 1.0;
+            if(dtype != DT_FLOAT && volumeSize > 0)
             {
-              for(size_t z = 0; z < m_zdim; ++z) // plane
+              bool integers = true;
+              newMin = std::numeric_limits<double>::max();
+              newMax = -std::numeric_limits<double>::max();
+              for(size_t i = 0; i < volumeSize; ++i)
               {
-                for(size_t y = 0; y < m_ydim; ++y) // row
-                {
-                  for(size_t x = 0; x < m_xdim; ++x) // column
-                  {
-                    // calculate the srcIndex in our m_data float data vector and the dstIndex
-                    // to put the data in an order the ECAT format defines.
-                    size_t srcIndex = (m_xdim-1 - x) + (m_ydim-1 - y) * m_xdim + (m_zdim-1 - z) * planeSize + t * volumeSize;
-                    float voxel = m_data[srcIndex] / ecatCalibrationFactor;
-                    newMin = qMin(newMin, voxel);
-                    newMax = qMax(newMax, voxel);
-                  }
-                }
+                const double voxel = static_cast<double>(m_data[i + t * volumeSize]) / ecatCalibrationFactor;
+                newMin = qMin(newMin, voxel);
+                newMax = qMax(newMax, voxel);
+                if(voxel != std::rint(voxel))
+                  integers = false;
+              }
+
+              if(integers == false || newMax > storedMax || newMin < storedMin)
+              {
+                // smallest factor that brings the largest and the smallest value into the
+                // range of the data type
+                double factor = 0.0;
+                if(newMax > 0.0)
+                  factor = newMax / storedMax;
+                if(newMin < 0.0 && storedMin < 0.0)
+                  factor = qMax(factor, newMin / storedMin);
+
+                // the sub header stores the scale factor as float: use the stored value
+                const float stored = static_cast<float>(factor);
+                if(stored > 0.0f && std::isfinite(stored))
+                  newScaleFactor = static_cast<double>(stored);
               }
             }
-
-            // calculate the scale factor (only for non-float data)
-            float maxValue = qMax(qAbs(newMax), qAbs(newMin));
-            float newScaleFactor = 1.0f;
-            switch(dtype)
-            {
-              case DT_BYTE:
-                shead["data_type"] = static_cast<short>(CECATSubHeader::ByteData);
-                if(maxValue > static_cast<float>(CHAR_MAX))
-                  newScaleFactor = maxValue / static_cast<float>(CHAR_MAX);
-              break;
-
-              case DT_SHORT:
-                shead["data_type"] = static_cast<short>(CECATSubHeader::SunShort);
-                if(maxValue > static_cast<float>(SHRT_MAX))
-                  newScaleFactor = maxValue / static_cast<float>(SHRT_MAX);
-              break;
-
-              case DT_FLOAT:
-              {
-                shead["data_type"] = static_cast<short>(CECATSubHeader::IEEEFloat);
-                newScaleFactor = 1.0f;
-                newMin = 0.0f;
-                newMax = 0.0f;
-              }
-              break;
-
-              case DT_LONG:
-                shead["data_type"] = static_cast<short>(CECATSubHeader::SunLong);
-                if(maxValue > static_cast<float>(LONG_MAX))
-                  newScaleFactor = maxValue / static_cast<float>(LONG_MAX);
-              break;
-            }
-            
-            /*
-            std::cout << "planeSize: " << std::setprecision(20) << planeSize << std::endl;
-            std::cout << "volumeSize: " << std::setprecision(20) << volumeSize << std::endl;
-            std::cout << "oldMin: " << std::setprecision(20) << py::cast<short>(shead["image_min"]) << std::endl;
-            std::cout << "oldMax: " << std::setprecision(20) << py::cast<short>(shead["image_max"]) << std::endl;
-            std::cout << "oldScaleFactor: " << std::setprecision(20) << py::cast<float>(shead["scale_factor"]) << std::endl;
-            std::cout << "newMin: " << std::setprecision(20) << newMin << std::endl;
-            std::cout << "newMax: " << std::setprecision(20) << newMax << std::endl;
-            std::cout << "newScaleFactor: " << std::setprecision(20) << newScaleFactor << std::endl;
-            */
 
             // now we iterate through our volumeVector. But we do this
             // here in a fashion that is compatible to the way the ECAT format
@@ -1541,37 +1546,38 @@ class MedIOImage
                   size_t dstIndex = x + y * m_xdim + z * planeSize;
 
                   // calculate the voxel value which we store in the ecat file
-                  float val = m_data[srcIndex] / newScaleFactor / ecatCalibrationFactor;
+                  const double val = static_cast<double>(m_data[srcIndex]) / newScaleFactor / ecatCalibrationFactor;
 
                   // now depending on the data type of the src data we have to convert
-                  // differently
+                  // differently; the rounded value is kept within the range of the type
+                  // (the scale factor stored as float can exceed it by a rounding error)
                   switch(dtype)
                   {
                     case DT_BYTE:
                     {
-                      qint8* mData8 = static_cast<qint8*>(mData);
-                      mData8[dstIndex] = static_cast<qint8>(qRound(val));
+                      quint8* mData8 = static_cast<quint8*>(mData);
+                      mData8[dstIndex] = static_cast<quint8>(qBound(storedMin, std::rint(val), storedMax));
                     }
                     break;
 
                     case DT_SHORT:
                     {
                       qint16* mData16 = static_cast<qint16*>(mData);
-                      mData16[dstIndex] = static_cast<qint16>(qRound(val));
+                      mData16[dstIndex] = static_cast<qint16>(qBound(storedMin, std::rint(val), storedMax));
                     }
                     break;
 
                     case DT_FLOAT:
                     {
                       float* mDataflt = static_cast<float*>(mData);
-                      mDataflt[dstIndex] = val;
+                      mDataflt[dstIndex] = static_cast<float>(val);
                     }
                     break;
 
                     case DT_LONG:
                     {
                       qint32* mData32 = static_cast<qint32*>(mData);
-                      mData32[dstIndex] = static_cast<qint32>(qRound(val));
+                      mData32[dstIndex] = static_cast<qint32>(qBound(storedMin, std::rint(val), storedMax));
                     }
                     break;
                   }
@@ -1579,10 +1585,12 @@ class MedIOImage
               }
             }
 
-            // fill subheader
-            shead["scale_factor"] = newScaleFactor;
-            shead["image_min"] = static_cast<short>(qRound(newMin / newScaleFactor));
-            shead["image_max"] = static_cast<short>(qRound(newMax / newScaleFactor));
+            // fill subheader; image_min and image_max are 16 bit values
+            const double shortMin = std::numeric_limits<short>::min();
+            const double shortMax = std::numeric_limits<short>::max();
+            shead["scale_factor"] = static_cast<float>(newScaleFactor);
+            shead["image_min"] = static_cast<short>(qBound(shortMin, std::rint(newMin / newScaleFactor), shortMax));
+            shead["image_max"] = static_cast<short>(qBound(shortMin, std::rint(newMax / newScaleFactor), shortMax));
 
             // specify target dataset based on
             // tdim type the user selected
@@ -1601,35 +1609,21 @@ class MedIOImage
             }
 
             // create fresh sub header and write it out
-            CECAT7SubHeaderImage* e7SubHeader = static_cast<CECAT7SubHeaderImage*>(createSubHeader(shead));
-            if(ecatFile->writeSubHeader(*e7SubHeader, f, p, g, b, d))
-            {
-              if(ecatFile->writeMatrix(matrixData, matrixDataSize, f, p, g, b, d) == false)
-              {
-                delete[] matrixData;
-                ecatFile->close(),
-                ecatFile->remove();
-                throw std::runtime_error("writing matrix data failed for volume " + std::to_string(t));
-              }
-            }
-            else
-            {
-              delete[] matrixData;
-              ecatFile->close();
-              ecatFile->remove();
+            std::unique_ptr<CMedIOHeader> subHeader = createSubHeader(shead);
+            CECAT7SubHeaderImage* e7SubHeader = static_cast<CECAT7SubHeaderImage*>(subHeader.get());
+            if(ecatFile->writeSubHeader(*e7SubHeader, f, p, g, b, d) == false)
               throw std::runtime_error("writing subheader of volume " + std::to_string(t) + " failed.");
-            }
-
-            delete[] matrixData;
+            if(ecatFile->writeMatrix(matrixData, matrixDataSize, f, p, g, b, d) == false)
+              throw std::runtime_error("writing matrix data failed for volume " + std::to_string(t));
           }
 
           ecatFile->close();
         }
-        else
+        catch(...)
         {
-          // do not report a file as written that could not be created
           ecatFile->close();
-          throw std::runtime_error("could not open output file '" + fileName.toStdString() + "' for writing");
+          ecatFile->remove();
+          throw;
         }
       }
       else
@@ -1651,7 +1645,8 @@ class MedIOImage
     CMedIOData::Format m_format;
  
   private:
-    CMedIOData* m_mioData;
+    // file object of the image, shared by the copies of an image
+    std::shared_ptr<CMedIOData> m_mioData;
     float* m_data;
 };
 
