@@ -17,8 +17,8 @@
 # limitations under the License.
 #
 
-cmake_minimum_required(VERSION 3.4...3.18)
-project(pmedio)
+cmake_minimum_required(VERSION 3.15...3.28)
+project(pmedio LANGUAGES CXX)
 
 # set the cmake modules path
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
@@ -43,9 +43,10 @@ message("Using Modules Path: ${CMAKE_MODULE_PATH}")
 message("Using Search Path:  ${CMAKE_PREFIX_PATH}")
 message("Using Root Path: ${CMAKE_FIND_ROOT_PATH}")
 
-#set(pybind11_DIR "/usr/local/lib/python3.10/dist-packages/pybind11/share/cmake/pybind11")
-
-find_package(pybind11 REQUIRED)
+# nanobind needs the Python found by FindPython (select it with -DPython_EXECUTABLE=...)
+# and is found with -Dnanobind_DIR="$(python -m nanobind --cmake_dir)"
+find_package(Python 3.10 COMPONENTS Interpreter Development.Module REQUIRED)
+find_package(nanobind CONFIG REQUIRED)
 find_package(MEDIO REQUIRED)
 find_package(Qt5 REQUIRED COMPONENTS Core)
 find_package(ZLIB REQUIRED)
@@ -54,9 +55,11 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}
                     ${MEDIO_INCLUDES}
 )
 
-pybind11_add_module(pmedio src/pmedio.cpp
-                           src/medio.cpp
-                           src/volume.cpp)
+# the bindings need C++17 (nanobind), which nanobind_add_module() selects; the
+# small nanobind library is built together with and linked into the module
+nanobind_add_module(pmedio NB_STATIC src/pmedio.cpp
+                                     src/medio.cpp
+                                     src/volume.cpp)
 
 # define link libraries dependencies
 target_link_libraries(pmedio PRIVATE
@@ -72,7 +75,9 @@ target_compile_definitions(pmedio
 )
 
 # Set some better optimization options
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=generic -std=c++11 -Wall -Wextra -Werror")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=generic")
+# the warnings are errors for the bindings, but not for the sources of nanobind
+target_compile_options(pmedio PRIVATE -Wall -Wextra -Werror)
 # Append to CMake's per-configuration defaults so that Release keeps -O3 -DNDEBUG,
 # RelWithDebInfo keeps -O2 -g -DNDEBUG and Debug keeps -g (plus -DDEBUG from
 # FindRTDEBUG, where used).

@@ -27,14 +27,85 @@
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
 
-namespace py = pybind11;
+namespace py = nanobind;
 
 // external modules
 extern void init_medio(py::module_ &);
 extern void init_volume(py::module_ &);
 
-// defines the main entries of the pybind module
-PYBIND11_MODULE(pmedio, m) {
+// float32 array in the voxel order of MedIOImage of an array or of an object numpy
+// converts to an array (other data types and memory layouts, nested lists, ...)
+static FloatArray floatArray(const py::object& img)
+{
+  return py::cast<FloatArray>(py::module_::import_("numpy").attr("asarray")(img, py::arg("dtype") = "float32",
+                                                                              py::arg("order") = "F"));
+}
+
+// buffer protocol of MedIOImage: nanobind has no counterpart of
+// py::buffer_protocol()/def_buffer(), the type slots are filled directly
+static int medioImageGetBuffer(PyObject* exporter, Py_buffer* view, int flags)
+{
+  MedIOImage* self = py::inst_ptr<MedIOImage>(py::handle(exporter));
+  const Py_ssize_t dims[4] = { static_cast<Py_ssize_t>(self->m_xdim), static_cast<Py_ssize_t>(self->m_ydim),
+                               static_cast<Py_ssize_t>(self->m_zdim), static_cast<Py_ssize_t>(self->m_tdim) };
+
+  view->obj = nullptr;
+  if((flags & PyBUF_C_CONTIGUOUS) == PyBUF_C_CONTIGUOUS)
+  {
+    PyErr_SetString(PyExc_BufferError, "the voxels of a MedIOImage are not C contiguous");
+    return -1;
+  }
+  if((flags & PyBUF_STRIDES) != PyBUF_STRIDES)
+  {
+    PyErr_SetString(PyExc_BufferError, "a MedIOImage is a multidimensional Fortran contiguous buffer");
+    return -1;
+  }
+
+  // shape and strides live as long as the view
+  Py_ssize_t* layout = new Py_ssize_t[8];
+  Py_ssize_t stride = sizeof(float);
+  for(int i = 0; i < 4; ++i)
+  {
+    layout[i] = dims[i];
+    layout[4 + i] = stride;
+    stride *= dims[i];
+  }
+
+  view->buf = self->data();
+  view->len = stride;
+  view->itemsize = sizeof(float);
+  view->readonly = 0;
+  view->ndim = 4;
+  view->format = (flags & PyBUF_FORMAT) == PyBUF_FORMAT ? const_cast<char*>("f") : nullptr;
+  view->shape = layout;
+  view->strides = layout + 4;
+  view->suboffsets = nullptr;
+  view->internal = layout;
+  view->obj = exporter;
+  Py_INCREF(exporter);
+
+  return 0;
+}
+
+static void medioImageReleaseBuffer(PyObject*, Py_buffer* view)
+{
+  delete[] static_cast<Py_ssize_t*>(view->internal);
+  view->internal = nullptr;
+}
+
+static PyType_Slot medioImageSlots[] = {
+  { Py_bf_getbuffer, reinterpret_cast<void*>(medioImageGetBuffer) },
+  { Py_bf_releasebuffer, reinterpret_cast<void*>(medioImageReleaseBuffer) },
+  { 0, nullptr }
+};
+
+// classes that only hold the names of formats, dimension and data types
+struct FormatNames { };
+struct DimTypeNames { };
+struct DataTypeNames { };
+
+// defines the main entries of the module
+NB_MODULE(pmedio, m) {
   // documentation
   m.doc() = "libmedio python interface";
 
@@ -52,82 +123,75 @@ PYBIND11_MODULE(pmedio, m) {
   // general purpose helper "MedIOImage" class to access PET image
   // volumes using the python buffer protocol interface and in a numpy
   // compatible fashion
-  py::class_<MedIOImage> mi(m, "MedIOImage", py::buffer_protocol());
+  py::class_<MedIOImage> mi(m, "MedIOImage", py::type_slots(medioImageSlots));
 
-  // enum types
-  py::enum_<CMedIOData::Format>(mi, "FormatType")
-    .value("Unknown", CMedIOData::Unknown)
-    .value("ConcordeMicropet", CMedIOData::ConcordeMicropet)
-    .value("ECAT", CMedIOData::ECAT)
-    .value("Philips", CMedIOData::Philips)
-    .value("PhilipsBin", CMedIOData::PhilipsBin)
-    .value("NIFTI", CMedIOData::NIFTI);
+  // the formats, dimension types and data types are passed and returned as
+  // strings, the constants are these strings
+  py::class_<FormatNames> formatType(mi, "FormatType");
+  formatType.attr("Unknown") = py::str(formatName(CMedIOData::Unknown));
+  formatType.attr("ConcordeMicropet") = py::str(formatName(CMedIOData::ConcordeMicropet));
+  formatType.attr("ECAT") = py::str(formatName(CMedIOData::ECAT));
+  formatType.attr("Philips") = py::str(formatName(CMedIOData::Philips));
+  formatType.attr("PhilipsBin") = py::str(formatName(CMedIOData::PhilipsBin));
+  formatType.attr("NIFTI") = py::str(formatName(CMedIOData::NIFTI));
 
-  py::enum_<enum dimTypes>(mi, "DimType")
-    .value("UNKNOWN", DM_UNKNOWN)
-    .value("FRAMES", DM_FRAMES)
-    .value("GATES", DM_GATES)
-    .value("BEDS", DM_BEDS)
-    .value("DATA", DM_DATA);
+  py::class_<DimTypeNames> dimType(mi, "DimType");
+  dimType.attr("UNKNOWN") = py::str(dimTypeName(DM_UNKNOWN));
+  dimType.attr("FRAMES") = py::str(dimTypeName(DM_FRAMES));
+  dimType.attr("GATES") = py::str(dimTypeName(DM_GATES));
+  dimType.attr("BEDS") = py::str(dimTypeName(DM_BEDS));
+  dimType.attr("DATA") = py::str(dimTypeName(DM_DATA));
 
-  py::enum_<enum dataTypes>(mi, "DataType")
-    .value("FLOAT", DT_FLOAT)
-    .value("SHORT", DT_SHORT)
-    .value("LONG", DT_LONG)
-    .value("BYTE", DT_BYTE);
+  py::class_<DataTypeNames> dataType(mi, "DataType");
+  dataType.attr("FLOAT") = py::str(dataTypeName(DT_FLOAT));
+  dataType.attr("SHORT") = py::str(dataTypeName(DT_SHORT));
+  dataType.attr("LONG") = py::str(dataTypeName(DT_LONG));
+  dataType.attr("BYTE") = py::str(dataTypeName(DT_BYTE));
 
-  // method definitions
-  mi.def(py::init<const size_t,
-                  const size_t,
-                  const size_t,
-                  const size_t,
-                  const CMedIOData::Format&>(),
+  // method definitions; format, dimension type and data type are taken as
+  // str and converted here, so that unknown names raise a RuntimeError
+  mi.def("__init__", [](MedIOImage* self, const size_t xdim, const size_t ydim, const size_t zdim,
+                        const size_t tdim, const QString& format) {
+           new (self) MedIOImage(xdim, ydim, zdim, tdim, formatOfName(format));
+         },
               py::arg("xdim"),
               py::arg("ydim"),
               py::arg("zdim"),
               py::arg("tdim"),
-              py::arg("format") = CMedIOData::ECAT)
+              py::arg("format") = formatName(CMedIOData::ECAT))
 
     // Construct from another MedIOImage object
     .def(py::init<const MedIOImage&>(),
               py::arg("img"))
 
-    // Construct from another array
-    .def(py::init<const py::array_t<float, py::array::f_style | py::array::forcecast>&,
-                  const CMedIOData::Format&,
-                  const enum dimTypes>(),
-              py::arg("img"),
-              py::arg("format") = CMedIOData::ECAT,
-              py::arg("dimType") = DM_FRAMES)
-
-    // Construct from another buffer
-    .def(py::init<const py::buffer&, 
-                  const CMedIOData::Format&,
-                  const enum dimTypes>(),
-              py::arg("img"),
-              py::arg("format") = CMedIOData::ECAT,
-              py::arg("dimType") = DM_FRAMES)
+    // Construct from an array or an object numpy converts to an array
+    .def("__init__", [](MedIOImage* self, const py::object& img, const QString& format, const QString& dimType) {
+           new (self) MedIOImage(floatArray(img), formatOfName(format), dimTypeOfName(dimType));
+         },
+              py::arg("img").none(), // None is converted by numpy like every other object
+              py::arg("format") = formatName(CMedIOData::ECAT),
+              py::arg("dimType") = dimTypeName(DM_FRAMES))
 
     // accessor methods
-    .def_readonly("ndim", &MedIOImage::m_numdim)
-    .def_readonly("xdim", &MedIOImage::m_xdim)
-    .def_readonly("ydim", &MedIOImage::m_ydim)
-    .def_readonly("zdim", &MedIOImage::m_zdim)
-    .def_readonly("tdim", &MedIOImage::m_tdim)
-    .def_readonly("dimType", &MedIOImage::m_tdimType)
-    .def_readonly("format", &MedIOImage::m_format)
-    .def_readwrite("mhead", &MedIOImage::m_mhead)
-    .def_readwrite("shead", &MedIOImage::m_shead)
-    .def_readwrite("filename", &MedIOImage::m_filename)
+    .def_ro("ndim", &MedIOImage::m_numdim)
+    .def_ro("xdim", &MedIOImage::m_xdim)
+    .def_ro("ydim", &MedIOImage::m_ydim)
+    .def_ro("zdim", &MedIOImage::m_zdim)
+    .def_ro("tdim", &MedIOImage::m_tdim)
+    .def_ro("dimType", &MedIOImage::m_tdimType)
+    .def_ro("format", &MedIOImage::m_format)
+    .def_rw("mhead", &MedIOImage::m_mhead)
+    .def_rw("shead", &MedIOImage::m_shead)
+    .def_rw("filename", &MedIOImage::m_filename)
 
     // provide shape function similar to numpy.ndarray
-    .def_property_readonly("shape", [](MedIOImage& self) -> py::tuple {
+    .def_prop_ro("shape", [](MedIOImage& self) -> py::tuple {
       return py::make_tuple(self.m_xdim, self.m_ydim, self.m_zdim, self.m_tdim);
     })
-    .def_property_readonly("size", [](MedIOImage& self) -> ssize_t {
+    .def_prop_ro("size", [](MedIOImage& self) -> ssize_t {
       return self.m_xdim * self.m_ydim * self.m_zdim * self.m_tdim;
     })
-    .def_property_readonly("nbytes", [](MedIOImage& self) -> ssize_t {
+    .def_prop_ro("nbytes", [](MedIOImage& self) -> ssize_t {
       return self.m_xdim * self.m_ydim * self.m_zdim * self.m_tdim * sizeof(float);
     })
 
@@ -137,17 +201,17 @@ PYBIND11_MODULE(pmedio, m) {
     })
     .def("write", [](MedIOImage& self,
                      const QString& fileName = QString(),
-                     const bool overwrite = false) -> MedIOImage {
+                     const Flag overwrite = Flag{false}) -> MedIOImage {
       if(fileName.isEmpty())
         return self.writeImage(self.m_filename, true);
       else
         return self.writeImage(fileName, overwrite);
     }, py::arg("filename") = QString(),
-       py::arg("overwrite") = false)
+       py::arg("overwrite").none() = Flag{false})
 
     // Bare bones interface
     .def("__getitem__",
-      [](const MedIOImage& self, std::tuple<py::ssize_t, py::ssize_t, py::ssize_t, py::ssize_t> i) {
+      [](const MedIOImage& self, std::tuple<Py_ssize_t, Py_ssize_t, Py_ssize_t, Py_ssize_t> i) {
         // negative indices are not supported and must not address memory in front of the data
         if(std::get<0>(i) < 0 || std::get<1>(i) < 0 || std::get<2>(i) < 0 || std::get<3>(i) < 0 ||
            std::get<0>(i) >= static_cast<int>(self.m_xdim) || std::get<1>(i) >= static_cast<int>(self.m_ydim) ||
@@ -157,7 +221,7 @@ PYBIND11_MODULE(pmedio, m) {
         return self(std::get<0>(i), std::get<1>(i), std::get<2>(i), std::get<3>(i));
     })
     .def("__setitem__",
-      [](MedIOImage& self, std::tuple<py::ssize_t, py::ssize_t, py::ssize_t, py::ssize_t> i, float v) {
+      [](MedIOImage& self, std::tuple<Py_ssize_t, Py_ssize_t, Py_ssize_t, Py_ssize_t> i, float v) {
         // negative indices are not supported and must not address memory in front of the data
         if(std::get<0>(i) < 0 || std::get<1>(i) < 0 || std::get<2>(i) < 0 || std::get<3>(i) < 0 ||
            std::get<0>(i) >= static_cast<int>(self.m_xdim) || std::get<1>(i) >= static_cast<int>(self.m_ydim) ||
@@ -167,64 +231,23 @@ PYBIND11_MODULE(pmedio, m) {
         self(std::get<0>(i), std::get<1>(i), std::get<2>(i), std::get<3>(i)) = v;
     })
 
-    // toarray method to directly return as numpy.array
+    // toarray method to directly return as numpy.array; the array is a copy
+    // of the voxels with and without copy
     .def("toarray",
-      [](MedIOImage& self, const bool copy=false) -> py::array_t<float, py::array::f_style | py::array::forcecast> {
-      float* data = self.data();
-      py::capsule capsule;
-      if(copy == true)
-      {
-        // create a data clone
-        ssize_t size = self.m_xdim * self.m_ydim * self.m_zdim * self.m_tdim;
-        float* clone = new float[size];
-        for(ssize_t i = 0; i < size; ++i)
-          clone[i] = data[i];
-       
-        // Create a Python object that will free the allocated
-        // memory when destroyed:
-        capsule = py::capsule(clone, [](void* f) {
-          float* clone = reinterpret_cast<float*>(f);
-          delete[] clone;
-        });
+      [](MedIOImage& self, const Flag /* copy */) {
+      const size_t size = self.m_xdim * self.m_ydim * self.m_zdim * self.m_tdim;
+      float* clone = new float[size];
+      memcpy(clone, self.data(), size * sizeof(float));
 
-        // replace data ptr with clone
-        data = clone;
-      }
+      // Python object that frees the copy when the array is destroyed
+      py::capsule owner(clone, [](void* p) noexcept { delete[] static_cast<float*>(p); });
 
-      return py::array_t<float, py::array::f_style | py::array::forcecast>(py::buffer_info(
-        data,                                                     // Pointer to buffer
-        sizeof(float),                                            // Size of one scalar
-        py::format_descriptor<float>::format(),                   // Python struct-style format descriptor
-        self.m_numdim,                                            // Number of dimensions
-        { self.m_xdim, self.m_ydim, self.m_zdim, self.m_tdim },   // Buffer dimensions
-        {                                                         // Strides (in bytes) for each index
-          sizeof(float),                                          // X
-          sizeof(float) * self.m_xdim,                            // Y
-          sizeof(float) * self.m_xdim * self.m_ydim,              // Z
-          sizeof(float) * self.m_xdim * self.m_ydim * self.m_zdim // T (frames/gates/bed/data)
-        }
-      ), capsule);
-    }, py::arg("copy") = false,
+      return py::ndarray<py::numpy, float, py::f_contig>(clone, { self.m_xdim, self.m_ydim, self.m_zdim, self.m_tdim },
+                                                         owner);
+    }, py::arg("copy").none() = Flag{false},
        "Voxels as numpy array (x, y, z, t) of float32. The array is always a copy of the\n"
        "voxels, with and without ``copy``; ``numpy.asarray(img)`` uses the memory of the\n"
-       "image instead.")
-
-    // Provide buffer access
-    .def_buffer([](MedIOImage& self) -> py::buffer_info {
-      return py::buffer_info(
-        self.data(),                                              // Pointer to buffer
-        sizeof(float),                                            // Size of one scalar
-        py::format_descriptor<float>::format(),                   // Python struct-style format descriptor
-        self.m_numdim,                                            // Number of dimensions
-        { self.m_xdim, self.m_ydim, self.m_zdim, self.m_tdim },   // Buffer dimensions
-        {                                                         // Strides (in bytes) for each index
-          sizeof(float),                                          // X
-          sizeof(float) * self.m_xdim,                            // Y
-          sizeof(float) * self.m_xdim * self.m_ydim,              // Z
-          sizeof(float) * self.m_xdim * self.m_ydim * self.m_zdim // T (frames/gates/bed/data)
-        }
-      );
-    });
+       "image instead.");
 
   // general pmedio.read() function to read in MedIO compatible
   // data file and return the medioData object accordingly.
@@ -260,34 +283,37 @@ PYBIND11_MODULE(pmedio, m) {
   // general pmedio.write() function to write out a medioimage data
   m.def("write", [](MedIOImage& img,
                     const QString& fileName,
-                    const bool overwrite=false,
-                    const enum dimTypes dimType=DM_UNKNOWN,
-                    const enum dataTypes dataType=DT_FLOAT,
-                    const CMedIOData::Format& format=CMedIOData::Unknown) -> MedIOImage
+                    const Flag overwrite,
+                    const QString& dimType,
+                    const QString& dataType,
+                    const QString& format) -> MedIOImage
   {
-    return img.writeImage(fileName, overwrite, dimType, dataType, format);
+    return img.writeImage(fileName, overwrite, dimTypeOfName(dimType), dataTypeOfName(dataType), formatOfName(format));
   }, py::arg("img"),
      py::arg("fileName"),
-     py::arg("overwrite") = false,
-     py::arg("dimType") = DM_UNKNOWN,
-     py::arg("dataType") = DT_FLOAT,
-     py::arg("format") = CMedIOData::Unknown);
+     py::arg("overwrite").none() = Flag{false},
+     py::arg("dimType") = dimTypeName(DM_UNKNOWN),
+     py::arg("dataType") = dataTypeName(DT_FLOAT),
+     py::arg("format") = formatName(CMedIOData::Unknown));
 
-  m.def("write", [](const py::array_t<float, py::array::f_style | py::array::forcecast>& img,
+  m.def("write", [](const py::object& img,
                     const QString& fileName,
-                    const bool overwrite=false,
-                    const enum dimTypes dimType=DM_FRAMES,
-                    const enum dataTypes dataType=DT_FLOAT,
-                    const CMedIOData::Format& format=CMedIOData::ECAT) -> MedIOImage
+                    const Flag overwrite,
+                    const QString& dimTypeName,
+                    const QString& dataTypeName,
+                    const QString& formatName) -> MedIOImage
   {
-    MedIOImage medioImage(img, format, dimType);
+    const enum dimTypes dimType = dimTypeOfName(dimTypeName);
+    const enum dataTypes dataType = dataTypeOfName(dataTypeName);
+    const CMedIOData::Format format = formatOfName(formatName);
+    MedIOImage medioImage(floatArray(img), format, dimType);
     return medioImage.writeImage(fileName, overwrite, dimType, dataType, format);
-  }, py::arg("img"),
+  }, py::arg("img").none(),
      py::arg("fileName"),
-     py::arg("overwrite") = false,
-     py::arg("dimType") = DM_FRAMES,
-     py::arg("dataType") = DT_FLOAT,
-     py::arg("format") = CMedIOData::ECAT);
+     py::arg("overwrite").none() = Flag{false},
+     py::arg("dimType") = dimTypeName(DM_FRAMES),
+     py::arg("dataType") = dataTypeName(DT_FLOAT),
+     py::arg("format") = formatName(CMedIOData::ECAT));
 
   // format independent access to the frames of all formats (pmedio.Volume,
   // pmedio.File, pmedio.open(), pmedio.create()), see volume.cpp

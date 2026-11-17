@@ -17,10 +17,14 @@
   limitations under the License.
 */
 
-#include <pybind11/pybind11.h>
-#include <pybind11/numpy.h>
-#include <pybind11/stl.h>
-#include <pybind11/chrono.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/ndarray.h>
+#include <nanobind/stl/chrono.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/vector.h>
+
+#include "casters.h"
 
 #include <CMedIOData>
 #include <CECATFile>
@@ -34,25 +38,12 @@
 #include <iostream>
 #include <cfloat>
 
-namespace py = pybind11;
+namespace py = nanobind;
+
+// float32 array in the voxel order of MedIOImage (x runs fastest)
+typedef py::ndarray<const float, py::f_contig, py::device::cpu> FloatArray;
 
 // defined for specifiying the type
-// for the tdim dimension we use here
-enum dimTypes {
-  DM_UNKNOWN = 'u',
-  DM_FRAMES = 'f',
-  DM_GATES = 'g',
-  DM_BEDS = 'b',
-  DM_DATA = 'd'
-};
-
-enum dataTypes {
-  DT_FLOAT = CECATSubHeader::IEEEFloat,  // 32bit float big endian
-  DT_LONG = CECATSubHeader::SunLong,     // 32bit integer big endian
-  DT_SHORT = CECATSubHeader::SunShort,   // 16bit short big endian
-  DT_BYTE = CECATSubHeader::ByteData     // 8bit byte
-};
-
 // special helper MedIOImage class to embed all necessary
 // information and always return the pet data as float data
 class MedIOImage
@@ -92,34 +83,24 @@ class MedIOImage
       memcpy(m_data, img.m_data, sizeof(float) * (m_xdim * m_ydim * m_zdim * m_tdim));
     }
 
-    MedIOImage(const py::array_t<float, py::array::f_style | py::array::forcecast>& img,
+    MedIOImage(const FloatArray& img,
                const CMedIOData::Format& format = CMedIOData::ECAT,
                const enum dimTypes type = DM_FRAMES)
-     : MedIOImage(img.request(), format, type)
-    { }
-
-    MedIOImage(const py::buffer_info& info,
-               const CMedIOData::Format& format = CMedIOData::ECAT,
-               const enum dimTypes type = DM_FRAMES)
-     : 
+     :
        // the order of evaluation of the arguments is unspecified: check for each of them
-       MedIOImage(checkedBuffer(info).shape[0],
-                  checkedBuffer(info).shape[1],
-                  checkedBuffer(info).shape[2],
-                  checkedBuffer(info).ndim > 3 ? info.shape[3] : 1, format, type)
+       MedIOImage(checkedArray(img).shape(0),
+                  checkedArray(img).shape(1),
+                  checkedArray(img).shape(2),
+                  checkedArray(img).ndim() > 3 ? img.shape(3) : 1, format, type)
     {
-      // check buffer being valid
-      if(info.format != py::format_descriptor<float>::format())
-        throw std::runtime_error("incompatible input data format '" + info.format + "' != float32");
-
       // check format and create a fresh medio object
       if(format != CMedIOData::ECAT)
         throw std::runtime_error("only ECAT supported as target data format");
 
       // copy data from buffer to fresh data object
-      memcpy(m_data, info.ptr, info.size * info.itemsize);
+      memcpy(m_data, img.data(), img.size() * sizeof(float));
     }
- 
+
     MedIOImage(const size_t xdim,
                const size_t ydim=1,
                const size_t zdim=1,
@@ -338,14 +319,13 @@ class MedIOImage
       return m_data[x + y * m_xdim + z * m_xdim*m_ydim + t * m_xdim*m_ydim*m_zdim];
     } 
 
-    // returns the buffer if it has 3 or 4 dimensions and throws otherwise, before
-    // its shape is used (a scalar, e.g. None converted to an array, has no dimension)
-    static const py::buffer_info& checkedBuffer(const py::buffer_info& info)
+    // returns the array if it has 3 or 4 dimensions and throws otherwise
+    static const FloatArray& checkedArray(const FloatArray& img)
     {
-      if(info.ndim < 3 || info.ndim > 4)
+      if(img.ndim() < 3 || img.ndim() > 4)
         throw std::runtime_error("only 3 and 4 dimensional data supported yet");
 
-      return info;
+      return img;
     }
 
     float* data() { return m_data; }
@@ -698,36 +678,36 @@ class MedIOImage
             pMainHeader = ecatFile->createEmptyMainHeader();
             CECAT7MainHeader* ecat7MainHeader = static_cast<CECAT7MainHeader*>(pMainHeader);
 
-            QString magic_number = m_mhead["magic_number"].cast<QString>();
-            QString original_file_name = m_mhead["original_file_name"].cast<QString>();
-            short sw_version = m_mhead["sw_version"].cast<short>();
-            short system_type = m_mhead["system_type"].cast<short>();
-            int file_type = m_mhead["file_type"].cast<int>();
-            QString serial_number = m_mhead["serial_number"].cast<QString>();
-            time_t scan_start_time = std::chrono::system_clock::to_time_t(m_mhead["scan_start_time"].cast<std::chrono::system_clock::time_point>());
-            QString isotope_name = m_mhead["isotope_name"].cast<QString>();
-            float isotope_halflife = m_mhead["isotope_halflife"].cast<float>();
-            QString radiopharmaceutical = m_mhead["radiopharmaceutical"].cast<QString>();
-            float gantry_tilt = m_mhead["gantry_tilt"].cast<float>();
-            float gantry_rotation = m_mhead["gantry_rotation"].cast<float>();
-            float bed_elevation = m_mhead["bed_elevation"].cast<float>();
-            float intrinsic_tilt = m_mhead["intrinsic_tilt"].cast<float>();
-            short wobble_speed = m_mhead["wobble_speed"].cast<short>();
-            int transm_source_type = m_mhead["transm_source_type"].cast<int>();
-            float distance_scanned = m_mhead["distance_scanned"].cast<float>();
-            float transaxial_fov = m_mhead["transaxial_fov"].cast<float>();
-            int angular_compression = m_mhead["angular_compression"].cast<int>();
-            int coin_samp_mode = m_mhead["coin_samp_mode"].cast<int>();
-            int axial_samp_mode = m_mhead["axial_samp_mode"].cast<int>();
-            float ecat_calibration_factor = m_mhead["ecat_calibration_factor"].cast<float>();
-            int calibration_units = m_mhead["calibration_units"].cast<int>();
-            int calibration_units_label = m_mhead["calibration_units_label"].cast<int>();
-            int compression_code = m_mhead["compression_code"].cast<int>();
-            QString study_type = m_mhead["study_type"].cast<QString>();
-            QString patient_id = m_mhead["patient_id"].cast<QString>();
-            QString patient_name = m_mhead["patient_name"].cast<QString>();
+            QString magic_number = py::cast<QString>(m_mhead["magic_number"]);
+            QString original_file_name = py::cast<QString>(m_mhead["original_file_name"]);
+            short sw_version = py::cast<short>(m_mhead["sw_version"]);
+            short system_type = py::cast<short>(m_mhead["system_type"]);
+            int file_type = py::cast<int>(m_mhead["file_type"]);
+            QString serial_number = py::cast<QString>(m_mhead["serial_number"]);
+            time_t scan_start_time = std::chrono::system_clock::to_time_t(py::cast<std::chrono::system_clock::time_point>(m_mhead["scan_start_time"]));
+            QString isotope_name = py::cast<QString>(m_mhead["isotope_name"]);
+            float isotope_halflife = py::cast<float>(m_mhead["isotope_halflife"]);
+            QString radiopharmaceutical = py::cast<QString>(m_mhead["radiopharmaceutical"]);
+            float gantry_tilt = py::cast<float>(m_mhead["gantry_tilt"]);
+            float gantry_rotation = py::cast<float>(m_mhead["gantry_rotation"]);
+            float bed_elevation = py::cast<float>(m_mhead["bed_elevation"]);
+            float intrinsic_tilt = py::cast<float>(m_mhead["intrinsic_tilt"]);
+            short wobble_speed = py::cast<short>(m_mhead["wobble_speed"]);
+            int transm_source_type = py::cast<int>(m_mhead["transm_source_type"]);
+            float distance_scanned = py::cast<float>(m_mhead["distance_scanned"]);
+            float transaxial_fov = py::cast<float>(m_mhead["transaxial_fov"]);
+            int angular_compression = py::cast<int>(m_mhead["angular_compression"]);
+            int coin_samp_mode = py::cast<int>(m_mhead["coin_samp_mode"]);
+            int axial_samp_mode = py::cast<int>(m_mhead["axial_samp_mode"]);
+            float ecat_calibration_factor = py::cast<float>(m_mhead["ecat_calibration_factor"]);
+            int calibration_units = py::cast<int>(m_mhead["calibration_units"]);
+            int calibration_units_label = py::cast<int>(m_mhead["calibration_units_label"]);
+            int compression_code = py::cast<int>(m_mhead["compression_code"]);
+            QString study_type = py::cast<QString>(m_mhead["study_type"]);
+            QString patient_id = py::cast<QString>(m_mhead["patient_id"]);
+            QString patient_name = py::cast<QString>(m_mhead["patient_name"]);
 
-            QString sex = m_mhead["patient_sex"].cast<QString>();
+            QString sex = py::cast<QString>(m_mhead["patient_sex"]);
             CECAT7MainHeader::Patient_Sex patient_sex;
             switch(sex[0].toLatin1())
             {
@@ -737,7 +717,7 @@ class MedIOImage
               default: patient_sex = CECAT7MainHeader::Sex_Unknown; break;
             }
 
-            QString dexterity = m_mhead["patient_dexterity"].cast<QString>();
+            QString dexterity = py::cast<QString>(m_mhead["patient_dexterity"]);
             CECAT7MainHeader::Patient_Dexterity patient_dexterity;
             switch(dexterity[0].toLatin1())
             {
@@ -747,36 +727,36 @@ class MedIOImage
               default: patient_dexterity = CECAT7MainHeader::Dext_Unknown; break;
             }
 
-            float patient_age = m_mhead["patient_age"].cast<float>();
-            float patient_height = m_mhead["patient_height"].cast<float>();
-            float patient_weight = m_mhead["patient_weight"].cast<float>();
-            time_t patient_birth_datetime = std::chrono::system_clock::to_time_t(m_mhead["patient_birth_date"].cast<std::chrono::system_clock::time_point>());
-            QString physician_name = m_mhead["physician_name"].cast<QString>();
-            QString operator_name = m_mhead["operator_name"].cast<QString>();
-            QString study_description = m_mhead["study_description"].cast<QString>();
-            int acquisition_type = m_mhead["acquisition_type"].cast<int>();
-            int patient_orientation = m_mhead["patient_orientation"].cast<int>();
-            QString facility_name = m_mhead["facility_name"].cast<QString>();
-            short num_planes = m_mhead["num_planes"].cast<short>();
-            int num_frames = m_mhead["num_frames"].cast<int>();
-            int num_gates = m_mhead["num_gates"].cast<int>();
-            int num_bed_pos = m_mhead["num_bed_pos"].cast<int>();
-            float init_bed_position = m_mhead["init_bed_position"].cast<float>();
-            std::vector<float> bed_offset = m_mhead["bed_offset"].cast<std::vector<float> >();
-            float plane_separation = m_mhead["plane_separation"].cast<float>();
-            short lwr_sctr_thres = m_mhead["lwr_sctr_thres"].cast<short>();
-            short lwr_true_thres = m_mhead["lwr_true_thres"].cast<short>();
-            short upr_true_thres = m_mhead["upr_true_thres"].cast<short>();
-            QString user_process_code = m_mhead["user_process_code"].cast<QString>();
-            int acquisition_mode = m_mhead["acquisition_mode"].cast<int>();
-            float bin_size = m_mhead["bin_size"].cast<float>();
-            float branching_fraction = m_mhead["branching_fraction"].cast<float>();
-            time_t dose_start_time = std::chrono::system_clock::to_time_t(m_mhead["dose_start_time"].cast<std::chrono::system_clock::time_point>());
-            float dosage = m_mhead["dosage"].cast<float>();
-            float well_counter_corr_factor = m_mhead["well_counter_corr_factor"].cast<float>();
-            QString data_units = m_mhead["data_units"].cast<QString>();
-            int septa_state = m_mhead["septa_state"].cast<int>();
-            std::vector<short> cti_reserved = m_mhead["cti_reserved"].cast<std::vector<short> >();
+            float patient_age = py::cast<float>(m_mhead["patient_age"]);
+            float patient_height = py::cast<float>(m_mhead["patient_height"]);
+            float patient_weight = py::cast<float>(m_mhead["patient_weight"]);
+            time_t patient_birth_datetime = std::chrono::system_clock::to_time_t(py::cast<std::chrono::system_clock::time_point>(m_mhead["patient_birth_date"]));
+            QString physician_name = py::cast<QString>(m_mhead["physician_name"]);
+            QString operator_name = py::cast<QString>(m_mhead["operator_name"]);
+            QString study_description = py::cast<QString>(m_mhead["study_description"]);
+            int acquisition_type = py::cast<int>(m_mhead["acquisition_type"]);
+            int patient_orientation = py::cast<int>(m_mhead["patient_orientation"]);
+            QString facility_name = py::cast<QString>(m_mhead["facility_name"]);
+            short num_planes = py::cast<short>(m_mhead["num_planes"]);
+            int num_frames = py::cast<int>(m_mhead["num_frames"]);
+            int num_gates = py::cast<int>(m_mhead["num_gates"]);
+            int num_bed_pos = py::cast<int>(m_mhead["num_bed_pos"]);
+            float init_bed_position = py::cast<float>(m_mhead["init_bed_position"]);
+            std::vector<float> bed_offset = py::cast<std::vector<float> >(m_mhead["bed_offset"]);
+            float plane_separation = py::cast<float>(m_mhead["plane_separation"]);
+            short lwr_sctr_thres = py::cast<short>(m_mhead["lwr_sctr_thres"]);
+            short lwr_true_thres = py::cast<short>(m_mhead["lwr_true_thres"]);
+            short upr_true_thres = py::cast<short>(m_mhead["upr_true_thres"]);
+            QString user_process_code = py::cast<QString>(m_mhead["user_process_code"]);
+            int acquisition_mode = py::cast<int>(m_mhead["acquisition_mode"]);
+            float bin_size = py::cast<float>(m_mhead["bin_size"]);
+            float branching_fraction = py::cast<float>(m_mhead["branching_fraction"]);
+            time_t dose_start_time = std::chrono::system_clock::to_time_t(py::cast<std::chrono::system_clock::time_point>(m_mhead["dose_start_time"]));
+            float dosage = py::cast<float>(m_mhead["dosage"]);
+            float well_counter_corr_factor = py::cast<float>(m_mhead["well_counter_corr_factor"]);
+            QString data_units = py::cast<QString>(m_mhead["data_units"]);
+            int septa_state = py::cast<int>(m_mhead["septa_state"]);
+            std::vector<short> cti_reserved = py::cast<std::vector<short> >(m_mhead["cti_reserved"]);
 
             ecat7MainHeader->setMagic_Number(magic_number.toLatin1().constData());
             ecat7MainHeader->setOriginal_File_Name(original_file_name.toLatin1().constData());
@@ -897,73 +877,73 @@ class MedIOImage
             pSubHeader = ecatFile->createEmptySubHeader();
             CECAT7SubHeaderImage* ecat7SubHeaderImage = static_cast<CECAT7SubHeaderImage*>(pSubHeader);
 
-            int data_type = shead["data_type"].cast<int>();
-            short num_dimensions = shead["num_dimensions"].cast<short>();
-            short x_dimension = shead["x_dimension"].cast<short>();
-            short y_dimension = shead["y_dimension"].cast<short>();
-            short z_dimension = shead["z_dimension"].cast<short>();
-            float scale_factor = shead["scale_factor"].cast<float>();
-            float x_pixelsize = shead["x_pixelsize"].cast<float>();
-            float y_pixelsize = shead["y_pixelsize"].cast<float>();
-            float z_pixelsize = shead["z_pixelsize"].cast<float>();
+            int data_type = py::cast<int>(shead["data_type"]);
+            short num_dimensions = py::cast<short>(shead["num_dimensions"]);
+            short x_dimension = py::cast<short>(shead["x_dimension"]);
+            short y_dimension = py::cast<short>(shead["y_dimension"]);
+            short z_dimension = py::cast<short>(shead["z_dimension"]);
+            float scale_factor = py::cast<float>(shead["scale_factor"]);
+            float x_pixelsize = py::cast<float>(shead["x_pixelsize"]);
+            float y_pixelsize = py::cast<float>(shead["y_pixelsize"]);
+            float z_pixelsize = py::cast<float>(shead["z_pixelsize"]);
             
-            float x_offset = shead["x_offset"].cast<float>();
-            float y_offset = shead["y_offset"].cast<float>();
-            float z_offset = shead["z_offset"].cast<float>();
-            float recon_zoom = shead["recon_zoom"].cast<float>();
+            float x_offset = py::cast<float>(shead["x_offset"]);
+            float y_offset = py::cast<float>(shead["y_offset"]);
+            float z_offset = py::cast<float>(shead["z_offset"]);
+            float recon_zoom = py::cast<float>(shead["recon_zoom"]);
 
-            short image_min = shead["image_min"].cast<short>();
-            short image_max = shead["image_max"].cast<short>();
+            short image_min = py::cast<short>(shead["image_min"]);
+            short image_max = py::cast<short>(shead["image_max"]);
 
-            unsigned int frame_duration = shead["frame_duration"].cast<unsigned int>();
-            unsigned int frame_start = shead["frame_start"].cast<unsigned int>();
+            unsigned int frame_duration = py::cast<unsigned int>(shead["frame_duration"]);
+            unsigned int frame_start = py::cast<unsigned int>(shead["frame_start"]);
 
-            int filter_code = shead["filter_code"].cast<int>();
-            float x_resolution = shead["x_resolution"].cast<float>();
-            float y_resolution = shead["y_resolution"].cast<float>();
-            float z_resolution = shead["z_resolution"].cast<float>();
-            float num_r_elements = shead["num_r_elements"].cast<float>();
-            float num_angles = shead["num_angles"].cast<float>();
-            float z_rotation_angle = shead["z_rotation_angle"].cast<float>();
-            float decay_corr_fctr = shead["decay_corr_fctr"].cast<float>();
+            int filter_code = py::cast<int>(shead["filter_code"]);
+            float x_resolution = py::cast<float>(shead["x_resolution"]);
+            float y_resolution = py::cast<float>(shead["y_resolution"]);
+            float z_resolution = py::cast<float>(shead["z_resolution"]);
+            float num_r_elements = py::cast<float>(shead["num_r_elements"]);
+            float num_angles = py::cast<float>(shead["num_angles"]);
+            float z_rotation_angle = py::cast<float>(shead["z_rotation_angle"]);
+            float decay_corr_fctr = py::cast<float>(shead["decay_corr_fctr"]);
 
-            unsigned int processing_code = shead["processing_code"].cast<unsigned int>();
-            unsigned int gate_duration = shead["gate_duration"].cast<unsigned int>();
-            unsigned int r_wave_offset = shead["r_wave_offset"].cast<unsigned int>();
-            unsigned int num_accepted_beats = shead["num_accepted_beats"].cast<unsigned int>();
+            unsigned int processing_code = py::cast<unsigned int>(shead["processing_code"]);
+            unsigned int gate_duration = py::cast<unsigned int>(shead["gate_duration"]);
+            unsigned int r_wave_offset = py::cast<unsigned int>(shead["r_wave_offset"]);
+            unsigned int num_accepted_beats = py::cast<unsigned int>(shead["num_accepted_beats"]);
 
-            float filter_cutoff_frequency = shead["filter_cutoff_frequency"].cast<float>();
-            float filter_resolution = shead["filter_resolution"].cast<float>();
-            float filter_ramp_slope = shead["filter_ramp_slope"].cast<float>();
-            short filter_order = shead["filter_order"].cast<short>();
-            float filter_scatter_fraction = shead["filter_scatter_fraction"].cast<float>();
-            float filter_scatter_slope = shead["filter_scatter_slope"].cast<float>();
-            QString annotation = shead["annotation"].cast<QString>();
-            float mt_1_1 = shead["mt_1_1"].cast<float>();
-            float mt_1_2 = shead["mt_1_2"].cast<float>();
-            float mt_1_3 = shead["mt_1_3"].cast<float>();
-            float mt_2_1 = shead["mt_2_1"].cast<float>();
-            float mt_2_2 = shead["mt_2_2"].cast<float>();
-            float mt_2_3 = shead["mt_2_3"].cast<float>();
-            float mt_3_1 = shead["mt_3_1"].cast<float>();
-            float mt_3_2 = shead["mt_3_2"].cast<float>();
-            float mt_3_3 = shead["mt_3_3"].cast<float>();
-            float rfilter_cutoff = shead["rfilter_cutoff"].cast<float>();
-            float rfilter_resolution = shead["rfilter_resolution"].cast<float>();
-            int rfilter_code = shead["rfilter_code"].cast<int>();
-            short rfilter_order = shead["rfilter_order"].cast<short>();
-            float zfilter_cutoff = shead["zfilter_cutoff"].cast<float>();
-            float zfilter_resolution = shead["zfilter_resolution"].cast<float>();
-            int zfilter_code = shead["zfilter_code"].cast<int>();
-            short zfilter_order = shead["zfilter_order"].cast<short>();
-            float mt_1_4 = shead["mt_1_4"].cast<float>();
-            float mt_2_4 = shead["mt_2_4"].cast<float>();
-            float mt_3_4 = shead["mt_3_4"].cast<float>();
-            int scatter_type = shead["scatter_type"].cast<int>();
-            int recon_type = shead["recon_type"].cast<int>();
-            short recon_views = shead["recon_views"].cast<short>();
-            std::vector<short> cti_reserved = shead["cti_reserved"].cast<std::vector<short> >();
-            std::vector<short> user_reserved = shead["user_reserved"].cast<std::vector<short> >();
+            float filter_cutoff_frequency = py::cast<float>(shead["filter_cutoff_frequency"]);
+            float filter_resolution = py::cast<float>(shead["filter_resolution"]);
+            float filter_ramp_slope = py::cast<float>(shead["filter_ramp_slope"]);
+            short filter_order = py::cast<short>(shead["filter_order"]);
+            float filter_scatter_fraction = py::cast<float>(shead["filter_scatter_fraction"]);
+            float filter_scatter_slope = py::cast<float>(shead["filter_scatter_slope"]);
+            QString annotation = py::cast<QString>(shead["annotation"]);
+            float mt_1_1 = py::cast<float>(shead["mt_1_1"]);
+            float mt_1_2 = py::cast<float>(shead["mt_1_2"]);
+            float mt_1_3 = py::cast<float>(shead["mt_1_3"]);
+            float mt_2_1 = py::cast<float>(shead["mt_2_1"]);
+            float mt_2_2 = py::cast<float>(shead["mt_2_2"]);
+            float mt_2_3 = py::cast<float>(shead["mt_2_3"]);
+            float mt_3_1 = py::cast<float>(shead["mt_3_1"]);
+            float mt_3_2 = py::cast<float>(shead["mt_3_2"]);
+            float mt_3_3 = py::cast<float>(shead["mt_3_3"]);
+            float rfilter_cutoff = py::cast<float>(shead["rfilter_cutoff"]);
+            float rfilter_resolution = py::cast<float>(shead["rfilter_resolution"]);
+            int rfilter_code = py::cast<int>(shead["rfilter_code"]);
+            short rfilter_order = py::cast<short>(shead["rfilter_order"]);
+            float zfilter_cutoff = py::cast<float>(shead["zfilter_cutoff"]);
+            float zfilter_resolution = py::cast<float>(shead["zfilter_resolution"]);
+            int zfilter_code = py::cast<int>(shead["zfilter_code"]);
+            short zfilter_order = py::cast<short>(shead["zfilter_order"]);
+            float mt_1_4 = py::cast<float>(shead["mt_1_4"]);
+            float mt_2_4 = py::cast<float>(shead["mt_2_4"]);
+            float mt_3_4 = py::cast<float>(shead["mt_3_4"]);
+            int scatter_type = py::cast<int>(shead["scatter_type"]);
+            int recon_type = py::cast<int>(shead["recon_type"]);
+            short recon_views = py::cast<short>(shead["recon_views"]);
+            std::vector<short> cti_reserved = py::cast<std::vector<short> >(shead["cti_reserved"]);
+            std::vector<short> user_reserved = py::cast<std::vector<short> >(shead["user_reserved"]);
 
             ecat7SubHeaderImage->setData_Type(static_cast<CECATSubHeader::Data_Type>(data_type));
             ecat7SubHeaderImage->setNum_Dimensions(num_dimensions);
@@ -1446,7 +1426,7 @@ class MedIOImage
             // get subheader
             py::dict shead = m_shead[t];
 
-            //std::cout << "x_pixelsize: " << shead["x_pixelsize"].cast<float>();
+            //std::cout << "x_pixelsize: " << py::cast<float>(shead["x_pixelsize"]);
 
             // calculate plane and data size 
             size_t planeSize = m_xdim * m_ydim;
@@ -1537,9 +1517,9 @@ class MedIOImage
             /*
             std::cout << "planeSize: " << std::setprecision(20) << planeSize << std::endl;
             std::cout << "volumeSize: " << std::setprecision(20) << volumeSize << std::endl;
-            std::cout << "oldMin: " << std::setprecision(20) << shead["image_min"].cast<short>() << std::endl;
-            std::cout << "oldMax: " << std::setprecision(20) << shead["image_max"].cast<short>() << std::endl;
-            std::cout << "oldScaleFactor: " << std::setprecision(20) << shead["scale_factor"].cast<float>() << std::endl;
+            std::cout << "oldMin: " << std::setprecision(20) << py::cast<short>(shead["image_min"]) << std::endl;
+            std::cout << "oldMax: " << std::setprecision(20) << py::cast<short>(shead["image_max"]) << std::endl;
+            std::cout << "oldScaleFactor: " << std::setprecision(20) << py::cast<float>(shead["scale_factor"]) << std::endl;
             std::cout << "newMin: " << std::setprecision(20) << newMin << std::endl;
             std::cout << "newMax: " << std::setprecision(20) << newMax << std::endl;
             std::cout << "newScaleFactor: " << std::setprecision(20) << newScaleFactor << std::endl;
@@ -1675,373 +1655,3 @@ class MedIOImage
     float* m_data;
 };
 
-// pybind11 type caster from QString <> Python 'str'
-namespace PYBIND11_NAMESPACE { namespace detail {
-  template <> struct type_caster<QString> {
-  public:
-    /**
-     * This macro establishes the name 'QString' in
-     * function signatures and declares a local variable
-     * 'value' of type QString
-     */
-    PYBIND11_TYPE_CASTER(QString, const_name("str"));
-
-    /**
-     * Conversion part 1 (Python->C++): convert a PyObject into a QString
-     * instance or return false upon failure. The second argument
-     * indicates whether implicit conversions should be applied.
-     */
-    bool load(handle src, bool) {
-        /* Extract PyObject from handle */
-        PyObject *source = src.ptr();
-
-        /* check if unicode compliant */
-        if (!PyUnicode_Check(source))
-          return false;
-
-        /* convert into a const char */
-        Py_ssize_t size = 0;
-        const char *ptr = PyUnicode_AsUTF8AndSize(source, &size);
-        if (!ptr)
-          return false;
-
-        /* Now try to convert into a QString */
-        value = QString::fromUtf8(ptr, size);
-
-        /* Ensure return code was OK (to avoid out-of-range errors etc) */
-        return (!PyErr_Occurred());
-    }
-
-    /**
-     * Conversion part 2 (C++ -> Python): convert a QString instance into
-     * a Python object. The second and third arguments are used to
-     * indicate the return value policy and parent object (for
-     * ``return_value_policy::reference_internal``) and are generally
-     * ignored by implicit casters.
-     */
-    static handle cast(QString src, return_value_policy /* policy */, handle /* parent */) {
-      return (PyUnicode_FromString( src.toUtf8().data()) );
-    }
-  };
-}} // namespace PYBIND11_NAMESPACE::detail
- 
-// pybind11 type caster from QIODevice::OpenModeFlag <> Python 'int'
-namespace PYBIND11_NAMESPACE { namespace detail {
-  template <> struct type_caster<QIODevice::OpenModeFlag> {
-  public:
-    /**
-     * This macro establishes the name 'QIODevice::OpenModeFlag' in
-     * function signatures and declares a local variable
-     * 'value' of type QIODevice::OpenModeFlag
-     */
-    PYBIND11_TYPE_CASTER(QIODevice::OpenModeFlag, const_name("int"));
-
-    /**
-     * Conversion part 1 (Python->C++): convert a PyObject into a QIODevice::OpenModeFlag
-     * instance or return false upon failure. The second argument
-     * indicates whether implicit conversions should be applied.
-     */
-    bool load(handle src, bool) {
-        /* Extract PyObject from handle */
-        PyObject *source = src.ptr();
-
-        PyObject *tmp = PyNumber_Long(source);
-        if (!tmp)
-          return false;
-
-        /* convert into an integer: -1 with a Python error set means failure */
-        const long number = PyLong_AsLong(tmp);
-        Py_DECREF(tmp);
-        if (number == -1 && PyErr_Occurred()) {
-          PyErr_Clear();
-          return false;
-        }
-
-        value = static_cast<QIODevice::OpenModeFlag>(number);
-        return true;
-    }
-
-    /**
-     * Conversion part 2 (C++ -> Python): convert a QIODevice::OpenModeFlag instance into
-     * a Python object. The second and third arguments are used to
-     * indicate the return value policy and parent object (for
-     * ``return_value_policy::reference_internal``) and are generally
-     * ignored by implicit casters.
-     */
-    static handle cast(QIODevice::OpenModeFlag src, return_value_policy /* policy */, handle /* parent */) {
-      return PyLong_FromLong(src);
-    }
-  };
-}} // namespace PYBIND11_NAMESPACE::detail
-
-// pybind11 type caster from CMedIOData::Format <> Python 'str'
-namespace PYBIND11_NAMESPACE { namespace detail {
-  template <> struct type_caster<CMedIOData::Format> {
-  public:
-    /**
-     * This macro establishes the name 'CMedIOData::Format' in
-     * function signatures and declares a local variable
-     * 'value' of type QString
-     */
-    PYBIND11_TYPE_CASTER(CMedIOData::Format, const_name("str"));
-
-    /**
-     * Conversion part 1 (Python->C++): convert a PyObject into a CMedIOData::Format
-     * instance or return false upon failure. The second argument
-     * indicates whether implicit conversions should be applied.
-     */
-    bool load(handle src, bool) {
-        /* Extract PyObject from handle */
-        PyObject *source = src.ptr();
-
-        /* check if unicode compliant */
-        if (!PyUnicode_Check(source))
-          return false;
-
-        /* convert into a const char */
-        Py_ssize_t size = 0;
-        const char *ptr = PyUnicode_AsUTF8AndSize(source, &size);
-        if (!ptr)
-          return false;
-
-        /* Now try to convert into a QString */
-        QString str = QString::fromUtf8(ptr, size);
-        if(str.startsWith('e', Qt::CaseInsensitive))
-          value = CMedIOData::ECAT;
-        else if(str.startsWith('u', Qt::CaseInsensitive))
-          value = CMedIOData::Unknown; 
-        else if(str.startsWith('c', Qt::CaseInsensitive))
-          value = CMedIOData::ConcordeMicropet;
-        else if(str.startsWith('m', Qt::CaseInsensitive))
-          value = CMedIOData::ConcordeMicropet;
-        else if(str.startsWith("philipsbin", Qt::CaseInsensitive))
-          value = CMedIOData::PhilipsBin;
-        else if(str.startsWith('p', Qt::CaseInsensitive))
-          value = CMedIOData::Philips;
-        else if(str.startsWith('n', Qt::CaseInsensitive))
-          value = CMedIOData::NIFTI;
-        else
-        {
-          value = CMedIOData::Unknown;
-          throw std::runtime_error("could not convert '" + std::string(ptr) + "' to valid format type");
-        }
-
-        /* Ensure return code was OK (to avoid out-of-range errors etc) */
-        return (!PyErr_Occurred());
-    }
-
-    /**
-     * Conversion part 2 (C++ -> Python): convert a CMedIOData::Format instance into
-     * a Python object. The second and third arguments are used to
-     * indicate the return value policy and parent object (for
-     * ``return_value_policy::reference_internal``) and are generally
-     * ignored by implicit casters.
-     */
-    static handle cast(CMedIOData::Format src, return_value_policy /* policy */, handle /* parent */) {
-      QString srcStr;
-
-      switch(src)
-      {
-        case CMedIOData::Unknown:
-          srcStr = "unknown";
-        break;
-
-        case CMedIOData::ECAT:
-          srcStr = "ecat";
-        break;
-
-        case CMedIOData::ConcordeMicropet:
-          srcStr = "micropet";
-        break;
-
-        case CMedIOData::Philips:
-          srcStr = "philips";
-        break;
-
-        case CMedIOData::PhilipsBin:
-          srcStr = "philipsbin";
-        break;
-
-        case CMedIOData::NIFTI:
-          srcStr = "nifti";
-        break;
-      }
-
-      return (PyUnicode_FromString( srcStr.toUtf8().data()) );
-    }
-  };
-}} // namespace PYBIND11_NAMESPACE::detail
-
-// pybind11 type caster from enum dimTypes <> Python 'str'
-namespace PYBIND11_NAMESPACE { namespace detail {
-  template <> struct type_caster<enum dimTypes> {
-  public:
-    /**
-     * This macro establishes the name 'enum dimTypes' in
-     * function signatures and declares a local variable
-     * 'value' of type QString
-     */
-    PYBIND11_TYPE_CASTER(enum dimTypes, const_name("str"));
-
-    /**
-     * Conversion part 1 (Python->C++): convert a PyObject into a enum dimTypes
-     * instance or return false upon failure. The second argument
-     * indicates whether implicit conversions should be applied.
-     */
-    bool load(handle src, bool) {
-        /* Extract PyObject from handle */
-        PyObject *source = src.ptr();
-
-        /* check if unicode compliant */
-        if (!PyUnicode_Check(source))
-          return false;
-
-        /* convert into a const char */
-        Py_ssize_t size = 0;
-        const char *ptr = PyUnicode_AsUTF8AndSize(source, &size);
-        if (!ptr)
-          return false;
-
-        /* Now try to convert into a QString */
-        QString str = QString::fromUtf8(ptr, size);
-        if(str.startsWith('f', Qt::CaseInsensitive))
-          value = DM_FRAMES;
-        else if(str.startsWith('g', Qt::CaseInsensitive))
-          value = DM_GATES; 
-        else if(str.startsWith('b', Qt::CaseInsensitive))
-          value = DM_BEDS;
-        else if(str.startsWith('d', Qt::CaseInsensitive))
-          value = DM_DATA;
-        else if(str.startsWith('u', Qt::CaseInsensitive))
-          value = DM_UNKNOWN;
-        else
-        {
-          value = DM_UNKNOWN;
-          throw std::runtime_error("could not convert '" + std::string(ptr) + "' to valid dimension type");
-        }
-
-        /* Ensure return code was OK (to avoid out-of-range errors etc) */
-        return (!PyErr_Occurred());
-    }
-
-    /**
-     * Conversion part 2 (C++ -> Python): convert a enum dimTypes instance into
-     * a Python object. The second and third arguments are used to
-     * indicate the return value policy and parent object (for
-     * ``return_value_policy::reference_internal``) and are generally
-     * ignored by implicit casters.
-     */
-    static handle cast(enum dimTypes src, return_value_policy /* policy */, handle /* parent */) {
-      QString srcStr;
-
-      switch(src)
-      {
-        case DM_UNKNOWN:
-          srcStr = "unknown";
-        break;
-
-        case DM_FRAMES:
-          srcStr = "frames";
-        break;
-
-        case DM_GATES:
-          srcStr = "gates";
-        break;
-
-        case DM_BEDS:
-          srcStr = "beds";
-        break;
-
-        case DM_DATA:
-          srcStr = "data";
-        break;
-      }
-
-      return (PyUnicode_FromString( srcStr.toUtf8().data()) );
-    }
-  };
-}} // namespace PYBIND11_NAMESPACE::detail
-
-// pybind11 type caster from enum dataTypes <> Python 'str'
-namespace PYBIND11_NAMESPACE { namespace detail {
-  template <> struct type_caster<enum dataTypes> {
-  public:
-    /**
-     * This macro establishes the name 'enum dataTypes' in
-     * function signatures and declares a local variable
-     * 'value' of type QString
-     */
-    PYBIND11_TYPE_CASTER(enum dataTypes, const_name("str"));
-
-    /**
-     * Conversion part 1 (Python->C++): convert a PyObject into a enum dataTypes
-     * instance or return false upon failure. The second argument
-     * indicates whether implicit conversions should be applied.
-     */
-    bool load(handle src, bool) {
-        /* Extract PyObject from handle */
-        PyObject *source = src.ptr();
-
-        /* check if unicode compliant */
-        if (!PyUnicode_Check(source))
-          return false;
-
-        /* convert into a const char */
-        Py_ssize_t size = 0;
-        const char *ptr = PyUnicode_AsUTF8AndSize(source, &size);
-        if (!ptr)
-          return false;
-
-        /* Now try to convert into a QString */
-        QString str = QString::fromUtf8(ptr, size);
-        if(str.startsWith('f', Qt::CaseInsensitive))
-          value = DT_FLOAT;
-        else if(str.startsWith('s', Qt::CaseInsensitive))
-          value = DT_SHORT;
-        else if(str.startsWith('i', Qt::CaseInsensitive))
-          value = DT_LONG;
-        else if(str.startsWith('b', Qt::CaseInsensitive))
-          value = DT_BYTE;
-        else
-        {
-          value = DT_FLOAT;
-          throw std::runtime_error("could not convert '" + std::string(ptr) + "' to valid data type");
-        }
-
-        /* Ensure return code was OK (to avoid out-of-range errors etc) */
-        return (!PyErr_Occurred());
-    }
-
-    /**
-     * Conversion part 2 (C++ -> Python): convert a enum dataTypes instance into
-     * a Python object. The second and third arguments are used to
-     * indicate the return value policy and parent object (for
-     * ``return_value_policy::reference_internal``) and are generally
-     * ignored by implicit casters.
-     */
-    static handle cast(enum dataTypes src, return_value_policy /* policy */, handle /* parent */) {
-      QString srcStr;
-
-      switch(src)
-      {
-        case DT_FLOAT:
-          srcStr = "float";
-        break;
-
-        case DT_SHORT:
-          srcStr = "short";
-        break;
-
-        case DT_LONG:
-          srcStr = "int";
-        break;
-
-        case DT_BYTE:
-          srcStr = "byte";
-        break;
-      }
-
-      return (PyUnicode_FromString( srcStr.toUtf8().data()) );
-    }
-  };
-}} // namespace PYBIND11_NAMESPACE::detail

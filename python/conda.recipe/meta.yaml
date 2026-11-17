@@ -35,7 +35,7 @@ requirements:
     - "{{ compiler('cxx') }}"
     - python
     - pip
-    - pybind11
+    - nanobind
     - cmake
     - ninja
     - qt-main
