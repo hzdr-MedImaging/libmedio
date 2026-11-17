@@ -206,7 +206,7 @@ test:
 .PHONY: conda
 conda:
 	@echo "  CONDA BUILD"
-	@PROJECT_VERSION=$(VERSION) conda mambabuild -c conda-forge conda.recipe
+	@PROJECT_VERSION=$(VERSION) conda build -c conda-forge --use-local conda.recipe
 
 # cleanup target
 .PHONY: clean
