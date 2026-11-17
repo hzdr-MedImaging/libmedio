@@ -48,7 +48,24 @@ message("Using Root Path: ${CMAKE_FIND_ROOT_PATH}")
 # nanobind needs the Python found by FindPython (select it with -DPython_EXECUTABLE=...).
 # Its CMake files are part of the Python package nanobind of this interpreter, unless
 # nanobind_DIR is given.
-find_package(Python 3.10 COMPONENTS Interpreter Development.Module REQUIRED)
+#
+# PMEDIO_STABLE_ABI builds the module for the stable ABI of Python (pmedio.abi3.so),
+# which works with Python 3.12 and all newer versions. scikit-build-core requests it
+# for the wheels (wheel.py-api of pyproject.toml) by setting SKBUILD_SABI_COMPONENT.
+if(SKBUILD_SABI_COMPONENT)
+  set(PMEDIO_STABLE_ABI_DEFAULT ON)
+else()
+  set(PMEDIO_STABLE_ABI_DEFAULT OFF)
+endif()
+option(PMEDIO_STABLE_ABI "build the module for the stable ABI of Python (3.12 or newer)" ${PMEDIO_STABLE_ABI_DEFAULT})
+
+if(PMEDIO_STABLE_ABI)
+  find_package(Python 3.12 COMPONENTS Interpreter Development.Module Development.SABIModule REQUIRED)
+  set(PMEDIO_MODULE_OPTIONS STABLE_ABI)
+else()
+  find_package(Python 3.10 COMPONENTS Interpreter Development.Module REQUIRED)
+  set(PMEDIO_MODULE_OPTIONS)
+endif()
 if(NOT nanobind_DIR)
   execute_process(COMMAND "${Python_EXECUTABLE}" -m nanobind --cmake_dir
                   OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -69,9 +86,10 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}
 
 # the bindings need C++17 (nanobind), which nanobind_add_module() selects; the
 # small nanobind library is built together with and linked into the module
-nanobind_add_module(pmedio NB_STATIC src/pmedio.cpp
-                                     src/medio.cpp
-                                     src/volume.cpp)
+nanobind_add_module(pmedio NB_STATIC ${PMEDIO_MODULE_OPTIONS}
+                           src/pmedio.cpp
+                           src/medio.cpp
+                           src/volume.cpp)
 
 # define link libraries dependencies
 target_link_libraries(pmedio PRIVATE

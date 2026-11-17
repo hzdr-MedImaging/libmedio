@@ -44,10 +44,15 @@ Homepage = "https://github.com/hzdr-MedImaging/libmedio"
 
 [tool.scikit-build]
 minimum-version = "build-system.requires"
-cmake.version = ">=3.15"
+# CMake 3.26 or newer is needed for the stable ABI (FindPython component Development.SABIModule)
+cmake.version = ">=3.26"
 cmake.build-type = "Release"
 # the module is the only content of the package, installed by CMake
 wheel.packages = []
+# With Python 3.12 or newer the module is built for the stable ABI: the wheel
+# (cp312-abi3) also works with all newer Python versions. Older Python versions
+# get a wheel for their version.
+wheel.py-api = "cp312"
 sdist.exclude = ["**/__pycache__", "conda.recipe", ".gitignore"]
 
 # libmedio is searched in PREFIX_PATH, which is taken from the environment
