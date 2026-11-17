@@ -283,8 +283,11 @@ NB_MODULE(pmedio, m) {
      "``volumes`` selects the frames (or gates, bed positions, data indices) to read in\n"
      "the given order, numbered from 1 in the order of the file; by default all of them\n"
      "are read. ``img[..., k]`` and ``img.shead[k]`` belong to the same volume.\n"
-     "``rows``, ``cols`` and ``planes`` (numbered from 1) are only checked against the\n"
-     "dimensions of the file, the complete volumes are returned.");
+     "``cols``, ``rows`` and ``planes`` select the voxels along x, y and z of every volume\n"
+     "in the given order. They are numbered from 1 like the indices of the image, so\n"
+     "``read(f, cols=[2, 3])`` is ``read(f)[1:3, :, :, :]``; by default all voxels are read.\n"
+     "The dimensions of ``img.shead`` and ``num_planes`` of ``img.mhead`` are those of the\n"
+     "selection, the other fields (e.g. the offsets) are those of the file.");
 
   // general pmedio.write() function to write out a medioimage data
   m.def("write", [](MedIOImage& img,

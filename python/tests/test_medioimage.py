@@ -459,6 +459,112 @@ def test_write_overwrite(tmp_path):
     assert np.array_equal(np.asarray(pmedio.read(name)), ramp() + 2)
 
 
+def selected(a, cols, rows, planes, volumes):
+    """Part of the array a selected with indices that are numbered from 1 (None: all)"""
+    index = [np.arange(n) if sel is None else np.asarray(sel) - 1
+             for sel, n in zip((cols, rows, planes, volumes), a.shape)]
+    return a[np.ix_(*index)]
+
+
+@pytest.mark.parametrize("cols, rows, planes, volumes", [
+    (None, None, None, None),
+    ([1], None, None, None),
+    (None, [2], None, None),
+    (None, None, [3], None),
+    ([2, 3], None, None, None),                    # a contiguous range
+    (None, [1, 3, 5], None, None),                 # every second row
+    (None, None, [7, 6, 1], None),                 # another order
+    ([4, 4, 1], None, None, None),                 # an index twice
+    ([1, 4], [2, 3, 4], [1, 2, 7], None),          # all three
+    ([4, 3, 2, 1], [5, 4, 3, 2, 1], [7, 6, 5, 4, 3, 2, 1], None),   # everything reversed
+    ([2], [5], [7], [3]),                          # a single voxel
+    ([3, 1], [2], [6, 2, 4], [2, 1]),              # together with volumes
+    ((1, 2), (3,), (4,), (1,)),                    # tuples
+])
+def test_read_selection(tmp_path, cols, rows, planes, volumes):
+    # cols, rows and planes select the voxels along x, y and z like indices of the image
+    # that are numbered from 1; the dimensions all differ, so that a mix-up is noticed
+    a = ramp((4, 5, 7, 3))
+    name = str(tmp_path / "image.v")
+    img = MedIOImage(a)
+    for k, s in enumerate(img.shead):
+        s["frame_start"] = 1000 * k
+        s["x_pixelsize"] = 0.25
+    img.write(name)
+
+    arguments = {key: list(value) for key, value in (("cols", cols), ("rows", rows), ("planes", planes),
+                                                     ("volumes", volumes)) if value is not None}
+    read = pmedio.read(name, **arguments)
+    expected = selected(a, cols, rows, planes, volumes)
+    assert read.shape == expected.shape
+    assert (read.xdim, read.ydim, read.zdim, read.tdim) == expected.shape
+    assert read.size == expected.size
+    assert np.array_equal(np.asarray(read), expected)
+    assert np.array_equal(read.toarray(), expected)
+    for index in np.ndindex(*expected.shape):
+        assert read[index] == expected[index], index
+
+    # the headers describe the selection
+    frames = [1, 2, 3] if volumes is None else list(volumes)
+    assert len(read.shead) == len(frames)
+    for s, frame in zip(read.shead, frames):
+        assert (s["x_dimension"], s["y_dimension"], s["z_dimension"]) == expected.shape[:3]
+        assert s["frame_start"] == 1000 * (frame - 1)
+        assert s["x_pixelsize"] == 0.25
+    assert read.mhead["num_planes"] == expected.shape[2]
+
+    # positional arguments: volumes, rows, cols, planes
+    positional = pmedio.read(name, arguments.get("volumes", []), arguments.get("rows", []),
+                             arguments.get("cols", []), arguments.get("planes", []))
+    assert np.array_equal(np.asarray(positional), expected)
+
+    # the selection can be written: nibabel reads the same values
+    target = str(tmp_path / "selection.v")
+    read.write(target)
+    values, _ = nibabel_values(target)
+    assert np.array_equal(values, expected)
+    assert np.array_equal(np.asarray(pmedio.read(target)), expected)
+
+    # read() of an image reads its complete file again
+    again = pmedio.read(name, **arguments)
+    assert np.array_equal(np.asarray(again.read()), a)
+    assert again.shape == a.shape
+
+
+def test_read_selection_errors(tmp_path):
+    a = ramp((4, 5, 7, 3))
+    name = str(tmp_path / "image.v")
+    pmedio.write(a, name)
+    for arguments, message in (({"cols": [0]}, "index in cols vector .0. is out of bounds: there are 4 cols"),
+                               ({"cols": [1, 5]}, "index in cols vector .5. is out of bounds: there are 4 cols"),
+                               ({"rows": [6]}, "index in rows vector .6. is out of bounds: there are 5 rows"),
+                               ({"rows": [-1]}, "index in rows vector .-1. is out of bounds"),
+                               ({"planes": [8]}, "index in planes vector .8. is out of bounds: there are 7 planes"),
+                               ({"cols": [1], "planes": [1, 0]}, "index in planes vector .0. is out of bounds")):
+        with pytest.raises(RuntimeError, match=message):
+            pmedio.read(name, **arguments)
+    for arguments in ({"cols": 1}, {"rows": "1"}, {"planes": [1.5]}, {"cols": [None]}):
+        with pytest.raises(TypeError):
+            pmedio.read(name, **arguments)
+    # an empty selection selects everything
+    assert pmedio.read(name, cols=[], rows=[], planes=[]).shape == (4, 5, 7, 3)
+
+
+@needs_data
+@pytest.mark.parametrize("path", ["ecat/pet-static.v", "ecat/pet-dynamic.v"])
+def test_read_selection_dataset(path):
+    # a selection of a test dataset is the corresponding part of the complete image (whose
+    # values are checked with the expected values of the dataset in test_read_dataset_values)
+    name = str(DATA_DIR / path)
+    full = np.asarray(pmedio.read(name))
+    cols, rows, planes = [5, 6, 7, 20], [31, 1, 16], [2, 3, 30]
+    part = pmedio.read(name, cols=cols, rows=rows, planes=planes)
+    assert np.array_equal(np.asarray(part), selected(full, cols, rows, planes, None))
+    assert part.mhead["num_planes"] == 3
+    last = pmedio.read(name, volumes=[full.shape[3]], planes=[full.shape[2]])
+    assert np.array_equal(np.asarray(last)[..., 0, 0], full[:, :, -1, -1])
+
+
 @pytest.mark.parametrize("flag", [True, 1, np.True_, np.int64(1), 2.5])
 def test_flags_true(tmp_path, flag):
     # bool arguments take every object with a truth value of its own, not only True and False
@@ -738,10 +844,6 @@ def test_read_volumes(tmp_path):
         with pytest.raises(RuntimeError, match="exceeding boundaries: there are 5 volumes"):
             pmedio.read(name, volumes)
 
-    # rows, cols and planes are checked only, the complete volumes are returned
-    read = pmedio.read(name, [2], [1, 3], [2], [1, 4])
-    assert read.shape == (2, 3, 4, 1)
-    assert np.array_equal(np.asarray(read)[..., 0], a[..., 1])
     with pytest.raises(RuntimeError, match="index in rows vector .4. is out of bounds"):
         pmedio.read(name, rows=[4])
     with pytest.raises(RuntimeError, match="index in cols vector .3. is out of bounds"):
