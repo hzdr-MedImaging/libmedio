@@ -276,7 +276,11 @@ with pmedio.open("image.nii.gz") as f:              # ECAT7, NIfTI, Philips, mic
         for k, frame in enumerate(f.frame_numbers()):
             out.write_volume(f.read_volume(frame), k + 1)
 
+# a file made from volumes alone, with header attributes
 v = pmedio.Volume(np.zeros((64, 64, 32), dtype=np.float32), affine=np.eye(3, 4))
+with pmedio.create("new.nii.gz", frames=2, attributes={"PatientWeight": 72.5}) as out:
+    out.write_volume(v, 1)
+    out.write_volume(v, 2)
 ```
 - `pmedio.Volume` corresponds to `CMedIOVolume`: `stored()` and `values()`
   return copies of the voxels (x running fastest), `scale_factors`,
@@ -287,6 +291,16 @@ v = pmedio.Volume(np.zeros((64, 64, 32), dtype=np.float32), affine=np.eye(3, 4))
   and replaces an existing file only with `overwrite=True`. The volumes
   written are converted into the representation of the file (e.g. the
   datatype and scaling of a NIfTI main header).
+- Without `like`, the main header is made from the first volume written
+  (`CMedIOData::mainHeaderFromVolume()`). `frames=n` gives the number of
+  frames, which a NIfTI file needs in advance; a NIfTI file of several frames
+  stores the physical values as float32. A file closed without a volume, and
+  a NIfTI file without all of its frames, is removed.
+- `attributes={...}` sets header attributes (DICOM keywords such as
+  `"PatientWeight"`, or native fields in the section of the format, as
+  returned by `File.attributes()`); invalid values raise an error before the
+  file is created. `File.attributes()` of a file created for writing returns
+  the attributes of its main header as written.
 - NIfTI files keep the frame timing of the volumes written as JSON header
   extension (`FrameTimesStart`, `FrameDuration`, as written by
   `CNIFTIConverter`), see `CMedIOData::writeMatrix()`.

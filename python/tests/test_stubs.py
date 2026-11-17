@@ -89,8 +89,9 @@ def test_stubs_are_precise():
     text = STUBS.read_text(encoding="utf-8")
     for signature in (
         "def open(path: str | os.PathLike[str]) -> File:",
-        "def create(path: str | os.PathLike[str], like: File, format: str | None = None, "
-        "overwrite: bool | None = False) -> File:",
+        "def create(path: str | os.PathLike[str], like: File | None = None, format: str | None = None, "
+        "overwrite: bool | None = False, frames: int | None = None, "
+        "attributes: dict[str, Any] | None = None) -> File:",
         "def dictionary_entry(keyword_or_tag: str) -> dict[str, Any] | None:",
         "def __init__(self, img: numpy.typing.ArrayLike, format: str = 'ecat', dimType: str = 'frames') -> None:",
         "def shape(self, /) -> tuple[int, int, int, int]:",
