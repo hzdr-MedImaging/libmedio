@@ -77,6 +77,17 @@ def convert(source: pathlib.Path, target: "os.PathLike[str]") -> list[str]:
     return orientations
 
 
+def create_without_source(target: pathlib.Path) -> dict[str, Any]:
+    data: npt.NDArray[np.float32] = np.zeros((4, 4, 2), dtype=np.float32)
+    attributes: dict[str, Any] = {"PatientWeight": 72.5, "PatientName": "Test^Name"}
+    with pmedio.create(target, frames=2, attributes=attributes, overwrite=True) as out:
+        for k in range(2):
+            out.write_volume(pmedio.Volume(data, affine=np.eye(3, 4), frame_start=60.0 * k), k + 1)
+        written: dict[str, Any] = out.attributes()
+    # the context manager does not suppress exceptions: written is always set here
+    return written
+
+
 def library() -> str:
     major: int = pmedio.MedIO.majorVersion()
     return f"{pmedio.MedIO.name()} {pmedio.MedIO.version()} {major} {pmedio.__version__}"
@@ -88,6 +99,8 @@ def mistakes(img: pmedio.MedIOImage, volume: pmedio.Volume, f: pmedio.File) -> N
     pmedio.write(img, "image.v", dataType=5)  # type: ignore[call-overload]
     pmedio.open(5)  # type: ignore[arg-type]
     pmedio.create("image.v", like="other.v")  # type: ignore[arg-type]
+    pmedio.create("image.v", frames="2")  # type: ignore[arg-type]
+    pmedio.create("image.v", attributes=["PatientWeight"])  # type: ignore[arg-type]
     img.xdim = 5  # type: ignore[misc]
     img.shape = (1, 2, 3, 4)  # type: ignore[misc]
     img[0, 0, 0] = 1.0  # type: ignore[index]

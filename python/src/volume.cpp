@@ -48,10 +48,12 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QIODevice>
+#include <QSet>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QString>
 
+#include <climits>
 #include <cstring>
 #include <limits>
 #include <memory>
@@ -227,6 +229,15 @@ class MedIOFile
       : m_pData(data), m_fileName(QFileInfo(fileName).absoluteFilePath()), m_writable(writable) { }
     ~MedIOFile() { close(); }
 
+    // a file created for writing without a source file: its main header is made
+    // from the first volume written (see writeVolume())
+    struct Pending {
+      CMedIOData::Format format;
+      CPhilipsMainHeader::File_Type philipsType;
+      int frames;
+      QJsonObject attributes;
+    };
+
     MedIOFile(const MedIOFile&) = delete;
     MedIOFile& operator=(const MedIOFile&) = delete;
 
@@ -248,13 +259,70 @@ class MedIOFile
       if(m_pData != nullptr) {
         m_pData->close();
         m_pData.reset();
+
+        // a file without any volume has no main header either, and a NIfTI file
+        // without all of its volumes is incomplete: do not leave them behind
+        const bool incomplete = (m_frames > 0 && m_written.size() < m_frames);
+        if(m_pending || incomplete)
+          removeFiles();
+        if(incomplete && m_pending == nullptr)
+          m_incomplete = QString("only %1 of the %2 frames of '%3' were written, the file was removed")
+                         .arg(m_written.size()).arg(m_frames).arg(m_fileName);
       }
     }
 
+    // the message of close() if it removed an incomplete NIfTI file (taken once)
+    QString takeIncomplete() { const QString message = m_incomplete; m_incomplete.clear(); return message; }
+
+    // frames written into a NIfTI file created without a source file
+    void written(short frame) { if(m_frames > 0) m_written.insert(frame == -1 ? 1 : frame); }
+
+    void setPending(const Pending& pending)
+    {
+      m_pending.reset(new Pending(pending));
+      if(pending.format == CMedIOData::NIFTI)
+        m_frames = pending.frames;
+    }
+    // number of frames of a NIfTI file created without a source file (0: any)
+    int frames() const { return m_frames; }
+    const Pending* pending() const { return m_pending.get(); }
+    void setMainAttributes(const QJsonObject& attributes) { m_mainAttributes = attributes; m_pending.reset(); }
+    const QJsonObject& mainAttributes() const { return m_mainAttributes; }
+
+    // closes and removes a file whose main header could not be written
+    void discard()
+    {
+      if(m_pData != nullptr) {
+        m_pData->close();
+        m_pData.reset();
+      }
+      m_pending.reset();
+      removeFiles();
+    }
+
   private:
+    // removes the file, and the image file of a NIfTI header/image pair (named like
+    // CNIFTIFile names it: .img for .hdr, .IMG for .HDR, both optionally with .gz)
+    void removeFiles()
+    {
+      QFile::remove(m_fileName);
+      const QString lower = m_fileName.toLower();
+      const bool gz = lower.endsWith(".gz");
+      const QString name = gz ? m_fileName.left(m_fileName.size() - 3) : m_fileName;
+      if(name.toLower().endsWith(".hdr")) {
+        const bool upper = name.endsWith(".HDR");
+        QFile::remove(name.left(name.size() - 4) + (upper ? ".IMG" : ".img") + (gz ? m_fileName.right(3) : QString()));
+      }
+    }
+
     std::unique_ptr<CMedIOData> m_pData;
     QString m_fileName;
     bool m_writable;
+    std::unique_ptr<Pending> m_pending;   // main header not written yet
+    int m_frames = 0;
+    QSet<short> m_written;
+    QString m_incomplete;
+    QJsonObject m_mainAttributes;         // attributes of the main header written
 };
 
 // target format and Philips file type of a file name created with create()
@@ -311,10 +379,72 @@ bool writeMainHeader(CMedIOData* file, CMedIOHeader* mainHeader, CMedIOData::For
   return result;
 }
 
-std::unique_ptr<MedIOFile> createFile(const py::object& path, const MedIOFile& like, const py::object& format, Flag overwrite)
+// header attributes given as dict (keys and values as returned by File.attributes())
+QJsonObject attributesOf(const py::object& attributes)
 {
-  if(like.writable())
-    raise(PyExc_ValueError, "the source file 'like' has to be opened for reading with pmedio.open()");
+  if(attributes.is_none())
+    return QJsonObject();
+  if(py::isinstance<py::dict>(attributes) == false)
+    raise(PyExc_TypeError, "the attributes have to be a dict");
+
+  // numpy scalars are given as the Python numbers they hold
+  py::object item = py::cpp_function([](py::handle value) -> py::object {
+    if(py::hasattr(value, "item"))
+      return value.attr("item")();
+    raise(PyExc_TypeError, QString("value of type %1 cannot be stored in a header")
+                           .arg(py::cast<QString>(py::steal<py::object>(PyObject_Str(value.type().ptr())))));
+  });
+  const py::object text = py::module_::import_("json").attr("dumps")(attributes, py::arg("default") = item);
+  const QByteArray utf8 = py::cast<QString>(text).toUtf8();
+  return QJsonDocument::fromJson(utf8).object();
+}
+
+// apply the attributes to a main header; ValueError if one does not fit
+void updateAttributes(CMedIOHeader* header, const QJsonObject& attributes)
+{
+  if(attributes.isEmpty() == false && header->updateAttributes(attributes) == false)
+    raise(PyExc_ValueError, "invalid header attributes: a value does not fit its key or the format "
+                            "(see pmedio.dictionary_entry() and File.attributes() of a file of the format)");
+}
+
+// file object of a new file of the format
+CMedIOData* newFile(const QString& fileName, CMedIOData::Format target, CPhilipsMainHeader::File_Type philipsType)
+{
+  switch(target) {
+    case CMedIOData::ECAT:    return new CECATFile(fileName, CECATMainHeader::ECAT7_Volume16);
+    case CMedIOData::NIFTI:   return new CNIFTIFile(fileName, CNIFTIMainHeader::NIFTI1);
+    case CMedIOData::Philips: return new CPhilipsFile(fileName, philipsType);
+    default:
+      raise(PyExc_ValueError, QString("files of data format %1 cannot be written").arg(static_cast<int>(target)));
+  }
+}
+
+std::unique_ptr<MedIOFile> createFile(const py::object& path, const py::object& likeObject, const py::object& format,
+                                      Flag overwrite, const py::object& framesObject, const py::object& attributesObject)
+{
+  const MedIOFile* like = nullptr;
+  if(likeObject.is_none() == false) {
+    if(py::isinstance<MedIOFile>(likeObject) == false)
+      raise(PyExc_TypeError, "the source file 'like' has to be a pmedio.File opened with pmedio.open()");
+    like = py::inst_ptr<MedIOFile>(likeObject);
+    if(like->writable())
+      raise(PyExc_ValueError, "the source file 'like' has to be opened for reading with pmedio.open()");
+  }
+
+  int frames = 1;
+  if(framesObject.is_none() == false) {
+    if(like != nullptr)
+      raise(PyExc_ValueError, "the number of frames is taken from the source file 'like'");
+    if(PyLong_Check(framesObject.ptr()) == false || PyBool_Check(framesObject.ptr()))
+      raise(PyExc_TypeError, "the number of frames has to be an int");
+    const long n = PyLong_AsLong(framesObject.ptr());
+    if(n < 1 || n > SHRT_MAX) {
+      PyErr_Clear();
+      raise(PyExc_ValueError, QString("the number of frames has to be 1..%1").arg(SHRT_MAX));
+    }
+    frames = static_cast<int>(n);
+  }
+  const QJsonObject attributes = attributesOf(attributesObject);
 
   const QString fileName = pathOf(path);
   CPhilipsMainHeader::File_Type philipsType = CPhilipsMainHeader::Image;
@@ -326,35 +456,74 @@ std::unique_ptr<MedIOFile> createFile(const py::object& path, const MedIOFile& l
   if(QFileInfo::exists(fileName) && overwrite == false)
     raise(PyExc_FileExistsError, "'" + fileName + "' exists already (use overwrite=True to replace it)");
 
-  // main header of the source in the representation of the target format
+  // main header of the source in the representation of the target format, or (without a
+  // source) a header of a volume of one voxel, which checks the attributes before the file
+  // is created; the main header of the file is made from its first volume
   CMedIOHeader* mainHeader = nullptr;
-  if(like.data()->readMainHeader(mainHeader, target) == false || mainHeader == nullptr) {
-    delete mainHeader;
-    raise(PyExc_RuntimeError, QString("unable to convert the main header of the source into data format %1").arg(static_cast<int>(target)));
+  if(like != nullptr) {
+    if(like->data()->readMainHeader(mainHeader, target) == false || mainHeader == nullptr) {
+      delete mainHeader;
+      raise(PyExc_RuntimeError, QString("unable to convert the main header of the source into data format %1").arg(static_cast<int>(target)));
+    }
+  } else {
+    CMedIOVolume voxel;
+    voxel.setData(1, 1, 1, CMedIOVolume::Float32, QByteArray(sizeof(float), '\0'));
+    if(CMedIOData::mainHeaderFromVolume(voxel, target, frames, mainHeader) == false || mainHeader == nullptr) {
+      delete mainHeader;
+      raise(PyExc_RuntimeError, QString("unable to create a main header of data format %1").arg(static_cast<int>(target)));
+    }
   }
   std::unique_ptr<CMedIOHeader> mainHeaderGuard(mainHeader);
+  updateAttributes(mainHeader, attributes);
 
-  CMedIOData* file = nullptr;
-  switch(target) {
-    case CMedIOData::ECAT:    file = new CECATFile(fileName, CECATMainHeader::ECAT7_Volume16); break;
-    case CMedIOData::NIFTI:   file = new CNIFTIFile(fileName, CNIFTIMainHeader::NIFTI1); break;
-    case CMedIOData::Philips: file = new CPhilipsFile(fileName, philipsType); break;
-    default:
-      raise(PyExc_ValueError, QString("files of data format %1 cannot be written").arg(static_cast<int>(target)));
-  }
+  CMedIOData* file = newFile(fileName, target, philipsType);
   std::unique_ptr<MedIOFile> result(new MedIOFile(file, fileName, true));
 
   if(file->open(QIODevice::WriteOnly) == false)
     raise(PyExc_OSError, "unable to create '" + fileName + "'");
 
-  if(writeMainHeader(file, mainHeader, target, philipsType) == false) {
-    // do not leave a partial file behind
-    result->close();
-    QFile::remove(fileName);
-    raise(PyExc_RuntimeError, "unable to write the main header of '" + fileName + "'");
+  if(like == nullptr) {
+    result->setPending(MedIOFile::Pending{ target, philipsType, frames, attributes });
+    return result;
   }
 
+  if(writeMainHeader(file, mainHeader, target, philipsType) == false) {
+    // do not leave a partial file behind
+    result->discard();
+    raise(PyExc_RuntimeError, "unable to write the main header of '" + fileName + "'");
+  }
+  result->setMainAttributes(mainHeader->attributes());
+
   return result;
+}
+
+// writes the main header of a file created without a source file, made from its first volume
+void writePendingMainHeader(MedIOFile& file, const CMedIOVolume& volume)
+{
+  const MedIOFile::Pending pending = *file.pending();
+
+  // A NIfTI file stores all frames with the data type and scaling of its main header:
+  // a file of several frames keeps the physical values (float32, float64 for float64
+  // data), as the frames can have other scale factors; a file of one frame keeps the
+  // stored values of the volume.
+  CMedIOVolume representative = volume;
+  if(pending.format == CMedIOData::NIFTI && pending.frames > 1 && representative.convertToPhysicalValues() == false)
+    raise(PyExc_ValueError, "the physical values of the volume are larger than 2 GiB");
+
+  CMedIOHeader* header = nullptr;
+  if(CMedIOData::mainHeaderFromVolume(representative, pending.format, pending.frames, header) == false || header == nullptr) {
+    delete header;
+    file.discard();
+    raise(PyExc_RuntimeError, "unable to create the main header of '" + file.fileName() + "' from the volume");
+  }
+  std::unique_ptr<CMedIOHeader> guard(header);
+
+  if((pending.attributes.isEmpty() == false && header->updateAttributes(pending.attributes) == false) ||
+     writeMainHeader(file.data(), header, pending.format, pending.philipsType) == false) {
+    file.discard();
+    raise(PyExc_RuntimeError, "unable to write the main header of '" + file.fileName() + "'");
+  }
+  file.setMainAttributes(header->attributes());
 }
 
 } // namespace
@@ -533,20 +702,37 @@ start with 1; NIfTI volumes and microPET frames are numbered 1..n.
         raise(PyExc_RuntimeError, QString("unable to read frame %1 of '%2'").arg(frame).arg(self.fileName()));
       return volume;
     }, py::arg("frame") = -1, "frame as pmedio.Volume in the voxel order of the file (-1: first frame)")
-    .def("write_volume", [](const MedIOFile& self, const CMedIOVolume& volume, short frame) {
+    .def("write_volume", [](MedIOFile& self, const CMedIOVolume& volume, short frame) {
       if(self.writable() == false)
         raise(PyExc_ValueError, "the file was opened for reading, use pmedio.create()");
+      if(self.frames() > 0 && (frame > self.frames() || frame < -1 || frame == 0))
+        raise(PyExc_ValueError, QString("frame %1 does not exist: the NIfTI file was created for %2 frame(s), "
+                                        "give the number with pmedio.create(..., frames=n)").arg(frame).arg(self.frames()));
+      if(self.pending() != nullptr) {
+        if(volume.isEmpty())
+          raise(PyExc_ValueError, "the volume has no data");
+        self.data();   // ValueError for a closed file
+        writePendingMainHeader(self, volume);
+      }
       if(self.data()->writeVolume(volume, frame) == false)
         raise(PyExc_RuntimeError, QString("unable to write frame %1 into '%2'").arg(frame).arg(self.fileName()));
+      self.written(frame);
     }, py::arg("volume"), py::arg("frame") = -1, R"doc(
 Write the volume as frame of the file (-1: frame 1). The values are converted into the
 representation of the file (e.g. the datatype and scaling of a NIfTI main header); it
-fails without writing if they do not fit.
+fails without writing if they do not fit. The first volume written into a file created
+without a source file gives the main header: geometry, and for NIfTI the datatype and
+scaling (the physical values if the file has several frames).
 )doc")
 
     .def("attributes", [](const MedIOFile& self) {
-      if(self.writable())
-        raise(PyExc_ValueError, "the file was created for writing");
+      if(self.writable()) {
+        self.data();   // ValueError for a closed file
+        if(self.pending() != nullptr)
+          raise(PyExc_ValueError, "the main header is made from the first volume written: no volume written yet");
+        const QByteArray text = QJsonDocument(self.mainAttributes()).toJson(QJsonDocument::Compact);
+        return py::module_::import_("json").attr("loads")(py::str(text.constData(), text.size()));
+      }
 
       // the NIfTI representation of the main header holds the frame attributes of all frames
       CMedIOHeader* header = nullptr;
@@ -565,14 +751,28 @@ fails without writing if they do not fit.
 Format independent header attributes of the file as dict (see CMedIOHeaderDictionary.h):
 DICOM keywords with the units of DICOM (e.g. "PatientWeight" in kg), the native fields
 of the format in a section named after it (e.g. "ECAT7") and in "Frames" the attributes
-of every frame.
+of every frame. For a file created for writing: the attributes of its main header as
+written, without the frames.
 )doc")
 
-    .def("close", &MedIOFile::close, "close the file (files created for writing are completed)")
-    .def("__enter__", [](py::object self) { return self; }, py::sig("def __enter__(self) -> File"))
-    .def("__exit__", [](MedIOFile& self, const py::object&, const py::object&, const py::object&) {
+    .def("close", [](MedIOFile& self) {
       self.close();
-      return false;
+      const QString incomplete = self.takeIncomplete();
+      if(incomplete.isEmpty() == false)
+        raise(PyExc_ValueError, incomplete);
+    }, R"doc(
+close the file (files created for writing are completed); a file created without a
+source file is removed if no volume was written, a NIfTI file of several frames if not
+all of them were written (ValueError)
+)doc")
+    .def("__enter__", [](py::object self) { return self; }, py::sig("def __enter__(self) -> File"))
+    .def("__exit__", [](MedIOFile& self, const py::object& type, const py::object&, const py::object&) {
+      self.close();
+      // an incomplete file is reported unless an exception is on its way anyway
+      const QString incomplete = self.takeIncomplete();
+      if(incomplete.isEmpty() == false && type.is_none())
+        raise(PyExc_ValueError, incomplete);
+      // returns None: exceptions are never suppressed (which type checkers also see)
     }, py::arg("type").none(), py::arg("value").none(), py::arg("traceback").none())
     .def("__repr__", [](const MedIOFile& self) {
       if(self.closed())
@@ -621,15 +821,27 @@ or tag ("(0010,1030)"): keyword, tag, VR, VM, unit, sequence holding it and scop
 ("main" or "frame"); None if the dictionary has no entry for it.
 )doc");
 
-  m.def("create", &createFile, py::arg("path"), py::arg("like"), py::arg("format").none() = py::none(),
-        py::arg("overwrite").none() = Flag{false},
-        py::sig("def create(path: str | os.PathLike[str], like: File, format: str | None = None, "
-                "overwrite: bool | None = False) -> File"), R"doc(
-Create a file for writing with the main header of the file ``like`` (opened with
-``pmedio.open()``), converted into the target format: number of frames, patient and
-isotope data, calibration, and for NIfTI files the datatype, scaling and orientation.
-The format is taken from the file name (.v: ECAT7, .nii/.nii.gz/.hdr: NIfTI-1,
-.img/.syn: Philips image/Syntegra) unless ``format`` (pmedio.Format) is given. An
-existing file is replaced only with ``overwrite=True``.
+  m.def("create", &createFile, py::arg("path"), py::arg("like").none() = py::none(),
+        py::arg("format").none() = py::none(), py::arg("overwrite").none() = Flag{false},
+        py::arg("frames").none() = py::none(), py::arg("attributes").none() = py::none(),
+        py::sig("def create(path: str | os.PathLike[str], like: File | None = None, format: str | None = None, "
+                "overwrite: bool | None = False, frames: int | None = None, "
+                "attributes: dict[str, typing.Any] | None = None) -> File"), R"doc(
+Create a file for writing. The format is taken from the file name (.v: ECAT7,
+.nii/.nii.gz/.hdr: NIfTI-1, .img/.syn: Philips image/Syntegra) unless ``format``
+(pmedio.Format) is given. An existing file is replaced only with ``overwrite=True``.
+
+- With ``like`` (a file opened with ``pmedio.open()``) the file gets the main header of the
+  source, converted into the target format: number of frames, patient and isotope data,
+  calibration, and for NIfTI files the datatype, scaling and orientation.
+- Without ``like`` the main header is made from the first volume written: geometry, and for
+  NIfTI files the datatype and scaling. ``frames`` is the number of frames the file will
+  hold (default 1; NIfTI files cannot hold more, the other formats take more frames
+  anyway). A NIfTI file of several frames stores the physical values (float32, float64 for
+  float64 data). A file closed without a volume is removed.
+
+``attributes`` are header attributes to set, as returned by ``File.attributes()``: DICOM
+keywords (e.g. ``{"PatientWeight": 72.5}``) or native fields in the section of the format.
+Invalid values raise a ValueError before the file is created.
 )doc");
 }
