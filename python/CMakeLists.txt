@@ -36,16 +36,28 @@ if(EXISTS ${PREFIX_PATH})
   set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${PREFIX_PATH})
   set(CMAKE_FIND_ROOT_PATH ${CMAKE_FIND_ROOT_PATH} ${PREFIX_PATH})
 else()
-  message("WARNING: selected PREFIX path '${PREFIX_PATH}' does not exist")
+  message("WARNING: selected PREFIX path '${PREFIX_PATH}' does not exist. "
+          "Select the prefix libmedio is installed in with -DPREFIX_PATH=... "
+          "(pip install: environment variable BUILD_PREFIX)")
 endif()
 
 message("Using Modules Path: ${CMAKE_MODULE_PATH}")
 message("Using Search Path:  ${CMAKE_PREFIX_PATH}")
 message("Using Root Path: ${CMAKE_FIND_ROOT_PATH}")
 
-# nanobind needs the Python found by FindPython (select it with -DPython_EXECUTABLE=...)
-# and is found with -Dnanobind_DIR="$(python -m nanobind --cmake_dir)"
+# nanobind needs the Python found by FindPython (select it with -DPython_EXECUTABLE=...).
+# Its CMake files are part of the Python package nanobind of this interpreter, unless
+# nanobind_DIR is given.
 find_package(Python 3.10 COMPONENTS Interpreter Development.Module REQUIRED)
+if(NOT nanobind_DIR)
+  execute_process(COMMAND "${Python_EXECUTABLE}" -m nanobind --cmake_dir
+                  OUTPUT_STRIP_TRAILING_WHITESPACE
+                  OUTPUT_VARIABLE nanobind_ROOT
+                  RESULT_VARIABLE NANOBIND_CMAKE_DIR_RESULT)
+  if(NOT NANOBIND_CMAKE_DIR_RESULT EQUAL 0)
+    message(FATAL_ERROR "nanobind is not installed for ${Python_EXECUTABLE} (pip install nanobind)")
+  endif()
+endif()
 find_package(nanobind CONFIG REQUIRED)
 find_package(MEDIO REQUIRED)
 find_package(Qt5 REQUIRED COMPONENTS Core)
@@ -68,11 +80,25 @@ target_link_libraries(pmedio PRIVATE
                       ZLIB::ZLIB
 )
 
-# EXAMPLE_VERSION_INFO is defined by setup.py and passed into the C++ code as a
-# define (VERSION_INFO) here.
+# The version of the package (pmedio.__version__) is the one of pyproject.toml:
+# scikit-build-core passes it, a plain CMake build reads it from the file.
+if(SKBUILD_PROJECT_VERSION)
+  set(PMEDIO_VERSION "${SKBUILD_PROJECT_VERSION}")
+else()
+  file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/pyproject.toml" PMEDIO_VERSION_LINE
+       REGEX "^version = \"[^\"]+\"" LIMIT_COUNT 1)
+  string(REGEX REPLACE "^version = \"([^\"]+)\".*" "\\1" PMEDIO_VERSION "${PMEDIO_VERSION_LINE}")
+endif()
+if(NOT PMEDIO_VERSION)
+  message(FATAL_ERROR "no version found in pyproject.toml")
+endif()
+message("Using pmedio version: ${PMEDIO_VERSION}")
 target_compile_definitions(pmedio
-  PRIVATE VERSION_INFO=${EXAMPLE_VERSION_INFO}
+  PRIVATE VERSION_INFO=${PMEDIO_VERSION}
 )
+
+# the module is the content of the Python package (wheel)
+install(TARGETS pmedio LIBRARY DESTINATION .)
 
 # Set some better optimization options
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=generic")

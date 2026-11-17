@@ -17,18 +17,19 @@
 # limitations under the License.
 #
 
-{% set data = load_setup_py_data(setup_file='../setup.py', from_recipe_dir=True) %}
+{% set project = load_file_data('../pyproject.toml', from_recipe_dir=True)['project'] %}
 
 package:
   name: pmedio
-  version: {{ data.get('version') }}
+  version: {{ project['version'] }}
 
 source:
   path: ..
 
 build:
   number: 0
-  script: {{ PYTHON }} -m pip install . -vvv
+  # the run requirements below provide the dependencies of the package
+  script: {{ PYTHON }} -m pip install . --no-deps -vvv
 
 requirements:
   build:
