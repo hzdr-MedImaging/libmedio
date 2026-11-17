@@ -569,10 +569,131 @@ def test_write_dimension_types(tmp_path, dim_type, counts):
     assert np.array_equal(np.asarray(read)[..., 0], a[..., 3])
 
 
-def test_write_frame_order(tmp_path):
-    # frame k + 1 of the file is img[..., k] and img.shead[k], checked with nibabel
+def nibabel_image(path):
+    """ECAT file read with nibabel (skips the test without nibabel)"""
     nib = pytest.importorskip("nibabel")
     nib_ecat = pytest.importorskip("nibabel.ecat")
+    # nibabel keeps a file open, so it gets the content of the file
+    holder = nib.FileHolder(fileobj=io.BytesIO(pathlib.Path(path).read_bytes()))
+    return nib_ecat.EcatImage.from_file_map({"header": holder, "image": holder})
+
+
+def nibabel_values(path):
+    """Values of all frames and their scale factors, read with nibabel"""
+    image = nibabel_image(path)
+    frames = np.stack([image.get_frame(k) for k in range(image.shape[3])], axis=3)
+    return frames, [float(s["scale_factor"]) for s in image.get_subheaders().subheaders]
+
+
+# largest stored value of the integer data types (ECAT byte data is unsigned)
+STORED_MAX = {"byte": 255, "short": 32767, "int": 2147483647}
+
+
+@pytest.mark.parametrize("data_type", ["byte", "short", "int"])
+@pytest.mark.parametrize("largest", [5.0, 0.003, 1000.0, 123456.0, 3.0e12])
+def test_write_integer_types_scaled(tmp_path, data_type, largest):
+    # values with fractions use the full range of the integer data type: the rounding error
+    # is at most half a step of largest / range, whatever the size of the values is
+    rng = np.random.default_rng(42)
+    a = (rng.random(SHAPE) * largest).astype(np.float32)
+    if data_type != "byte":
+        a[..., 1] *= -1.0                 # a frame with negative values
+        a[..., 2] *= 0.01                 # a frame with small values has a scale factor of its own
+    name = str(tmp_path / "image.v")
+    pmedio.write(a, name, dataType=data_type)
+
+    # step of the stored values: the positive values go up to STORED_MAX, the negative ones
+    # down to -STORED_MAX - 1
+    step = [max(float(a[..., k].max()) / STORED_MAX[data_type], float(-a[..., k].min()) / (STORED_MAX[data_type] + 1))
+            for k in range(SHAPE[3])]
+    values, scales = nibabel_values(name)
+    back = np.asarray(pmedio.read(name))
+    assert values.shape == SHAPE
+    for k in range(SHAPE[3]):
+        assert scales[k] == pytest.approx(step[k], rel=1e-6)
+        # half a step and the precision of float32 (values and scale factor)
+        tolerance = 0.5 * step[k] * 1.0001 + 4e-7 * float(np.abs(a[..., k]).max())
+        assert np.abs(values[..., k] - a[..., k]).max() <= tolerance, k
+        assert np.abs(back[..., k].astype(np.float64) - a[..., k]).max() <= tolerance, k
+
+
+@pytest.mark.parametrize("data_type, values", [
+    ("byte", [0, 1, 2, 127, 128, 200, 255]),
+    ("short", [-32768, -1000, -1, 0, 1, 2, 5, 32767]),
+    ("int", [-16777216, -70000, -1, 0, 1, 3, 70000, 16777216]),
+])
+def test_write_integer_types_exact(tmp_path, data_type, values):
+    # volumes of integers within the range of the data type (e.g. masks) are stored as they are
+    a = np.resize(np.array(values, dtype=np.float32), SHAPE)
+    name = str(tmp_path / "image.v")
+    pmedio.write(a, name, dataType=data_type)
+
+    stored, scales = nibabel_values(name)
+    assert scales == [1.0] * SHAPE[3]
+    assert np.array_equal(stored, a)
+    assert np.array_equal(np.asarray(pmedio.read(name)), a)
+    # the format independent interface reads the same values
+    with pmedio.open(name) as f:
+        volume = f.read_volume(1)
+        assert volume.dtype == {"byte": np.uint8, "short": np.int16, "int": np.int32}[data_type]
+        assert np.array_equal(volume.values()[::-1, ::-1, ::-1], a[..., 0])
+
+
+def test_read_byte_data_unsigned(tmp_path):
+    # byte data is unsigned: a file with stored values above 127, written by libmedio itself
+    a = ramp()
+    source = str(tmp_path / "source.v")
+    pmedio.write(a, source)
+    stored = (np.arange(24, dtype=np.uint8) * 11).reshape((2, 3, 4), order="F")   # 0 ... 253
+    name = str(tmp_path / "bytes.v")
+    with pmedio.open(source) as like, pmedio.create(name, like=like) as f:
+        f.write_volume(pmedio.Volume(stored, scale_factor=0.5), 1)
+
+    expected, scales = nibabel_values(name)
+    assert expected.max() == 126.5
+    values = np.asarray(pmedio.read(name))[..., 0]
+    assert np.array_equal(values, expected[..., 0])
+    assert values.min() == 0.0
+
+
+@pytest.mark.parametrize("data_type", ["byte", "short", "int"])
+@pytest.mark.parametrize("value", [np.nan, np.inf, -np.inf])
+def test_write_integer_types_not_finite(tmp_path, data_type, value):
+    # the integer data types cannot store NaN and infinity
+    a = ramp()
+    a[1, 2, 3, 4] = value
+    name = tmp_path / "image.v"
+    with pytest.raises(RuntimeError, match="NaN and infinite values cannot be stored"):
+        pmedio.write(a, str(name), dataType=data_type)
+    with pytest.raises(RuntimeError, match="NaN and infinite values cannot be stored"):
+        pmedio.write(MedIOImage(a), str(name), dataType=data_type)
+    assert not name.exists()
+
+    # an existing file is not replaced by a failing write
+    pmedio.write(ramp(), str(name))
+    with pytest.raises(RuntimeError, match="NaN and infinite values cannot be stored"):
+        pmedio.write(a, str(name), overwrite=True, dataType=data_type)
+    assert np.array_equal(np.asarray(pmedio.read(str(name))), ramp())
+
+    # float data keeps them
+    pmedio.write(a, str(name), overwrite=True, dataType="float")
+    back = np.asarray(pmedio.read(str(name)))
+    assert np.array_equal(back, a, equal_nan=True)
+
+
+def test_write_byte_negative(tmp_path):
+    # ECAT byte data is unsigned
+    a = ramp() - 1.0
+    name = tmp_path / "image.v"
+    with pytest.raises(RuntimeError, match="negative values cannot be stored as byte data"):
+        pmedio.write(a, str(name), dataType="byte")
+    assert not name.exists()
+    pmedio.write(a, str(name), dataType="short")
+    assert np.array_equal(np.asarray(pmedio.read(str(name))), a)
+
+
+def test_write_frame_order(tmp_path):
+    # frame k + 1 of the file is img[..., k] and img.shead[k], checked with nibabel
     a = ramp()
     img = MedIOImage(a)
     for k, s in enumerate(img.shead):
@@ -581,9 +702,7 @@ def test_write_frame_order(tmp_path):
     name = str(tmp_path / "image.v")
     img.write(name)
 
-    # nibabel keeps a file open, so it gets the content of the file
-    holder = nib.FileHolder(fileobj=io.BytesIO(pathlib.Path(name).read_bytes()))
-    written = nib_ecat.EcatImage.from_file_map({"header": holder, "image": holder})
+    written = nibabel_image(name)
     assert written.shape == SHAPE
     subheaders = written.get_subheaders().subheaders
     for k in range(SHAPE[3]):
@@ -717,6 +836,8 @@ def test_header_round_trip(tmp_path):
     img.mhead["patient_weight"] = "heavy"
     with pytest.raises((RuntimeError, TypeError)):
         img.write(str(tmp_path / "invalid.v"))
+    # and no incomplete file is left behind
+    assert not (tmp_path / "invalid.v").exists()
 
 
 def test_header_times(tmp_path, timezone):

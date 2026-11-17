@@ -313,7 +313,13 @@ NB_MODULE(pmedio, m) {
      py::arg("overwrite").none() = Flag{false},
      py::arg("dimType") = dimTypeName(DM_FRAMES),
      py::arg("dataType") = dataTypeName(DT_FLOAT),
-     py::arg("format") = formatName(CMedIOData::ECAT));
+     py::arg("format") = formatName(CMedIOData::ECAT),
+     "Write an image or an array (x, y, z[, t]) as ECAT7 image file.\n\n"
+     "``dataType`` is the type of the stored values: ``float`` (32 bit), ``short`` (16 bit),\n"
+     "``int`` (32 bit) or ``byte`` (8 bit, unsigned). The integer types store every volume\n"
+     "with a scale factor that uses the full range of the type; volumes that only contain\n"
+     "integers within the range are stored as they are. They cannot store NaN and\n"
+     "infinity, and ``byte`` no negative values (RuntimeError).");
 
   // format independent access to the frames of all formats (pmedio.Volume,
   // pmedio.File, pmedio.open(), pmedio.create()), see volume.cpp
