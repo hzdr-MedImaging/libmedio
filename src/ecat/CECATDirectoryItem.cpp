@@ -33,6 +33,22 @@
 
 #include <rtdebug.h>
 
+// reads size bytes in chunks of at most 1 GiB: read() of macOS fails for more than
+// INT_MAX bytes at once, and ECAT7 matrices can be larger (up to 4 GB)
+static qint64 readInChunks(QIODevice* device, char* data, qint64 size)
+{
+  const qint64 chunkSize = Q_INT64_C(1) << 30;
+  qint64 total = 0;
+  while(total < size)
+  {
+    const qint64 bytesRead = device->read(data + total, qMin(chunkSize, size - total));
+    if(bytesRead <= 0)
+      break;
+    total += bytesRead;
+  }
+  return total;
+}
+
 // we define the private inline class of that one so that we
 // are able to hide the private methods & data of that class in the
 // public headers
@@ -440,7 +456,7 @@ bool CECATDirectoryItem::readMatrix(char*& matrixData, unsigned int& matrixSize)
 
     // now we read in the whole data at once (fewer bytes: the file is
     // truncated or the directory entry points past its end)
-    const qint64 bytesRead = m_pData->file->read(matrixData, matrixSize);
+    const qint64 bytesRead = readInChunks(m_pData->file, matrixData, matrixSize);
     if(bytesRead != static_cast<qint64>(matrixSize))
       E("only %lld of %u bytes of the matrix data could be read", bytesRead, matrixSize);
     else
