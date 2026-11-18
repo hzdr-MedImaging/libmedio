@@ -126,8 +126,12 @@ jobs:
           cmake --build "$RUNNER_TEMP/librtdebug-build" -j"$(sysctl -n hw.ncpu)"
           cmake --install "$RUNNER_TEMP/librtdebug-build"
 
+      # Qt5_DIR: the CMake files of the keg qt@5; others found under /opt/homebrew/lib/cmake
+      # would take /opt/homebrew as Qt prefix, where the mkspecs of Qt5 are missing
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPREFIX_PATH="$PETLIB" -DCMAKE_PREFIX_PATH="$QT5_PREFIX"
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPREFIX_PATH="$PETLIB" \
+                -DCMAKE_PREFIX_PATH="$QT5_PREFIX" -DQt5_DIR="$QT5_PREFIX/lib/cmake/Qt5"
 
       - name: Build
         run: cmake --build build -j"$(sysctl -n hw.ncpu)"
