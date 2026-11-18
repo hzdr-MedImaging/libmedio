@@ -25,6 +25,14 @@
 #include "CMedIOMatrix.h"
 #include "CMedIOVolume.h"
 #include "MedIOLimits.h"
+#include "CECATFile.h"
+#include "CECATMainHeader.h"
+#include "CNIFTIFile.h"
+#include "CNIFTIMainHeader.h"
+#include "CNIFTI1MainHeader.h"
+#include "CNIFTI2MainHeader.h"
+#include "CPhilipsFile.h"
+#include "CPhilipsMainHeader.h"
 
 #include <QString>
 
@@ -279,6 +287,149 @@ bool CMedIOData::writeVolume(const CMedIOVolume& volume, short frame)
   bool result = MedIOMatrix::frameFromVolume(volume, f) &&
                 MedIOMatrix::writeFrame(this, frame, f);
   m_iErrStatus = result ? MERR_Ok : MERR_Unspecified;
+  RETURN(result);
+  return result;
+}
+
+bool CMedIOData::writeMainHeader(CMedIOHeader& mainHeader)
+{
+  ENTER();
+  bool result = false;
+
+  // the header class of the format of this file
+  CMedIOHeader::Format expected = CMedIOHeader::Unknown;
+  switch(dataFormat())
+  {
+    case CMedIOData::ECAT:    expected = CMedIOHeader::ECATMainHeader;    break;
+    case CMedIOData::NIFTI:   expected = CMedIOHeader::NIFTIMainHeader;   break;
+    case CMedIOData::Philips: expected = CMedIOHeader::PhilipsMainHeader; break;
+    default:                  break;
+  }
+
+  if(expected == CMedIOHeader::Unknown)
+    E("main headers of data format %d cannot be written", static_cast<int>(dataFormat()));
+  else if(mainHeader.headerFormat() != expected)
+    E("the header (format %d) is no main header of data format %d", static_cast<int>(mainHeader.headerFormat()),
+      static_cast<int>(dataFormat()));
+  else
+  {
+    // the header is saved into this file by the method of the format class
+    CMedIOData* const linked = mainHeader.medIOData();
+    mainHeader.setMedIOData(this);
+
+    switch(dataFormat())
+    {
+      case CMedIOData::ECAT:
+        result = static_cast<CECATFile*>(this)->writeMainHeader(static_cast<CECATMainHeader&>(mainHeader));
+      break;
+
+      case CMedIOData::NIFTI:
+        result = static_cast<CNIFTIFile*>(this)->writeMainHeader(static_cast<CNIFTIMainHeader&>(mainHeader));
+      break;
+
+      case CMedIOData::Philips:
+      {
+        CPhilipsMainHeader& philips = static_cast<CPhilipsMainHeader&>(mainHeader);
+        const CPhilipsMainHeader::File_Type type = static_cast<CPhilipsFile*>(this)->requestedFileType();
+        if(type != CPhilipsMainHeader::Unknown)
+          philips.setFiltyp(type);
+        result = static_cast<CPhilipsFile*>(this)->writeMainHeader(philips);
+      }
+      break;
+
+      default:
+      break;
+    }
+
+    mainHeader.setMedIOData(linked);
+  }
+
+  m_iErrStatus = result ? MERR_Ok : MERR_Unspecified;
+  RETURN(result);
+  return result;
+}
+
+QStringList CMedIOData::fileNames() const
+{
+  ENTER();
+  QStringList names;
+
+  switch(dataFormat())
+  {
+    case CMedIOData::NIFTI:
+    {
+      const CNIFTIFile* nifti = static_cast<const CNIFTIFile*>(this);
+      names << nifti->headerFileName();
+      if(nifti->imageFileName() != nifti->headerFileName())
+        names << nifti->imageFileName();
+    }
+    break;
+
+    case CMedIOData::ConcordeMicropet:
+      names << fileName() << fileName() + ".hdr";
+    break;
+
+    default:
+      names << fileName();
+    break;
+  }
+
+  LEAVE();
+  return names;
+}
+
+bool CMedIOData::removeFiles()
+{
+  ENTER();
+  bool result = true;
+
+  const QStringList names = fileNames();
+  for(int i=0; i < names.size(); i++)
+  {
+    if(QFile::exists(names[i]) && QFile::remove(names[i]) == false)
+    {
+      W("unable to remove %s", names[i].toLocal8Bit().constData());
+      result = false;
+    }
+  }
+
+  RETURN(result);
+  return result;
+}
+
+bool CMedIOData::readAttributes(QJsonObject& attributes)
+{
+  ENTER();
+  bool result = false;
+
+  // the NIfTI representation of the main header holds the attributes of all frames
+  CMedIOHeader* header = NULL;
+  if(isOpen() == false)
+    E("the file is not open");
+  else if(readMainHeader(header, CMedIOData::NIFTI) && header != NULL)
+  {
+    attributes = header->attributes();
+    if(dataFormat() != CMedIOData::NIFTI)
+      attributes.remove("NIfTI");
+    result = true;
+  }
+  delete header;
+
+  m_iErrStatus = result ? MERR_Ok : MERR_Unspecified;
+  RETURN(result);
+  return result;
+}
+
+int CMedIOData::requiredFrames(const CMedIOHeader& mainHeader)
+{
+  ENTER();
+  int result = 0;
+
+  if(const CNIFTI1MainHeader* nifti1 = dynamic_cast<const CNIFTI1MainHeader*>(&mainHeader))
+    result = (nifti1->dim(0) > 3) ? nifti1->dim(4) : 1;
+  else if(const CNIFTI2MainHeader* nifti2 = dynamic_cast<const CNIFTI2MainHeader*>(&mainHeader))
+    result = (nifti2->dim(0) > 3) ? static_cast<int>(nifti2->dim(4)) : 1;
+
   RETURN(result);
   return result;
 }

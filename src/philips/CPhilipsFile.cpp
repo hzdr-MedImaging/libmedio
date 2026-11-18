@@ -508,6 +508,11 @@ CPhilipsMainHeader::File_Type CPhilipsFile::fileType()
   return type;
 }
 
+CPhilipsMainHeader::File_Type CPhilipsFile::requestedFileType() const
+{
+  return m_pData->fileType;
+}
+
 CPhilipsSubHeader::Type CPhilipsFile::subHeaderType()
 {
   ENTER();

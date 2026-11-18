@@ -113,6 +113,7 @@ class CNIFTIFile : public CMedIOData { // CNIFTIFile class inherits from CMedIOD
     // CMedIOHeader::attributes()) as JSON and DICOM header extensions, readable
     // by nibabel and PMOD, and sets descrip as PMOD writes it ("<patient name>
     // [<study type>] <study description>") unless it was set to something else
+        using CMedIOData::writeMainHeader;
         bool writeMainHeader(CNIFTIMainHeader& MainHeader);
 
         bool writeMatrix(const QByteArray& matrixData);

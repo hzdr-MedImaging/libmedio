@@ -58,6 +58,9 @@ class CPhilipsFile : public CMedIOData
     void close(void);
 
     CPhilipsMainHeader::File_Type fileType();
+    //! @brief file type passed to the constructor (Unknown if none): the type of a new
+    //!        file, set in its main header by CMedIOData::writeMainHeader()
+    CPhilipsMainHeader::File_Type requestedFileType() const;
     CPhilipsSubHeader::Type subHeaderType();
 
     // methods to calculate the real amount
@@ -89,7 +92,9 @@ class CPhilipsFile : public CMedIOData
     bool readMatrix(char*& matrixData, unsigned int& len, CPhilipsSubHeader*& subHeader,
                     short frame=-1, short slice=-1, short tilt=-1);
 
-    // methods to write out headers/data to the file.
+    // methods to write out headers/data to the file (writeMainHeader() of CMedIOData
+    // takes a main header of any header class)
+    using CMedIOData::writeMainHeader;
     bool writeMainHeader(CPhilipsMainHeader& mainHeader);
     bool writeSubHeader(const CPhilipsSubHeader& subHeader,
                         short frame=-1, short slice=-1, short tilt=-1);

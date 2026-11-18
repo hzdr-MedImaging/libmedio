@@ -30,7 +30,6 @@
 #include <vector>
 
 #include <QByteArray>
-#include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonObject>
@@ -43,14 +42,6 @@
 #include <CMedIODataFactory>
 #include <CMedIOHeader>
 #include <CMedIOVolume>
-#include <CECATFile>
-#include <CECATMainHeader>
-#include <CNIFTI1MainHeader>
-#include <CNIFTI2MainHeader>
-#include <CNIFTIFile>
-#include <CNIFTIMainHeader>
-#include <CPhilipsFile>
-#include <CPhilipsMainHeader>
 
 #include "medio.h"
 
@@ -60,19 +51,6 @@ namespace {
 [[noreturn]] void fail(const QString& message)
 {
   Rcpp::stop(message.toUtf8().constData());
-}
-
-// names of the formats, as pmedio.Format of the Python bindings
-const char* formatName(CMedIOData::Format format)
-{
-  switch(format) {
-    case CMedIOData::ECAT:             return "ecat";
-    case CMedIOData::ConcordeMicropet: return "micropet";
-    case CMedIOData::Philips:          return "philips";
-    case CMedIOData::PhilipsBin:       return "philipsbin";
-    case CMedIOData::NIFTI:            return "nifti";
-    default:                           return "unknown";
-  }
 }
 
 QString stringOf(SEXP value)
@@ -91,28 +69,6 @@ struct OpenFile
   std::unique_ptr<CMedIOData> data;
   ~OpenFile() { if(data) data->close(); }
 };
-
-// the image file written with the header of a NIfTI header/image pair (named like
-// CNIFTIFile names it: .img for .hdr, .IMG for .HDR, both optionally with .gz);
-// empty for other files
-QString pairImageFile(const QString& fileName)
-{
-  const bool gz = fileName.toLower().endsWith(".gz");
-  const QString name = gz ? fileName.left(fileName.size() - 3) : fileName;
-  if(name.toLower().endsWith(".hdr") == false)
-    return QString();
-  const bool upper = name.endsWith(".HDR");
-  return name.left(name.size() - 4) + (upper ? ".IMG" : ".img") + (gz ? fileName.right(3) : QString());
-}
-
-// removes a file, and the image file of a NIfTI header/image pair
-void removeFiles(const QString& fileName, CMedIOData::Format format)
-{
-  QFile::remove(fileName);
-  const QString image = pairImageFile(fileName);
-  if(format == CMedIOData::NIFTI && image.isEmpty() == false)
-    QFile::remove(image);
-}
 
 //---------------------------------------------------------------------------------------------
 // header attributes: JSON (CMedIOHeader::attributes()) <-> R lists
@@ -225,81 +181,25 @@ QJsonValue toJson(SEXP value, const QString& key)
 //---------------------------------------------------------------------------------------------
 // writing
 
-// target format and Philips file type of a file name
-CMedIOData::Format targetFormat(const QString& fileName, SEXP format, CPhilipsMainHeader::File_Type& philipsType)
+// target format of a file: the format given (names of CMedIODataFactory::formatFromName())
+// or the one of the file name
+CMedIOData::Format targetFormat(const QString& fileName, SEXP format)
 {
-  const QString name = fileName.toLower();
-  philipsType = name.endsWith(".syn") ? CPhilipsMainHeader::Syntegra : CPhilipsMainHeader::Image;
-
-  QString given = Rf_isNull(format) ? QString() : stringOf(format).toLower();
-  if(given.isEmpty()) {
-    if(name.endsWith(".v"))
-      given = "ecat";
-    else if(name.endsWith(".nii") || name.endsWith(".nii.gz") || name.endsWith(".hdr") || name.endsWith(".hdr.gz"))
-      given = "nifti";
-    else if(name.endsWith(".img") || name.endsWith(".syn"))
-      given = "philips";
-    else
+  CMedIOData::Format result = CMedIOData::Unknown;
+  if(Rf_isNull(format) == false) {
+    if(CMedIODataFactory::formatFromName(stringOf(format), result) == false)
+      fail("unknown format '" + stringOf(format) + "' (\"ecat\", \"nifti\" or \"philips\")");
+  } else {
+    result = CMedIODataFactory::formatOfFileName(fileName);
+    if(result == CMedIOData::Unknown)
       fail("unknown file format of '" + fileName + "' (.v: ECAT7, .nii/.nii.gz/.hdr: NIfTI, "
-            ".img/.syn: Philips); give the format explicitly");
+           ".img/.syn: Philips); give the format explicitly");
   }
 
-  if(given == "ecat")
-    return CMedIOData::ECAT;
-  if(given == "nifti")
-    return CMedIOData::NIFTI;
-  if(given == "philips")
-    return CMedIOData::Philips;
-  fail("files of format '" + given + "' cannot be written (formats: \"ecat\", \"nifti\", \"philips\")");
-}
-
-// file object of a new file of the format
-CMedIOData* newFile(const QString& fileName, CMedIOData::Format target, CPhilipsMainHeader::File_Type philipsType)
-{
-  switch(target) {
-    case CMedIOData::ECAT:    return new CECATFile(fileName, CECATMainHeader::ECAT7_Volume16);
-    case CMedIOData::NIFTI:   return new CNIFTIFile(fileName, CNIFTIMainHeader::NIFTI1);
-    default:                  return new CPhilipsFile(fileName, philipsType);
-  }
-}
-
-// writes the main header in the representation of the file format into a new file
-bool writeMainHeader(CMedIOData* file, CMedIOHeader* mainHeader, CMedIOData::Format format,
-                     CPhilipsMainHeader::File_Type philipsType)
-{
-  bool result = false;
-  mainHeader->setMedIOData(file);
-
-  switch(format) {
-    case CMedIOData::ECAT:
-      result = static_cast<CECATFile*>(file)->writeMainHeader(*static_cast<CECATMainHeader*>(mainHeader));
-    break;
-
-    case CMedIOData::NIFTI:
-      result = static_cast<CNIFTIFile*>(file)->writeMainHeader(*static_cast<CNIFTIMainHeader*>(mainHeader));
-    break;
-
-    case CMedIOData::Philips:
-      static_cast<CPhilipsMainHeader*>(mainHeader)->setFiltyp(philipsType);
-      result = static_cast<CPhilipsFile*>(file)->writeMainHeader(*static_cast<CPhilipsMainHeader*>(mainHeader));
-    break;
-
-    default:
-    break;
-  }
-
-  mainHeader->setMedIOData(nullptr);
+  if(result != CMedIOData::ECAT && result != CMedIOData::NIFTI && result != CMedIOData::Philips)
+    fail(QString("files of format '%1' cannot be written (formats: \"ecat\", \"nifti\", \"philips\")")
+         .arg(CMedIODataFactory::formatName(result)));
   return result;
-}
-
-// number of frames of a NIfTI main header (0: no NIfTI header)
-int niftiFrames(const CMedIOHeader* header)
-{
-  if(const CNIFTI1MainHeader* nifti1 = dynamic_cast<const CNIFTI1MainHeader*>(header))
-    return nifti1->dim(0) > 3 ? nifti1->dim(4) : 1;
-  if(const CNIFTI2MainHeader* nifti2 = dynamic_cast<const CNIFTI2MainHeader*>(header))
-    return nifti2->dim(0) > 3 ? static_cast<int>(nifti2->dim(4)) : 1;
-  return 0;
 }
 
 } // namespace
@@ -352,18 +252,9 @@ RcppExport SEXP readMedio(SEXP fileName, SEXP frames, SEXP orientation)
     if(Rf_isNull(orientation) == false && volume.reorient(stringOf(orientation)) == false)
       fail("invalid orientation '" + stringOf(orientation) + "' (e.g. \"RAS\" or \"LPI\")");
 
-    if(volumes.empty() == false) {
-      const CMedIOVolume& first = volumes.front();
-      bool same = true;
-      for(int a=0; a < 3; a++)
-        same = same && volume.dimension(a) == first.dimension(a);
-      for(int i=0; i < 3 && same; i++)
-        for(int j=0; j < 4; j++)
-          same = same && std::fabs(volume.affine(i, j) - first.affine(i, j)) <= 1e-3 + 1e-6 * std::fabs(first.affine(i, j));
-      if(same == false)
-        fail(QString("frame %1 of '%2' has another geometry than frame %3: read the frames one at a time")
-              .arg(n).arg(name).arg(selected.front()));
-    }
+    if(volumes.empty() == false && volumes.front().hasSameGeometry(volume) == false)
+      fail(QString("frame %1 of '%2' has another geometry than frame %3: read the frames one at a time")
+           .arg(n).arg(name).arg(selected.front()));
     volumes.push_back(volume);
   }
 
@@ -387,23 +278,17 @@ RcppExport SEXP readMedio(SEXP fileName, SEXP frames, SEXP orientation)
     for(int j=0; j < 4; j++)
       affine(i, j) = first.affine(i, j);
 
-  // the NIfTI representation of the main header holds the attributes of all frames
-  CMedIOHeader* header = nullptr;
-  if(file.data->readMainHeader(header, CMedIOData::NIFTI) == false || header == nullptr) {
-    delete header;
+  // the attributes of the main header and of all frames
+  QJsonObject attributes;
+  if(file.data->readAttributes(attributes) == false)
     fail("unable to read the header attributes of '" + name + "'");
-  }
-  QJsonObject attributes = header->attributes();
-  delete header;
-  if(file.data->dataFormat() != CMedIOData::NIFTI)
-    attributes.remove("NIfTI");
 
   return Rcpp::List::create(Rcpp::Named("data") = data,
                             Rcpp::Named("affine") = affine,
                             Rcpp::Named("frame_start") = frameStart,
                             Rcpp::Named("frame_duration") = frameDuration,
                             Rcpp::Named("attributes") = fromJsonObject(attributes),
-                            Rcpp::Named("format") = formatName(file.data->dataFormat()),
+                            Rcpp::Named("format") = CMedIODataFactory::formatName(file.data->dataFormat()),
                             Rcpp::Named("filename") = stringValue(QFileInfo(name).absoluteFilePath()));
 
   END_RCPP
@@ -418,15 +303,21 @@ RcppExport SEXP writeMedio(SEXP fileName, SEXP data, SEXP affine, SEXP frameStar
   BEGIN_RCPP
 
   const QString name = stringOf(fileName);
-  CPhilipsMainHeader::File_Type philipsType = CPhilipsMainHeader::Image;
-  const CMedIOData::Format target = targetFormat(name, format, philipsType);
+  const CMedIOData::Format target = targetFormat(name, format);
+
+  // the file object (not opened yet); the new file replaces all of its files, e.g. also the
+  // image file of a NIfTI header/image pair
+  std::unique_ptr<CMedIOData> newFile(CMedIODataFactory::createForWriting(name, target));
+  if(newFile == nullptr)
+    fail(QString("files of format '%1' cannot be written").arg(CMedIODataFactory::formatName(target)));
   if(Rcpp::as<bool>(overwrite) == false) {
-    if(QFileInfo::exists(name))
-      fail("'" + name + "' exists already (use overwrite = TRUE to replace it)");
-    // the image file of a NIfTI header/image pair is written as well
-    const QString image = pairImageFile(name);
-    if(target == CMedIOData::NIFTI && image.isEmpty() == false && QFileInfo::exists(image))
-      fail("'" + image + "', the image file of '" + name + "', exists already (use overwrite = TRUE to replace it)");
+    const QStringList names = newFile->fileNames();
+    for(int i=0; i < names.size(); i++) {
+      if(QFileInfo::exists(names[i]) && i == 0)
+        fail("'" + name + "' exists already (use overwrite = TRUE to replace it)");
+      if(QFileInfo::exists(names[i]))
+        fail("'" + names[i] + "', the image file of '" + name + "', exists already (use overwrite = TRUE to replace it)");
+    }
   }
 
   // the volumes of all frames before the file is created: the values as given, as
@@ -481,17 +372,18 @@ RcppExport SEXP writeMedio(SEXP fileName, SEXP data, SEXP affine, SEXP frameStar
       fail("unable to open the source file '" + source + "'");
     if(likeFile.data->readMainHeader(header, target) == false || header == nullptr) {
       delete header;
-      fail(QString("unable to convert the main header of '%1' into format '%2'").arg(source).arg(formatName(target)));
+      fail(QString("unable to convert the main header of '%1' into format '%2'").arg(source)
+           .arg(CMedIODataFactory::formatName(target)));
     }
     // a NIfTI file needs all frames of its main header
-    const int sourceFrames = niftiFrames(header);
+    const int sourceFrames = CMedIOData::requiredFrames(*header);
     if(sourceFrames > 0 && sourceFrames != frames) {
       delete header;
       fail(QString("the image has %1 frame(s), the NIfTI file made from '%2' needs %3").arg(frames).arg(source).arg(sourceFrames));
     }
   } else if(CMedIOData::mainHeaderFromVolume(volumes.front(), target, frames, header) == false || header == nullptr) {
     delete header;
-    fail(QString("unable to create a main header of format '%1' from the image").arg(formatName(target)));
+    fail(QString("unable to create a main header of format '%1' from the image").arg(CMedIODataFactory::formatName(target)));
   }
   std::unique_ptr<CMedIOHeader> headerGuard(header);
 
@@ -502,11 +394,11 @@ RcppExport SEXP writeMedio(SEXP fileName, SEXP data, SEXP affine, SEXP frameStar
 
   // the file; nothing is left behind if writing fails
   OpenFile file;
-  file.data.reset(newFile(name, target, philipsType));
+  file.data = std::move(newFile);
   if(file.data->open(QIODevice::WriteOnly) == false)
     fail("unable to create '" + name + "'");
   try {
-    if(writeMainHeader(file.data.get(), header, target, philipsType) == false)
+    if(file.data->writeMainHeader(*header) == false)
       fail("unable to write the main header of '" + name + "'");
     for(int k=0; k < frames; k++)
       if(file.data->writeVolume(volumes[k], static_cast<short>(k + 1)) == false)
@@ -516,9 +408,9 @@ RcppExport SEXP writeMedio(SEXP fileName, SEXP data, SEXP affine, SEXP frameStar
   } catch(...) {
     if(file.data) {
       file.data->close();
+      file.data->removeFiles();
       file.data.reset();
     }
-    removeFiles(name, target);
     throw;
   }
 

@@ -174,6 +174,10 @@ writeMedio(image, file.path(dir, "other.img"))
 writeMedio(image, file.path(dir, "other.hdr"), format = "ecat")
 stopifnot(identical(readMedio(file.path(dir, "other.img"))$format, "philips"),
           identical(readMedio(file.path(dir, "other.hdr"))$format, "ecat"))
+# an existing image file in the other letter case is the image file of the pair (see CNIFTIFile)
+writeLines("other data", file.path(dir, "mixed.IMG"))
+fails(writeMedio(image, file.path(dir, "mixed.hdr")), "mixed.IMG', the image file of .*exists already")
+stopifnot(identical(readLines(file.path(dir, "mixed.IMG")), "other data"))
 unlink(dir, recursive = TRUE)
 
 # every test file in every format: the same values, positions and timing
@@ -225,12 +229,18 @@ fails(writeMedio(medioImage(values, attributes = list(PatientWeight = sum)), out
 fails(writeMedio(medioImage(values, attributes = list(ECAT7 = list(1, 2))), out), "invalid header attributes")
 fails(writeMedio(values, file.path(dir, "image.xyz")), "unknown file format")
 fails(writeMedio(values, file.path(dir, "image.xyz"), format = "micropet"), "cannot be written")
+fails(writeMedio(values, file.path(dir, "image.xyz"), format = "dicom"), "unknown format 'dicom'")
 fails(writeMedio(array(c(1L, NA), dim = c(2, 1, 1)), out), "NA")
 fails(writeMedio(values, out, like = file.path(dir, "missing.v")), "unable to open the source file")
 stopifnot(length(list.files(dir)) == 0L)
 # the format given explicitly
 writeMedio(values, file.path(dir, "image.data"), format = "nifti")
 stopifnot(identical(readMedio(file.path(dir, "image.data"))$format, "nifti"))
+# format names in any letter case and abbreviated, like the Python bindings
+writeMedio(values, file.path(dir, "image2.data"), format = "NIfTI")
+writeMedio(values, file.path(dir, "image3.data"), format = "e")
+stopifnot(identical(readMedio(file.path(dir, "image2.data"))$format, "nifti"),
+          identical(readMedio(file.path(dir, "image3.data"))$format, "ecat"))
 unlink(dir, recursive = TRUE)
 
 #-----------------------------------------------------------------------------------------------

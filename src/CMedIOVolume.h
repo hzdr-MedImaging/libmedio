@@ -123,6 +123,12 @@ class CMedIOVolume {
     //! convertToPhysicalValues()).
     bool reorient(const QString& orientation, bool* oblique = NULL);
 
+    //! true if the other volume has the same dimensions and its voxels the same positions:
+    //! every element of the affines differs by at most 1e-3 + 1e-6 x |element| (mm), which
+    //! allows for the precision the formats store the geometry with (e.g. float32), so
+    //! that the frames of a file can be combined into one 4D array
+    bool hasSameGeometry(const CMedIOVolume& other) const;
+
     //! frame timing (s)
     void setFrameStart(double seconds);
     double frameStart() const;
