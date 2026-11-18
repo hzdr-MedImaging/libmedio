@@ -23,6 +23,10 @@
 \description{
   Writes an ECAT structure (as returned by \code{\link{readEcat}}) or a 3D
   array as an ECAT7 image volume file.
+
+  This is the older interface for ECAT files only, kept for existing
+  scripts: \code{\link{writeMedio}} writes images into files of all
+  formats (also ECAT7).
 }
 \usage{
 writeEcat(ecat, owrite = FALSE, fname = NULL, dtype = NULL)
@@ -63,7 +67,7 @@ writeEcat(ecat, owrite = FALSE, fname = NULL, dtype = NULL)
   Jens Maus
 }
 \seealso{
-  \code{\link{readEcat}}
+  \code{\link{readEcat}}, \code{\link{writeMedio}}
 }
 \examples{
 ecat <- readEcat(system.file("extdata", "pet-static.v", package = "Rmedio"))

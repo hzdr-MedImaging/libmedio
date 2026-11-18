@@ -1,16 +1,44 @@
 # Rmedio — R interface to libmedio
 
-`Rmedio` makes libmedio available in R. It currently reads and writes ECAT
-image volumes (`readEcat()`, `writeEcat()`).
+`Rmedio` makes libmedio available in R. `readMedio()` and `writeMedio()`
+read and write images of all formats of libmedio, like `pmedio.load()` and
+`pmedio.save()` of the Python bindings:
 
 ```r
 library(Rmedio)
+image <- readMedio("image.v", orientation = "RAS")  # ECAT7, NIfTI, Philips, microPET
+image$data                           # physical values, 4D array (x, y, z, frame)
+image$affine                         # 3 x 4, voxel (i, j, k) counted from 0 -> LPS (mm)
+image$frame_start                    # s, also frame_duration
+image$attributes$PatientWeight       # header attributes (named list)
+image$data <- image$data * 2
+writeMedio(image, "image.nii.gz")    # format from the file name (.v, .nii, .nii.gz, .hdr, .img, .syn)
+writeMedio(image, "image.v", like = "source.v", overwrite = TRUE)  # main header of a source file
+```
+
+- `readMedio(fname, frames = c(3, 1), orientation = ...)` selects frames by
+  their numbers and reorders the voxels (default: the voxel order of the
+  file). All frames need the same geometry.
+- `medioImage(data, affine, frame_start, frame_duration, attributes)` makes
+  an image from an array; `writeMedio()` also takes a plain 3D/4D array
+  (identity affine). Double data is stored as float32, integer data as
+  int32. Invalid images or attributes create no file, and no file is left
+  behind if writing fails.
+
+`readEcat()` and `writeEcat()` are the older interface for ECAT files only,
+kept for existing scripts:
+
+```r
 ecat <- readEcat("image.v")          # list of 3D arrays (rows, cols, planes), class "Ecat"
 names(ecat)                          # "f1", "f2", ... (frames), "g1", ... (gates), "b1", ... (beds)
 attr(ecat, "mhead")                  # main header
 attr(ecat[["f1"]], "shead")          # sub header of frame 1
 writeEcat(ecat, fname = "copy.v")    # ECAT7 file
 ```
+
+`readEcat(f)[[k]]` holds the same values as
+`aperm(readMedio(f)$data[, , , k], c(2, 1, 3))`: the voxel order of the
+file, as rows (y) x columns (x) x planes.
 
 ## How the package is built
 
@@ -21,7 +49,7 @@ repositories require.
 
 - `tools/vendor.sh` copies the libmedio sources of this repository
   (`../src`) into `src/libmedio/` and a few test datasets
-  (`../testsuite/data/ecat`) into `inst/extdata/`. These copies are not
+  (`../testsuite/data`, ECAT7, NIfTI and Philips) into `inst/extdata/`. These copies are not
   tracked in git (see `.gitignore`), they only end up in the source tarball.
 - `configure` (`configure.ucrt` on Windows) runs `tools/vendor.sh` if the
   sources are not bundled yet, finds Qt5 (Core) and zlib with `pkg-config`

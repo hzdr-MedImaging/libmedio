@@ -19,7 +19,8 @@
 
 // registration of the native routines called via .Call() from R
 
-// readEcat.h/writeEcat.h include Rcpp.h, which has to come before the R headers
+// medio.h, readEcat.h and writeEcat.h include Rcpp.h, which has to come before the R headers
+#include "medio.h"
 #include "readEcat.h"
 #include "writeEcat.h"
 
@@ -30,6 +31,8 @@ static const R_CallMethodDef callMethods[] =
 {
   { "readEcat",  (DL_FUNC)&readEcat,  5 },
   { "writeEcat", (DL_FUNC)&writeEcat, 4 },
+  { "readMedio",  (DL_FUNC)&readMedio,  3 },
+  { "writeMedio", (DL_FUNC)&writeMedio, 9 },
   { NULL, NULL, 0 }
 };
 
