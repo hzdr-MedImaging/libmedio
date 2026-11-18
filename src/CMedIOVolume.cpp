@@ -442,3 +442,19 @@ double CMedIOVolume::frameDuration() const
 {
   return m_pData->frameDuration;
 }
+
+bool CMedIOVolume::hasSameGeometry(const CMedIOVolume& other) const
+{
+  ENTER();
+  bool result = true;
+
+  for(int axis=0; axis < 3 && result; axis++)
+    result = (dimension(axis) == other.dimension(axis));
+
+  for(int i=0; i < 3 && result; i++)
+    for(int j=0; j < 4 && result; j++)
+      result = std::fabs(affine(i, j) - other.affine(i, j)) <= 1e-3 + 1e-6 * std::fabs(affine(i, j));
+
+  RETURN(result);
+  return result;
+}

@@ -24,8 +24,10 @@
 #define CMEDIODATA_H
 
 #include <QFile>
+#include <QJsonObject>
 #include <QList>
 #include <QString>
+#include <QStringList>
 
 // forward declarations
 class CMedIOHeader;
@@ -219,6 +221,52 @@ class CMedIOData : public QFile {
     //! Philips files store no position within the planes: the planes are centered.
     static bool mainHeaderFromVolume(const CMedIOVolume& volume, CMedIOData::Format format,
                                      int numFrames, CMedIOHeader*& mainHeader);
+
+    //---------------------------------------------------------------------------------------
+    // Writing new files of any writable format (ECAT7, NIfTI, Philips): create the object
+    // with CMedIODataFactory::createForWriting(), check fileNames() for existing files,
+    // open() it for writing, write the main header with writeMainHeader() and the frames
+    // with writeVolume(), and removeFiles() if writing fails.
+
+    //! @brief write the main header of a new file in the format of the file
+    //! @param mainHeader a main header of the format of this file, e.g. made with
+    //!        readMainHeader(mainHeader, format) of a source file or mainHeaderFromVolume();
+    //!        it is linked to this file while it is written. Philips: the file type passed
+    //!        to the constructor of the file (CPhilipsFile::requestedFileType(), e.g.
+    //!        Syntegra) is set in the header.
+    //! @return false (nothing written) if the header is no main header of the format of
+    //!         this file, or if it cannot be written
+    //!
+    //! Same as the writeMainHeader() of the format classes, which take the header class of
+    //! their format.
+    bool writeMainHeader(CMedIOHeader& mainHeader);
+
+    //! @brief names of all files the data is stored in, as given to the constructor: the
+    //!        file itself; for NIfTI header/image pairs the header and the image file (as
+    //!        CNIFTIFile names them, also if an existing image file uses the other letter
+    //!        case, see CNIFTIFile::imageFileName()); for microPET files also the header
+    //!        file (".hdr" appended)
+    //!
+    //! A new file replaces all of them: check that none exists before it is created.
+    QStringList fileNames() const;
+
+    //! @brief remove all files of fileNames(), e.g. a new file that could not be written
+    //!        completely; the file has to be closed
+    //! @return true if none of the files exists afterwards
+    bool removeFiles();
+
+    //! @brief format independent header attributes of the file (see
+    //!        CMedIOHeader::attributes()): the attributes of the main header and in "Frames"
+    //!        the attributes of every frame, as held by the NIfTI representation of the main
+    //!        header; the section "NIfTI" is only included for NIfTI files
+    //! @return false if the file is not open or its main header cannot be read
+    bool readAttributes(QJsonObject& attributes);
+
+    //! @brief number of frames a file with this main header has to get: the volumes of a
+    //!        NIfTI main header (dim[4], 1 for 3D data); a NIfTI file without all of them is
+    //!        incomplete. 0 for the main headers of the other formats, whose files take any
+    //!        number of frames.
+    static int requiredFrames(const CMedIOHeader& mainHeader);
 
   protected :
     int            m_iErrStatus;  //!< error status variable

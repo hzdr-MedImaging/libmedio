@@ -103,7 +103,9 @@ class CECATFile : public CMedIOData
     bool readMatrix(char*& matrixData, unsigned int& len, CECATSubHeader*& subHeader,
                     short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);
 
-    // methods to write out headers/data to the file.
+    // methods to write out headers/data to the file (writeMainHeader() of CMedIOData
+    // takes a main header of any header class)
+    using CMedIOData::writeMainHeader;
     bool writeMainHeader(CECATMainHeader& mainHeader);
     bool writeSubHeader(const CECATSubHeader& subHeader,
                         short frame=-1, short plane=-1, short gate=-1, short bed=-1, short data=-1);

@@ -26,6 +26,7 @@
 #include <QtTest/QtTest>
 
 #include <cmath>
+#include <cstring>
 #include <limits>
 
 // 4 x 3 x 2 int16 volume with stored value = 1 + linear index
@@ -66,6 +67,7 @@ class TestMedIOVolume : public QObject
     void planeScales();
     void errors();
     void largeVolume();
+    void sameGeometry();
 };
 
 void TestMedIOVolume::values()
@@ -239,6 +241,41 @@ void TestMedIOVolume::largeVolume()
   QVERIFY(v.reorient("RPS"));
   QCOMPARE(v.orientation(), QString("RPS"));
   QCOMPARE(v.scaleFactor(1), 4.0);
+}
+
+// hasSameGeometry(): same dimensions and voxel positions within the precision of the formats
+void TestMedIOVolume::sameGeometry()
+{
+  const double m[3][4] = { { 2, 0, 0, -100 }, { 0, 2.5, 0, 50 }, { 0, 0, 3, 1000 } };
+  const CMedIOVolume a = makeVolume(m);
+  QVERIFY(a.hasSameGeometry(a));
+  QVERIFY(a.hasSameGeometry(makeVolume(m)));
+
+  // other values and data types do not matter
+  CMedIOVolume values = makeVolume(m);
+  values.setScaleFactor(0.5);
+  QVERIFY(values.convertToPhysicalValues());
+  QVERIFY(a.hasSameGeometry(values));
+
+  // differences within 1e-3 + 1e-6 x |element| (e.g. float32 positions) are the same geometry
+  double n[3][4];
+  memcpy(n, m, sizeof(n));
+  n[2][3] = 1000 + 1e-3 + 0.9e-3;      // 1e-3 + 1e-6 x 1000 = 2e-3
+  QVERIFY(a.hasSameGeometry(makeVolume(n)));
+  QVERIFY(makeVolume(n).hasSameGeometry(a));
+  n[2][3] = 1000.003;
+  QVERIFY(a.hasSameGeometry(makeVolume(n)) == false);
+  memcpy(n, m, sizeof(n));
+  n[0][0] = 2.0015;
+  QVERIFY(a.hasSameGeometry(makeVolume(n)) == false);
+
+  // other dimensions
+  QByteArray data(24 * 2, '\0');
+  CMedIOVolume other;
+  QVERIFY(other.setData(2, 3, 4, CMedIOVolume::Int16, data));
+  other.setAffine(m);
+  QVERIFY(a.hasSameGeometry(other) == false);
+  QVERIFY(a.hasSameGeometry(CMedIOVolume()) == false);
 }
 
 QTEST_GUILESS_MAIN(TestMedIOVolume)

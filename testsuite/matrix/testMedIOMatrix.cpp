@@ -484,6 +484,18 @@ class TestMedIOMatrix : public QObject
     void mainHeaderFromVolume();
     void mainHeaderFromVolumeErrors();
 
+    void formatOfFileName_data();
+    void formatOfFileName();
+    void formatNames();
+    void createForWriting_data();
+    void createForWriting();
+    void writeMainHeaderErrors();
+    void fileNames_data();
+    void fileNames();
+    void removeFiles();
+    void readAttributes_data();
+    void readAttributes();
+
     void errors();
     void largeFrames();
 };
@@ -3367,6 +3379,315 @@ void TestMedIOMatrix::mainHeaderFromVolumeErrors()
   QVERIFY(CMedIOData::mainHeaderFromVolume(syntheticFrame(0), CMedIOData::ECAT, 32767, header));
   QScopedPointer<CMedIOHeader> guard(header);
   QCOMPARE(static_cast<int>(static_cast<CECAT7MainHeader*>(header)->num_Frames()), 32767);
+}
+
+//---------------------------------------------------------------------------------------------
+// new files of the writable formats: CMedIODataFactory::formatOfFileName(), createForWriting(),
+// formatName(), formatFromName(), CMedIOData::writeMainHeader(), fileNames(), removeFiles(),
+// requiredFrames(); CMedIOData::readAttributes()
+
+void TestMedIOMatrix::formatOfFileName_data()
+{
+  QTest::addColumn<QString>("name");
+  QTest::addColumn<int>("format");
+
+  QTest::newRow(".v")          << "a.v"            << static_cast<int>(CMedIOData::ECAT);
+  QTest::newRow(".V")          << "dir/A.V"        << static_cast<int>(CMedIOData::ECAT);
+  QTest::newRow(".nii")        << "a.nii"          << static_cast<int>(CMedIOData::NIFTI);
+  QTest::newRow(".NII.GZ")     << "a.NII.GZ"       << static_cast<int>(CMedIOData::NIFTI);
+  QTest::newRow(".hdr")        << "a.hdr"          << static_cast<int>(CMedIOData::NIFTI);
+  QTest::newRow(".hdr.gz")     << "a.hdr.gz"       << static_cast<int>(CMedIOData::NIFTI);
+  QTest::newRow(".img")        << "a.img"          << static_cast<int>(CMedIOData::Philips);
+  QTest::newRow(".SYN")        << "a.SYN"          << static_cast<int>(CMedIOData::Philips);
+  QTest::newRow("no extension") << "image"         << static_cast<int>(CMedIOData::Unknown);
+  QTest::newRow(".img.gz")     << "a.img.gz"       << static_cast<int>(CMedIOData::Unknown);
+  QTest::newRow(".json")       << "a.v.json"       << static_cast<int>(CMedIOData::Unknown);
+  QTest::newRow("directory")   << "a.v/image"      << static_cast<int>(CMedIOData::Unknown);
+}
+
+void TestMedIOMatrix::formatOfFileName()
+{
+  QFETCH(QString, name);
+  QFETCH(int, format);
+  QCOMPARE(static_cast<int>(CMedIODataFactory::formatOfFileName(name)), format);
+}
+
+void TestMedIOMatrix::formatNames()
+{
+  const CMedIOData::Format formats[] = { CMedIOData::Unknown, CMedIOData::ConcordeMicropet, CMedIOData::ECAT,
+                                         CMedIOData::Philips, CMedIOData::PhilipsBin, CMedIOData::NIFTI };
+  const char* names[] = { "unknown", "micropet", "ecat", "philips", "philipsbin", "nifti" };
+  for(int i=0; i < 6; i++) {
+    QCOMPARE(QString(CMedIODataFactory::formatName(formats[i])), QString(names[i]));
+    CMedIOData::Format format = CMedIOData::NIFTI;
+    QVERIFY(CMedIODataFactory::formatFromName(names[i], format));
+    QCOMPARE(static_cast<int>(format), static_cast<int>(formats[i]));
+  }
+
+  // abbreviations and other letter cases
+  const struct { const char* name; CMedIOData::Format format; } abbreviations[] = {
+    { "NIfTI", CMedIOData::NIFTI }, { "n", CMedIOData::NIFTI }, { "ECAT7", CMedIOData::ECAT },
+    { "Philips", CMedIOData::Philips }, { "PhilipsBin", CMedIOData::PhilipsBin },
+    { "concorde", CMedIOData::ConcordeMicropet }, { "microPET", CMedIOData::ConcordeMicropet } };
+  for(const auto& a : abbreviations) {
+    CMedIOData::Format format = CMedIOData::Unknown;
+    QVERIFY2(CMedIODataFactory::formatFromName(a.name, format), a.name);
+    QCOMPARE(static_cast<int>(format), static_cast<int>(a.format));
+  }
+
+  // other names: false, the format is unchanged
+  const char* invalid[] = { "", "dicom", "xyz", "1" };
+  for(const char* name : invalid) {
+    CMedIOData::Format format = CMedIOData::ECAT;
+    QVERIFY2(CMedIODataFactory::formatFromName(name, format) == false, name);
+    QCOMPARE(static_cast<int>(format), static_cast<int>(CMedIOData::ECAT));
+  }
+}
+
+void TestMedIOMatrix::createForWriting_data()
+{
+  QTest::addColumn<QString>("name");
+  QTest::addColumn<int>("format");       // given to createForWriting()
+  QTest::addColumn<int>("expected");     // format of the file written
+  QTest::addColumn<int>("frames");
+
+  const int unknown = static_cast<int>(CMedIOData::Unknown);
+  const int ecat = static_cast<int>(CMedIOData::ECAT);
+  const int nifti = static_cast<int>(CMedIOData::NIFTI);
+  const int philips = static_cast<int>(CMedIOData::Philips);
+  QTest::newRow("ECAT7")              << "wecat.v"      << unknown << ecat    << 3;
+  QTest::newRow("NIfTI .nii")         << "wnifti.nii"    << unknown << nifti   << 3;
+  QTest::newRow("NIfTI .nii.gz")      << "wniftigz.nii.gz" << unknown << nifti   << 1;
+  QTest::newRow("NIfTI .hdr")         << "wpair.hdr"    << unknown << nifti   << 3;
+  QTest::newRow("Philips image")      << "wphilips.img"    << unknown << philips << 3;
+  QTest::newRow("Philips Syntegra")   << "wsyntegra.syn"    << unknown << philips << 2;
+  QTest::newRow("ECAT7 given format") << "wecat.data"   << ecat    << ecat    << 2;
+}
+
+// a file of every writable format made with the format independent methods only: the frames
+// are read back as they were written
+void TestMedIOMatrix::createForWriting()
+{
+  QFETCH(QString, name);
+  QFETCH(int, format);
+  QFETCH(int, expected);
+  QFETCH(int, frames);
+  const QString path = tmpFile(name);
+
+  {
+    QScopedPointer<CMedIOData> out(CMedIODataFactory::createForWriting(path, static_cast<CMedIOData::Format>(format)));
+    QVERIFY(out.data() != NULL);
+    QCOMPARE(static_cast<int>(out->dataFormat()), expected);
+    QVERIFY(out->isOpen() == false);
+    for(const QString& file : out->fileNames())
+      QVERIFY2(QFile::exists(file) == false, qPrintable(file));
+
+    CMedIOHeader* header = NULL;
+    QVERIFY(CMedIOData::mainHeaderFromVolume(syntheticFrame(0), out->dataFormat(), frames, header));
+    QScopedPointer<CMedIOHeader> headerGuard(header);
+    QCOMPARE(CMedIOData::requiredFrames(*header), out->dataFormat() == CMedIOData::NIFTI ? frames : 0);
+
+    QVERIFY(out->open(QIODevice::WriteOnly));
+    QVERIFY(out->writeMainHeader(*header));
+    QVERIFY(header->medIOData() == NULL);   // the link to the file is not kept
+    for(int k=0; k < frames; k++)
+      QVERIFY(out->writeVolume(syntheticFrame(k), k + 1));
+    out->close();
+    for(const QString& file : out->fileNames())
+      QVERIFY2(QFile::exists(file), qPrintable(file));
+  }
+
+  QScopedPointer<CMedIOData> in(CMedIODataFactory::create(path));
+  QVERIFY(in.data() != NULL);
+  QCOMPARE(static_cast<int>(in->dataFormat()), expected);
+  QVERIFY(in->open(QIODevice::ReadOnly));
+  if(expected == CMedIOData::Philips) {
+    // the file type follows the name
+    QCOMPARE(static_cast<int>(static_cast<CPhilipsFile*>(in.data())->fileType()),
+             static_cast<int>(name.endsWith(".syn") ? CPhilipsMainHeader::Syntegra : CPhilipsMainHeader::Image));
+  }
+  const QList<short> numbers = in->frameNumbers();
+  QCOMPARE(numbers.size(), frames);
+  for(int k=0; k < frames; k++) {
+    const CMedIOVolume written = syntheticFrame(k);
+    CMedIOVolume v;
+    QVERIFY(in->readVolume(v, numbers[k]));
+    QVERIFY(v.reorient(written.orientation()));
+    for(qint64 i=0; i < written.voxelCount(); i++)
+      QVERIFY2(approx(v.value(i), written.value(i), 1e-6), qPrintable(QString("frame %1, voxel %2").arg(k + 1).arg(i)));
+    QCOMPARE(v.frameStart(), written.frameStart());
+  }
+}
+
+void TestMedIOMatrix::writeMainHeaderErrors()
+{
+  // formats that cannot be written
+  QVERIFY(CMedIODataFactory::createForWriting(tmpFile("x.data")) == NULL);
+  QVERIFY(CMedIODataFactory::createForWriting(tmpFile("x.v"), CMedIOData::ConcordeMicropet) == NULL);
+  QVERIFY(CMedIODataFactory::createForWriting(tmpFile("x.v"), CMedIOData::PhilipsBin) == NULL);
+
+  // a main header of another format is not written
+  CMedIOHeader* ecatHeader = NULL;
+  QVERIFY(CMedIOData::mainHeaderFromVolume(syntheticFrame(0), CMedIOData::ECAT, 1, ecatHeader));
+  QScopedPointer<CMedIOHeader> ecatGuard(ecatHeader);
+  QCOMPARE(CMedIOData::requiredFrames(*ecatHeader), 0);
+  const QString path = tmpFile("wrong-header.nii");
+  QScopedPointer<CMedIOData> out(CMedIODataFactory::createForWriting(path));
+  QVERIFY(out->open(QIODevice::WriteOnly));
+  QVERIFY(out->writeMainHeader(*ecatHeader) == false);
+  QVERIFY(ecatHeader->medIOData() == NULL);
+  out->close();
+  QVERIFY(QFileInfo(path).size() == 0);
+  QVERIFY(out->removeFiles());
+
+  // a header that is linked to another file keeps the link
+  CECATFile other(tmpFile("other.v"), CECATMainHeader::ECAT7_Volume16);
+  ecatHeader->setMedIOData(&other);
+  QScopedPointer<CMedIOData> ecat(CMedIODataFactory::createForWriting(tmpFile("linked.v")));
+  QVERIFY(ecat->open(QIODevice::WriteOnly));
+  QVERIFY(ecat->writeMainHeader(*ecatHeader));
+  QVERIFY(ecatHeader->medIOData() == &other);
+  ecatHeader->setMedIOData(NULL);
+  ecat->close();
+  QVERIFY(ecat->removeFiles());
+
+  // the number of volumes of 3D and 4D NIfTI headers
+  for(int frames : { 1, 2, 7 }) {
+    CMedIOHeader* nifti = NULL;
+    QVERIFY(CMedIOData::mainHeaderFromVolume(syntheticFrame(0), CMedIOData::NIFTI, frames, nifti));
+    QScopedPointer<CMedIOHeader> guard(nifti);
+    QCOMPARE(static_cast<int>(static_cast<CNIFTI1MainHeader*>(nifti)->dim(0)), frames > 1 ? 4 : 3);
+    QCOMPARE(CMedIOData::requiredFrames(*nifti), frames);
+    CNIFTI2MainHeader nifti2(NULL);
+    QVERIFY(nifti2.convertFrom(nifti));
+    QCOMPARE(CMedIOData::requiredFrames(nifti2), frames);
+  }
+}
+
+void TestMedIOMatrix::fileNames_data()
+{
+  QTest::addColumn<QString>("name");
+  QTest::addColumn<QString>("existing");   // file created before
+  QTest::addColumn<QStringList>("expected");
+
+  QTest::newRow("ECAT7")         << "f.v"      << QString() << (QStringList() << "f.v");
+  QTest::newRow("Philips")       << "f.img"    << QString() << (QStringList() << "f.img");
+  QTest::newRow("NIfTI .nii")    << "f.nii"    << QString() << (QStringList() << "f.nii");
+  QTest::newRow("NIfTI .nii.gz") << "f.nii.gz" << QString() << (QStringList() << "f.nii.gz");
+  QTest::newRow("NIfTI .hdr")    << "f.hdr"    << QString() << (QStringList() << "f.hdr" << "f.img");
+  QTest::newRow("NIfTI .HDR")    << "F.HDR"    << QString() << (QStringList() << "F.HDR" << "F.IMG");
+  QTest::newRow("NIfTI .hdr.gz") << "f.hdr.gz" << QString() << (QStringList() << "f.hdr.gz" << "f.img.gz");
+  // an existing image file with the other letter case is the image file of the pair
+  QTest::newRow("NIfTI .hdr with existing .IMG") << "g.hdr" << "g.IMG" << (QStringList() << "g.hdr" << "g.IMG");
+}
+
+void TestMedIOMatrix::fileNames()
+{
+  QFETCH(QString, name);
+  QFETCH(QString, existing);
+  QFETCH(QStringList, expected);
+
+  QTemporaryDir dir;
+  QVERIFY(dir.isValid());
+  if(existing.isEmpty() == false) {
+    QFile file(dir.filePath(existing));
+    QVERIFY(file.open(QIODevice::WriteOnly));
+  }
+  QStringList paths;
+  for(const QString& e : expected)
+    paths << dir.filePath(e);
+
+  QScopedPointer<CMedIOData> data(CMedIODataFactory::createForWriting(dir.filePath(name)));
+  QVERIFY(data.data() != NULL);
+  QCOMPARE(data->fileNames(), paths);
+
+  // microPET files: the data file and its header
+  if(name == "f.v") {
+    const QString path = dir.filePath("mpet_image");
+    QVERIFY(writeConcorde(path));
+    QScopedPointer<CMedIOData> concorde(CMedIODataFactory::create(path));
+    QVERIFY(concorde.data() != NULL);
+    QCOMPARE(concorde->fileNames(), QStringList() << path << path + ".hdr");
+  }
+}
+
+void TestMedIOMatrix::removeFiles()
+{
+  QTemporaryDir dir;
+  QVERIFY(dir.isValid());
+
+  // a written header/image pair: both files are removed, other files are kept
+  const QString path = dir.filePath("pair.hdr");
+  QFile other(dir.filePath("pair.v"));
+  QVERIFY(other.open(QIODevice::WriteOnly));
+  other.close();
+
+  QScopedPointer<CMedIOData> out(CMedIODataFactory::createForWriting(path));
+  CMedIOHeader* header = NULL;
+  QVERIFY(CMedIOData::mainHeaderFromVolume(syntheticFrame(0), CMedIOData::NIFTI, 1, header));
+  QScopedPointer<CMedIOHeader> headerGuard(header);
+  QVERIFY(out->open(QIODevice::WriteOnly));
+  QVERIFY(out->writeMainHeader(*header));
+  QVERIFY(out->writeVolume(syntheticFrame(0), 1));
+  out->close();
+  QVERIFY(QFile::exists(dir.filePath("pair.hdr")) && QFile::exists(dir.filePath("pair.img")));
+
+  QVERIFY(out->removeFiles());
+  QVERIFY(QFile::exists(dir.filePath("pair.hdr")) == false);
+  QVERIFY(QFile::exists(dir.filePath("pair.img")) == false);
+  QVERIFY(QFile::exists(dir.filePath("pair.v")));
+
+  // files that do not exist (anymore)
+  QVERIFY(out->removeFiles());
+}
+
+void TestMedIOMatrix::readAttributes_data()
+{
+  QTest::addColumn<QString>("file");
+  QTest::addColumn<int>("frames");
+  QTest::addColumn<bool>("nifti");
+
+  QTest::newRow("ECAT7")   << "ecat/pet-dynamic.v"         << 3 << false;
+  QTest::newRow("Philips") << "philips/pet-dynamic.img"    << 3 << false;
+  // (the NIfTI test file holds no attributes of its frames)
+  QTest::newRow("NIfTI")   << "nifti/pet-dynamic.nii.gz"   << 0 << true;
+}
+
+// the attributes of the file: those of the main header and of every frame
+void TestMedIOMatrix::readAttributes()
+{
+  QFETCH(QString, file);
+  QFETCH(int, frames);
+  QFETCH(bool, nifti);
+
+  // expected values: the attributes of the dataset (testsuite/data/ecat/pet-dynamic.v.json)
+  const QJsonObject expected = expectedValues("ecat/pet-dynamic.v").value("attributes").toObject().value("main").toObject();
+  QVERIFY(expected.isEmpty() == false);
+
+  QScopedPointer<CMedIOData> data(CMedIODataFactory::create(medioTestDataDir() + "/" + file));
+  QVERIFY(data.data() != NULL);
+
+  // the file has to be open
+  QJsonObject attributes;
+  QVERIFY(data->readAttributes(attributes) == false);
+
+  QVERIFY(data->open(QIODevice::ReadOnly));
+  QVERIFY(data->readAttributes(attributes));
+  QCOMPARE(attributes.value("Frames").toArray().size(), frames);
+  QCOMPARE(attributes.contains("NIfTI"), nifti);
+  if(file.startsWith("ecat/")) {
+    QCOMPARE(attributes.value("PatientName").toString(), expected.value("PatientName").toString());
+    QCOMPARE(attributes.value("PatientWeight").toDouble(), expected.value("PatientWeight").toDouble());
+  }
+
+  // the same as the attributes of the NIfTI representation of the main header
+  CMedIOHeader* header = NULL;
+  QVERIFY(data->readMainHeader(header, CMedIOData::NIFTI));
+  QScopedPointer<CMedIOHeader> guard(header);
+  QJsonObject representation = header->attributes();
+  if(nifti == false)
+    representation.remove("NIfTI");
+  QCOMPARE(attributes, representation);
 }
 
 #include "testMedIOMatrix.moc"

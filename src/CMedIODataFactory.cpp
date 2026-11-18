@@ -30,6 +30,8 @@
 #include "CPhilipsFile.h"
 #include "CNIFTIFile.h"
 
+#include <QFileInfo>
+
 #include <rtdebug.h>
 
 CMedIOData::Format CMedIODataFactory::identify(const QString& fileName)
@@ -85,4 +87,92 @@ CMedIOData* CMedIODataFactory::create(const QString& fileName) {
   
   RETURN(mData);
   return mData;
+}
+
+CMedIOData::Format CMedIODataFactory::formatOfFileName(const QString& fileName)
+{
+  ENTER();
+
+  const QString name = QFileInfo(fileName).fileName().toLower();
+  CMedIOData::Format result = CMedIOData::Unknown;
+
+  if(name.endsWith(".v"))
+    result = CMedIOData::ECAT;
+  else if(name.endsWith(".nii") || name.endsWith(".nii.gz") || name.endsWith(".hdr") || name.endsWith(".hdr.gz"))
+    result = CMedIOData::NIFTI;
+  else if(name.endsWith(".img") || name.endsWith(".syn"))
+    result = CMedIOData::Philips;
+
+  RETURN(result);
+  return result;
+}
+
+CMedIOData* CMedIODataFactory::createForWriting(const QString& fileName, CMedIOData::Format format)
+{
+  ENTER();
+
+  if(format == CMedIOData::Unknown)
+    format = formatOfFileName(fileName);
+
+  CMedIOData* result = NULL;
+  switch(format)
+  {
+    case CMedIOData::ECAT:
+      result = new CECATFile(fileName, CECATMainHeader::ECAT7_Volume16);
+    break;
+
+    case CMedIOData::NIFTI:
+      result = new CNIFTIFile(fileName, CNIFTIMainHeader::NIFTI1);
+    break;
+
+    case CMedIOData::Philips:
+      result = new CPhilipsFile(fileName, fileName.endsWith(".syn", Qt::CaseInsensitive) ? CPhilipsMainHeader::Syntegra
+                                                                                          : CPhilipsMainHeader::Image);
+    break;
+
+    default:
+      E("files of data format %d cannot be written", static_cast<int>(format));
+    break;
+  }
+
+  RETURN(result);
+  return result;
+}
+
+const char* CMedIODataFactory::formatName(CMedIOData::Format format)
+{
+  switch(format)
+  {
+    case CMedIOData::ECAT:             return "ecat";
+    case CMedIOData::ConcordeMicropet: return "micropet";
+    case CMedIOData::Philips:          return "philips";
+    case CMedIOData::PhilipsBin:       return "philipsbin";
+    case CMedIOData::NIFTI:            return "nifti";
+    case CMedIOData::Unknown:          break;
+  }
+  return "unknown";
+}
+
+bool CMedIODataFactory::formatFromName(const QString& name, CMedIOData::Format& format)
+{
+  ENTER();
+  bool result = true;
+
+  if(name.startsWith('e', Qt::CaseInsensitive))
+    format = CMedIOData::ECAT;
+  else if(name.startsWith('u', Qt::CaseInsensitive))
+    format = CMedIOData::Unknown;
+  else if(name.startsWith('c', Qt::CaseInsensitive) || name.startsWith('m', Qt::CaseInsensitive))
+    format = CMedIOData::ConcordeMicropet;
+  else if(name.startsWith("philipsbin", Qt::CaseInsensitive))
+    format = CMedIOData::PhilipsBin;
+  else if(name.startsWith('p', Qt::CaseInsensitive))
+    format = CMedIOData::Philips;
+  else if(name.startsWith('n', Qt::CaseInsensitive))
+    format = CMedIOData::NIFTI;
+  else
+    result = false;
+
+  RETURN(result);
+  return result;
 }
