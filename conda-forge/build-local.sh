@@ -46,7 +46,7 @@ tmp=$(mktemp -d)
 trap 'rm -rf "${tmp}"' EXIT
 
 # the recipes with the local checkouts as source
-for name in librtdebug libmedio pmedio; do
+for name in librtdebug libmedio pmedio r-rmedio; do
   source=${top}
   [ "${name}" = librtdebug ] && source=${rtdebug}
   mkdir -p "${tmp}/${name}"

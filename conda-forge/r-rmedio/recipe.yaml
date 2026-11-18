@@ -1,0 +1,78 @@
+# conda-forge recipe of Rmedio, the R package of libmedio (r/ of
+# https://github.com/hzdr-MedImaging/libmedio), for conda-forge/staged-recipes
+# (recipes/r-rmedio/recipe.yaml); see ../README.md. Rmedio has the version of libmedio
+# and is compiled against the libmedio package (LIBMEDIO_PREFIX) instead of the
+# libmedio sources it bundles for CRAN.
+
+context:
+  version: "4.0.0"
+
+package:
+  name: r-rmedio
+  version: ${{ version }}
+
+source:
+  url: https://github.com/hzdr-MedImaging/libmedio/archive/refs/tags/${{ version }}.tar.gz
+  # curl -sL <url> | sha256sum
+  sha256: 0000000000000000000000000000000000000000000000000000000000000000
+
+build:
+  number: 0
+  skip:
+    - win
+  script:
+    - cd r
+    - export LIBMEDIO_PREFIX="${PREFIX}"
+    - ${R} CMD INSTALL --build . ${R_ARGS}
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - make
+    - pkg-config
+    - if: build_platform != target_platform
+      then:
+        - cross-r-base ${{ r_base }}
+        - r-rcpp
+  host:
+    - r-base
+    - r-rcpp
+    - libmedio ==${{ version }}
+    - qt-main
+    - zlib
+  run:
+    - r-base
+    - r-rcpp
+
+tests:
+  - script:
+      - Rscript -e "library('Rmedio')"
+  - files:
+      source:
+        - r/tests/
+    requirements:
+      run:
+        - r-jsonlite
+    script:
+      - Rscript r/tests/test-medio.R
+      - Rscript r/tests/test-ecat.R
+
+about:
+  homepage: https://github.com/hzdr-MedImaging/libmedio
+  repository: https://github.com/hzdr-MedImaging/libmedio
+  documentation: https://github.com/hzdr-MedImaging/libmedio/blob/main/r/README.md
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: Read and write medical imaging data (ECAT, NIfTI, Philips PET, microPET) with libmedio in R
+  description: |
+    Rmedio reads the medical imaging formats of libmedio (ECAT 7, NIfTI,
+    Philips PET and Siemens Concorde microPET) as arrays with their geometry,
+    frame timing and header attributes (readMedio()), and writes ECAT 7, NIfTI
+    and Philips PET images (writeMedio()); the older interface readEcat() and
+    writeEcat() reads and writes ECAT image volumes.
+
+extra:
+  recipe-maintainers:
+    - jens-maus
