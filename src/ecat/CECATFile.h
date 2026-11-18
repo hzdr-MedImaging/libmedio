@@ -68,7 +68,8 @@ class CECATFile : public CMedIOData
     CECATSubHeader::Type subHeaderType(CECATMainHeader::Type fileType);
 
     // methods to calculate the real amount
-    // of frame/plane/gate numbers carried in the directory.
+    // of frame/plane/gate numbers carried in the directory
+    // (0 while the file is not open: it has no directory yet).
     short maxFrame(void) const;
     short minFrame(void) const;
     short numFrames(void) const;

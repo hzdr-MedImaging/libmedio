@@ -495,6 +495,9 @@ class TestMedIOMatrix : public QObject
     void removeFiles();
     void readAttributes_data();
     void readAttributes();
+    void unopenedFiles_data();
+    void unopenedFiles();
+    void unopenedNewFiles();
 
     void errors();
     void largeFrames();
@@ -3688,6 +3691,96 @@ void TestMedIOMatrix::readAttributes()
   if(nifti == false)
     representation.remove("NIfTI");
   QCOMPARE(attributes, representation);
+}
+
+//---------------------------------------------------------------------------------------------
+// files that are not open: the format independent methods fail without reading (the format
+// classes read their directories when a file is opened; a Philips file crashed before)
+
+void TestMedIOMatrix::unopenedFiles_data()
+{
+  QTest::addColumn<QString>("file");
+  QTest::newRow("ECAT7")          << "ecat/pet-dynamic.v";
+  QTest::newRow("Philips image")  << "philips/pet-dynamic.img";
+  QTest::newRow("Philips Syntegra") << "philips/pet-dynamic.syn";
+  QTest::newRow("NIfTI")          << "nifti/pet-dynamic.nii.gz";
+  QTest::newRow("NIfTI pair")     << "nifti/pet-dynamic.pair/pet-dynamic.hdr";
+}
+
+void TestMedIOMatrix::unopenedFiles()
+{
+  QFETCH(QString, file);
+
+  QScopedPointer<CMedIOData> data(CMedIODataFactory::create(medioTestDataDir() + "/" + file));
+  QVERIFY(data.data() != NULL);
+  QVERIFY(data->isOpen() == false);
+
+  const CMedIOData::Format formats[] = { CMedIOData::ECAT, CMedIOData::NIFTI, CMedIOData::Philips };
+  for(CMedIOData::Format format : formats) {
+    CMedIOHeader* header = reinterpret_cast<CMedIOHeader*>(1);
+    QVERIFY2(data->readMainHeader(header, format) == false, CMedIODataFactory::formatName(format));
+    QVERIFY(header == NULL);
+
+    QByteArray* matrix = reinterpret_cast<QByteArray*>(1);
+    CMedIOHeader* subHeader = reinterpret_cast<CMedIOHeader*>(1);
+    QVERIFY2(data->readMatrix(matrix, subHeader, format) == false, CMedIODataFactory::formatName(format));
+    QVERIFY(matrix == NULL);
+    QVERIFY(subHeader == NULL);
+  }
+  CMedIOVolume volume;
+  QVERIFY(data->readVolume(volume) == false);
+  QVERIFY(data->readVolume(volume, 1) == false);
+  QVERIFY(data->frameNumbers().isEmpty());
+  QJsonObject attributes;
+  QVERIFY(data->readAttributes(attributes) == false);
+
+  // the directory accessors of the format classes: no frames before the file is opened
+  if(CECATFile* ecat = dynamic_cast<CECATFile*>(data.data())) {
+    QCOMPARE(static_cast<int>(ecat->minFrame()), 0);
+    QCOMPARE(static_cast<int>(ecat->maxFrame()), 0);
+    QCOMPARE(static_cast<int>(ecat->numFrames()), 0);
+    QCOMPARE(static_cast<int>(ecat->numPlanes()), 0);
+  }
+  if(CPhilipsFile* philips = dynamic_cast<CPhilipsFile*>(data.data())) {
+    QCOMPARE(static_cast<int>(philips->minFrame()), 0);
+    QCOMPARE(static_cast<int>(philips->maxFrame()), 0);
+    QCOMPARE(static_cast<int>(philips->numFrames()), 0);
+    QCOMPARE(static_cast<int>(philips->numSlices()), 0);
+    QCOMPARE(static_cast<int>(philips->numTilts()), 0);
+  }
+
+  // the same calls succeed once the file is open
+  QVERIFY(data->open(QIODevice::ReadOnly));
+  QCOMPARE(data->frameNumbers().size(), 3);
+  QVERIFY(data->readVolume(volume));
+  QVERIFY(data->readAttributes(attributes));
+  for(CMedIOData::Format format : formats) {
+    CMedIOHeader* header = NULL;
+    QVERIFY2(data->readMainHeader(header, format), CMedIODataFactory::formatName(format));
+    delete header;
+  }
+  if(CPhilipsFile* philips = dynamic_cast<CPhilipsFile*>(data.data()))
+    QVERIFY(philips->numFrames() > 0);
+  if(CECATFile* ecat = dynamic_cast<CECATFile*>(data.data()))
+    QVERIFY(ecat->numFrames() > 0);
+}
+
+// a new file that was not opened for writing: nothing is written
+void TestMedIOMatrix::unopenedNewFiles()
+{
+  QTemporaryDir dir;
+  QVERIFY(dir.isValid());
+  const char* names[] = { "u.v", "u.nii", "u.nii.gz", "u.hdr", "u.img", "u.syn" };
+  for(const char* name : names) {
+    QScopedPointer<CMedIOData> out(CMedIODataFactory::createForWriting(dir.filePath(name)));
+    QVERIFY(out.data() != NULL);
+    CMedIOHeader* header = NULL;
+    QVERIFY(CMedIOData::mainHeaderFromVolume(syntheticFrame(0), out->dataFormat(), 1, header));
+    QScopedPointer<CMedIOHeader> guard(header);
+    QVERIFY2(out->writeMainHeader(*header) == false, name);
+    QVERIFY2(out->writeVolume(syntheticFrame(0), 1) == false, name);
+  }
+  QVERIFY(QDir(dir.path()).entryList(QDir::Files).isEmpty());
 }
 
 #include "testMedIOMatrix.moc"

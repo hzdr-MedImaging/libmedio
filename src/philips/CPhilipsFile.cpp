@@ -287,47 +287,56 @@ CMedIOData::Format CPhilipsFile::dataFormat() const
 
 short CPhilipsFile::maxFrame(void) const
 {
-  return m_pData->directory->maxFrame();
+  // no directory before the file is opened
+  return (m_pData->directory != NULL) ? m_pData->directory->maxFrame() : 0;
 }
 
 short CPhilipsFile::minFrame(void) const
 {
-  return m_pData->directory->minFrame();
+  // no directory before the file is opened
+  return (m_pData->directory != NULL) ? m_pData->directory->minFrame() : 0;
 }
 
 short CPhilipsFile::numFrames(void) const
 {
-  return m_pData->directory->numFrames();
+  // no directory before the file is opened
+  return (m_pData->directory != NULL) ? m_pData->directory->numFrames() : 0;
 }
 
 short CPhilipsFile::maxSlice(void) const
 {
-  return m_pData->directory->maxSlice();
+  // no directory before the file is opened
+  return (m_pData->directory != NULL) ? m_pData->directory->maxSlice() : 0;
 }
 
 short CPhilipsFile::minSlice(void) const
 {
-  return m_pData->directory->minSlice();
+  // no directory before the file is opened
+  return (m_pData->directory != NULL) ? m_pData->directory->minSlice() : 0;
 }
 
 short CPhilipsFile::numSlices(short frame) const
 {
-  return m_pData->directory->numSlices(frame);
+  // no directory before the file is opened
+  return (m_pData->directory != NULL) ? m_pData->directory->numSlices(frame) : 0;
 }
 
 short CPhilipsFile::maxTilt(void) const
 {
-  return m_pData->directory->maxTilt();
+  // no directory before the file is opened
+  return (m_pData->directory != NULL) ? m_pData->directory->maxTilt() : 0;
 }
 
 short CPhilipsFile::minTilt(void) const
 {
-  return m_pData->directory->minTilt();
+  // no directory before the file is opened
+  return (m_pData->directory != NULL) ? m_pData->directory->minTilt() : 0;
 }
 
 short CPhilipsFile::numTilts(void) const
 {
-  return m_pData->directory->numTilts();
+  // no directory before the file is opened
+  return (m_pData->directory != NULL) ? m_pData->directory->numTilts() : 0;
 }
 
 bool CPhilipsFile::open(QIODevice::OpenModeFlag mode)
