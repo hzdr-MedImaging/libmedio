@@ -443,10 +443,25 @@ bool readVolume(CMedIOData* file, short frame, CMedIOVolume& volume)
   return result;
 }
 
+// the format classes read their directories when a file is opened and require an open
+// file (assertions in debug builds): the matrix functions fail before they call them
+static bool isOpenFile(const CMedIOData* file)
+{
+  if(file->isOpen())
+    return true;
+  E("the file %s is not open", file->fileName().toLocal8Bit().constData());
+  return false;
+}
+
 bool readFrame(CMedIOData* file, short frame, CMedIOFrame& f)
 {
   ENTER();
   bool result = false;
+
+  if(isOpenFile(file) == false) {
+    RETURN(false);
+    return false;
+  }
 
   switch(file->dataFormat()) {
     case CMedIOData::ECAT:
@@ -595,6 +610,11 @@ bool writeFrame(CMedIOData* file, short frame, const CMedIOFrame& f)
   ENTER();
   bool result = false;
 
+  if(isOpenFile(file) == false) {
+    RETURN(false);
+    return false;
+  }
+
   switch(file->dataFormat()) {
     case CMedIOData::ECAT:
       result = writeEcatFrame(static_cast<CECATFile*>(file), frame, f);
@@ -622,6 +642,11 @@ bool readNativeMatrix(CMedIOData* file, short frame, QByteArray& data, CMedIOHea
   ENTER();
   bool result = false;
   header = NULL;
+
+  if(isOpenFile(file) == false) {
+    RETURN(false);
+    return false;
+  }
 
   switch(file->dataFormat()) {
     case CMedIOData::ECAT: {
@@ -726,6 +751,11 @@ bool writeNativeMatrix(CMedIOData* file, short frame, const QByteArray& data, co
 {
   ENTER();
   bool result = false;
+
+  if(isOpenFile(file) == false) {
+    RETURN(false);
+    return false;
+  }
 
   switch(file->dataFormat()) {
     case CMedIOData::ECAT:

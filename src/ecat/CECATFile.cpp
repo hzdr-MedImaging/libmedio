@@ -107,77 +107,92 @@ CECATFile::ECATFormat CECATFile::format(void) const
 
 short CECATFile::maxFrame(void) const
 { 
-  return m_pData->directory->maxFrame();
+  // no directory before the file is opened
+  return (m_pData->directory != NULL) ? m_pData->directory->maxFrame() : 0;
 }
 
 short CECATFile::minFrame(void) const
 { 
-  return m_pData->directory->minFrame();
+  // no directory before the file is opened
+  return (m_pData->directory != NULL) ? m_pData->directory->minFrame() : 0;
 }
 
 short CECATFile::numFrames(void) const
 { 
-  return m_pData->directory->numFrames();
+  // no directory before the file is opened
+  return (m_pData->directory != NULL) ? m_pData->directory->numFrames() : 0;
 }
 
 short CECATFile::maxPlane(void) const
 { 
-  return m_pData->directory->maxPlane();
+  // no directory before the file is opened
+  return (m_pData->directory != NULL) ? m_pData->directory->maxPlane() : 0;
 }
 
 short CECATFile::minPlane(void) const
 { 
-  return m_pData->directory->minPlane();
+  // no directory before the file is opened
+  return (m_pData->directory != NULL) ? m_pData->directory->minPlane() : 0;
 }
 
 short CECATFile::numPlanes(void) const
 { 
-  return m_pData->directory->numPlanes();
+  // no directory before the file is opened
+  return (m_pData->directory != NULL) ? m_pData->directory->numPlanes() : 0;
 }
 
 short CECATFile::maxGate(void) const
 { 
-  return m_pData->directory->maxGate();
+  // no directory before the file is opened
+  return (m_pData->directory != NULL) ? m_pData->directory->maxGate() : 0;
 }
 
 short CECATFile::minGate(void) const
 { 
-  return m_pData->directory->minGate();
+  // no directory before the file is opened
+  return (m_pData->directory != NULL) ? m_pData->directory->minGate() : 0;
 }
 
 short CECATFile::numGates(void) const
 { 
-  return m_pData->directory->numGates();
+  // no directory before the file is opened
+  return (m_pData->directory != NULL) ? m_pData->directory->numGates() : 0;
 }
 
 short CECATFile::maxBedPos(void) const
 { 
-  return m_pData->directory->maxBedPos();
+  // no directory before the file is opened
+  return (m_pData->directory != NULL) ? m_pData->directory->maxBedPos() : 0;
 }
 
 short CECATFile::minBedPos(void) const
 { 
-  return m_pData->directory->minBedPos();
+  // no directory before the file is opened
+  return (m_pData->directory != NULL) ? m_pData->directory->minBedPos() : 0;
 }
 
 short CECATFile::numBedPos(void) const
 { 
-  return m_pData->directory->numBedPos();
+  // no directory before the file is opened
+  return (m_pData->directory != NULL) ? m_pData->directory->numBedPos() : 0;
 }
 
 short CECATFile::maxData(void) const
 { 
-  return m_pData->directory->maxData();
+  // no directory before the file is opened
+  return (m_pData->directory != NULL) ? m_pData->directory->maxData() : 0;
 }
 
 short CECATFile::minData(void) const
 { 
-  return m_pData->directory->minData();
+  // no directory before the file is opened
+  return (m_pData->directory != NULL) ? m_pData->directory->minData() : 0;
 }
 
 short CECATFile::numData(void) const
 { 
-  return m_pData->directory->numData();
+  // no directory before the file is opened
+  return (m_pData->directory != NULL) ? m_pData->directory->numData() : 0;
 }
 
 CECATDirectory* CECATFile::directory(void) const
