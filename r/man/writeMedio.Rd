@@ -47,7 +47,9 @@ writeMedio(image, fname, like = NULL, format = NULL, overwrite = FALSE)
   }
   \item{format}{
     \code{"ecat"}, \code{"nifti"} or \code{"philips"} to give the format
-    independent of the file name.
+    independent of the file name; the letter case does not matter and the
+    names can be abbreviated (e.g. \code{"NIfTI"}, \code{"e"}), like in the
+    Python bindings.
   }
   \item{overwrite}{
     if \code{TRUE}, an existing file is replaced, otherwise it is an error.
