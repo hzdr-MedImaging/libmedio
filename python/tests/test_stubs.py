@@ -109,3 +109,16 @@ def test_stubs_are_precise():
     ):
         assert signature in text, signature
     assert "-> object" not in text
+
+
+@needs_stubs
+def test_stubs_document_the_legacy_interface():
+    # editors show MedIOImage, read() and write() (every overload) as the interface for
+    # ECAT7 files only
+    tree = ast.parse(STUBS.read_text(encoding="utf-8"))
+    assert "legacy interface for ECAT7 files only" in ast.get_docstring(tree)
+    for name in ("MedIOImage", "read", "write"):
+        nodes = [node for node in tree.body if getattr(node, "name", None) == name]
+        assert nodes, name
+        for node in nodes:
+            assert "Legacy interface for ECAT7" in (ast.get_docstring(node) or ""), name
