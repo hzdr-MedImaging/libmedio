@@ -68,7 +68,7 @@ test:
 
 about:
   summary: 'python interface for libmedio'
-  desription: |
+  description: |
     python interface to support libmedio supported medical imaging data
   license: Apache-2.0
   license_file: ../../LICENSE

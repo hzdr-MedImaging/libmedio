@@ -1,0 +1,82 @@
+# conda-forge recipe of pmedio, the Python bindings of libmedio (python/ of
+# https://github.com/hzdr-MedImaging/libmedio), for conda-forge/staged-recipes
+# (recipes/pmedio/recipe.yaml); see ../README.md. pmedio has the version of libmedio.
+
+context:
+  version: "4.0.0"
+
+package:
+  name: pmedio
+  version: ${{ version }}
+
+source:
+  url: https://github.com/hzdr-MedImaging/libmedio/archive/refs/tags/${{ version }}.tar.gz
+  # curl -sL <url> | sha256sum
+  sha256: 0000000000000000000000000000000000000000000000000000000000000000
+
+build:
+  number: 0
+  skip:
+    - win
+  script:
+    # libmedio, Qt and zlib of the host environment
+    - export CMAKE_ARGS="${CMAKE_ARGS} -DPREFIX_PATH=${PREFIX}"
+    - ${{ PYTHON }} -m pip install ./python -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - ninja
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - nanobind
+  host:
+    - python
+    - pip
+    - scikit-build-core
+    - nanobind
+    - libmedio ==${{ version }}
+    - qt-main
+    - zlib
+  run:
+    - python
+    - numpy >=1.18
+
+tests:
+  - python:
+      imports:
+        - pmedio
+      pip_check: true
+  - files:
+      source:
+        - python/tests/
+        - testsuite/data/
+    requirements:
+      run:
+        - pytest
+        - nibabel
+        - pydicom
+    script:
+      - pytest python/tests -v
+
+about:
+  homepage: https://github.com/hzdr-MedImaging/libmedio
+  repository: https://github.com/hzdr-MedImaging/libmedio
+  documentation: https://github.com/hzdr-MedImaging/libmedio/blob/main/docs/python.md
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: Python bindings of libmedio to read and write ECAT, NIfTI, Philips PET and microPET images
+  description: |
+    pmedio reads and writes the medical imaging formats of libmedio (ECAT7,
+    NIfTI, Philips PET; microPET read only) with numpy: whole images with
+    pmedio.load()/pmedio.save(), single frames with pmedio.open()/pmedio.create(),
+    header attributes with DICOM keywords and conversions to and from nibabel
+    images.
+
+extra:
+  recipe-maintainers:
+    - jens-maus

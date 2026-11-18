@@ -1,0 +1,91 @@
+# conda-forge recipe of libmedio (https://github.com/hzdr-MedImaging/libmedio), for
+# conda-forge/staged-recipes (recipes/libmedio/recipe.yaml); see ../README.md.
+
+context:
+  version: "4.0.0"
+
+package:
+  name: libmedio
+  version: ${{ version }}
+
+source:
+  url: https://github.com/hzdr-MedImaging/libmedio/archive/refs/tags/${{ version }}.tar.gz
+  # curl -sL <url> | sha256sum
+  sha256: 0000000000000000000000000000000000000000000000000000000000000000
+
+build:
+  number: 0
+  # the Windows builds of libmedio are cross-compiled with MXE, not with MSVC
+  skip:
+    - win
+  script:
+    - cmake -S . -B build -G Ninja ${CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release -DPREFIX_PATH=${PREFIX}
+    - cmake --build build
+    # the test suite with the test data of the source (without the large and performance tests)
+    - if: build_platform == target_platform
+      then:
+        - ctest --test-dir build --output-on-failure -LE "large|performance"
+    - cmake --install build
+    # conda-forge ships shared libraries only
+    - rm -f ${PREFIX}/lib/libmedio.a
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - ninja
+  host:
+    - librtdebug
+    - qt-main
+    - zlib
+    # the CMake files of Qt5Gui (needed by the build) need the OpenGL headers
+    - if: linux
+      then: libgl-devel
+  ignore_run_exports:
+    # release builds do not link librtdebug at run time; OpenGL is only used by the CMake files of Qt5Gui
+    by_name:
+      - librtdebug
+    from_package:
+      - libgl-devel
+  run_exports:
+    - ${{ pin_subpackage("libmedio", upper_bound="x") }}
+
+tests:
+  - package_contents:
+      lib:
+        - medio
+      include:
+        - medio/CMedIO
+        - medio/CMedIO.h
+        - medio/CMedIOData
+      bin:
+        - ecat2nifti-${{ version }}
+        - nifti2ecat-${{ version }}
+      files:
+        not_exists:
+          - lib/libmedio.a
+  - script:
+      # the command line tools, linked against libmedio, Qt and zlib
+      - ecat2nifti-${{ version }} --help
+      - nifti2ecat-${{ version }} --help
+
+about:
+  homepage: https://github.com/hzdr-MedImaging/libmedio
+  repository: https://github.com/hzdr-MedImaging/libmedio
+  documentation: https://github.com/hzdr-MedImaging/libmedio/tree/main/docs
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: Read and write medical imaging data formats of nuclear medicine (ECAT, NIfTI, Philips PET, microPET)
+  description: |
+    libmedio is a portable C++/Qt5 library for the file formats of nuclear
+    medicine: ECAT 6/7, NIfTI-1/2, Philips PET and Siemens Concorde microPET. It
+    reads every format into one common representation (voxels, scaling,
+    geometry, frame timing and header attributes with DICOM keywords) and writes
+    it into ECAT7, NIfTI and Philips files, and includes command line tools to
+    convert ECAT7 and Philips files to and from NIfTI.
+
+extra:
+  recipe-maintainers:
+    - jens-maus

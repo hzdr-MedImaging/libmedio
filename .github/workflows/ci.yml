@@ -99,6 +99,43 @@ jobs:
           done
 
   #-------------------------------------------------------------------------------------------
+  # build and run the test suite on macOS (Apple Silicon, Apple Clang, Qt5 of Homebrew), the
+  # other platform of the conda-forge packages
+  build-test-macos:
+    name: build & test (macOS)
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: brew install qt@5
+
+      - name: Set up environment
+        run: |
+          # search and install prefix of librtdebug and libmedio
+          echo "PETLIB=$RUNNER_TEMP/petlib" >> "$GITHUB_ENV"
+          echo "QT5_PREFIX=$(brew --prefix qt@5)" >> "$GITHUB_ENV"
+
+      - name: Build librtdebug ${{ env.RTDEBUG_VERSION }}
+        run: |
+          mkdir -p "$PETLIB"
+          git clone --depth 1 --branch "$RTDEBUG_VERSION" https://github.com/hzdr-MedImaging/librtdebug.git "$RUNNER_TEMP/librtdebug"
+          cmake -S "$RUNNER_TEMP/librtdebug" -B "$RUNNER_TEMP/librtdebug-build" \
+                -DCMAKE_BUILD_TYPE=Release -DPREFIX_PATH="$PETLIB"
+          cmake --build "$RUNNER_TEMP/librtdebug-build" -j"$(sysctl -n hw.ncpu)"
+          cmake --install "$RUNNER_TEMP/librtdebug-build"
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPREFIX_PATH="$PETLIB" -DCMAKE_PREFIX_PATH="$QT5_PREFIX"
+
+      - name: Build
+        run: cmake --build build -j"$(sysctl -n hw.ncpu)"
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  #-------------------------------------------------------------------------------------------
   # install libmedio, use it from an external program and build/test the Python bindings
   install-python:
     name: install & Python bindings

@@ -44,6 +44,7 @@ testsuite/                 # QtTest/CTest test suite
   matrix/, attributes/     # format independent matrix access and attributes (CMedIOVolume, CMedIOHeaderDictionary)
 python/                    # Python bindings and their tests
 r/                         # R package Rmedio (bundles src/ via r/tools/vendor.sh, see r/README.md)
+conda-forge/               # conda-forge recipes (librtdebug, libmedio, pmedio), local test build
 docs/                      # project documentation (e.g. the 2026 summer student report)
 .github/workflows/ci.yml   # CI: build/test matrix, install + Python bindings, R package, test data check
 ```
