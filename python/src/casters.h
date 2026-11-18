@@ -25,6 +25,7 @@
 #include <nanobind/nanobind.h>
 
 #include <CMedIOData>
+#include <CMedIODataFactory>
 #include <CECATSubHeader>
 
 #include <QString>
@@ -52,38 +53,12 @@ enum dataTypes {
 // functions return false for unknown names
 inline bool formatFromName(const QString& str, CMedIOData::Format& value)
 {
-  if(str.startsWith('e', Qt::CaseInsensitive))
-    value = CMedIOData::ECAT;
-  else if(str.startsWith('u', Qt::CaseInsensitive))
-    value = CMedIOData::Unknown;
-  else if(str.startsWith('c', Qt::CaseInsensitive))
-    value = CMedIOData::ConcordeMicropet;
-  else if(str.startsWith('m', Qt::CaseInsensitive))
-    value = CMedIOData::ConcordeMicropet;
-  else if(str.startsWith("philipsbin", Qt::CaseInsensitive))
-    value = CMedIOData::PhilipsBin;
-  else if(str.startsWith('p', Qt::CaseInsensitive))
-    value = CMedIOData::Philips;
-  else if(str.startsWith('n', Qt::CaseInsensitive))
-    value = CMedIOData::NIFTI;
-  else
-    return false;
-
-  return true;
+  return CMedIODataFactory::formatFromName(str, value);
 }
 
 inline const char* formatName(CMedIOData::Format format)
 {
-  switch(format)
-  {
-    case CMedIOData::Unknown:          return "unknown";
-    case CMedIOData::ECAT:             return "ecat";
-    case CMedIOData::ConcordeMicropet: return "micropet";
-    case CMedIOData::Philips:          return "philips";
-    case CMedIOData::PhilipsBin:       return "philipsbin";
-    case CMedIOData::NIFTI:            return "nifti";
-  }
-  return "";
+  return CMedIODataFactory::formatName(format);
 }
 
 inline bool dimTypeFromName(const QString& str, enum dimTypes& value)

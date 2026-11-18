@@ -305,7 +305,10 @@ def test_save_overwrite(tmp_path):
 
 
 @pytest.mark.parametrize(("header", "image"), [("pair.hdr", "pair.img"), ("PAIR.HDR", "PAIR.IMG"),
-                                               ("pair.hdr.gz", "pair.img.gz")])
+                                               ("pair.hdr.gz", "pair.img.gz"),
+                                               # an existing image file in the other letter case is
+                                               # the image file of the pair (see CNIFTIFile)
+                                               ("mixed.hdr", "mixed.IMG")])
 def test_save_nifti_pair_overwrite(tmp_path, header, image):
     # the image file of a NIfTI header/image pair, e.g. a Philips file of the same name,
     # is not replaced without overwrite=True
