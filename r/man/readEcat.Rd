@@ -23,6 +23,10 @@
 \description{
   Imports a volumetric ECAT 6 or ECAT 7 data set, i.e. one or more 3D
   arrays together with the corresponding meta data.
+
+  This is the older interface for ECAT files only, kept for existing
+  scripts: \code{\link{readMedio}} reads files of all formats (also
+  ECAT7) as 4D array with geometry, timing and header attributes.
 }
 \usage{
 readEcat(fname = NULL, nv = NULL, rows = NULL, cols = NULL, planes = NULL)
@@ -81,7 +85,7 @@ readEcat(fname = NULL, nv = NULL, rows = NULL, cols = NULL, planes = NULL)
   Jens Maus
 }
 \seealso{
-  \code{\link{writeEcat}}
+  \code{\link{writeEcat}}, \code{\link{readMedio}}
 }
 \examples{
 fname <- system.file("extdata", "pet-dynamic.v", package = "Rmedio")

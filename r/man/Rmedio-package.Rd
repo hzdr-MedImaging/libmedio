@@ -24,15 +24,21 @@
 }
 \description{
   Reads and writes medical imaging data with the 'libmedio' C++ library
-  (\url{https://github.com/hzdr-MedImaging/libmedio}). While 'libmedio'
-  supports several formats used in nuclear medicine (ECAT, NIfTI, Philips
-  PET, Siemens Concorde microPET), the package currently only reads and
-  writes ECAT image volumes.
+  (\url{https://github.com/hzdr-MedImaging/libmedio}): images of the
+  formats used in nuclear medicine, ECAT7, NIfTI, Philips PET and (read
+  only) Siemens Concorde microPET.
 }
 \details{
-  \code{\link{readEcat}} reads an ECAT file into a list of 3D arrays with
-  all meta data attached as attributes. \code{\link{writeEcat}} writes
-  such a structure (or a plain 3D array) as an ECAT7 file.
+  \code{\link{readMedio}} reads all frames of an image file of any format
+  as one 4D array with its geometry, frame timing and header attributes
+  (\code{\link{medioImage}}). \code{\link{writeMedio}} writes such an
+  image, or a plain array, into an ECAT7, NIfTI or Philips file.
+
+  \code{\link{readEcat}} and \code{\link{writeEcat}} are the older
+  interface for ECAT files only, kept for existing scripts: they read an
+  ECAT file into a list of 3D arrays (rows x columns x planes) with the
+  native ECAT headers attached as attributes and write such a structure
+  as ECAT7 file.
 
   The 'libmedio' sources are bundled with the package and compiled during
   its installation, which requires Qt5 (Core module) and zlib.
@@ -41,6 +47,7 @@
   Jens Maus <mail@jens-maus.de>
 }
 \seealso{
-  \code{\link{readEcat}}, \code{\link{writeEcat}}
+  \code{\link{readMedio}}, \code{\link{writeMedio}},
+  \code{\link{medioImage}}, \code{\link{readEcat}}, \code{\link{writeEcat}}
 }
 \keyword{package}

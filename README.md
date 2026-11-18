@@ -366,12 +366,14 @@ for the stable ABI with `-DPMEDIO_STABLE_ABI=ON`). The library
 itself stays C++11. A conda package is built with `python/conda.recipe`.
 
 ### R
-The R package `Rmedio` (`r/`, Rcpp) reads and writes ECAT image volumes:
+The R package `Rmedio` (`r/`, Rcpp) reads and writes images of all formats
+like `pmedio.load()`/`pmedio.save()`:
 ```r
 library(Rmedio)
-ecat <- readEcat("image.v")          # list of 3D arrays with the headers as attributes
-writeEcat(ecat, fname = "copy.v")
+image <- readMedio("image.v", orientation = "RAS")  # 4D array, affine, timing, attributes
+writeMedio(image, "image.nii.gz")
 ```
+`readEcat()`/`writeEcat()` remain as the older interface for ECAT files only.
 The package bundles the libmedio sources and compiles them with the compiler
 of R, so it does not need an installed libmedio (see `r/README.md`):
 `R CMD INSTALL r` installs it from the git checkout,

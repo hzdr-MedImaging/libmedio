@@ -21,3 +21,7 @@ importFrom(Rcpp, evalCpp)
 
 export(readEcat)
 export(writeEcat)
+export(medioImage)
+export(readMedio)
+export(writeMedio)
+S3method(print, medioImage)
