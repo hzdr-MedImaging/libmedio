@@ -67,7 +67,7 @@ def test_stubs_declare_the_module():
 
     # members of the classes, including the nested classes with the constants
     classes = [(pmedio.MedIO, module["MedIO"]), (pmedio.MedIOImage, module["MedIOImage"]),
-               (pmedio.Volume, module["Volume"]), (pmedio.File, module["File"])]
+               (pmedio.Volume, module["Volume"]), (pmedio.File, module["File"]), (pmedio.Image, module["Image"])]
     for cls, node in classes:
         members = declared(node.body)
         assert public(cls), cls
@@ -93,6 +93,11 @@ def test_stubs_are_precise():
         "overwrite: bool | None = False, frames: int | None = None, "
         "attributes: dict[str, Any] | None = None) -> File:",
         "def dictionary_entry(keyword_or_tag: str) -> dict[str, Any] | None:",
+        "def load(path: str | os.PathLike[str], frames: Sequence[int] | None = None, "
+        "orientation: str | None = None) -> Image:",
+        "def save(path: str | os.PathLike[str], image: Image | numpy.typing.ArrayLike, like: File | None = None, "
+        "format: str | None = None, overwrite: bool | None = False) -> None:",
+        "def frame_start(self, values: Sequence[float], /) -> None:",
         "def __init__(self, img: numpy.typing.ArrayLike, format: str = 'ecat', dimType: str = 'frames') -> None:",
         "def shape(self, /) -> tuple[int, int, int, int]:",
         "def mhead(self, /) -> dict[str, Any]:",

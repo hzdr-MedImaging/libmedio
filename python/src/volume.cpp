@@ -39,6 +39,8 @@
 #include <CMedIOVolume>
 #include <CECATFile>
 #include <CECATMainHeader>
+#include <CNIFTI1MainHeader>
+#include <CNIFTI2MainHeader>
 #include <CNIFTIFile>
 #include <CNIFTIMainHeader>
 #include <CPhilipsFile>
@@ -274,7 +276,7 @@ class MedIOFile
     // the message of close() if it removed an incomplete NIfTI file (taken once)
     QString takeIncomplete() { const QString message = m_incomplete; m_incomplete.clear(); return message; }
 
-    // frames written into a NIfTI file created without a source file
+    // frames written into a NIfTI file
     void written(short frame) { if(m_frames > 0) m_written.insert(frame == -1 ? 1 : frame); }
 
     void setPending(const Pending& pending)
@@ -283,7 +285,9 @@ class MedIOFile
       if(pending.format == CMedIOData::NIFTI)
         m_frames = pending.frames;
     }
-    // number of frames of a NIfTI file created without a source file (0: any)
+    // number of frames of a NIfTI file created from a source file
+    void setFrames(int frames) { m_frames = frames; }
+    // number of frames of a NIfTI file, which needs all of them (0: any)
     int frames() const { return m_frames; }
     const Pending* pending() const { return m_pending.get(); }
     void setMainAttributes(const QJsonObject& attributes) { m_mainAttributes = attributes; m_pending.reset(); }
@@ -494,6 +498,12 @@ std::unique_ptr<MedIOFile> createFile(const py::object& path, const py::object& 
   }
   result->setMainAttributes(mainHeader->attributes());
 
+  // a NIfTI file needs all frames of its main header (the frames of the source)
+  if(const CNIFTI1MainHeader* nifti1 = dynamic_cast<const CNIFTI1MainHeader*>(mainHeader))
+    result->setFrames(nifti1->dim(0) > 3 ? nifti1->dim(4) : 1);
+  else if(const CNIFTI2MainHeader* nifti2 = dynamic_cast<const CNIFTI2MainHeader*>(mainHeader))
+    result->setFrames(nifti2->dim(0) > 3 ? static_cast<int>(nifti2->dim(4)) : 1);
+
   return result;
 }
 
@@ -524,6 +534,278 @@ void writePendingMainHeader(MedIOFile& file, const CMedIOVolume& volume)
     raise(PyExc_RuntimeError, "unable to write the main header of '" + file.fileName() + "'");
   }
   file.setMainAttributes(header->attributes());
+}
+
+// File.write_volume()
+void writeVolume(MedIOFile& self, const CMedIOVolume& volume, short frame)
+{
+  if(self.writable() == false)
+    raise(PyExc_ValueError, "the file was opened for reading, use pmedio.create()");
+  if(self.frames() > 0 && (frame > self.frames() || frame < -1 || frame == 0))
+    raise(PyExc_ValueError, QString("frame %1 does not exist: the NIfTI file was created for %2 frame(s) (the frames "
+                                    "of the source file, or pmedio.create(..., frames=n))").arg(frame).arg(self.frames()));
+  if(self.pending() != nullptr) {
+    if(volume.isEmpty())
+      raise(PyExc_ValueError, "the volume has no data");
+    self.data();   // ValueError for a closed file
+    writePendingMainHeader(self, volume);
+  }
+  if(self.data()->writeVolume(volume, frame) == false)
+    raise(PyExc_RuntimeError, QString("unable to write frame %1 into '%2'").arg(frame).arg(self.fileName()));
+  self.written(frame);
+}
+
+// File.attributes()
+py::object fileAttributes(const MedIOFile& self)
+{
+  if(self.writable()) {
+    self.data();   // ValueError for a closed file
+    if(self.pending() != nullptr)
+      raise(PyExc_ValueError, "the main header is made from the first volume written: no volume written yet");
+    const QByteArray text = QJsonDocument(self.mainAttributes()).toJson(QJsonDocument::Compact);
+    return py::module_::import_("json").attr("loads")(py::str(text.constData(), text.size()));
+  }
+
+  // the NIfTI representation of the main header holds the frame attributes of all frames
+  CMedIOHeader* header = nullptr;
+  if(self.data()->readMainHeader(header, CMedIOData::NIFTI) == false || header == nullptr) {
+    delete header;
+    raise(PyExc_RuntimeError, "unable to read the header attributes of '" + self.fileName() + "'");
+  }
+  std::unique_ptr<CMedIOHeader> guard(header);
+
+  QJsonObject json = header->attributes();
+  if(self.data()->dataFormat() != CMedIOData::NIFTI)
+    json.remove("NIfTI");
+  const QByteArray text = QJsonDocument(json).toJson(QJsonDocument::Compact);
+  return py::module_::import_("json").attr("loads")(py::str(text.constData(), text.size()));
+}
+
+// pmedio.open()
+std::unique_ptr<MedIOFile> openFile(const py::object& path)
+{
+  const QString fileName = pathOf(path);
+  if(QFileInfo::exists(fileName) == false)
+    raise(PyExc_FileNotFoundError, "'" + fileName + "' does not exist");
+
+  CMedIOData* data = CMedIODataFactory::create(fileName);
+  if(data == nullptr)
+    raise(PyExc_ValueError, "'" + fileName + "' is not a supported image file");
+
+  std::unique_ptr<MedIOFile> file(new MedIOFile(data, fileName, false));
+  if(data->open(QIODevice::ReadOnly) == false)
+    raise(PyExc_OSError, "unable to open '" + fileName + "'");
+  return file;
+}
+
+//---------------------------------------------------------------------------------------------
+// pmedio.Image: all frames of an image file as one 4D array (load(), save())
+
+struct Image
+{
+  py::object data;                     // ndarray (nx, ny, nz, nt)
+  py::object affine;                   // ndarray 3 x 4 float64, LPS
+  std::vector<double> frameStart;      // s, one per frame
+  std::vector<double> frameDuration;   // s, one per frame
+  py::object attributes;               // dict
+  py::object format;                   // str, None for an image not loaded from a file
+  py::object filename;                 // str, None for an image not loaded from a file
+};
+
+// 3 x 4 float64 array of an affine
+py::object affineArray(const double m[3][4])
+{
+  py::object a = numpy().attr("empty")(py::make_tuple(3, 4), py::arg("dtype") = "float64");
+  auto view = py::cast<py::ndarray<double, py::c_contig, py::device::cpu>>(a);
+  for(int i=0; i < 3; i++)
+    for(int j=0; j < 4; j++)
+      view.data()[i * 4 + j] = m[i][j];
+  return a;
+}
+
+py::object affineArray(const CMedIOVolume& volume)
+{
+  double m[3][4];
+  for(int i=0; i < 3; i++)
+    for(int j=0; j < 4; j++)
+      m[i][j] = volume.affine(i, j);
+  return affineArray(m);
+}
+
+// 4D voxel data of an image: a 3D array is one frame
+py::object imageData(const py::object& data)
+{
+  py::object array = numpy().attr("asarray")(data);
+  const size_t ndim = py::cast<size_t>(array.attr("ndim"));
+  if(ndim == 3)
+    array = numpy().attr("expand_dims")(array, 3);
+  else if(ndim != 4)
+    raise(PyExc_ValueError, QString("the voxel data has to be a 3D (x, y, z) or 4D (x, y, z, frame) array, not %1D").arg(ndim));
+  if(volumeType(array.attr("dtype")) == CMedIOVolume::UnknownDataType)
+    raise(PyExc_TypeError, QString("unsupported data type '%1': uint8, int8, int16, uint16, int32, uint32, float32 "
+                                   "and float64 are supported").arg(py::cast<QString>(py::steal<py::object>(PyObject_Str(array.attr("dtype").ptr())))));
+  const size_t frames = py::cast<size_t>(py::tuple(array.attr("shape"))[3]);
+  if(frames < 1 || frames > SHRT_MAX)
+    raise(PyExc_ValueError, QString("an image has 1..%1 frames, not %2").arg(SHRT_MAX).arg(frames));
+  return array;
+}
+
+size_t imageFrames(const Image& image)
+{
+  return py::cast<size_t>(py::tuple(image.data.attr("shape"))[3]);
+}
+
+// frame start or duration of every frame (default: 0)
+std::vector<double> imageTiming(const py::object& values, size_t frames, const char* name)
+{
+  if(values.is_none())
+    return std::vector<double>(frames, 0.0);
+  py::object array = numpy().attr("asarray")(values, py::arg("dtype") = "float64");
+  if(py::cast<size_t>(array.attr("ndim")) != 1 || py::cast<size_t>(array.attr("size")) != frames)
+    raise(PyExc_ValueError, QString("%1 has to give one value per frame (%2)").arg(name).arg(frames));
+  return py::cast<std::vector<double>>(array.attr("tolist")());
+}
+
+py::object imageAttributes(const py::object& attributes)
+{
+  if(attributes.is_none())
+    return py::dict();
+  if(py::isinstance<py::dict>(attributes) == false)
+    raise(PyExc_TypeError, "the attributes have to be a dict");
+  return attributes.attr("copy")();
+}
+
+Image makeImage(const py::object& data, const py::object& affine, const py::object& frameStart,
+                const py::object& frameDuration, const py::object& attributes)
+{
+  Image image;
+  image.data = imageData(data);
+  const size_t frames = imageFrames(image);
+
+  double m[3][4] = { { 1, 0, 0, 0 }, { 0, 1, 0, 0 }, { 0, 0, 1, 0 } };
+  if(affine.is_none() == false)
+    affineOf(affine, m);
+  image.affine = affineArray(m);
+  image.frameStart = imageTiming(frameStart, frames, "frame_start");
+  image.frameDuration = imageTiming(frameDuration, frames, "frame_duration");
+  image.attributes = imageAttributes(attributes);
+  image.format = py::none();
+  image.filename = py::none();
+  return image;
+}
+
+// frame k (0-based) as volume: the values of the image are the stored values (scale factor 1)
+CMedIOVolume imageVolume(const Image& image, size_t k)
+{
+  const size_t frames = imageFrames(image);
+  if(k >= frames)
+    raise(PyExc_IndexError, QString("frame %1 does not exist (%2 frames)").arg(k).arg(frames));
+  if(image.frameStart.size() != frames || image.frameDuration.size() != frames)
+    raise(PyExc_ValueError, QString("frame_start and frame_duration have to give one value per frame (%1)").arg(frames));
+  const py::object volume = image.data.attr("__getitem__")(py::make_tuple(py::ellipsis(), k));
+  return volumeFromArray(volume, image.affine, 1.0, 0.0, image.frameStart[k], image.frameDuration[k]);
+}
+
+// pmedio.load()
+Image loadImage(const py::object& path, const py::object& frames, const py::object& orientation)
+{
+  std::unique_ptr<MedIOFile> file = openFile(path);
+  const QList<short> numbers = file->data()->frameNumbers();
+
+  QList<short> selected = numbers;
+  if(frames.is_none() == false) {
+    selected.clear();
+    for(const py::handle item : py::iter(frames)) {
+      if(PyBool_Check(item.ptr()) || (PyLong_Check(item.ptr()) == false && py::hasattr(item, "__index__") == false))
+        raise(PyExc_TypeError, "the frames have to be frame numbers (int)");
+      const long n = PyLong_AsLong(item.ptr());
+      if(PyErr_Occurred() || numbers.contains(static_cast<short>(n)) == false || n < SHRT_MIN || n > SHRT_MAX) {
+        PyErr_Clear();
+        raise(PyExc_ValueError, QString("frame %1 does not exist in '%2' (frames: %3)").arg(n).arg(file->fileName())
+                                .arg(QStringList([&]() { QStringList l; for(short x : numbers) l << QString::number(x); return l; }()).join(", ")));
+      }
+      selected.append(static_cast<short>(n));
+    }
+  }
+  if(selected.isEmpty())
+    raise(PyExc_ValueError, "'" + file->fileName() + "' has no frames to read");
+
+  // all frames, in the voxel order of the file or reoriented
+  std::vector<CMedIOVolume> volumes;
+  bool float64 = false;
+  for(short n : selected) {
+    CMedIOVolume volume;
+    if(file->data()->readVolume(volume, n) == false)
+      raise(PyExc_RuntimeError, QString("unable to read frame %1 of '%2'").arg(n).arg(file->fileName()));
+    if(orientation.is_none() == false && volume.reorient(py::cast<QString>(orientation)) == false)
+      raise(PyExc_ValueError, "invalid orientation '" + py::cast<QString>(orientation) + "' (e.g. \"RAS\" or \"LPI\")");
+
+    // one 4D array: all frames have the same geometry
+    if(volumes.empty() == false) {
+      const CMedIOVolume& first = volumes.front();
+      bool same = true;
+      for(int a=0; a < 3; a++)
+        same = same && volume.dimension(a) == first.dimension(a);
+      for(int i=0; i < 3 && same; i++)
+        for(int j=0; j < 4; j++)
+          same = same && std::fabs(volume.affine(i, j) - first.affine(i, j)) <= 1e-3 + 1e-6 * std::fabs(first.affine(i, j));
+      if(same == false)
+        raise(PyExc_ValueError, QString("frame %1 of '%2' has another geometry than frame %3: read the frames "
+                                        "with pmedio.open()").arg(n).arg(file->fileName()).arg(selected.front()));
+    }
+    float64 = float64 || volume.dataType() == CMedIOVolume::Float64;
+    volumes.push_back(volume);
+  }
+
+  // the physical values of all frames
+  const CMedIOVolume& first = volumes.front();
+  py::object data = numpy().attr("empty")(
+    py::make_tuple(first.dimension(0), first.dimension(1), first.dimension(2), volumes.size()),
+    py::arg("dtype") = float64 ? "float64" : "float32", py::arg("order") = "F");
+  Image image;
+  for(size_t k=0; k < volumes.size(); k++) {
+    CMedIOVolume physical(volumes[k]);
+    if(physical.convertToPhysicalValues() == false)
+      raise(PyExc_ValueError, "the physical values of a frame are larger than 2 GiB");
+    data.attr("__setitem__")(py::make_tuple(py::ellipsis(), k), storedArray(physical));
+    image.frameStart.push_back(volumes[k].frameStart());
+    image.frameDuration.push_back(volumes[k].frameDuration());
+  }
+  image.data = data;
+  image.affine = affineArray(first);
+  image.attributes = fileAttributes(*file);
+  image.format = py::cast(file->data()->dataFormat());
+  image.filename = py::cast(file->fileName());
+  return image;
+}
+
+// pmedio.save() and Image.save(): nothing is left behind if writing fails
+void saveImage(const py::object& path, const Image& image, const py::object& like, const py::object& format, Flag overwrite)
+{
+  const size_t frames = imageFrames(image);
+  if(frames < 1 || frames > SHRT_MAX)
+    raise(PyExc_ValueError, QString("an image has 1..%1 frames, not %2").arg(SHRT_MAX).arg(frames));
+  if(image.frameStart.size() != frames || image.frameDuration.size() != frames)
+    raise(PyExc_ValueError, QString("frame_start and frame_duration have to give one value per frame (%1)").arg(frames));
+
+  // all volumes before the file is created, so that invalid data creates no file
+  std::vector<CMedIOVolume> volumes;
+  for(size_t k=0; k < frames; k++)
+    volumes.push_back(imageVolume(image, k));
+
+  const py::object number = like.is_none() ? py::object(py::int_(static_cast<long>(frames))) : py::none();
+  std::unique_ptr<MedIOFile> file = createFile(path, like, format, overwrite, number, image.attributes);
+  try {
+    for(size_t k=0; k < frames; k++)
+      writeVolume(*file, volumes[k], static_cast<short>(k + 1));
+    file->close();
+    const QString incomplete = file->takeIncomplete();
+    if(incomplete.isEmpty() == false)
+      raise(PyExc_ValueError, incomplete);
+  } catch(...) {
+    file->discard();
+    throw;
+  }
 }
 
 } // namespace
@@ -702,22 +984,7 @@ start with 1; NIfTI volumes and microPET frames are numbered 1..n.
         raise(PyExc_RuntimeError, QString("unable to read frame %1 of '%2'").arg(frame).arg(self.fileName()));
       return volume;
     }, py::arg("frame") = -1, "frame as pmedio.Volume in the voxel order of the file (-1: first frame)")
-    .def("write_volume", [](MedIOFile& self, const CMedIOVolume& volume, short frame) {
-      if(self.writable() == false)
-        raise(PyExc_ValueError, "the file was opened for reading, use pmedio.create()");
-      if(self.frames() > 0 && (frame > self.frames() || frame < -1 || frame == 0))
-        raise(PyExc_ValueError, QString("frame %1 does not exist: the NIfTI file was created for %2 frame(s), "
-                                        "give the number with pmedio.create(..., frames=n)").arg(frame).arg(self.frames()));
-      if(self.pending() != nullptr) {
-        if(volume.isEmpty())
-          raise(PyExc_ValueError, "the volume has no data");
-        self.data();   // ValueError for a closed file
-        writePendingMainHeader(self, volume);
-      }
-      if(self.data()->writeVolume(volume, frame) == false)
-        raise(PyExc_RuntimeError, QString("unable to write frame %1 into '%2'").arg(frame).arg(self.fileName()));
-      self.written(frame);
-    }, py::arg("volume"), py::arg("frame") = -1, R"doc(
+    .def("write_volume", &writeVolume, py::arg("volume"), py::arg("frame") = -1, R"doc(
 Write the volume as frame of the file (-1: frame 1). The values are converted into the
 representation of the file (e.g. the datatype and scaling of a NIfTI main header); it
 fails without writing if they do not fit. The first volume written into a file created
@@ -725,29 +992,7 @@ without a source file gives the main header: geometry, and for NIfTI the datatyp
 scaling (the physical values if the file has several frames).
 )doc")
 
-    .def("attributes", [](const MedIOFile& self) {
-      if(self.writable()) {
-        self.data();   // ValueError for a closed file
-        if(self.pending() != nullptr)
-          raise(PyExc_ValueError, "the main header is made from the first volume written: no volume written yet");
-        const QByteArray text = QJsonDocument(self.mainAttributes()).toJson(QJsonDocument::Compact);
-        return py::module_::import_("json").attr("loads")(py::str(text.constData(), text.size()));
-      }
-
-      // the NIfTI representation of the main header holds the frame attributes of all frames
-      CMedIOHeader* header = nullptr;
-      if(self.data()->readMainHeader(header, CMedIOData::NIFTI) == false || header == nullptr) {
-        delete header;
-        raise(PyExc_RuntimeError, "unable to read the header attributes of '" + self.fileName() + "'");
-      }
-      std::unique_ptr<CMedIOHeader> guard(header);
-
-      QJsonObject json = header->attributes();
-      if(self.data()->dataFormat() != CMedIOData::NIFTI)
-        json.remove("NIfTI");
-      const QByteArray text = QJsonDocument(json).toJson(QJsonDocument::Compact);
-      return py::module_::import_("json").attr("loads")(py::str(text.constData(), text.size()));
-    }, py::sig("def attributes(self) -> dict[str, typing.Any]"), R"doc(
+    .def("attributes", &fileAttributes, py::sig("def attributes(self) -> dict[str, typing.Any]"), R"doc(
 Format independent header attributes of the file as dict (see CMedIOHeaderDictionary.h):
 DICOM keywords with the units of DICOM (e.g. "PatientWeight" in kg), the native fields
 of the format in a section named after it (e.g. "ECAT7") and in "Frames" the attributes
@@ -781,20 +1026,7 @@ all of them were written (ValueError)
                .arg(self.writable() ? "writing" : "reading").toStdString();
     });
 
-  m.def("open", [](const py::object& path) {
-    const QString fileName = pathOf(path);
-    if(QFileInfo::exists(fileName) == false)
-      raise(PyExc_FileNotFoundError, "'" + fileName + "' does not exist");
-
-    CMedIOData* data = CMedIODataFactory::create(fileName);
-    if(data == nullptr)
-      raise(PyExc_ValueError, "'" + fileName + "' is not a supported image file");
-
-    std::unique_ptr<MedIOFile> file(new MedIOFile(data, fileName, false));
-    if(data->open(QIODevice::ReadOnly) == false)
-      raise(PyExc_OSError, "unable to open '" + fileName + "'");
-    return file;
-  }, py::arg("path"), py::sig("def open(path: str | os.PathLike[str]) -> File"), R"doc(
+  m.def("open", &openFile, py::arg("path"), py::sig("def open(path: str | os.PathLike[str]) -> File"), R"doc(
 Open an ECAT7, NIfTI (.nii, .nii.gz, .hdr/.img), Philips (.img, .syn) or microPET file
 for reading.
 )doc");
@@ -843,5 +1075,130 @@ Create a file for writing. The format is taken from the file name (.v: ECAT7,
 ``attributes`` are header attributes to set, as returned by ``File.attributes()``: DICOM
 keywords (e.g. ``{"PatientWeight": 72.5}``) or native fields in the section of the format.
 Invalid values raise a ValueError before the file is created.
+)doc");
+
+  //-------------------------------------------------------------------------------------------
+  // pmedio.Image, pmedio.load(), pmedio.save()
+  py::class_<Image>(m, "Image", R"doc(
+All frames of an image as one 4D array, independent of the file format: read with
+``pmedio.load()``, written with ``pmedio.save()`` or ``Image.save()``.
+
+- ``data``: the physical values as numpy array of shape (nx, ny, nz, frames), x running fastest
+- ``affine``: 3 x 4 transformation of voxel (i, j, k), 0-based, into DICOM patient
+  coordinates (LPS, mm), the same for all frames
+- ``frame_start``, ``frame_duration``: timing of every frame (s)
+- ``attributes``: header attributes as ``File.attributes()`` returns them (dict)
+- ``format``, ``filename``: of the file the image was loaded from (None otherwise)
+)doc")
+    .def("__init__", [](Image* self, const py::object& data, const py::object& affine, const py::object& frameStart,
+                        const py::object& frameDuration, const py::object& attributes) {
+           new (self) Image(makeImage(data, affine, frameStart, frameDuration, attributes));
+         },
+         py::arg("data"), py::arg("affine").none() = py::none(), py::arg("frame_start").none() = py::none(),
+         py::arg("frame_duration").none() = py::none(), py::arg("attributes").none() = py::none(),
+         py::sig("def __init__(self, data: numpy.typing.ArrayLike, affine: numpy.typing.ArrayLike | None = None, "
+                 "frame_start: collections.abc.Sequence[float] | None = None, "
+                 "frame_duration: collections.abc.Sequence[float] | None = None, "
+                 "attributes: dict[str, typing.Any] | None = None) -> None"), R"doc(
+Image from voxel data (3D array for one frame or 4D array (x, y, z, frame) of uint8, int8,
+int16, uint16, int32, uint32, float32 or float64, the physical values), the 3 x 4 (or 4 x 4)
+LPS affine (default: identity), the timing of every frame (s, default: 0) and header
+attributes.
+)doc")
+    .def_prop_rw("data",
+      [](const Image& self) { return self.data; },
+      [](Image& self, const py::object& data) {
+        py::object array = imageData(data);
+        const size_t frames = py::cast<size_t>(py::tuple(array.attr("shape"))[3]);
+        if(frames != self.frameStart.size()) {
+          // timing of other numbers of frames
+          self.frameStart.assign(frames, 0.0);
+          self.frameDuration.assign(frames, 0.0);
+        }
+        self.data = array;
+      },
+      py::for_getter(py::sig("def data(self, /) -> numpy.typing.NDArray[typing.Any]")),
+      py::for_setter(py::sig("def data(self, data: numpy.typing.ArrayLike, /) -> None")),
+      "the physical values (x, y, z, frame); setting data of another number of frames resets the timing")
+    .def_prop_rw("affine",
+      [](const Image& self) { return self.affine; },
+      [](Image& self, const py::object& affine) {
+        double m[3][4];
+        affineOf(affine, m);
+        self.affine = affineArray(m);
+      },
+      py::for_getter(py::sig("def affine(self, /) -> numpy.typing.NDArray[numpy.float64]")),
+      py::for_setter(py::arg("affine").none()),
+      py::for_setter(py::sig("def affine(self, affine: numpy.typing.ArrayLike, /) -> None")),
+      "3 x 4 transformation of voxel (i, j, k) into DICOM patient coordinates (LPS, mm)")
+    .def_prop_rw("frame_start",
+      [](const Image& self) { return self.frameStart; },
+      [](Image& self, const py::object& values) { self.frameStart = imageTiming(values, imageFrames(self), "frame_start"); },
+      py::for_setter(py::sig("def frame_start(self, values: collections.abc.Sequence[float], /) -> None")),
+      "start of every frame (s)")
+    .def_prop_rw("frame_duration",
+      [](const Image& self) { return self.frameDuration; },
+      [](Image& self, const py::object& values) { self.frameDuration = imageTiming(values, imageFrames(self), "frame_duration"); },
+      py::for_setter(py::sig("def frame_duration(self, values: collections.abc.Sequence[float], /) -> None")),
+      "duration of every frame (s)")
+    .def_prop_rw("attributes",
+      [](const Image& self) { return self.attributes; },
+      [](Image& self, const py::object& attributes) { self.attributes = imageAttributes(attributes); },
+      py::for_getter(py::sig("def attributes(self, /) -> dict[str, typing.Any]")),
+      py::for_setter(py::arg("attributes").none()),
+      py::for_setter(py::sig("def attributes(self, attributes: dict[str, typing.Any] | None, /) -> None")),
+      "header attributes as File.attributes() returns them, written by save()")
+    .def_prop_ro("format", [](const Image& self) { return self.format; },
+      py::sig("def format(self, /) -> str | None"), "data format of the file the image was loaded from (pmedio.Format)")
+    .def_prop_ro("filename", [](const Image& self) { return self.filename; },
+      py::sig("def filename(self, /) -> str | None"), "file the image was loaded from")
+    .def_prop_ro("shape", [](const Image& self) { return py::tuple(self.data.attr("shape")); },
+      py::sig("def shape(self, /) -> tuple[int, int, int, int]"), "dimensions (nx, ny, nz, frames)")
+    .def("__len__", [](const Image& self) { return imageFrames(self); }, "number of frames")
+    .def("volume", [](const Image& self, size_t frame) { return imageVolume(self, frame); }, py::arg("frame"),
+      "frame (0-based) as pmedio.Volume")
+    .def("save", [](const Image& self, const py::object& path, const py::object& like, const py::object& format, Flag overwrite) {
+        saveImage(path, self, like, format, overwrite);
+      }, py::arg("path"), py::arg("like").none() = py::none(), py::arg("format").none() = py::none(),
+      py::arg("overwrite").none() = Flag{false},
+      py::sig("def save(self, path: str | os.PathLike[str], like: File | None = None, format: str | None = None, "
+              "overwrite: bool | None = False) -> None"), "write the image, see pmedio.save()")
+    .def("__repr__", [](const Image& self) {
+      const py::tuple shape(self.data.attr("shape"));
+      QString text = QString("<pmedio.Image %1x%2x%3x%4 %5").arg(py::cast<long>(shape[0])).arg(py::cast<long>(shape[1]))
+                       .arg(py::cast<long>(shape[2])).arg(py::cast<long>(shape[3]))
+                       .arg(py::cast<QString>(py::steal<py::object>(PyObject_Str(self.data.attr("dtype").ptr()))));
+      if(self.filename.is_none() == false)
+        text += " '" + py::cast<QString>(self.filename) + "'";
+      return (text + ">").toStdString();
+    });
+
+  m.def("load", &loadImage, py::arg("path"), py::arg("frames").none() = py::none(),
+        py::arg("orientation").none() = py::none(),
+        py::sig("def load(path: str | os.PathLike[str], frames: collections.abc.Sequence[int] | None = None, "
+                "orientation: str | None = None) -> Image"), R"doc(
+Load all frames of an ECAT7, NIfTI, Philips or microPET file as pmedio.Image: the physical
+values as one 4D array (float32, float64 for float64 data), affine, timing and header
+attributes. ``frames`` selects frames by their numbers (``File.frame_numbers()``),
+``orientation`` reorders the voxels (e.g. "RAS", the nibabel convention; default: the voxel
+order of the file). All frames need the same geometry; read other files with pmedio.open().
+)doc");
+
+  m.def("save", [](const py::object& path, const py::object& image, const py::object& like,
+                   const py::object& format, Flag overwrite) {
+        if(py::isinstance<Image>(image))
+          saveImage(path, py::cast<const Image&>(image), like, format, overwrite);
+        else
+          saveImage(path, makeImage(image, py::none(), py::none(), py::none(), py::none()), like, format, overwrite);
+      }, py::arg("path"), py::arg("image"), py::arg("like").none() = py::none(), py::arg("format").none() = py::none(),
+      py::arg("overwrite").none() = Flag{false},
+      py::sig("def save(path: str | os.PathLike[str], image: Image | numpy.typing.ArrayLike, like: File | None = None, "
+              "format: str | None = None, overwrite: bool | None = False) -> None"), R"doc(
+Write an image (pmedio.Image, or an array with identity affine) into an ECAT7, NIfTI or Philips
+file; the format is taken from the file name unless ``format`` is given. The main header is
+made from the image (see pmedio.create()) or converted from ``like``; the attributes of the
+image are set in it. Integer data is stored as integers, float data as float (NIfTI files of
+several frames: float32/float64). Nothing is written if the image is invalid, and no file is
+left behind if writing fails; an existing file is replaced only with ``overwrite=True``.
 )doc");
 }

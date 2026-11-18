@@ -275,6 +275,28 @@ def test_create_nifti_incomplete(tmp_path, suffix):
     assert list(tmp_path.iterdir()) == []
 
 
+@pytest.mark.parametrize("suffix", [".nii", ".nii.gz", ".hdr"])
+def test_create_nifti_incomplete_with_source(tmp_path, suffix):
+    # a NIfTI file created from a source file has the frames of the source: without all
+    # of them it would be truncated (nibabel: "could the file be damaged?"), so it is removed
+    source = pathlib.Path(__file__).resolve().parents[2] / "testsuite" / "data" / "ecat" / "pet-dynamic.v"
+    if not source.is_file():
+        pytest.skip("test data not available")
+    path = tmp_path / ("new" + suffix)
+    with pmedio.open(source) as like:
+        assert len(like.frame_numbers()) == 3
+        with pytest.raises(ValueError, match="only 1 of the 3 frames"):
+            with pmedio.create(path, like=like) as f:
+                f.write_volume(like.read_volume(1), 1)
+        assert list(tmp_path.iterdir()) == []
+        with pmedio.create(path, like=like) as f:
+            with pytest.raises(ValueError, match="frame 4 does not exist"):
+                f.write_volume(like.read_volume(1), 4)
+            for n in like.frame_numbers():
+                f.write_volume(like.read_volume(n), n)
+    assert nibabel_image(path).get_fdata().shape[3] == 3
+
+
 @pytest.mark.parametrize("suffix", list(FORMATS))
 def test_create_without_volume(tmp_path, suffix):
     # a file without a volume has no main header either: it is removed
