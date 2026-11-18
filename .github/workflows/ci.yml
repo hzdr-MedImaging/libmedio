@@ -99,11 +99,11 @@ jobs:
           done
 
   #-------------------------------------------------------------------------------------------
-  # build and run the test suite on macOS (Apple Silicon, Apple Clang, Qt5 of Homebrew), the
-  # other platform of the conda-forge packages
+  # build and run the test suite on macOS (the current image of GitHub: Apple Silicon, Apple
+  # Clang, Qt5 of Homebrew), the other platform of the conda-forge packages
   build-test-macos:
     name: build & test (macOS)
-    runs-on: macos-14
+    runs-on: macos-latest
 
     steps:
       - uses: actions/checkout@v4
