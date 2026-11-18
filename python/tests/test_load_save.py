@@ -304,6 +304,32 @@ def test_save_overwrite(tmp_path):
     assert len(pmedio.load(path)) == 3
 
 
+@pytest.mark.parametrize(("header", "image"), [("pair.hdr", "pair.img"), ("PAIR.HDR", "PAIR.IMG"),
+                                               ("pair.hdr.gz", "pair.img.gz")])
+def test_save_nifti_pair_overwrite(tmp_path, header, image):
+    # the image file of a NIfTI header/image pair, e.g. a Philips file of the same name,
+    # is not replaced without overwrite=True
+    (tmp_path / image).write_bytes(b"other data")
+    with pytest.raises(FileExistsError, match="the image file of"):
+        synthetic().save(tmp_path / header)
+    assert (tmp_path / image).read_bytes() == b"other data"
+    assert not (tmp_path / header).exists()
+    synthetic().save(tmp_path / header, overwrite=True)
+    assert len(pmedio.load(tmp_path / header)) == 3
+
+
+def test_save_nifti_pair_keeps_philips_image(tmp_path):
+    philips = tmp_path / "image.img"
+    synthetic().save(philips)
+    with pytest.raises(FileExistsError):
+        synthetic(frames=1).save(tmp_path / "image.hdr")
+    assert pmedio.load(philips).format == pmedio.Format.Philips
+    # a .hdr file of another format has no image file: the Philips file stays
+    synthetic(frames=1).save(tmp_path / "image.hdr", format=pmedio.Format.ECAT)
+    assert pmedio.load(philips).format == pmedio.Format.Philips
+    assert pmedio.load(tmp_path / "image.hdr").format == pmedio.Format.ECAT
+
+
 def test_save_errors(tmp_path):
     image = synthetic()
     with pytest.raises(ValueError):

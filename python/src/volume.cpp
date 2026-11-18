@@ -224,11 +224,25 @@ CMedIOVolume volumeFromArray(const py::object& data, const py::object& affine, d
 //---------------------------------------------------------------------------------------------
 // an image file opened for reading (open()) or writing (create())
 
+// the image file written with the header of a NIfTI header/image pair (named like
+// CNIFTIFile names it: .img for .hdr, .IMG for .HDR, both optionally with .gz);
+// empty for other file names
+QString pairImageFile(const QString& fileName)
+{
+  const bool gz = fileName.toLower().endsWith(".gz");
+  const QString name = gz ? fileName.left(fileName.size() - 3) : fileName;
+  if(name.toLower().endsWith(".hdr") == false)
+    return QString();
+  const bool upper = name.endsWith(".HDR");
+  return name.left(name.size() - 4) + (upper ? ".IMG" : ".img") + (gz ? fileName.right(3) : QString());
+}
+
 class MedIOFile
 {
   public:
     MedIOFile(CMedIOData* data, const QString& fileName, bool writable)
-      : m_pData(data), m_fileName(QFileInfo(fileName).absoluteFilePath()), m_writable(writable) { }
+      : m_pData(data), m_fileName(QFileInfo(fileName).absoluteFilePath()), m_writable(writable),
+        m_pairImage(writable && data->dataFormat() == CMedIOData::NIFTI ? pairImageFile(m_fileName) : QString()) { }
     ~MedIOFile() { close(); }
 
     // a file created for writing without a source file: its main header is made
@@ -305,23 +319,18 @@ class MedIOFile
     }
 
   private:
-    // removes the file, and the image file of a NIfTI header/image pair (named like
-    // CNIFTIFile names it: .img for .hdr, .IMG for .HDR, both optionally with .gz)
+    // removes the file, and the image file of a NIfTI header/image pair
     void removeFiles()
     {
       QFile::remove(m_fileName);
-      const QString lower = m_fileName.toLower();
-      const bool gz = lower.endsWith(".gz");
-      const QString name = gz ? m_fileName.left(m_fileName.size() - 3) : m_fileName;
-      if(name.toLower().endsWith(".hdr")) {
-        const bool upper = name.endsWith(".HDR");
-        QFile::remove(name.left(name.size() - 4) + (upper ? ".IMG" : ".img") + (gz ? m_fileName.right(3) : QString()));
-      }
+      if(m_pairImage.isEmpty() == false)
+        QFile::remove(m_pairImage);
     }
 
     std::unique_ptr<CMedIOData> m_pData;
     QString m_fileName;
     bool m_writable;
+    QString m_pairImage;                  // image file of a NIfTI header/image pair written
     std::unique_ptr<Pending> m_pending;   // main header not written yet
     int m_frames = 0;
     QSet<short> m_written;
@@ -457,8 +466,15 @@ std::unique_ptr<MedIOFile> createFile(const py::object& path, const py::object& 
   if(target != CMedIOData::ECAT && target != CMedIOData::NIFTI && target != CMedIOData::Philips)
     raise(PyExc_ValueError, QString("files of data format %1 cannot be written").arg(static_cast<int>(target)));
 
-  if(QFileInfo::exists(fileName) && overwrite == false)
-    raise(PyExc_FileExistsError, "'" + fileName + "' exists already (use overwrite=True to replace it)");
+  if(overwrite == false) {
+    if(QFileInfo::exists(fileName))
+      raise(PyExc_FileExistsError, "'" + fileName + "' exists already (use overwrite=True to replace it)");
+    // the image file of a NIfTI header/image pair is written as well
+    const QString image = pairImageFile(QFileInfo(fileName).absoluteFilePath());
+    if(target == CMedIOData::NIFTI && image.isEmpty() == false && QFileInfo::exists(image))
+      raise(PyExc_FileExistsError, "'" + image + "', the image file of '" + fileName + "', exists already "
+                                   "(use overwrite=True to replace it)");
+  }
 
   // main header of the source in the representation of the target format, or (without a
   // source) a header of a volume of one voxel, which checks the attributes before the file
