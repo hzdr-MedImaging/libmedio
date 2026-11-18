@@ -107,7 +107,16 @@ struct DataTypeNames { };
 // defines the main entries of the module
 NB_MODULE(pmedio, m) {
   // documentation
-  m.doc() = "libmedio python interface";
+  m.doc() = R"doc(
+libmedio python interface: read and write ECAT7, NIfTI, Philips and microPET image files.
+
+- ``pmedio.load()`` / ``pmedio.save()``: all frames of an image as ``pmedio.Image``
+  (4D numpy array, affine, frame timing, header attributes), for all formats
+- ``pmedio.open()`` / ``pmedio.create()``: single frames as ``pmedio.Volume``
+  (``pmedio.File``), for all formats
+- ``pmedio.MedIOImage``, ``pmedio.read()``, ``pmedio.write()``:
+  legacy interface for ECAT7 files only, kept for existing scripts
+)doc";
 
   // specify __version__
   #ifdef VERSION_INFO
@@ -123,7 +132,14 @@ NB_MODULE(pmedio, m) {
   // general purpose helper "MedIOImage" class to access PET image
   // volumes using the python buffer protocol interface and in a numpy
   // compatible fashion
-  py::class_<MedIOImage> mi(m, "MedIOImage", py::type_slots(medioImageSlots));
+  py::class_<MedIOImage> mi(m, "MedIOImage", py::type_slots(medioImageSlots), R"doc(
+Legacy interface for ECAT7 images only, kept for existing scripts: use
+``pmedio.load()`` and ``pmedio.save()`` (``pmedio.Image``) for all formats.
+
+Voxels (x, y, z, t) as float32 with the ECAT7 main header (``mhead``) and the sub
+headers of the volumes (``shead``) as dicts of native ECAT7 fields; ``numpy.asarray(img)``
+uses the memory of the image.
+)doc");
 
   // the formats, dimension types and data types are passed and returned as
   // strings, the constants are these strings
@@ -204,7 +220,7 @@ NB_MODULE(pmedio, m) {
     // read/write interface
     .def("read", [](MedIOImage& self) -> MedIOImage {
       return self.readImage();
-    })
+    }, "Read the ECAT7 file of the image again (legacy, see pmedio.load()).")
     .def("write", [](MedIOImage& self,
                      const QString& fileName = QString(),
                      const Flag overwrite = Flag{false}) -> MedIOImage {
@@ -213,7 +229,9 @@ NB_MODULE(pmedio, m) {
       else
         return self.writeImage(fileName, overwrite);
     }, py::arg("filename") = QString(),
-       py::arg("overwrite").none() = Flag{false})
+       py::arg("overwrite").none() = Flag{false},
+       "Write the image as ECAT7 file: into its own file without ``filename`` (legacy, see\n"
+       "pmedio.save()).")
 
     // Bare bones interface
     .def("__getitem__",
@@ -280,6 +298,8 @@ NB_MODULE(pmedio, m) {
      py::arg("cols") = std::vector<int>(),
      py::arg("planes") = std::vector<int>(),
      "Read an ECAT7 image file as MedIOImage.\n\n"
+     "Legacy interface for ECAT7 files only, kept for existing scripts: ``pmedio.load()``\n"
+     "reads files of all formats as ``pmedio.Image``.\n\n"
      "``volumes`` selects the frames (or gates, bed positions, data indices) to read in\n"
      "the given order, numbered from 1 in the order of the file; by default all of them\n"
      "are read. ``img[..., k]`` and ``img.shead[k]`` belong to the same volume.\n"
@@ -303,7 +323,10 @@ NB_MODULE(pmedio, m) {
      py::arg("overwrite").none() = Flag{false},
      py::arg("dimType") = dimTypeName(DM_UNKNOWN),
      py::arg("dataType") = dataTypeName(DT_FLOAT),
-     py::arg("format") = formatName(CMedIOData::Unknown));
+     py::arg("format") = formatName(CMedIOData::Unknown),
+     "Write a MedIOImage into an ECAT7 image file.\n\n"
+     "Legacy interface for ECAT7 files only, kept for existing scripts: ``pmedio.save()``\n"
+     "writes ``pmedio.Image`` into files of all formats.");
 
   m.def("write", [](const py::object& img,
                     const QString& fileName,
@@ -326,6 +349,8 @@ NB_MODULE(pmedio, m) {
      py::sig("def write(img: numpy.typing.ArrayLike, fileName: str, overwrite: bool | None = False, "
              "dimType: str = 'frames', dataType: str = 'float', format: str = 'ecat') -> MedIOImage"),
      "Write an image or an array (x, y, z[, t]) as ECAT7 image file.\n\n"
+     "Legacy interface for ECAT7 files only, kept for existing scripts: ``pmedio.save()``\n"
+     "writes arrays and ``pmedio.Image`` into files of all formats.\n\n"
      "``dataType`` is the type of the stored values: ``float`` (32 bit), ``short`` (16 bit),\n"
      "``int`` (32 bit) or ``byte`` (8 bit, unsigned). The integer types store every volume\n"
      "with a scale factor that uses the full range of the type; volumes that only contain\n"

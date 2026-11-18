@@ -70,10 +70,10 @@ def timezone(request, monkeypatch):
 # module and class layout
 
 def test_module_layout():
-    assert pmedio.__doc__ == "libmedio python interface"
+    assert pmedio.__doc__.strip().startswith("libmedio python interface: ")
     assert isinstance(pmedio.__version__, str)
-    for name in ("File", "Format", "MedIO", "MedIOImage", "Volume", "create", "dictionary_entry", "open",
-                 "read", "write"):
+    for name in ("File", "Format", "Image", "MedIO", "MedIOImage", "Volume", "create", "dictionary_entry", "load",
+                 "open", "read", "save", "write"):
         assert hasattr(pmedio, name), name
     for name in ("DataType", "DimType", "FormatType", "dimType", "filename", "format", "mhead", "nbytes",
                  "ndim", "read", "shape", "shead", "size", "tdim", "toarray", "write", "xdim", "ydim", "zdim"):
@@ -136,8 +136,8 @@ def test_construct_from_dimensions():
         MedIOImage(2, 3, 4)
     with pytest.raises(TypeError):
         MedIOImage(2.5, 3, 4, 5)
-    # only ECAT images can be created
-    with pytest.raises(RuntimeError, match="only ECAT supported"):
+    # only ECAT images can be created, the message points to the interface for all formats
+    with pytest.raises(RuntimeError, match=r"only ECAT supported.*use pmedio\.save\(\) for all formats"):
         MedIOImage(2, 3, 4, 5, "nifti")
 
 
@@ -1012,6 +1012,22 @@ def test_read_dataset_values(path):
 @needs_data
 @pytest.mark.parametrize("path", ["philips/pet-dynamic.img", "nifti/pet-dynamic.nii.gz"])
 def test_read_unsupported(path):
-    # MedIOImage only reads ECAT files, the other formats are read with pmedio.open()
-    with pytest.raises(RuntimeError, match="unsupported data format"):
+    # MedIOImage only reads ECAT files, the other formats are read with pmedio.load()
+    with pytest.raises(RuntimeError, match=r"unsupported data format.*use pmedio\.load\(\) for all formats"):
         pmedio.read(str(DATA_DIR / path))
+    assert len(pmedio.load(DATA_DIR / path)) == 3
+
+
+def test_legacy_documentation():
+    # MedIOImage, read() and write() are documented as the interface for ECAT7 files only,
+    # pointing to the interface for all formats
+    assert "legacy interface for ECAT7 files only" in pmedio.__doc__
+    assert "Legacy interface for ECAT7 images only" in MedIOImage.__doc__
+    assert "pmedio.load()" in MedIOImage.__doc__ and "pmedio.save()" in MedIOImage.__doc__
+    assert "Legacy interface for ECAT7 files only" in pmedio.read.__doc__
+    assert "pmedio.load()" in pmedio.read.__doc__
+    # both overloads of write()
+    assert pmedio.write.__doc__.count("Legacy interface for ECAT7 files only") == 2
+    assert "pmedio.save()" in pmedio.write.__doc__
+    assert "pmedio.load()" in MedIOImage.read.__doc__
+    assert "pmedio.save()" in MedIOImage.write.__doc__

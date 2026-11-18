@@ -332,6 +332,19 @@ with pmedio.create("new.nii.gz", frames=2, attributes={"PatientWeight": 72.5}) a
   extension (`FrameTimesStart`, `FrameDuration`, as written by
   `CNIFTIConverter`), see `CMedIOData::writeMatrix()`.
 
+`pmedio.MedIOImage`, `pmedio.read()` and `pmedio.write()` are the older
+interface for ECAT7 files only. They are kept unchanged for existing scripts;
+new code uses `load()`/`save()`, which also read and write ECAT7 files:
+
+| ECAT7 only (legacy) | All formats |
+| --- | --- |
+| `img = pmedio.read(path)`, `np.asarray(img)` or `img.toarray()` | `image = pmedio.load(path, orientation="RAS")`, `image.data`: the same values in the same voxel order |
+| `pmedio.read(path, volumes=[3, 1])` | `pmedio.load(path, frames=[3, 1], orientation="RAS")` |
+| `cols=`, `rows=`, `planes=` (numbered from 1) | slices of `image.data`, e.g. `image.data[1:3]` for `cols=[2, 3]` |
+| `img.mhead`, `img.shead` (native ECAT7 fields) | `image.attributes` (DICOM keywords, native fields in the section `"ECAT7"`), `image.frame_start`, `image.frame_duration` (s) |
+| `pmedio.write(img, path)` | `image.save(path)` or `pmedio.save(path, image)`, format from the file name |
+| `dataType="short"` etc. | the data type of `image.data`: integer arrays are stored as they are, float arrays as float |
+
 Install: install libmedio into `PREFIX_PATH` first, then install the package
 from the checkout with pip, which builds it with scikit-build-core:
 ```bash

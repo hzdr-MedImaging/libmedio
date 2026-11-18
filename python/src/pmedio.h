@@ -81,7 +81,7 @@ class MedIOImage
     {
       // check format and create a fresh medio object
       if(format != CMedIOData::ECAT)
-        throw std::runtime_error("only ECAT supported as target data format");
+        throw std::runtime_error("only ECAT supported as target data format (MedIOImage writes ECAT7 only, use pmedio.save() for all formats)");
 
       // copy data from buffer to fresh data object
       memcpy(m_data, img.data(), img.size() * sizeof(float));
@@ -108,7 +108,7 @@ class MedIOImage
     {
       // check format and create a fresh medio object
       if(format != CMedIOData::ECAT)
-        throw std::runtime_error("only ECAT supported as target data format");
+        throw std::runtime_error("only ECAT supported as target data format (MedIOImage writes ECAT7 only, use pmedio.save() for all formats)");
 
       // create fresh mioData object
       m_mioData.reset(new CECATFile(CECATMainHeader::ECAT7_Volume16));
@@ -1316,7 +1316,8 @@ class MedIOImage
             }
           }
           else
-            throw std::runtime_error("unsupported data format: " + std::to_string(m_mioData->dataFormat()));
+            throw std::runtime_error("unsupported data format: " + std::to_string(m_mioData->dataFormat()) +
+                                     " (pmedio.read() reads ECAT7 files only, use pmedio.load() for all formats)");
 
           m_mioData->close();
         }
@@ -1340,7 +1341,7 @@ class MedIOImage
       if(m_mioData == nullptr)
       {
         if(format != CMedIOData::Unknown && format != CMedIOData::ECAT)
-          throw std::runtime_error("only ECAT supported as target data format");
+          throw std::runtime_error("only ECAT supported as target data format (MedIOImage writes ECAT7 only, use pmedio.save() for all formats)");
         if(fileName.isEmpty())
           throw std::runtime_error("no target filename specified");
 
@@ -1358,7 +1359,7 @@ class MedIOImage
 
         // check that a valid data type was supplied
         if(m_mioData->dataFormat() != CMedIOData::ECAT)
-          throw std::runtime_error("only ECAT supported as target data format");
+          throw std::runtime_error("only ECAT supported as target data format (MedIOImage writes ECAT7 only, use pmedio.save() for all formats)");
 
         CECATFile* ecatFile = static_cast<CECATFile*>(m_mioData.get());
         ecatFile->setFileType(CECATMainHeader::ECAT7_Volume16);
