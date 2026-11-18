@@ -67,6 +67,10 @@ def write(path, n, **arguments):
             f.write_volume(frame(k), k + 1)
 
 
+def files(directory):
+    return sorted(p.name for p in pathlib.Path(directory).iterdir())
+
+
 def read_ras(path):
     """volumes of the file in RAS voxel order"""
     with pmedio.open(path) as f:
@@ -295,6 +299,17 @@ def test_create_nifti_incomplete_with_source(tmp_path, suffix):
             for n in like.frame_numbers():
                 f.write_volume(like.read_volume(n), n)
     assert nibabel_image(path).get_fdata().shape[3] == 3
+
+
+def test_create_nifti_pair_overwrite(tmp_path):
+    # create() does not replace the image file of a NIfTI header/image pair either
+    (tmp_path / "pair.img").write_bytes(b"other data")
+    with pytest.raises(FileExistsError, match="the image file of"):
+        pmedio.create(tmp_path / "pair.hdr")
+    assert files(tmp_path) == ["pair.img"]
+    assert (tmp_path / "pair.img").read_bytes() == b"other data"
+    write(tmp_path / "pair.hdr", 1, overwrite=True)
+    assert len(read_ras(tmp_path / "pair.hdr")) == 1
 
 
 @pytest.mark.parametrize("suffix", list(FORMATS))
