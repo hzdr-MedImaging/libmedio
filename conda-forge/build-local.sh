@@ -24,6 +24,9 @@
 # usage: conda-forge/build-local.sh <librtdebug checkout> [output directory]
 #        (default output directory: build-conda-forge in the libmedio checkout)
 #
+# The recipe of librtdebug is the one of the librtdebug checkout
+# (conda.recipe/recipe.yaml), the others are the ones of this directory.
+#
 # The variants of conda-forge (compilers, C library, pinned versions of Qt, zlib,
 # Python, ...) are taken from the package conda-forge-pinning
 # (conda install -c conda-forge conda-forge-pinning) in the active environment, or
@@ -32,7 +35,7 @@
 
 set -e
 
-if [ $# -lt 1 ] || [ ! -f "$1/CMakeLists.txt" ]; then
+if [ $# -lt 1 ] || [ ! -f "$1/conda.recipe/recipe.yaml" ]; then
   echo "usage: $0 <librtdebug checkout> [output directory]" >&2
   exit 1
 fi
@@ -48,12 +51,16 @@ trap 'rm -rf "${tmp}"' EXIT
 # the recipes with the local checkouts as source
 for name in librtdebug libmedio pmedio r-rmedio; do
   source=${top}
-  [ "${name}" = librtdebug ] && source=${rtdebug}
+  recipe=${here}/${name}/recipe.yaml
+  if [ "${name}" = librtdebug ]; then
+    source=${rtdebug}
+    recipe=${rtdebug}/conda.recipe/recipe.yaml
+  fi
   mkdir -p "${tmp}/${name}"
   sed -e "s|^  url: .*|  path: ${source}|" \
       -e "/^  sha256: /d" \
       -e "/^  # curl -sL /d" \
-      "${here}/${name}/recipe.yaml" > "${tmp}/${name}/recipe.yaml"
+      "${recipe}" > "${tmp}/${name}/recipe.yaml"
 done
 
 pinning=${CONDA_FORGE_PINNING:-${CONDA_PREFIX:-}/conda_build_config.yaml}
