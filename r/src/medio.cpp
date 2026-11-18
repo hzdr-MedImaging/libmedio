@@ -92,17 +92,26 @@ struct OpenFile
   ~OpenFile() { if(data) data->close(); }
 };
 
-// removes a file, and the image file of a NIfTI header/image pair (named like
-// CNIFTIFile names it: .img for .hdr, .IMG for .HDR, both optionally with .gz)
-void removeFiles(const QString& fileName)
+// the image file written with the header of a NIfTI header/image pair (named like
+// CNIFTIFile names it: .img for .hdr, .IMG for .HDR, both optionally with .gz);
+// empty for other files
+QString pairImageFile(const QString& fileName)
 {
-  QFile::remove(fileName);
   const bool gz = fileName.toLower().endsWith(".gz");
   const QString name = gz ? fileName.left(fileName.size() - 3) : fileName;
-  if(name.toLower().endsWith(".hdr")) {
-    const bool upper = name.endsWith(".HDR");
-    QFile::remove(name.left(name.size() - 4) + (upper ? ".IMG" : ".img") + (gz ? fileName.right(3) : QString()));
-  }
+  if(name.toLower().endsWith(".hdr") == false)
+    return QString();
+  const bool upper = name.endsWith(".HDR");
+  return name.left(name.size() - 4) + (upper ? ".IMG" : ".img") + (gz ? fileName.right(3) : QString());
+}
+
+// removes a file, and the image file of a NIfTI header/image pair
+void removeFiles(const QString& fileName, CMedIOData::Format format)
+{
+  QFile::remove(fileName);
+  const QString image = pairImageFile(fileName);
+  if(format == CMedIOData::NIFTI && image.isEmpty() == false)
+    QFile::remove(image);
 }
 
 //---------------------------------------------------------------------------------------------
@@ -411,8 +420,14 @@ RcppExport SEXP writeMedio(SEXP fileName, SEXP data, SEXP affine, SEXP frameStar
   const QString name = stringOf(fileName);
   CPhilipsMainHeader::File_Type philipsType = CPhilipsMainHeader::Image;
   const CMedIOData::Format target = targetFormat(name, format, philipsType);
-  if(QFileInfo::exists(name) && Rcpp::as<bool>(overwrite) == false)
-    fail("'" + name + "' exists already (use overwrite = TRUE to replace it)");
+  if(Rcpp::as<bool>(overwrite) == false) {
+    if(QFileInfo::exists(name))
+      fail("'" + name + "' exists already (use overwrite = TRUE to replace it)");
+    // the image file of a NIfTI header/image pair is written as well
+    const QString image = pairImageFile(name);
+    if(target == CMedIOData::NIFTI && image.isEmpty() == false && QFileInfo::exists(image))
+      fail("'" + image + "', the image file of '" + name + "', exists already (use overwrite = TRUE to replace it)");
+  }
 
   // the volumes of all frames before the file is created: the values as given, as
   // float32 (double data) or int32 (integer data) with scale factor 1
@@ -503,7 +518,7 @@ RcppExport SEXP writeMedio(SEXP fileName, SEXP data, SEXP affine, SEXP frameStar
       file.data->close();
       file.data.reset();
     }
-    removeFiles(name);
+    removeFiles(name, target);
     throw;
   }
 

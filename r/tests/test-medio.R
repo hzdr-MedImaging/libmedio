@@ -160,6 +160,22 @@ for (suffix in names(formats))
   unlink(dir, recursive = TRUE)
 }
 
+# the image file of a NIfTI header/image pair is not replaced without overwrite = TRUE,
+# e.g. a Philips file of the same name
+dir <- tempfile()
+dir.create(dir)
+writeMedio(image, file.path(dir, "pair.img"))
+fails(writeMedio(image, file.path(dir, "pair.hdr")), "pair.img', the image file of .*exists already")
+stopifnot(!file.exists(file.path(dir, "pair.hdr")), identical(readMedio(file.path(dir, "pair.img"))$format, "philips"))
+writeMedio(image, file.path(dir, "pair.hdr"), overwrite = TRUE)
+stopifnot(identical(readMedio(file.path(dir, "pair.hdr"))$format, "nifti"))
+# a .hdr file of another format has no image file
+writeMedio(image, file.path(dir, "other.img"))
+writeMedio(image, file.path(dir, "other.hdr"), format = "ecat")
+stopifnot(identical(readMedio(file.path(dir, "other.img"))$format, "philips"),
+          identical(readMedio(file.path(dir, "other.hdr"))$format, "ecat"))
+unlink(dir, recursive = TRUE)
+
 # every test file in every format: the same values, positions and timing
 for (name in c("pet-dynamic.v", "pet-dynamic.nii.gz", "pet-dynamic.img"))
   for (suffix in names(formats))
