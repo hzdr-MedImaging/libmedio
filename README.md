@@ -282,6 +282,12 @@ image.save("image.nii.gz")                            # or pmedio.save(path, ima
   main header is made from the image or converted from `like`, the attributes
   of the image are set in it. Invalid images create no file, and no file is
   left behind if writing fails.
+- `image.to_nibabel()` returns the image as `nibabel.Nifti1Image` (the affine
+  in the RAS coordinates of nibabel, 3D for one frame), and
+  `pmedio.Image.from_nibabel(nibabel_image, frame_start=..., frame_duration=...,
+  attributes=...)` makes an image from any 3D or 4D nibabel image (its scaled
+  values, the affine converted into LPS). Both need nibabel
+  (`pip install nibabel`), which is no requirement of pmedio otherwise.
 
 `pmedio.open()` and `pmedio.create()` read and write single volumes
 (`pmedio.Volume`):

@@ -98,6 +98,9 @@ def test_stubs_are_precise():
         "def save(path: str | os.PathLike[str], image: Image | numpy.typing.ArrayLike, like: File | None = None, "
         "format: str | None = None, overwrite: bool | None = False) -> None:",
         "def frame_start(self, values: Sequence[float], /) -> None:",
+        "def to_nibabel(self) -> nibabel.nifti1.Nifti1Image:",
+        "def from_nibabel(image: nibabel.spatialimages.SpatialImage, frame_start: Sequence[float] | None = None, "
+        "frame_duration: Sequence[float] | None = None, attributes: dict[str, Any] | None = None) -> Image:",
         "def __init__(self, img: numpy.typing.ArrayLike, format: str = 'ecat', dimType: str = 'frames') -> None:",
         "def shape(self, /) -> tuple[int, int, int, int]:",
         "def mhead(self, /) -> dict[str, Any]:",

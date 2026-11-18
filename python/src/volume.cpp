@@ -48,6 +48,7 @@
 #include <QString>
 #include <QStringList>
 
+#include <algorithm>
 #include <climits>
 #include <cstring>
 #include <limits>
@@ -644,6 +645,86 @@ Image makeImage(const py::object& data, const py::object& affine, const py::obje
   return image;
 }
 
+//---------------------------------------------------------------------------------------------
+// nibabel images: Image.to_nibabel(), Image.from_nibabel()
+//
+// nibabel uses RAS coordinates (x towards the patient's right, y towards anterior), pmedio
+// DICOM patient coordinates (LPS): the affines differ in the sign of their first two rows.
+
+// nibabel, an optional dependency of pmedio
+py::module_ nibabel()
+{
+  try {
+    return py::module_::import_("nibabel");
+  } catch(py::python_error& e) {
+    py::raise_from(e, PyExc_ImportError, "Image.to_nibabel() and Image.from_nibabel() need nibabel "
+                   "(pip install nibabel)");
+  }
+}
+
+// RAS <-> LPS: the first two rows of the affine change their sign
+void flipLpsRas(double m[3][4])
+{
+  for(int i=0; i < 2; i++)
+    for(int j=0; j < 4; j++)
+      m[i][j] = -m[i][j];
+}
+
+// Image.to_nibabel()
+py::object imageToNibabel(const Image& image)
+{
+  const py::module_ nib = nibabel();
+
+  // 4 x 4 RAS affine
+  double m[3][4];
+  affineOf(image.affine, m);
+  flipLpsRas(m);
+  py::object affine = numpy().attr("eye")(4);
+  auto view = py::cast<py::ndarray<double, py::c_contig, py::device::cpu>>(affine);
+  for(int i=0; i < 3; i++)
+    for(int j=0; j < 4; j++)
+      view.data()[i * 4 + j] = m[i][j];
+
+  // one frame: a 3D image, as NIfTI files of static images are
+  const size_t frames = imageFrames(image);
+  const py::object data = (frames == 1) ? image.data.attr("__getitem__")(py::make_tuple(py::ellipsis(), 0))
+                                        : image.data;
+  py::object result = nib.attr("Nifti1Image")(data, affine);
+
+  // like the NIfTI files libmedio writes: scanner coordinates (qform and sform), mm and s,
+  // and the frame duration as fourth voxel size if all frames have the same one
+  result.attr("set_qform")(affine, py::arg("code") = 1);
+  result.attr("set_sform")(affine, py::arg("code") = 1);
+  py::object header = result.attr("header");
+  header.attr("set_xyzt_units")("mm", "sec");
+  if(frames > 1 && image.frameDuration.front() > 0.0 &&
+     std::all_of(image.frameDuration.begin(), image.frameDuration.end(),
+                 [&](double d) { return d == image.frameDuration.front(); })) {
+    const py::tuple zooms(header.attr("get_zooms")());
+    header.attr("set_zooms")(py::make_tuple(zooms[0], zooms[1], zooms[2], image.frameDuration.front()));
+  }
+  return result;
+}
+
+// Image.from_nibabel()
+Image imageFromNibabel(const py::object& source, const py::object& frameStart, const py::object& frameDuration,
+                       const py::object& attributes)
+{
+  if(py::hasattr(source, "dataobj") == false || py::hasattr(source, "affine") == false)
+    raise(PyExc_TypeError, "the image has to be a nibabel image, e.g. returned by nibabel.load()");
+  const py::object rasAffine = source.attr("affine");
+  if(rasAffine.is_none())
+    raise(PyExc_ValueError, "the nibabel image has no affine");
+
+  // the values with the scaling of the image applied (the physical values)
+  const py::object data = numpy().attr("asanyarray")(source.attr("dataobj"));
+
+  double m[3][4];
+  affineOf(rasAffine, m);
+  flipLpsRas(m);
+  return makeImage(data, affineArray(m), frameStart, frameDuration, attributes);
+}
+
 // frame k (0-based) as volume: the values of the image are the stored values (scale factor 1)
 CMedIOVolume imageVolume(const Image& image, size_t k)
 {
@@ -1106,6 +1187,27 @@ attributes.
       py::arg("overwrite").none() = Flag{false},
       py::sig("def save(self, path: str | os.PathLike[str], like: File | None = None, format: str | None = None, "
               "overwrite: bool | None = False) -> None"), "write the image, see pmedio.save()")
+    .def("to_nibabel", &imageToNibabel,
+      py::sig("def to_nibabel(self) -> nibabel.nifti1.Nifti1Image"), R"doc(
+The image as nibabel image (``nibabel.Nifti1Image``), e.g. to save it with nibabel or to
+use it with tools that take nibabel images. The affine is converted into the RAS
+coordinates of nibabel; the voxel order stays the same (use ``pmedio.load(...,
+orientation="RAS")`` for the voxel order most NIfTI tools expect). An image of one frame
+becomes a 3D image. The nibabel image shares the voxel data with this image. Frame timing
+and header attributes are not part of it (``pmedio.save()`` writes them into NIfTI files);
+the frame duration is its fourth voxel size if all frames have the same one. Needs nibabel.
+)doc")
+    .def_static("from_nibabel", &imageFromNibabel, py::arg("image"), py::arg("frame_start").none() = py::none(),
+      py::arg("frame_duration").none() = py::none(), py::arg("attributes").none() = py::none(),
+      py::sig("def from_nibabel(image: nibabel.spatialimages.SpatialImage, "
+              "frame_start: collections.abc.Sequence[float] | None = None, "
+              "frame_duration: collections.abc.Sequence[float] | None = None, "
+              "attributes: dict[str, typing.Any] | None = None) -> Image"), R"doc(
+Image from a nibabel image (e.g. ``nibabel.load()`` of a NIfTI or Analyze file, or an
+image computed with nibabel) of 3D or 4D data: the values with the scaling of the image
+applied, and its affine converted from RAS into DICOM patient coordinates (LPS). nibabel
+images hold no frame timing or header attributes: give them as for ``pmedio.Image()``.
+)doc")
     .def("__repr__", [](const Image& self) {
       const py::tuple shape(self.data.attr("shape"));
       QString text = QString("<pmedio.Image %1x%2x%3x%4 %5").arg(py::cast<long>(shape[0])).arg(py::cast<long>(shape[1]))

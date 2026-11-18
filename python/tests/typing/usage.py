@@ -111,6 +111,14 @@ def load_save(source: str, target: pathlib.Path) -> float:
     return float(len(image)) + len(attributes) + len(str(loaded_from)) + len(str(file_format)) + volume.shape[0]
 
 
+def nibabel_images(image: pmedio.Image) -> pmedio.Image:
+    converted = image.to_nibabel()
+    ras = converted.affine  # optional in nibabel
+    weight = float(ras[0, 0]) if ras is not None else 0.0
+    return pmedio.Image.from_nibabel(converted, frame_start=image.frame_start, frame_duration=[60.0] * len(image),
+                                     attributes={"PatientWeight": weight})
+
+
 def library() -> str:
     major: int = pmedio.MedIO.majorVersion()
     return f"{pmedio.MedIO.name()} {pmedio.MedIO.version()} {major} {pmedio.__version__}"
@@ -125,6 +133,7 @@ def mistakes(img: pmedio.MedIOImage, volume: pmedio.Volume, f: pmedio.File) -> N
     pmedio.create("image.v", frames="2")  # type: ignore[arg-type]
     pmedio.create("image.v", attributes=["PatientWeight"])  # type: ignore[arg-type]
     pmedio.load("image.v", frames=1)  # type: ignore[arg-type]
+    pmedio.Image.from_nibabel(np.zeros((2, 2, 2)))  # type: ignore[arg-type]
     pmedio.save("image.v", np.zeros((2, 2, 2)), like="other.v")  # type: ignore[arg-type]
     pmedio.Image(np.zeros((2, 2, 2))).filename = "image.v"  # type: ignore[misc]
     pmedio.Image(np.zeros((2, 2, 2))).frame_start = 0.0  # type: ignore[assignment]
