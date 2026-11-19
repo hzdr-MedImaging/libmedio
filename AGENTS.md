@@ -48,6 +48,7 @@ conda.recipe/              # conda recipes for conda-forge (libmedio; pmedio, r-
 docs/                      # documentation (C++ API, header attributes, NIfTI, Python) and the 2026 summer student report
 .github/workflows/ci.yml   # CI: build/test matrix, install + Python bindings, R package, test data check
 .github/workflows/conda-packages.yml  # conda packages of the recipes, attached to the GitHub releases
+.github/workflows/r-package.yml       # R source package Rmedio_<version>.tar.gz, attached to the GitHub releases
 ```
 
 ## Build and test
@@ -151,9 +152,9 @@ because librtdebug or COREG were not available).
 - Do not bump `PKG_VERSION`, the conda recipes or the release/packaging setup
   unless the task asks for it.
 - GitHub Actions use versioned actions (`actions/checkout@v4`, ...) and
-  read-only `permissions`. The only exception is the job of
-  `conda-packages.yml` that attaches the packages to a release
-  (`contents: write`).
+  read-only `permissions`. The only exceptions are the jobs of
+  `conda-packages.yml` and `r-package.yml` that attach the packages to a
+  release (`contents: write`).
 - Never commit build directories (`build*/`), installed files or local test
   output.
 
