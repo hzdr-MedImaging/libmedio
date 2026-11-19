@@ -122,4 +122,5 @@ tests with `pytest python/tests`. The bindings need Python 3.10 or newer and a
 C++17 compiler; pip provides the build requirements (scikit-build-core,
 nanobind, CMake), a plain CMake build needs `pip install nanobind` (and builds
 for the stable ABI with `-DPMEDIO_STABLE_ABI=ON`). The library
-itself stays C++11. A conda package is built with `python/conda.recipe`.
+itself stays C++11. The conda package `pmedio` is built with `python/conda.recipe` (see
+[conda.recipe](../conda.recipe/README.md)).

@@ -1,6 +1,6 @@
 # conda-forge recipe of Rmedio, the R package of libmedio (r/ of
 # https://github.com/hzdr-MedImaging/libmedio), for conda-forge/staged-recipes
-# (recipes/r-rmedio/recipe.yaml); see ../README.md. Rmedio has the version of libmedio
+# (recipes/r-rmedio/recipe.yaml); see conda.recipe/README.md. Rmedio has the version of libmedio
 # and is compiled against the libmedio package (LIBMEDIO_PREFIX) instead of the
 # libmedio sources it bundles for CRAN.
 

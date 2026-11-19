@@ -17,15 +17,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Builds the conda-forge recipes of this directory with rattler-build from local
-# checkouts instead of the release archives, to test them before they are submitted
-# to conda-forge/staged-recipes or a new version is released.
+# Builds the conda-forge recipes of libmedio (conda.recipe/recipe.yaml), pmedio
+# (python/conda.recipe/recipe.yaml) and r-rmedio (r/conda.recipe/recipe.yaml) with
+# rattler-build from local checkouts instead of the release archives, to test them
+# before they are submitted to conda-forge/staged-recipes or a new version is
+# released, or to build packages for a local channel.
 #
-# usage: conda-forge/build-local.sh <librtdebug checkout> [output directory]
-#        (default output directory: build-conda-forge in the libmedio checkout)
+# usage: conda.recipe/build-local.sh <librtdebug checkout> [output directory]
+#        (default output directory: build-conda in the libmedio checkout)
 #
-# The recipe of librtdebug is the one of the librtdebug checkout
-# (conda.recipe/recipe.yaml), the others are the ones of this directory.
+# The recipe of librtdebug, which libmedio needs for building, is the one of the
+# librtdebug checkout (conda.recipe/recipe.yaml).
 #
 # The variants of conda-forge (compilers, C library, pinned versions of Qt, zlib,
 # Python, ...) are taken from the package conda-forge-pinning
@@ -43,7 +45,7 @@ fi
 here=$(cd "$(dirname "$0")" && pwd)
 top=$(cd "${here}/.." && pwd)
 rtdebug=$(cd "$1" && pwd)
-output=${2:-${top}/build-conda-forge}
+output=${2:-${top}/build-conda}
 
 tmp=$(mktemp -d)
 trap 'rm -rf "${tmp}"' EXIT
@@ -51,11 +53,12 @@ trap 'rm -rf "${tmp}"' EXIT
 # the recipes with the local checkouts as source
 for name in librtdebug libmedio pmedio r-rmedio; do
   source=${top}
-  recipe=${here}/${name}/recipe.yaml
-  if [ "${name}" = librtdebug ]; then
-    source=${rtdebug}
-    recipe=${rtdebug}/conda.recipe/recipe.yaml
-  fi
+  case ${name} in
+    librtdebug) source=${rtdebug}; recipe=${rtdebug}/conda.recipe/recipe.yaml ;;
+    libmedio)   recipe=${top}/conda.recipe/recipe.yaml ;;
+    pmedio)     recipe=${top}/python/conda.recipe/recipe.yaml ;;
+    r-rmedio)   recipe=${top}/r/conda.recipe/recipe.yaml ;;
+  esac
   mkdir -p "${tmp}/${name}"
   sed -e "s|^  url: .*|  path: ${source}|" \
       -e "/^  sha256: /d" \
