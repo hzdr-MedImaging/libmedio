@@ -39,6 +39,35 @@ Differences to the build of the repository:
   the libmedio sources it bundles for CRAN (conda-forge does not accept
   bundled copies of libraries it ships).
 
+## Pre-built packages of the GitHub releases
+
+As long as the packages are not available from conda-forge, the workflow
+[conda-packages.yml](../.github/workflows/conda-packages.yml) builds them with
+these recipes and the variants of conda-forge for every published release and
+attaches them to the release as the archive of a local conda channel per
+platform: `libmedio-<version>-conda-linux-64.tar.gz` and
+`libmedio-<version>-conda-osx-arm64.tar.gz`. Each holds `libmedio`, `pmedio`
+(for the Python versions of conda-forge), `r-rmedio` (for its R versions) and
+the `librtdebug` used for building. They are installed with the dependencies
+from conda-forge:
+
+```bash
+tar -xzf libmedio-<version>-conda-linux-64.tar.gz
+conda install -c "file://$PWD/libmedio-<version>-conda-linux-64" -c conda-forge libmedio pmedio r-rmedio
+```
+
+(only the packages needed, e.g. `pmedio` alone; it requires `libmedio`).
+
+The workflow takes librtdebug from the archive attached to the librtdebug
+release `RTDEBUG_VERSION` of [ci.yml](../.github/workflows/ci.yml), so that
+release needs its conda packages first (workflow `conda-packages.yml` of
+librtdebug). Pull requests that change the recipes or the workflow build and
+test the packages without attaching them. For a release published before the
+workflow existed, it is started by hand with the tag (Actions,
+"conda packages", "Run workflow"; or
+`gh workflow run conda-packages.yml -f tag=<version>`), which builds the
+source of the tag with the recipes of the selected branch.
+
 ## Build the packages locally
 
 With rattler-build, the variant configuration of conda-forge
@@ -52,7 +81,9 @@ conda.recipe/build-local.sh /path/to/librtdebug    # or: make conda RTDEBUG=/pat
 The script builds the three recipes and the recipe of librtdebug
 (`conda.recipe/recipe.yaml` of its checkout) with the checkouts as source
 instead of the release archives, into `build-conda/`, which is then a local
-conda channel:
+conda channel. Instead of the checkout, it also takes a conda channel with the
+librtdebug package, e.g. the extracted archive of a librtdebug release, and
+then builds only the three recipes of libmedio:
 
 ```bash
 conda install -c "file://$PWD/build-conda" -c conda-forge libmedio pmedio r-rmedio

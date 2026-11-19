@@ -77,7 +77,9 @@ def test_load_datasets(path, key, json_name):
     assert image.shape == (*expected.dims, frames)
     assert len(image) == frames
     assert image.data.dtype == np.float32
-    assert image.filename == str((DATA_DIR / path).resolve())
+    # absolute, the same file (resolve() would also resolve symbolic links, which the name keeps)
+    assert pathlib.Path(image.filename).is_absolute()
+    assert pathlib.Path(image.filename).samefile(DATA_DIR / path)
     file_format = load_json(json_name)["format"]
     assert image.format == (pmedio.Format.ECAT if file_format == "ecat7" else
                             pmedio.Format.NIFTI if file_format.startswith("nifti") else pmedio.Format.Philips)

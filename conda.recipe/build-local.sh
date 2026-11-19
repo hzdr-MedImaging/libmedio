@@ -23,11 +23,14 @@
 # before they are submitted to conda-forge/staged-recipes or a new version is
 # released, or to build packages for a local channel.
 #
-# usage: conda.recipe/build-local.sh <librtdebug checkout> [output directory]
+# usage: conda.recipe/build-local.sh <librtdebug checkout or channel> [output directory]
 #        (default output directory: build-conda in the libmedio checkout)
 #
-# The recipe of librtdebug, which libmedio needs for building, is the one of the
-# librtdebug checkout (conda.recipe/recipe.yaml).
+# librtdebug, which libmedio needs for building, comes from
+# - a librtdebug checkout: its recipe (conda.recipe/recipe.yaml) is built as well, or
+# - a conda channel holding the librtdebug package, e.g. the extracted archive of a
+#   librtdebug release (librtdebug-<version>-conda-<platform>.tar.gz): its packages are
+#   copied into the output directory, which is a channel of the build.
 #
 # The variants of conda-forge (compilers, C library, pinned versions of Qt, zlib,
 # Python, ...) are taken from the package conda-forge-pinning
@@ -37,8 +40,8 @@
 
 set -e
 
-if [ $# -lt 1 ] || [ ! -f "$1/conda.recipe/recipe.yaml" ]; then
-  echo "usage: $0 <librtdebug checkout> [output directory]" >&2
+if [ $# -lt 1 ] || [ ! -d "$1" ]; then
+  echo "usage: $0 <librtdebug checkout or channel> [output directory]" >&2
   exit 1
 fi
 
@@ -47,11 +50,24 @@ top=$(cd "${here}/.." && pwd)
 rtdebug=$(cd "$1" && pwd)
 output=${2:-${top}/build-conda}
 
+names="libmedio pmedio r-rmedio"
+if [ -f "${rtdebug}/conda.recipe/recipe.yaml" ]; then
+  names="librtdebug ${names}"
+elif [ -f "${rtdebug}/noarch/repodata.json" ]; then
+  echo "* librtdebug from the channel ${rtdebug}"
+  mkdir -p "${output}"
+  cp -R "${rtdebug}/." "${output}/"
+else
+  echo "ERROR: ${rtdebug} is neither a librtdebug checkout (conda.recipe/recipe.yaml)" >&2
+  echo "       nor a conda channel (noarch/repodata.json)" >&2
+  exit 1
+fi
+
 tmp=$(mktemp -d)
 trap 'rm -rf "${tmp}"' EXIT
 
 # the recipes with the local checkouts as source
-for name in librtdebug libmedio pmedio r-rmedio; do
+for name in ${names}; do
   source=${top}
   case ${name} in
     librtdebug) source=${rtdebug}; recipe=${rtdebug}/conda.recipe/recipe.yaml ;;

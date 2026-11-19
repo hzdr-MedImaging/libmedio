@@ -164,7 +164,9 @@ def test_read_datasets(path, key, json_name):
 
     with pmedio.open(DATA_DIR / path) as f:
         assert not f.writable
-        assert f.filename == str((DATA_DIR / path).resolve())
+        # absolute, the same file (resolve() would also resolve symbolic links, which the name keeps)
+        assert pathlib.Path(f.filename).is_absolute()
+        assert pathlib.Path(f.filename).samefile(DATA_DIR / path)
         assert f.frame_numbers() == list(range(1, len(expected.stats) + 1))
 
         for k, n in enumerate(f.frame_numbers()):
