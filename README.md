@@ -156,7 +156,9 @@ R CMD INSTALL r
 ```
 
 conda recipes for the library and the Python package are in
-[conda.recipe](conda.recipe/README.md) and `python/conda.recipe`. Details:
+[conda.recipe](conda.recipe/README.md) and `python/conda.recipe`; the recipes
+of the conda-forge packages `libmedio`, `pmedio` and `r-rmedio` are in
+[conda-forge](conda-forge/README.md). Details:
 [Python](docs/python.md#installation-and-build), [R](r/README.md).
 
 ## Documentation
