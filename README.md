@@ -1,459 +1,196 @@
-# libmedio — C++ I/O library for medical imaging formats
+# libmedio
+
+**Read and write medical imaging data in C++, Python and R: ECAT, NIfTI, Philips PET and microPET through one interface.**
 
 [![CI](https://github.com/hzdr-MedImaging/libmedio/actions/workflows/ci.yml/badge.svg)](https://github.com/hzdr-MedImaging/libmedio/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-**libmedio** is a portable, C++-based shared library that provides
-high-level I/O APIs to read and write image and data files commonly used in
-medical imaging. Originating from PET research, libmedio focuses on
-nuclear-medicine formats while remaining useful for general imaging pipelines.
+libmedio is a portable C++/Qt5 library for the file formats of nuclear
+medicine, developed for PET research at the Helmholtz-Zentrum
+Dresden-Rossendorf (HZDR). It reads every supported format into one common
+representation (voxels, scaling, geometry, frame timing and header
+attributes) and writes it into any writable format, so applications,
+pipelines and conversions do not have to know the formats they work with.
 
-The library is written in modern C++ and uses the **Qt** framework to ensure
-portability across Linux, macOS, and Windows.
+## Highlights
 
-## Scope & supported formats
-libmedio targets PET-centric workflows and currently focuses on:
-- **ECAT 6 / ECAT 7** images and sinograms (Siemens/CTI)
-- **NIfTI-1 / NIfTI-2** single files (`.nii`, `.nii.gz`) and header/image
-  pairs (`.hdr`/`.img`, `.hdr.gz`/`.img.gz`), both byte orders, incl. JSON
-  and DICOM header extensions (metadata readable by nibabel and PMOD)
-- **Philips PET** image data, including **Syntegra**-related variants
-- **microPET** (Siemens Concorde)
+- **One interface for all formats**: `CMedIOData::readVolume()` and
+  `writeVolume()` read and write the frames of any format; a file can also be
+  read in the representation (voxel order, data type, header) of another
+  format.
+- **Geometry kept exactly**: every voxel keeps its position in DICOM patient
+  coordinates when files are converted or reoriented, also between formats
+  with different voxel orders.
+- **Header attributes with DICOM keywords**: patient, isotope, dose and
+  acquisition data of every format as one JSON object (e.g.
+  `"PatientWeight"` in kg), carried along by all conversions; NIfTI files
+  keep them in JSON and DICOM header extensions readable by nibabel, PMOD
+  and BIDS tools.
+- **Python and R** bindings with the same format independent interface:
+  numpy arrays and nibabel images in Python, arrays and lists in R.
+- **Safe writing**: everything is checked before a file is created; files
+  that cannot be written completely are removed, existing files are only
+  replaced on request.
+- **Validated**: the test data is checked against independent
+  implementations (nibabel, numpy, pydicom); the CI builds and tests the
+  library with GCC and Clang, the Python bindings and the R package.
 
-> Additional containers may be supported over time. Contributions and test
-> data (de-identified) are welcome.
+## Supported formats
 
-## Features
-- Object-oriented C++ API (header-only interfaces with a shared library core)
-- Read/write support for PET images and sinograms (ECAT6/7, Philips IMG, microPET, etc.)
-- Robust metadata handling and endian-safe I/O
-- Conversion of ECAT7 and Philips images to NIfTI and back
-  (`CNIFTIConverter`), incl. dynamic (4D) data, patient orientation/geometry,
-  physical units and the metadata (stored as JSON and DICOM header extensions)
-- Format independent access to image matrices: every image file can be read
-  in the matrix representation of another format (voxel order, data type,
-  scaling, header) and matrices of any format can be written into files of
-  another format (`CMedIOData::readMatrix()`/`writeMatrix()`, `CMedIOVolume`)
-- Format independent header attributes: every header describes its attributes as JSON
-  object with DICOM keywords as keys (`CMedIOHeader::attributes()`,
-  `CMedIOHeaderDictionary`), carried along by all conversions between the formats
-- Cross-platform build with CMake; Qt5 backend
+| Format | Files | All languages: images | C++ format classes |
+| --- | --- | --- | --- |
+| ECAT 7 (Siemens/CTI) | `.v` | read, write | images, sinograms, normalizations, attenuation, polar maps |
+| ECAT 6 | `.v` | | main headers |
+| NIfTI-1, NIfTI-2 | `.nii`, `.nii.gz`, `.hdr`/`.img` (also `.gz`) | read, write (NIfTI-1) | both byte orders, JSON and DICOM header extensions |
+| Philips PET | `.img` (image), `.syn` (Syntegra) | read, write | images, sinograms, list mode |
+| Siemens Concorde microPET | `.img` + `.img.hdr` | read | images, sinograms |
 
-## Requirements
-- **C++** compiler (GCC/Clang/MSVC)
-- **CMake ≥ 3.20**
-- **Qt 5.15+** (at least `Core`; additional modules as needed)
-- **librtdebug**
-- **zlib** (for `.nii.gz`)
+"All languages" is the format independent interface of C++, Python and R;
+the C++ format classes (`CECATFile`, `CNIFTIFile`, `CPhilipsFile`,
+`CConcordeFile`) give access to the native headers and the other data types.
 
-## Build & install
-```bash
-# Configure
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=/usr/local
+## Quick start
 
-# Build
-cmake --build build -j
+The same task in all three languages: read an ECAT7 image, look at its header
+attributes and write it as compressed NIfTI file.
 
-# Install (may require sudo)
-cmake --install build
-```
-
-## Tests
-The test suite uses QtTest and is run with CTest after building:
-```bash
-ctest --test-dir build --output-on-failure
-```
-Test datasets in several formats (DICOM, ECAT7, NIfTI, Philips, Interfile,
-raw) are stored in `testsuite/data`; see
-[testsuite/data/README.md](testsuite/data/README.md) for their layout and how
-to add data.
-
-The [CI workflow](.github/workflows/ci.yml) builds libmedio on Linux with
-GCC and Clang (Release and Debug) against
-[librtdebug](https://github.com/hzdr-MedImaging/librtdebug), runs the test
-suite, checks the installed library and the Python bindings and verifies that
-the expected values of the test data are reproducible
-(`testsuite/data/tools/make_expected.py --check`). The example `image2ecat`
-requires the COREG library and is only built if it is found.
-
-## Conversion to and from NIfTI
-The command line tools `ecat2nifti`/`nifti2ecat` (ECAT7) and
-`philips2nifti`/`nifti2philips` (Philips image `.img` and Syntegra `.syn`
-files) convert complete files:
-```bash
-ecat2nifti    [-2] [--float] [--sidecar] [--no-extension] input.v [output.nii[.gz]|output.hdr[.gz]]
-philips2nifti [-2] [--float] [--sidecar] [--no-extension] input.img|input.syn [output.nii[.gz]|output.hdr[.gz]]
-nifti2ecat    input.nii[.gz]|input.hdr[.gz]|input.img[.gz] [output.v]
-nifti2philips input.nii[.gz]|input.hdr[.gz]|input.img[.gz] [output.img|output.syn]
-```
-- NIfTI files hold the physical values (stored value × scale factor ×
-  calibration factor, e.g. Bq/ml); data with a scale factor per frame or
-  (Philips) per slice, or with `--float`, is written as float32.
-- ECAT7 voxel (i, j, k) is written as NIfTI voxel (i, j, nz-1-k) with qform
-  and sform describing its position. NIfTI files of any orientation are
-  reordered into the ECAT7 voxel order.
-- The attributes of the source (see [Format independent header attributes](#format-independent-header-attributes),
-  incl. patient data and all native header fields) and the frame timing are
-  stored as JSON header extension with BIDS PET keys (`--sidecar`: also as
-  `<output>.json`) and restored by `nifti2ecat`/`nifti2philips`. JSON written
-  by earlier versions (ECAT7 fields at the top level) is still read.
-- For other tools, a DICOM header extension holds the same attributes as
-  DICOM data set and the frame timing in the private tags of PMOD, and
-  `descrip` holds `<patient name> [<study type>] <study description>` like
-  in the NIfTI files of PMOD. PMOD reads the units and the frame timing from
-  them; in Python, nibabel returns the extensions of a file:
-  ```python
-  import json, nibabel as nib
-  ext = {e.get_code(): e for e in nib.load("out.nii.gz").header.extensions}
-  metadata = json.loads(ext[6].get_content())  # BIDS keys, e.g. metadata["FrameTimesStart"]
-  ds = ext[2].get_content()                    # pydicom data set, e.g. ds.PatientWeight
-  ```
-- NIfTI files of other tools without this JSON metadata provide the values
-  of their DICOM header extension (e.g. the units and frame timing of PMOD)
-  and, for files of PMOD, the patient name, study type and description of
-  `descrip`. `--no-extension` writes neither extension.
-- JSON sidecars of other tools (BIDS PET, dcm2niix) are read as well:
-  - without `FrameTimesStart` (dcm2niix before 2023), the frame start times
-    are `FrameReferenceTime - FrameDuration / 2`, or follow each other;
-  - the radionuclide comes from `TracerRadionuclide`, or from the half-life
-    of a PET radionuclide (dcm2niix writes only `RadionuclideHalfLife`);
-  - the injection time comes from `TimeZero` and `InjectionStart`.
-
-  Dates and times without time zone (DICOM, dcm2niix, microPET) are taken as
-  local time of the machine (`TZ`), BIDS `TimeZero` is written in local time.
-- Philips files are converted via the ECAT7 representation of libmedio; the
-  x/y image position of Philips slices is not used.
-
-Applications get the same metadata when they write NIfTI files themselves:
-
-- With the generic interface (`writeMainHeader()`/`writeVolume()` of
-  `CMedIOData`), see [Format independent matrix access](#format-independent-matrix-access).
-- With the NIfTI classes directly:
-  - `CNIFTIFile::writeMainHeader()` and the `save()` of a NIfTI header store
-    its attributes as JSON and DICOM extensions and set `descrip`.
-  - `convertFrom()` of a NIfTI header takes over the attributes of the ECAT7,
-    Philips or other NIfTI version headers. While the source main header
-    belongs to an open file, this includes the timing of all frames.
-  - `CNIFTIFile::writeMatrix(data, frame, start, duration)` stores the timing
-    of a volume.
-  - A header changed and saved again (e.g. anonymized) replaces the metadata
-    extensions completely.
-  - `convertFrom()` of the ECAT7 headers takes over the attributes and frame
-    timing of a NIfTI header.
+**C++**
 
 ```cpp
-CNIFTIFile nifti("out.nii.gz", CNIFTIMainHeader::NIFTI1);
-nifti.open(QIODevice::WriteOnly);
-QScopedPointer<CNIFTIMainHeader> header(nifti.createEmptyHeader());
-header->convertFrom(ecatMainHeader, ecatSubHeader);   // geometry, attributes, timing
-header->updateAttributes(QJsonObject{{"PatientWeight", 72.5}});
-nifti.writeMainHeader(*header);                      // header + JSON/DICOM extensions
-nifti.writeMatrix(volume, 1, 0.0, 30.0);             // volume 1, start 0 s, duration 30 s
-```
+#include <CMedIOData>
+#include <CMedIODataFactory>
+#include <CMedIOHeader>
+#include <CMedIOVolume>
 
-An output name ending with `.hdr`/`.img` writes a header/image pair. The
-details are documented in `src/nifti/CNIFTIConverter.h`. Analyze 7.5 files
-(`.hdr`/`.img` without NIfTI magic) are not supported. The NIfTI support was
-started in the 2026 summer student project, see
-[docs/summer-student-2026](docs/summer-student-2026/README.md).
+#include <QDebug>
+#include <QJsonObject>
+#include <QScopedPointer>
 
-## Format independent matrix access
-Applications do not need to know the format of a file to work with its
-image data in the representation they are used to. `readMatrix()` of every
-file class (`CECATFile`, `CNIFTIFile`, `CPhilipsFile`, `CConcordeFile`)
-returns a frame in the representation of the requested format:
-```cpp
-// any supported image file, e.g. NIfTI, Philips or microPET
-CMedIOData* file = CMedIODataFactory::create(fileName);
-file->open(QIODevice::ReadOnly);
+int main()
+{
+  // any supported format: the format is identified from the content of the file
+  QScopedPointer<CMedIOData> in(CMedIODataFactory::create("pet.v"));
+  in->open(QIODevice::ReadOnly);
 
-CMedIOHeader* mainHeader = NULL;                   // here: CECAT7MainHeader
-file->readMainHeader(mainHeader, CMedIOData::ECAT);
+  QJsonObject attributes;                                  // DICOM keywords and units
+  in->readAttributes(attributes);
+  qDebug() << attributes.value("PatientWeight").toDouble(); // kg
 
-foreach(short frame, file->frameNumbers()) {       // frame numbers of the file
-  QByteArray* data = NULL;
-  CMedIOHeader* subHeader = NULL;                  // here: CECAT7SubHeaderImage
-  if(file->readMatrix(data, subHeader, CMedIOData::ECAT, frame)) {
-    // ... ECAT7 voxel order, data type and scale factor ...
-    delete data;
-    delete subHeader;
-  }
-}
-```
-and `writeMatrix()` writes a frame given in the representation of any
-format, e.g. ECAT7 data into a NIfTI file:
-```cpp
-CECATMainHeader* ecatMainHeader = NULL;            // bed position, calibration factor
-ecatFile.readMainHeader(ecatMainHeader);
-CMedIOHeader* niftiHeader = NULL;                  // NIfTI main header of the ECAT7 file
-ecatFile.readMainHeader(niftiHeader, CMedIOData::NIFTI);
-
-CNIFTIFile nifti("image.nii.gz", CNIFTIMainHeader::NIFTI1);
-nifti.open(QIODevice::WriteOnly);
-niftiHeader->setMedIOData(&nifti);                 // returned headers are not linked to a file
-nifti.writeMainHeader(*static_cast<CNIFTIMainHeader*>(niftiHeader));
-
-const QList<short> frames = ecatFile.frameNumbers();
-for(int k=0; k < frames.size(); k++) {
-  QByteArray* data = NULL;
-  CECATSubHeader* subHeader = NULL;
-  ecatFile.readMatrix(data, subHeader, frames[k]); // ECAT7 matrix
-  nifti.writeMatrix(*data, *subHeader, k + 1, ecatMainHeader); // NIfTI volume k+1
-  delete data;
-  delete subHeader;
-}
-```
-- `frameNumbers()` returns the numbers of the frames of a file. ECAT7 and
-  Philips files address their frames by the frame numbers stored in the
-  file, which do not have to start with 1 and can have gaps (`numFrames()`
-  of `CECATFile`/`CPhilipsFile` is the highest frame number); NIfTI volumes
-  and microPET frames are numbered 1..n. The main headers returned for
-  another format (and the main headers written by libmedio) give the number
-  of frames.
-- Every frame is converted via its ECAT7 representation, using the existing
-  header conversions (`convertFrom()`); the geometry of every voxel is kept.
-- Voxel order: ECAT7, Philips and microPET: x towards patient left, y
-  towards posterior, planes from superior to inferior; NIfTI: the same
-  with reversed planes (as written by `CNIFTIConverter`), or the
-  orientation of the NIfTI file written to, whatever orientation it has.
-- Data types: the stored values are kept if the target format can represent
-  them exactly (integers are widened if needed), otherwise the physical
-  values are stored as float32. Writing into a file with a given data type
-  (NIfTI) converts the values into its data type and scaling and fails
-  without writing if a value does not fit.
-- Philips matrices hold all slices of a frame with one scale factor;
-  Philips frames can be written in any order and overwritten with data of
-  the same slices. microPET files can only be read.
-- Without a format, `readMainHeader(header)` and `readMatrix(data, header, frame)`
-  return the main header and frames in the format of the file itself, e.g.
-  for a file created by `CMedIODataFactory` whose format is not known.
-- `writeMatrix()` takes the format of the matrix from the type of its sub
-  header. Like `readMatrix()`, it can also be given explicitly:
-  `writeMatrix(data, header, CMedIOData::ECAT, frame, mainHeader)` fails
-  without writing if the sub header does not belong to that format. The main
-  header passed with the matrix has to be a main header of the format of the
-  matrix as well, otherwise nothing is written.
-- `readVolume()`/`writeVolume()` exchange frames as `CMedIOVolume`: voxel
-  data, scaling, the position of every voxel (DICOM patient coordinates)
-  and the frame timing; `CMedIOVolume::reorient()` reorders the voxels.
-- `CMedIOData::mainHeaderFromVolume(volume, format, numFrames, header)` makes
-  the main header of a new ECAT7, NIfTI or Philips file from a volume, for
-  writing volumes without a source file. The header has the geometry and
-  number of frames, the defaults of the format otherwise (change them with
-  `updateAttributes()`); a NIfTI file stores all frames with the data type
-  and scaling of this volume, Philips planes are centered:
-  ```cpp
+  // the format of the new file from its name, the main header converted from the source
+  QScopedPointer<CMedIOData> out(CMedIODataFactory::createForWriting("pet.nii.gz"));
   CMedIOHeader* header = NULL;
-  CMedIOData::mainHeaderFromVolume(volume, CMedIOData::NIFTI, 3, header);
-  CNIFTIFile out("new.nii", CNIFTIMainHeader::NIFTI1);
-  out.open(QIODevice::WriteOnly);
-  header->setMedIOData(&out);
-  out.writeMainHeader(*static_cast<CNIFTIMainHeader*>(header));
-  out.writeVolume(volume, 1);                        // frames 1..3
-  delete header;
-  ```
-- Only image data is supported (no sinograms, normalizations, list mode).
+  in->readMainHeader(header, out->dataFormat());
+  QScopedPointer<CMedIOHeader> headerGuard(header);
+  out->open(QIODevice::WriteOnly);
+  out->writeMainHeader(*header);
 
-The details are documented in `src/CMedIOData.h` and `src/CMedIOMatrix.h`.
+  const QList<short> frames = in->frameNumbers();
+  for(int k = 0; k < frames.size(); k++) {
+    CMedIOVolume volume;                                   // voxels, scaling, geometry, timing
+    in->readVolume(volume, frames[k]);
+    out->writeVolume(volume, k + 1);
+  }
+  out->close();
+  return 0;
+}
+```
 
-### Python
-The Python module `pmedio` (`python/`, nanobind) offers the format
-independent access with numpy arrays. `pmedio.load()` and `pmedio.save()`
-read and write all frames of an image at once:
+**Python** (`pmedio`)
+
 ```python
 import pmedio
 
-image = pmedio.load("image.v", orientation="RAS")    # ECAT7, NIfTI, Philips, microPET
-image.data                                            # physical values (nx, ny, nz, frames), float32
-image.affine                                          # 3 x 4, voxel -> LPS (mm)
-image.frame_start, image.frame_duration               # s, one per frame
-image.attributes["PatientWeight"]                     # header attributes (dict)
-image.data = image.data * 2.0
-image.save("image.nii.gz")                            # or pmedio.save(path, image)
+image = pmedio.load("pet.v", orientation="RAS")  # all frames: 4D numpy array, affine, timing
+print(image.shape, image.attributes["PatientWeight"])
+image.data = image.data / 1000.0                  # Bq/ml -> kBq/ml
+image.save("pet.nii.gz")                          # format from the file name
+
+nifti = image.to_nibabel()                        # or continue with nibabel
 ```
-- `pmedio.load(path, frames=[...], orientation=...)` selects frames by their
-  numbers and reorders the voxels (default: the voxel order of the file). All
-  frames need the same geometry; files with other frames are read with
-  `pmedio.open()`.
-- `pmedio.Image(data, affine=..., frame_start=..., frame_duration=...,
-  attributes=...)` makes an image from a 3D or 4D array; `pmedio.save(path,
-  array)` writes an array with identity affine. `save()` writes like
-  `pmedio.create()` (below), with `like=`, `format=` and `overwrite=`: the
-  main header is made from the image or converted from `like`, the attributes
-  of the image are set in it. Invalid images create no file, and no file is
-  left behind if writing fails.
-- `image.to_nibabel()` returns the image as `nibabel.Nifti1Image` (the affine
-  in the RAS coordinates of nibabel, 3D for one frame), and
-  `pmedio.Image.from_nibabel(nibabel_image, frame_start=..., frame_duration=...,
-  attributes=...)` makes an image from any 3D or 4D nibabel image (its scaled
-  values, the affine converted into LPS). Both need nibabel
-  (`pip install nibabel`), which is no requirement of pmedio otherwise.
 
-`pmedio.open()` and `pmedio.create()` read and write single volumes
-(`pmedio.Volume`):
-```python
-import numpy as np
-import pmedio
+**R** (`Rmedio`)
 
-with pmedio.open("image.nii.gz") as f:              # ECAT7, NIfTI, Philips, microPET
-    for frame in f.frame_numbers():
-        v = f.read_volume(frame)                      # pmedio.Volume, voxel order of the file
-        values = v.values()                           # physical values, shape (nx, ny, nz)
-        v.affine                                      # 3 x 4, voxel -> LPS (mm)
-        v.reorient("RAS")                             # e.g. the nibabel convention
-        v.frame_start, v.frame_duration               # s
-
-    # a file in another format with the main header of the source
-    with pmedio.create("image.v", like=f) as out:
-        for k, frame in enumerate(f.frame_numbers()):
-            out.write_volume(f.read_volume(frame), k + 1)
-
-# a file made from volumes alone, with header attributes
-v = pmedio.Volume(np.zeros((64, 64, 32), dtype=np.float32), affine=np.eye(3, 4))
-with pmedio.create("new.nii.gz", frames=2, attributes={"PatientWeight": 72.5}) as out:
-    out.write_volume(v, 1)
-    out.write_volume(v, 2)
-```
-- `pmedio.Volume` corresponds to `CMedIOVolume`: `stored()` and `values()`
-  return copies of the voxels (x running fastest), `scale_factors`,
-  `intercept`, `affine`, `position()`, `voxel_size`, `orientation`,
-  `reorient()` and the frame timing.
-- `pmedio.create(path, like=source)` takes the format from the file name
-  (`.v`, `.nii`/`.nii.gz`/`.hdr`, `.img`/`.syn`) or from `format=pmedio.Format...`,
-  and replaces an existing file only with `overwrite=True`. The volumes
-  written are converted into the representation of the file (e.g. the
-  datatype and scaling of a NIfTI main header).
-- Without `like`, the main header is made from the first volume written
-  (`CMedIOData::mainHeaderFromVolume()`). `frames=n` gives the number of
-  frames, which a NIfTI file needs in advance; a NIfTI file of several frames
-  stores the physical values as float32. A file closed without a volume, and
-  a NIfTI file without all of its frames (with `like`: the frames of the
-  source), is removed.
-- `attributes={...}` sets header attributes (DICOM keywords such as
-  `"PatientWeight"`, or native fields in the section of the format, as
-  returned by `File.attributes()`); invalid values raise an error before the
-  file is created. `File.attributes()` of a file created for writing returns
-  the attributes of its main header as written.
-- NIfTI files keep the frame timing of the volumes written as JSON header
-  extension (`FrameTimesStart`, `FrameDuration`, as written by
-  `CNIFTIConverter`), see `CMedIOData::writeMatrix()`.
-
-`pmedio.MedIOImage`, `pmedio.read()` and `pmedio.write()` are the older
-interface for ECAT7 files only. They are kept unchanged for existing scripts;
-new code uses `load()`/`save()`, which also read and write ECAT7 files:
-
-| ECAT7 only (legacy) | All formats |
-| --- | --- |
-| `img = pmedio.read(path)`, `np.asarray(img)` or `img.toarray()` | `image = pmedio.load(path, orientation="RAS")`, `image.data`: the same values in the same voxel order |
-| `pmedio.read(path, volumes=[3, 1])` | `pmedio.load(path, frames=[3, 1], orientation="RAS")` |
-| `cols=`, `rows=`, `planes=` (numbered from 1) | slices of `image.data`, e.g. `image.data[1:3]` for `cols=[2, 3]` |
-| `img.mhead`, `img.shead` (native ECAT7 fields) | `image.attributes` (DICOM keywords, native fields in the section `"ECAT7"`), `image.frame_start`, `image.frame_duration` (s) |
-| `pmedio.write(img, path)` | `image.save(path)` or `pmedio.save(path, image)`, format from the file name |
-| `dataType="short"` etc. | the data type of `image.data`: integer arrays are stored as they are, float arrays as float |
-
-Install: install libmedio into `PREFIX_PATH` first, then install the package
-from the checkout with pip, which builds it with scikit-build-core:
-```bash
-pip install ./python                              # libmedio in /usr/local/petlib
-BUILD_PREFIX=/path/to/prefix pip install ./python # libmedio in another prefix
-```
-`pip install -e ./python` installs it for development, `pip wheel ./python`
-builds a wheel, and `CMAKE_ARGS` passes further options to CMake. With Python
-3.12 or newer the module is built for the stable ABI of Python: the wheel
-(`cp312-abi3`) can be installed with all newer Python versions as well; Python
-3.10 and 3.11 get a wheel for their version. The package comes with type stubs
-(`pmedio-stubs`) for editors and type checkers like mypy and pyright, generated
-from the module when it is built. The module
-can also be built with CMake alone (see `.github/workflows/ci.yml`); run the
-tests with `pytest python/tests`. The bindings need Python 3.10 or newer and a
-C++17 compiler; pip provides the build requirements (scikit-build-core,
-nanobind, CMake), a plain CMake build needs `pip install nanobind` (and builds
-for the stable ABI with `-DPMEDIO_STABLE_ABI=ON`). The library
-itself stays C++11. A conda package is built with `python/conda.recipe`.
-
-### R
-The R package `Rmedio` (`r/`, Rcpp) reads and writes images of all formats
-like `pmedio.load()`/`pmedio.save()`:
 ```r
 library(Rmedio)
-image <- readMedio("image.v", orientation = "RAS")  # 4D array, affine, timing, attributes
-writeMedio(image, "image.nii.gz")
-```
-`readEcat()`/`writeEcat()` remain as the older interface for ECAT files only.
-The package bundles the libmedio sources and compiles them with the compiler
-of R, so it does not need an installed libmedio (see `r/README.md`):
-`R CMD INSTALL r` installs it from the git checkout,
-`r/tools/vendor.sh && R CMD build r` creates the self-contained source
-tarball for CRAN and other repositories.
 
-## Format independent header attributes
-Every header (`CMedIOHeader`) describes its attributes as JSON object, so that
-applications can use the attributes of any format without the header classes
-of the formats:
-```json
-{
-  "PatientWeight": 8.63,
-  "RadionuclideTotalDose": 60780000,
-  "AcquisitionDateTime": "2026-06-03T17:04:56Z",
-  "Units": "BQML",
-  "ECAT7": { "Patient_Weight": 8.63, "Dosage": 60780000, "Data_Units": "Bq/cc" }
-}
+image <- readMedio("pet.v", orientation = "RAS")  # 4D array, affine, timing, attributes
+dim(image$data)
+image$attributes$PatientWeight
+image$data <- image$data / 1000
+writeMedio(image, "pet.nii.gz")
 ```
-```cpp
-CMedIOHeader* mainHeader = NULL;
-file->readMainHeader(mainHeader);                     // any format
-QJsonObject attributes = mainHeader->attributes();
-double weight = mainHeader->attribute("PatientWeight").toDouble();   // keyword
-QJsonValue dose = mainHeader->attribute("(0018,1074)");              // or DICOM tag
-mainHeader->setAttribute("PatientName", QString("Doe^Jane"));
-attributes["PatientWeight"] = 72.5;
-mainHeader->updateAttributes(attributes);            // whole object or single keys
-```
-- The keys are DICOM keywords, e.g. `PatientWeight` for the DICOM attribute
-  (0010,1030), with the meaning and unit of the DICOM attribute (kg, Bq, s,
-  ms, ...) and a JSON value: numbers, ISO 8601 dates and times (`Z` for UTC,
-  without time zone if the format has none; these are taken as local time of
-  the machine, as DICOM times are the local time of the scanner, so set `TZ`
-  when converting data of another time zone), arrays for multiple values,
-  objects for code sequences. `CMedIOHeaderDictionary` lists the keys with their
-  DICOM tag (as number and as string `"(0010,1030)"`), VR, unit and the
-  sequence holding them.
-- The values are converted from and into the units of the formats (e.g.
-  Philips weight in g, ECAT7 height in cm, microPET dose in mCi or MBq).
-- The native fields of the format are in a section named after the format
-  (`ECAT7`, `Philips`, `microPET`, `NIfTI`), without the fields describing the
-  size, data type, scaling, geometry or layout of the image data.
-- Values a format cannot store (keys of other formats, unknown keys, values
-  it cannot represent) are kept in the header object and carried along by
-  the conversions between the formats (`readMainHeader(header, format)`,
-  `readMatrix(..., format)`, `writeMatrix()`, `CNIFTIConverter`). NIfTI files
-  store all attributes in their JSON header extension, incl. the frame
-  attributes of all frames (`Frames`) and BIDS keys for other tools, and the
-  attributes of the dictionary in a DICOM header extension (see
-  `src/nifti/CNIFTIExtensions.h`); this holds for every file written by
-  libmedio, whether by the converters, `writeMainHeader()`/`writeVolume()`
-  or `pmedio.create()`.
-- The other formats store only their own fields. The physical values of
-  Philips slices scaled to SUV depend on the dose, times, half life and
-  weight of the main header: change them before the frames are written.
 
-The details are documented in `src/CMedIOHeader.h`, `src/CMedIOHeaderDictionary.h`
-and `src/CMedIOHeaderMapping.h`. In Python, `pmedio.open(path).attributes()`
-returns the attributes of a file as dict (incl. the frame attributes in
-`Frames`), and `pmedio.dictionary_entry("(0010,1030)")` an entry of the
-dictionary; files created with `pmedio.create(path, like=source)` get the
-attributes of the source.
+Command line tools convert complete files between ECAT7 or Philips and NIfTI
+with all metadata, e.g. `ecat2nifti pet.v pet.nii.gz` and
+`nifti2ecat pet.nii.gz pet.v` (also `philips2nifti` and `nifti2philips`; they
+are installed with the version of libmedio as suffix, e.g.
+`ecat2nifti-<version>`, see [NIfTI](docs/nifti.md)).
+
+## Installation
+
+libmedio needs a C++11 compiler, CMake 3.20 or newer, Qt 5 (Core), zlib and
+[librtdebug](https://github.com/hzdr-MedImaging/librtdebug). `PREFIX_PATH`
+(default `/usr/local/petlib`) is where the dependencies are searched and
+libmedio is installed:
+
+```bash
+# Debian/Ubuntu
+sudo apt-get install cmake g++ qtbase5-dev zlib1g-dev pkg-config
+
+# librtdebug
+git clone https://github.com/hzdr-MedImaging/librtdebug.git
+cmake -S librtdebug -B build-rtdebug -DPREFIX_PATH=/usr/local/petlib
+cmake --build build-rtdebug -j && cmake --install build-rtdebug
+
+# libmedio
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPREFIX_PATH=/usr/local/petlib
+cmake --build build -j && cmake --install build
+```
+
+The Python package is then built from the checkout, the R package compiles
+the bundled libmedio sources itself and needs no installed libmedio:
+
+```bash
+pip install ./python                              # BUILD_PREFIX=... for another prefix
+R CMD INSTALL r
+```
+
+conda recipes for the library and the Python package are in
+[conda.recipe](conda.recipe/README.md) and `python/conda.recipe`. Details:
+[Python](docs/python.md#installation-and-build), [R](r/README.md).
+
+## Documentation
+
+- [Format independent access to the image data](docs/format-independent-access.md) (C++)
+- [Format independent header attributes](docs/header-attributes.md)
+- [Conversion to and from NIfTI](docs/nifti.md): command line tools, metadata, JSON and DICOM extensions
+- [Python: pmedio](docs/python.md): `load()`/`save()`, `open()`/`create()`, nibabel, the legacy ECAT7 interface
+- [R: Rmedio](r/README.md)
+- The public headers in `src/` document the C++ API in detail, e.g.
+  `src/CMedIOData.h`, `src/CMedIOVolume.h`, `src/CMedIOHeader.h`.
+
+## Development
+
+The test suite (QtTest/CTest) runs after a build with
+`ctest --test-dir build --output-on-failure`; the test data and its expected
+values are described in [testsuite/data/README.md](testsuite/data/README.md).
+The [CI workflow](.github/workflows/ci.yml) builds and tests the library,
+the Python bindings and the R package on Linux with GCC and Clang. The
+conventions for contributions (code, tests, commits) are in
+[AGENTS.md](AGENTS.md). The NIfTI support was started in the 2026 summer
+student project, see [docs/summer-student-2026](docs/summer-student-2026/README.md).
 
 ## License
-libmedio is licensed under the **Apache License, Version 2.0.**
-See `LICENSE` for the full text.
 
-ECAT, microPET, Philips, and Syntegra are names/trademarks of their respective
-owners and are used here for identification only.
+libmedio is licensed under the **Apache License, Version 2.0**, see
+[LICENSE](LICENSE). ECAT, microPET, Philips and Syntegra are names or
+trademarks of their respective owners and are used here for identification
+only.
 
 ### Notes on Qt licensing
-libmedio is released under **Apache-2.0**. It links against **Qt**, which is
-typically available under **LGPLv3** (and other licenses). If you distribute
-binaries that include libmedio, you are responsible for **LGPL compliance** for
-Qt (dynamic linking recommended, include license texts, do not prohibit
-relinking, and provide installation information for locked-down devices).
+
+libmedio links against **Qt**, which is typically available under **LGPLv3**
+(and other licenses). If you distribute binaries that include libmedio, you
+are responsible for **LGPL compliance** for Qt (dynamic linking recommended,
+include license texts, do not prohibit relinking, and provide installation
+information for locked-down devices).
