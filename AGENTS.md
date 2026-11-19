@@ -44,10 +44,10 @@ testsuite/                 # QtTest/CTest test suite
   matrix/, attributes/     # format independent matrix access and attributes (CMedIOVolume, CMedIOHeaderDictionary)
 python/                    # Python bindings and their tests
 r/                         # R package Rmedio (bundles src/ via r/tools/vendor.sh, see r/README.md)
-conda-forge/               # conda-forge recipes (libmedio, pmedio, r-rmedio), local test build
+conda.recipe/              # conda recipes for conda-forge (libmedio; pmedio, r-rmedio in python/, r/conda.recipe), build-local.sh
 docs/                      # documentation (C++ API, header attributes, NIfTI, Python) and the 2026 summer student report
 .github/workflows/ci.yml   # CI: build/test matrix, install + Python bindings, R package, test data check
-.github/workflows/conda-packages.yml  # conda packages of conda-forge/, attached to the GitHub releases
+.github/workflows/conda-packages.yml  # conda packages of the recipes, attached to the GitHub releases
 ```
 
 ## Build and test
@@ -117,7 +117,7 @@ Run the checks that match the files you touched:
 | `testsuite/data/` | `python3 testsuite/data/tools/make_expected.py --check` and the `testdata_layout` test |
 | `testsuite/nifti/data/` | regenerate with `generate_fixtures.py` into a temporary directory and compare byte by byte |
 | `testsuite/attributes/data/` | regenerate with `generate_dictionary.py` into a temporary directory and compare byte by byte |
-| `conda-forge/`, `conda-packages.yml`, versions | `conda-forge/build-local.sh <librtdebug checkout>` (rattler-build, `conda-forge-pinning`); the workflow `conda-packages.yml` builds and tests them in the pull request. `PKG_VERSION`, the recipes, `python/pyproject.toml` and `r/DESCRIPTION` have the same version |
+| `conda.recipe/`, `python/conda.recipe/`, `r/conda.recipe/`, `conda-packages.yml`, versions | `conda.recipe/build-local.sh <librtdebug checkout>` (rattler-build, `conda-forge-pinning`); the workflow `conda-packages.yml` builds and tests them in the pull request. `PKG_VERSION`, the recipes, `python/pyproject.toml` and `r/DESCRIPTION` have the same version |
 | Time or date handling | run the tests with several time zones, e.g. `TZ=UTC`, `TZ=Europe/Berlin`, `TZ=Asia/Tokyo` |
 
 The CI (`.github/workflows/ci.yml`) runs all of these on Ubuntu with GCC and

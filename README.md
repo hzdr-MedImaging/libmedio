@@ -142,7 +142,7 @@ conda install -c "file://$PWD/libmedio-<version>-conda-linux-64" -c conda-forge 
 ```
 
 Only the packages needed have to be named, e.g. `pmedio` alone. See
-[conda-forge](conda-forge/README.md#pre-built-packages-of-the-github-releases).
+[conda.recipe](conda.recipe/README.md#pre-built-packages-of-the-github-releases).
 
 ### From source
 
@@ -173,10 +173,10 @@ pip install ./python                              # BUILD_PREFIX=... for another
 R CMD INSTALL r
 ```
 
-conda recipes for the library and the Python package are in
-[conda.recipe](conda.recipe/README.md) and `python/conda.recipe`; the recipes
-of the conda-forge packages `libmedio`, `pmedio` and `r-rmedio` are in
-[conda-forge](conda-forge/README.md). Details:
+The conda packages `libmedio`, `pmedio` and `r-rmedio` are built with the
+recipes for conda-forge in `conda.recipe/`, `python/conda.recipe/` and
+`r/conda.recipe/` (see [conda.recipe](conda.recipe/README.md), also for a
+local build with `make conda`). Details:
 [Python](docs/python.md#installation-and-build), [R](r/README.md).
 
 ## Documentation

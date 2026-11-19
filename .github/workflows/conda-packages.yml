@@ -16,12 +16,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Builds the conda packages of libmedio, pmedio and r-rmedio (the recipes of
-# conda-forge/) with the variants of conda-forge for Linux and macOS, tests their
+# Builds the conda packages of libmedio, pmedio and r-rmedio (the recipes
+# conda.recipe/, python/conda.recipe/ and r/conda.recipe/) with the variants of conda-forge for Linux and macOS, tests their
 # installation and attaches them to the GitHub release as the archive of a local conda
 # channel per platform (libmedio-<version>-conda-<platform>.tar.gz), for users of conda
 # as long as the packages are not available from conda-forge (see
-# conda-forge/README.md).
+# conda.recipe/README.md).
 #
 # librtdebug, needed for building only, is taken from the conda packages of its release
 # RTDEBUG_VERSION (ci.yml), which have to be published first.
@@ -39,7 +39,9 @@ on:
     types: [ published ]
   pull_request:
     paths:
-      - conda-forge/**
+      - conda.recipe/**
+      - python/conda.recipe/**
+      - r/conda.recipe/**
       - .github/workflows/conda-packages.yml
   workflow_dispatch:
     inputs:
@@ -83,7 +85,7 @@ jobs:
       # the recipes of the workflow's commit, also for tags created before they existed
       - name: Take the recipes of the workflow
         if: env.TAG != ''
-        run: git checkout "$GITHUB_SHA" -- conda-forge
+        run: git checkout "$GITHUB_SHA" -- conda.recipe python/conda.recipe r/conda.recipe
 
       # the recipes, the library, pmedio, Rmedio and the tag have the same version
       - name: Check the versions
@@ -91,7 +93,7 @@ jobs:
           version=$(sed -n 's/^set(PKG_VERSION \(.*\))$/\1/p' CMakeLists.txt)
           echo "PKG_VERSION: ${version}, tag: ${TAG:-none}"
           fail=0
-          for recipe in conda-forge/libmedio conda-forge/pmedio conda-forge/r-rmedio; do
+          for recipe in conda.recipe python/conda.recipe r/conda.recipe; do
             v=$(sed -n 's/^  version: "\(.*\)"$/\1/p' "${recipe}/recipe.yaml")
             [ "${v}" = "${version}" ] || { echo "::error::${recipe}/recipe.yaml has the version ${v}"; fail=1; }
           done
@@ -137,7 +139,7 @@ jobs:
               - conda-forge
 
       - name: Build the packages
-        run: conda-forge/build-local.sh "$RTDEBUG" "$RUNNER_TEMP/output"
+        run: conda.recipe/build-local.sh "$RTDEBUG" "$RUNNER_TEMP/output"
 
       # only the channel (packages and their index), not the build directories
       - name: Create the channel archive
@@ -147,7 +149,7 @@ jobs:
           tar -czf "$RUNNER_TEMP/$NAME.tar.gz" -C "$RUNNER_TEMP/dist" "$NAME"
           tar -tzvf "$RUNNER_TEMP/$NAME.tar.gz"
 
-      # as described in conda-forge/README.md: extract, install with conda-forge for the
+      # as described in conda.recipe/README.md: extract, install with conda-forge for the
       # dependencies, and use the library tools, pmedio and Rmedio
       - name: Install from the archive
         run: |

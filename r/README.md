@@ -75,8 +75,9 @@ export PKG_CONFIG_PATH="$(brew --prefix qt@5)/lib/pkgconfig"
 
 With `LIBMEDIO_PREFIX`, the package is compiled against an installed libmedio
 (`<prefix>/include/medio`, `<prefix>/lib/libmedio`) instead of the bundled
-sources, e.g. for conda-forge, which has a libmedio package. Only the test
-data is bundled then (`tools/vendor.sh --data`):
+sources, e.g. for the conda package `r-rmedio` (recipe in `conda.recipe/`,
+see [conda.recipe](../conda.recipe/README.md)). Only the test data is bundled
+then (`tools/vendor.sh --data`):
 
 ```bash
 LIBMEDIO_PREFIX=/usr/local/petlib R CMD INSTALL r

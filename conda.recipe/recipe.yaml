@@ -1,5 +1,5 @@
 # conda-forge recipe of libmedio (https://github.com/hzdr-MedImaging/libmedio), for
-# conda-forge/staged-recipes (recipes/libmedio/recipe.yaml); see ../README.md.
+# conda-forge/staged-recipes (recipes/libmedio/recipe.yaml); see README.md.
 
 context:
   version: "4.0.0"

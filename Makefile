@@ -202,11 +202,14 @@ test:
 	@echo "  TEST $(BUILDDIR)"
 	@$(MAKE) -C $(BUILDDIR) test
 
-# conda target
+# conda target: the conda packages of libmedio, pmedio and r-rmedio
+# (conda.recipe/build-local.sh) as local channel in build-conda; RTDEBUG is a
+# checkout of librtdebug, whose package is built as well
 .PHONY: conda
 conda:
 	@echo "  CONDA BUILD"
-	@PROJECT_VERSION=$(VERSION) conda build -c conda-forge --use-local conda.recipe
+	@if [ -z "$(RTDEBUG)" ]; then echo "usage: make conda RTDEBUG=<librtdebug checkout>" >&2; exit 1; fi
+	@conda.recipe/build-local.sh "$(RTDEBUG)" build-conda
 
 # cleanup target
 .PHONY: clean

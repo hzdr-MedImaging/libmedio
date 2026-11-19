@@ -1,6 +1,6 @@
 # conda-forge recipe of pmedio, the Python bindings of libmedio (python/ of
 # https://github.com/hzdr-MedImaging/libmedio), for conda-forge/staged-recipes
-# (recipes/pmedio/recipe.yaml); see ../README.md. pmedio has the version of libmedio.
+# (recipes/pmedio/recipe.yaml); see conda.recipe/README.md. pmedio has the version of libmedio.
 
 context:
   version: "4.0.0"
