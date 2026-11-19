@@ -131,7 +131,7 @@ are installed with the version of libmedio as suffix, e.g.
 ### conda packages
 
 The [GitHub releases](https://github.com/hzdr-MedImaging/libmedio/releases)
-has conda packages of the library and the command line tools (`libmedio`),
+have conda packages of the library and the command line tools (`libmedio`),
 the Python package (`pmedio`) and the R package (`r-rmedio`) for Linux
 (`linux-64`) and macOS (`osx-arm64`), built with the packages of conda-forge,
 as the archive of a local conda channel:
