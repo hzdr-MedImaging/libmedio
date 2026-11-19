@@ -128,6 +128,24 @@ are installed with the version of libmedio as suffix, e.g.
 
 ## Installation
 
+### conda packages
+
+The [GitHub releases](https://github.com/hzdr-MedImaging/libmedio/releases)
+has conda packages of the library and the command line tools (`libmedio`),
+the Python package (`pmedio`) and the R package (`r-rmedio`) for Linux
+(`linux-64`) and macOS (`osx-arm64`), built with the packages of conda-forge,
+as the archive of a local conda channel:
+
+```bash
+tar -xzf libmedio-<version>-conda-linux-64.tar.gz
+conda install -c "file://$PWD/libmedio-<version>-conda-linux-64" -c conda-forge libmedio pmedio r-rmedio
+```
+
+Only the packages needed have to be named, e.g. `pmedio` alone. See
+[conda-forge](conda-forge/README.md#pre-built-packages-of-the-github-releases).
+
+### From source
+
 libmedio needs a C++11 compiler, CMake 3.20 or newer, Qt 5 (Core), zlib and
 [librtdebug](https://github.com/hzdr-MedImaging/librtdebug). `PREFIX_PATH`
 (default `/usr/local/petlib`) is where the dependencies are searched and
