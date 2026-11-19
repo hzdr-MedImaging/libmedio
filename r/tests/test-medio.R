@@ -181,9 +181,10 @@ writeMedio(image, file.path(dir, "other.img"))
 writeMedio(image, file.path(dir, "other.hdr"), format = "ecat")
 stopifnot(identical(readMedio(file.path(dir, "other.img"))$format, "philips"),
           identical(readMedio(file.path(dir, "other.hdr"))$format, "ecat"))
-# an existing image file in the other letter case is the image file of the pair (see CNIFTIFile)
+# an existing image file in the other letter case is the image file of the pair (see CNIFTIFile);
+# file systems that ignore the letter case (macOS) find it as mixed.img, the same file
 writeLines("other data", file.path(dir, "mixed.IMG"))
-fails(writeMedio(image, file.path(dir, "mixed.hdr")), "mixed.IMG', the image file of .*exists already")
+fails(writeMedio(image, file.path(dir, "mixed.hdr")), "mixed\\.(IMG|img)', the image file of .*exists already")
 stopifnot(identical(readLines(file.path(dir, "mixed.IMG")), "other data"))
 unlink(dir, recursive = TRUE)
 
