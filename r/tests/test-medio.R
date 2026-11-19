@@ -45,6 +45,13 @@ fails <- function(expr, pattern)
 
 near <- function(a, b, tolerance = 1e-6) isTRUE(all.equal(a, b, tolerance = tolerance, check.attributes = FALSE))
 
+# 'name' is an absolute path of the file 'path'. The file names libmedio returns are
+# absolute but keep symbolic links, while normalizePath() resolves them (e.g. the
+# temporary directory /var/folders/... of macOS is /private/var/folders/...)
+same_file <- function(name, path)
+  is.character(name) && length(name) == 1L && grepl("^(/|[A-Za-z]:[/\\\\])", name) &&
+    identical(normalizePath(name), normalizePath(path))
+
 #-----------------------------------------------------------------------------------------------
 # reading: the test files against their expected values
 
@@ -59,7 +66,7 @@ check_read <- function(name, format, dims, raw_sums, scales, start = NULL, durat
   image <- readMedio(extdata(name))
   stopifnot(inherits(image, "medioImage"),
             identical(image$format, format),
-            identical(image$filename, normalizePath(extdata(name))),
+            same_file(image$filename, extdata(name)),
             identical(dim(image$data), as.integer(c(dims, length(raw_sums)))),
             is.double(image$data),
             identical(dim(image$affine), c(3L, 4L)),
@@ -135,7 +142,7 @@ for (suffix in names(formats))
   dir <- tempfile()
   dir.create(dir)
   out <- file.path(dir, paste0("image", suffix))
-  stopifnot(identical(writeMedio(image, out), normalizePath(out)))
+  stopifnot(same_file(writeMedio(image, out), out))
   back <- readMedio(out, orientation = "RAS")
   expected_affine <- affine
   if (formats[[suffix]] == "philips") {
