@@ -4,11 +4,12 @@
 # The bundled libmedio sources (src/libmedio, see tools/vendor.sh) are
 # compiled together with the R interface into the package library.
 # LIBMEDIO_SOURCES and LIBMEDIO_INCLUDES are defined in src/libmedio/files.mk,
-# which configure puts in front of this file.
+# which configure puts in front of this file. With an installed libmedio
+# (LIBMEDIO_PREFIX), only the R interface is compiled and linked against it.
 
 RMEDIO_SOURCES = @RMEDIO_SOURCES@
 
 OBJECTS = $(RMEDIO_SOURCES:.cpp=.o) $(LIBMEDIO_SOURCES:.cpp=.o)
 
-PKG_CPPFLAGS = -D__MEDIO_PRIVATE__ -DQT_NO_DEBUG -Irtdebug $(LIBMEDIO_INCLUDES) @QT_CFLAGS@ @ZLIB_CFLAGS@
-PKG_LIBS = @QT_LIBS@ @ZLIB_LIBS@
+PKG_CPPFLAGS = @MEDIO_CPPFLAGS@ @QT_CFLAGS@ @ZLIB_CFLAGS@
+PKG_LIBS = @MEDIO_LIBS@ @QT_LIBS@ @ZLIB_LIBS@

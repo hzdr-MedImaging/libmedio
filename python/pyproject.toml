@@ -28,7 +28,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "pmedio"
-version = "0.2.1"
+version = "4.0.0"
 description = "python interface to support libmedio supported medical imaging data"
 authors = [{ name = "Jens Maus", email = "j.maus@hzdr.de" }]
 license = { text = "Apache-2.0" }

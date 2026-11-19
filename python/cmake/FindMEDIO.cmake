@@ -22,8 +22,10 @@
 #
 #  MEDIO_FOUND      - True if MEDIO was found.
 #  MEDIO_INCLUDES   - Where to find CMedio.h, etc.
-#  MEDIO_STATIC_LIB - List of static libraries when using MEDIO
-#  MEDIO_SHARED_LIB - List of shared libraries when using MEDIO
+#  MEDIO_STATIC_LIB - List of static libraries when using MEDIO (the shared
+#                     library if no static one is installed)
+#  MEDIO_SHARED_LIB - List of shared libraries when using MEDIO (the static
+#                     library if no shared one is installed)
 #  MEDIO_DEFINITIONS - Compiler switches required for using MEDIO
 
 if(MEDIO_INCLUDES)
@@ -46,6 +48,14 @@ find_library(MEDIO_SHARED_LIB
   PATH_SUFFIXES lib
   ONLY_CMAKE_FIND_ROOT_PATH
 )
+
+# Distributions like conda-forge ship only the shared library: one variant stands
+# in for the other (the module links MEDIO_STATIC_LIB, i.e. libmedio.so there).
+if(NOT MEDIO_STATIC_LIB AND MEDIO_SHARED_LIB)
+  set(MEDIO_STATIC_LIB ${MEDIO_SHARED_LIB})
+elseif(NOT MEDIO_SHARED_LIB AND MEDIO_STATIC_LIB)
+  set(MEDIO_SHARED_LIB ${MEDIO_STATIC_LIB})
+endif()
 
 # handle the QUIETLY and REQUIRED arguments and set MEDIO_FOUND to TRUE if
 # all listed variables are TRUE

@@ -3595,6 +3595,7 @@ void TestMedIOMatrix::fileNames()
   if(existing.isEmpty() == false) {
     QFile file(dir.filePath(existing));
     QVERIFY(file.open(QIODevice::WriteOnly));
+    QCOMPARE(file.write("existing"), qint64(8));
   }
   QStringList paths;
   for(const QString& e : expected)
@@ -3602,7 +3603,18 @@ void TestMedIOMatrix::fileNames()
 
   QScopedPointer<CMedIOData> data(CMedIODataFactory::createForWriting(dir.filePath(name)));
   QVERIFY(data.data() != NULL);
-  QCOMPARE(data->fileNames(), paths);
+  if(existing.isEmpty()) {
+    QCOMPARE(data->fileNames(), paths);
+  } else {
+    // the existing file: on file systems that ignore the letter case (macOS, Windows),
+    // the name of the other letter case is the same file, so compare the files
+    const QStringList names = data->fileNames();
+    QCOMPARE(names.size(), paths.size());
+    QCOMPARE(names.first(), paths.first());
+    QFile file(names.last());
+    QVERIFY2(file.open(QIODevice::ReadOnly), qPrintable(names.last()));
+    QCOMPARE(file.readAll(), QByteArray("existing"));
+  }
 
   // microPET files: the data file and its header
   if(name == "f.v") {

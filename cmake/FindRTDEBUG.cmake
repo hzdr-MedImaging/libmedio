@@ -22,8 +22,10 @@
 #
 #  RTDEBUG_FOUND      - True if RTDEBUG was found.
 #  RTDEBUG_INCLUDES   - Where to find CMedio.h, etc.
-#  RTDEBUG_STATIC_LIB - List of static libraries when using RTDEBUG
-#  RTDEBUG_SHARED_LIB - List of shared libraries when using RTDEBUG
+#  RTDEBUG_STATIC_LIB - List of static libraries when using RTDEBUG (the shared
+#                       library if no static one is installed)
+#  RTDEBUG_SHARED_LIB - List of shared libraries when using RTDEBUG (the static
+#                       library if no shared one is installed)
 #  RTDEBUG_DEFINITIONS - Compiler switches required for using RTDEBUG
 
 if(RTDEBUG_INCLUDES)
@@ -43,6 +45,15 @@ find_library(RTDEBUG_SHARED_LIB NAMES librtdebug${CMAKE_SHARED_LIBRARY_SUFFIX} r
              PATH_SUFFIXES lib
              NO_CMAKE_SYSTEM_PATH
 )
+
+# Distributions like conda-forge ship only the shared library: one variant stands
+# in for the other. A release build of libmedio does not depend on librtdebug at
+# run time (its tracing macros are empty), so the linker drops it there.
+if(NOT RTDEBUG_STATIC_LIB AND RTDEBUG_SHARED_LIB)
+  set(RTDEBUG_STATIC_LIB ${RTDEBUG_SHARED_LIB})
+elseif(NOT RTDEBUG_SHARED_LIB AND RTDEBUG_STATIC_LIB)
+  set(RTDEBUG_SHARED_LIB ${RTDEBUG_STATIC_LIB})
+endif()
 
 # set the global DEBUG define while compiling
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
