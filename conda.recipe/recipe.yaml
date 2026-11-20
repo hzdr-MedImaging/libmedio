@@ -26,8 +26,8 @@ build:
       then:
         - ctest --test-dir build --output-on-failure -LE "large|performance"
     - cmake --install build
-    # conda-forge ships shared libraries only
-    - rm -f ${PREFIX}/lib/libmedio.a
+    # conda-forge ships shared libraries only (with the CMake targets of the static one)
+    - rm -f ${PREFIX}/lib/libmedio.a ${PREFIX}/lib/cmake/libmedio/libmedioStaticTargets*.cmake
 
 requirements:
   build:
@@ -64,12 +64,37 @@ tests:
         - ecat2nifti-${{ version }}
         - nifti2ecat-${{ version }}
       files:
+        exists:
+          - lib/cmake/libmedio/libmedioConfig.cmake
+          - lib/cmake/libmedio/libmedioConfigVersion.cmake
+          - lib/cmake/libmedio/libmedioTargets.cmake
+          - lib/pkgconfig/medio.pc
         not_exists:
           - lib/libmedio.a
+          - lib/cmake/libmedio/libmedioStaticTargets.cmake
   - script:
       # the command line tools, linked against libmedio, Qt and zlib
       - ecat2nifti-${{ version }} --help
       - nifti2ecat-${{ version }} --help
+  # a C++ program built against the package, with its CMake package
+  # (find_package(libmedio), test/CMakeLists.txt) and with pkg-config (medio.pc)
+  - files:
+      recipe:
+        - test/
+    requirements:
+      build:
+        - ${{ compiler("cxx") }}
+        - cmake
+        - ninja
+        - pkg-config
+    script:
+      - cmake -S test -B build-test -G Ninja ${CMAKE_ARGS} -DCMAKE_PREFIX_PATH=${PREFIX}
+      - cmake --build build-test
+      - ./build-test/medio-test
+      - export PKG_CONFIG_PATH=${PREFIX}/lib/pkgconfig
+      - pkg-config --exact-version=${{ version }} --print-errors medio
+      - ${CXX} ${CXXFLAGS} -std=c++11 -fPIC test/main.cpp -o medio-test-pkgconfig $(pkg-config --cflags medio) ${LDFLAGS} $(pkg-config --libs medio)
+      - ./medio-test-pkgconfig
 
 about:
   homepage: https://github.com/hzdr-MedImaging/libmedio

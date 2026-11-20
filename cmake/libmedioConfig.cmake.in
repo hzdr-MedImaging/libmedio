@@ -1,0 +1,53 @@
+#
+# libmedio - C++ I/O Library for loading/saving medical data formats
+#            https://github.com/hzdr-MedImaging/libmedio
+#
+# Copyright (C) 2004-2026 hzdr.de and contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# CMake package configuration of an installed libmedio:
+#
+#   find_package(libmedio 4 REQUIRED)
+#   target_link_libraries(app PRIVATE libmedio::medio)          # shared library
+#   target_link_libraries(app PRIVATE libmedio::medio-static)   # static library, if installed
+#
+# The targets bring the include directory of the public headers (include/medio) and
+# Qt5::Core, which the public headers use. libmedio_HAS_STATIC is TRUE if the static
+# library is installed (distributions such as conda-forge ship the shared one only).
+
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+find_dependency(Qt5 COMPONENTS Core)
+
+include("${CMAKE_CURRENT_LIST_DIR}/libmedioTargets.cmake")
+
+set(libmedio_HAS_STATIC FALSE)
+if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/libmedioStaticTargets.cmake" AND
+   EXISTS "@PACKAGE_MEDIO_LIB_INSTALL_DIR@/@MEDIO_STATIC_LIB_NAME@")
+  find_dependency(Threads)
+  find_dependency(ZLIB)
+  include("${CMAKE_CURRENT_LIST_DIR}/libmedioStaticTargets.cmake")
+  # debug builds of the static library refer to librtdebug, which is installed next to it
+  find_library(libmedio_RTDEBUG_LIBRARY NAMES rtdebug
+               PATHS "@PACKAGE_MEDIO_LIB_INSTALL_DIR@" NO_DEFAULT_PATH)
+  mark_as_advanced(libmedio_RTDEBUG_LIBRARY)
+  if(libmedio_RTDEBUG_LIBRARY)
+    set_property(TARGET libmedio::medio-static APPEND PROPERTY
+                 INTERFACE_LINK_LIBRARIES "${libmedio_RTDEBUG_LIBRARY}")
+  endif()
+  set(libmedio_HAS_STATIC TRUE)
+endif()
+
+check_required_components(libmedio)

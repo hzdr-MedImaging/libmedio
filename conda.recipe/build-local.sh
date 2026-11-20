@@ -75,7 +75,9 @@ for name in ${names}; do
     pmedio)     recipe=${top}/python/conda.recipe/recipe.yaml ;;
     r-rmedio)   recipe=${top}/r/conda.recipe/recipe.yaml ;;
   esac
+  # the recipe directory (e.g. the files of its tests), with the recipe changed below
   mkdir -p "${tmp}/${name}"
+  cp -R "$(dirname "${recipe}")/." "${tmp}/${name}/"
   sed -e "s|^  url: .*|  path: ${source}|" \
       -e "/^  sha256: /d" \
       -e "/^  # curl -sL /d" \
