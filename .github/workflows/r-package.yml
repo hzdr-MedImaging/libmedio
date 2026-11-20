@@ -1,0 +1,157 @@
+#
+# libmedio - C++ I/O Library for loading/saving medical data formats
+#            https://github.com/hzdr-MedImaging/libmedio
+#
+# Copyright (C) 2004-2026 hzdr.de and contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Builds the source package of the R package Rmedio (Rmedio_<version>.tar.gz, with the
+# bundled libmedio sources, see r/README.md), checks it like the CI and attaches it to
+# the GitHub release, so that it can be installed without the repository and without
+# conda (install.packages(<url>, repos = NULL, type = "source")). It is also the file to
+# submit to CRAN.
+#
+# - release: builds the tag of the published release and attaches the package.
+# - workflow_dispatch: builds the given tag (or the selected branch without a tag) and
+#   attaches the package to the release of the tag.
+# - pull_request: builds and checks changes of this workflow only (changes of r/ are
+#   checked by ci.yml).
+
+name: R package
+
+on:
+  release:
+    types: [ published ]
+  pull_request:
+    paths:
+      - .github/workflows/r-package.yml
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag of a published release to build and attach the package to (empty = build only)
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.tag }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # the tag whose source is built and whose release gets the package
+  TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.tag }}
+
+jobs:
+  build:
+    name: build and check
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG || github.sha }}
+
+      # the package, the library and the tag have the same version
+      - name: Check the version
+        run: |
+          version=$(sed -n 's/^set(PKG_VERSION \(.*\))$/\1/p' CMakeLists.txt)
+          package=$(sed -n 's/^Version: //p' r/DESCRIPTION)
+          echo "PKG_VERSION: ${version}, r/DESCRIPTION: ${package}, tag: ${TAG:-none}"
+          if [ -z "${package}" ] || [ "${package}" != "${version}" ]; then
+            echo "::error::the version of r/DESCRIPTION (${package}) is not PKG_VERSION of CMakeLists.txt (${version})"
+            exit 1
+          fi
+          if [ -n "${TAG}" ] && [ "${TAG}" != "${package}" ]; then
+            echo "::error::the tag ${TAG} is not the version of r/DESCRIPTION (${package})"
+            exit 1
+          fi
+          echo "VERSION=${package}" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          # tidy (HTML check of the manual) and checkbashisms (devscripts) for R CMD check --as-cran
+          sudo apt-get install -y --no-install-recommends qtbase5-dev zlib1g-dev pkg-config tidy devscripts
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install R packages
+        run: Rscript -e 'install.packages(c("Rcpp", "jsonlite"))'
+
+      - name: Bundle the libmedio sources and build the source package
+        run: |
+          r/tools/vendor.sh
+          R CMD build r
+          ls -l "Rmedio_${VERSION}.tar.gz"
+
+      - name: Check the source package
+        env:
+          # skip the CRAN incoming checks that query the CRAN servers (package
+          # index, URLs): they only matter for a submission and abort the check
+          # when CRAN does not answer in time
+          _R_CHECK_CRAN_INCOMING_REMOTE_: false
+        run: |
+          R CMD check --as-cran --no-manual "Rmedio_${VERSION}.tar.gz"
+          if grep -E "^Status: .*(WARNING|ERROR)" Rmedio.Rcheck/00check.log; then
+            echo "::error::R CMD check reported warnings or errors, see the log above"
+            exit 1
+          fi
+
+      - name: Show the output of the tests
+        if: failure()
+        run: cat Rmedio.Rcheck/tests/*.Rout* || true
+
+      # as described in r/README.md: install the file into an empty library and use it
+      - name: Install the source package
+        run: |
+          mkdir "$RUNNER_TEMP/library"
+          Rscript -e "install.packages('Rmedio_${VERSION}.tar.gz', lib = '$RUNNER_TEMP/library', repos = NULL, type = 'source')"
+          Rscript -e "
+          library(Rmedio, lib.loc = '$RUNNER_TEMP/library')
+          stopifnot(packageVersion('Rmedio', lib.loc = '$RUNNER_TEMP/library') == '${VERSION}')
+          image <- readMedio('testsuite/data/ecat/pet-dynamic.v')
+          print(dim(image\$data))
+          "
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Rmedio_${{ env.VERSION }}
+          path: Rmedio_${{ env.VERSION }}.tar.gz
+          if-no-files-found: error
+
+  publish:
+    name: attach to the release
+    needs: build
+    if: github.event_name == 'release' || inputs.tag != ''
+    runs-on: ubuntu-24.04
+    permissions:
+      # upload the package to the release
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Attach the package
+        run: |
+          ls -l dist
+          gh release upload "$TAG" dist/Rmedio_*.tar.gz --clobber --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ github.token }}

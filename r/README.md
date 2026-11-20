@@ -85,6 +85,23 @@ LIBMEDIO_PREFIX=/usr/local/petlib R CMD INSTALL r
 
 The package has the version of libmedio.
 
+### Install from a GitHub release
+
+Every [GitHub release](https://github.com/hzdr-MedImaging/libmedio/releases)
+has the source package `Rmedio_<version>.tar.gz` with the bundled libmedio
+sources, built and checked (`R CMD check --as-cran`) by the workflow
+`.github/workflows/r-package.yml`. It is installed without the repository; R
+compiles it, so it needs the requirements above (a C++ compiler, Qt5 and zlib
+with their headers):
+
+```r
+install.packages("https://github.com/hzdr-MedImaging/libmedio/releases/download/<version>/Rmedio_<version>.tar.gz",
+                 repos = NULL, type = "source")
+```
+
+The releases also have the compiled conda package `r-rmedio` for Linux and
+macOS, which needs no compiler (see [conda.recipe](../conda.recipe/README.md)).
+
 ### Install from the git checkout
 
 Run from the top directory of the libmedio repository:
