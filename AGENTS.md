@@ -110,7 +110,7 @@ Run the checks that match the files you touched:
 | Changed files | Check |
 | --- | --- |
 | Library, examples, tests (C++) | build in Release **and** Debug (`-DCMAKE_BUILD_TYPE=Debug` compiles the `D()` debug output) and run `ctest --test-dir build --output-on-failure` |
-| Public headers, install rules | `cmake --install build` and build a small program against the installed headers only |
+| Public headers, install rules | `cmake --install build` and build a small program against the installed headers only, also with the CMake package and pkg-config file (`conda.recipe/test`, see the CI step "Use the installed CMake package and pkg-config file") |
 | `python/` or API used by it | build the bindings (`cmake -S python ...`, see `ci.yml`) and run `pytest python/tests`; they are compiled with `-Werror` |
 | Python interface (functions, arguments, return types of `python/src`) | the type stubs are generated from the module: give signatures that would only say `object` with `nb::sig`, extend `python/tests/typing/usage.py` and run `mypy --strict python/tests/typing/usage.py` with the installed package |
 | `python/pyproject.toml`, `python/CMakeLists.txt` (packaging) | `pip install ./python` into a fresh virtual environment (`BUILD_PREFIX` selects the prefix of libmedio) and run `pytest python/tests` with it |

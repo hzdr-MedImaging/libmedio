@@ -116,31 +116,48 @@ set_target_properties(${CMAKE_PROJECT_NAME}-shared PROPERTIES OUTPUT_NAME medio
                                                               VERSION ${PROJECT_VERSION} 
                                                               SOVERSION ${PROJECT_VERSION_MAJOR})
 
-# define link libraries dependencies
-target_link_libraries(${CMAKE_PROJECT_NAME}-static 
-                      Qt5::Core 
+# define link libraries dependencies. Within this build tree, all of them are passed
+# on to the targets linking the libraries (as before). The CMake package of the
+# installation (see below) only passes on what users of the installed libraries need:
+# Qt5::Core, whose headers the public headers include, and for the static library
+# also the libraries it was linked with (librtdebug is added by libmedioConfig.cmake).
+set(MEDIO_BUILD_ONLY_STATIC_LIBS)
+foreach(lib ${RTDEBUG_STATIC_LIB} ${DEPEND_STATIC_LIB})
+  list(APPEND MEDIO_BUILD_ONLY_STATIC_LIBS "$<BUILD_INTERFACE:${lib}>")
+endforeach()
+set(MEDIO_BUILD_ONLY_SHARED_LIBS)
+foreach(lib Threads::Threads ZLIB::ZLIB ${RTDEBUG_SHARED_LIB} ${DEPEND_STATIC_LIB})
+  list(APPEND MEDIO_BUILD_ONLY_SHARED_LIBS "$<BUILD_INTERFACE:${lib}>")
+endforeach()
+
+target_link_libraries(${CMAKE_PROJECT_NAME}-static PUBLIC
+                      Qt5::Core
                       Threads::Threads
                       ZLIB::ZLIB
-                      ${RTDEBUG_STATIC_LIB}
-                      ${DEPEND_STATIC_LIB}
+                      ${MEDIO_BUILD_ONLY_STATIC_LIBS}
 )
 
-target_link_libraries(${CMAKE_PROJECT_NAME}-shared 
-                      Qt5::Core 
-                      Threads::Threads
-                      ZLIB::ZLIB
-                      ${RTDEBUG_SHARED_LIB}
-                      ${DEPEND_STATIC_LIB}
+target_link_libraries(${CMAKE_PROJECT_NAME}-shared PUBLIC
+                      Qt5::Core
+                      ${MEDIO_BUILD_ONLY_SHARED_LIBS}
 )
+
+# the include directory of the installed public headers for users of the CMake package
+target_include_directories(${CMAKE_PROJECT_NAME}-static INTERFACE $<INSTALL_INTERFACE:include/medio>)
+target_include_directories(${CMAKE_PROJECT_NAME}-shared INTERFACE $<INSTALL_INTERFACE:include/medio>)
+set_target_properties(${CMAKE_PROJECT_NAME}-static PROPERTIES EXPORT_NAME medio-static)
+set_target_properties(${CMAKE_PROJECT_NAME}-shared PROPERTIES EXPORT_NAME medio)
 
 # definition of install targets
 install(TARGETS ${CMAKE_PROJECT_NAME}-static
+        EXPORT libmedioStaticTargets
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
         RUNTIME DESTINATION bin
         COMPONENT library
 )
 install(TARGETS ${CMAKE_PROJECT_NAME}-shared
+        EXPORT libmedioTargets
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
         RUNTIME DESTINATION bin
@@ -149,4 +166,43 @@ install(TARGETS ${CMAKE_PROJECT_NAME}-shared
 install(FILES ${PUBLIC_HEADER} 
               ${STUB_FILES}
         DESTINATION include/medio
+)
+
+# CMake package (find_package(libmedio), targets libmedio::medio and
+# libmedio::medio-static) and pkg-config file (medio.pc) of the installation. The
+# targets of the two libraries are exported separately, so that the package also works
+# where only the shared library is installed (e.g. conda-forge).
+include(CMakePackageConfigHelpers)
+set(MEDIO_CMAKE_INSTALL_DIR lib/cmake/libmedio)
+set(MEDIO_LIB_INSTALL_DIR lib)
+set(MEDIO_STATIC_LIB_NAME ${CMAKE_STATIC_LIBRARY_PREFIX}medio${CMAKE_STATIC_LIBRARY_SUFFIX})
+install(EXPORT libmedioTargets
+        NAMESPACE libmedio::
+        DESTINATION ${MEDIO_CMAKE_INSTALL_DIR}
+        COMPONENT library
+)
+install(EXPORT libmedioStaticTargets
+        NAMESPACE libmedio::
+        DESTINATION ${MEDIO_CMAKE_INSTALL_DIR}
+        COMPONENT library
+)
+configure_package_config_file(${PROJECT_SOURCE_DIR}/cmake/libmedioConfig.cmake.in
+                              ${CMAKE_CURRENT_BINARY_DIR}/libmedioConfig.cmake
+                              INSTALL_DESTINATION ${MEDIO_CMAKE_INSTALL_DIR}
+                              PATH_VARS MEDIO_LIB_INSTALL_DIR
+)
+write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/libmedioConfigVersion.cmake
+                                 VERSION ${PROJECT_VERSION}
+                                 COMPATIBILITY SameMajorVersion
+)
+configure_file(${PROJECT_SOURCE_DIR}/cmake/medio.pc.in
+               ${CMAKE_CURRENT_BINARY_DIR}/medio.pc @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libmedioConfig.cmake
+              ${CMAKE_CURRENT_BINARY_DIR}/libmedioConfigVersion.cmake
+        DESTINATION ${MEDIO_CMAKE_INSTALL_DIR}
+        COMPONENT library
+)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/medio.pc
+        DESTINATION lib/pkgconfig
+        COMPONENT library
 )

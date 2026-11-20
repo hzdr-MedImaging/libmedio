@@ -35,6 +35,9 @@ Differences to the build of the repository:
 - The libmedio build runs the test suite without the `large` and
   `performance` tests; the pmedio package is tested with `pytest python/tests`,
   the r-rmedio package with the tests of `r/tests`.
+- The libmedio package is tested by building a program against it with its
+  CMake package (`find_package(libmedio)`) and with pkg-config (`medio.pc`),
+  see [test/](test/).
 - The R package is linked against the libmedio package instead of compiling
   the libmedio sources it bundles for CRAN (conda-forge does not accept
   bundled copies of libraries it ships).
@@ -102,7 +105,8 @@ conda install -c "file://$PWD/build-conda" -c conda-forge libmedio pmedio r-rmed
    ```
 3. Fork [conda-forge/staged-recipes](https://github.com/conda-forge/staged-recipes),
    copy the recipes into a new branch as `recipes/libmedio/recipe.yaml`
-   (`conda.recipe/recipe.yaml`), `recipes/pmedio/recipe.yaml`
+   (`conda.recipe/recipe.yaml`, with the files of its test in
+   `recipes/libmedio/test/`), `recipes/pmedio/recipe.yaml`
    (`python/conda.recipe/recipe.yaml`), `recipes/r-rmedio/recipe.yaml`
    (`r/conda.recipe/recipe.yaml`) and `recipes/librtdebug/recipe.yaml`
    (`conda.recipe/recipe.yaml` of librtdebug), and open a pull request. The recipes

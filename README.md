@@ -168,6 +168,28 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPREFIX_PATH=/usr/local/petlib
 cmake --build build -j && cmake --install build
 ```
 
+### Use the installed library in C++
+
+The installation (also the conda package `libmedio`) has a CMake package and a
+pkg-config file. The CMake targets bring the include directory and Qt5Core,
+which the public headers use:
+
+```cmake
+find_package(libmedio 4 REQUIRED)        # CMAKE_PREFIX_PATH=/usr/local/petlib or $CONDA_PREFIX
+target_link_libraries(app PRIVATE libmedio::medio)          # shared library
+# target_link_libraries(app PRIVATE libmedio::medio-static) # static library (if libmedio_HAS_STATIC)
+```
+
+```bash
+# PKG_CONFIG_PATH=/usr/local/petlib/lib/pkgconfig (conda: $CONDA_PREFIX/lib/pkgconfig)
+c++ -std=c++11 -fPIC app.cpp -o app $(pkg-config --cflags --libs medio)
+```
+
+Qt5 requires position independent code (`-fPIC`); the CMake targets add it.
+The conda package has the shared library only.
+
+### Python and R from source
+
 The Python package is then built from the checkout, the R package compiles
 the bundled libmedio sources itself and needs no installed libmedio:
 

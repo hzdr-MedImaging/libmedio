@@ -1,0 +1,14 @@
+# pkg-config file of an installed libmedio: pkg-config --cflags --libs medio
+# (Qt5 also requires -fPIC for the code that uses it)
+prefix=${pcfiledir}/../..
+libdir=${prefix}/lib
+includedir=${prefix}/include/medio
+
+Name: libmedio
+Description: C++/Qt5 library to read and write medical imaging data formats (ECAT, NIfTI, Philips PET, microPET)
+URL: https://github.com/hzdr-MedImaging/libmedio
+Version: @PROJECT_VERSION@
+Requires: Qt5Core
+Libs: -L${libdir} -lmedio
+Libs.private: -lz -lpthread
+Cflags: -I${includedir}

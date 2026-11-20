@@ -211,6 +211,21 @@ jobs:
         env:
           CXX: g++
 
+      # the CMake package (find_package(libmedio), shared and static target) and the
+      # pkg-config file (medio.pc) of the installation, with the test program of the
+      # conda package
+      - name: Use the installed CMake package and pkg-config file
+        run: |
+          cmake -S conda.recipe/test -B "$RUNNER_TEMP/package-test" -DCMAKE_PREFIX_PATH="$PETLIB"
+          cmake --build "$RUNNER_TEMP/package-test"
+          "$RUNNER_TEMP/package-test/medio-test"
+          "$RUNNER_TEMP/package-test/medio-test-static"
+          export PKG_CONFIG_PATH="$PETLIB/lib/pkgconfig"
+          pkg-config --exact-version="$(sed -n 's/^set(PKG_VERSION \(.*\))$/\1/p' CMakeLists.txt)" --print-errors medio
+          g++ -std=c++11 -fPIC conda.recipe/test/main.cpp -o "$RUNNER_TEMP/medio-test-pkgconfig" \
+              $(pkg-config --cflags --libs medio) -Wl,-rpath,"$PETLIB/lib"
+          "$RUNNER_TEMP/medio-test-pkgconfig"
+
       - name: Build and test the Python bindings
         run: |
           cmake -S python -B build-python -DCMAKE_BUILD_TYPE=Release -DPREFIX_PATH="$PETLIB" \
