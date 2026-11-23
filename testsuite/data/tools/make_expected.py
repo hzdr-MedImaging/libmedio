@@ -439,9 +439,9 @@ def expected_raw(path, file_info):
 # DICOM
 
 def dicom_volumes(path):
-    """Read a DICOM image series and return (slices, frames): the slices of the
-    first frame and per frame the list of slices, sorted by their position along
-    the slice normal (voxel index order: column, row, slice)."""
+    """Read a DICOM image series and return (frames, normal): per frame the list of
+    slices, sorted by their position along the slice normal (voxel index order:
+    column, row, slice), and the slice normal."""
     import pydicom
 
     files = sorted(os.path.join(path, f) for f in os.listdir(path) if not f.startswith('.'))
@@ -451,9 +451,18 @@ def dicom_volumes(path):
 
     iop = np.array([float(v) for v in dcs[0].ImageOrientationPatient])
     normal = np.cross(iop[:3], iop[3:])
+
+    # the frame of a slice: from its Image Index (PET: (time slice - 1) * Number of
+    # Slices + slice), otherwise from its Frame Reference Time; with continuous bed
+    # motion every slice has its own Frame Reference Time and Actual Frame Duration
+    def frame_of(d):
+        if 'ImageIndex' in d and 'NumberOfSlices' in d:
+            return (int(d.ImageIndex) - 1) // int(d.NumberOfSlices)
+        return float(d.get('FrameReferenceTime', 0))
+
     frames = {}
     for d in dcs:
-        frames.setdefault(float(d.get('FrameReferenceTime', 0)), []).append(d)
+        frames.setdefault(frame_of(d), []).append(d)
     return [sorted(frames[t], key=lambda d: float(np.dot(normal, [float(v) for v in d.ImagePositionPatient])))
             for t in sorted(frames)], normal
 

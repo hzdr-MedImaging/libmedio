@@ -165,7 +165,10 @@ run the script again instead (`--force` regenerates existing files).
   `rows`, `columns`, `slices`, `frames`, `pixel_spacing_mm`,
   `slice_spacing_mm`, `image_orientation`, `patient_position`, `units`)
   and per frame its timing, the positions of the first and last slice and
-  statistics of the stored and of the rescaled voxel values.
+  statistics of the stored and of the rescaled voxel values. The slices are
+  assigned to frames by their Image Index (Number of Slices per frame),
+  otherwise by their Frame Reference Time; the timing is that of the first
+  slice of the frame (with continuous bed motion every slice has its own).
 - **Philips** (`"format": "philips-image"`/`"philips-syntegra"`, written by
   hand): `frames`, `dims`, `pixel_size_mm`, `data_type` and statistics of the
   stored voxel values per frame (`volumes`). The `philips_datasets` test also

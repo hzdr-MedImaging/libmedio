@@ -1,0 +1,105 @@
+{
+  "generator": "pydicom 3.0.2",
+  "format": "dicom",
+  "header": {
+    "modality": "PT",
+    "manufacturer": "SIEMENS",
+    "model": "1208",
+    "rows": 32,
+    "columns": 32,
+    "slices": 583,
+    "frames": 1,
+    "pixel_spacing_mm": [
+      22.6875,
+      22.6875
+    ],
+    "slice_spacing_mm": 1.645570446735395,
+    "image_orientation": [
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0
+    ],
+    "patient_position": "HFS",
+    "units": "BQML"
+  },
+  "frames": [
+    {
+      "frame_reference_time_ms": 405246.4,
+      "frame_duration_ms": 59502,
+      "first_position_mm": [
+        -362.064,
+        -574.907,
+        -718.542
+      ],
+      "last_position_mm": [
+        -362.064,
+        -574.907,
+        239.18
+      ],
+      "raw_min": -24,
+      "raw_max": 32767,
+      "raw_sum": 56637697,
+      "scaled_min": -62.13047999999999,
+      "scaled_max": 84826.22658999999,
+      "scaled_sum": 146621970.86268997
+    }
+  ],
+  "attributes": {
+    "main": {
+      "PatientName": "P5",
+      "PatientID": "Anonymous",
+      "PatientSex": "M",
+      "PatientPosition": "HFS",
+      "StudyInstanceUID": "1.3.12.2.1107.5.1.4.11031.30000026111316053897700000001",
+      "SeriesInstanceUID": "1.3.12.2.1107.5.1.4.99999.179357330884102",
+      "FrameOfReferenceUID": "1.3.12.2.1107.5.1.4.11031.30000026111316053897700000000",
+      "StudyID": "9636N26411256_01",
+      "StudyDescription": "None",
+      "SeriesDescription": "P5_20261113_170538-LM-00-PSFTOF_000_000.v 2i 5s 2i 5s",
+      "Manufacturer": "SIEMENS",
+      "ManufacturerModelName": "1208",
+      "Units": "BQML",
+      "DecayCorrection": "START",
+      "ReconstructionMethod": "TOF-PSF-OP-OSEM 2i 5s",
+      "AttenuationCorrectionMethod": "xxxxxxxxxx",
+      "ScatterCorrectionMethod": "MODEL-BASED",
+      "PatientBirthDate": "1951-01-01",
+      "PatientSize": 1.72,
+      "PatientWeight": 81.0,
+      "SeriesNumber": 3.0,
+      "SoftwareVersions": [
+        "VG80C"
+      ],
+      "CorrectedImage": [
+        "NORM",
+        "DTIM",
+        "ATTN",
+        "SCAT",
+        "DECY",
+        "RAN"
+      ],
+      "AcquisitionDateTime": "2026-11-13T12:19:27.204",
+      "Radiopharmaceutical": "FDG",
+      "RadionuclideTotalDose": 250000000.0,
+      "RadionuclideHalfLife": 6586.2,
+      "RadionuclidePositronFraction": 0.9673,
+      "RadiopharmaceuticalStartDateTime": "2026-11-13T11:06:00",
+      "RadionuclideCodeSequence": {
+        "CodeValue": "C-111A1",
+        "CodingSchemeDesignator": "99SDM",
+        "CodeMeaning": "F^18^[^18^Fluorine]"
+      },
+      "EnergyWindowLowerLimit": 435.0,
+      "EnergyWindowUpperLimit": 585.0
+    },
+    "frames": [
+      {
+        "ActualFrameDuration": 59502.0,
+        "DecayFactor": 1.04357
+      }
+    ]
+  }
+}
