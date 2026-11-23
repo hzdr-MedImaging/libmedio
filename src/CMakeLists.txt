@@ -34,6 +34,7 @@ set(MEDIO_LIB_INCLUDES  ${CMAKE_CURRENT_SOURCE_DIR}/ecat
                         ${CMAKE_CURRENT_SOURCE_DIR}/nifti
                         ${CMAKE_CURRENT_SOURCE_DIR}/nifti/nifti1
                         ${CMAKE_CURRENT_SOURCE_DIR}/nifti/nifti2
+                        ${CMAKE_CURRENT_SOURCE_DIR}/interfile
                         ${CMAKE_CURRENT_SOURCE_DIR}/micropet
                         ${CMAKE_CURRENT_SOURCE_DIR}/philips
                         ${CMAKE_CURRENT_SOURCE_DIR}/helpers

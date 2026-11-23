@@ -7,6 +7,8 @@
   of every header as JSON object with DICOM keywords
 - [Conversion to and from NIfTI](nifti.md): the command line tools, the metadata
   in JSON and DICOM header extensions, writing NIfTI files from applications
+- [Interfile support (design)](interfile.md): the Interfile variants (3.3,
+  the PET proposal/STIR, Siemens, PMOD) and the phases of their support
 - [Python: pmedio](python.md): `load()`/`save()`, `open()`/`create()`, nibabel
   images, the legacy ECAT7 interface, installation
 - [R: Rmedio](../r/README.md)
