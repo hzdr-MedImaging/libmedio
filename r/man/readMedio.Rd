@@ -22,7 +22,8 @@
 }
 \description{
   Reads all frames of an ECAT7, NIfTI (\code{.nii}, \code{.nii.gz},
-  \code{.hdr}/\code{.img}), Philips PET (\code{.img}, \code{.syn}) or
+  \code{.hdr}/\code{.img}), Philips PET (\code{.img}, \code{.syn}),
+  Interfile (a header, a Siemens main header \code{.mhdr} or a data file) or
   Siemens Concorde microPET image file as one 4D array, together with the
   geometry, the frame timing and the header attributes.
 }
@@ -42,8 +43,9 @@ readMedio(fname, frames = NULL, orientation = NULL)
     convention of nibabel and many NIfTI tools: x towards the patient's
     right, y towards anterior, z towards superior) or \code{"LPI"}. Every
     voxel keeps its position, the affine is adjusted. \code{NULL}: the voxel
-    order of the file (e.g. \code{"LPI"} for ECAT7, Philips and microPET:
-    x towards left, y towards posterior, planes from superior to inferior).
+    order of the file (e.g. \code{"LPI"} for ECAT7, Philips, microPET and
+    Siemens Interfile: x towards left, y towards posterior, planes from
+    superior to inferior).
   }
 }
 \details{
@@ -76,7 +78,7 @@ readMedio(fname, frames = NULL, orientation = NULL)
     seconds.}
   \item{attributes}{the header attributes as named list.}
   \item{format}{the format of the file: \code{"ecat"}, \code{"nifti"},
-    \code{"philips"} or \code{"micropet"}.}
+    \code{"philips"}, \code{"interfile"} or \code{"micropet"}.}
   \item{filename}{the absolute path of the file.}
 }
 \author{

@@ -101,6 +101,7 @@ def test_constants():
     assert pmedio.Format.Philips == "philips"
     assert pmedio.Format.PhilipsBin == "philipsbin"
     assert pmedio.Format.NIFTI == "nifti"
+    assert pmedio.Format.Interfile == "interfile"
     assert MedIOImage.DimType.UNKNOWN == "unknown"
     assert MedIOImage.DimType.FRAMES == "frames"
     assert MedIOImage.DimType.GATES == "gates"

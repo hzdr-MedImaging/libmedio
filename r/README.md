@@ -6,7 +6,7 @@ read and write images of all formats of libmedio, like `pmedio.load()` and
 
 ```r
 library(Rmedio)
-image <- readMedio("image.v", orientation = "RAS")  # ECAT7, NIfTI, Philips, microPET
+image <- readMedio("image.v", orientation = "RAS")  # ECAT7, NIfTI, Philips, Interfile, microPET
 image$data                           # physical values, 4D array (x, y, z, frame)
 image$affine                         # 3 x 4, voxel (i, j, k) counted from 0 -> LPS (mm)
 image$frame_start                    # s, also frame_duration
@@ -49,7 +49,7 @@ repositories require.
 
 - `tools/vendor.sh` copies the libmedio sources of this repository
   (`../src`) into `src/libmedio/` and a few test datasets
-  (`../testsuite/data`, ECAT7, NIfTI and Philips) into `inst/extdata/`. These copies are not
+  (`../testsuite/data`, ECAT7, NIfTI, Philips and Interfile) into `inst/extdata/`. These copies are not
   tracked in git (see `.gitignore`), they only end up in the source tarball.
 - `configure` (`configure.ucrt` on Windows) runs `tools/vendor.sh` if the
   sources are not bundled yet, finds Qt5 (Core) and zlib with `pkg-config`

@@ -94,6 +94,19 @@ philips <- expected("pet-dynamic.img")
 check_read("pet-dynamic.img", "philips", unlist(philips$dims), raw_sums(philips, "volumes"),
            ecat_scales, ecat_start, ecat_duration)
 
+# Interfile (read only): PMOD converted the ECAT7 file into Interfile 3.3 with the planes
+# from inferior to superior and the values in kBq/cc, which libmedio converts into Bq/ml
+interfile <- readMedio(extdata("pet-dynamic.hdr"), orientation = "LPI")
+stopifnot(identical(interfile$format, "interfile"),
+          identical(dim(interfile$data), dim(dynamic$data)),
+          near(interfile$data, dynamic$data, 1e-6),
+          near(interfile$frame_start, dynamic$frame_start, 1e-9),
+          near(interfile$frame_duration, dynamic$frame_duration, 1e-9),
+          identical(interfile$attributes$PatientName, dynamic$attributes$PatientName),
+          identical(interfile$attributes$Units, "BQML"),
+          is.list(interfile$attributes$Interfile))
+fails(writeMedio(interfile, file.path(tempdir(), "interfile.hv"), format = "interfile"), "cannot be written")
+
 # the header attributes (DICOM keywords, native fields in the section of the format)
 stopifnot(identical(dynamic$attributes$PatientName, "Phantom_NEMA_Cu61_kontrast8"),
           near(dynamic$attributes$PatientWeight, 8.63),

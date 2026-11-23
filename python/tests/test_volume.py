@@ -54,6 +54,12 @@ READABLE = [
     ("nifti/pet-static.pair/pet-static.hdr", "nifti/pet-static.pair", "nifti/pet-static.pair.json"),
     ("nifti/pet-dynamic.nii.gz", "nifti/pet-dynamic.nii.gz", "nifti/pet-dynamic.nii.gz.json"),
     ("nifti/pet-dynamic.pair/pet-dynamic.hdr", "nifti/pet-dynamic.pair", "nifti/pet-dynamic.pair.json"),
+    ("interfile/pet-static.hdr", "interfile/pet-static.hdr", "interfile/pet-static.hdr.json"),
+    ("interfile/pet-static.pair/pet-static.hdr", "interfile/pet-static.pair", "interfile/pet-static.pair.json"),
+    ("interfile/pet-dynamic.hdr", "interfile/pet-dynamic.hdr", "interfile/pet-dynamic.hdr.json"),
+    ("interfile/pet-dynamic.pair/pet-dynamic.img", "interfile/pet-dynamic.pair", "interfile/pet-dynamic.pair.json"),
+    ("interfile/pet-wholebody.siemens/pet-wholebody.mhdr", "interfile/pet-wholebody.siemens",
+     "interfile/pet-wholebody.siemens.json"),
 ]
 
 
@@ -80,11 +86,32 @@ class Expected:
     def __init__(self, key, json_name):
         e = load_json(json_name)
         dataset = dataset_of(key)
+        self.intercept = 0.0
+        if e["format"] == "interfile":
+            # own parser of make_expected.py; libmedio converts the units of activity
+            # concentration into Bq/ml (PMOD writes kBq/cc for pet-dynamic)
+            frames = e["frames"]
+            factor = [1000.0 if f["units"].lower().startswith("kbq") else 1.0 for f in frames]
+            self.dims = frames[0]["dims"]
+            self.dtype = np.dtype(frames[0]["number_format"]).type
+            self.voxel_size = frames[0]["pixel_size_mm"]
+            self.stats = [(f["raw_min"], f["raw_max"], f["raw_sum"]) for f in frames]
+            self.scales = [f["rescale_slope"] * k for f, k in zip(frames, factor)]
+            self.intercept = frames[0]["rescale_offset"] * factor[0]
+            if (DATA_DIR / f"ecat/{dataset}.v.json").is_file():
+                ecat_frames = load_json(f"ecat/{dataset}.v.json")["matrices"]
+                self.timing = [(f["frame_start_time_ms"] / 1000.0, f["frame_duration_ms"] / 1000.0) for f in ecat_frames]
+            else:
+                self.timing = [(f.get("start_s", 0.0), f["duration_s"]) for f in frames]
+            # PMOD writes the planes from inferior to superior, Siemens from superior to inferior
+            self.orientation = "LPI" if "data_sets" in e["header"] else "LPS"
+            self.landmarks = self._landmarks(dataset, key)
+            return
+
         ecat = load_json(f"ecat/{dataset}.v.json")
         calibration = ecat["main_header"]["calibration_factor"]
         ecat_frames = ecat["matrices"]
 
-        self.intercept = 0.0
         if e["format"] == "ecat7":
             m = e["matrices"]
             self.dims = m[0]["dims"]
@@ -127,10 +154,15 @@ class Expected:
                 # second towards posterior, third towards superior (CNIFTIConverter.h)
                 self.orientation = "LPS"
 
-        self.landmarks = []
+        self.landmarks = self._landmarks(dataset, key)
+
+    @staticmethod
+    def _landmarks(dataset, key):
+        landmarks = []
         for lm in load_json("datasets.json")["datasets"][dataset].get("landmarks", []):
             if key in lm["voxel"]:
-                self.landmarks.append((lm["voxel"][key], np.array(lm["world_mm"])))
+                landmarks.append((lm["voxel"][key], np.array(lm["world_mm"])))
+        return landmarks
 
 
 def check_landmarks(volume, landmarks):

@@ -26,7 +26,7 @@
   Reads and writes medical imaging data with the 'libmedio' C++ library
   (\url{https://github.com/hzdr-MedImaging/libmedio}): images of the
   formats used in nuclear medicine, ECAT7, NIfTI, Philips PET and (read
-  only) Siemens Concorde microPET.
+  only) Interfile and Siemens Concorde microPET.
 }
 \details{
   \code{\link{readMedio}} reads all frames of an image file of any format
