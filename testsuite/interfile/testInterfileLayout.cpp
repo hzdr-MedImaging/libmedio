@@ -48,6 +48,8 @@ class TestInterfileLayout : public QObject
     void dynamicFrameGroups();
     void stirFrames();
     void siemensSpellings();
+    void siemensImageHeader();
+    void siemensMainHeader();
     void quantificationFactor();
     void dataFileNames();
     void invalidLayouts_data();
@@ -332,6 +334,93 @@ void TestInterfileLayout::siemensSpellings()
   QCOMPARE(layout.frames[0].slope, 1.0);
   QCOMPARE(layout.frames[1].offset, qint64(6 * 6 * 2 * 4));
   QCOMPARE(layout.frames[1].startTime, 120.0);
+}
+
+void TestInterfileLayout::siemensImageHeader()
+{
+  // the image header (.v.hdr) of a Siemens reconstruction (e7tools), shortened, as
+  // written: "key:=value", no "!END OF INTERFILE", the data file named after the
+  // image data description; %image slope/%image intercept scale the values
+  CInterfileKeys keys;
+  QString error;
+  QVERIFY2(keys.parse(
+      "!INTERFILE:=\r\n"
+      "!originating system:=1208\r\n"
+      "%SMS-MI header name space:=image subheader\r\n"
+      "%SMS-MI version number:=3.9\r\n"
+      "\r\n"
+      "!GENERAL DATA:=\r\n"
+      "\r\n"
+      "!GENERAL IMAGE DATA:=\r\n"
+      "image data byte order:=LITTLEENDIAN\r\n"
+      "%study date (yyyy:mm:dd):=2026:11:13\r\n"
+      "isotope name:=F-18\r\n"
+      "!PET data type:=image\r\n"
+      "number format:=float\r\n"
+      "!number of bytes per pixel:=4\r\n"
+      "number of dimensions:=3\r\n"
+      "matrix axis label[1]:=x\r\n"
+      "matrix axis label[2]:=y\r\n"
+      "matrix axis label[3]:=z\r\n"
+      "matrix size[1]:=32\r\n"
+      "matrix size[2]:=32\r\n"
+      "matrix size[3]:=583\r\n"
+      "scale factor (mm/pixel) [1]:=22.6875\r\n"
+      "scale factor (mm/pixel) [2]:=22.6875\r\n"
+      "scale factor (mm/pixel) [3]:=1.64557\r\n"
+      "start horizontal bed position (mm):=-718.542\r\n"
+      "%energy window lower level (keV) [1]:=435\r\n"
+      "\r\n"
+      "!IMAGE DATA DESCRIPTION:=\r\n"
+      "!image relative start time (sec):=0.0\r\n"
+      "!image duration (sec):=435\r\n"
+      "%scanner quantification factor (Bq*s/ECAT counts):=7.83898e+007\r\n"
+      "quantification units:=Bq/ml\r\n"
+      "!name of data file:=image_000_000.v\r\n"
+      "%image orientation:={1,0,0,0,1,0}\r\n"
+      "%patient orientation:=HFS\r\n"
+      "%image slope:=2\r\n"
+      "%image intercept:=0.5\r\n"
+      "minimum pixel count:=-64.3102\r\n"
+      "maximum pixel count:=84826.2\r\n"
+      "%image info[1]:={0,-718.542,-362.064,-574.907,-1.19881,121.367,3809.89,1,0.0,1.00311,37.7978}\r\n",
+      &error), qPrintable(error));
+
+  CInterfileImageLayout layout;
+  QVERIFY2(layout.read(keys, "dir/image_000_000.v.hdr", &error), qPrintable(error));
+  QCOMPARE(layout.dataFileName, QString("dir/image_000_000.v"));
+  QVERIFY(layout.bigEndian == false);
+  QCOMPARE(layout.frames.size(), 1);
+
+  const CInterfileFrame& frame = layout.frames.first();
+  QCOMPARE(frame.numberFormat, CInterfileFrame::Float);
+  QCOMPARE(frame.bytesPerPixel, 4);
+  QCOMPARE(frame.dims, dims(32, 32, 583));
+  QCOMPARE(frame.voxelSize, vec(22.6875, 22.6875, 1.64557));
+  QCOMPARE(frame.startTime, 0.0);
+  QCOMPARE(frame.duration, 435.0);
+  QCOMPARE(frame.units, QString("Bq/ml"));
+  QCOMPARE(frame.slope, 2.0);
+  QCOMPARE(frame.intercept, 0.5);
+  QCOMPARE(frame.offset, qint64(0));
+  QCOMPARE(layout.requiredDataSize(), qint64(32 * 32 * 583 * 4));
+}
+
+void TestInterfileLayout::siemensMainHeader()
+{
+  // a Siemens main header (.mhdr) describes no image data, but its data sets
+  CInterfileKeys keys;
+  QVERIFY(keys.parse("!INTERFILE:=\r\n"
+                     "%SMS-MI header name space:=image main header\r\n"
+                     "number of time frames:=1\r\n"
+                     "!total number of data sets:=1\r\n"
+                     "%data set[1]:={0,image_000_000.v.hdr,image_000_000.v}\r\n"));
+
+  CInterfileImageLayout layout;
+  QString error;
+  QVERIFY(layout.read(keys, "dir/image.mhdr", &error) == false);
+  QVERIFY2(error.contains("main header of data sets"), qPrintable(error));
+  QVERIFY2(error.contains("image_000_000.v.hdr"), qPrintable(error));
 }
 
 void TestInterfileLayout::quantificationFactor()

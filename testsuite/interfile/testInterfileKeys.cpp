@@ -37,6 +37,7 @@ class TestInterfileKeys : public QObject
     void lineEndings();
     void commentsAndUnknownLines();
     void dataAfterHeader();
+    void siemensWithoutEnd();
     void invalidHeaders_data();
     void invalidHeaders();
     void encoding();
@@ -202,12 +203,49 @@ void TestInterfileKeys::dataAfterHeader()
   QCOMPARE(keys.count(), 3);
 }
 
+void TestInterfileKeys::siemensWithoutEnd()
+{
+  // the headers of Siemens reconstructions (image headers .v.hdr, main headers
+  // .mhdr): "key:=value" without spaces, CR LF, no "!END OF INTERFILE"; the header
+  // ends with the text
+  const QByteArray text =
+      "!INTERFILE:=\r\n"
+      "%comment:=SMS-MI sinogram common attributes\r\n"
+      "!originating system:=1208\r\n"
+      "%SMS-MI header name space:=image main header\r\n"
+      "\r\n"
+      "%DATA SET DESCRIPTION:=\r\n"
+      "!total number of data sets:=1\r\n"
+      "%data set[1]:={0,image_000_000.v.hdr,image_000_000.v}\r\n"
+      "\r\n";
+
+  CInterfileKeys keys;
+  QString error;
+  qint64 headerSize = 0;
+  QVERIFY2(keys.parse(text, &error, &headerSize), qPrintable(error));
+  QCOMPARE(headerSize, qint64(text.size()));
+  QCOMPARE(keys.count(), 7);
+  QCOMPARE(keys.at(1).name, QString("comment"));
+  QVERIFY(keys.at(1).vendor);
+  QCOMPARE(keys.value("originating system"), QString("1208"));
+  QCOMPARE(keys.value("%sms-mi header name space"), QString("image main header"));
+  QCOMPARE(CInterfileKeys::toList(keys.value("data set", indices(1))),
+           QStringList() << "0" << "image_000_000.v.hdr" << "image_000_000.v");
+
+  // written again, read again: the same keys
+  CInterfileKeys again;
+  QVERIFY(again.parse(keys.toText()));
+  QCOMPARE(again.count(), keys.count());
+  QCOMPARE(again.value("data set", indices(1)), keys.value("data set", indices(1)));
+}
+
 void TestInterfileKeys::invalidHeaders_data()
 {
   QTest::addColumn<QByteArray>("text");
   QTest::newRow("empty") << QByteArray();
   QTest::newRow("no INTERFILE") << QByteArray("!imaging modality := nucmed\n!END OF INTERFILE :=\n");
-  QTest::newRow("no END") << QByteArray("!INTERFILE :=\n!imaging modality := nucmed\n");
+  QTest::newRow("no END before binary data") << (QByteArray("!INTERFILE :=\n!data offset in bytes := 40\n") +
+                                                QByteArray("\x1a\x00\x01\x02", 4));
   QTest::newRow("binary data") << QByteArray("\x00\x01\x02\x03 binary", 12);
   QTest::newRow("NIfTI header") << (QByteArray("\x5c\x01\x00\x00", 4) + QByteArray(344, '\0'));
   QTest::newRow("binary before END") << (QByteArray("!INTERFILE :=\n") + QByteArray("\x00\x01\x02\n", 4) +
@@ -393,6 +431,23 @@ void TestInterfileKeys::fileAccess()
 
   QVERIFY2(keys.read(single, &error, &headerSize), qPrintable(error));
   QCOMPARE(headerSize, qint64(37));
+
+  // a header without "!END OF INTERFILE" (Siemens): the whole file, also when it is
+  // longer than one block read at a time
+  const QString siemens = dir.filePath("siemens.v.hdr");
+  file.setFileName(siemens);
+  QVERIFY(file.open(QIODevice::WriteOnly));
+  file.write("!INTERFILE:=\r\n");
+  for(int i = 1; i <= 2000; i++)
+    file.write(QString("%image info[%1]:={%2,-718.542,-362.064,-574.907,-1.19881,121.367,3809.89}\r\n")
+                   .arg(i).arg(i - 1).toLatin1());
+  file.write("quantification units:=Bq/ml\r\n");
+  file.close();
+  QVERIFY(file.size() > 64 * 1024);
+  QVERIFY2(keys.read(siemens, &error, &headerSize), qPrintable(error));
+  QCOMPARE(headerSize, file.size());
+  QCOMPARE(keys.count(), 2002);
+  QCOMPARE(keys.value("quantification units"), QString("Bq/ml"));
 
   QVERIFY(keys.read(nifti, &error) == false);
   QVERIFY(error.contains("image.hdr"));
