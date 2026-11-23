@@ -32,6 +32,7 @@ src/                       # the library
   CMedIO*.{h,cpp}          # base classes (CMedIOData, CMedIOHeader) and the format factory
   ecat/, ecat/ecat6/, ecat/ecat7/   # ECAT 6/7
   nifti/, nifti/nifti1/, nifti/nifti2/  # NIfTI and CNIFTIConverter (ECAT7/Philips <-> NIfTI)
+  interfile/               # Interfile (in development, see docs/interfile.md)
   philips/                 # Philips PET formats
   micropet/                # Siemens Concorde microPET
   helpers/                 # shared utilities
@@ -43,6 +44,7 @@ testsuite/                 # QtTest/CTest test suite
   ecat/, nifti/, philips/  # tests per format; nifti/data holds synthetic NIfTI fixtures
   matrix/, attributes/     # format independent matrix access and attributes (CMedIOVolume, CMedIOHeaderDictionary)
   tools/                   # the command line tools (both names of the converters ecat2nifti, philips2nifti)
+  interfile/               # Interfile header syntax and image layout
 python/                    # Python bindings and their tests
 r/                         # R package Rmedio (bundles src/ via r/tools/vendor.sh, see r/README.md)
 conda.recipe/              # conda recipes for conda-forge (libmedio; pmedio, r-rmedio in python/, r/conda.recipe), build-local.sh
