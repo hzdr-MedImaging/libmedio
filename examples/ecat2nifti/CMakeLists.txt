@@ -47,6 +47,8 @@ install(TARGETS ecat2nifti
         RUNTIME DESTINATION bin
 )
 medio_install_tool_link(ecat2nifti)
+# the same program converts in the other direction when called as nifti2ecat
+medio_tool_alias(ecat2nifti nifti2ecat)
 
 # make sure to bundle all runtime dll libs which the generated
 # executable might require using the 'mingw-bundleddlls-wine" tool

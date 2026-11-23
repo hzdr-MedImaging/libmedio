@@ -47,6 +47,8 @@ install(TARGETS philips2nifti
         RUNTIME DESTINATION bin
 )
 medio_install_tool_link(philips2nifti)
+# the same program converts in the other direction when called as nifti2philips
+medio_tool_alias(philips2nifti nifti2philips)
 
 # make sure to bundle all runtime dll libs which the generated
 # executable might require using the 'mingw-bundleddlls-wine" tool

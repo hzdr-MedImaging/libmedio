@@ -42,6 +42,7 @@ testsuite/                 # QtTest/CTest test suite
   common/MedIOTestData.h   # enumerates the test data for data-driven tests
   ecat/, nifti/, philips/  # tests per format; nifti/data holds synthetic NIfTI fixtures
   matrix/, attributes/     # format independent matrix access and attributes (CMedIOVolume, CMedIOHeaderDictionary)
+  tools/                   # the command line tools (both names of the converters ecat2nifti, philips2nifti)
 python/                    # Python bindings and their tests
 r/                         # R package Rmedio (bundles src/ via r/tools/vendor.sh, see r/README.md)
 conda.recipe/              # conda recipes for conda-forge (libmedio; pmedio, r-rmedio in python/, r/conda.recipe), build-local.sh

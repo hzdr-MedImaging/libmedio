@@ -8,6 +8,11 @@ philips2nifti [-2] [--float] [--sidecar] [--no-extension] input.img|input.syn [o
 nifti2ecat    input.nii[.gz]|input.hdr[.gz]|input.img[.gz] [output.v]
 nifti2philips input.nii[.gz]|input.hdr[.gz]|input.img[.gz] [output.img|output.syn]
 ```
+- Each pair is one program, which selects the direction by the name it is
+  called with: `nifti2ecat` and `nifti2philips` are installed as symbolic
+  links to `ecat2nifti` and `philips2nifti` (as copies on Windows). The
+  installation also has the names with the version of libmedio, e.g.
+  `ecat2nifti-<version>` and `nifti2ecat-<version>`.
 - NIfTI files hold the physical values (stored value × scale factor ×
   calibration factor, e.g. Bq/ml); data with a scale factor per frame or
   (Philips) per slice, or with `--float`, is written as float32.
