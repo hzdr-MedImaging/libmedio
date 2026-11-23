@@ -65,6 +65,8 @@ tests:
       bin:
         - ecat2nifti-${{ version }}
         - nifti2ecat-${{ version }}
+        - philips2nifti-${{ version }}
+        - nifti2philips-${{ version }}
       files:
         exists:
           - lib/cmake/libmedio/libmedioConfig.cmake
@@ -77,9 +79,13 @@ tests:
           - bin/ecat2nifti
           - bin/anonymize
   - script:
-      # the command line tools, linked against libmedio, Qt and zlib
-      - ecat2nifti-${{ version }} --help
-      - nifti2ecat-${{ version }} --help
+      # the command line tools, linked against libmedio, Qt and zlib; nifti2ecat and
+      # nifti2philips are links to ecat2nifti and philips2nifti, which select the
+      # direction by the name they are called with
+      - ecat2nifti-${{ version }} --help | grep "Called as nifti2ecat"
+      - nifti2ecat-${{ version }} --help | grep "Called as ecat2nifti"
+      - philips2nifti-${{ version }} --help | grep "Called as nifti2philips"
+      - nifti2philips-${{ version }} --help | grep "Called as philips2nifti"
   # a C++ program built against the package, with its CMake package
   # (find_package(libmedio), test/CMakeLists.txt) and with pkg-config (medio.pc)
   - files:

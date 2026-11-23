@@ -122,8 +122,9 @@ writeMedio(image, "pet.nii.gz")
 
 Command line tools convert complete files between ECAT7 or Philips and NIfTI
 with all metadata, e.g. `ecat2nifti pet.v pet.nii.gz` and
-`nifti2ecat pet.nii.gz pet.v` (also `philips2nifti` and `nifti2philips`; they
-are installed with the version of libmedio as suffix, e.g.
+`nifti2ecat pet.nii.gz pet.v` (also `philips2nifti` and `nifti2philips`; each
+pair is one program that selects the direction by the name it is called with.
+They are installed with the version of libmedio as suffix, e.g.
 `ecat2nifti-<version>`, and with a link without version to the version
 installed last, see [NIfTI](docs/nifti.md)).
 
