@@ -99,6 +99,27 @@ install.packages("https://github.com/hzdr-MedImaging/libmedio/releases/download/
                  repos = NULL, type = "source")
 ```
 
+The same as one line in the shell (`<version>` is the tag of the release):
+
+```bash
+Rscript -e 'install.packages("https://github.com/hzdr-MedImaging/libmedio/releases/download/<version>/Rmedio_<version>.tar.gz", repos = NULL, type = "source")'
+```
+
+To install it for all users of a machine into a shared library (here
+`/usr/local/lib/R/site-library`; it has to be in `.libPaths()` of the users),
+give the library with `lib` and to R in `R_LIBS`, where R also finds `Rcpp`
+while it compiles the package:
+
+```bash
+sudo env R_LIBS=/usr/local/lib/R/site-library Rscript -e 'install.packages("https://github.com/hzdr-MedImaging/libmedio/releases/download/<version>/Rmedio_<version>.tar.gz", lib = "/usr/local/lib/R/site-library", repos = NULL, type = "source")'
+```
+
+Check the installation with the test data of the package:
+
+```bash
+Rscript -e 'library(Rmedio); packageVersion("Rmedio"); dim(readMedio(system.file("extdata", "pet-dynamic.v", package = "Rmedio"))$data)'
+```
+
 The releases also have the compiled conda package `r-rmedio` for Linux and
 macOS, which needs no compiler (see [conda.recipe](../conda.recipe/README.md)).
 

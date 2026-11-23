@@ -144,8 +144,14 @@ conda install -c "file://$PWD/libmedio-<version>-conda-linux-64" -c conda-forge 
 Only the packages needed have to be named, e.g. `pmedio` alone. See
 [conda.recipe](conda.recipe/README.md#pre-built-packages-of-the-github-releases).
 Without conda, the R package is installed from its source package
-`Rmedio_<version>.tar.gz` of the release (see
-[r/README.md](r/README.md#install-from-a-github-release)).
+`Rmedio_<version>.tar.gz` of the release, which R compiles (it needs a C++
+compiler and Qt5 and zlib with their headers, see
+[r/README.md](r/README.md#install-from-a-github-release)); `<version>` is the
+tag of the release:
+
+```bash
+Rscript -e 'install.packages("https://github.com/hzdr-MedImaging/libmedio/releases/download/<version>/Rmedio_<version>.tar.gz", repos = NULL, type = "source")'
+```
 
 ### From source
 
