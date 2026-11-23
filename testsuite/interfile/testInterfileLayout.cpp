@@ -574,23 +574,46 @@ void TestInterfileLayout::datasets()
   if(file.path.isEmpty())
     QSKIP("no Interfile test datasets");
 
+  const QJsonObject header = file.expected.value("header").toObject();
+
   // the header: the file itself, or the .hdr file of a header/image pair directory
+  // (Siemens: the image header of the data set of the main header .mhdr)
   QString headerFile = file.path;
+  CInterfileKeys keys;
+  CInterfileImageLayout layout;
+  QString error;
   if(QFileInfo(file.path).isDir())
   {
     const QStringList headers = QDir(file.path).entryList(QStringList() << "*.hdr", QDir::Files);
     QCOMPARE(headers.size(), 1);
     headerFile = QDir(file.path).filePath(headers.first());
+
+    const QStringList mainHeaders = QDir(file.path).entryList(QStringList() << "*.mhdr", QDir::Files);
+    QCOMPARE(mainHeaders.isEmpty(), header.contains("data_sets") == false);
+    if(mainHeaders.isEmpty() == false)
+    {
+      // the main header names the image header and data file of its data set, and
+      // describes no image data itself
+      QCOMPARE(mainHeaders.size(), 1);
+      const QString mainHeader = QDir(file.path).filePath(mainHeaders.first());
+      QVERIFY(CInterfileKeys::isInterfile(mainHeader));
+      QVERIFY2(keys.read(mainHeader, &error), qPrintable(error));
+      const QJsonArray dataSets = header.value("data_sets").toArray();
+      QCOMPARE(dataSets.size(), 1);
+      const QStringList dataSet = CInterfileKeys::toList(keys.value("data set", QList<int>() << 1));
+      QCOMPARE(dataSet.size(), 3);
+      QCOMPARE(dataSet.at(1), dataSets.at(0).toArray().at(0).toString());
+      QCOMPARE(dataSet.at(2), dataSets.at(0).toArray().at(1).toString());
+      QCOMPARE(QFileInfo(headerFile).fileName(), dataSet.at(1));
+      QVERIFY(layout.read(keys, mainHeader, &error) == false);
+      QVERIFY2(error.contains("main header of data sets"), qPrintable(error));
+    }
   }
   QVERIFY(CInterfileKeys::isInterfile(headerFile));
 
-  CInterfileKeys keys;
-  CInterfileImageLayout layout;
-  QString error;
   QVERIFY2(keys.read(headerFile, &error), qPrintable(error));
   QVERIFY2(layout.read(keys, headerFile, &error), qPrintable(error));
 
-  const QJsonObject header = file.expected.value("header").toObject();
   QCOMPARE(layout.versionOfKeys, header.value("version_of_keys").toString());
   QCOMPARE(layout.typeOfData, header.value("type_of_data").toString().toLower());
   QCOMPARE(layout.bigEndian, header.value("byte_order").toString() == "big");
@@ -618,6 +641,8 @@ void TestInterfileLayout::datasets()
     for(int i = 0; i < 3; i++)
       QCOMPARE(frame.voxelSize[i], pixelSize.at(i).toDouble());
     QCOMPARE(frame.duration, expected.value("duration_s").toDouble());
+    if(expected.contains("start_s"))
+      QCOMPARE(frame.startTime, expected.value("start_s").toDouble());
     QCOMPARE(frame.slope, expected.value("rescale_slope").toDouble());
     QCOMPARE(frame.intercept, expected.value("rescale_offset").toDouble());
     QCOMPARE(frame.units, expected.value("units").toString());

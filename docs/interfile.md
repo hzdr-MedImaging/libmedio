@@ -221,10 +221,14 @@ installed): the public API follows with phase 2.
   of `testsuite/data/tools/make_expected.py`. They are converted from the ECAT7
   files of the same datasets (stored values identical, z axis reversed; for
   `pet-dynamic` the calibration factor 1000 is not applied, units kBq/cc).
-- Planned: anonymized Siemens files (images of Siemens reconstructions with
-  main headers, static and dynamic; DICOM of the same reconstruction for the
-  geometry),
-  files written by STIR (conda-forge package `stir`) and by (X)MedCon
+- `testsuite/data/interfile/pet-wholebody.siemens/`: the Interfile output of a
+  Siemens reconstruction of a phantom (main header, image header, data file;
+  static, 32x32x583 float32), only the file names changed. Its expected values
+  (own parser of `make_expected.py`, which follows the data sets of the main
+  header) include the start time and the plane order relative to `%image
+  info[n]`.
+- Planned: DICOM of the same reconstruction (geometry), a dynamic Siemens
+  reconstruction, files written by STIR (conda-forge package `stir`) and by (X)MedCon
   (package `xmedcon` of Ubuntu) as independent implementations. nibabel does
   not support Interfile, the Python package `interfile` is Python 2 only.
 

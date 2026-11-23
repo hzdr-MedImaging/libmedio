@@ -1,0 +1,26 @@
+!INTERFILE:=
+%comment:=created with code from Aug  7 2020 08:52:26
+%comment:=SMS-MI sinogram common attributes
+!originating system:=1208
+%SMS-MI header name space:=image main header
+%SMS-MI version number:=3.9
+
+!GENERAL DATA:=
+data description:=image
+exam type:=wholebody
+%sinogram type:=CBM
+%study date (yyyy:mm:dd):=2026:11:13
+%study time (hh:mm:ss GMT+00:00):=11:13:11
+%type of detector motion:=continuous
+
+%DATA MATRIX DESCRIPTION:=
+number of time frames:=1
+%number of horizontal bed offsets:=1
+number of time windows:=1
+%scan direction:=out
+
+%DATA SET DESCRIPTION:=
+!total number of data sets:=1
+shuttle mode:=off
+%data set[1]:={0,pet-wholebody_000_000.v.hdr,pet-wholebody_000_000.v}
+
