@@ -51,6 +51,7 @@ set_target_properties(showheader PROPERTIES OUTPUT_NAME showheader-${PROJECT_VER
 install(TARGETS showheader
         RUNTIME DESTINATION bin
 )
+medio_install_tool_link(showheader)
 
 # make sure to bundle all runtime dll libs which the generated
 # executable might require using the 'mingw-bundleddlls-wine" tool

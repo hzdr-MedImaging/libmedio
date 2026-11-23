@@ -30,6 +30,11 @@ Differences to the build of the repository:
   `cmake/FindRTDEBUG.cmake`, `python/cmake/FindMEDIO.cmake`).
 - Release builds of libmedio do not depend on librtdebug at run time, so the
   libmedio package does not require it.
+- The command line tools are installed with their version in the name only
+  (`ecat2nifti-<version>`), without the links of `make install`
+  (`MEDIO_INSTALL_TOOL_LINKS=OFF`): links with general names such as
+  `anonymize` or `showheader` could clash with other packages of an
+  environment.
 - Windows is skipped: the Windows builds of libmedio are cross-compiled with
   MXE, not built with MSVC.
 - The libmedio build runs the test suite without the `large` and

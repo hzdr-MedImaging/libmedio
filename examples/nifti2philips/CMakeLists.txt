@@ -46,6 +46,7 @@ set_target_properties(nifti2philips PROPERTIES OUTPUT_NAME nifti2philips-${PROJE
 install(TARGETS nifti2philips
         RUNTIME DESTINATION bin
 )
+medio_install_tool_link(nifti2philips)
 
 # make sure to bundle all runtime dll libs which the generated
 # executable might require using the 'mingw-bundleddlls-wine" tool

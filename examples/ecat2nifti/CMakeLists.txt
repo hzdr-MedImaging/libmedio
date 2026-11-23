@@ -46,6 +46,7 @@ set_target_properties(ecat2nifti PROPERTIES OUTPUT_NAME ecat2nifti-${PROJECT_VER
 install(TARGETS ecat2nifti
         RUNTIME DESTINATION bin
 )
+medio_install_tool_link(ecat2nifti)
 
 # make sure to bundle all runtime dll libs which the generated
 # executable might require using the 'mingw-bundleddlls-wine" tool

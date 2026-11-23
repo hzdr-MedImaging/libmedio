@@ -19,7 +19,9 @@ build:
   skip:
     - win
   script:
-    - cmake -S . -B build -G Ninja ${CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release -DPREFIX_PATH=${PREFIX}
+    # the tools only with their version in the name (bin/ecat2nifti-<version>): links with
+    # general names such as bin/anonymize could clash with other packages of an environment
+    - cmake -S . -B build -G Ninja ${CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release -DPREFIX_PATH=${PREFIX} -DMEDIO_INSTALL_TOOL_LINKS=OFF
     - cmake --build build
     # the test suite with the test data of the source (without the large and performance tests)
     - if: build_platform == target_platform
@@ -72,6 +74,8 @@ tests:
         not_exists:
           - lib/libmedio.a
           - lib/cmake/libmedio/libmedioStaticTargets.cmake
+          - bin/ecat2nifti
+          - bin/anonymize
   - script:
       # the command line tools, linked against libmedio, Qt and zlib
       - ecat2nifti-${{ version }} --help

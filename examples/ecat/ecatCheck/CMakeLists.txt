@@ -51,6 +51,7 @@ set_target_properties(ecatCheck PROPERTIES OUTPUT_NAME ecatCheck-${PROJECT_VERSI
 install(TARGETS ecatCheck
         RUNTIME DESTINATION bin
 )
+medio_install_tool_link(ecatCheck)
 
 # make sure to bundle all runtime dll libs which the generated
 # executable might require using the 'mingw-bundleddlls-wine" tool

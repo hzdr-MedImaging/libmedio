@@ -51,6 +51,7 @@ set_target_properties(ecatcmp PROPERTIES OUTPUT_NAME ecatcmp-${PROJECT_VERSION})
 install(TARGETS ecatcmp
         RUNTIME DESTINATION bin
 )
+medio_install_tool_link(ecatcmp)
 
 # make sure to bundle all runtime dll libs which the generated
 # executable might require using the 'mingw-bundleddlls-wine" tool
