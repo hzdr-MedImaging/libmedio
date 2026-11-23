@@ -71,6 +71,8 @@ struct CInterfileFrame
   double intercept;           //!< see slope
   QString units;              //!< units of the physical values as given, e.g. "Bq/ml"
   qint64 offset;              //!< offset of the data of the frame in the data file (bytes)
+  int groupBegin;             //!< keys of the frame group of the frame (Interfile 3.3 dynamic
+  int groupEnd;               //!< data): indices [groupBegin, groupEnd) in the keys, -1 if none
 
   CInterfileFrame();
 

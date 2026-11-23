@@ -419,6 +419,9 @@ bool CECAT7SubHeaderScan3D::convertFrom(const CMedIOHeader* subHeader, const CMe
     }
     break;
 
+    // Interfile headers are converted with the matrix conversion (CMedIOData::readMatrix())
+    case CMedIOHeader::InterfileMainHeader:
+    case CMedIOHeader::InterfileFrameHeader:
     case CMedIOHeader::Unknown:
       // for an unknown header type we do nothing
     break;

@@ -68,6 +68,8 @@ class CPhilipsMainHeader;
 class CPhilipsSubHeader;
 class CConcordeFile;
 class CConcordeFrameHeader;
+class CInterfileFile;
+class CInterfileFrameHeader;
 class QJsonObject;
 
 //! ECAT7 representation of one frame
@@ -220,6 +222,16 @@ QList<short> concordeFrameNumbers(CConcordeFile* file);
 bool readConcordeFrame(CConcordeFile* file, short frame, CMedIOFrame& f);
 bool concordeFrameFromMatrix(const QByteArray& data, const CConcordeFrameHeader& frameHeader, const CMedIOHeader* mainHeader,
                              CMedIOFrame& f);
+
+//---------------------------------------------------------------------------------------------
+// Interfile adapter (src/interfile/CInterfileMatrix.cpp), reading only
+
+//! frames 1..n of the file
+QList<short> interfileFrameNumbers(CInterfileFile* file);
+//! frame in the voxel order of the file with the position of its voxels
+bool readInterfileVolume(CInterfileFile* file, short frame, CMedIOVolume& v);
+bool readInterfileFrame(CInterfileFile* file, short frame, CMedIOFrame& f);
+bool interfileFrameFromMatrix(const QByteArray& data, const CInterfileFrameHeader& header, CMedIOFrame& f);
 
 } // namespace MedIOMatrix
 

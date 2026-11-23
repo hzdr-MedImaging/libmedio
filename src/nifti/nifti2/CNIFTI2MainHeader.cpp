@@ -597,6 +597,9 @@ bool CNIFTI2MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIO
     }
     break;
 
+    // Interfile headers are converted with the matrix conversion (CMedIOData::readMatrix())
+    case CMedIOHeader::InterfileMainHeader:
+    case CMedIOHeader::InterfileFrameHeader:
     case CMedIOHeader::Unknown:
     case CMedIOHeader::ECATSubHeader:
     case CMedIOHeader::PhilipsSubHeader:

@@ -50,7 +50,8 @@ class CMedIOData : public QFile {
       ECAT,              //!< ECAT6/7 format
       Philips,           //!< data produced by a philips PET/MR scanner
       PhilipsBin,
-      NIFTI              //!< NIfTI format
+      NIFTI,             //!< NIfTI format
+      Interfile          //!< Interfile (read only, see CInterfileFile)
     };
 
     //! @enum enumeration carrying special IO error codes which
@@ -104,7 +105,7 @@ class CMedIOData : public QFile {
     // - One call reads or writes one frame (3D volume); frame -1 selects the
     //   default frame of the format (the first one).
     // - Only image data is supported (no sinograms, normalizations, ...).
-    //   microPET files can be read only.
+    //   microPET and Interfile files can be read only.
     //
     // If the requested format is the format of the file itself, the
     // matrices and headers of the file are returned unchanged (except for
@@ -127,7 +128,8 @@ class CMedIOData : public QFile {
     //!        ECAT: CECAT7SubHeaderImage, NIfTI: CNIFTIMainHeader of a file
     //!        holding the frames, Philips: CPhilipsSubHeaderImage of the first
     //!        slice (all slices of the frame in matrixData), microPET:
-    //!        CConcordeFrameHeader (microPET files only)
+    //!        CConcordeFrameHeader (microPET files only), Interfile:
+    //!        CInterfileFrameHeader (Interfile files only; voxels in the order of the file)
     bool readMatrix(QByteArray*& matrixData, CMedIOHeader*& subHeader,
                     CMedIOData::Format format, short frame=-1);
     bool readMatrix(char*& matrixData, unsigned int& len, CMedIOHeader*& subHeader,
@@ -189,7 +191,7 @@ class CMedIOData : public QFile {
     //! ECAT7 and Philips files address their frames by the frame numbers
     //! stored in the file, which do not have to start with 1 and can have
     //! gaps (numFrames() of these classes is the highest frame number, not the
-    //! number of frames). NIfTI volumes and microPET frames are numbered 1..n.
+    //! number of frames). NIfTI volumes, microPET and Interfile frames are numbered 1..n.
     //! The number of frames in the main headers returned by readMainHeader()
     //! for another format is the size of this list.
     QList<short> frameNumbers();
@@ -245,7 +247,8 @@ class CMedIOData : public QFile {
     //!        file itself; for NIfTI header/image pairs the header and the image file (as
     //!        CNIFTIFile names them, also if an existing image file uses the other letter
     //!        case, see CNIFTIFile::imageFileName()); for microPET files also the header
-    //!        file (".hdr" appended)
+    //!        file (".hdr" appended); for open Interfile files also the headers and data
+    //!        files (CInterfileFile::allFileNames())
     //!
     //! A new file replaces all of them: check that none exists before it is created.
     QStringList fileNames() const;

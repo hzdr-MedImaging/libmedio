@@ -79,6 +79,10 @@ set(PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/CMedIO.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/nifti/nifti2/CNIFTI2MainHeader.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/nifti/CNIFTIFile.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/nifti/CNIFTIConverter.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/interfile/CInterfileFile.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/interfile/CInterfileFrameHeader.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/interfile/CInterfileKeys.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/interfile/CInterfileMainHeader.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/micropet/CConcordeMainHeader.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/micropet/CConcordeMainHeaderSinogram.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/micropet/CConcordeMainHeaderImage.h

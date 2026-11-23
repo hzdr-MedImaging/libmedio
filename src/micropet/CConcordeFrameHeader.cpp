@@ -529,6 +529,9 @@ bool CConcordeFrameHeader::convertFrom(const CMedIOHeader* subHeader, const CMed
       }
       break;
 
+      // Interfile headers are converted with the matrix conversion (CMedIOData::readMatrix())
+      case CMedIOHeader::InterfileMainHeader:
+      case CMedIOHeader::InterfileFrameHeader:
       case CMedIOHeader::Unknown:
         // for an unknown header type we do nothing
       break;

@@ -56,3 +56,19 @@ add_test(NAME interfile_layout
          COMMAND testInterfileLayout
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# reading Interfile files, with the Interfile test datasets and the files of the same
+# datasets in other formats
+add_executable(testInterfileFile testInterfileFile.cpp)
+target_include_directories(testInterfileFile PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../common)
+target_compile_definitions(testInterfileFile PRIVATE MEDIO_TEST_DATA_DIR="${MEDIO_TEST_DATA_DIR}")
+target_link_libraries(testInterfileFile Qt5::Core
+                                        Qt5::Test
+                                        ZLIB::ZLIB
+                                        ${CMAKE_PROJECT_NAME}-static
+                                        ${RTDEBUG_STATIC_LIB}
+)
+add_test(NAME interfile_file
+         COMMAND testInterfileFile
+         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
