@@ -51,6 +51,7 @@ set_target_properties(anonymize PROPERTIES OUTPUT_NAME anonymize-${PROJECT_VERSI
 install(TARGETS anonymize
         RUNTIME DESTINATION bin
 )
+medio_install_tool_link(anonymize)
 
 # make sure to bundle all runtime dll libs which the generated
 # executable might require using the 'mingw-bundleddlls-wine" tool

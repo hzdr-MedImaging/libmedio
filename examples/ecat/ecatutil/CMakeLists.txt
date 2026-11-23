@@ -51,6 +51,7 @@ set_target_properties(ecatutil PROPERTIES OUTPUT_NAME ecatutil-${PROJECT_VERSION
 install(TARGETS ecatutil
         RUNTIME DESTINATION bin
 )
+medio_install_tool_link(ecatutil)
 
 # make sure to bundle all runtime dll libs which the generated
 # executable might require using the 'mingw-bundleddlls-wine" tool

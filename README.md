@@ -124,7 +124,8 @@ Command line tools convert complete files between ECAT7 or Philips and NIfTI
 with all metadata, e.g. `ecat2nifti pet.v pet.nii.gz` and
 `nifti2ecat pet.nii.gz pet.v` (also `philips2nifti` and `nifti2philips`; they
 are installed with the version of libmedio as suffix, e.g.
-`ecat2nifti-<version>`, see [NIfTI](docs/nifti.md)).
+`ecat2nifti-<version>`, and with a link without version to the version
+installed last, see [NIfTI](docs/nifti.md)).
 
 ## Installation
 
@@ -173,6 +174,12 @@ cmake --build build-rtdebug -j && cmake --install build-rtdebug
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPREFIX_PATH=/usr/local/petlib
 cmake --build build -j && cmake --install build
 ```
+
+The command line tools are installed with their version in the name (e.g.
+`bin/ecat2nifti-<version>`), so that several versions can be installed side by
+side, and with a link without version (`bin/ecat2nifti`) to the version
+installed last. `-DMEDIO_INSTALL_TOOL_LINKS=OFF` installs no links; Windows
+builds have none.
 
 ### Use the installed library in C++
 

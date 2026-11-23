@@ -51,6 +51,7 @@ set_target_properties(assembleBeds PROPERTIES OUTPUT_NAME assembleBeds-${PROJECT
 install(TARGETS assembleBeds
         RUNTIME DESTINATION bin
 )
+medio_install_tool_link(assembleBeds)
 
 # make sure to bundle all runtime dll libs which the generated
 # executable might require using the 'mingw-bundleddlls-wine" tool

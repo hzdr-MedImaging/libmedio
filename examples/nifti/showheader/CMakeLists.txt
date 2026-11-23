@@ -51,6 +51,7 @@ set_target_properties(showheader_nifti PROPERTIES OUTPUT_NAME showheader_nifti-$
 install(TARGETS showheader_nifti
         RUNTIME DESTINATION bin
 )
+medio_install_tool_link(showheader_nifti)
 
 # make sure to bundle all runtime dll libs which the generated
 # executable might require using the 'mingw-bundleddlls-wine" tool

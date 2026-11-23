@@ -63,6 +63,7 @@ set_target_properties(mp2ecat PROPERTIES OUTPUT_NAME mp2ecat-${PROJECT_VERSION})
 install(TARGETS mp2ecat
         RUNTIME DESTINATION bin
 )
+medio_install_tool_link(mp2ecat)
 
 # make sure to bundle all runtime dll libs which the generated
 # executable might require using the 'mingw-bundleddlls-wine' tool

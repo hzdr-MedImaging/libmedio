@@ -45,6 +45,9 @@ set(CMAKE_AUTOMOC ON)
 # set the cmake modules path
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
+# links without version to the installed command line tools (see cmake/MedioToolLink.cmake)
+include(MedioToolLink)
+
 # In case we are cross compiling we have to setup
 # everything for different search paths
 if(CMAKE_CROSS_COMPILING)

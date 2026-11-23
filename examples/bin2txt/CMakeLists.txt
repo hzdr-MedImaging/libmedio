@@ -58,6 +58,7 @@ set_target_properties(bin2txt PROPERTIES OUTPUT_NAME bin2txt-${PROJECT_VERSION})
 install(TARGETS bin2txt
         RUNTIME DESTINATION bin
 )
+medio_install_tool_link(bin2txt)
 
 # make sure to bundle all runtime dll libs which the generated
 # executable might require using the 'mingw-bundleddlls-wine" tool

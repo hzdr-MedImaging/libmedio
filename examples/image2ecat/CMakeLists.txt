@@ -73,6 +73,7 @@ set_target_properties(image2ecat PROPERTIES OUTPUT_NAME image2ecat-${PROJECT_VER
 install(TARGETS image2ecat
         RUNTIME DESTINATION bin
 )
+medio_install_tool_link(image2ecat)
 
 # make sure to bundle all runtime dll libs which the generated
 # executable might require using the 'mingw-bundleddlls-wine" tool

@@ -52,6 +52,7 @@ set_target_properties(sumSino PROPERTIES OUTPUT_NAME sumSino-${PROJECT_VERSION})
 install(TARGETS sumSino
         RUNTIME DESTINATION bin
 )
+medio_install_tool_link(sumSino)
 
 # make sure to bundle all runtime dll libs which the generated
 # executable might require using the 'mingw-bundleddlls-wine" tool
