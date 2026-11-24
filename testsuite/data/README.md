@@ -30,7 +30,7 @@ testsuite/data/
 │   ├── pet-static.hdr             # Interfile single file (header followed by the data)
 │   ├── pet-static.pair/           # Interfile header/image pair
 │   ├── pet-static.stir/           # STIR: header (.hv) and data file (.v)
-│   ├── pet-wholebody.siemens/     # Siemens reconstruction: main header (.mhdr),
+│   ├── pet-bladder-static.siemens/  # Siemens reconstruction: main header (.mhdr),
 │   │                              # image header (.v.hdr) and data file (.v)
 │   └── ...
 └── dicom/

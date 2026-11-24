@@ -410,44 +410,44 @@
         }
       ]
     },
-    "pet-wholebody": {
-      "description": "Phantom, whole-body acquisition with continuous bed motion, one static frame of 435 s, 32x32x583 voxels of 22.6875 x 22.6875 x 1.64557 mm (F-18, FDG according to the headers)",
+    "pet-bladder-static": {
+      "description": "Bladder phantom (Phantom_Blase_Cu61; F-18, FDG according to the headers), step and shoot acquisition with one bed position, static frame of 60 s, 32x32x159 voxels of 22.6875 x 22.6875 x 1.64557 mm",
       "source": {
         "scanner": "Siemens PET/CT (originating system 1208)",
-        "reconstruction": "Siemens reconstruction (TOF-PSF-OP-OSEM 2i 5s, Gaussian filter) written as Interfile",
         "units": "Bq/ml",
-        "notes": "Not the acquisition of pet-static and pet-dynamic. The Interfile files and the DICOM series are both outputs of the same reconstruction. The Interfile file names were changed to the dataset name (also where the headers name them: the data set of the main header, the data file and the sinogram files of the image header); the DICOM slices are unchanged. The DICOM series and the Interfile data file hold the same planes in the same order (DICOM instance i = plane i-1 of the data file, values equal within the int16 quantization of DICOM). With continuous bed motion every DICOM slice has its own Acquisition Time, Frame Reference Time, Actual Frame Duration and Decay Factor. They are the start time, duration and decay factor of \"%image info[i]\" of the Interfile image header for instance i, whereas the z position and the minimum and maximum of instance i are those of \"%image info[584 - i]\" (see docs/interfile.md)."
+        "reconstruction": "Siemens reconstruction (TOF-PSF-OP-OSEM 2i 5s) written as Interfile and as DICOM",
+        "notes": "Not the acquisition of pet-static, pet-dynamic. pet-bladder-static and pet-bladder-dynamic are a static and a dynamic reconstruction of the same acquisition. The planes of the data files are in the order of \"%image info[n]\" (z falling with n, scan direction \"in\")."
       },
       "files": {
-        "interfile/pet-wholebody.siemens": {
+        "interfile/pet-bladder-static.siemens": {
           "origin": "original",
           "tool": "Siemens reconstruction (SMS-MI header version 3.9)",
           "same_reconstruction": true,
-          "notes": "main header pet-wholebody.mhdr with one data set, image header pet-wholebody_000_000.v.hdr and data file pet-wholebody_000_000.v; headers \"key:=value\" with CR LF and without \"!END OF INTERFILE\"; float32 little endian, Bq/ml, %image slope 1, %image intercept 0; the planes of the data file are in the reverse order of \"%image info[n]\" (plane k is \"%image info[583 - k]\")"
+          "notes": "the Interfile output of the reconstruction: main header, image header and data file of every data set; only the file names were changed to the dataset name, also where the headers name them (data sets, data file, sinogram files); headers \"key:=value\" with CR LF and without \"!END OF INTERFILE\"; float32 little endian, Bq/ml, %image slope 1, %image intercept 0"
         },
-        "dicom/pet-wholebody": {
+        "dicom/pet-bladder-static": {
           "origin": "original",
-          "tool": "Siemens reconstruction (TOF-PSF-OP-OSEM 2i 5s, Gaussian filter)",
+          "tool": "Siemens reconstruction (TOF-PSF-OP-OSEM 2i 5s)",
           "same_reconstruction": true,
-          "notes": "DICOM PET image series, 32x32x583 voxels of 22.6875 x 22.6875 x 1.64557 mm, one frame (Number of Time Slices 1), Bq/ml, int16 with a rescale slope per slice, image orientation [1,0,0,0,1,0], patient position HFS; instance 1 is the slice of the highest z; slices sorted by increasing z in the landmarks"
+          "notes": "DICOM PET image series of the same reconstruction, unchanged: 32x32x159 voxels of 22.6875 x 22.6875 x 1.64557 mm, Bq/ml, int16 with a rescale slope per slice, image orientation [1,0,0,0,1,0], patient position HFS; image index i is plane i-1 of the Interfile data file (values equal within the int16 quantization); slices sorted by increasing z in the landmarks"
         }
       },
       "landmarks": [
         {
-          "name": "first voxel of the Interfile data file",
+          "name": "first voxel of the Interfile data files",
           "coordinate_system": "DICOM patient coordinates (LPS)",
           "world_mm": [
-            -362.064,
-            -574.907,
-            239.18
+            -362.142,
+            -541.255,
+            -766.002
           ],
           "voxel": {
-            "dicom/pet-wholebody": [
+            "dicom/pet-bladder-static": [
               0,
               0,
-              582
+              158
             ],
-            "interfile/pet-wholebody.siemens": [
+            "interfile/pet-bladder-static.siemens": [
               0,
               0,
               0
@@ -455,23 +455,90 @@
           }
         },
         {
-          "name": "last voxel of the Interfile data file",
+          "name": "last voxel of the Interfile data files",
           "coordinate_system": "DICOM patient coordinates (LPS)",
           "world_mm": [
-            341.2485,
-            128.4055,
-            -718.542
+            341.1705,
+            162.0575,
+            -1026.0
           ],
           "voxel": {
-            "dicom/pet-wholebody": [
+            "dicom/pet-bladder-static": [
               31,
               31,
               0
             ],
-            "interfile/pet-wholebody.siemens": [
+            "interfile/pet-bladder-static.siemens": [
               31,
               31,
-              582
+              158
+            ]
+          }
+        }
+      ]
+    },
+    "pet-bladder-dynamic": {
+      "description": "Bladder phantom (Phantom_Blase_Cu61; F-18, FDG according to the headers), step and shoot acquisition with one bed position, dynamic with 2 frames of 60 s, 32x32x159 voxels of 22.6875 x 22.6875 x 1.64557 mm",
+      "source": {
+        "scanner": "Siemens PET/CT (originating system 1208)",
+        "units": "Bq/ml",
+        "reconstruction": "Siemens reconstruction (TOF-PSF-OP-OSEM 2i 5s) written as Interfile and as DICOM",
+        "notes": "Not the acquisition of pet-static, pet-dynamic. pet-bladder-static and pet-bladder-dynamic are a static and a dynamic reconstruction of the same acquisition. The planes of the data files are in the order of \"%image info[n]\" (z falling with n, scan direction \"in\")."
+      },
+      "files": {
+        "interfile/pet-bladder-dynamic.siemens": {
+          "origin": "original",
+          "tool": "Siemens reconstruction (SMS-MI header version 3.9)",
+          "same_reconstruction": true,
+          "notes": "the Interfile output of the reconstruction: main header, image header and data file of every data set; only the file names were changed to the dataset name, also where the headers name them (data sets, data file, sinogram files); headers \"key:=value\" with CR LF and without \"!END OF INTERFILE\"; float32 little endian, Bq/ml, %image slope 1, %image intercept 0; 2 data sets (frames)"
+        },
+        "dicom/pet-bladder-dynamic": {
+          "origin": "original",
+          "tool": "Siemens reconstruction (TOF-PSF-OP-OSEM 2i 5s)",
+          "same_reconstruction": true,
+          "notes": "DICOM PET image series of the same reconstruction, unchanged: 32x32x159 voxels of 22.6875 x 22.6875 x 1.64557 mm, Bq/ml, int16 with a rescale slope per slice, image orientation [1,0,0,0,1,0], patient position HFS; image index i is plane i-1 of the Interfile data file (values equal within the int16 quantization); slices sorted by increasing z in the landmarks; 2 frames (Number of Time Slices 2)"
+        }
+      },
+      "landmarks": [
+        {
+          "name": "first voxel of the Interfile data files",
+          "coordinate_system": "DICOM patient coordinates (LPS)",
+          "world_mm": [
+            -362.142,
+            -541.255,
+            -766.002
+          ],
+          "voxel": {
+            "dicom/pet-bladder-dynamic": [
+              0,
+              0,
+              158
+            ],
+            "interfile/pet-bladder-dynamic.siemens": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "name": "last voxel of the Interfile data files",
+          "coordinate_system": "DICOM patient coordinates (LPS)",
+          "world_mm": [
+            341.1705,
+            162.0575,
+            -1026.0
+          ],
+          "voxel": {
+            "dicom/pet-bladder-dynamic": [
+              31,
+              31,
+              0
+            ],
+            "interfile/pet-bladder-dynamic.siemens": [
+              31,
+              31,
+              158
             ]
           }
         }

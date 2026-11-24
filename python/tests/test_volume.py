@@ -58,8 +58,10 @@ READABLE = [
     ("interfile/pet-static.pair/pet-static.hdr", "interfile/pet-static.pair", "interfile/pet-static.pair.json"),
     ("interfile/pet-dynamic.hdr", "interfile/pet-dynamic.hdr", "interfile/pet-dynamic.hdr.json"),
     ("interfile/pet-dynamic.pair/pet-dynamic.img", "interfile/pet-dynamic.pair", "interfile/pet-dynamic.pair.json"),
-    ("interfile/pet-wholebody.siemens/pet-wholebody.mhdr", "interfile/pet-wholebody.siemens",
-     "interfile/pet-wholebody.siemens.json"),
+    ("interfile/pet-bladder-static.siemens/pet-bladder-static.mhdr", "interfile/pet-bladder-static.siemens",
+     "interfile/pet-bladder-static.siemens.json"),
+    ("interfile/pet-bladder-dynamic.siemens/pet-bladder-dynamic.mhdr", "interfile/pet-bladder-dynamic.siemens",
+     "interfile/pet-bladder-dynamic.siemens.json"),
 ]
 
 
