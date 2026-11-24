@@ -749,6 +749,11 @@ bool readNativeMainHeader(CMedIOData* file, CMedIOHeader*& header)
   bool result = false;
   header = NULL;
 
+  if(isOpenFile(file) == false) {
+    RETURN(false);
+    return false;
+  }
+
   switch(file->dataFormat()) {
     case CMedIOData::ECAT: {
       CECATMainHeader* mainHeader = NULL;

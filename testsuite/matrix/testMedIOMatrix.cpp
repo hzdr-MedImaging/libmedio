@@ -3711,27 +3711,38 @@ void TestMedIOMatrix::readAttributes()
 
 void TestMedIOMatrix::unopenedFiles_data()
 {
-  QTest::addColumn<QString>("file");
-  QTest::newRow("ECAT7")          << "ecat/pet-dynamic.v";
-  QTest::newRow("Philips image")  << "philips/pet-dynamic.img";
-  QTest::newRow("Philips Syntegra") << "philips/pet-dynamic.syn";
-  QTest::newRow("NIfTI")          << "nifti/pet-dynamic.nii.gz";
-  QTest::newRow("NIfTI pair")     << "nifti/pet-dynamic.pair/pet-dynamic.hdr";
+  QTest::addColumn<QString>("file"); // empty: a synthetic microPET image (no test dataset)
+  QTest::addColumn<int>("frames");
+  QTest::newRow("ECAT7")          << "ecat/pet-dynamic.v" << 3;
+  QTest::newRow("Philips image")  << "philips/pet-dynamic.img" << 3;
+  QTest::newRow("Philips Syntegra") << "philips/pet-dynamic.syn" << 3;
+  QTest::newRow("NIfTI")          << "nifti/pet-dynamic.nii.gz" << 3;
+  QTest::newRow("NIfTI pair")     << "nifti/pet-dynamic.pair/pet-dynamic.hdr" << 3;
+  QTest::newRow("microPET")       << QString() << 2;
 }
 
 void TestMedIOMatrix::unopenedFiles()
 {
   QFETCH(QString, file);
+  QFETCH(int, frames);
 
-  QScopedPointer<CMedIOData> data(CMedIODataFactory::create(medioTestDataDir() + "/" + file));
+  QString path = medioTestDataDir() + "/" + file;
+  if(file.isEmpty()) {
+    path = tmpFile("unopened_mpet");
+    QVERIFY(writeConcorde(path));
+  }
+
+  QScopedPointer<CMedIOData> data(CMedIODataFactory::create(path));
   QVERIFY(data.data() != NULL);
   QVERIFY(data->isOpen() == false);
 
-  const CMedIOData::Format formats[] = { CMedIOData::ECAT, CMedIOData::NIFTI, CMedIOData::Philips };
-  for(CMedIOData::Format format : formats) {
+  const CMedIOData::Format unopenedFormats[] = { CMedIOData::ECAT, CMedIOData::NIFTI, CMedIOData::Philips,
+                                                 CMedIOData::ConcordeMicropet };
+  for(CMedIOData::Format format : unopenedFormats) {
     CMedIOHeader* header = reinterpret_cast<CMedIOHeader*>(1);
     QVERIFY2(data->readMainHeader(header, format) == false, CMedIODataFactory::formatName(format));
     QVERIFY(header == NULL);
+    QVERIFY(data->errorStatus() != CMedIOData::MERR_Ok);
 
     QByteArray* matrix = reinterpret_cast<QByteArray*>(1);
     CMedIOHeader* subHeader = reinterpret_cast<CMedIOHeader*>(1);
@@ -3761,11 +3772,16 @@ void TestMedIOMatrix::unopenedFiles()
     QCOMPARE(static_cast<int>(philips->numTilts()), 0);
   }
 
-  // the same calls succeed once the file is open
+  // the same calls succeed once the file is open (microPET main headers can not be created
+  // from other formats, so that format is only read from the microPET file itself)
   QVERIFY(data->open(QIODevice::ReadOnly));
-  QCOMPARE(data->frameNumbers().size(), 3);
+  QCOMPARE(data->frameNumbers().size(), frames);
   QVERIFY(data->readVolume(volume));
   QVERIFY(data->readAttributes(attributes));
+  QVector<CMedIOData::Format> formats;
+  formats << CMedIOData::ECAT << CMedIOData::NIFTI << CMedIOData::Philips;
+  if(data->dataFormat() == CMedIOData::ConcordeMicropet)
+    formats << CMedIOData::ConcordeMicropet;
   for(CMedIOData::Format format : formats) {
     CMedIOHeader* header = NULL;
     QVERIFY2(data->readMainHeader(header, format), CMedIODataFactory::formatName(format));
