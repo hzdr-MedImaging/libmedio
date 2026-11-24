@@ -108,6 +108,14 @@ class CInterfileImageLayout
 
     //! @brief size the data file needs at least (end of the data of the last frame)
     qint64 requiredDataSize() const;
+
+    //! @brief STIR: the directions of the axes of the coordinates of STIR in DICOM
+    //!        patient coordinates (LPS) for a patient orientation ("head_in", "feet_in")
+    //!        and rotation ("supine", "prone"), as STIR 6.3 converts its images into LPS
+    //!        (determined with its ITK output, see docs/interfile.md): LPS = sign * STIR
+    //!        coordinate per axis; head_in/supine (also if not given) is (1, 1, -1)
+    //! @return false (head_in/supine) for other values
+    static bool stirSigns(const QString& orientation, const QString& rotation, double sign[3]);
 };
 
 #endif // CINTERFILEIMAGELAYOUT_H

@@ -7,7 +7,7 @@ independent access with numpy arrays.
 ```python
 import pmedio
 
-image = pmedio.load("image.v", orientation="RAS")    # ECAT7, NIfTI, Philips, microPET
+image = pmedio.load("image.v", orientation="RAS")    # ECAT7, NIfTI, Philips, Interfile, microPET
 image.data                                            # physical values (nx, ny, nz, frames), float32
 image.affine                                          # 3 x 4, voxel -> LPS (mm)
 image.frame_start, image.frame_duration               # s, one per frame
@@ -40,7 +40,7 @@ image.save("image.nii.gz")                            # or pmedio.save(path, ima
 import numpy as np
 import pmedio
 
-with pmedio.open("image.nii.gz") as f:              # ECAT7, NIfTI, Philips, microPET
+with pmedio.open("image.nii.gz") as f:              # ECAT7, NIfTI, Philips, Interfile, microPET
     for frame in f.frame_numbers():
         v = f.read_volume(frame)                      # pmedio.Volume, voxel order of the file
         values = v.values()                           # physical values, shape (nx, ny, nz)

@@ -96,8 +96,13 @@ bool CInterfileMainHeader::load()
 
 bool CInterfileMainHeader::save() const
 {
-  E("Interfile files can be read only");
-  return false;
+  ENTER();
+
+  CInterfileFile* file = dynamic_cast<CInterfileFile*>(medIOData());
+  const bool result = (file != NULL) && file->writeMainHeader(*this);
+
+  RETURN(result);
+  return result;
 }
 
 CMedIOHeader::Format CInterfileMainHeader::headerFormat() const

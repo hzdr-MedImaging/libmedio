@@ -90,7 +90,7 @@ writeMedio <- function(image, fname, like = NULL, format = NULL, overwrite = FAL
   if (!is.null(like) && (!is.character(like) || length(like) != 1L || is.na(like)))
     stop("'like' has to be the name of a file")
   if (!is.null(format) && (!is.character(format) || length(format) != 1L || is.na(format)))
-    stop("'format' has to be \"ecat\", \"nifti\" or \"philips\"")
+    stop("'format' has to be \"ecat\", \"nifti\", \"philips\" or \"interfile\"")
   if (!is.logical(overwrite) || length(overwrite) != 1L || is.na(overwrite))
     stop("'overwrite' has to be TRUE or FALSE")
 

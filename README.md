@@ -43,7 +43,7 @@ pipelines and conversions do not have to know the formats they work with.
 | ECAT 6 | `.v` | | main headers |
 | NIfTI-1, NIfTI-2 | `.nii`, `.nii.gz`, `.hdr`/`.img` (also `.gz`) | read, write (NIfTI-1) | both byte orders, JSON and DICOM header extensions |
 | Philips PET | `.img` (image), `.syn` (Syntegra) | read, write | images, sinograms, list mode |
-| Interfile (3.3, STIR, PMOD, Siemens reconstructions) | header (`.hdr`, `.hv`, `.h33`, Siemens `.mhdr`/`.v.hdr`) with data file or single file | read | images ([docs/interfile.md](docs/interfile.md)) |
+| Interfile (3.3, STIR, PMOD, Siemens reconstructions) | header (`.hdr`, `.hv`, `.h33`, Siemens `.mhdr`/`.v.hdr`) with data file or single file | read, write (`.hv`/`.v` as STIR) | images ([docs/interfile.md](docs/interfile.md)) |
 | Siemens Concorde microPET | `.img` + `.img.hdr` | read | images, sinograms |
 
 "All languages" is the format independent interface of C++, Python and R;

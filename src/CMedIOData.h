@@ -51,7 +51,7 @@ class CMedIOData : public QFile {
       Philips,           //!< data produced by a philips PET/MR scanner
       PhilipsBin,
       NIFTI,             //!< NIfTI format
-      Interfile          //!< Interfile (read only, see CInterfileFile)
+      Interfile          //!< Interfile (see CInterfileFile)
     };
 
     //! @enum enumeration carrying special IO error codes which
@@ -105,7 +105,7 @@ class CMedIOData : public QFile {
     // - One call reads or writes one frame (3D volume); frame -1 selects the
     //   default frame of the format (the first one).
     // - Only image data is supported (no sinograms, normalizations, ...).
-    //   microPET and Interfile files can be read only.
+    //   microPET files can be read only.
     //
     // If the requested format is the format of the file itself, the
     // matrices and headers of the file are returned unchanged (except for
@@ -129,7 +129,8 @@ class CMedIOData : public QFile {
     //!        holding the frames, Philips: CPhilipsSubHeaderImage of the first
     //!        slice (all slices of the frame in matrixData), microPET:
     //!        CConcordeFrameHeader (microPET files only), Interfile:
-    //!        CInterfileFrameHeader (Interfile files only; voxels in the order of the file)
+    //!        CInterfileFrameHeader (voxels in the order of the file; other formats: in the
+    //!        axes of STIR for the patient position, see CInterfileFile)
     bool readMatrix(QByteArray*& matrixData, CMedIOHeader*& subHeader,
                     CMedIOData::Format format, short frame=-1);
     bool readMatrix(char*& matrixData, unsigned int& len, CMedIOHeader*& subHeader,
@@ -205,8 +206,8 @@ class CMedIOData : public QFile {
     //! @brief main header for a new file, made from a volume instead of a source file
     //! @param volume a frame of the image to be written: dimensions, voxel size,
     //!        position, orientation and timing; for NIfTI also data type and scaling
-    //! @param format ECAT, NIFTI or Philips (Philips: an image file, change the file
-    //!        type with setFiltyp() for a Syntegra file)
+    //! @param format ECAT, NIFTI, Philips (Philips: an image file, change the file
+    //!        type with setFiltyp() for a Syntegra file) or Interfile
     //! @param numFrames number of frames the file will hold (NIfTI: volumes of dim[4])
     //! @param mainHeader the new header (to be deleted by the caller); it is not linked
     //!        to a file, call setMedIOData() before saving it
@@ -221,11 +222,13 @@ class CMedIOData : public QFile {
     //! and writeVolume() fails if their values do not fit, so pass a volume with
     //! physical values (CMedIOVolume::convertToPhysicalValues()) if the frames differ.
     //! Philips files store no position within the planes: the planes are centered.
+    //! Interfile files store all frames with the number format of the first frame written
+    //! (signed 16 bit integers with a scale factor per frame, or float32).
     static bool mainHeaderFromVolume(const CMedIOVolume& volume, CMedIOData::Format format,
                                      int numFrames, CMedIOHeader*& mainHeader);
 
     //---------------------------------------------------------------------------------------
-    // Writing new files of any writable format (ECAT7, NIfTI, Philips): create the object
+    // Writing new files of any writable format (ECAT7, NIfTI, Philips, Interfile): create the object
     // with CMedIODataFactory::createForWriting(), check fileNames() for existing files,
     // open() it for writing, write the main header with writeMainHeader() and the frames
     // with writeVolume(), and removeFiles() if writing fails.
@@ -247,8 +250,8 @@ class CMedIOData : public QFile {
     //!        file itself; for NIfTI header/image pairs the header and the image file (as
     //!        CNIFTIFile names them, also if an existing image file uses the other letter
     //!        case, see CNIFTIFile::imageFileName()); for microPET files also the header
-    //!        file (".hdr" appended); for open Interfile files also the headers and data
-    //!        files (CInterfileFile::allFileNames())
+    //!        file (".hdr" appended); for Interfile files the headers and data files
+    //!        (CInterfileFile::allFileNames(); a new file: the header and its data file)
     //!
     //! A new file replaces all of them: check that none exists before it is created.
     QStringList fileNames() const;
@@ -266,9 +269,9 @@ class CMedIOData : public QFile {
     bool readAttributes(QJsonObject& attributes);
 
     //! @brief number of frames a file with this main header has to get: the volumes of a
-    //!        NIfTI main header (dim[4], 1 for 3D data); a NIfTI file without all of them is
-    //!        incomplete. 0 for the main headers of the other formats, whose files take any
-    //!        number of frames.
+    //!        NIfTI main header (dim[4], 1 for 3D data), the frames of an Interfile main
+    //!        header; a NIfTI or Interfile file without all of them is incomplete. 0 for the
+    //!        main headers of the other formats, whose files take any number of frames.
     static int requiredFrames(const CMedIOHeader& mainHeader);
 
   protected :

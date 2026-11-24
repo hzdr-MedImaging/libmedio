@@ -1,9 +1,9 @@
 # Interfile support (design)
 
 This document collects what is known about the Interfile format and its
-variants and describes how libmedio supports it. It is a design document: the
-support is built in phases (see [Phases](#phases)), and the sections on the
-later phases describe the plan, not the current state.
+variants and describes how libmedio supports it. The support is built in
+phases (see [Phases](#phases)): phases 1 to 3 (reading and writing images) are
+implemented, the optional phases 4 and 5 are plans.
 
 ## The format
 
@@ -54,7 +54,7 @@ they describe the same kind of data.
 | --- | --- | --- | --- |
 | matrix size | `!matrix size [1..3]` (or `[1..2]` and `!number of slices`) | `!matrix size [1..3]`, `matrix axis label [n]` | `matrix size [n]` |
 | voxel size | `scaling factor (mm/pixel) [n]`, `slice thickness (pixels)` | `scaling factor (mm/pixel) [n]` | `scale factor (mm/pixel) [n]` |
-| position | PMOD: `origin (mm) [n]` | `first pixel offset (mm) [n]` | `start horizontal bed position (mm)`, `start vertical bed position (mm)`, `%gantry offset (mm) [n]`, per plane `%image info[n]` (see below; to be verified) |
+| position | PMOD: `origin (mm) [n]` | `first pixel offset (mm) [n]` with `patient orientation`/`patient rotation` (see [Phase 3](#phase-3-writing-images)) | `start horizontal bed position (mm)`, `start vertical bed position (mm)`, `%gantry offset (mm) [n]`, per plane `%image info[n]` (see below; to be verified) |
 | orientation | `slice orientation` | `patient orientation` (`head_in`/`feet_in`), `patient rotation` (`supine`/`prone`) | `%image orientation := {1,0,0,0,1,0}`, `%patient orientation := HFS` (DICOM terms), `slice orientation` |
 | frames | frame groups: `!frame group number`, `!number of images this frame group`, `!image duration (sec)`, `pause between images (sec)`, `pause between frame groups (sec)` | `number of time frames`, `image duration (sec)[f]`, `image relative start time (sec)[f]` | `image duration (sec)`, `image relative start time (sec)` |
 | scaling | PMOD: `data rescale slope`, `data rescale offset` | `image scaling factor[f]`; `quantification units` (a factor in STIR files, the units in the proposal) | `%image slope`, `%image intercept` |
@@ -158,8 +158,8 @@ test dataset `pet-wholebody`):
    format `CMedIOData::Interfile`, the factory, the format independent access,
    geometry, frame timing, attributes; Siemens main headers (`.mhdr`) and
    image headers; Python (`pmedio.Format.Interfile`) and R.
-3. **Writing images**: one canonical variant, conversions from and to the
-   other formats, the command line tools.
+3. **Writing images** (done): Interfile as written by STIR (`.hv`/`.v`), from
+   all formats through the format independent access; Python and R.
 4. *(optional)* **Projection data** (sinograms, normalisation) through the
    matrix interface of ECAT7 scans.
 5. *(optional)* **List mode**: header and metadata only (the event format is
@@ -237,10 +237,11 @@ private.
   `CMedIOData::fileNames()`) give all headers and data files.
 - Scaling: physical value = stored value × slope + intercept from
   `data rescale slope/offset` (PMOD), `image scaling factor[f]` (STIR) or
-  `%image slope/intercept` (Siemens). Units of activity concentration are
-  converted into Bq/ml (`kBq/cc`, `kBq/ml` × 1000, `MBq/ml` × 10⁶; PMOD writes
-  `kBq/cc` for `pet-dynamic`), the DICOM `Units` are then `BQML`; other units
-  are kept as given.
+  `%image slope/intercept` (Siemens). The values are not converted into other
+  units, as for the other formats: `units`/`quantification units` Bq/ml (also
+  Bq/cc) give the attribute `Units` `BQML`, kBq/cc (also kBq/ml) `KBQCC` (PMOD
+  writes kBq/cc for `pet-dynamic`, as in its NIfTI files); other units are kept
+  as given in the frame header.
 - Position of the voxels (`CInterfileFrameHeader::affine()`, LPS):
   - Siemens: x and y of the first voxel and the z of every plane from
     `%image info` (see [above](#images-of-siemens-reconstructions)), the axes
@@ -248,11 +249,13 @@ private.
     from the bed position and the gantry offset (the formulas of the sample).
     Tested with the landmarks of `pet-wholebody` (absolute positions of the
     DICOM series, within 0.01 mm).
+  - STIR (`first pixel offset (mm) [1..3]` given): see [Phase 3](#phase-3-writing-images).
+    Tested with `interfile/pet-static.stir`, written by STIR from
+    `nifti/pet-static.nii.gz` (the same positions as the NIfTI file).
   - Other variants: x towards patient left, y towards posterior, the planes
     from inferior to superior (as written by PMOD, tested with the ECAT7 files
-    the PMOD files were converted from), centered at 0. `origin (mm)` (PMOD)
-    and `first pixel offset (mm)` (STIR) are not used: their meaning has not
-    been verified with independent data.
+    the PMOD files were converted from), centered at 0. `origin (mm)` (PMOD) is
+    not used: its meaning has not been verified with independent data.
 - Attributes (`attributes()` of the headers, `CMedIOData::readAttributes()`):
 
   | Attribute | Keys |
@@ -284,15 +287,68 @@ private.
   attributes of `pet-wholebody` against its DICOM series, every file of a
   dataset identified, the conversion into NIfTI.
 
-### Phase 3: writing images (plan)
+### Phase 3: writing images
 
-- A canonical variant: the keys of Interfile 3.3 and the PET proposal as STIR
-  reads them, with the keys of the source kept where they apply.
-- New files by name: `.hv` (header, STIR convention) and `.h33`; `.hdr` stays
-  NIfTI, Interfile with `.hdr` is written with the format given explicitly. The
-  extension of the data file is to be decided (`.v` as STIR, which is also the
-  extension of ECAT7, or `.i33`/`.img`).
-- Files are written atomically (no partial files when writing fails).
+New files are written as STIR writes images, so that STIR (and SIRF) read them
+with their positions:
+
+- The header `<name>.hv` and the data file `<name>.v` (the extension of the
+  header replaced by `.v`), as STIR names its images; `CMedIODataFactory`
+  takes `.hv` as Interfile (`formatOfFileName()`, `createForWriting()`). The
+  data file has the extension of ECAT7 files, but ECAT7 is identified by its
+  magic number and the header next to an Interfile data file names it.
+- The keys of STIR 6 (`!version of keys := STIR6.0`, `!imaging modality := PT`,
+  `!PET data type := Image`, `imagedata byte order := LITTLEENDIAN`, `!number
+  format`, `!matrix size [i]`, `scaling factor (mm/pixel) [i]`, `first pixel
+  offset (mm) [i]`, `patient orientation`, `patient rotation`, `number of time
+  frames`), per frame `image scaling factor[f]`, `data offset in bytes[f]`,
+  `image duration (sec)[f]` and `image relative start time (sec)[f]`.
+- The number format of the first frame written for all frames: signed 16 bit
+  integers with a scale factor per frame if the values are integers that fit,
+  otherwise float32 (the physical values). A frame that does not fit into the
+  number format of the file, or has another matrix or position, is not written.
+- The attributes as keys (read again by libmedio, see the table above):
+  `patient name`, `!patient ID`, `patient sex`, `patient weight (kg)`,
+  `patient height (cm)`, `patient dob`, `!study ID`, `!originating system`,
+  `study date (yyyy:mm:dd)` + `study time (hh:mm:ss GMT+00:00)` (UTC; without
+  zone: `study date`/`study time`), `radiopharmaceutical`, `tracer activity at
+  time of injection (Bq)`, `tracer injection date/time`, `radionuclide
+  halflife (sec)[1]`, `radionuclide branching factor[1]`, `energy window
+  lower/upper level[1]`, `units` (`Bq/ml`, `kBq/cc`), `method of
+  reconstruction`, `method of attenuation correction`, `method of scatter
+  correction`. STIR reads the radionuclide, energy window and patient position
+  and ignores the others (with a warning).
+- The main header gives the number of frames (`CMedIOData::requiredFrames()`):
+  the header is written with the main header and again after every frame, the
+  frames at their offsets; a file without all frames cannot be read (the data
+  file is too short). The callers remove incomplete files
+  (`CMedIOData::removeFiles()`: header and data file).
+
+Position of the voxels in the files of STIR: `first pixel offset (mm) [i]` is
+the position of the first voxel in the coordinates of STIR, whose axes are the
+voxel axes (x fastest, then y, then z); their directions in DICOM patient
+coordinates (LPS) depend on the patient position. Determined with STIR 6.3
+(conda-forge): images written by `generate_image` and with `first pixel
+offset` set to arbitrary values, with the four patient positions, converted
+by STIR into NIfTI with its ITK output and read with nibabel (the voxels in
+the order of the Interfile data, the offsets taken as they are):
+
+| `patient orientation` / `patient rotation` | LPS of voxel (i, j, k), s = offset + (i dx, j dy, k dz) | voxel axes |
+| --- | --- | --- |
+| `head_in` / `supine` (also if not given) | (+s₁, +s₂, −s₃) | LPI |
+| `feet_in` / `supine` | (−s₁, +s₂, +s₃) | RPS |
+| `head_in` / `prone` | (−s₁, −s₂, −s₃) | RAI |
+| `feet_in` / `prone` | (+s₁, −s₂, +s₃) | LAS |
+
+libmedio reads STIR files with this table and writes new files in the voxel
+axes of the patient position of the attributes (`PatientPosition` HFS, FFS,
+HFP or FFP; otherwise HFS), so that STIR gives every voxel its position.
+Verified with STIR 6.3: files written by libmedio from `ecat/pet-static.v`,
+`ecat/pet-dynamic.v` (16 bit integers, 3 frames), `pet-wholebody` and
+`nifti/pet-static.nii.gz` (with the patient positions FFS, HFP, FFP) were read
+by STIR (`stir_math` into NIfTI with ITK, `extract_single_images_from_dynamic_image`
+for the frames): the same positions (difference 0.0000 mm), values (relative
+difference < 1e-7, STIR stores float32) and frame timing.
 
 ## Test data and references
 
@@ -310,8 +366,12 @@ private.
   Interfile files (own parser of `make_expected.py`, which follows the data
   sets of the main header) include the start time and the plane order relative
   to `%image info[n]`.
-- Planned: a dynamic Siemens reconstruction, files written by STIR (conda-forge package `stir`) and by (X)MedCon
-  (package `xmedcon` of Ubuntu) as independent implementations. nibabel does
+- `testsuite/data/interfile/pet-static.stir/`: written by STIR 6.3 (`stir_math`)
+  from `nifti/pet-static.nii.gz` (read with ITK): float32, planes reversed,
+  `first pixel offset`; its expected values include the LPS position of the
+  first voxel by the table of phase 3.
+- Planned: a dynamic Siemens reconstruction, files written by (X)MedCon
+  (package `xmedcon` of Ubuntu) as independent implementation. nibabel does
   not support Interfile, the Python package `interfile` is Python 2 only.
 
 ## Open questions
@@ -320,11 +380,8 @@ private.
   sets of the main header: one image header per frame?); the position of the
   voxels for other patient orientations than HFS (only one sample); the order
   of the time elements of `%image info` (see above).
-- The meaning of `origin (mm)` (PMOD) and `first pixel offset (mm)` (STIR),
-  to be verified with files whose positions are known.
-- The axis directions of each variant (Siemens `%patient orientation`, STIR
-  `patient orientation`/`rotation`, PMOD).
-- The extension of written data files (phase 3).
+- The meaning of `origin (mm)` (PMOD), to be verified with files whose
+  positions are known.
 
 ## References
 

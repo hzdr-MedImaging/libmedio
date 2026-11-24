@@ -210,24 +210,15 @@ QString patientPosition(const QList<Source>& sources)
 
 } // namespace
 
-QString units(const QString& units, double* factor)
+QString units(const QString& units)
 {
-  *factor = 1.0;
   QString text = units.trimmed().toLower();
   text.remove(' ');
 
   if(text == "bqml" || text == "bq/ml" || text == "bq/cc" || text == "bq/cm3" || text == "bq/cm^3")
     return "BQML";
-  if(text == "kbq/ml" || text == "kbq/cc" || text == "kbq/cm3")
-  {
-    *factor = 1e3;
-    return "BQML";
-  }
-  if(text == "mbq/ml" || text == "mbq/cc" || text == "mbq/cm3")
-  {
-    *factor = 1e6;
-    return "BQML";
-  }
+  if(text == "kbq/ml" || text == "kbq/cc" || text == "kbq/cm3" || text == "kbqcc" || text == "kbqml")
+    return "KBQCC";
 
   return units.trimmed();
 }
@@ -336,6 +327,7 @@ QJsonObject mainAttributes(const CInterfileKeys& keys, int begin, int end, const
                                                                         << "isotope halflife (sec)"
                                                                         << "isotope halflife"));
   putNumber(json, "RadionuclidePositronFraction", lookup(sources, QStringList() << "isotope branching factor"
+                                                                                << "radionuclide branching factor"
                                                                                 << "branching factor"));
   const QString doseBq = lookup(sources, QStringList() << "tracer activity at time of injection (bq)");
   const QString doseMBq = lookup(sources, QStringList() << "tracer activity at time of injection (mbq)"
@@ -356,7 +348,7 @@ QJsonObject mainAttributes(const CInterfileKeys& keys, int begin, int end, const
                                                                           << "energy window upper level"));
 
   // image
-  if(units == "BQML")
+  if(units == "BQML" || units == "KBQCC")
     json["Units"] = units;
   QString method = lookup(sources, QStringList() << "method of reconstruction");
   const QString iterations = lookup(sources, QStringList() << "number of iterations");
@@ -371,6 +363,123 @@ QJsonObject mainAttributes(const CInterfileKeys& keys, int begin, int end, const
   json[QString::fromLatin1(SectionName)] = section(keys, begin, end);
 
   return json;
+}
+
+namespace {
+
+QString textOf(const QJsonValue& value)
+{
+  if(value.isString())
+    return value.toString().simplified();
+  if(value.isDouble())
+    return QString::number(value.toDouble(), 'g', 15);
+  return QString();
+}
+
+// a DICOM date time (ISO 8601) as Interfile date and time keys: with a zone in UTC and
+// "GMT+00:00" in the name of the time key, otherwise as given
+void putDateTime(QList<QPair<QString, QString> >& keys, const QString& value, const QString& dateKey,
+                 const QString& timeKey)
+{
+  const QString text = value.trimmed();
+  if(text.size() < 19)
+    return;
+
+  const bool zone = text.endsWith('Z') || QRegularExpression("[+-]\\d\\d:?\\d\\d$").match(text.mid(19)).hasMatch();
+  QDateTime dateTime = QDateTime::fromString(text, Qt::ISODateWithMs);
+  if(dateTime.isValid() == false)
+    dateTime = QDateTime::fromString(text, Qt::ISODate);
+  if(dateTime.isValid() == false)
+    return;
+
+  if(zone)
+  {
+    dateTime = dateTime.toUTC();
+    keys << qMakePair(dateKey + " (yyyy:mm:dd)", dateTime.date().toString("yyyy:MM:dd"));
+    keys << qMakePair(timeKey + " (hh:mm:ss GMT+00:00)", dateTime.time().toString(dateTime.time().msec() ? "hh:mm:ss.zzz" : "hh:mm:ss"));
+  }
+  else
+  {
+    keys << qMakePair(dateKey, dateTime.date().toString("yyyy:MM:dd"));
+    keys << qMakePair(timeKey, dateTime.time().toString(dateTime.time().msec() ? "hh:mm:ss.zzz" : "hh:mm:ss"));
+  }
+}
+
+} // namespace
+
+QList<QPair<QString, QString> > keysOfAttributes(const QJsonObject& attributes)
+{
+  QList<QPair<QString, QString> > keys;
+
+  // the attributes as text, in the order of the keys
+  struct Entry { const char* key; const char* attribute; double factor; };
+  static const Entry patient[] = {
+    { "patient name", "PatientName", 0.0 },
+    { "!patient ID", "PatientID", 0.0 },
+    { "patient sex", "PatientSex", 0.0 },
+    { "patient weight (kg)", "PatientWeight", 0.0 },
+    { "patient height (cm)", "PatientSize", 100.0 },
+    { "!study ID", "StudyID", 0.0 },
+    { "!originating system", "ManufacturerModelName", 0.0 }
+  };
+  for(unsigned i = 0; i < sizeof(patient) / sizeof(patient[0]); i++)
+  {
+    const QJsonValue value = attributes.value(QString::fromLatin1(patient[i].attribute));
+    QString text = textOf(value);
+    if(patient[i].factor != 0.0 && value.isDouble())
+      text = QString::number(value.toDouble() * patient[i].factor, 'g', 15);
+    if(text.isEmpty() == false)
+      keys << qMakePair(QString::fromLatin1(patient[i].key), text);
+  }
+
+  const QDate birthDate = QDate::fromString(attributes.value("PatientBirthDate").toString(), "yyyy-MM-dd");
+  if(birthDate.isValid())
+    keys << qMakePair(QString("patient dob"), birthDate.toString("yyyy:MM:dd"));
+  putDateTime(keys, attributes.value("AcquisitionDateTime").toString(), "study date", "study time");
+
+  // radiopharmaceutical (the keys of STIR)
+  if(attributes.contains("Radiopharmaceutical"))
+    keys << qMakePair(QString("radiopharmaceutical"), textOf(attributes.value("Radiopharmaceutical")));
+  if(attributes.value("RadionuclideTotalDose").isDouble())
+    keys << qMakePair(QString("tracer activity at time of injection (Bq)"),
+                      textOf(attributes.value("RadionuclideTotalDose")));
+  putDateTime(keys, attributes.value("RadiopharmaceuticalStartDateTime").toString(), "tracer injection date",
+              "tracer injection time");
+  if(attributes.value("RadionuclideHalfLife").isDouble() || attributes.value("RadionuclidePositronFraction").isDouble())
+    keys << qMakePair(QString("number of radionuclides"), QString("1"));
+  if(attributes.value("RadionuclideHalfLife").isDouble())
+    keys << qMakePair(QString("radionuclide halflife (sec)[1]"), textOf(attributes.value("RadionuclideHalfLife")));
+  if(attributes.value("RadionuclidePositronFraction").isDouble())
+    keys << qMakePair(QString("radionuclide branching factor[1]"),
+                      textOf(attributes.value("RadionuclidePositronFraction")));
+
+  // energy window, units, reconstruction
+  if(attributes.value("EnergyWindowLowerLimit").isDouble() || attributes.value("EnergyWindowUpperLimit").isDouble())
+    keys << qMakePair(QString("number of energy windows"), QString("1"));
+  if(attributes.value("EnergyWindowLowerLimit").isDouble())
+    keys << qMakePair(QString("energy window lower level[1]"), textOf(attributes.value("EnergyWindowLowerLimit")));
+  if(attributes.value("EnergyWindowUpperLimit").isDouble())
+    keys << qMakePair(QString("energy window upper level[1]"), textOf(attributes.value("EnergyWindowUpperLimit")));
+  const QString units = attributes.value("Units").toString().trimmed();
+  if(units == "BQML")
+    keys << qMakePair(QString("units"), QString("Bq/ml"));
+  else if(units == "KBQCC")
+    keys << qMakePair(QString("units"), QString("kBq/cc"));
+  else if(units.isEmpty() == false)
+    keys << qMakePair(QString("units"), units);
+  static const Entry methods[] = {
+    { "method of reconstruction", "ReconstructionMethod", 0.0 },
+    { "method of attenuation correction", "AttenuationCorrectionMethod", 0.0 },
+    { "method of scatter correction", "ScatterCorrectionMethod", 0.0 }
+  };
+  for(unsigned i = 0; i < sizeof(methods) / sizeof(methods[0]); i++)
+  {
+    const QString text = textOf(attributes.value(QString::fromLatin1(methods[i].attribute)));
+    if(text.isEmpty() == false)
+      keys << qMakePair(QString::fromLatin1(methods[i].key), text);
+  }
+
+  return keys;
 }
 
 QJsonObject frameAttributes(const CInterfileKeys& keys, int begin, int end, double duration)

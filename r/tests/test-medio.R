@@ -94,18 +94,27 @@ philips <- expected("pet-dynamic.img")
 check_read("pet-dynamic.img", "philips", unlist(philips$dims), raw_sums(philips, "volumes"),
            ecat_scales, ecat_start, ecat_duration)
 
-# Interfile (read only): PMOD converted the ECAT7 file into Interfile 3.3 with the planes
-# from inferior to superior and the values in kBq/cc, which libmedio converts into Bq/ml
+# Interfile: PMOD converted the ECAT7 file into Interfile 3.3 with the planes from inferior
+# to superior and the values in kBq/cc (the ECAT7 file gives Bq/cc)
 interfile <- readMedio(extdata("pet-dynamic.hdr"), orientation = "LPI")
 stopifnot(identical(interfile$format, "interfile"),
           identical(dim(interfile$data), dim(dynamic$data)),
-          near(interfile$data, dynamic$data, 1e-6),
+          near(interfile$data * 1000, dynamic$data, 1e-6),
           near(interfile$frame_start, dynamic$frame_start, 1e-9),
           near(interfile$frame_duration, dynamic$frame_duration, 1e-9),
           identical(interfile$attributes$PatientName, dynamic$attributes$PatientName),
-          identical(interfile$attributes$Units, "BQML"),
+          identical(interfile$attributes$Units, "KBQCC"),
           is.list(interfile$attributes$Interfile))
-fails(writeMedio(interfile, file.path(tempdir(), "interfile.hv"), format = "interfile"), "cannot be written")
+# written as Interfile (as STIR writes images) and read again
+hv <- file.path(tempdir(), "interfile.hv")
+writeMedio(interfile, hv, overwrite = TRUE)
+stopifnot(file.exists(file.path(tempdir(), "interfile.v")))
+again <- readMedio(hv, orientation = "LPI")
+stopifnot(identical(again$format, "interfile"),
+          near(again$data, interfile$data, 1e-6),
+          near(again$affine, interfile$affine, 1e-6),
+          near(again$frame_start, interfile$frame_start, 1e-9),
+          identical(again$attributes$PatientName, interfile$attributes$PatientName))
 
 # the header attributes (DICOM keywords, native fields in the section of the format)
 stopifnot(identical(dynamic$attributes$PatientName, "Phantom_NEMA_Cu61_kontrast8"),
@@ -149,7 +158,8 @@ attributes <- list(PatientName = "Test^Name", PatientID = "4711", PatientWeight 
 values <- array(seq_len(prod(shape) * 3) + 0.25, dim = c(shape, 3))   # distinct, exact as float32
 image <- medioImage(values, affine, start, duration, attributes)
 
-formats <- c(".v" = "ecat", ".nii" = "nifti", ".nii.gz" = "nifti", ".hdr" = "nifti", ".img" = "philips", ".syn" = "philips")
+formats <- c(".v" = "ecat", ".nii" = "nifti", ".nii.gz" = "nifti", ".hdr" = "nifti", ".img" = "philips", ".syn" = "philips",
+             ".hv" = "interfile")
 for (suffix in names(formats))
 {
   dir <- tempfile()

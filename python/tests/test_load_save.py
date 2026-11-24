@@ -39,7 +39,8 @@ SHAPE = (5, 4, 3)
 FRAME_START = [0.0, 60.0, 120.0]
 FRAME_DURATION = [30.0, 31.0, 32.5]
 FORMATS = {".v": pmedio.Format.ECAT, ".nii": pmedio.Format.NIFTI, ".nii.gz": pmedio.Format.NIFTI,
-           ".hdr": pmedio.Format.NIFTI, ".img": pmedio.Format.Philips, ".syn": pmedio.Format.Philips}
+           ".hdr": pmedio.Format.NIFTI, ".img": pmedio.Format.Philips, ".syn": pmedio.Format.Philips,
+           ".hv": pmedio.Format.Interfile}
 ATTRIBUTES = {"PatientName": "Test^Name", "PatientID": "4711", "PatientWeight": 72.5, "Radiopharmaceutical": "FDG"}
 
 

@@ -51,10 +51,11 @@ class CMedIODataFactory
     static CMedIOData* create(const QString& fileName);
 
     //-------------------------------------------------------------------------------------
-    // New files of the writable formats (ECAT7, NIfTI, Philips)
+    // New files of the writable formats (ECAT7, NIfTI, Philips, Interfile)
 
     //! @brief format of a new file, taken from the extension of its name (any letter case):
-    //!        ".v" ECAT, ".nii", ".nii.gz", ".hdr" and ".hdr.gz" NIFTI, ".img" and ".syn" Philips
+    //!        ".v" ECAT, ".nii", ".nii.gz", ".hdr" and ".hdr.gz" NIFTI, ".img" and ".syn" Philips,
+    //!        ".hv" Interfile
     //! @return Unknown for other names; identify() determines the format of an existing
     //!         file from its content
     static CMedIOData::Format formatOfFileName(const QString& fileName);
@@ -64,7 +65,8 @@ class CMedIODataFactory
     //! @param format ECAT: ECAT7 image volumes (CECATMainHeader::ECAT7_Volume16), NIFTI:
     //!        NIfTI-1, as single file or header/image pair depending on the name (see
     //!        CNIFTIFile), Philips: an image file, a Syntegra file for names ending with
-    //!        ".syn"; Unknown: the format of formatOfFileName()
+    //!        ".syn", Interfile: the header with this name and the data file <name>.v (as STIR,
+    //!        see CInterfileFile); Unknown: the format of formatOfFileName()
     //! @return the new object (not opened, to be deleted by the caller), NULL if the format
     //!         is unknown or cannot be written
     //!

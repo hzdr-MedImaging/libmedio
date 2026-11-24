@@ -29,8 +29,10 @@
 
 #ifndef __MEDIO_PRIVATE__
 #include <CMedIOData>
+#include <CMedIOVolume>
 #else
 #include <CMedIOData.h>
+#include <CMedIOVolume.h>
 #endif
 
 class CInterfileMainHeader;
@@ -38,7 +40,7 @@ class CInterfileFrameHeader;
 class CInterfileFilePrivate;
 
 //! @class CInterfileFile
-//! @brief images stored as Interfile (read only)
+//! @brief images stored as Interfile
 //!
 //! An Interfile image is described by an ASCII header (see CInterfileKeys) and
 //! stored in a data file or in the header file behind the header. Supported are
@@ -62,9 +64,23 @@ class CInterfileFilePrivate;
 //!   plane k of the data file has the z of "%image info[planes - k]"), verified
 //!   with the DICOM series of the same reconstruction (patient orientation HFS);
 //!   without it from the bed position and the gantry offset.
+//! - STIR ("first pixel offset (mm) [i]"): the position of the first voxel in the
+//!   coordinates of STIR, whose directions in LPS depend on "patient orientation" and
+//!   "patient rotation" (head_in/supine if not given), as STIR converts its images.
 //! - Other variants: the axes of the voxels towards patient left, posterior and
-//!   superior (as written by PMOD), centered at 0; the origin keys of the variants
-//!   are not used (their meaning has not been verified).
+//!   superior (as written by PMOD), centered at 0; "origin (mm)" of PMOD is not used
+//!   (its meaning has not been verified).
+//!
+//! New files are written as STIR writes images (see docs/interfile.md): the header
+//! <name>.hv (any name; its extension is replaced by ".v" for the data file) and the
+//! data file <name>.v, little endian, signed 16 bit integers with a scale factor per
+//! frame or float32, the frames one after the other ("image scaling factor[f]", "data
+//! offset in bytes[f]", "image duration (sec)[f]", "image relative start time
+//! (sec)[f]"), the position as "first pixel offset (mm)" with "patient orientation"
+//! and "patient rotation". Create the object with CMedIODataFactory::createForWriting(),
+//! open() it with QIODevice::WriteOnly, write the main header (number of frames,
+//! attributes) and the frames 1..n; the header is written again after every frame. All
+//! frames have the matrix, number format and position of the first one written.
 class CInterfileFile : public CMedIOData
 {
   public:
@@ -79,7 +95,8 @@ class CInterfileFile : public CMedIOData
     //! @brief a new CInterfileFile (not opened) if isOfType(), otherwise NULL
     static CMedIOData* createFromFile(const QString& fileName);
 
-    //! @brief open the file; Interfile files can be read only (QIODevice::ReadOnly)
+    //! @brief open the file for reading (QIODevice::ReadOnly) or a new file for writing
+    //!        (QIODevice::WriteOnly: the header and the data file are created)
     bool open(QIODevice::OpenModeFlag mode);
     void close();
 
@@ -87,8 +104,14 @@ class CInterfileFile : public CMedIOData
 
     //! @brief the header that was opened (the main header of a Siemens reconstruction)
     QString headerFileName() const;
-    //! @brief all files of the image: the headers and the data files
+    //! @brief all files of the image: the headers and the data files (a file that is not
+    //!        open for reading: the file and dataFileNameOf() it)
     QStringList allFileNames() const;
+
+    //! @brief the data file of a new file: the name of the header with ".v" instead of
+    //!        its extension (STIR: <name>.hv and <name>.v); a name without extension or
+    //!        ending with ".v" gets ".v" appended
+    static QString dataFileNameOf(const QString& headerFileName);
     //! @brief the reason why the last open() failed (empty if it did not)
     QString openError() const;
 
@@ -103,11 +126,36 @@ class CInterfileFile : public CMedIOData
     //!        stored values, in the byte order of this machine (both to be deleted by the caller)
     bool readMatrix(QByteArray*& matrixData, CInterfileFrameHeader*& subHeader, short frame);
 
+    //! @brief write the main header of a new file: the number of frames (numFrames()) and
+    //!        the attributes stored in the header (see docs/interfile.md)
+    bool writeMainHeader(const CInterfileMainHeader& mainHeader);
+
+    //! @brief write a frame (1..number of frames of the main header, -1: frame 1) of a new
+    //!        file: voxels in the order and data type of subHeader (signed 16 bit integers
+    //!        or float32, intercept 0), in the byte order of this machine; the voxel axes
+    //!        have to be the axes of STIR for one of the patient positions HFS, FFS, HFP or
+    //!        FFP (CInterfileFrameHeader::affine(): diagonal with the signs (1, 1, -1),
+    //!        (-1, 1, 1), (-1, -1, -1) or (1, -1, 1)), as given by readMatrix() of another
+    //!        file in the representation of Interfile
+    bool writeMatrix(const QByteArray& matrixData, const CInterfileFrameHeader& subHeader, short frame);
+
+    //! @brief a file open for writing: the number format of the frames (fixed by the first
+    //!        frame written, UnknownDataType before) and the orientation code of their voxel
+    //!        axes, from the patient position of the main header written (DICOM Patient
+    //!        Position HFS "LPI", FFS "RPS", HFP "RAI", FFP "LAS", otherwise HFS)
+    CMedIOVolume::DataType writtenDataType() const;
+    QString writtenOrientation() const;
+
     // format independent access of CMedIOData (in the representation of other formats)
     using CMedIOData::readMainHeader;
     using CMedIOData::readMatrix;
+    using CMedIOData::writeMainHeader;
+    using CMedIOData::writeMatrix;
 
   private:
+    //! @brief write the header of a new file (again)
+    bool writeHeader();
+
     CInterfileFilePrivate* m_pData;
 };
 

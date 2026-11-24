@@ -576,7 +576,7 @@ void TestInterfileLayout::datasets()
 
   const QJsonObject header = file.expected.value("header").toObject();
 
-  // the header: the file itself, or the .hdr file of a header/image pair directory
+  // the header: the file itself, or the .hdr (STIR: .hv) file of a header/image pair directory
   // (Siemens: the image header of the data set of the main header .mhdr)
   QString headerFile = file.path;
   CInterfileKeys keys;
@@ -584,7 +584,7 @@ void TestInterfileLayout::datasets()
   QString error;
   if(QFileInfo(file.path).isDir())
   {
-    const QStringList headers = QDir(file.path).entryList(QStringList() << "*.hdr", QDir::Files);
+    const QStringList headers = QDir(file.path).entryList(QStringList() << "*.hdr" << "*.hv", QDir::Files);
     QCOMPARE(headers.size(), 1);
     headerFile = QDir(file.path).filePath(headers.first());
 
@@ -657,8 +657,11 @@ void TestInterfileLayout::datasets()
     QCOMPARE(sum, expected.value("raw_sum").toDouble());
   }
 
-  // the frame timing of the ECAT7 file the Interfile file was converted from
+  // the frame timing of the ECAT7 file the Interfile file was converted from (PMOD;
+  // STIR converted the NIfTI file, which has no frame timing)
   const QString ecat = QString("ecat/%1.v").arg(file.dataset);
+  if(file.fileInfo.value("source").toString().startsWith(ecat) == false)
+    return;
   foreach(const MedIOTestFile& other, medioTestData("ecat").files)
   {
     if(other.relativePath != ecat)

@@ -97,10 +97,11 @@ for(int k=0; k < frames.size(); k++) {
   ```
 - New files of any writable format: `CMedIODataFactory::formatOfFileName()`
   gives the format of a file name (`.v`, `.nii`, `.nii.gz`, `.hdr`, `.img`,
-  `.syn`), `CMedIODataFactory::createForWriting()` the file object,
+  `.syn`, `.hv`), `CMedIODataFactory::createForWriting()` the file object,
   `CMedIOData::writeMainHeader(header)` writes a main header of any format
   with the class of the file, `fileNames()` lists all files a file consists
-  of (both files of a NIfTI header/image pair) to check for existing files,
+  of (both files of a NIfTI header/image pair, header and data file of
+  Interfile) to check for existing files,
   and `removeFiles()` removes them if writing fails. `requiredFrames()` gives
   the number of frames a NIfTI main header needs; `readAttributes()` returns
   the header attributes of a file incl. those of every frame (see
