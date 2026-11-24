@@ -35,7 +35,10 @@
 //!   written by STIR ("number of time frames", "image duration (sec)[f]", "image
 //!   relative start time (sec)[f]", "image scaling factor[f]", "data offset in
 //!   bytes[f]", "first pixel offset (mm) [i]", "quantification units"),
-//! - the spellings of Siemens ("image data byte order", "scale factor (mm/pixel)").
+//! - the image headers of Siemens reconstructions ("image data byte order", "scale
+//!   factor (mm/pixel)", "%image slope", "%image intercept"); their main headers
+//!   ("%data set[n] := {0, <image header>, <data file>}") describe no image data
+//!   and are rejected.
 //!
 //! The data is given either in a separate file ("name of data file") or in the
 //! header file after the header ("data offset in bytes", "data starting block" in

@@ -28,6 +28,8 @@ they describe the same kind of data.
 
 - An ASCII header with one `key := value` per line, from `!INTERFILE :=` to
   `!END OF INTERFILE :=`; lines end with CR LF (Interfile 3.3), LF is common.
+  The headers of Siemens reconstructions have **no** `!END OF INTERFILE`: the
+  header ends with the file (they are always separate from the data).
 - `!` marks a key required by the standard, `%` a vendor key (Siemens), `;`
   starts a comment line.
 - Keys are compared without regard to the letter case, `_` and white space
@@ -52,16 +54,17 @@ they describe the same kind of data.
 | --- | --- | --- | --- |
 | matrix size | `!matrix size [1..3]` (or `[1..2]` and `!number of slices`) | `!matrix size [1..3]`, `matrix axis label [n]` | `matrix size [n]` |
 | voxel size | `scaling factor (mm/pixel) [n]`, `slice thickness (pixels)` | `scaling factor (mm/pixel) [n]` | `scale factor (mm/pixel) [n]` |
-| position | PMOD: `origin (mm) [n]` | `first pixel offset (mm) [n]` | (to be determined) |
-| orientation | `slice orientation` | `patient orientation` (`head_in`/`feet_in`), `patient rotation` (`supine`/`prone`) | `%patient orientation` (values to be determined) |
+| position | PMOD: `origin (mm) [n]` | `first pixel offset (mm) [n]` | `start horizontal bed position (mm)`, `start vertical bed position (mm)`, `%gantry offset (mm) [n]`, per plane `%image info[n]` (see below; to be verified) |
+| orientation | `slice orientation` | `patient orientation` (`head_in`/`feet_in`), `patient rotation` (`supine`/`prone`) | `%image orientation := {1,0,0,0,1,0}`, `%patient orientation := HFS` (DICOM terms), `slice orientation` |
 | frames | frame groups: `!frame group number`, `!number of images this frame group`, `!image duration (sec)`, `pause between images (sec)`, `pause between frame groups (sec)` | `number of time frames`, `image duration (sec)[f]`, `image relative start time (sec)[f]` | `image duration (sec)`, `image relative start time (sec)` |
-| scaling | PMOD: `data rescale slope`, `data rescale offset` | `image scaling factor[f]`; `quantification units` (a factor in STIR files, the units in the proposal) | (to be determined) |
-| units | PMOD: `units` (`BQML`, `kBq/cc`) | `quantification units` | |
+| scaling | PMOD: `data rescale slope`, `data rescale offset` | `image scaling factor[f]`; `quantification units` (a factor in STIR files, the units in the proposal) | `%image slope`, `%image intercept` |
+| units | PMOD: `units` (`BQML`, `kBq/cc`) | `quantification units` | `quantification units` (`Bq/ml`) |
 | data offset | `data offset in bytes`, `data starting block` | `data offset in bytes[f]` | `data offset in bytes` |
-| isotope | `radiopharmaceutical`, `isotope halflife` (PMOD) | `radionuclide name[1]`, `radionuclide halflife (sec)[1]` | `isotope name`, `isotope gamma halflife (sec)` |
+| isotope | `radiopharmaceutical`, `isotope halflife` (PMOD) | `radionuclide name[1]`, `radionuclide halflife (sec)[1]` | `isotope name`, `isotope gamma halflife (sec)`, `isotope branching factor`, `radiopharmaceutical` |
 | patient | `patient name`, `!patient ID`, `patient dob` (`yyyy:mm:dd`), `patient sex` | + `patient weight (kg)`, `patient height (cm)` | |
-| study | `study date` (`yyyy:mm:dd`), `study time` (`hh:mm:ss`) | `study date`, `study time` | (to be determined) |
-| dose | PMOD: `pmod tracer activity` | `tracer activity at time of injection (MBq)`, `relative time of tracer injection (sec)` | |
+| study | `study date` (`yyyy:mm:dd`), `study time` (`hh:mm:ss`) | `study date`, `study time` | `%study date (yyyy:mm:dd)`, `%study time (hh:mm:ss GMT+00:00)` (UTC) |
+| dose | PMOD: `pmod tracer activity` | `tracer activity at time of injection (MBq)`, `relative time of tracer injection (sec)` | `tracer activity at time of injection (Bq)`, `%tracer injection date (yyyy:mm:dd)`, `%tracer injection time (hh:mm:ss GMT+00:00)` |
+| decay | | | `%decay correction` (`reftime`), `%decay correction reference date`/`time`, `%image info[n]` (factor per plane, to be verified) |
 | system | `!originating system` | `originating system` | `originating system` |
 
 Pitfalls the support has to handle:
@@ -76,6 +79,75 @@ Pitfalls the support has to handle:
   `.hdr` (NIfTI header/image pair), `.img` (Philips image), `.v` (ECAT7).
 - PMOD writes PET images as Interfile 3.3 `Dynamic` (frame groups) or
   `Tomographic` studies with `!SPECT STUDY` sections and own `pmod ...` keys.
+
+### Images of Siemens reconstructions
+
+From a sample of a Siemens reconstruction (`!originating system := 1208`,
+`%SMS-MI version number := 3.9`, continuous bed motion, one frame, PSF+TOF;
+test dataset `pet-wholebody`):
+
+- Three files: the main header `<name>.mhdr`, the image header
+  `<name>_000_000.v.hdr` and the data `<name>_000_000.v`. The headers are
+  written `key:=value` without spaces, with CR LF, without `!END OF INTERFILE`.
+- The main header (`%SMS-MI header name space := image main header`) describes
+  the study (`%study date`, `exam type`, `number of time frames`, `%number of
+  horizontal bed offsets`, `number of time windows`) and lists the data sets:
+  `!total number of data sets := 1`, `%data set[1] := {0, <image header>,
+  <data file>}`. It describes no image data itself.
+- The image header (`%SMS-MI header name space := image subheader`) describes
+  one frame: `number format := float`, `!number of bytes per pixel := 4`,
+  `image data byte order := LITTLEENDIAN`, `matrix size[1..3]`, `scale factor
+  (mm/pixel) [1..3]`, `!image relative start time (sec)`, `!image duration
+  (sec)`, `quantification units := Bq/ml`, `%image slope`, `%image intercept`,
+  `minimum/maximum pixel count`, and the reconstruction (`method of
+  reconstruction`, `number of iterations`, `%number of subsets`, PSF and filter
+  keys, the corrections applied).
+- The data file holds `matrix size[1] * [2] * [3]` values, x fastest; its
+  minimum and maximum are the `minimum/maximum pixel count` of the header.
+- `%image info[n]` (one per plane, n = 1..planes) is a list of 15 elements.
+  Compared with the DICOM series of the same reconstruction (Image Position
+  Patient, Decay Factor, Scatter Fraction Factor, Actual Frame Duration,
+  Acquisition Time of each slice):
+
+  | Element | Meaning |
+  | --- | --- |
+  | 1 | n - 1 |
+  | 2 | z position (mm) |
+  | 3, 4 | x and y position (mm) of the first voxel of the plane (DICOM Image Position Patient) |
+  | 5, 6, 7 | minimum, mean (not checked), maximum of the plane |
+  | 10 | decay factor (DICOM Decay Factor) |
+  | 11 | scatter fraction (DICOM Scatter Fraction Factor) |
+  | 12 | start time of the slice (s) relative to the start of the frame (continuous bed motion) |
+  | 13 | duration of the slice (s) (DICOM Actual Frame Duration) |
+  | 14 | `%scanner quantification factor` |
+  | 8, 9, 15 | not known (`1`, `0.0`, `no slice` in the sample) |
+
+  The elements describe one slice consistently: from n = 1 to n = planes the
+  z position rises from `start horizontal bed position (mm)` in steps of the
+  plane distance, and the start time and decay factor rise with it.
+- **The planes of the data file are in the reverse order of `%image info`**:
+  plane k of the file (k = 0..planes-1) has the z position, minimum and maximum
+  of `%image info[planes - k]`. The DICOM series of the same reconstruction
+  holds the same planes in the same order as the data file (instance k + 1 =
+  plane k) and confirms the positions: in DICOM patient coordinates (LPS, with
+  `%image orientation := {1,0,0,0,1,0}` and `%patient orientation := HFS`)
+
+  - voxel (i, j, k) of the data file is at x0 + i * dx, y0 + j * dy, z of
+    `%image info[planes - k]` (the first plane has the highest z, as in ECAT7),
+    with dx, dy, dz from `scale factor (mm/pixel)`;
+  - x0 and y0 are the elements 3 and 4 of `%image info`; in the sample they
+    are also `-matrix size[1] / 2 * dx - %gantry offset (mm) [1]` and
+    `-matrix size[2] / 2 * dy - start vertical bed position (mm) - %gantry
+    offset (mm) [2]`, and the z of plane k is `start horizontal bed position
+    (mm) + (planes - 1 - k) * dz` (`end horizontal bed position (mm)` is not
+    exactly the z of the last slice). These formulas come from one sample
+    (HFS) and are not used where `%image info` is given.
+- The DICOM series gives each slice the start time, duration and decay factor
+  of `%image info[k + 1]` for plane k, i.e. not of the slice with its z
+  position: either the DICOM export or the order of these elements differs
+  from the z positions. libmedio uses one start time and duration per frame
+  (`!image relative start time (sec)`, `!image duration (sec)`), so this does
+  not affect the images.
 
 ## Phases
 
@@ -106,7 +178,9 @@ independent of the variant:
 
 - the header starts with `!INTERFILE` (after empty and comment lines) and ends
   with `!END OF INTERFILE`; the data after it (single files) is not looked at,
-  `headerSize` gives the end of the header;
+  `headerSize` gives the end of the header; without `!END OF INTERFILE`
+  (Siemens) the header ends with the file, and binary data before the end is
+  an error;
 - lines end with LF, CR LF or CR; text is UTF-8, otherwise Latin-1;
 - a line without `:=` inside the header is kept as comment;
 - `isInterfile()` identifies a file by its first line, as the factory will.
@@ -124,10 +198,12 @@ understands
 - the vectored keys of the PET proposal and STIR (`number of time frames`,
   `image duration (sec)[f]`, `image scaling factor[f]`, `data offset in
   bytes[f]`),
-- the spellings of Siemens and the keys of PMOD,
+- the spellings of Siemens (`image data byte order`, `scale factor
+  (mm/pixel)`, `%image slope`, `%image intercept`) and the keys of PMOD,
 
 and rejects what images cannot be (more than 3 dimensions, matrix sizes per
-plane, `bit` and `ASCII` data) with a message. Both classes are private (not
+plane, `bit` and `ASCII` data) and Siemens main headers (they name the headers
+of their data sets) with a message. Both classes are private (not
 installed): the public API follows with phase 2.
 
 ### Phase 2: reading images (plan)
@@ -141,6 +217,12 @@ installed): the public API follows with phase 2.
   `<data file>.hdr`).
 - `CInterfileFile` reads the matrices (frames) with the layout; the size of the
   data file is checked against `requiredDataSize()`.
+- Siemens: a main header (`.mhdr`) is opened through its data sets (one frame
+  per image header); the image header and the data file are found also when
+  the data file or the image header is given. The geometry follows the
+  positions verified with DICOM (see
+  [Images of Siemens reconstructions](#images-of-siemens-reconstructions)) and
+  is tested with the landmarks of `pet-wholebody`.
 - `CInterfileMainHeader` holds the keys and the layout; `convertFrom()` converts
   from and to the ECAT7 headers (the common representation of the formats, see
   `CNIFTIConverter.h`); `CInterfileHeaderMapping` maps keys to the DICOM
@@ -175,16 +257,25 @@ installed): the public API follows with phase 2.
   of `testsuite/data/tools/make_expected.py`. They are converted from the ECAT7
   files of the same datasets (stored values identical, z axis reversed; for
   `pet-dynamic` the calibration factor 1000 is not applied, units kBq/cc).
-- Planned: anonymized Siemens files (images of e7tools/JSRecon, main headers),
-  files written by STIR (conda-forge package `stir`) and by (X)MedCon
+- `testsuite/data/interfile/pet-wholebody.siemens/`: the Interfile output of a
+  Siemens reconstruction of a phantom (main header, image header, data file;
+  static, 32x32x583 float32), only the file names changed, and
+  `testsuite/data/dicom/pet-wholebody/`, the DICOM series of the same
+  reconstruction; the landmarks of `datasets.json` give the DICOM positions of
+  the first and last voxel of the data file. The expected values of the
+  Interfile files (own parser of `make_expected.py`, which follows the data
+  sets of the main header) include the start time and the plane order relative
+  to `%image info[n]`.
+- Planned: a dynamic Siemens reconstruction, files written by STIR (conda-forge package `stir`) and by (X)MedCon
   (package `xmedcon` of Ubuntu) as independent implementations. nibabel does
   not support Interfile, the Python package `interfile` is Python 2 only.
 
 ## Open questions
 
-- The keys of the image headers of Siemens reconstructions (`.v.hdr`), the
-  structure of main headers (`.mhdr`) and how dynamic images are stored: to be
-  taken from samples.
+- Siemens: how dynamic images and several bed positions are stored (data
+  sets of the main header: one image header per frame?); the position of the
+  voxels for other patient orientations than HFS (only one sample); the order
+  of the time elements of `%image info` (see above).
 - The axis directions of each variant (Siemens `%patient orientation`, STIR
   `patient orientation`/`rotation`, PMOD).
 - The extension of written data files (phase 3).

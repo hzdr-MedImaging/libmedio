@@ -124,12 +124,24 @@ bool CInterfileKeys::parse(const QByteArray& text, QString* error, qint64* heade
 
   QList<CInterfileKey> keys;
   bool started = false;
+  bool failed = false;
   int pos = 0;
-  QString reason = "no \"!END OF INTERFILE\" line";
+  QString reason = "no \"!INTERFILE\" line at the start";
 
   while(pos < text.size())
   {
     const QByteArray rawLine = nextLine(text, pos);
+
+    // binary data (e.g. the image data of a file holding header and data) before
+    // the end of the header
+    if(rawLine.contains('\0'))
+    {
+      if(started)
+        reason = "binary data before \"!END OF INTERFILE\"";
+      failed = true;
+      break;
+    }
+
     const QString line = decodeLine(rawLine).trimmed();
 
     if(line.isEmpty())
@@ -151,9 +163,9 @@ bool CInterfileKeys::parse(const QByteArray& text, QString* error, qint64* heade
     const int separator = line.indexOf(":=");
     if(separator < 0)
     {
-      if(started == false || rawLine.contains('\0'))
+      if(started == false)
       {
-        reason = started ? "binary data before \"!END OF INTERFILE\"" : "no \"!INTERFILE\" line at the start";
+        failed = true;
         break;
       }
 
@@ -175,7 +187,7 @@ bool CInterfileKeys::parse(const QByteArray& text, QString* error, qint64* heade
     {
       if(key.name != "interfile")
       {
-        reason = "no \"!INTERFILE\" line at the start";
+        failed = true;
         break;
       }
       started = true;
@@ -193,12 +205,20 @@ bool CInterfileKeys::parse(const QByteArray& text, QString* error, qint64* heade
     }
   }
 
+  // the headers of Siemens have no "!END OF INTERFILE": the header ends with the text
+  if(started && failed == false)
+  {
+    m_keys = keys;
+    if(headerSize)
+      *headerSize = text.size();
+    RETURN(true);
+    return true;
+  }
+
   if(error)
     *error = reason;
 
   RETURN(false);
-  return false;
-
   return false;
 }
 
@@ -234,7 +254,17 @@ bool CInterfileKeys::read(const QString& fileName, QString* error, qint64* heade
   }
 
   QString reason;
-  if(parse(text, &reason, headerSize) == false)
+  bool ok = parse(text, &reason, headerSize);
+
+  // a header without "!END OF INTERFILE" (Siemens) has to be the whole file
+  if(ok && m_keys.last().name != "end of interfile" && file.atEnd() == false)
+  {
+    m_keys.clear();
+    reason = QString("no \"!END OF INTERFILE\" in the first %1 bytes").arg(text.size());
+    ok = false;
+  }
+
+  if(ok == false)
   {
     if(error)
       *error = QString("'%1' is no Interfile header: %2").arg(fileName, reason);
@@ -243,8 +273,6 @@ bool CInterfileKeys::read(const QString& fileName, QString* error, qint64* heade
   }
 
   RETURN(true);
-  return true;
-
   return true;
 }
 
@@ -276,8 +304,6 @@ bool CInterfileKeys::isInterfile(const QString& fileName)
   }
 
   RETURN(false);
-  return false;
-
   return false;
 }
 

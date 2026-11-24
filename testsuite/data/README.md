@@ -29,6 +29,8 @@ testsuite/data/
 ├── interfile/
 │   ├── pet-static.hdr             # Interfile single file (header followed by the data)
 │   ├── pet-static.pair/           # Interfile header/image pair
+│   ├── pet-wholebody.siemens/     # Siemens reconstruction: main header (.mhdr),
+│   │                              # image header (.v.hdr) and data file (.v)
 │   └── ...
 └── dicom/
     ├── pet-static/                # DICOM series: one directory per dataset
@@ -136,9 +138,10 @@ date with the data files.
 Supported are ECAT7 image files (`ecat/`), NIfTI-1/NIfTI-2 (`nifti/`,
 `.nii`, `.nii.gz` and header/image pair directories), raw voxel data
 (`raw/`, using the `layout` of the file in `datasets.json`), DICOM image
-series (`dicom/`, read with pydicom) and Interfile 3.3 (`interfile/`, single
-files and header/image pair directories, read with an own parser as nibabel
-does not support Interfile). For other
+series (`dicom/`, read with pydicom) and Interfile (`interfile/`, single
+files, header/image pair directories and directories of Siemens
+reconstructions holding a main header `.mhdr`, read with an own parser as
+nibabel does not support Interfile). For other
 files (e.g. `philips/`) the expected values are written by hand with
 `"generator": "manual"` and a note where the values come from; the tests
 only check the keys that are present. Do not edit generated files by hand,
@@ -162,16 +165,24 @@ run the script again instead (`--force` regenerates existing files).
   `rows`, `columns`, `slices`, `frames`, `pixel_spacing_mm`,
   `slice_spacing_mm`, `image_orientation`, `patient_position`, `units`)
   and per frame its timing, the positions of the first and last slice and
-  statistics of the stored and of the rescaled voxel values.
+  statistics of the stored and of the rescaled voxel values. The slices are
+  assigned to frames by their Image Index (Number of Slices per frame),
+  otherwise by their Frame Reference Time; the timing is that of the first
+  slice of the frame (with continuous bed motion every slice has its own).
 - **Philips** (`"format": "philips-image"`/`"philips-syntegra"`, written by
   hand): `frames`, `dims`, `pixel_size_mm`, `data_type` and statistics of the
   stored voxel values per frame (`volumes`). The `philips_datasets` test also
   compares the scale factors and the frame timing with the expected values of
   the ECAT7 file of the same dataset, if there is one.
 - **Interfile** (`"format": "interfile"`): header values (`version_of_keys`,
-  `type_of_data`, `byte_order`, `data_offset`, `units`) and per image or
-  frame group its dimensions, number format, pixel size, duration, rescale
-  slope/offset and statistics of the stored voxel values.
+  `type_of_data`, `byte_order`, `data_offset`, `units`; Siemens: the image
+  header and data file of each data set of the main header, `data_sets`) and
+  per image or frame group its dimensions, number format, pixel size,
+  duration, rescale slope/offset and statistics of the stored voxel values
+  (Siemens: also the start time, `start_s`, and whether the planes of the data
+  file are in the reverse order of `%image info[n]`,
+  `planes_reversed_to_image_info`, found by comparing the minimum and maximum
+  of each plane with the values given there).
 
 ## Placeholders
 

@@ -39,6 +39,8 @@
 //!   (normalizedName(): "Image_Duration(Sec)" is "image duration (sec)").
 //! - Indices are given as "[i]" after the key, also several ("[f][g]").
 //! - Lists are written as "{a, b, c}" (toList()).
+//! - The headers of Siemens have no "!END OF INTERFILE": the header then ends with
+//!   the file (a file holding header and data needs it).
 //!
 //! CInterfileKeys keeps all lines in their order, also repeated keys (e.g. the
 //! keys of every frame group of a dynamic study), unknown keys and comments, so
@@ -87,7 +89,8 @@ class CInterfileKeys
     //! @param headerSize if given, receives the number of bytes up to and including
     //!        the line "!END OF INTERFILE :="
     //! @return false if the text does not start with "!INTERFILE" (after empty and
-    //!         comment lines) or has no "!END OF INTERFILE" line
+    //!         comment lines) or holds binary data before "!END OF INTERFILE"; without
+    //!         that line the header ends with the text (Siemens), headerSize is its size
     bool parse(const QByteArray& text, QString* error = 0, qint64* headerSize = 0);
 
     //! @brief read the header of a file (header file or file holding header and data)

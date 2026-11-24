@@ -48,6 +48,8 @@ class TestInterfileLayout : public QObject
     void dynamicFrameGroups();
     void stirFrames();
     void siemensSpellings();
+    void siemensImageHeader();
+    void siemensMainHeader();
     void quantificationFactor();
     void dataFileNames();
     void invalidLayouts_data();
@@ -334,6 +336,93 @@ void TestInterfileLayout::siemensSpellings()
   QCOMPARE(layout.frames[1].startTime, 120.0);
 }
 
+void TestInterfileLayout::siemensImageHeader()
+{
+  // the image header (.v.hdr) of a Siemens reconstruction (e7tools), shortened, as
+  // written: "key:=value", no "!END OF INTERFILE", the data file named after the
+  // image data description; %image slope/%image intercept scale the values
+  CInterfileKeys keys;
+  QString error;
+  QVERIFY2(keys.parse(
+      "!INTERFILE:=\r\n"
+      "!originating system:=1208\r\n"
+      "%SMS-MI header name space:=image subheader\r\n"
+      "%SMS-MI version number:=3.9\r\n"
+      "\r\n"
+      "!GENERAL DATA:=\r\n"
+      "\r\n"
+      "!GENERAL IMAGE DATA:=\r\n"
+      "image data byte order:=LITTLEENDIAN\r\n"
+      "%study date (yyyy:mm:dd):=2026:11:13\r\n"
+      "isotope name:=F-18\r\n"
+      "!PET data type:=image\r\n"
+      "number format:=float\r\n"
+      "!number of bytes per pixel:=4\r\n"
+      "number of dimensions:=3\r\n"
+      "matrix axis label[1]:=x\r\n"
+      "matrix axis label[2]:=y\r\n"
+      "matrix axis label[3]:=z\r\n"
+      "matrix size[1]:=32\r\n"
+      "matrix size[2]:=32\r\n"
+      "matrix size[3]:=583\r\n"
+      "scale factor (mm/pixel) [1]:=22.6875\r\n"
+      "scale factor (mm/pixel) [2]:=22.6875\r\n"
+      "scale factor (mm/pixel) [3]:=1.64557\r\n"
+      "start horizontal bed position (mm):=-718.542\r\n"
+      "%energy window lower level (keV) [1]:=435\r\n"
+      "\r\n"
+      "!IMAGE DATA DESCRIPTION:=\r\n"
+      "!image relative start time (sec):=0.0\r\n"
+      "!image duration (sec):=435\r\n"
+      "%scanner quantification factor (Bq*s/ECAT counts):=7.83898e+007\r\n"
+      "quantification units:=Bq/ml\r\n"
+      "!name of data file:=image_000_000.v\r\n"
+      "%image orientation:={1,0,0,0,1,0}\r\n"
+      "%patient orientation:=HFS\r\n"
+      "%image slope:=2\r\n"
+      "%image intercept:=0.5\r\n"
+      "minimum pixel count:=-64.3102\r\n"
+      "maximum pixel count:=84826.2\r\n"
+      "%image info[1]:={0,-718.542,-362.064,-574.907,-1.19881,121.367,3809.89,1,0.0,1.00311,37.7978}\r\n",
+      &error), qPrintable(error));
+
+  CInterfileImageLayout layout;
+  QVERIFY2(layout.read(keys, "dir/image_000_000.v.hdr", &error), qPrintable(error));
+  QCOMPARE(layout.dataFileName, QString("dir/image_000_000.v"));
+  QVERIFY(layout.bigEndian == false);
+  QCOMPARE(layout.frames.size(), 1);
+
+  const CInterfileFrame& frame = layout.frames.first();
+  QCOMPARE(frame.numberFormat, CInterfileFrame::Float);
+  QCOMPARE(frame.bytesPerPixel, 4);
+  QCOMPARE(frame.dims, dims(32, 32, 583));
+  QCOMPARE(frame.voxelSize, vec(22.6875, 22.6875, 1.64557));
+  QCOMPARE(frame.startTime, 0.0);
+  QCOMPARE(frame.duration, 435.0);
+  QCOMPARE(frame.units, QString("Bq/ml"));
+  QCOMPARE(frame.slope, 2.0);
+  QCOMPARE(frame.intercept, 0.5);
+  QCOMPARE(frame.offset, qint64(0));
+  QCOMPARE(layout.requiredDataSize(), qint64(32 * 32 * 583 * 4));
+}
+
+void TestInterfileLayout::siemensMainHeader()
+{
+  // a Siemens main header (.mhdr) describes no image data, but its data sets
+  CInterfileKeys keys;
+  QVERIFY(keys.parse("!INTERFILE:=\r\n"
+                     "%SMS-MI header name space:=image main header\r\n"
+                     "number of time frames:=1\r\n"
+                     "!total number of data sets:=1\r\n"
+                     "%data set[1]:={0,image_000_000.v.hdr,image_000_000.v}\r\n"));
+
+  CInterfileImageLayout layout;
+  QString error;
+  QVERIFY(layout.read(keys, "dir/image.mhdr", &error) == false);
+  QVERIFY2(error.contains("main header of data sets"), qPrintable(error));
+  QVERIFY2(error.contains("image_000_000.v.hdr"), qPrintable(error));
+}
+
 void TestInterfileLayout::quantificationFactor()
 {
   // "quantification units" as factor without "image scaling factor" (Louvain-la-Neuve)
@@ -485,23 +574,46 @@ void TestInterfileLayout::datasets()
   if(file.path.isEmpty())
     QSKIP("no Interfile test datasets");
 
+  const QJsonObject header = file.expected.value("header").toObject();
+
   // the header: the file itself, or the .hdr file of a header/image pair directory
+  // (Siemens: the image header of the data set of the main header .mhdr)
   QString headerFile = file.path;
+  CInterfileKeys keys;
+  CInterfileImageLayout layout;
+  QString error;
   if(QFileInfo(file.path).isDir())
   {
     const QStringList headers = QDir(file.path).entryList(QStringList() << "*.hdr", QDir::Files);
     QCOMPARE(headers.size(), 1);
     headerFile = QDir(file.path).filePath(headers.first());
+
+    const QStringList mainHeaders = QDir(file.path).entryList(QStringList() << "*.mhdr", QDir::Files);
+    QCOMPARE(mainHeaders.isEmpty(), header.contains("data_sets") == false);
+    if(mainHeaders.isEmpty() == false)
+    {
+      // the main header names the image header and data file of its data set, and
+      // describes no image data itself
+      QCOMPARE(mainHeaders.size(), 1);
+      const QString mainHeader = QDir(file.path).filePath(mainHeaders.first());
+      QVERIFY(CInterfileKeys::isInterfile(mainHeader));
+      QVERIFY2(keys.read(mainHeader, &error), qPrintable(error));
+      const QJsonArray dataSets = header.value("data_sets").toArray();
+      QCOMPARE(dataSets.size(), 1);
+      const QStringList dataSet = CInterfileKeys::toList(keys.value("data set", QList<int>() << 1));
+      QCOMPARE(dataSet.size(), 3);
+      QCOMPARE(dataSet.at(1), dataSets.at(0).toArray().at(0).toString());
+      QCOMPARE(dataSet.at(2), dataSets.at(0).toArray().at(1).toString());
+      QCOMPARE(QFileInfo(headerFile).fileName(), dataSet.at(1));
+      QVERIFY(layout.read(keys, mainHeader, &error) == false);
+      QVERIFY2(error.contains("main header of data sets"), qPrintable(error));
+    }
   }
   QVERIFY(CInterfileKeys::isInterfile(headerFile));
 
-  CInterfileKeys keys;
-  CInterfileImageLayout layout;
-  QString error;
   QVERIFY2(keys.read(headerFile, &error), qPrintable(error));
   QVERIFY2(layout.read(keys, headerFile, &error), qPrintable(error));
 
-  const QJsonObject header = file.expected.value("header").toObject();
   QCOMPARE(layout.versionOfKeys, header.value("version_of_keys").toString());
   QCOMPARE(layout.typeOfData, header.value("type_of_data").toString().toLower());
   QCOMPARE(layout.bigEndian, header.value("byte_order").toString() == "big");
@@ -529,6 +641,8 @@ void TestInterfileLayout::datasets()
     for(int i = 0; i < 3; i++)
       QCOMPARE(frame.voxelSize[i], pixelSize.at(i).toDouble());
     QCOMPARE(frame.duration, expected.value("duration_s").toDouble());
+    if(expected.contains("start_s"))
+      QCOMPARE(frame.startTime, expected.value("start_s").toDouble());
     QCOMPARE(frame.slope, expected.value("rescale_slope").toDouble());
     QCOMPARE(frame.intercept, expected.value("rescale_offset").toDouble());
     QCOMPARE(frame.units, expected.value("units").toString());

@@ -232,6 +232,24 @@ bool readScaling(const CInterfileKeys& keys, const QList<Scope>& scopes, int f, 
   if(intercept.isNull() == false && number(intercept, "data rescale offset", &frame.intercept, error) == false)
     return false;
 
+  // Siemens: physical value = stored value * %image slope + %image intercept
+  const QString siemensSlope = lookup(keys, scopes, "image slope");
+  const QString siemensIntercept = lookup(keys, scopes, "image intercept");
+  double value = 0.0;
+  if(siemensSlope.isNull() == false)
+  {
+    if(number(siemensSlope, "image slope", &value, error) == false)
+      return false;
+    frame.intercept *= value;
+    frame.slope *= value;
+  }
+  if(siemensIntercept.isNull() == false)
+  {
+    if(number(siemensIntercept, "image intercept", &value, error) == false)
+      return false;
+    frame.intercept += value;
+  }
+
   // PET proposal/STIR: physical value = stored value * image scaling factor[f]
   QString factor = lookup(keys, scopes, "image scaling factor", index);
   if(factor.isNull())
@@ -284,6 +302,23 @@ bool readTiming(const CInterfileKeys& keys, const QList<Scope>& scopes, int f, d
     return false;
 
   return true;
+}
+
+// true for a main header of data sets (Siemens .mhdr), reason names its first data set
+bool isMainHeader(const CInterfileKeys& keys, QString* reason)
+{
+  for(int i = 0; i < keys.count(); i++)
+  {
+    const CInterfileKey& key = keys.at(i);
+    if(key.comment == false && key.name == "data set" && key.indices.isEmpty() == false)
+    {
+      *reason = QString("a main header of data sets (e.g. \"data set[%1] := %2\"), the image data is described "
+                        "by the headers of the data sets").arg(key.indices.first()).arg(key.value);
+      return true;
+    }
+  }
+
+  return false;
 }
 
 } // namespace
@@ -343,6 +378,16 @@ bool CInterfileImageLayout::read(const CInterfileKeys& keys, const QString& head
   }
   const Scope general = { 0, groups.isEmpty() ? keys.count() : groups.first().begin };
   const QList<Scope> generalScopes = QList<Scope>() << general;
+
+  // a main header of Siemens (.mhdr) names the headers and data files of its data
+  // sets ("%data set[1] := {0, <header>, <data file>}") and describes no image data
+  if(isMainHeader(keys, &reason))
+  {
+    if(error)
+      *error = reason;
+    RETURN(false);
+    return false;
+  }
 
   versionOfKeys = lookup(keys, generalScopes, "version of keys");
   typeOfData = lookup(keys, generalScopes, "type of data").toLower().simplified();
@@ -498,8 +543,6 @@ bool CInterfileImageLayout::read(const CInterfileKeys& keys, const QString& head
   }
 
   RETURN(true);
-  return true;
-
   return true;
 
 failure:

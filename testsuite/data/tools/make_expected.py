@@ -39,7 +39,9 @@ Supported formats:
   dicom/  DICOM image series (directory holding the slices of one series),
           read with pydicom
   interfile/  Interfile 3.3 images: a single file holding header and data,
-          or a directory holding the header (.hdr) and the data file it names
+          or a directory holding the header (.hdr) and the data file it names;
+          Siemens reconstructions: a directory holding the main header (.mhdr)
+          and the image headers and data files of its data sets
 
 The ECAT7 and DICOM files also get the expected format independent header attributes
 of libmedio ("attributes": DICOM keywords with the units of DICOM, see
@@ -437,9 +439,9 @@ def expected_raw(path, file_info):
 # DICOM
 
 def dicom_volumes(path):
-    """Read a DICOM image series and return (slices, frames): the slices of the
-    first frame and per frame the list of slices, sorted by their position along
-    the slice normal (voxel index order: column, row, slice)."""
+    """Read a DICOM image series and return (frames, normal): per frame the list of
+    slices, sorted by their position along the slice normal (voxel index order:
+    column, row, slice), and the slice normal."""
     import pydicom
 
     files = sorted(os.path.join(path, f) for f in os.listdir(path) if not f.startswith('.'))
@@ -449,9 +451,18 @@ def dicom_volumes(path):
 
     iop = np.array([float(v) for v in dcs[0].ImageOrientationPatient])
     normal = np.cross(iop[:3], iop[3:])
+
+    # the frame of a slice: from its Image Index (PET: (time slice - 1) * Number of
+    # Slices + slice), otherwise from its Frame Reference Time; with continuous bed
+    # motion every slice has its own Frame Reference Time and Actual Frame Duration
+    def frame_of(d):
+        if 'ImageIndex' in d and 'NumberOfSlices' in d:
+            return (int(d.ImageIndex) - 1) // int(d.NumberOfSlices)
+        return float(d.get('FrameReferenceTime', 0))
+
     frames = {}
     for d in dcs:
-        frames.setdefault(float(d.get('FrameReferenceTime', 0)), []).append(d)
+        frames.setdefault(frame_of(d), []).append(d)
     return [sorted(frames[t], key=lambda d: float(np.dot(normal, [float(v) for v in d.ImagePositionPatient])))
             for t in sorted(frames)], normal
 
@@ -519,12 +530,24 @@ INTERFILE_NUMBER_FORMATS = {
 }
 
 
+def interfile_key(text):
+    """The key of an Interfile line in lower case, without the leading '!' (required)
+    and '%' (vendor key) and with one space before its indices ("matrix size[1]"
+    of Siemens is "matrix size [1]")."""
+    key = text.strip().lstrip('!%').strip().lower()
+    key = re.sub(r'\s*\[\s*(\d+)\s*\]', r' [\1]', key)
+    return ' '.join(key.split())
+
+
 def interfile_header(path):
-    """Parse an Interfile header into a list of (key, value) pairs (keys in
-    lower case, without leading '!'), up to the "END OF INTERFILE" key."""
+    """Parse an Interfile header into a list of (key, value) pairs (see
+    interfile_key()), up to the "END OF INTERFILE" key. The headers of Siemens
+    reconstructions have no "END OF INTERFILE" key: they end with the file."""
     with open(path, 'rb') as f:
         data = f.read()
     end = data.upper().find(b'!END OF INTERFILE')
+    if end < 0 and b'\0' not in data:
+        end = len(data)
     if not data.lstrip().upper().startswith(b'!INTERFILE') or end < 0:
         raise ValueError('not an Interfile header')
     entries = []
@@ -533,70 +556,162 @@ def interfile_header(path):
         if ':=' not in line:
             continue
         key, value = line.split(':=', 1)
-        entries.append((key.strip().lstrip('!').strip().lower(), value.strip()))
+        entries.append((interfile_key(key), value.strip()))
     return entries
 
 
-def expected_interfile(path, file_info):
-    if os.path.isdir(path):
-        headers = [f for f in os.listdir(path) if f.lower().endswith('.hdr')]
-        if len(headers) != 1:
-            raise ValueError('an Interfile directory has to contain exactly one .hdr file')
-        header_file = os.path.join(path, headers[0])
-    else:
-        header_file = path
+def interfile_list(value):
+    """The elements of an Interfile list "{a, b, c}"."""
+    value = value.strip()
+    if not (value.startswith('{') and value.endswith('}')):
+        return [value]
+    return [element.strip() for element in value[1:-1].split(',')]
 
-    entries = interfile_header(header_file)
-    keys = dict(entries)
-    data_file = keys.get('name of data file', '')
-    data_file = os.path.join(os.path.dirname(header_file), data_file) if data_file else header_file
-    offset = int(keys.get('data offset in bytes', '0') or 0)
-    byte_order = '>' if keys.get('imagedata byte order', 'BIGENDIAN').upper() == 'BIGENDIAN' else '<'
 
-    # one group per frame group (dynamic data) or a single group (static data)
-    groups, current = [], None
+def interfile_number(value):
+    """True for a number (STIR writes a factor as "quantification units")."""
+    try:
+        float(value)
+        return True
+    except ValueError:
+        return False
+
+
+def interfile_planes_reversed(raw, entries):
+    """Siemens: compare the minimum and maximum of each plane of the data with the
+    "%image info[n]" lists of the header (elements 5 and 7). True if plane k of the
+    data is "image info[planes - k]", False if it is "image info[k + 1]", None if
+    there is no image info or neither order matches."""
+    info = {}
     for key, value in entries:
-        if key == 'frame group number' or (key == 'matrix size [1]' and current is None):
-            current = {}
-            groups.append(current)
-        if current is not None:
-            current[key] = value
+        match = re.fullmatch(r'image info \[(\d+)\]', key)
+        if match:
+            info[int(match.group(1))] = interfile_list(value)
+    planes = raw.shape[2]
+    if sorted(info) != list(range(1, planes + 1)):
+        return None
+    minima = raw.min(axis=(0, 1)).astype(np.float64)
+    maxima = raw.max(axis=(0, 1)).astype(np.float64)
 
-    expected = {
-        'generator': 'own Interfile parser (make_expected.py)',
-        'format': 'interfile',
-        'header': {
-            'version_of_keys': keys.get('version of keys', ''),
-            'type_of_data': keys.get('type of data', ''),
-            'byte_order': 'big' if byte_order == '>' else 'little',
-            'data_offset': offset,
-            'units': keys.get('units', ''),
-        },
-        'frames': [],
-    }
+    def matches(order):
+        for k, n in enumerate(order):
+            if not (math.isclose(minima[k], float(info[n][4]), rel_tol=1e-4, abs_tol=1e-3)
+                    and math.isclose(maxima[k], float(info[n][6]), rel_tol=1e-4, abs_tol=1e-3)):
+                return False
+        return True
 
-    pos = offset
-    for group in groups:
-        dims = [int(group[f'matrix size [{i}]']) for i in (1, 2, 3)]
-        fmt = INTERFILE_NUMBER_FORMATS[(group.get('number format', keys.get('number format', '')).lower(),
-                                        int(group.get('number of bytes per pixel', keys.get('number of bytes per pixel', 0))))]
-        dtype = np.dtype(fmt).newbyteorder(byte_order)
-        count = int(np.prod(dims))
-        raw = np.fromfile(data_file, dtype=dtype, count=count, offset=pos).reshape(dims, order='F')
-        if raw.size != count:
-            raise ValueError('Interfile data file too short')
-        pos += count * dtype.itemsize
-        frame = {
-            'dims': dims,
-            'number_format': fmt,
-            'pixel_size_mm': [float(group[f'scaling factor (mm/pixel) [{i}]']) for i in (1, 2, 3)],
-            'duration_s': float(group.get('image duration (sec)', keys.get('image duration (sec)', 0))),
-            'rescale_slope': float(group.get('data rescale slope', 1)),
-            'rescale_offset': float(group.get('data rescale offset', 0)),
-            'units': group.get('units', keys.get('units', '')),
-        }
-        frame.update(stats(raw))
-        expected['frames'].append(frame)
+    if matches(range(planes, 0, -1)):
+        return True
+    if matches(range(1, planes + 1)):
+        return False
+    return None
+
+
+def interfile_data_sets(main_header):
+    """Siemens: the (image header, data file) of the data sets of a main header
+    ("%data set[n] := {0, <image header>, <data file>}"), in the order of n."""
+    sets = []
+    for key, value in interfile_header(main_header):
+        match = re.fullmatch(r'data set \[(\d+)\]', key)
+        if match:
+            elements = interfile_list(value)
+            if len(elements) != 3:
+                raise ValueError(f'invalid data set "{value}"')
+            sets.append((int(match.group(1)), elements[1], elements[2]))
+    directory = os.path.dirname(main_header)
+    return [(os.path.join(directory, header), os.path.join(directory, data)) for _, header, data in sorted(sets)]
+
+
+def expected_interfile(path, file_info):
+    main_header = None
+    if os.path.isdir(path):
+        main_headers = [f for f in os.listdir(path) if f.lower().endswith('.mhdr')]
+        headers = [f for f in os.listdir(path) if f.lower().endswith('.hdr')]
+        if len(main_headers) == 1:
+            main_header = os.path.join(path, main_headers[0])
+        elif len(headers) != 1:
+            raise ValueError('an Interfile directory has to contain exactly one .hdr file or one .mhdr file')
+        header_files = [os.path.join(path, headers[0])] if main_header is None else \
+            [header for header, _ in interfile_data_sets(main_header)]
+    else:
+        header_files = [path]
+
+    expected = None
+    for header_file in header_files:
+        entries = interfile_header(header_file)
+        keys = dict(entries)
+        siemens = 'sms-mi header name space' in keys
+        data_file = keys.get('name of data file', '')
+        data_file = os.path.join(os.path.dirname(header_file), data_file) if data_file else header_file
+        offset = int(keys.get('data offset in bytes', '0') or 0)
+        byte_order = keys.get('imagedata byte order', keys.get('image data byte order', 'BIGENDIAN'))
+        byte_order = '>' if byte_order.upper() == 'BIGENDIAN' else '<'
+        units = keys.get('units', '')
+        if not units and not interfile_number(keys.get('quantification units', '0')):
+            units = keys['quantification units']
+
+        # one group per frame group (dynamic data) or a single group (static data)
+        groups, current = [], None
+        for key, value in entries:
+            if key == 'frame group number' or (key == 'matrix size [1]' and current is None):
+                current = {}
+                groups.append(current)
+            if current is not None:
+                current[key] = value
+
+        if expected is None:
+            expected = {
+                'generator': 'own Interfile parser (make_expected.py)',
+                'format': 'interfile',
+                'header': {
+                    'version_of_keys': keys.get('version of keys', ''),
+                    'type_of_data': keys.get('type of data', ''),
+                    'byte_order': 'big' if byte_order == '>' else 'little',
+                    'data_offset': offset,
+                    'units': units,
+                },
+                'frames': [],
+            }
+            if main_header is not None:
+                expected['header']['data_sets'] = [[os.path.basename(h), os.path.basename(d)]
+                                                   for h, d in interfile_data_sets(main_header)]
+
+        pos = offset
+        for group in groups:
+            def value(*names, default=None):
+                for name in names:
+                    if name in group:
+                        return group[name]
+                for name in names:
+                    if name in keys:
+                        return keys[name]
+                return default
+
+            dims = [int(group[f'matrix size [{i}]']) for i in (1, 2, 3)]
+            fmt = INTERFILE_NUMBER_FORMATS[(value('number format', default='').lower(),
+                                            int(value('number of bytes per pixel', default=0)))]
+            dtype = np.dtype(fmt).newbyteorder(byte_order)
+            count = int(np.prod(dims))
+            raw = np.fromfile(data_file, dtype=dtype, count=count, offset=pos)
+            if raw.size != count:
+                raise ValueError('Interfile data file too short')
+            raw = raw.reshape(dims, order='F')
+            pos += count * dtype.itemsize
+            frame = {
+                'dims': dims,
+                'number_format': fmt,
+                'pixel_size_mm': [float(group.get(f'scaling factor (mm/pixel) [{i}]',
+                                                  group.get(f'scale factor (mm/pixel) [{i}]'))) for i in (1, 2, 3)],
+                'duration_s': float(value('image duration (sec)', default=0)),
+                'rescale_slope': float(group.get('data rescale slope', group.get('image slope', 1))),
+                'rescale_offset': float(group.get('data rescale offset', group.get('image intercept', 0))),
+                'units': group.get('units', units),
+            }
+            if siemens:
+                frame['start_s'] = float(value('image relative start time (sec)', default=0))
+                frame['planes_reversed_to_image_info'] = interfile_planes_reversed(raw, entries)
+            frame.update(stats(raw))
+            expected['frames'].append(frame)
 
     return expected
 
