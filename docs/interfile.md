@@ -152,12 +152,12 @@ test dataset `pet-wholebody`):
 ## Phases
 
 1. **Header syntax and image layout** (done): `CInterfileKeys` and
-   `CInterfileImageLayout` (private, `src/interfile/`).
-2. **Reading images**: `CInterfileFile` (`CMedIOData`), `CInterfileMainHeader`
-   (`CMedIOHeader`), the format `CMedIOData::Interfile`, the factory, the
-   format independent access (`CMedIOMatrix`, `CMedIOVolume`), geometry, frame
-   timing, attributes; Siemens main headers (`.mhdr`) and image headers from
-   samples of Siemens reconstructions; Python and R.
+   `CInterfileImageLayout` (`src/interfile/`).
+2. **Reading images** (done): `CInterfileFile` (`CMedIOData`),
+   `CInterfileMainHeader` and `CInterfileFrameHeader` (`CMedIOHeader`), the
+   format `CMedIOData::Interfile`, the factory, the format independent access,
+   geometry, frame timing, attributes; Siemens main headers (`.mhdr`) and
+   image headers; Python (`pmedio.Format.Interfile`) and R.
 3. **Writing images**: one canonical variant, conversions from and to the
    other formats, the command line tools.
 4. *(optional)* **Projection data** (sinograms, normalisation) through the
@@ -203,42 +203,86 @@ understands
 
 and rejects what images cannot be (more than 3 dimensions, matrix sizes per
 plane, `bit` and `ASCII` data) and Siemens main headers (they name the headers
-of their data sets) with a message. Both classes are private (not
-installed): the public API follows with phase 2.
+of their data sets) with a message. `CInterfileKeys` is installed (the
+headers of `CInterfileFile` give their keys), `CInterfileImageLayout` is
+private.
 
-### Phase 2: reading images (plan)
+### Phase 2: reading images
 
-- `CMedIOData::Format` gets `Interfile` **at the end**, so that the values of
-  the other formats do not change.
-- `CMedIODataFactory::identify()` checks for Interfile **before** NIfTI (`.hdr`)
-  and Philips (`.img`), by content (`CInterfileKeys::isInterfile()`); ECAT7 is
-  identified by its magic number and is not affected. Given the data file, the
-  header next to it is looked for (`<name>.hdr`, `<name>.hv`, `<name>.h33`,
-  `<data file>.hdr`).
-- `CInterfileFile` reads the matrices (frames) with the layout; the size of the
-  data file is checked against `requiredDataSize()`.
-- Siemens: a main header (`.mhdr`) is opened through its data sets (one frame
-  per image header); the image header and the data file are found also when
-  the data file or the image header is given. The geometry follows the
-  positions verified with DICOM (see
-  [Images of Siemens reconstructions](#images-of-siemens-reconstructions)) and
-  is tested with the landmarks of `pet-wholebody`.
-- `CInterfileMainHeader` holds the keys and the layout; `convertFrom()` converts
-  from and to the ECAT7 headers (the common representation of the formats, see
-  `CNIFTIConverter.h`); `CInterfileHeaderMapping` maps keys to the DICOM
-  attributes of `CMedIOHeaderDictionary` (`patient name` → `PatientName`,
-  `patient dob` → `PatientBirthDate`, `patient weight (kg)` → `PatientWeight`,
-  `study date`/`study time` → `StudyDate`/`StudyTime`, `originating system` →
-  `ManufacturerModelName`, `radionuclide halflife (sec)` →
-  `RadionuclideHalfLife`, `tracer activity at time of injection (MBq)` →
-  `RadionuclideTotalDose` (Bq), `quantification units`/`units` → `Units`, ...);
-  the other keys are kept in an `"Interfile"` section of the attributes.
-- `CMedIOMatrix` and `CMedIOVolume` get the cases of the new format; the
-  geometry (voxel size, position, axis directions) is verified with files
-  written by STIR and with the Siemens samples, not assumed.
-- Python: `pmedio.Format.Interfile`, `pmedio.load()` identifies it; R:
-  `readMedio()` identifies it. Tests compare the values with the ECAT7 file of
-  the same dataset (`testsuite/data/datasets.json`).
+- `CMedIOData::Format` has `Interfile` **at the end**, `CMedIOHeader::Format`
+  `InterfileMainHeader` and `InterfileFrameHeader`, so that the values of the
+  other formats do not change. The name of the format is `"interfile"`
+  (`CMedIODataFactory::formatName()`, Python `pmedio.Format.Interfile`, R).
+- `CMedIODataFactory::identify()` and `create()` check for Interfile **before**
+  Philips (`.img`) and NIfTI (`.hdr`), by content; ECAT7 is identified by its
+  magic number first. A file is Interfile if `CInterfileFile` can open it:
+  - an Interfile header (`CInterfileKeys::isInterfile()`) describing image data,
+  - a Siemens main header (`%data set[n]`): the frames of the image headers of
+    its data sets, in the order of n,
+  - a data file: the header next to it that names it as data file
+    (`<data file>.hdr`, `<name>.hdr`, `<name>.hv`, `<name>.h33`); a data file
+    whose header is a single file (data in the header file) is not found this
+    way, so that e.g. a Philips `pet-dynamic.img` next to a PMOD single file
+    `pet-dynamic.hdr` stays Philips.
+
+  The data files have to exist and hold the data the headers describe
+  (`requiredDataSize()`); otherwise the file is not Interfile
+  (`CInterfileFile::openError()` gives the reason).
+- `CInterfileFile` is read only (`open(QIODevice::ReadOnly)`). Its frames are
+  numbered 1..n; `readMatrix()` gives the voxels in the order of the file and
+  the data type of the stored values (signed/unsigned 8/16/32 bit integers,
+  float32, float64) in the byte order of this machine, with a
+  `CInterfileFrameHeader` describing them (matrix, data type, scaling, units,
+  affine, timing, the keys of the header). `allFileNames()` (and
+  `CMedIOData::fileNames()`) give all headers and data files.
+- Scaling: physical value = stored value × slope + intercept from
+  `data rescale slope/offset` (PMOD), `image scaling factor[f]` (STIR) or
+  `%image slope/intercept` (Siemens). Units of activity concentration are
+  converted into Bq/ml (`kBq/cc`, `kBq/ml` × 1000, `MBq/ml` × 10⁶; PMOD writes
+  `kBq/cc` for `pet-dynamic`), the DICOM `Units` are then `BQML`; other units
+  are kept as given.
+- Position of the voxels (`CInterfileFrameHeader::affine()`, LPS):
+  - Siemens: x and y of the first voxel and the z of every plane from
+    `%image info` (see [above](#images-of-siemens-reconstructions)), the axes
+    of the rows and columns from `%image orientation`; without `%image info`
+    from the bed position and the gantry offset (the formulas of the sample).
+    Tested with the landmarks of `pet-wholebody` (absolute positions of the
+    DICOM series, within 0.01 mm).
+  - Other variants: x towards patient left, y towards posterior, the planes
+    from inferior to superior (as written by PMOD, tested with the ECAT7 files
+    the PMOD files were converted from), centered at 0. `origin (mm)` (PMOD)
+    and `first pixel offset (mm)` (STIR) are not used: their meaning has not
+    been verified with independent data.
+- Attributes (`attributes()` of the headers, `CMedIOData::readAttributes()`):
+
+  | Attribute | Keys |
+  | --- | --- |
+  | `PatientName`, `PatientID`, `PatientBirthDate`, `PatientSex` | `patient name`, `patient ID`, `patient dob` (yyyy:mm:dd), `patient sex` |
+  | `PatientWeight`, `PatientSize` | `patient weight (kg)`, `pmod patient weight`; `patient height (cm)` / 100, `pmod patient size` |
+  | `PatientPosition` | `%patient orientation` (Siemens, DICOM terms), `patient orientation` + `patient rotation` (STIR: `head_in`/`feet_in`, `supine`/`prone`) |
+  | `StudyID` | `study ID` |
+  | `AcquisitionDateTime` | `pmod scan datetime UTC` (ms since 1970), `study date` + `study time` (with the zone of the key, Siemens `GMT+00:00`: UTC) |
+  | `Manufacturer`, `ManufacturerModelName` | `SIEMENS` for Siemens headers; `originating system` |
+  | `Radiopharmaceutical`, `RadionuclideHalfLife`, `RadionuclidePositronFraction` | `radiopharmaceutical`; `isotope gamma halflife (sec)`, `radionuclide halflife (sec)`, `isotope halflife`; `isotope branching factor` |
+  | `RadionuclideTotalDose` (Bq) | `tracer activity at time of injection (Bq)`, `(MBq)`, `pmod tracer activity` (MBq) |
+  | `RadiopharmaceuticalStartDateTime` | `pmod administration datetime UTC`, `%tracer injection date` + `time` |
+  | `EnergyWindowLowerLimit`, `EnergyWindowUpperLimit` | `energy window lower/upper level [1]` (also with `(keV)`) |
+  | `Units` | see scaling |
+  | `ReconstructionMethod` | `method of reconstruction` (Siemens: with ` <n>i <m>s` of `number of iterations` and `%number of subsets`, as in the DICOM series) |
+  | `AttenuationCorrectionMethod`, `ScatterCorrectionMethod` | `method of attenuation correction`, `method of scatter correction` |
+  | `ActualFrameDuration` (frames) | the duration of the frame |
+
+  The section `"Interfile"` holds the keys as written that do not describe the
+  layout, geometry, scaling or timing of the image data (repeated keys as
+  array): the main header (Siemens: the `.mhdr`; others: the keys before the
+  first frame group), and per frame the image header of a Siemens data set or
+  the keys of the frame group. Siemens image headers give the attributes not
+  given by the main header (patient, isotope, reconstruction).
+- Tests (`testsuite/interfile/testInterfileFile.cpp`, Python, R): the stored
+  values and timing against `make_expected.py`, the physical values, timing
+  and attributes against the ECAT7 files of PMOD's datasets, the positions and
+  attributes of `pet-wholebody` against its DICOM series, every file of a
+  dataset identified, the conversion into NIfTI.
 
 ### Phase 3: writing images (plan)
 
@@ -276,6 +320,8 @@ installed): the public API follows with phase 2.
   sets of the main header: one image header per frame?); the position of the
   voxels for other patient orientations than HFS (only one sample); the order
   of the time elements of `%image info` (see above).
+- The meaning of `origin (mm)` (PMOD) and `first pixel offset (mm)` (STIR),
+  to be verified with files whose positions are known.
 - The axis directions of each variant (Siemens `%patient orientation`, STIR
   `patient orientation`/`rotation`, PMOD).
 - The extension of written data files (phase 3).

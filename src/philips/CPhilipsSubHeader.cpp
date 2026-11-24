@@ -929,6 +929,9 @@ bool CPhilipsSubHeader::convertFrom(const CMedIOHeader* subHeader, const CMedIOH
     }
     break;
 
+    // Interfile headers are converted with the matrix conversion (CMedIOData::readMatrix())
+    case CMedIOHeader::InterfileMainHeader:
+    case CMedIOHeader::InterfileFrameHeader:
     case CMedIOHeader::Unknown:
       // for an unknown header type we do nothing
     break;

@@ -82,7 +82,8 @@ def test_load_datasets(path, key, json_name):
     assert pathlib.Path(image.filename).samefile(DATA_DIR / path)
     file_format = load_json(json_name)["format"]
     assert image.format == (pmedio.Format.ECAT if file_format == "ecat7" else
-                            pmedio.Format.NIFTI if file_format.startswith("nifti") else pmedio.Format.Philips)
+                            pmedio.Format.NIFTI if file_format.startswith("nifti") else
+                            pmedio.Format.Interfile if file_format == "interfile" else pmedio.Format.Philips)
 
     # the physical values of every frame: stored values x scale + intercept
     for k in range(frames):

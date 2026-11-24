@@ -34,6 +34,9 @@
 #include "CConcordeFile.h"
 #include "CConcordeMainHeader.h"
 #include "CConcordeFrameHeader.h"
+#include "CInterfileFile.h"
+#include "CInterfileFrameHeader.h"
+#include "CInterfileMainHeader.h"
 #include "MedIOLimits.h"
 
 #include <QJsonArray>
@@ -310,6 +313,8 @@ CMedIOData::Format headerDataFormat(const CMedIOHeader& header)
     case CMedIOHeader::PhilipsSubHeader:            return CMedIOData::Philips;
     case CMedIOHeader::ConcordeMicroPetMainHeader:
     case CMedIOHeader::ConcordeMicroPetFrameHeader: return CMedIOData::ConcordeMicropet;
+    case CMedIOHeader::InterfileMainHeader:
+    case CMedIOHeader::InterfileFrameHeader:        return CMedIOData::Interfile;
     default: break;
   }
   return CMedIOData::Unknown;
@@ -326,6 +331,7 @@ bool mainHeaderFitsMatrix(const CMedIOHeader& subHeader, const CMedIOHeader* mai
     case CMedIOData::NIFTI:            expected = CMedIOHeader::NIFTIMainHeader; break;
     case CMedIOData::Philips:          expected = CMedIOHeader::PhilipsMainHeader; break;
     case CMedIOData::ConcordeMicropet: expected = CMedIOHeader::ConcordeMicroPetMainHeader; break;
+    case CMedIOData::Interfile:        expected = CMedIOHeader::InterfileMainHeader; break;
     default: break;
   }
 
@@ -343,6 +349,7 @@ QList<short> frameNumbers(CMedIOData* file)
     case CMedIOData::NIFTI:            numbers = niftiFrameNumbers(static_cast<CNIFTIFile*>(file)); break;
     case CMedIOData::Philips:          numbers = philipsFrameNumbers(static_cast<CPhilipsFile*>(file)); break;
     case CMedIOData::ConcordeMicropet: numbers = concordeFrameNumbers(static_cast<CConcordeFile*>(file)); break;
+    case CMedIOData::Interfile:        numbers = interfileFrameNumbers(static_cast<CInterfileFile*>(file)); break;
     default: break;
   }
   return numbers;
@@ -388,6 +395,14 @@ void fileAttributes(CMedIOData* file, short frame, QJsonObject& mainAttributes, 
     }
     break;
 
+    case CMedIOData::Interfile: {
+      CInterfileFrameHeader* fh = NULL;
+      if(static_cast<CInterfileFile*>(file)->readSubHeader(fh, frame) && fh != NULL)
+        frameAttributes = fh->attributes();
+      delete fh;
+    }
+    break;
+
     case CMedIOData::NIFTI: {
       // the frame attributes of all frames are stored with the main header
       const QJsonArray frames = mainAttributes.take(QString::fromLatin1(CMedIOHeaderDictionary::FramesKey)).toArray();
@@ -427,6 +442,10 @@ bool readVolume(CMedIOData* file, short frame, CMedIOVolume& volume)
   switch(file->dataFormat()) {
     case CMedIOData::NIFTI:
       result = readNiftiVolume(static_cast<CNIFTIFile*>(file), frame, volume);
+    break;
+
+    case CMedIOData::Interfile:
+      result = readInterfileVolume(static_cast<CInterfileFile*>(file), frame, volume);
     break;
 
     default: {
@@ -480,6 +499,10 @@ bool readFrame(CMedIOData* file, short frame, CMedIOFrame& f)
       result = readConcordeFrame(static_cast<CConcordeFile*>(file), frame, f);
     break;
 
+    case CMedIOData::Interfile:
+      result = readInterfileFrame(static_cast<CInterfileFile*>(file), frame, f);
+    break;
+
     default:
       result = unsupported(file->dataFormat(), "reading matrices in another format");
     break;
@@ -521,6 +544,11 @@ bool frameFromMatrix(const QByteArray& data, const CMedIOHeader& header, const C
     case CMedIOData::ConcordeMicropet:
       result = (header.headerFormat() == CMedIOHeader::ConcordeMicroPetFrameHeader) &&
                concordeFrameFromMatrix(data, static_cast<const CConcordeFrameHeader&>(header), mainHeader, f);
+    break;
+
+    case CMedIOData::Interfile:
+      result = (header.headerFormat() == CMedIOHeader::InterfileFrameHeader) &&
+               interfileFrameFromMatrix(data, static_cast<const CInterfileFrameHeader&>(header), f);
     break;
 
     default:
@@ -680,6 +708,18 @@ bool readNativeMatrix(CMedIOData* file, short frame, QByteArray& data, CMedIOHea
     }
     break;
 
+    case CMedIOData::Interfile: {
+      QByteArray* matrix = NULL;
+      CInterfileFrameHeader* frameHeader = NULL;
+      result = static_cast<CInterfileFile*>(file)->readMatrix(matrix, frameHeader, frame);
+      if(result) {
+        data = *matrix;
+        header = frameHeader;
+      }
+      delete matrix;
+    }
+    break;
+
     case CMedIOData::NIFTI: {
       // one volume in the voxel order and datatype of the file and the header
       // of the file with the timing of the frame
@@ -734,6 +774,13 @@ bool readNativeMainHeader(CMedIOData* file, CMedIOHeader*& header)
     case CMedIOData::ConcordeMicropet: {
       CConcordeMainHeader* mainHeader = NULL;
       result = static_cast<CConcordeFile*>(file)->readMainHeader(mainHeader);
+      header = mainHeader;
+    }
+    break;
+
+    case CMedIOData::Interfile: {
+      CInterfileMainHeader* mainHeader = NULL;
+      result = static_cast<CInterfileFile*>(file)->readMainHeader(mainHeader);
       header = mainHeader;
     }
     break;

@@ -18,7 +18,7 @@
 */
 
 //! @file CInterfileKeys.h
-//! @brief private: the "key := value" lines of an Interfile header
+//! @brief the "key := value" lines of an Interfile header
 //!
 //! An Interfile header (Interfile 3.3, Todd-Pokropek et al., Nucl Med Commun 13
 //! (1992) 673-699, and the PET extensions of STIR and the scanner vendors) is ASCII

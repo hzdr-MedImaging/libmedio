@@ -1,10 +1,10 @@
 # Format independent access to the image data
 Applications do not need to know the format of a file to work with its
 image data in the representation they are used to. `readMatrix()` of every
-file class (`CECATFile`, `CNIFTIFile`, `CPhilipsFile`, `CConcordeFile`)
+file class (`CECATFile`, `CNIFTIFile`, `CPhilipsFile`, `CInterfileFile`, `CConcordeFile`)
 returns a frame in the representation of the requested format:
 ```cpp
-// any supported image file, e.g. NIfTI, Philips or microPET
+// any supported image file, e.g. NIfTI, Philips, Interfile or microPET
 CMedIOData* file = CMedIODataFactory::create(fileName);
 file->open(QIODevice::ReadOnly);
 
@@ -47,8 +47,8 @@ for(int k=0; k < frames.size(); k++) {
 - `frameNumbers()` returns the numbers of the frames of a file. ECAT7 and
   Philips files address their frames by the frame numbers stored in the
   file, which do not have to start with 1 and can have gaps (`numFrames()`
-  of `CECATFile`/`CPhilipsFile` is the highest frame number); NIfTI volumes
-  and microPET frames are numbered 1..n. The main headers returned for
+  of `CECATFile`/`CPhilipsFile` is the highest frame number); NIfTI volumes,
+  microPET and Interfile frames are numbered 1..n. The main headers returned for
   another format (and the main headers written by libmedio) give the number
   of frames.
 - Every frame is converted via its ECAT7 representation, using the existing
@@ -56,7 +56,10 @@ for(int k=0; k < frames.size(); k++) {
 - Voxel order: ECAT7, Philips and microPET: x towards patient left, y
   towards posterior, planes from superior to inferior; NIfTI: the same
   with reversed planes (as written by `CNIFTIConverter`), or the
-  orientation of the NIfTI file written to, whatever orientation it has.
+  orientation of the NIfTI file written to, whatever orientation it has;
+  Interfile: the order of the file (PMOD: planes from inferior to superior,
+  Siemens reconstructions: from superior to inferior, see
+  [interfile.md](interfile.md)).
 - Data types: the stored values are kept if the target format can represent
   them exactly (integers are widened if needed), otherwise the physical
   values are stored as float32. Writing into a file with a given data type

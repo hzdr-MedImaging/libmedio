@@ -20,7 +20,7 @@
 // Python interface to the format independent matrix access of libmedio
 // (CMedIOVolume, CMedIOData::frameNumbers(), readVolume(), writeVolume()):
 //
-//   f = pmedio.open("image.nii.gz")          # ECAT7, NIfTI, Philips, microPET
+//   f = pmedio.open("image.nii.gz")          # ECAT7, NIfTI, Philips, Interfile, microPET
 //   for n in f.frame_numbers():
 //       v = f.read_volume(n)                 # pmedio.Volume
 //
@@ -853,8 +853,8 @@ One frame of image data, independent of the file format (CMedIOVolume).
 - ``frame_start``, ``frame_duration``: frame timing (s)
 
 Volumes read with ``File.read_volume()`` are in the voxel order of the file, e.g. "LPI"
-for ECAT7, Philips and microPET (x towards left, y towards posterior, planes from superior
-to inferior). ``reorient()`` reorders the voxels, every voxel keeps its position.
+for ECAT7, Philips, microPET and Siemens Interfile (x towards left, y towards posterior,
+planes from superior to inferior). ``reorient()`` reorders the voxels, every voxel keeps its position.
 )doc");
 
   volume.def(py::init<>())
@@ -998,7 +998,7 @@ with ``pmedio.create()`` for writing. It can be used as context manager.
     }, R"doc(
 Numbers of the frames of the file in ascending order, as passed to ``read_volume()``.
 ECAT7 and Philips files use the frame numbers stored in the file, which do not have to
-start with 1; NIfTI volumes and microPET frames are numbered 1..n.
+start with 1; NIfTI volumes, microPET and Interfile frames are numbered 1..n.
 )doc")
     .def("read_volume", [](const MedIOFile& self, short frame) {
       if(self.writable())
@@ -1051,8 +1051,8 @@ all of them were written (ValueError)
     });
 
   m.def("open", &openFile, py::arg("path"), py::sig("def open(path: str | os.PathLike[str]) -> File"), R"doc(
-Open an ECAT7, NIfTI (.nii, .nii.gz, .hdr/.img), Philips (.img, .syn) or microPET file
-for reading.
+Open an ECAT7, NIfTI (.nii, .nii.gz, .hdr/.img), Philips (.img, .syn), Interfile (a
+header, a Siemens main header .mhdr or a data file) or microPET file for reading.
 )doc");
 
   m.def("dictionary_entry", [](const QString& keywordOrTag) -> py::object {
@@ -1222,7 +1222,7 @@ images hold no frame timing or header attributes: give them as for ``pmedio.Imag
         py::arg("orientation").none() = py::none(),
         py::sig("def load(path: str | os.PathLike[str], frames: collections.abc.Sequence[int] | None = None, "
                 "orientation: str | None = None) -> Image"), R"doc(
-Load all frames of an ECAT7, NIfTI, Philips or microPET file as pmedio.Image: the physical
+Load all frames of an ECAT7, NIfTI, Philips, Interfile or microPET file as pmedio.Image: the physical
 values as one 4D array (float32, float64 for float64 data), affine, timing and header
 attributes. ``frames`` selects frames by their numbers (``File.frame_numbers()``),
 ``orientation`` reorders the voxels (e.g. "RAS", the nibabel convention; default: the voxel

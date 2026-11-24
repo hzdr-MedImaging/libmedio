@@ -33,6 +33,7 @@
 #include "CNIFTI2MainHeader.h"
 #include "CPhilipsFile.h"
 #include "CPhilipsMainHeader.h"
+#include "CInterfileFile.h"
 
 #include <QString>
 
@@ -367,6 +368,15 @@ QStringList CMedIOData::fileNames() const
 
     case CMedIOData::ConcordeMicropet:
       names << fileName() << fileName() + ".hdr";
+    break;
+
+    case CMedIOData::Interfile:
+      names << fileName();
+      foreach(const QString& name, static_cast<const CInterfileFile*>(this)->allFileNames())
+      {
+        if(names.contains(name) == false)
+          names << name;
+      }
     break;
 
     default:

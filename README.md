@@ -1,6 +1,6 @@
 # libmedio
 
-**Read and write medical imaging data in C++, Python and R: ECAT, NIfTI, Philips PET and microPET through one interface.**
+**Read and write medical imaging data in C++, Python and R: ECAT, NIfTI, Philips PET, Interfile and microPET through one interface.**
 
 [![CI](https://github.com/hzdr-MedImaging/libmedio/actions/workflows/ci.yml/badge.svg)](https://github.com/hzdr-MedImaging/libmedio/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
@@ -43,11 +43,12 @@ pipelines and conversions do not have to know the formats they work with.
 | ECAT 6 | `.v` | | main headers |
 | NIfTI-1, NIfTI-2 | `.nii`, `.nii.gz`, `.hdr`/`.img` (also `.gz`) | read, write (NIfTI-1) | both byte orders, JSON and DICOM header extensions |
 | Philips PET | `.img` (image), `.syn` (Syntegra) | read, write | images, sinograms, list mode |
+| Interfile (3.3, STIR, PMOD, Siemens reconstructions) | header (`.hdr`, `.hv`, `.h33`, Siemens `.mhdr`/`.v.hdr`) with data file or single file | read | images ([docs/interfile.md](docs/interfile.md)) |
 | Siemens Concorde microPET | `.img` + `.img.hdr` | read | images, sinograms |
 
 "All languages" is the format independent interface of C++, Python and R;
 the C++ format classes (`CECATFile`, `CNIFTIFile`, `CPhilipsFile`,
-`CConcordeFile`) give access to the native headers and the other data types.
+`CInterfileFile`, `CConcordeFile`) give access to the native headers and the other data types.
 
 ## Quick start
 

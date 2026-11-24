@@ -29,6 +29,7 @@
 #include "CConcordeImage.h"
 #include "CPhilipsFile.h"
 #include "CNIFTIFile.h"
+#include "CInterfileFile.h"
 
 #include <QFileInfo>
 
@@ -40,8 +41,12 @@ CMedIOData::Format CMedIODataFactory::identify(const QString& fileName)
 
   CMedIOData::Format result;
 
+  // Interfile before Philips and NIfTI: Interfile uses their file name extensions
+  // (.img, .hdr) and is identified by its content
   if(CECATFile::isOfType(fileName))
     result = CMedIOData::ECAT;
+  else if(CInterfileFile::isOfType(fileName))
+    result = CMedIOData::Interfile;
   else if(CPhilipsFile::isOfType(fileName))
     result = CMedIOData::Philips;
   else if(CNIFTIFile::isOfType(fileName))
@@ -73,6 +78,8 @@ CMedIOData* CMedIODataFactory::create(const QString& fileName) {
     D("ECAT format found");
   else if((mData = CConcordeFile::createFromFile(fileName)))
     D("Concorde microPET format found");
+  else if((mData = CInterfileFile::createFromFile(fileName)))
+    D("Interfile file found");
   else if((mData = CPhilipsFile::createFromFile(fileName)))
     D("Philips file found");
   else if((mData = CNIFTIFile::createFromFile(fileName)))
@@ -148,6 +155,7 @@ const char* CMedIODataFactory::formatName(CMedIOData::Format format)
     case CMedIOData::Philips:          return "philips";
     case CMedIOData::PhilipsBin:       return "philipsbin";
     case CMedIOData::NIFTI:            return "nifti";
+    case CMedIOData::Interfile:        return "interfile";
     case CMedIOData::Unknown:          break;
   }
   return "unknown";
@@ -170,6 +178,8 @@ bool CMedIODataFactory::formatFromName(const QString& name, CMedIOData::Format& 
     format = CMedIOData::Philips;
   else if(name.startsWith('n', Qt::CaseInsensitive))
     format = CMedIOData::NIFTI;
+  else if(name.startsWith('i', Qt::CaseInsensitive))
+    format = CMedIOData::Interfile;
   else
     result = false;
 

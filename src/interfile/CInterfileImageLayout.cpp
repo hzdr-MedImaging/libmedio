@@ -327,7 +327,8 @@ bool isMainHeader(const CInterfileKeys& keys, QString* reason)
 
 CInterfileFrame::CInterfileFrame()
   : numberFormat(UnsignedInteger), bytesPerPixel(0), dims(3, 1), voxelSize(3, 1.0), hasOrigin(false),
-    origin(3, 0.0), startTime(0.0), duration(0.0), slope(1.0), intercept(0.0), offset(0)
+    origin(3, 0.0), startTime(0.0), duration(0.0), slope(1.0), intercept(0.0), offset(0), groupBegin(-1),
+    groupEnd(-1)
 {
 }
 
@@ -530,6 +531,8 @@ bool CInterfileImageLayout::read(const CInterfileKeys& keys, const QString& head
         for(qint64 i = 0; i < images / image.dims[2]; i++)
         {
           CInterfileFrame frame = image;
+          frame.groupBegin = group.begin;
+          frame.groupEnd = group.end;
           frame.startTime = (i == 0) ? end : end + pause;
           frame.duration = duration;
           frame.offset = offset;
