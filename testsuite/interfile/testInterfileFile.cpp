@@ -110,6 +110,8 @@ class TestInterfileFile : public QObject
     void toNifti();
 
     void openModes();
+    void siemensPlaneOrder_data();
+    void siemensPlaneOrder();
     void write_data();
     void write();
     void writePatientPositions_data();
@@ -232,7 +234,10 @@ void TestInterfileFile::identify_data()
   {
     if(file.format != "interfile")
       continue;
+    // the image header and data file of a data set of a Siemens main header are one
+    // frame of it (one image header per frame)
     const int frames = file.expected.value("frames").toArray().size();
+    const int dataSets = file.expected.value("header").toObject().value("data_sets").toArray().size();
     QStringList paths;
     if(QFileInfo(file.path).isDir())
     {
@@ -243,7 +248,8 @@ void TestInterfileFile::identify_data()
       paths << file.path;
     foreach(const QString& path, paths)
     {
-      QTest::newRow(qPrintable(QDir(medioTestDataDir()).relativeFilePath(path))) << path << frames;
+      const int pathFrames = (dataSets > 0 && path.endsWith(".mhdr") == false) ? frames / dataSets : frames;
+      QTest::newRow(qPrintable(QDir(medioTestDataDir()).relativeFilePath(path))) << path << pathFrames;
       any = true;
     }
   }
@@ -445,19 +451,26 @@ void TestInterfileFile::attributes()
   else if(const MedIOTestFile* dicom = sameDataset(m_data, QString("dicom/%1").arg(file.dataset)))
   {
     reference = dicom->expected.value("attributes").toObject().value("main").toObject();
+    referenceFrames = dicom->expected.value("attributes").toObject().value("frames").toArray();
     keys << "Manufacturer" << "ManufacturerModelName" << "PatientPosition" << "ReconstructionMethod"
          << "RadionuclidePositronFraction";
 
-    // the Siemens header gives the injection time in UTC, the DICOM series in the local
-    // time of the scanner (CET, UTC+1)
-    const QDateTime utc = QDateTime::fromString(attributes.value("RadiopharmaceuticalStartDateTime").toString(),
-                                                Qt::ISODate);
-    const QDateTime local = QDateTime::fromString(reference.value("RadiopharmaceuticalStartDateTime").toString(),
-                                                  "yyyy-MM-ddThh:mm:ss");
-    QVERIFY(utc.isValid() && local.isValid());
-    QCOMPARE(utc.timeSpec(), Qt::UTC);
-    QCOMPARE(QDateTime(local.date(), local.time(), Qt::UTC).toMSecsSinceEpoch() - utc.toMSecsSinceEpoch(),
-             qint64(3600 * 1000));
+    // the Siemens headers give the times in UTC, the DICOM series in the local time of the
+    // scanner: the acquisition gives the offset of the local time (in steps of 15 minutes),
+    // the injection has to have the same
+    const auto msecs = [](const QJsonObject& json, const char* key, bool utc) -> qint64 {
+      QDateTime time = QDateTime::fromString(json.value(key).toString(), Qt::ISODateWithMs);
+      if(utc == false)
+        time = QDateTime(time.date(), time.time(), Qt::UTC);
+      return time.isValid() ? time.toMSecsSinceEpoch() : 0;
+    };
+    const qint64 quarter = 15 * 60 * 1000;
+    const qint64 offset = qRound64(double(msecs(reference, "AcquisitionDateTime", false) -
+                                          msecs(attributes, "AcquisitionDateTime", true)) / quarter) * quarter;
+    QVERIFY(msecs(attributes, "AcquisitionDateTime", true) != 0 && qAbs(offset) <= 14 * 3600 * 1000);
+    QVERIFY(attributes.value("RadiopharmaceuticalStartDateTime").toString().endsWith('Z'));
+    QCOMPARE(msecs(reference, "RadiopharmaceuticalStartDateTime", false) -
+             msecs(attributes, "RadiopharmaceuticalStartDateTime", true), offset);
   }
   else
     QSKIP("no reference of the dataset");
@@ -552,6 +565,79 @@ void TestInterfileFile::toNifti()
 }
 
 //-----------------------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------------------
+// Siemens: the planes of the data file are from the highest to the lowest z, "%image
+// info[n]" lists them in the order of the scan; without "%image info" the bed positions
+// give z. The values of the samples of docs/interfile.md: continuous bed motion towards
+// higher z (scan direction "out"), step and shoot towards lower z ("in").
+
+void TestInterfileFile::siemensPlaneOrder_data()
+{
+  QTest::addColumn<bool>("imageInfo");
+  QTest::addColumn<double>("start");
+  QTest::addColumn<double>("end");
+  QTest::addColumn<double>("firstZ");
+
+  // 4 planes of 1.64557 mm
+  QTest::newRow("image info, z rising with n") << true << -718.542 << 239.003 << -718.542 + 3 * 1.64557;
+  QTest::newRow("image info, z falling with n") << true << -766.002 << -1026.0 << -766.002;
+  QTest::newRow("bed positions, rising") << false << -718.542 << 239.003 << -718.542 + 3 * 1.64557;
+  QTest::newRow("bed positions, falling") << false << -766.002 << -1026.0 << -766.002;
+}
+
+void TestInterfileFile::siemensPlaneOrder()
+{
+  QFETCH(bool, imageInfo);
+  QFETCH(double, start);
+  QFETCH(double, end);
+  QFETCH(double, firstZ);
+
+  const int planes = 4;
+  const double dz = 1.64557;
+  const QString name = m_tmp.filePath(QString("order-%1.v.hdr").arg(QTest::currentDataTag()).replace(' ', '_').replace(',', ""));
+  QByteArray text = "!INTERFILE:=\r\n%SMS-MI header name space:=image subheader\r\nimage data byte order:=LITTLEENDIAN\r\n"
+                    "number format:=float\r\n!number of bytes per pixel:=4\r\nnumber of dimensions:=3\r\n"
+                    "matrix size[1]:=2\r\nmatrix size[2]:=3\r\nmatrix size[3]:=4\r\n"
+                    "scale factor (mm/pixel) [1]:=22.6875\r\nscale factor (mm/pixel) [2]:=22.6875\r\n"
+                    "scale factor (mm/pixel) [3]:=1.64557\r\n%gantry offset (mm) [1]:=-0.858\r\n"
+                    "%gantry offset (mm) [2]:=0.255\r\nstart vertical bed position (mm):=178\r\n";
+  text += QString("start horizontal bed position (mm):=%1\r\nend horizontal bed position (mm):=%2\r\n")
+              .arg(start, 0, 'g', 10).arg(end, 0, 'g', 10).toLatin1();
+  text += "!name of data file:=" + QFileInfo(name).completeBaseName().toLatin1() + "\r\n%image orientation:={1,0,0,0,1,0}\r\n";
+  // the entries in the order of the scan: from the start position towards the end
+  const double step = (end > start) ? dz : -dz;
+  for(int n = 1; imageInfo && n <= planes; n++)
+    text += QString("%image info[%1]:={%2,%3,-0.858,-541.255,0,0,0,1,0.0,1,0,0.0,60,1,no slice}\r\n")
+                .arg(n).arg(n - 1).arg(start + (n - 1) * step, 0, 'g', 10).toLatin1();
+  QFile header(name);
+  QVERIFY(header.open(QIODevice::WriteOnly));
+  header.write(text);
+  header.close();
+  QFile data(QFileInfo(name).dir().filePath(QFileInfo(name).completeBaseName()));
+  QVERIFY(data.open(QIODevice::WriteOnly));
+  data.write(QByteArray(2 * 3 * planes * 4, '\0'));
+  data.close();
+
+  QScopedPointer<CMedIOData> file(openFile(name));
+  QVERIFY(file.isNull() == false);
+  CMedIOVolume v;
+  QVERIFY(file->readVolume(v, 1));
+  QCOMPARE(v.orientation(), QString("LPI"));
+  double p[3];
+  v.position(0, 0, 0, p);
+  QVERIFY2(std::fabs(p[2] - firstZ) < 1e-3, qPrintable(QString("z of the first plane %1").arg(p[2])));
+  v.position(0, 0, planes - 1, p);
+  QVERIFY(std::fabs(p[2] - (firstZ - (planes - 1) * dz)) < 1e-3);
+  if(imageInfo)
+    QVERIFY(std::fabs(p[0] + 0.858) < 1e-6 && std::fabs(p[1] + 541.255) < 1e-6);
+  else
+  {
+    // x: -nx / 2 * dx - gantry offset x, y: -ny / 2 * dy - vertical bed - gantry offset y
+    QVERIFY(std::fabs(p[0] - (-1.0 * 22.6875 + 0.858)) < 1e-6);
+    QVERIFY(std::fabs(p[1] - (-1.5 * 22.6875 - 178.0 - 0.255)) < 1e-6);
+  }
+}
 
 void TestInterfileFile::openModes()
 {

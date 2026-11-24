@@ -576,58 +576,77 @@ void TestInterfileLayout::datasets()
 
   const QJsonObject header = file.expected.value("header").toObject();
 
-  // the header: the file itself, or the .hdr (STIR: .hv) file of a header/image pair directory
-  // (Siemens: the image header of the data set of the main header .mhdr)
-  QString headerFile = file.path;
+  // the headers: the file itself, the .hdr (STIR: .hv) file of a header/image pair
+  // directory, or the image headers of the data sets of a Siemens main header (.mhdr)
+  QStringList headerFiles;
   CInterfileKeys keys;
-  CInterfileImageLayout layout;
   QString error;
-  if(QFileInfo(file.path).isDir())
+  if(QFileInfo(file.path).isDir() == false)
+    headerFiles << file.path;
+  else
   {
     const QStringList headers = QDir(file.path).entryList(QStringList() << "*.hdr" << "*.hv", QDir::Files);
-    QCOMPARE(headers.size(), 1);
-    headerFile = QDir(file.path).filePath(headers.first());
-
     const QStringList mainHeaders = QDir(file.path).entryList(QStringList() << "*.mhdr", QDir::Files);
     QCOMPARE(mainHeaders.isEmpty(), header.contains("data_sets") == false);
-    if(mainHeaders.isEmpty() == false)
+    if(mainHeaders.isEmpty())
     {
-      // the main header names the image header and data file of its data set, and
+      QCOMPARE(headers.size(), 1);
+      headerFiles << QDir(file.path).filePath(headers.first());
+    }
+    else
+    {
+      // the main header names the image header and data file of its data sets, and
       // describes no image data itself
       QCOMPARE(mainHeaders.size(), 1);
       const QString mainHeader = QDir(file.path).filePath(mainHeaders.first());
       QVERIFY(CInterfileKeys::isInterfile(mainHeader));
       QVERIFY2(keys.read(mainHeader, &error), qPrintable(error));
       const QJsonArray dataSets = header.value("data_sets").toArray();
-      QCOMPARE(dataSets.size(), 1);
-      const QStringList dataSet = CInterfileKeys::toList(keys.value("data set", QList<int>() << 1));
-      QCOMPARE(dataSet.size(), 3);
-      QCOMPARE(dataSet.at(1), dataSets.at(0).toArray().at(0).toString());
-      QCOMPARE(dataSet.at(2), dataSets.at(0).toArray().at(1).toString());
-      QCOMPARE(QFileInfo(headerFile).fileName(), dataSet.at(1));
-      QVERIFY(layout.read(keys, mainHeader, &error) == false);
+      QCOMPARE(dataSets.size(), headers.size());
+      for(int n = 0; n < dataSets.size(); n++)
+      {
+        const QStringList dataSet = CInterfileKeys::toList(keys.value("data set", QList<int>() << (n + 1)));
+        QCOMPARE(dataSet.size(), 3);
+        QCOMPARE(dataSet.at(1), dataSets.at(n).toArray().at(0).toString());
+        QCOMPARE(dataSet.at(2), dataSets.at(n).toArray().at(1).toString());
+        headerFiles << QDir(file.path).filePath(dataSet.at(1));
+      }
+      CInterfileImageLayout mainLayout;
+      QVERIFY(mainLayout.read(keys, mainHeader, &error) == false);
       QVERIFY2(error.contains("main header of data sets"), qPrintable(error));
     }
   }
-  QVERIFY(CInterfileKeys::isInterfile(headerFile));
 
-  QVERIFY2(keys.read(headerFile, &error), qPrintable(error));
-  QVERIFY2(layout.read(keys, headerFile, &error), qPrintable(error));
+  // the frames of all headers in their order, with the layout they belong to
+  QList<CInterfileImageLayout> layouts;
+  QList<QPair<int, int> > frameOf;
+  foreach(const QString& headerFile, headerFiles)
+  {
+    QVERIFY(CInterfileKeys::isInterfile(headerFile));
+    CInterfileImageLayout layout;
+    QVERIFY2(keys.read(headerFile, &error), qPrintable(error));
+    QVERIFY2(layout.read(keys, headerFile, &error), qPrintable(error));
+    QVERIFY(QFileInfo(layout.dataFileName).size() >= layout.requiredDataSize());
+    layouts.append(layout);
+    for(int f = 0; f < layout.frames.size(); f++)
+      frameOf.append(qMakePair(layouts.size() - 1, f));
+  }
 
-  QCOMPARE(layout.versionOfKeys, header.value("version_of_keys").toString());
-  QCOMPARE(layout.typeOfData, header.value("type_of_data").toString().toLower());
-  QCOMPARE(layout.bigEndian, header.value("byte_order").toString() == "big");
-  QCOMPARE(layout.dataInHeaderFile, QFileInfo(file.path).isDir() == false);
+  const CInterfileImageLayout& first = layouts.first();
+  QCOMPARE(first.versionOfKeys, header.value("version_of_keys").toString());
+  QCOMPARE(first.typeOfData, header.value("type_of_data").toString().toLower());
+  QCOMPARE(first.bigEndian, header.value("byte_order").toString() == "big");
+  QCOMPARE(first.dataInHeaderFile, QFileInfo(file.path).isDir() == false);
 
   const QJsonArray frames = file.expected.value("frames").toArray();
-  QCOMPARE(layout.frames.size(), frames.size());
-  QCOMPARE(layout.frames.first().offset, qint64(header.value("data_offset").toDouble()));
-  QVERIFY(QFileInfo(layout.dataFileName).size() >= layout.requiredDataSize());
+  QCOMPARE(frameOf.size(), frames.size());
+  QCOMPARE(first.frames.first().offset, qint64(header.value("data_offset").toDouble()));
 
   for(int f = 0; f < frames.size(); f++)
   {
     const QJsonObject expected = frames.at(f).toObject();
-    const CInterfileFrame& frame = layout.frames.at(f);
+    const CInterfileImageLayout& layout = layouts.at(frameOf.at(f).first);
+    const CInterfileFrame& frame = layout.frames.at(frameOf.at(f).second);
 
     QJsonArray expectedDims = expected.value("dims").toArray();
     QCOMPARE(frame.dims, dims(expectedDims.at(0).toInt(), expectedDims.at(1).toInt(), expectedDims.at(2).toInt()));
@@ -667,12 +686,12 @@ void TestInterfileLayout::datasets()
     if(other.relativePath != ecat)
       continue;
     const QJsonArray matrices = other.expected.value("matrices").toArray();
-    QCOMPARE(layout.frames.size(), matrices.size());
+    QCOMPARE(first.frames.size(), matrices.size());
     for(int f = 0; f < matrices.size(); f++)
     {
       const QJsonObject matrix = matrices.at(f).toObject();
-      QCOMPARE(layout.frames.at(f).startTime * 1000.0, matrix.value("frame_start_time_ms").toDouble());
-      QCOMPARE(layout.frames.at(f).duration * 1000.0, matrix.value("frame_duration_ms").toDouble());
+      QCOMPARE(first.frames.at(f).startTime * 1000.0, matrix.value("frame_start_time_ms").toDouble());
+      QCOMPARE(first.frames.at(f).duration * 1000.0, matrix.value("frame_duration_ms").toDouble());
     }
   }
 }

@@ -60,10 +60,11 @@ class CInterfileFilePrivate;
 //! data sets, the frames of a header in the order of the header.
 //!
 //! Position of the voxels (CInterfileFrameHeader::affine()):
-//! - Siemens: from "%image info[n]" (x and y of the first voxel, z of the planes;
-//!   plane k of the data file has the z of "%image info[planes - k]"), verified
-//!   with the DICOM series of the same reconstruction (patient orientation HFS);
-//!   without it from the bed position and the gantry offset.
+//! - Siemens: from "%image info[n]" (x and y of the first voxel, z of the planes in
+//!   the order of the scan; the planes of the data file are from the highest to the
+//!   lowest z), verified with the DICOM series of the same reconstructions (patient
+//!   orientation HFS, both scan directions); without it from the bed positions and
+//!   the gantry offset.
 //! - STIR ("first pixel offset (mm) [i]"): the position of the first voxel in the
 //!   coordinates of STIR, whose directions in LPS depend on "patient orientation" and
 //!   "patient rotation" (head_in/supine if not given), as STIR converts its images.

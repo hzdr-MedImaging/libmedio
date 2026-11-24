@@ -34,6 +34,7 @@
 #include <QMap>
 #include <QSysInfo>
 
+#include <algorithm>
 #include <cmath>
 
 #include <rtdebug.h>
@@ -187,8 +188,11 @@ void geometry(const CInterfileKeys& keys, const CInterfileFrame& frame, double m
     for(int j = 0; j < 4; j++)
       m[i][j] = 0.0;
 
-  // Siemens: "%image info[n]" = {n - 1, z, x, y, ...} of the planes; plane k of the
-  // data file is "%image info[planes - k]"
+  // Siemens: "%image info[n]" = {n - 1, z, x, y, ...} of the planes in the order of the
+  // scan (from "start horizontal bed position (mm)"); the planes of the data file are
+  // from the highest to the lowest z (verified with the DICOM series of samples scanned
+  // in both directions, see docs/interfile.md): plane k is the entry with the k-th
+  // highest z, "%image info[k + 1]" if z falls with n, otherwise "%image info[planes - k]"
   QVector<double> x(nz, 0.0);
   QVector<double> y(nz, 0.0);
   QVector<double> z(nz, 0.0);
@@ -202,9 +206,15 @@ void geometry(const CInterfileKeys& keys, const CInterfileFrame& frame, double m
     const QStringList elements = CInterfileKeys::toList(key.value);
     if(n < 1 || n > nz || elements.size() < 4)
       continue;
-    const int k = nz - n;
+    const int k = n - 1;
     given[k] = CInterfileKeys::toDouble(elements[1], &z[k]) && CInterfileKeys::toDouble(elements[2], &x[k]) &&
                CInterfileKeys::toDouble(elements[3], &y[k]);
+  }
+  if(given.contains(false) == false && nz > 1 && z[0] < z[nz - 1])
+  {
+    std::reverse(x.begin(), x.end());
+    std::reverse(y.begin(), y.end());
+    std::reverse(z.begin(), z.end());
   }
 
   const bool siemens = keys.contains("sms-mi header name space");
@@ -227,7 +237,8 @@ void geometry(const CInterfileKeys& keys, const CInterfileFrame& frame, double m
       }
     }
 
-    const double step = (nz > 1) ? (z[nz - 1] - z[0]) / (nz - 1) : -dz;
+    // the voxel size of the header (the z of "%image info" are rounded to 0.001 mm)
+    const double step = -dz;
     for(int i = 0; i < 3; i++)
     {
       m[i][0] = row[i] * dx;
@@ -242,17 +253,19 @@ void geometry(const CInterfileKeys& keys, const CInterfileFrame& frame, double m
 
   if(siemens)
   {
-    // without "%image info": as found in the sample of docs/interfile.md
+    // without "%image info": as found in the samples of docs/interfile.md; the planes from
+    // the highest z, the start of the scan or its end (the bed moved towards higher z)
     const double gantryX = numberOf(keys, "gantry offset (mm)", QList<int>() << 1, 0.0);
     const double gantryY = numberOf(keys, "gantry offset (mm)", QList<int>() << 2, 0.0);
     const double bedY = numberOf(keys, "start vertical bed position (mm)", QList<int>(), 0.0);
     const double bedZ = numberOf(keys, "start horizontal bed position (mm)", QList<int>(), 0.0);
+    const double bedEnd = numberOf(keys, "end horizontal bed position (mm)", QList<int>(), bedZ);
     m[0][0] = dx;
     m[1][1] = dy;
     m[2][2] = -dz;
     m[0][3] = -nx / 2.0 * dx - gantryX;
     m[1][3] = -ny / 2.0 * dy - bedY - gantryY;
-    m[2][3] = bedZ + (nz - 1) * dz;
+    m[2][3] = (bedEnd > bedZ) ? bedZ + (nz - 1) * dz : bedZ;
     return;
   }
 
