@@ -39,7 +39,7 @@ Supported formats:
   dicom/  DICOM image series (directory holding the slices of one series),
           read with pydicom
   interfile/  Interfile 3.3 images: a single file holding header and data,
-          or a directory holding the header (.hdr) and the data file it names;
+          or a directory holding the header (.hdr, STIR: .hv) and the data file it names;
           Siemens reconstructions: a directory holding the main header (.mhdr)
           and the image headers and data files of its data sets
 
@@ -607,6 +607,14 @@ def interfile_planes_reversed(raw, entries):
     return None
 
 
+def stir_signs(orientation, rotation):
+    """STIR: LPS = sign * coordinate of STIR per axis for the patient position
+    (head_in/supine if not given)."""
+    feet_in = orientation.strip().lower() == 'feet_in'
+    prone = rotation.strip().lower() == 'prone'
+    return [-1.0 if feet_in != prone else 1.0, -1.0 if prone else 1.0, 1.0 if feet_in else -1.0]
+
+
 def interfile_data_sets(main_header):
     """Siemens: the (image header, data file) of the data sets of a main header
     ("%data set[n] := {0, <image header>, <data file>}"), in the order of n."""
@@ -626,11 +634,11 @@ def expected_interfile(path, file_info):
     main_header = None
     if os.path.isdir(path):
         main_headers = [f for f in os.listdir(path) if f.lower().endswith('.mhdr')]
-        headers = [f for f in os.listdir(path) if f.lower().endswith('.hdr')]
+        headers = [f for f in os.listdir(path) if f.lower().endswith(('.hdr', '.hv'))]
         if len(main_headers) == 1:
             main_header = os.path.join(path, main_headers[0])
         elif len(headers) != 1:
-            raise ValueError('an Interfile directory has to contain exactly one .hdr file or one .mhdr file')
+            raise ValueError('an Interfile directory has to contain exactly one .hdr/.hv file or one .mhdr file')
         header_files = [os.path.join(path, headers[0])] if main_header is None else \
             [header for header, _ in interfile_data_sets(main_header)]
     else:
@@ -707,6 +715,14 @@ def expected_interfile(path, file_info):
                 'rescale_offset': float(group.get('data rescale offset', group.get('image intercept', 0))),
                 'units': group.get('units', units),
             }
+            offset_keys = [f'first pixel offset (mm) [{i}]' for i in (1, 2, 3)]
+            if all(k in keys for k in offset_keys):
+                # STIR: the position of the first voxel in the coordinates of STIR; their
+                # axes in LPS depend on the patient position, as STIR 6.3 converts its
+                # images into LPS (determined with its ITK output, docs/interfile.md)
+                signs = stir_signs(keys.get('patient orientation', ''), keys.get('patient rotation', ''))
+                frame['axis_signs_lps'] = signs
+                frame['first_voxel_lps_mm'] = [s * float(keys[k]) for s, k in zip(signs, offset_keys)]
             if siemens:
                 frame['start_s'] = float(value('image relative start time (sec)', default=0))
                 frame['planes_reversed_to_image_info'] = interfile_planes_reversed(raw, entries)
