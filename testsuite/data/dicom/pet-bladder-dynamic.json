@@ -1,0 +1,130 @@
+{
+  "generator": "pydicom 3.0.2",
+  "format": "dicom",
+  "header": {
+    "modality": "PT",
+    "manufacturer": "SIEMENS",
+    "model": "1208",
+    "rows": 32,
+    "columns": 32,
+    "slices": 159,
+    "frames": 2,
+    "pixel_spacing_mm": [
+      22.6875,
+      22.6875
+    ],
+    "slice_spacing_mm": 1.6455569620253168,
+    "image_orientation": [
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0
+    ],
+    "patient_position": "HFS",
+    "units": "BQML"
+  },
+  "frames": [
+    {
+      "frame_reference_time_ms": 30000.0,
+      "frame_duration_ms": 60000,
+      "first_position_mm": [
+        -362.142,
+        -541.255,
+        -1026.0
+      ],
+      "last_position_mm": [
+        -362.142,
+        -541.255,
+        -766.002
+      ],
+      "raw_min": -50,
+      "raw_max": 32767,
+      "raw_sum": 13787756,
+      "scaled_min": -140.5539,
+      "scaled_max": 92110.59282600001,
+      "scaled_sum": 38758457.560968004
+    },
+    {
+      "frame_reference_time_ms": 90000.0,
+      "frame_duration_ms": 60000,
+      "first_position_mm": [
+        -362.142,
+        -541.255,
+        -1026.0
+      ],
+      "last_position_mm": [
+        -362.142,
+        -541.255,
+        -766.002
+      ],
+      "raw_min": -68,
+      "raw_max": 32767,
+      "raw_sum": 13196463,
+      "scaled_min": -198.827172,
+      "scaled_max": 95808.381543,
+      "scaled_sum": 38585520.86312699
+    }
+  ],
+  "attributes": {
+    "main": {
+      "PatientName": "Phantom_Blase_Cu61",
+      "PatientID": "03062026",
+      "PatientSex": "O",
+      "PatientAge": "100Y",
+      "PatientPosition": "HFS",
+      "StudyInstanceUID": "1.3.12.2.1107.5.1.4.11031.30000026052607165767100000119",
+      "SeriesInstanceUID": "1.3.12.2.1107.5.1.4.99999.179364704161502",
+      "FrameOfReferenceUID": "1.3.12.2.1107.5.1.4.11031.30000026052607170266600000386",
+      "StudyID": "1",
+      "StudyDescription": "None",
+      "SeriesDescription": "dicom_data-LM-00-PSFTOF-dyn",
+      "Manufacturer": "SIEMENS",
+      "ManufacturerModelName": "1208",
+      "Units": "BQML",
+      "DecayCorrection": "START",
+      "ReconstructionMethod": "TOF-PSF-OP-OSEM 2i 5s",
+      "AttenuationCorrectionMethod": "xxxxxxxxxx",
+      "ScatterCorrectionMethod": "MODEL-BASED",
+      "PatientBirthDate": "1926-06-03",
+      "PatientSize": 1.0,
+      "PatientWeight": 9.58,
+      "SeriesNumber": 3.0,
+      "SoftwareVersions": [
+        "VG80C"
+      ],
+      "CorrectedImage": [
+        "NORM",
+        "DTIM",
+        "ATTN",
+        "SCAT",
+        "DECY",
+        "RAN"
+      ],
+      "AcquisitionDateTime": "2026-06-03T17:13:16.347",
+      "Radiopharmaceutical": "FDG",
+      "RadionuclideTotalDose": 40080000.0,
+      "RadionuclideHalfLife": 6586.2,
+      "RadionuclidePositronFraction": 0.9673,
+      "RadiopharmaceuticalStartDateTime": "2026-06-03T15:20:00",
+      "RadionuclideCodeSequence": {
+        "CodeValue": "C-111A1",
+        "CodingSchemeDesignator": "99SDM",
+        "CodeMeaning": "F^18^[^18^Fluorine]"
+      },
+      "EnergyWindowLowerLimit": 435.0,
+      "EnergyWindowUpperLimit": 585.0
+    },
+    "frames": [
+      {
+        "ActualFrameDuration": 60000.0,
+        "DecayFactor": 1.00316
+      },
+      {
+        "ActualFrameDuration": 60000.0,
+        "DecayFactor": 1.00952
+      }
+    ]
+  }
+}
