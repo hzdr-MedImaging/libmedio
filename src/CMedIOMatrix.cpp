@@ -592,6 +592,10 @@ bool matrixFromFrame(const CMedIOFrame& f, CMedIOData::Format format, QByteArray
       result = philipsMatrixFromFrame(f, data, header);
     break;
 
+    case CMedIOData::Interfile:
+      result = interfileMatrixFromFrame(f, data, header);
+    break;
+
     default:
       result = unsupported(format, "converting matrices into this format");
     break;
@@ -618,6 +622,10 @@ bool mainHeaderFromFrame(const CMedIOFrame& f, CMedIOData::Format format, CMedIO
 
     case CMedIOData::Philips:
       result = philipsMainHeaderFromFrame(f, header);
+    break;
+
+    case CMedIOData::Interfile:
+      result = interfileMainHeaderFromFrame(f, header);
     break;
 
     default:
@@ -654,6 +662,10 @@ bool writeFrame(CMedIOData* file, short frame, const CMedIOFrame& f)
 
     case CMedIOData::Philips:
       result = writePhilipsFrame(static_cast<CPhilipsFile*>(file), frame, f);
+    break;
+
+    case CMedIOData::Interfile:
+      result = writeInterfileFrame(static_cast<CInterfileFile*>(file), frame, f);
     break;
 
     default:

@@ -29,6 +29,7 @@ testsuite/data/
 ├── interfile/
 │   ├── pet-static.hdr             # Interfile single file (header followed by the data)
 │   ├── pet-static.pair/           # Interfile header/image pair
+│   ├── pet-static.stir/           # STIR: header (.hv) and data file (.v)
 │   ├── pet-wholebody.siemens/     # Siemens reconstruction: main header (.mhdr),
 │   │                              # image header (.v.hdr) and data file (.v)
 │   └── ...
@@ -139,8 +140,9 @@ Supported are ECAT7 image files (`ecat/`), NIfTI-1/NIfTI-2 (`nifti/`,
 `.nii`, `.nii.gz` and header/image pair directories), raw voxel data
 (`raw/`, using the `layout` of the file in `datasets.json`), DICOM image
 series (`dicom/`, read with pydicom) and Interfile (`interfile/`, single
-files, header/image pair directories and directories of Siemens
-reconstructions holding a main header `.mhdr`, read with an own parser as
+files, header/image pair directories (header `.hdr`, STIR `.hv`) and
+directories of Siemens reconstructions holding a main header `.mhdr`, read
+with an own parser as
 nibabel does not support Interfile). For other
 files (e.g. `philips/`) the expected values are written by hand with
 `"generator": "manual"` and a note where the values come from; the tests
@@ -182,7 +184,10 @@ run the script again instead (`--force` regenerates existing files).
   (Siemens: also the start time, `start_s`, and whether the planes of the data
   file are in the reverse order of `%image info[n]`,
   `planes_reversed_to_image_info`, found by comparing the minimum and maximum
-  of each plane with the values given there).
+  of each plane with the values given there; STIR: the LPS position of the
+  first voxel, `first_voxel_lps_mm`, and the directions of the voxel axes,
+  `axis_signs_lps`, from `first pixel offset (mm)` and the patient position as
+  STIR converts its images into LPS, see docs/interfile.md).
 
 ## Placeholders
 

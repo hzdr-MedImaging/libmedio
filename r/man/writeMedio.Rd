@@ -22,8 +22,8 @@
 }
 \description{
   Writes an image (as returned by \code{\link{readMedio}} or made with
-  \code{\link{medioImage}}) or a 3D/4D array into an ECAT7, NIfTI or
-  Philips PET image file.
+  \code{\link{medioImage}}) or a 3D/4D array into an ECAT7, NIfTI,
+  Philips PET or Interfile image file.
 }
 \usage{
 writeMedio(image, fname, like = NULL, format = NULL, overwrite = FALSE)
@@ -37,7 +37,8 @@ writeMedio(image, fname, like = NULL, format = NULL, overwrite = FALSE)
     path of the file to write. The format is taken from its extension:
     \code{.v} ECAT7, \code{.nii}, \code{.nii.gz} or \code{.hdr} NIfTI
     (\code{.hdr} with the image file \code{.img}), \code{.img} or
-    \code{.syn} Philips.
+    \code{.syn} Philips, \code{.hv} Interfile (as written by STIR, with
+    the data file \code{.v}).
   }
   \item{like}{
     path of a source file of any format whose main header is converted
@@ -46,7 +47,7 @@ writeMedio(image, fname, like = NULL, format = NULL, overwrite = FALSE)
     \code{NULL}: the main header is made from the image.
   }
   \item{format}{
-    \code{"ecat"}, \code{"nifti"} or \code{"philips"} to give the format
+    \code{"ecat"}, \code{"nifti"}, \code{"philips"} or \code{"interfile"} to give the format
     independent of the file name; the letter case does not matter and the
     names can be abbreviated (e.g. \code{"NIfTI"}, \code{"e"}), like in the
     Python bindings.
@@ -59,8 +60,9 @@ writeMedio(image, fname, like = NULL, format = NULL, overwrite = FALSE)
   The header attributes of the image (e.g. \code{PatientWeight}) are set
   in the main header; invalid values are an error. Double data is stored
   as 32 bit floating point values, integer data as 32 bit integers, every
-  frame with scale factor 1. Philips files store no position within the
-  planes: the planes are centered.
+  frame with scale factor 1 (Interfile: integers that fit into 16 bits as
+  16 bit integers, otherwise 32 bit floating point values). Philips files
+  store no position within the planes: the planes are centered.
 
   All arguments are checked before the file is created, and the file is
   removed again if writing fails, so no partial file is left behind.

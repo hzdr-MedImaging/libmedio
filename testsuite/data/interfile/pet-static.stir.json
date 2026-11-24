@@ -1,0 +1,43 @@
+{
+  "generator": "own Interfile parser (make_expected.py)",
+  "format": "interfile",
+  "header": {
+    "version_of_keys": "STIR6.0",
+    "type_of_data": "PET",
+    "byte_order": "little",
+    "data_offset": 0,
+    "units": ""
+  },
+  "frames": [
+    {
+      "dims": [
+        33,
+        33,
+        37
+      ],
+      "number_format": "f4",
+      "pixel_size_mm": [
+        1.65,
+        1.65,
+        1.646
+      ],
+      "duration_s": 0.0,
+      "rescale_slope": 1.0,
+      "rescale_offset": 0.0,
+      "units": "",
+      "axis_signs_lps": [
+        1.0,
+        1.0,
+        -1.0
+      ],
+      "first_voxel_lps_mm": [
+        0.0,
+        0.0,
+        59.2559
+      ],
+      "raw_min": 3829.86376953125,
+      "raw_max": 55113.37109375,
+      "raw_sum": 458779474.5942383
+    }
+  ]
+}

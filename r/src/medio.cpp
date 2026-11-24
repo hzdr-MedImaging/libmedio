@@ -188,16 +188,17 @@ CMedIOData::Format targetFormat(const QString& fileName, SEXP format)
   CMedIOData::Format result = CMedIOData::Unknown;
   if(Rf_isNull(format) == false) {
     if(CMedIODataFactory::formatFromName(stringOf(format), result) == false)
-      fail("unknown format '" + stringOf(format) + "' (\"ecat\", \"nifti\" or \"philips\")");
+      fail("unknown format '" + stringOf(format) + "' (\"ecat\", \"nifti\", \"philips\" or \"interfile\")");
   } else {
     result = CMedIODataFactory::formatOfFileName(fileName);
     if(result == CMedIOData::Unknown)
       fail("unknown file format of '" + fileName + "' (.v: ECAT7, .nii/.nii.gz/.hdr: NIfTI, "
-           ".img/.syn: Philips); give the format explicitly");
+           ".img/.syn: Philips, .hv: Interfile); give the format explicitly");
   }
 
-  if(result != CMedIOData::ECAT && result != CMedIOData::NIFTI && result != CMedIOData::Philips)
-    fail(QString("files of format '%1' cannot be written (formats: \"ecat\", \"nifti\", \"philips\")")
+  if(result != CMedIOData::ECAT && result != CMedIOData::NIFTI && result != CMedIOData::Philips &&
+     result != CMedIOData::Interfile)
+    fail(QString("files of format '%1' cannot be written (formats: \"ecat\", \"nifti\", \"philips\", \"interfile\")")
          .arg(CMedIODataFactory::formatName(result)));
   return result;
 }

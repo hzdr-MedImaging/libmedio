@@ -109,6 +109,8 @@ CMedIOData::Format CMedIODataFactory::formatOfFileName(const QString& fileName)
     result = CMedIOData::NIFTI;
   else if(name.endsWith(".img") || name.endsWith(".syn"))
     result = CMedIOData::Philips;
+  else if(name.endsWith(".hv"))
+    result = CMedIOData::Interfile;
 
   RETURN(result);
   return result;
@@ -135,6 +137,10 @@ CMedIOData* CMedIODataFactory::createForWriting(const QString& fileName, CMedIOD
     case CMedIOData::Philips:
       result = new CPhilipsFile(fileName, fileName.endsWith(".syn", Qt::CaseInsensitive) ? CPhilipsMainHeader::Syntegra
                                                                                           : CPhilipsMainHeader::Image);
+    break;
+
+    case CMedIOData::Interfile:
+      result = new CInterfileFile(fileName);
     break;
 
     default:

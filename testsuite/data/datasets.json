@@ -79,6 +79,13 @@
           "source": "ecat/pet-static.v",
           "same_reconstruction": true,
           "notes": "int16 little endian with the stored values and scale factor of ecat/pet-static.v and reversed z axis, units BQML; origin 0"
+        },
+        "interfile/pet-static.stir": {
+          "origin": "converted",
+          "tool": "STIR 6.3.0 (stir_math, conda-forge; the NIfTI file read with ITK)",
+          "source": "nifti/pet-static.nii.gz",
+          "same_reconstruction": true,
+          "notes": "STIR Interfile (pet-static.stir.hv, pet-static.stir.v; the .ahv header STIR also writes is left out): float32 with the physical values of nifti/pet-static.nii.gz and reversed z axis (STIR assumes the patient position HFS, z towards inferior), first pixel offset (0, 0, -59.2559) mm"
         }
       },
       "landmarks": [
@@ -135,6 +142,11 @@
               0,
               0,
               36
+            ],
+            "interfile/pet-static.stir": [
+              0,
+              0,
+              0
             ]
           }
         },
@@ -191,6 +203,11 @@
               32,
               32,
               0
+            ],
+            "interfile/pet-static.stir": [
+              32,
+              32,
+              36
             ]
           }
         }

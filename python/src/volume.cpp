@@ -340,7 +340,7 @@ CMedIOData::Format createFormat(const QString& fileName, const py::object& forma
   const CMedIOData::Format result = CMedIODataFactory::formatOfFileName(fileName);
   if(result == CMedIOData::Unknown)
     raise(PyExc_ValueError, "unknown file format of '" + fileName + "' (.v: ECAT7, .nii/.nii.gz/.hdr: NIfTI, "
-                            ".img/.syn: Philips); give the format explicitly");
+                            ".img/.syn: Philips, .hv: Interfile); give the format explicitly");
   return result;
 }
 
@@ -1084,8 +1084,8 @@ or tag ("(0010,1030)"): keyword, tag, VR, VM, unit, sequence holding it and scop
                 "overwrite: bool | None = False, frames: int | None = None, "
                 "attributes: dict[str, typing.Any] | None = None) -> File"), R"doc(
 Create a file for writing. The format is taken from the file name (.v: ECAT7,
-.nii/.nii.gz/.hdr: NIfTI-1, .img/.syn: Philips image/Syntegra) unless ``format``
-(pmedio.Format) is given. An existing file is replaced only with ``overwrite=True``.
+.nii/.nii.gz/.hdr: NIfTI-1, .img/.syn: Philips image/Syntegra, .hv: Interfile as written by
+STIR, with the data file .v) unless ``format`` (pmedio.Format) is given. An existing file is replaced only with ``overwrite=True``.
 
 - With ``like`` (a file opened with ``pmedio.open()``) the file gets the main header of the
   source, converted into the target format: number of frames, patient and isotope data,
@@ -1239,8 +1239,8 @@ order of the file). All frames need the same geometry; read other files with pme
       py::arg("overwrite").none() = Flag{false},
       py::sig("def save(path: str | os.PathLike[str], image: Image | numpy.typing.ArrayLike, like: File | None = None, "
               "format: str | None = None, overwrite: bool | None = False) -> None"), R"doc(
-Write an image (pmedio.Image, or an array with identity affine) into an ECAT7, NIfTI or Philips
-file; the format is taken from the file name unless ``format`` is given. The main header is
+Write an image (pmedio.Image, or an array with identity affine) into an ECAT7, NIfTI, Philips or
+Interfile file; the format is taken from the file name unless ``format`` is given. The main header is
 made from the image (see pmedio.create()) or converted from ``like``; the attributes of the
 image are set in it. Integer data is stored as integers, float data as float (NIfTI files of
 several frames: float32/float64). Nothing is written if the image is invalid, and no file is

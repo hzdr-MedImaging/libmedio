@@ -25,16 +25,19 @@
 #define CINTERFILEHEADERMAPPING_H
 
 #include <QJsonObject>
+#include <QList>
+#include <QPair>
 #include <QString>
 
 class CInterfileKeys;
 
 namespace InterfileMapping {
 
-//! @brief units of the physical values: a unit of activity concentration (Bq/ml,
-//!        Bq/cc, BQML, kBq/ml, kBq/cc, MBq/ml, ...) is "BQML" with factor the factor
-//!        converting the values into Bq/ml; other units are returned as given (factor 1)
-QString units(const QString& units, double* factor);
+//! @brief units of the physical values as attribute Units: Bq/ml, Bq/cc, BQML, ... are
+//!        "BQML" (DICOM), kBq/ml, kBq/cc, KBQCC "KBQCC" (as libmedio gives the values of
+//!        PMOD's NIfTI files); other units are returned as given. The values are not
+//!        converted.
+QString units(const QString& units);
 
 //! @brief true for the keys describing the layout, scaling, geometry or timing of
 //!        the image data (normalized names, see CInterfileKeys::normalizedName()):
@@ -56,6 +59,12 @@ QJsonObject mainAttributes(const CInterfileKeys& keys, int begin, int end, const
 //! @brief attributes of a frame: ActualFrameDuration (ms) and the keys [begin, end) as
 //!        section "Interfile"
 QJsonObject frameAttributes(const CInterfileKeys& keys, int begin, int end, double duration);
+
+//! @brief the keys of a header written by libmedio for the attributes of a main header
+//!        (key as written, value), read again by mainAttributes(): patient, study,
+//!        equipment, radiopharmaceutical, energy window, units and reconstruction;
+//!        times with a zone are written in UTC ("GMT+00:00" in the name of the key)
+QList<QPair<QString, QString> > keysOfAttributes(const QJsonObject& attributes);
 
 } // namespace InterfileMapping
 

@@ -256,7 +256,28 @@ void geometry(const CInterfileKeys& keys, const CInterfileFrame& frame, double m
     return;
   }
 
-  // other variants: towards patient left, posterior and superior, centered at 0
+  // STIR: "first pixel offset (mm) [i]" is the position of the first voxel in the
+  // coordinates of STIR, whose axes are the voxel axes; their directions in LPS depend
+  // on the patient position (CInterfileImageLayout::stirSigns())
+  if(keys.contains("first pixel offset (mm)", QList<int>() << 1) &&
+     keys.contains("first pixel offset (mm)", QList<int>() << 2) &&
+     keys.contains("first pixel offset (mm)", QList<int>() << 3))
+  {
+    double sign[3];
+    if(CInterfileImageLayout::stirSigns(keys.value("patient orientation"), keys.value("patient rotation"), sign) == false)
+      W("Interfile: unknown patient orientation/rotation '%s'/'%s', head_in/supine assumed",
+        qPrintable(keys.value("patient orientation")), qPrintable(keys.value("patient rotation")));
+    const double size[3] = { dx, dy, dz };
+    for(int i = 0; i < 3; i++)
+    {
+      m[i][i] = sign[i] * size[i];
+      m[i][3] = sign[i] * numberOf(keys, "first pixel offset (mm)", QList<int>() << (i + 1), 0.0);
+    }
+    return;
+  }
+
+  // other variants (Interfile 3.3, PMOD): towards patient left, posterior and superior,
+  // centered at 0
   m[0][0] = dx;
   m[1][1] = dy;
   m[2][2] = dz;
@@ -282,10 +303,78 @@ void swapBytes(QByteArray& data, int bytesPerValue)
 
 //=============================================================================================
 
+namespace {
+
+// a frame written into a new file
+struct WrittenFrame
+{
+  WrittenFrame() : written(false), scale(1.0), start(0.0), duration(0.0) { }
+
+  bool written;
+  double scale;
+  double start;
+  double duration;
+};
+
+// the patient position (DICOM) of the main header of a new file, as orientation code
+// of the voxel axes of STIR and the keys of STIR
+struct StirPosition
+{
+  const char* dicom;
+  const char* orientation;   // CMedIOVolume::orientation() of the voxel axes
+  const char* patientOrientation;
+  const char* patientRotation;
+};
+
+const StirPosition StirPositions[] = {
+  { "HFS", "LPI", "head_in", "supine" },
+  { "FFS", "RPS", "feet_in", "supine" },
+  { "HFP", "RAI", "head_in", "prone" },
+  { "FFP", "LAS", "feet_in", "prone" }
+};
+
+const StirPosition& stirPosition(const QString& dicom)
+{
+  for(unsigned i = 0; i < sizeof(StirPositions) / sizeof(StirPositions[0]); i++)
+  {
+    if(dicom == QLatin1String(StirPositions[i].dicom))
+      return StirPositions[i];
+  }
+  return StirPositions[0];
+}
+
+QString numberText(double value)
+{
+  return QString::number(value, 'g', 15);
+}
+
+} // namespace
+
 class CInterfileFilePrivate
 {
   public:
-    CInterfileFilePrivate() : mainHeader(false) { }
+    CInterfileFilePrivate()
+      : writing(false), numFrames(0), dataType(CMedIOVolume::UnknownDataType), position(NULL), mainHeader(false)
+    {
+      for(int i = 0; i < 3; i++)
+      {
+        dims[i] = 0;
+        for(int j = 0; j < 4; j++)
+          affine[i][j] = 0.0;
+      }
+    }
+
+    // writing
+    bool writing;
+    QFile data;                       //!< the data file of a new file
+    int numFrames;                    //!< frames of the main header written (0: none written)
+    QList<QPair<QString, QString> > attributeKeys;
+    QString orientation;              //!< orientation code of the voxel axes
+    QList<WrittenFrame> written;
+    CMedIOVolume::DataType dataType;  //!< fixed by the first frame
+    int dims[3];
+    double affine[3][4];
+    const StirPosition* position;
 
     QString headerFile;          //!< the header that was opened
     CInterfileKeys mainKeys;     //!< its keys
@@ -301,6 +390,15 @@ class CInterfileFilePrivate
       mainHeader = false;
       sets.clear();
       frames.clear();
+      writing = false;
+      if(data.isOpen())
+        data.close();
+      numFrames = 0;
+      attributeKeys.clear();
+      orientation.clear();
+      written.clear();
+      dataType = CMedIOVolume::UnknownDataType;
+      position = NULL;
     }
 
     // the range of the general keys of the main keys (before the first frame group)
@@ -358,8 +456,38 @@ bool CInterfileFile::open(QIODevice::OpenModeFlag mode)
   QString error;
   bool result = false;
 
+  if(mode == QIODevice::WriteOnly)
+  {
+    // a new file: the header and the data file
+    const QString data = dataFileNameOf(fileName());
+    m_pData->data.setFileName(data);
+    if(QFile::open(QIODevice::WriteOnly | QIODevice::Truncate) == false)
+      error = QString("cannot create '%1': %2").arg(fileName(), QFile::errorString());
+    else if(m_pData->data.open(QIODevice::ReadWrite | QIODevice::Truncate) == false)
+    {
+      error = QString("cannot create '%1': %2").arg(data, m_pData->data.errorString());
+      QFile::close();
+    }
+    else
+    {
+      m_pData->writing = true;
+      m_pData->headerFile = fileName();
+      result = true;
+    }
+
+    if(result == false)
+    {
+      m_pData->clear();
+      m_pData->error = error;
+      E("%s", qPrintable(error));
+    }
+    m_iErrStatus = result ? MERR_Ok : MERR_Unspecified;
+    RETURN(result);
+    return result;
+  }
+
   if(mode != QIODevice::ReadOnly)
-    error = "Interfile files can be read only";
+    error = "Interfile files can be opened for reading (QIODevice::ReadOnly) or written as new files (QIODevice::WriteOnly)";
   else if((m_pData->headerFile = headerOf(fileName())).isEmpty())
     error = QString("'%1' is no Interfile header and no header next to it names it as data file").arg(fileName());
   else if(m_pData->mainKeys.read(m_pData->headerFile, &error))
@@ -442,6 +570,8 @@ void CInterfileFile::close()
 {
   ENTER();
 
+  if(m_pData->writing && m_pData->data.isOpen())
+    m_pData->data.flush();
   QFile::close();
   m_pData->clear();
 
@@ -458,9 +588,21 @@ QString CInterfileFile::headerFileName() const
   return m_pData->headerFile;
 }
 
+QString CInterfileFile::dataFileNameOf(const QString& headerFileName)
+{
+  const QFileInfo info(headerFileName);
+  if(info.suffix().isEmpty() || info.suffix().toLower() == "v")
+    return headerFileName + ".v";
+
+  return info.dir().filePath(info.completeBaseName() + ".v");
+}
+
 QStringList CInterfileFile::allFileNames() const
 {
   QStringList names;
+  if(isOpen() == false || m_pData->writing)
+    return QStringList() << fileName() << dataFileNameOf(fileName());
+
   if(m_pData->headerFile.isEmpty() == false)
     names << m_pData->headerFile;
   foreach(const DataSet& set, m_pData->sets)
@@ -502,8 +644,7 @@ bool CInterfileFile::readMainHeader(CInterfileMainHeader*& mainHeader)
   mainHeader->setHeaderFileName(m_pData->headerFile);
   mainHeader->setNumFrames(m_pData->frames.size());
 
-  double factor = 1.0;
-  const QString units = InterfileMapping::units(m_pData->sets.first().layout.frames.first().units, &factor);
+  const QString units = InterfileMapping::units(m_pData->sets.first().layout.frames.first().units);
   const QJsonObject attributes =
       InterfileMapping::mainAttributes(m_pData->mainKeys, 0, m_pData->generalEnd(),
                                        m_pData->mainHeader ? &m_pData->sets.first().keys : NULL, units);
@@ -540,9 +681,8 @@ bool CInterfileFile::readSubHeader(CInterfileFrameHeader*& subHeader, short fram
   subHeader->setDimensions(f.dims[0], f.dims[1], f.dims[2]);
   subHeader->setDataType(dataTypeOf(f));
 
-  double factor = 1.0;
-  subHeader->setUnits(InterfileMapping::units(f.units, &factor));
-  subHeader->setScaling(f.slope * factor, f.intercept * factor);
+  subHeader->setUnits(InterfileMapping::units(f.units));
+  subHeader->setScaling(f.slope, f.intercept);
 
   double m[3][4];
   geometry(set.keys, f, m);
@@ -611,6 +751,230 @@ bool CInterfileFile::readMatrix(QByteArray*& matrixData, CInterfileFrameHeader*&
     matrixData = NULL;
     delete subHeader;
     subHeader = NULL;
+  }
+
+  m_iErrStatus = result ? MERR_Ok : MERR_Unspecified;
+  RETURN(result);
+  return result;
+}
+
+//=============================================================================================
+// writing new files
+
+CMedIOVolume::DataType CInterfileFile::writtenDataType() const
+{
+  return m_pData->dataType;
+}
+
+QString CInterfileFile::writtenOrientation() const
+{
+  return m_pData->orientation.isEmpty() ? QString("LPI") : m_pData->orientation;
+}
+
+bool CInterfileFile::writeMainHeader(const CInterfileMainHeader& mainHeader)
+{
+  ENTER();
+  bool result = false;
+
+  if(isOpen() == false || m_pData->writing == false)
+    E("the file is not open for writing");
+  else if(m_pData->numFrames > 0)
+    E("the main header has been written already");
+  else if(mainHeader.numFrames() < 1 || mainHeader.numFrames() > 32767)
+    E("invalid number of frames %d", mainHeader.numFrames());
+  else
+  {
+    const QJsonObject attributes = mainHeader.attributes();
+    m_pData->numFrames = mainHeader.numFrames();
+    m_pData->attributeKeys = InterfileMapping::keysOfAttributes(attributes);
+    m_pData->position = &stirPosition(attributes.value("PatientPosition").toString());
+    m_pData->orientation = QString::fromLatin1(m_pData->position->orientation);
+    m_pData->written = QList<WrittenFrame>();
+    for(int f = 0; f < m_pData->numFrames; f++)
+      m_pData->written.append(WrittenFrame());
+    result = writeHeader();
+  }
+
+  m_iErrStatus = result ? MERR_Ok : MERR_Unspecified;
+  RETURN(result);
+  return result;
+}
+
+bool CInterfileFile::writeHeader()
+{
+  ENTER();
+
+  CInterfileKeys keys;
+  keys.append("!INTERFILE", "");
+  keys.append("!imaging modality", "PT");
+  keys.append("!version of keys", "STIR6.0");
+  keys.append("name of data file", QFileInfo(m_pData->data.fileName()).fileName());
+  keys.appendComment("written by libmedio");
+  keys.append("!GENERAL DATA", "");
+  for(int i = 0; i < m_pData->attributeKeys.size(); i++)
+    keys.append(m_pData->attributeKeys[i].first, m_pData->attributeKeys[i].second);
+  keys.append("!GENERAL IMAGE DATA", "");
+  keys.append("!type of data", "PET");
+  keys.append("imagedata byte order", "LITTLEENDIAN");
+  keys.append("!PET STUDY (General)", "");
+  keys.append("!PET data type", "Image");
+  keys.append("process status", "Reconstructed");
+
+  // the matrix and its position (known after the first frame)
+  if(m_pData->dataType != CMedIOVolume::UnknownDataType)
+  {
+    const bool integer = (m_pData->dataType == CMedIOVolume::Int16);
+    keys.append("!number format", integer ? "signed integer" : "float");
+    keys.append("!number of bytes per pixel", integer ? "2" : "4");
+    keys.append("number of dimensions", "3");
+    static const char* const labels[3] = { "x", "y", "z" };
+    double sign[3];
+    CInterfileImageLayout::stirSigns(m_pData->position->patientOrientation, m_pData->position->patientRotation, sign);
+    for(int i = 0; i < 3; i++)
+    {
+      keys.append(QString("matrix axis label [%1]").arg(i + 1), labels[i]);
+      keys.append(QString("!matrix size [%1]").arg(i + 1), QString::number(m_pData->dims[i]));
+      keys.append(QString("scaling factor (mm/pixel) [%1]").arg(i + 1), numberText(std::fabs(m_pData->affine[i][i])));
+    }
+    for(int i = 0; i < 3; i++)
+      keys.append(QString("first pixel offset (mm) [%1]").arg(i + 1), numberText(sign[i] * m_pData->affine[i][3] + 0.0));
+    keys.append("patient orientation", m_pData->position->patientOrientation);
+    keys.append("patient rotation", m_pData->position->patientRotation);
+  }
+
+  // the frames: one after the other in the data file
+  keys.append("number of time frames", QString::number(m_pData->numFrames));
+  const qint64 frameSize = static_cast<qint64>(m_pData->dims[0]) * m_pData->dims[1] * m_pData->dims[2] *
+                           CMedIOVolume::bytesPerVoxel(m_pData->dataType);
+  for(int f = 0; f < m_pData->written.size(); f++)
+  {
+    const WrittenFrame& frame = m_pData->written[f];
+    if(frame.written == false)
+      continue;
+    keys.append(QString("image scaling factor[%1]").arg(f + 1), numberText(frame.scale));
+    keys.append(QString("data offset in bytes[%1]").arg(f + 1), QString::number(f * frameSize));
+    keys.append(QString("image duration (sec)[%1]").arg(f + 1), numberText(frame.duration));
+    keys.append(QString("image relative start time (sec)[%1]").arg(f + 1), numberText(frame.start));
+  }
+  keys.append("!END OF INTERFILE", "");
+
+  const QByteArray text = keys.toText();
+  bool result = QFile::resize(0) && QFile::seek(0) && QFile::write(text) == text.size() && QFile::flush();
+  if(result == false)
+    E("cannot write '%s': %s", qPrintable(fileName()), qPrintable(QFile::errorString()));
+
+  RETURN(result);
+  return result;
+}
+
+bool CInterfileFile::writeMatrix(const QByteArray& matrixData, const CInterfileFrameHeader& subHeader, short frame)
+{
+  ENTER();
+  bool result = false;
+
+  if(frame == -1)
+    frame = 1;
+
+  const int nx = subHeader.dimension(0);
+  const int ny = subHeader.dimension(1);
+  const int nz = subHeader.dimension(2);
+  const CMedIOVolume::DataType type = subHeader.dataType();
+  const qint64 size = static_cast<qint64>(nx) * ny * nz * CMedIOVolume::bytesPerVoxel(type);
+  double m[3][4];
+  subHeader.affine(m);
+
+  // the voxel axes have to be the axes of STIR for one of the patient positions
+  double sign[3] = { 0.0, 0.0, 0.0 };
+  bool diagonal = true;
+  for(int i = 0; i < 3; i++)
+  {
+    for(int j = 0; j < 3; j++)
+    {
+      if(i != j && std::fabs(m[i][j]) > 1e-6 * std::fabs(m[j][j]))
+        diagonal = false;
+    }
+    sign[i] = (m[i][i] > 0.0) ? 1.0 : -1.0;
+    if(m[i][i] == 0.0 || std::isfinite(m[i][i]) == false || std::isfinite(m[i][3]) == false)
+      diagonal = false;
+  }
+  const StirPosition* position = NULL;
+  for(unsigned p = 0; p < sizeof(StirPositions) / sizeof(StirPositions[0]) && diagonal; p++)
+  {
+    double expected[3];
+    CInterfileImageLayout::stirSigns(StirPositions[p].patientOrientation, StirPositions[p].patientRotation, expected);
+    if(expected[0] == sign[0] && expected[1] == sign[1] && expected[2] == sign[2])
+      position = &StirPositions[p];
+  }
+
+  if(isOpen() == false || m_pData->writing == false)
+    E("the file is not open for writing");
+  else if(m_pData->numFrames == 0)
+    E("the main header has to be written first");
+  else if(frame < 1 || frame > m_pData->numFrames)
+    E("frame %d does not exist (the main header has %d frames)", frame, m_pData->numFrames);
+  else if(type != CMedIOVolume::Int16 && type != CMedIOVolume::Float32)
+    E("Interfile files are written with signed 16 bit integers or float32 (data type %d)", static_cast<int>(type));
+  else if(nx < 1 || ny < 1 || nz < 1 || matrixData.size() != size)
+    E("invalid matrix (%d x %d x %d voxels, %d bytes)", nx, ny, nz, matrixData.size());
+  else if(subHeader.intercept() != 0.0 || subHeader.slope() == 0.0 || std::isfinite(subHeader.slope()) == false)
+    E("invalid scaling (slope %g, intercept %g)", subHeader.slope(), subHeader.intercept());
+  else if(position == NULL)
+    E("the voxel axes are no axes of STIR for the patient positions HFS, FFS, HFP or FFP");
+  else if(m_pData->dataType != CMedIOVolume::UnknownDataType && m_pData->dataType != type)
+    E("frame %d has another number format than the frames written before", frame);
+  else if(m_pData->dataType != CMedIOVolume::UnknownDataType &&
+          (nx != m_pData->dims[0] || ny != m_pData->dims[1] || nz != m_pData->dims[2]))
+    E("frame %d has another matrix than the frames written before", frame);
+  else if(m_pData->dataType != CMedIOVolume::UnknownDataType && position != m_pData->position)
+    E("frame %d has other voxel axes than the frames written before", frame);
+  else
+  {
+    result = true;
+    if(m_pData->dataType != CMedIOVolume::UnknownDataType)
+    {
+      // the same position as the frames written before
+      for(int i = 0; i < 3 && result; i++)
+      {
+        for(int j = 0; j < 4 && result; j++)
+          result = std::fabs(m[i][j] - m_pData->affine[i][j]) <= 1e-3 + 1e-6 * std::fabs(m_pData->affine[i][j]);
+      }
+      if(result == false)
+        E("frame %d has another position than the frames written before", frame);
+    }
+  }
+
+  if(result)
+  {
+    if(m_pData->dataType == CMedIOVolume::UnknownDataType)
+    {
+      m_pData->dataType = type;
+      m_pData->dims[0] = nx;
+      m_pData->dims[1] = ny;
+      m_pData->dims[2] = nz;
+      for(int i = 0; i < 3; i++)
+        for(int j = 0; j < 4; j++)
+          m_pData->affine[i][j] = m[i][j];
+      m_pData->position = position;
+      m_pData->orientation = QString::fromLatin1(position->orientation);
+    }
+
+    QByteArray data = matrixData;
+    if(QSysInfo::ByteOrder == QSysInfo::BigEndian)
+      swapBytes(data, CMedIOVolume::bytesPerVoxel(type));
+
+    result = m_pData->data.seek((frame - 1) * size) && m_pData->data.write(data) == data.size() && m_pData->data.flush();
+    if(result == false)
+      E("cannot write '%s': %s", qPrintable(m_pData->data.fileName()), qPrintable(m_pData->data.errorString()));
+  }
+
+  if(result)
+  {
+    WrittenFrame& written = m_pData->written[frame - 1];
+    written.written = true;
+    written.scale = subHeader.slope();
+    written.start = subHeader.frameStart();
+    written.duration = subHeader.frameDuration();
+    result = writeHeader();
   }
 
   m_iErrStatus = result ? MERR_Ok : MERR_Unspecified;

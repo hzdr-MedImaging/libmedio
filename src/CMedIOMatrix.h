@@ -224,10 +224,13 @@ bool concordeFrameFromMatrix(const QByteArray& data, const CConcordeFrameHeader&
                              CMedIOFrame& f);
 
 //---------------------------------------------------------------------------------------------
-// Interfile adapter (src/interfile/CInterfileMatrix.cpp), reading only
+// Interfile adapter (src/interfile/CInterfileMatrix.cpp)
 
 //! frames 1..n of the file
 QList<short> interfileFrameNumbers(CInterfileFile* file);
+bool interfileMatrixFromFrame(const CMedIOFrame& f, QByteArray& data, CMedIOHeader*& header);
+bool interfileMainHeaderFromFrame(const CMedIOFrame& f, CMedIOHeader*& header);
+bool writeInterfileFrame(CInterfileFile* file, short frame, const CMedIOFrame& f);
 //! frame in the voxel order of the file with the position of its voxels
 bool readInterfileVolume(CInterfileFile* file, short frame, CMedIOVolume& v);
 bool readInterfileFrame(CInterfileFile* file, short frame, CMedIOFrame& f);

@@ -12,7 +12,7 @@ image$affine                         # 3 x 4, voxel (i, j, k) counted from 0 -> 
 image$frame_start                    # s, also frame_duration
 image$attributes$PatientWeight       # header attributes (named list)
 image$data <- image$data * 2
-writeMedio(image, "image.nii.gz")    # format from the file name (.v, .nii, .nii.gz, .hdr, .img, .syn)
+writeMedio(image, "image.nii.gz")    # format from the file name (.v, .nii, .nii.gz, .hdr, .img, .syn, .hv)
 writeMedio(image, "image.v", like = "source.v", overwrite = TRUE)  # main header of a source file
 ```
 
