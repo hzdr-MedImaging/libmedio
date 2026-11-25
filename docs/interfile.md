@@ -303,6 +303,18 @@ private.
   attributes of `pet-bladder-static`/`pet-bladder-dynamic` against their DICOM
   series, the plane order of both scan directions, every file of a
   dataset identified, the conversion into NIfTI.
+- Conversions (`testsuite/matrix/testConversions.cpp`): every image test file
+  into every other writable format (ECAT7, NIfTI, Philips, Interfile) and
+  chains through all of them: values, positions (Philips: the axes and z,
+  it stores no position within the planes), timing, 16 bit integers kept,
+  attributes (except those a format cannot store).
+- Independent readers (`python/tests/test_independent_readers.py`): the
+  NIfTI, ECAT7 and Interfile files libmedio writes from every image test file,
+  read with nibabel (NIfTI: every voxel at its position; ECAT7: values, voxel
+  sizes, timing) and with the own Interfile parser of `make_expected.py`
+  (matrix, voxel size, timing, values, LPS position of the first voxel). STIR
+  itself is not available in the CI; it read the files libmedio writes with
+  the same positions and values (see phase 3).
 
 ### Phase 3: writing images
 

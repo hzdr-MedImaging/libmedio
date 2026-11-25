@@ -43,7 +43,8 @@ testsuite/                 # QtTest/CTest test suite
   data/                    # test datasets in several formats + expected values (see data/README.md)
   common/MedIOTestData.h   # enumerates the test data for data-driven tests
   ecat/, nifti/, philips/  # tests per format; nifti/data holds synthetic NIfTI fixtures
-  matrix/, attributes/     # format independent matrix access and attributes (CMedIOVolume, CMedIOHeaderDictionary)
+  matrix/, attributes/     # format independent matrix access and attributes (CMedIOVolume, CMedIOHeaderDictionary),
+                           # conversions between all writable formats (testConversions)
   tools/                   # the command line tools (both names of the converters ecat2nifti, philips2nifti)
   interfile/               # Interfile header syntax, image layout, reading the test datasets and writing
 python/                    # Python bindings and their tests

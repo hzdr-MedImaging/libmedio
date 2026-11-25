@@ -179,7 +179,8 @@ run the script again instead (`--force` regenerates existing files).
 - **Interfile** (`"format": "interfile"`): header values (`version_of_keys`,
   `type_of_data`, `byte_order`, `data_offset`, `units`; Siemens: the image
   header and data file of each data set of the main header, `data_sets`) and
-  per image or frame group its dimensions, number format, pixel size,
+  per image, frame group or frame of STIR (`number of time frames` with the keys
+  of every frame as `key [f]`) its dimensions, number format, pixel size,
   duration, rescale slope/offset and statistics of the stored voxel values
   (Siemens: also the start time, `start_s`, and whether the planes of the data
   file are in the reverse order of `%image info[n]`,
