@@ -695,39 +695,48 @@ def expected_interfile(path, file_info):
                         return keys[name]
                 return default
 
-            dims = [int(group[f'matrix size [{i}]']) for i in (1, 2, 3)]
-            fmt = INTERFILE_NUMBER_FORMATS[(value('number format', default='').lower(),
-                                            int(value('number of bytes per pixel', default=0)))]
-            dtype = np.dtype(fmt).newbyteorder(byte_order)
-            count = int(np.prod(dims))
-            raw = np.fromfile(data_file, dtype=dtype, count=count, offset=pos)
-            if raw.size != count:
-                raise ValueError('Interfile data file too short')
-            raw = raw.reshape(dims, order='F')
-            pos += count * dtype.itemsize
-            frame = {
-                'dims': dims,
-                'number_format': fmt,
-                'pixel_size_mm': [float(group.get(f'scaling factor (mm/pixel) [{i}]',
-                                                  group.get(f'scale factor (mm/pixel) [{i}]'))) for i in (1, 2, 3)],
-                'duration_s': float(value('image duration (sec)', default=0)),
-                'rescale_slope': float(group.get('data rescale slope', group.get('image slope', 1))),
-                'rescale_offset': float(group.get('data rescale offset', group.get('image intercept', 0))),
-                'units': group.get('units', units),
-            }
-            offset_keys = [f'first pixel offset (mm) [{i}]' for i in (1, 2, 3)]
-            if all(k in keys for k in offset_keys):
-                # STIR: the position of the first voxel in the coordinates of STIR; their
-                # axes in LPS depend on the patient position, as STIR 6.3 converts its
-                # images into LPS (determined with its ITK output, docs/interfile.md)
-                signs = stir_signs(keys.get('patient orientation', ''), keys.get('patient rotation', ''))
-                frame['axis_signs_lps'] = signs
-                frame['first_voxel_lps_mm'] = [s * float(keys[k]) for s, k in zip(signs, offset_keys)]
-            if siemens:
-                frame['start_s'] = float(value('image relative start time (sec)', default=0))
-                frame['planes_reversed_to_image_info'] = interfile_planes_reversed(raw, entries)
-            frame.update(stats(raw))
-            expected['frames'].append(frame)
+            # frames of the PET proposal and STIR: "number of time frames" with the keys of
+            # every frame given as "key [f]" (only outside of frame groups)
+            frames = int(keys.get('number of time frames', 1) or 1) if 'frame group number' not in group else 1
+            for f in range(1, frames + 1):
+                dims = [int(group[f'matrix size [{i}]']) for i in (1, 2, 3)]
+                fmt = INTERFILE_NUMBER_FORMATS[(value('number format', default='').lower(),
+                                                int(value('number of bytes per pixel', default=0)))]
+                dtype = np.dtype(fmt).newbyteorder(byte_order)
+                count = int(np.prod(dims))
+                if f'data offset in bytes [{f}]' in keys:
+                    pos = int(keys[f'data offset in bytes [{f}]'])
+                raw = np.fromfile(data_file, dtype=dtype, count=count, offset=pos)
+                if raw.size != count:
+                    raise ValueError('Interfile data file too short')
+                raw = raw.reshape(dims, order='F')
+                pos += count * dtype.itemsize
+                frame = {
+                    'dims': dims,
+                    'number_format': fmt,
+                    'pixel_size_mm': [float(group.get(f'scaling factor (mm/pixel) [{i}]',
+                                                      group.get(f'scale factor (mm/pixel) [{i}]'))) for i in (1, 2, 3)],
+                    'duration_s': float(keys.get(f'image duration (sec) [{f}]', value('image duration (sec)', default=0))),
+                    'rescale_slope': float(keys.get(f'image scaling factor [{f}]',
+                                                    group.get('data rescale slope', group.get('image slope', 1)))),
+                    'rescale_offset': float(group.get('data rescale offset', group.get('image intercept', 0))),
+                    'units': group.get('units', units),
+                }
+                if f'image relative start time (sec) [{f}]' in keys:
+                    frame['start_s'] = float(keys[f'image relative start time (sec) [{f}]'])
+                offset_keys = [f'first pixel offset (mm) [{i}]' for i in (1, 2, 3)]
+                if all(k in keys for k in offset_keys):
+                    # STIR: the position of the first voxel in the coordinates of STIR; their
+                    # axes in LPS depend on the patient position, as STIR 6.3 converts its
+                    # images into LPS (determined with its ITK output, docs/interfile.md)
+                    signs = stir_signs(keys.get('patient orientation', ''), keys.get('patient rotation', ''))
+                    frame['axis_signs_lps'] = signs
+                    frame['first_voxel_lps_mm'] = [s * float(keys[k]) for s, k in zip(signs, offset_keys)]
+                if siemens:
+                    frame['start_s'] = float(value('image relative start time (sec)', default=0))
+                    frame['planes_reversed_to_image_info'] = interfile_planes_reversed(raw, entries)
+                frame.update(stats(raw))
+                expected['frames'].append(frame)
 
     return expected
 

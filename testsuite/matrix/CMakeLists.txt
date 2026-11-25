@@ -80,3 +80,18 @@ add_test(NAME large_matrices
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 set_tests_properties(large_matrices PROPERTIES LABELS large)
+
+# conversions between all writable formats, with the test datasets
+add_executable(testConversions testConversions.cpp)
+target_include_directories(testConversions PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../common)
+target_compile_definitions(testConversions PRIVATE MEDIO_TEST_DATA_DIR="${MEDIO_TEST_DATA_DIR}")
+target_link_libraries(testConversions Qt5::Core
+                                      Qt5::Test
+                                      ZLIB::ZLIB
+                                      ${CMAKE_PROJECT_NAME}-static
+                                      ${RTDEBUG_STATIC_LIB}
+)
+add_test(NAME conversions
+         COMMAND testConversions
+         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
