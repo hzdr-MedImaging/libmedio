@@ -44,7 +44,11 @@ nifti2philips input.nii[.gz]|input.hdr[.gz]|input.img[.gz] [output.img|output.sy
     are `FrameReferenceTime - FrameDuration / 2`, or follow each other;
   - the radionuclide comes from `TracerRadionuclide`, or from the half-life
     of a PET radionuclide (dcm2niix writes only `RadionuclideHalfLife`);
-  - the injection time comes from `TimeZero` and `InjectionStart`.
+  - the injection time comes from `TimeZero` and `InjectionStart`;
+  - the time the values are decay corrected to (`DecayCorrectionDateTime`)
+    comes from `TimeZero` and `ImageDecayCorrectionTime`;
+  - `FrameReferenceTime` (s, one value per frame, dcm2niix) is the frame
+    attribute `FrameReferenceTime` (ms) of the frames in `Frames`.
 
   Dates and times without time zone (DICOM, dcm2niix, microPET) are taken as
   local time of the machine (`TZ`), BIDS `TimeZero` is written in local time.

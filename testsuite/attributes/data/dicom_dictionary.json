@@ -186,6 +186,11 @@
       "vr": "CS",
       "vm": "1"
     },
+    "DecayCorrectionDateTime": {
+      "tag": "(0018,9701)",
+      "vr": "DT",
+      "vm": "1"
+    },
     "CorrectedImage": {
       "tag": "(0028,0051)",
       "vr": "CS",
@@ -209,6 +214,11 @@
     "ActualFrameDuration": {
       "tag": "(0018,1242)",
       "vr": "IS",
+      "vm": "1"
+    },
+    "FrameReferenceTime": {
+      "tag": "(0054,1300)",
+      "vr": "DS",
       "vm": "1"
     },
     "DecayFactor": {

@@ -311,10 +311,17 @@ QJsonObject attributesOfNiftiJson(const QJsonObject& source)
   // the injection of BIDS PET metadata of other tools: InjectionStart (s)
   // relative to TimeZero (local clock time, on the day of the scan start
   // AcquisitionDateTime - ScanStart)
+  // and the time the values are decay corrected to: ImageDecayCorrectionTime (s)
+  // relative to TimeZero (not if the JSON has DecayCorrection: the BIDS key was
+  // derived from it by niftiJson() then)
   qint64 scan = 0;
   const QTime timeZero = QTime::fromString(json.value("TimeZero").toString().left(8), "hh:mm:ss");
-  if(json.contains("RadiopharmaceuticalStartDateTime") == false && timeZero.isValid() &&
-     json.value("InjectionStart").isDouble() && json.value("AcquisitionDateTime").isString() &&
+  const bool injectionGiven = json.contains("RadiopharmaceuticalStartDateTime") == false &&
+                              json.value("InjectionStart").isDouble();
+  const bool decayTimeGiven = json.contains("DecayCorrectionDateTime") == false &&
+                              json.contains("DecayCorrection") == false &&
+                              json.value("ImageDecayCorrectionTime").isDouble();
+  if((injectionGiven || decayTimeGiven) && timeZero.isValid() && json.value("AcquisitionDateTime").isString() &&
      unixTimeOfDateTime(json.value("AcquisitionDateTime"), scan) && scan != 0) {
     const QDateTime reference = QDateTime::fromMSecsSinceEpoch(scan * 1000, Qt::LocalTime)
                                 .addMSecs(qRound64(-json.value("ScanStart").toDouble() * 1000.0));
@@ -323,8 +330,11 @@ QJsonObject attributesOfNiftiJson(const QJsonObject& source)
       zero = QDateTime(reference.date().addDays(1), timeZero, Qt::LocalTime);
     else if(reference.secsTo(zero) > 12 * 3600)
       zero = QDateTime(reference.date().addDays(-1), timeZero, Qt::LocalTime);
-    const qint64 injection = zero.toMSecsSinceEpoch() / 1000 + qRound64(json.value("InjectionStart").toDouble());
-    json["RadiopharmaceuticalStartDateTime"] = dateTimeOfUnixTime(injection);
+    const qint64 zeroTime = zero.toMSecsSinceEpoch() / 1000;
+    if(injectionGiven)
+      json["RadiopharmaceuticalStartDateTime"] = dateTimeOfUnixTime(zeroTime + qRound64(json.value("InjectionStart").toDouble()));
+    if(decayTimeGiven)
+      json["DecayCorrectionDateTime"] = dateTimeOfUnixTime(zeroTime + qRound64(json.value("ImageDecayCorrectionTime").toDouble()));
   }
 
   const QJsonArray decay = json.value("DecayCorrectionFactor").toArray();
@@ -333,6 +343,25 @@ QJsonObject attributesOfNiftiJson(const QJsonObject& source)
     for(int i=0; i < decay.size(); i++)
       frames.append(QJsonObject{{"DecayFactor", decay[i]}});
     json[CMedIOHeaderDictionary::FramesKey] = frames;
+  }
+
+  // dcm2niix: FrameReferenceTime (s) of all frames, as frame attribute (ms)
+  if(json.value("FrameReferenceTime").isArray()) {
+    const QJsonArray references = json.value("FrameReferenceTime").toArray();
+    QJsonArray frames = json.value(CMedIOHeaderDictionary::FramesKey).toArray();
+    if(references.isEmpty() == false && (frames.isEmpty() || frames.size() == references.size())) {
+      for(int i=0; i < references.size(); i++) {
+        QJsonObject frame = frames.at(i).toObject();
+        if(references[i].isDouble() && frame.contains("FrameReferenceTime") == false)
+          frame["FrameReferenceTime"] = number(references[i].toDouble() * 1000.0);
+        if(i < frames.size())
+          frames[i] = frame;
+        else
+          frames.append(frame);
+      }
+      json[CMedIOHeaderDictionary::FramesKey] = frames;
+    }
+    json.remove("FrameReferenceTime");
   }
 
   for(unsigned i=0; i < sizeof(bidsKeys) / sizeof(bidsKeys[0]); i++)
@@ -384,8 +413,14 @@ QJsonObject niftiJson(const QJsonObject& attributes)
     if(injectionKnown)
       json["InjectionStart"] = static_cast<double>(injection - scan);
 
+    // the time the values are decay corrected to: given explicitly, or by DecayCorrection
+    qint64 reference = 0;
     const QString decay = json.value("DecayCorrection").toString();
-    if(decay == "START")
+    if(json.value("DecayCorrectionDateTime").isString() &&
+       unixTimeOfDateTime(json.value("AcquisitionDateTime"), scan) &&
+       unixTimeOfDateTime(json.value("DecayCorrectionDateTime"), reference))
+      json["ImageDecayCorrectionTime"] = static_cast<double>(reference - scan);
+    else if(decay == "START")
       json["ImageDecayCorrectionTime"] = 0;
     else if(decay == "ADMIN" && injectionKnown)
       json["ImageDecayCorrectionTime"] = static_cast<double>(injection - scan);
