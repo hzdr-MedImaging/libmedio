@@ -47,9 +47,9 @@ KEYWORDS = [
     "RadionuclideTotalDose", "RadionuclideHalfLife", "RadionuclidePositronFraction",
     "RadionuclideCodeSequence", "RadiopharmaceuticalCodeSequence",
     "EnergyWindowLowerLimit", "EnergyWindowUpperLimit",
-    "Units", "DecayCorrection", "CorrectedImage", "ReconstructionMethod",
+    "Units", "DecayCorrection", "DecayCorrectionDateTime", "CorrectedImage", "ReconstructionMethod",
     "AttenuationCorrectionMethod", "ScatterCorrectionMethod",
-    "ActualFrameDuration", "DecayFactor", "DeadTimeFactor",
+    "ActualFrameDuration", "FrameReferenceTime", "DecayFactor", "DeadTimeFactor",
 ]
 
 SEQUENCES = ["RadiopharmaceuticalInformationSequence", "EnergyWindowRangeSequence"]

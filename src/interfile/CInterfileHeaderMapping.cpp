@@ -314,6 +314,9 @@ QJsonObject mainAttributes(const CInterfileKeys& keys, int begin, int end, const
   if(acquisition.isEmpty())
     acquisition = dateTime(sources, "study date", "study time");
   putString(json, "AcquisitionDateTime", acquisition);
+  // Siemens: the time the values are decay corrected to
+  putString(json, "DecayCorrectionDateTime", dateTime(sources, "decay correction reference date",
+                                                      "decay correction reference time"));
 
   // equipment
   if(siemens)
