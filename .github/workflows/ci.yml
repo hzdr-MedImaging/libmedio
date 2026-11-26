@@ -157,7 +157,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends $APT_PACKAGES
           python -m pip install --upgrade pip
-          python -m pip install nanobind pytest numpy nibabel pydicom
+          python -m pip install nanobind pytest numpy nibabel pydicom h5py
           echo "PETLIB=$RUNNER_TEMP/petlib" >> "$GITHUB_ENV"
 
       - name: Build librtdebug ${{ env.RTDEBUG_VERSION }}
@@ -253,7 +253,7 @@ jobs:
       - name: Install the Python package with pip and test it
         run: |
           python -m venv "$RUNNER_TEMP/venv"
-          BUILD_PREFIX="$PETLIB" "$RUNNER_TEMP/venv/bin/pip" install "./python[test]" nibabel pydicom
+          BUILD_PREFIX="$PETLIB" "$RUNNER_TEMP/venv/bin/pip" install "./python[test]" nibabel pydicom h5py
           "$RUNNER_TEMP/venv/bin/python" -m pytest -v python/tests
 
       # the type stubs installed with the package (pmedio-stubs) describe the interface:
