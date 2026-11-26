@@ -63,9 +63,9 @@ attribute):
 /image/volumes/FrameDuration         float64 [3], @units = "s"
 /image/volumes/FrameReferenceTime    float64 [3], @units = "ms"
 /image/volumes/DecayFactor           float64 [3], @units = "1"
-/metadata                            @PatientWeight, @RadionuclideTotalDose, @AcquisitionDateTime, ...
-/metadata/RadionuclideCodeSequence   @CodeValue, @CodingSchemeDesignator, @CodeMeaning
-/metadata/json                       string (JSON object)
+/header                            @PatientWeight, @RadionuclideTotalDose, @AcquisitionDateTime, ...
+/header/RadionuclideCodeSequence   @CodeValue, @CodingSchemeDesignator, @CodeMeaning
+/header/json                       string (JSON object)
 ```
 
 "Required" in the tables below means that a file without the object is not a
@@ -142,9 +142,9 @@ first dimension of `data`. Quantities carry the attribute `units` (UCUM).
 Together `Frame`, `Gate` and `Bed` are the (frame, gate, bed) part of the
 matrix index of libmedio; the plane is a dimension of the data.
 
-### `/metadata`: attributes of the study
+### `/header`: attributes of the study
 
-The attributes of the group `/metadata` are the keys of
+The attributes of the group `/header` are the keys of
 `CMedIOHeaderDictionary`, written with a type that follows from the DICOM
 value representation (VR):
 
@@ -162,7 +162,7 @@ value representation (VR):
   attributes cannot have attributes); they are listed by
   `CMedIOHeaderDictionary` and will be listed in this document for every key.
 - An attribute that is not known is absent. There are no placeholder values.
-- The attributes of the single frames are not in `/metadata` but in the
+- The attributes of the single frames are not in `/header` but in the
   datasets of `/image/volumes`.
 - All attributes are optional for a reader that only displays the image. For
   quantitative use the following are **recommended** and written by libmedio
@@ -173,7 +173,7 @@ value representation (VR):
   frame timing these are the values a standardised uptake value (SUV) is
   computed from.
 
-`/metadata/json` is a scalar string dataset with the complete attribute
+`/header/json` is a scalar string dataset with the complete attribute
 object of libmedio as JSON, as returned by `CMedIOData::readAttributes()`:
 the keys above, the frame attributes (`Frames`), the native fields of the
 source format (`ECAT7`, `Philips`, `microPET`, `NIfTI`, ...) and keys libmedio
@@ -211,8 +211,10 @@ the JSON are taken from there. The dataset is optional.
   program built with any HDF5 library since 1.8 can read the files. For this
   libmedio sets the bounds of the file format version explicitly
   (`H5Pset_libver_bounds()`, lowest format).
-- File name extension: `.h5`. Compressed files (`.h5.gz`) are not supported;
-  the compression is part of the dataset.
+- File name extensions: `.h5`, `.hdf5` and `.hdf`; libmedio writes the name it
+  is given. Files are identified by their content, not by their name.
+  Compressed files (`.h5.gz`) are not supported; the compression is part of
+  the dataset.
 
 ### Reading a file without libmedio
 
@@ -228,8 +230,8 @@ with h5py.File("image.h5", "r") as f:
     affine = f["image/affine"][:]                # voxel (i, j, k) -> LPS (mm)
     start = f["image/volumes/FrameTimesStart"][:]
     duration = f["image/volumes/FrameDuration"][:]
-    weight = f["metadata"].attrs["PatientWeight"]
-    everything = json.loads(f["metadata/json"][()])
+    weight = f["header"].attrs["PatientWeight"]
+    everything = json.loads(f["header/json"][()])
 ```
 
 ## Identification
@@ -290,6 +292,8 @@ with h5py.File("image.h5", "r") as f:
 | Oldest HDF5 library | 1.10 |
 | R package | HDF5 optional, with the HDF5 library of the system |
 | Open state | the `QFile` stays open besides the HDF5 handle, no API change |
+| Group of the study attributes | `/header`, as the attributes are those of the main header of libmedio |
+| File name extensions | `.h5`, `.hdf5`, `.hdf` |
 | Further layouts | ITK and MINC 2 in phase 5 |
 
 ## Open points
@@ -322,8 +326,6 @@ Still to be checked or decided:
   one plane per chunk, or planes split into several chunks.
 - Whether the frame attributes get further datasets (e.g. the scatter
   fraction or the reconstruction parameters of a frame) in the first version.
-- Whether `.hdf5` and `.hdf` are accepted as file name extensions besides
-  `.h5`.
 - The behaviour of MATLAB, R and Java with variable-length UTF-8 string
   attributes (phase 1).
 - Opening a file with `QFile` and the HDF5 library at the same time on
