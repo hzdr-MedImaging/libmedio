@@ -104,8 +104,12 @@ Objects that are not described here may be present; readers ignore them.
 
 | Attribute | Type | Level | Content |
 | --- | --- | --- | --- |
-| `Units` | string | required | DICOM Units (0054,1001), e.g. `BQML`, `CNTS`, `GML` |
-| `units` | string | required | the same unit in UCUM notation, e.g. `Bq/mL`, for tools that do not know the DICOM terms; `1` for values without unit |
+| `Units` | string | recommended | DICOM Units (0054,1001), e.g. `BQML`, `CNTS`, `GML`; the same value as the attribute `Units` of `/header` |
+| `units` | string | recommended | the same unit in UCUM notation, e.g. `Bq/mL`, for tools that do not know the DICOM terms; `1` for values without unit |
+
+Both attributes are present or both are absent. Without them the unit of the
+values is unknown, as in files of formats or programs that do not store it
+(e.g. NIfTI files of other tools); a reader must not assume one.
 
 ### `/image/affine`: the geometry
 
@@ -283,7 +287,7 @@ with h5py.File("image.h5", "r") as f:
 
 | Phase | Content | Check |
 | --- | --- | --- |
-| 1 | this specification; a prototype in Python (`pmedio` + `h5py`) that writes the test datasets in this layout and a validator for it | review of the example files, reading them with MATLAB/Octave and R |
+| 1 | this specification; a prototype in Python (`testsuite/hdf5/tools/medio2hdf5.py`, `pmedio` + `h5py`) that writes the test datasets in this layout and a checker for it (`check_hdf5.py`, `h5py` only) | review of the example files, reading them with MATLAB/Octave and R |
 | 2 | attribute dictionary: `DecayCorrectionDateTime` and `FrameReferenceTime` for all formats | attribute tests, several time zones |
 | 3 | build option, format and class as stub, identification by the signature | CI with and without HDF5, R package |
 | 4 | reading (C++, Python, R), then writing and the conversion from and into all writable formats | test data with expected values of `h5py`, `testConversions`, reading back with `h5py` |
@@ -318,6 +322,19 @@ Checked for this draft:
   lowest format bound it has a version 0 superblock.
 - The user block sizes (powers of two from 512) are documented with
   `H5Pset_userblock()` in the HDF5 sources.
+
+Found with the prototype (`testsuite/hdf5/tools/`):
+
+- The test datasets of all formats can be written in this layout and pass the
+  checker. Several of them have no unit (Philips, NIfTI and STIR files), which
+  is why the unit is not required.
+- libmedio reports `KBQCC` as `Units` for some files, which is no defined term
+  of DICOM Units.
+- None of the test datasets provides `DecayCorrection`, `CorrectedImage` or
+  the code of the radionuclide; `DecayCorrectionDateTime` and
+  `FrameReferenceTime` are not part of the attribute dictionary yet (phase 2).
+- The bed position is not among the attributes of a file (it is part of the
+  geometry), so the prototype cannot write `TablePosition`.
 
 Still to be checked or decided:
 

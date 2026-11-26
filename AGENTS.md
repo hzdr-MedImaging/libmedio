@@ -47,6 +47,7 @@ testsuite/                 # QtTest/CTest test suite
                            # conversions between all writable formats (testConversions)
   tools/                   # the command line tools (both names of the converters ecat2nifti, philips2nifti)
   interfile/               # Interfile header syntax, image layout, reading the test datasets and writing
+  hdf5/tools/              # prototype and checker of the planned HDF5 layout (docs/hdf5.md), Python
 python/                    # Python bindings and their tests
 r/                         # R package Rmedio (bundles src/ via r/tools/vendor.sh, see r/README.md)
 conda.recipe/              # conda recipes for conda-forge (libmedio; pmedio, r-rmedio in python/, r/conda.recipe), build-local.sh
