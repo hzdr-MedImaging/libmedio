@@ -1,7 +1,9 @@
 # HDF5 support (design draft)
 
-**Status: draft for discussion. Nothing of this is implemented, and the layout
-may change until the first version of libmedio that writes it is released.**
+**Status: draft for discussion. libmedio identifies HDF5 files and can be built
+with the HDF5 library (phases 1 to 3), but does not read or write the layout
+yet. The layout may change until the first version of libmedio that writes it
+is released.**
 
 This document describes how libmedio is going to store PET images in HDF5
 files, why it defines a layout of its own for that, and the phases of the
@@ -287,9 +289,9 @@ with h5py.File("image.h5", "r") as f:
 
 | Phase | Content | Check |
 | --- | --- | --- |
-| 1 | this specification; a prototype in Python (`testsuite/hdf5/tools/medio2hdf5.py`, `pmedio` + `h5py`) that writes the test datasets in this layout and a checker for it (`check_hdf5.py`, `h5py` only) | review of the example files, reading them with MATLAB/Octave and R |
-| 2 | attribute dictionary: `DecayCorrectionDateTime` and `FrameReferenceTime` for all formats | attribute tests, several time zones |
-| 3 | build option, format and class as stub, identification by the signature | CI with and without HDF5, R package |
+| 1 (done) | this specification; a prototype in Python (`testsuite/hdf5/tools/medio2hdf5.py`, `pmedio` + `h5py`) that writes the test datasets in this layout and a checker for it (`check_hdf5.py`, `h5py` only) | review of the example files, reading them with MATLAB/Octave and R |
+| 2 (done) | attribute dictionary: `DecayCorrectionDateTime` and `FrameReferenceTime` for all formats | attribute tests, several time zones |
+| 3 (done) | build option `MEDIO_WITH_HDF5`, format `CMedIOData::HDF5` and class `CHDF5File` as stub, identification by the signature | CI with and without HDF5, R package |
 | 4 | reading (C++, Python, R), then writing and the conversion from and into all writable formats | test data with expected values of `h5py`, `testConversions`, reading back with `h5py` |
 | 5 | optional: reading and writing the ITK layout; MINC 2 with libminc as further optional dependency | comparison with SimpleITK and the MINC tools |
 
@@ -331,8 +333,9 @@ Found with the prototype (`testsuite/hdf5/tools/`):
 - libmedio reports `KBQCC` as `Units` for some files, which is no defined term
   of DICOM Units.
 - None of the test datasets provides `DecayCorrection`, `CorrectedImage` or
-  the code of the radionuclide; `DecayCorrectionDateTime` and
-  `FrameReferenceTime` are not part of the attribute dictionary yet (phase 2).
+  the code of the radionuclide. `DecayCorrectionDateTime` is given by the
+  Siemens Interfile datasets only, `FrameReferenceTime` by none of them
+  (sidecars of dcm2niix have it).
 - The bed position is not among the attributes of a file (it is part of the
   geometry), so the prototype cannot write `TablePosition`.
 
