@@ -137,7 +137,15 @@ first dimension of `data`. Quantities carry the attribute `units` (UCUM).
 | `DecayFactor` | float64 | 1 | recommended | DICOM (0054,1321): the factor the values of the volume were multiplied with for the decay correction |
 | `DeadTimeFactor` | float64 | 1 | optional | DICOM (0054,1324) |
 | `TriggerTime` | float64 | ms | optional | DICOM (0018,1060), gated studies |
+| `TablePosition` | float64 | mm | optional | position of the patient table the scanner reported for the volume, as DICOM Table Position (0018,9327): the bed position of ECAT7 (main header, cm × 10), `start horizontal bed position (mm)` of Interfile. Reference point and sign are those of the scanner |
 | `affine` | float64 `[volume][3][4]` | mm | optional | see above |
+
+`TablePosition` keeps the value of the scanner for display and for the
+conversion back into the source format. **The position of the voxels is
+given by the affine alone**; a reader must not add the table position to it.
+libmedio derives the affine from the bed position when it reads a file (ECAT7:
+z of the first plane = bed position + z offset of the frame), so the two
+values agree in the files it writes.
 
 Together `Frame`, `Gate` and `Bed` are the (frame, gate, bed) part of the
 matrix index of libmedio; the plane is a dimension of the data.
@@ -294,6 +302,7 @@ with h5py.File("image.h5", "r") as f:
 | Open state | the `QFile` stays open besides the HDF5 handle, no API change |
 | Group of the study attributes | `/header`, as the attributes are those of the main header of libmedio |
 | File name extensions | `.h5`, `.hdf5`, `.hdf` |
+| Bed position | optional dataset `TablePosition` per volume; the affine alone defines the geometry |
 | Further layouts | ITK and MINC 2 in phase 5 |
 
 ## Open points
@@ -312,14 +321,12 @@ Checked for this draft:
 
 Still to be checked or decided:
 
-- The definitions of `DecayCorrectionDateTime`, `FrameReferenceTime` and
-  `DecayFactor` and the defined terms of `Units`, `DecayCorrection` and
+- The definitions of `DecayCorrectionDateTime`, `FrameReferenceTime`,
+  `TablePosition` and `DecayFactor` and the defined terms of `Units`, `DecayCorrection` and
   `CorrectedImage` have to be compared with the text of the DICOM standard
   (PS3.3 C.8.9 and C.8.22); the data dictionary only confirms names, tags and
   types.
 - The UCUM notation of the SUV variants of `Units` (`GML`, `CM2ML`, ...).
-- Whether the bed position of a volume also gets a dataset of its own (table
-  position in mm) or the affine of the volume is enough.
 - Whether a `Data` column is needed for the fifth part of the ECAT matrix
   index.
 - Chunks of images with planes larger than 1 MiB (more than 512 × 512 voxels):
