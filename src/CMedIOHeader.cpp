@@ -286,6 +286,7 @@ bool CMedIOHeader::convertFrom(CMedIOData* pData)
 
       case CMedIOData::PhilipsBin:
       case CMedIOData::Interfile:
+      case CMedIOData::HDF5:
         E("medio datatype %d conversion not implemented!", pData->dataFormat());
         result = false;
       break;

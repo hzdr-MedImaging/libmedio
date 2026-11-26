@@ -80,6 +80,15 @@ find_package(MEDIO REQUIRED)
 find_package(Qt5 REQUIRED COMPONENTS Core)
 find_package(ZLIB REQUIRED)
 
+# the static libmedio needs the HDF5 library if it was built with HDF5 support
+# (libmedio_HAS_HDF5 of its CMake package)
+find_package(libmedio CONFIG QUIET)
+set(PMEDIO_HDF5_LIBS)
+if(libmedio_HAS_HDF5)
+  find_package(HDF5 REQUIRED COMPONENTS C)
+  set(PMEDIO_HDF5_LIBS ${HDF5_C_LIBRARIES})
+endif()
+
 include_directories(${CMAKE_CURRENT_BINARY_DIR}
                     ${MEDIO_INCLUDES}
 )
@@ -96,6 +105,7 @@ target_link_libraries(pmedio PRIVATE
                       Qt5::Core
                       ${MEDIO_STATIC_LIB}
                       ZLIB::ZLIB
+                      ${PMEDIO_HDF5_LIBS}
 )
 
 # The version of the package (pmedio.__version__) is the one of pyproject.toml:

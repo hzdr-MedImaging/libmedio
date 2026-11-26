@@ -35,6 +35,7 @@ set(MEDIO_LIB_INCLUDES  ${CMAKE_CURRENT_SOURCE_DIR}/ecat
                         ${CMAKE_CURRENT_SOURCE_DIR}/nifti/nifti1
                         ${CMAKE_CURRENT_SOURCE_DIR}/nifti/nifti2
                         ${CMAKE_CURRENT_SOURCE_DIR}/interfile
+                        ${CMAKE_CURRENT_SOURCE_DIR}/hdf5
                         ${CMAKE_CURRENT_SOURCE_DIR}/micropet
                         ${CMAKE_CURRENT_SOURCE_DIR}/philips
                         ${CMAKE_CURRENT_SOURCE_DIR}/helpers
@@ -83,6 +84,7 @@ set(PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/CMedIO.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/interfile/CInterfileFrameHeader.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/interfile/CInterfileKeys.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/interfile/CInterfileMainHeader.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/hdf5/CHDF5File.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/micropet/CConcordeMainHeader.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/micropet/CConcordeMainHeaderSinogram.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/micropet/CConcordeMainHeaderImage.h
@@ -146,6 +148,23 @@ target_link_libraries(${CMAKE_PROJECT_NAME}-shared PUBLIC
                       Qt5::Core
                       ${MEDIO_BUILD_ONLY_SHARED_LIBS}
 )
+
+# HDF5 support: the HDF5 library is only used inside the library (no public header
+# includes its headers). Users of the static library have to link it as well.
+set(MEDIO_PC_HDF5_LIBS "")
+if(MEDIO_HAVE_HDF5)
+  foreach(target ${CMAKE_PROJECT_NAME}-static ${CMAKE_PROJECT_NAME}-shared)
+    target_compile_definitions(${target} PRIVATE MEDIO_HAVE_HDF5)
+    target_include_directories(${target} SYSTEM PRIVATE ${HDF5_INCLUDE_DIRS})
+  endforeach()
+  set(MEDIO_BUILD_ONLY_HDF5_LIBS)
+  foreach(lib ${HDF5_C_LIBRARIES})
+    list(APPEND MEDIO_BUILD_ONLY_HDF5_LIBS "$<BUILD_INTERFACE:${lib}>")
+    set(MEDIO_PC_HDF5_LIBS "${MEDIO_PC_HDF5_LIBS} ${lib}")
+  endforeach()
+  target_link_libraries(${CMAKE_PROJECT_NAME}-static PUBLIC ${MEDIO_BUILD_ONLY_HDF5_LIBS})
+  target_link_libraries(${CMAKE_PROJECT_NAME}-shared PRIVATE ${HDF5_C_LIBRARIES})
+endif()
 
 # the include directory of the installed public headers for users of the CMake package
 target_include_directories(${CMAKE_PROJECT_NAME}-static INTERFACE $<INSTALL_INTERFACE:include/medio>)

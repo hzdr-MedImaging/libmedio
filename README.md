@@ -183,6 +183,14 @@ side, and with a link without version (`bin/ecat2nifti`) to the version
 installed last. `-DMEDIO_INSTALL_TOOL_LINKS=OFF` installs no links; Windows
 builds have none.
 
+HDF5 support is being built and optional: HDF5 files are identified in every
+build (`CMedIOData::HDF5`, `CHDF5File`), their content cannot be read or
+written yet. With the serial HDF5 library (C API, 1.10 or newer; Debian/Ubuntu:
+`libhdf5-dev`) libmedio is built with it, as `CHDF5File::hasSupport()` and
+`libmedio_HAS_HDF5` of the CMake package tell. `-DMEDIO_WITH_HDF5=ON` requires
+the library, `OFF` builds without it; the default `AUTO` uses it if it is found
+(not when cross-compiling).
+
 ### Use the installed library in C++
 
 The installation (also the conda package `libmedio`) has a CMake package and a

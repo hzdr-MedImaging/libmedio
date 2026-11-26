@@ -151,6 +151,7 @@ uses the memory of the image.
   formatType.attr("PhilipsBin") = py::str(formatName(CMedIOData::PhilipsBin));
   formatType.attr("NIFTI") = py::str(formatName(CMedIOData::NIFTI));
   formatType.attr("Interfile") = py::str(formatName(CMedIOData::Interfile));
+  formatType.attr("HDF5") = py::str(formatName(CMedIOData::HDF5));
 
   py::class_<DimTypeNames> dimType(mi, "DimType");
   dimType.attr("UNKNOWN") = py::str(dimTypeName(DM_UNKNOWN));

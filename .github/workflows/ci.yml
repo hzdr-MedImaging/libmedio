@@ -39,19 +39,26 @@ concurrency:
 env:
   # librtdebug (https://github.com/hzdr-MedImaging/librtdebug) release used for the builds
   RTDEBUG_VERSION: 3.0.0
-  APT_PACKAGES: cmake g++ clang qtbase5-dev zlib1g-dev pkg-config tzdata
+  # with libhdf5-dev the builds have HDF5 support (MEDIO_WITH_HDF5=AUTO); the job
+  # "without HDF5" and the macOS job build without it
+  APT_PACKAGES: cmake g++ clang qtbase5-dev zlib1g-dev pkg-config tzdata libhdf5-dev
 
 jobs:
   #-------------------------------------------------------------------------------------------
   # build and run the test suite with GCC and Clang in Release and Debug mode
   build-test:
-    name: build & test (${{ matrix.compiler }}, ${{ matrix.build_type }})
+    name: build & test (${{ matrix.compiler }}, ${{ matrix.build_type }}${{ matrix.hdf5 == 'OFF' && ', without HDF5' || '' }})
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         compiler: [ gcc, clang ]
         build_type: [ Release, Debug ]
+        hdf5: [ 'ON' ]
+        include:
+          - compiler: gcc
+            build_type: Release
+            hdf5: 'OFF'
 
     steps:
       - uses: actions/checkout@v4
@@ -83,7 +90,9 @@ jobs:
           cmake --install "$RUNNER_TEMP/librtdebug-build"
 
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DPREFIX_PATH="$PETLIB"
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DPREFIX_PATH="$PETLIB" \
+                -DMEDIO_WITH_HDF5=${{ matrix.hdf5 }}
 
       - name: Build
         run: cmake --build build -j"$(nproc)"
