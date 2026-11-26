@@ -45,6 +45,10 @@ mainHeader->updateAttributes(attributes);            // whole object or single k
   `src/nifti/CNIFTIExtensions.h`); this holds for every file written by
   libmedio, whether by the converters, `writeMainHeader()`/`writeVolume()`
   or `pmedio.create()`.
+- `DecayCorrectionDateTime` is the time the values are decay corrected to. It
+  is only given by formats that store it (the reference date and time of
+  Siemens Interfile headers, `ImageDecayCorrectionTime` of BIDS sidecars) and
+  never derived from other values.
 - The other formats store only their own fields. The physical values of
   Philips slices scaled to SUV depend on the dose, times, half life and
   weight of the main header: change them before the frames are written.

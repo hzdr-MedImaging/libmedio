@@ -261,6 +261,8 @@ class TestNIFTIFormat : public QObject
     void testSaveRewritesMetadata();
     void testWriteMatrixTiming_data();
     void testWriteMatrixTiming();
+    void testDecayCorrectionDateTime_data();
+    void testDecayCorrectionDateTime();
     void testOtherToolMetadata_data();
     void testOtherToolMetadata();
 
@@ -1616,6 +1618,14 @@ void TestNIFTIFormat::testOtherToolMetadata()
   QCOMPARE(a.value("RadionuclideCodeSequence").toObject().value("CodeMeaning").toString(), meaning);
   QCOMPARE(a.value("RadiopharmaceuticalStartDateTime").toString(), injection);
 
+  // FrameReferenceTime (s) of dcm2niix is the frame attribute FrameReferenceTime (ms)
+  const QJsonArray references = sidecar.value("FrameReferenceTime").toArray();
+  QVERIFY(a.contains("FrameReferenceTime") == false);
+  QCOMPARE(a.value("Frames").toArray().size(), references.size());
+  for(int k=0; k < references.size(); k++)
+    QCOMPARE(a.value("Frames").toArray()[k].toObject().value("FrameReferenceTime").toDouble(),
+             references[k].toDouble() * 1000.0);
+
   // the volumes read with the generic interface
   QScopedPointer<CMedIOData> data(CMedIODataFactory::create(fileName));
   QVERIFY(data.isNull() == false && data->open(QIODevice::ReadOnly));
@@ -1643,6 +1653,99 @@ void TestNIFTIFormat::testOtherToolMetadata()
   QVERIFY(subHeader.convertFrom(NULL, h));
   QCOMPARE(subHeader.frame_Start_Time(), 0u);
   QCOMPARE(subHeader.frame_Duration(), 30000u);
+}
+
+// the time the values are decay corrected to (DecayCorrectionDateTime) is stored
+// in both extensions and gives the BIDS key ImageDecayCorrectionTime (s relative
+// to TimeZero, the scan start), whatever DecayCorrection says; the BIDS key of
+// other tools gives the attribute
+void TestNIFTIFormat::testDecayCorrectionDateTime_data()
+{
+  QTest::addColumn<QByteArray>("zone");
+  QTest::newRow("UTC") << QByteArray("UTC");
+  QTest::newRow("Europe/Berlin") << QByteArray("Europe/Berlin");
+  QTest::newRow("Asia/Tokyo") << QByteArray("Asia/Tokyo");
+  QTest::newRow("America/Los_Angeles") << QByteArray("America/Los_Angeles");
+}
+
+void TestNIFTIFormat::testDecayCorrectionDateTime()
+{
+  QFETCH(QByteArray, zone);
+  MedIOTestTimeZone timeZone(zone.constData());
+
+  QTemporaryDir tmpDir;
+  QVERIFY(tmpDir.isValid());
+  const qint64 dims[8] = { 4, 4, 3, 2, 2, 1, 1, 1 };
+
+  // written by libmedio: 600 s before the scan start, although DecayCorrection says ADMIN
+  // (the injection 1800 s before the scan start)
+  QJsonObject attributes;
+  attributes["AcquisitionDateTime"] = QString("2024-02-27T23:53:44Z");
+  attributes["RadiopharmaceuticalStartDateTime"] = QString("2024-02-27T23:23:44Z");
+  attributes["DecayCorrection"] = QString("ADMIN");
+  attributes["DecayCorrectionDateTime"] = QString("2024-02-27T23:43:44Z");
+  attributes["Units"] = QString("BQML");
+  attributes["FrameTimesStart"] = QJsonArray{0, 60};
+  attributes["FrameDuration"] = QJsonArray{60, 120};
+
+  const QString fileName = tmpDir.filePath("decay.nii");
+  {
+    CNIFTIFile niftiFile(fileName, CNIFTIMainHeader::NIFTI1);
+    QVERIFY(niftiFile.open(QIODevice::WriteOnly));
+    QScopedPointer<CNIFTIMainHeader> header(niftiFile.createEmptyHeader());
+    fillHeader(static_cast<CNIFTI1MainHeader*>(header.data()), dims, QSysInfo::LittleEndian);
+    QVERIFY(header->updateAttributes(attributes));
+    QVERIFY(niftiFile.writeMainHeader(*header));
+    QVERIFY(niftiFile.writeMatrix(patternMatrix(4 * 3 * 2 * 2)));
+    niftiFile.close();
+  }
+  QCOMPARE(fileAttributes(fileName).value("DecayCorrectionDateTime").toString(), QString("2024-02-27T23:43:44Z"));
+
+  QByteArray content = fileContent(fileName);
+  const QList<QPair<qint32, QByteArray> > extensions = rawExtensions(content);
+  QCOMPARE(extensions.size(), 2);
+  QByteArray text = extensions[0].second;
+  while(text.endsWith('\0'))
+    text.chop(1);
+  const QJsonObject json = QJsonDocument::fromJson(text).object();
+  QCOMPARE(json.value("DecayCorrectionDateTime").toString(), QString("2024-02-27T23:43:44Z"));
+  QCOMPARE(json.value("InjectionStart").toDouble(), -1800.0);
+  QCOMPARE(json.value("ImageDecayCorrectionTime").toDouble(), -600.0);
+
+  // without the JSON extension (code changed to 0, ignored): from the DICOM extension
+  const qint32 ignore = 0;
+  memcpy(content.data() + 352 + 4, &ignore, 4);
+  const QString dicomOnly = tmpDir.filePath("dicom-only.nii");
+  {
+    QFile f(dicomOnly);
+    QVERIFY(f.open(QIODevice::WriteOnly));
+    QCOMPARE(f.write(content), static_cast<qint64>(content.size()));
+  }
+  QCOMPARE(fileAttributes(dicomOnly).value("DecayCorrectionDateTime").toString(), QString("2024-02-27T23:43:44Z"));
+
+  // BIDS PET sidecar of another tool: the scan start in local time without zone,
+  // decay corrected to 600 s before TimeZero
+  const QString toolName = tmpDir.filePath("tool.nii");
+  {
+    CNIFTIFile file(toolName, CNIFTIMainHeader::NIFTI1);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    QScopedPointer<CNIFTIMainHeader> header(file.createEmptyHeader());
+    fillHeader(static_cast<CNIFTI1MainHeader*>(header.data()), dims, QSysInfo::LittleEndian);
+    QVERIFY(file.writeMainHeader(*header));
+    QVERIFY(file.writeMatrix(patternMatrix(4 * 3 * 2 * 2)));
+    file.close();
+  }
+  const QJsonObject sidecar{{"AcquisitionDateTime", "2024-02-27T00:03:44"}, {"TimeZero", "00:03:44"}, {"ScanStart", 0},
+                            {"ImageDecayCorrected", true}, {"ImageDecayCorrectionTime", -600},
+                            {"FrameTimesStart", QJsonArray{0, 60}}, {"FrameDuration", QJsonArray{60, 120}}};
+  QFile sidecarFile(tmpDir.filePath("tool.json"));
+  QVERIFY(sidecarFile.open(QIODevice::WriteOnly));
+  sidecarFile.write(QJsonDocument(sidecar).toJson());
+  sidecarFile.close();
+
+  // 2024-02-26 23:53:44 local time, as UTC
+  const QDateTime expected = QDateTime(QDate(2024, 2, 26), QTime(23, 53, 44), QTimeZone(zone)).toUTC();
+  QCOMPARE(fileAttributes(toolName).value("DecayCorrectionDateTime").toString(), expected.toString(Qt::ISODate));
 }
 
 QTEST_GUILESS_MAIN(TestNIFTIFormat)

@@ -471,6 +471,12 @@ void TestInterfileFile::attributes()
     QVERIFY(attributes.value("RadiopharmaceuticalStartDateTime").toString().endsWith('Z'));
     QCOMPARE(msecs(reference, "RadiopharmaceuticalStartDateTime", false) -
              msecs(attributes, "RadiopharmaceuticalStartDateTime", true), offset);
+
+    // the time the values are decay corrected to ("%decay correction reference date/time"):
+    // the DICOM series is corrected to its start (DecayCorrection START)
+    QCOMPARE(reference.value("DecayCorrection").toString(), QString("START"));
+    QVERIFY(attributes.value("DecayCorrectionDateTime").toString().endsWith('Z'));
+    QCOMPARE(attributes.value("DecayCorrectionDateTime"), attributes.value("AcquisitionDateTime"));
   }
   else
     QSKIP("no reference of the dataset");
