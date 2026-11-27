@@ -51,7 +51,8 @@ class CMedIOData : public QFile {
       Philips,           //!< data produced by a philips PET/MR scanner
       PhilipsBin,
       NIFTI,             //!< NIfTI format
-      Interfile          //!< Interfile (see CInterfileFile)
+      Interfile,         //!< Interfile (see CInterfileFile)
+      HDF5               //!< HDF5 (see CHDF5File)
     };
 
     //! @enum enumeration carrying special IO error codes which

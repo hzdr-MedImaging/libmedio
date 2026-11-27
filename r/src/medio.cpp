@@ -38,6 +38,7 @@
 #include <QString>
 #include <QStringList>
 
+#include <CHDF5File>
 #include <CMedIOData>
 #include <CMedIODataFactory>
 #include <CMedIOHeader>
@@ -220,8 +221,12 @@ RcppExport SEXP readMedio(SEXP fileName, SEXP frames, SEXP orientation)
   file.data.reset(CMedIODataFactory::create(name));
   if(file.data == nullptr)
     fail("'" + name + "' is not a supported image file");
-  if(file.data->open(QIODevice::ReadOnly) == false)
+  if(file.data->open(QIODevice::ReadOnly) == false) {
+    // HDF5 files are identified, but cannot be read yet
+    if(file.data->dataFormat() == CMedIOData::HDF5)
+      fail("'" + name + "' is an HDF5 file: " + static_cast<CHDF5File*>(file.data.get())->openError());
     fail("unable to open '" + name + "'");
+  }
 
   // the frames to read, by their numbers
   const QList<short> numbers = file.data->frameNumbers();

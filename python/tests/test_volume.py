@@ -242,6 +242,13 @@ def test_read_errors(tmp_path):
         pmedio.open(DATA_DIR / "datasets.json")
     with pytest.raises(TypeError):
         pmedio.open(42)
+    # HDF5 files (here only the signature of the format, also after a user block) are
+    # identified, but cannot be read yet
+    for name, offset in (("image.h5", 0), ("userblock.h5", 512)):
+        (tmp_path / name).write_bytes(bytes(offset) + b"\x89HDF\r\n\x1a\n" + bytes(504))
+        with pytest.raises(ValueError, match="is an HDF5 file"):
+            pmedio.open(tmp_path / name)
+    assert pmedio.Format.HDF5 == "hdf5"
 
     f = pmedio.open(DATA_DIR / "ecat/pet-dynamic.v")
     for frame in (0, 4):

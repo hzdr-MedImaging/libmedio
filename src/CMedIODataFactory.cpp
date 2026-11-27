@@ -30,6 +30,7 @@
 #include "CPhilipsFile.h"
 #include "CNIFTIFile.h"
 #include "CInterfileFile.h"
+#include "CHDF5File.h"
 
 #include <QFileInfo>
 
@@ -41,9 +42,12 @@ CMedIOData::Format CMedIODataFactory::identify(const QString& fileName)
 
   CMedIOData::Format result;
 
+  // HDF5 first: its signature is unambiguous.
   // Interfile before Philips and NIfTI: Interfile uses their file name extensions
   // (.img, .hdr) and is identified by its content
-  if(CECATFile::isOfType(fileName))
+  if(CHDF5File::isOfType(fileName))
+    result = CMedIOData::HDF5;
+  else if(CECATFile::isOfType(fileName))
     result = CMedIOData::ECAT;
   else if(CInterfileFile::isOfType(fileName))
     result = CMedIOData::Interfile;
@@ -74,7 +78,9 @@ CMedIOData* CMedIODataFactory::create(const QString& fileName) {
   CMedIOData* mData;
 
   // here we check for our different main data formats 
-  if((mData = CECATFile::createFromFile(fileName)))
+  if((mData = CHDF5File::createFromFile(fileName)))
+    D("HDF5 file found");
+  else if((mData = CECATFile::createFromFile(fileName)))
     D("ECAT format found");
   else if((mData = CConcordeFile::createFromFile(fileName)))
     D("Concorde microPET format found");
@@ -162,6 +168,7 @@ const char* CMedIODataFactory::formatName(CMedIOData::Format format)
     case CMedIOData::PhilipsBin:       return "philipsbin";
     case CMedIOData::NIFTI:            return "nifti";
     case CMedIOData::Interfile:        return "interfile";
+    case CMedIOData::HDF5:             return "hdf5";
     case CMedIOData::Unknown:          break;
   }
   return "unknown";
@@ -186,6 +193,8 @@ bool CMedIODataFactory::formatFromName(const QString& name, CMedIOData::Format& 
     format = CMedIOData::NIFTI;
   else if(name.startsWith('i', Qt::CaseInsensitive))
     format = CMedIOData::Interfile;
+  else if(name.startsWith('h', Qt::CaseInsensitive))
+    format = CMedIOData::HDF5;
   else
     result = false;
 

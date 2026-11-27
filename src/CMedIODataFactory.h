@@ -81,12 +81,12 @@ class CMedIODataFactory
     // Names of the formats, as used by the language bindings (Python, R)
 
     //! @brief name of a format: "unknown", "ecat", "micropet", "philips", "philipsbin",
-    //!        "nifti" or "interfile" (a string literal)
+    //!        "nifti", "interfile" or "hdf5" (a string literal)
     static const char* formatName(CMedIOData::Format format);
 
     //! @brief format of a name, in any letter case: names starting with "e" are ECAT, with
     //!        "n" NIFTI, with "philipsbin" PhilipsBin, with other "p" Philips, with "c" or "m"
-    //!        ConcordeMicropet, with "i" Interfile and with "u" Unknown, so that the names of
+    //!        ConcordeMicropet, with "i" Interfile, with "h" HDF5 and with "u" Unknown, so that the names of
     //!        formatName() and abbreviations like "NIfTI" or "micropet" are accepted
     //! @return false (format unchanged) for other names
     static bool formatFromName(const QString& name, CMedIOData::Format& format);

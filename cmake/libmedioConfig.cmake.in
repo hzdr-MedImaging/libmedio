@@ -31,6 +31,9 @@
 include(CMakeFindDependencyMacro)
 find_dependency(Qt5 COMPONENTS Core)
 
+# HDF5 support of this build of libmedio (CHDF5File::hasSupport())
+set(libmedio_HAS_HDF5 @MEDIO_HAVE_HDF5@)
+
 include("${CMAKE_CURRENT_LIST_DIR}/libmedioTargets.cmake")
 
 set(libmedio_HAS_STATIC FALSE)
@@ -39,6 +42,12 @@ if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/libmedioStaticTargets.cmake" AND
   find_dependency(Threads)
   find_dependency(ZLIB)
   include("${CMAKE_CURRENT_LIST_DIR}/libmedioStaticTargets.cmake")
+  # the static library needs the HDF5 library it was built with
+  if(libmedio_HAS_HDF5)
+    find_dependency(HDF5 COMPONENTS C)
+    set_property(TARGET libmedio::medio-static APPEND PROPERTY
+                 INTERFACE_LINK_LIBRARIES "${HDF5_C_LIBRARIES}")
+  endif()
   # debug builds of the static library refer to librtdebug, which is installed next to it
   find_library(libmedio_RTDEBUG_LIBRARY NAMES rtdebug
                PATHS "@PACKAGE_MEDIO_LIB_INSTALL_DIR@" NO_DEFAULT_PATH)

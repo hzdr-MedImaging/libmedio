@@ -34,6 +34,7 @@ src/                       # the library
   ecat/, ecat/ecat6/, ecat/ecat7/   # ECAT 6/7
   nifti/, nifti/nifti1/, nifti/nifti2/  # NIfTI and CNIFTIConverter (ECAT7/Philips <-> NIfTI)
   interfile/               # Interfile (see docs/interfile.md)
+  hdf5/                    # HDF5 (optional, CMake option MEDIO_WITH_HDF5; identification only so far)
   philips/                 # Philips PET formats
   micropet/                # Siemens Concorde microPET
   helpers/                 # shared utilities
@@ -47,7 +48,8 @@ testsuite/                 # QtTest/CTest test suite
                            # conversions between all writable formats (testConversions)
   tools/                   # the command line tools (both names of the converters ecat2nifti, philips2nifti)
   interfile/               # Interfile header syntax, image layout, reading the test datasets and writing
-  hdf5/tools/              # prototype and checker of the planned HDF5 layout (docs/hdf5.md), Python
+  hdf5/                    # identification of HDF5 files, with and without HDF5 support;
+                           # tools/: prototype and checker of the planned HDF5 layout (docs/hdf5.md), Python
 python/                    # Python bindings and their tests
 r/                         # R package Rmedio (bundles src/ via r/tools/vendor.sh, see r/README.md)
 conda.recipe/              # conda recipes for conda-forge (libmedio; pmedio, r-rmedio in python/, r/conda.recipe), build-local.sh
@@ -77,7 +79,9 @@ ctest --test-dir build --output-on-failure
 `PREFIX_PATH` (default `/usr/local/petlib`, must exist) is the search and
 install prefix. The example `image2ecat` needs the non-public COREG library and
 is only built if it is found. The test data directory can be changed with
-`-DMEDIO_TEST_DATA_DIR=...`.
+`-DMEDIO_TEST_DATA_DIR=...`. HDF5 support is optional (`-DMEDIO_WITH_HDF5=AUTO|ON|OFF`,
+default `AUTO`: with the serial HDF5 library if it is found, `libhdf5-dev`);
+the sources have to compile and the tests have to pass with and without it.
 
 The `Makefile` wraps CMake with build directories named `build-$(OS)` (e.g.
 `build-l64`): `make`, `make install`, `make DEBUG=1`, `make PREFIX=...`.
@@ -116,6 +120,7 @@ Run the checks that match the files you touched:
 | Changed files | Check |
 | --- | --- |
 | Library, examples, tests (C++) | build in Release **and** Debug (`-DCMAKE_BUILD_TYPE=Debug` compiles the `D()` debug output) and run `ctest --test-dir build --output-on-failure` |
+| `src/hdf5/`, the HDF5 build option | additionally build and test with `-DMEDIO_WITH_HDF5=ON` and with `-DMEDIO_WITH_HDF5=OFF` |
 | Public headers, install rules | `cmake --install build` and build a small program against the installed headers only, also with the CMake package and pkg-config file (`conda.recipe/test`, see the CI step "Use the installed CMake package and pkg-config file") |
 | `python/` or API used by it | build the bindings (`cmake -S python ...`, see `ci.yml`) and run `pytest python/tests`; they are compiled with `-Werror` |
 | Python interface (functions, arguments, return types of `python/src`) | the type stubs are generated from the module: give signatures that would only say `object` with `nb::sig`, extend `python/tests/typing/usage.py` and run `mypy --strict python/tests/typing/usage.py` with the installed package |
