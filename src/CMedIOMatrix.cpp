@@ -37,6 +37,9 @@
 #include "CInterfileFile.h"
 #include "CInterfileFrameHeader.h"
 #include "CInterfileMainHeader.h"
+#include "CHDF5File.h"
+#include "CHDF5FrameHeader.h"
+#include "CHDF5MainHeader.h"
 #include "MedIOLimits.h"
 
 #include <QJsonArray>
@@ -315,6 +318,8 @@ CMedIOData::Format headerDataFormat(const CMedIOHeader& header)
     case CMedIOHeader::ConcordeMicroPetFrameHeader: return CMedIOData::ConcordeMicropet;
     case CMedIOHeader::InterfileMainHeader:
     case CMedIOHeader::InterfileFrameHeader:        return CMedIOData::Interfile;
+    case CMedIOHeader::HDF5MainHeader:
+    case CMedIOHeader::HDF5FrameHeader:             return CMedIOData::HDF5;
     default: break;
   }
   return CMedIOData::Unknown;
@@ -332,6 +337,7 @@ bool mainHeaderFitsMatrix(const CMedIOHeader& subHeader, const CMedIOHeader* mai
     case CMedIOData::Philips:          expected = CMedIOHeader::PhilipsMainHeader; break;
     case CMedIOData::ConcordeMicropet: expected = CMedIOHeader::ConcordeMicroPetMainHeader; break;
     case CMedIOData::Interfile:        expected = CMedIOHeader::InterfileMainHeader; break;
+    case CMedIOData::HDF5:             expected = CMedIOHeader::HDF5MainHeader; break;
     default: break;
   }
 
@@ -350,6 +356,7 @@ QList<short> frameNumbers(CMedIOData* file)
     case CMedIOData::Philips:          numbers = philipsFrameNumbers(static_cast<CPhilipsFile*>(file)); break;
     case CMedIOData::ConcordeMicropet: numbers = concordeFrameNumbers(static_cast<CConcordeFile*>(file)); break;
     case CMedIOData::Interfile:        numbers = interfileFrameNumbers(static_cast<CInterfileFile*>(file)); break;
+    case CMedIOData::HDF5:             numbers = hdf5FrameNumbers(static_cast<CHDF5File*>(file)); break;
     default: break;
   }
   return numbers;
@@ -403,6 +410,14 @@ void fileAttributes(CMedIOData* file, short frame, QJsonObject& mainAttributes, 
     }
     break;
 
+    case CMedIOData::HDF5: {
+      CHDF5FrameHeader* fh = NULL;
+      if(static_cast<CHDF5File*>(file)->readSubHeader(fh, frame) && fh != NULL)
+        frameAttributes = fh->attributes();
+      delete fh;
+    }
+    break;
+
     case CMedIOData::NIFTI: {
       // the frame attributes of all frames are stored with the main header
       const QJsonArray frames = mainAttributes.take(QString::fromLatin1(CMedIOHeaderDictionary::FramesKey)).toArray();
@@ -446,6 +461,10 @@ bool readVolume(CMedIOData* file, short frame, CMedIOVolume& volume)
 
     case CMedIOData::Interfile:
       result = readInterfileVolume(static_cast<CInterfileFile*>(file), frame, volume);
+    break;
+
+    case CMedIOData::HDF5:
+      result = readHdf5Volume(static_cast<CHDF5File*>(file), frame, volume);
     break;
 
     default: {
@@ -503,6 +522,10 @@ bool readFrame(CMedIOData* file, short frame, CMedIOFrame& f)
       result = readInterfileFrame(static_cast<CInterfileFile*>(file), frame, f);
     break;
 
+    case CMedIOData::HDF5:
+      result = readHdf5Frame(static_cast<CHDF5File*>(file), frame, f);
+    break;
+
     default:
       result = unsupported(file->dataFormat(), "reading matrices in another format");
     break;
@@ -551,6 +574,11 @@ bool frameFromMatrix(const QByteArray& data, const CMedIOHeader& header, const C
                interfileFrameFromMatrix(data, static_cast<const CInterfileFrameHeader&>(header), f);
     break;
 
+    case CMedIOData::HDF5:
+      result = (header.headerFormat() == CMedIOHeader::HDF5FrameHeader) &&
+               hdf5FrameFromMatrix(data, static_cast<const CHDF5FrameHeader&>(header), f);
+    break;
+
     default:
       result = unsupported(headerDataFormat(header), "writing matrices of this format into another format");
     break;
@@ -592,6 +620,14 @@ bool matrixFromFrame(const CMedIOFrame& f, CMedIOData::Format format, QByteArray
       result = philipsMatrixFromFrame(f, data, header);
     break;
 
+    case CMedIOData::Interfile:
+      result = interfileMatrixFromFrame(f, data, header);
+    break;
+
+    case CMedIOData::HDF5:
+      result = hdf5MatrixFromFrame(f, data, header);
+    break;
+
     default:
       result = unsupported(format, "converting matrices into this format");
     break;
@@ -618,6 +654,14 @@ bool mainHeaderFromFrame(const CMedIOFrame& f, CMedIOData::Format format, CMedIO
 
     case CMedIOData::Philips:
       result = philipsMainHeaderFromFrame(f, header);
+    break;
+
+    case CMedIOData::Interfile:
+      result = interfileMainHeaderFromFrame(f, header);
+    break;
+
+    case CMedIOData::HDF5:
+      result = hdf5MainHeaderFromFrame(f, source, header);
     break;
 
     default:
@@ -654,6 +698,14 @@ bool writeFrame(CMedIOData* file, short frame, const CMedIOFrame& f)
 
     case CMedIOData::Philips:
       result = writePhilipsFrame(static_cast<CPhilipsFile*>(file), frame, f);
+    break;
+
+    case CMedIOData::Interfile:
+      result = writeInterfileFrame(static_cast<CInterfileFile*>(file), frame, f);
+    break;
+
+    case CMedIOData::HDF5:
+      result = writeHdf5Frame(static_cast<CHDF5File*>(file), frame, f);
     break;
 
     default:
@@ -712,6 +764,18 @@ bool readNativeMatrix(CMedIOData* file, short frame, QByteArray& data, CMedIOHea
       QByteArray* matrix = NULL;
       CInterfileFrameHeader* frameHeader = NULL;
       result = static_cast<CInterfileFile*>(file)->readMatrix(matrix, frameHeader, frame);
+      if(result) {
+        data = *matrix;
+        header = frameHeader;
+      }
+      delete matrix;
+    }
+    break;
+
+    case CMedIOData::HDF5: {
+      QByteArray* matrix = NULL;
+      CHDF5FrameHeader* frameHeader = NULL;
+      result = static_cast<CHDF5File*>(file)->readMatrix(matrix, frameHeader, frame);
       if(result) {
         data = *matrix;
         header = frameHeader;
@@ -786,6 +850,13 @@ bool readNativeMainHeader(CMedIOData* file, CMedIOHeader*& header)
     case CMedIOData::Interfile: {
       CInterfileMainHeader* mainHeader = NULL;
       result = static_cast<CInterfileFile*>(file)->readMainHeader(mainHeader);
+      header = mainHeader;
+    }
+    break;
+
+    case CMedIOData::HDF5: {
+      CHDF5MainHeader* mainHeader = NULL;
+      result = static_cast<CHDF5File*>(file)->readMainHeader(mainHeader);
       header = mainHeader;
     }
     break;

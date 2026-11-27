@@ -109,8 +109,11 @@ const Adapter* nifti2MainHeaderAdapter();
 //! the "ECAT7" section and give the attributes they store; BIDS keys of
 //! other tools give the attributes that are not set (see niftiJson()), incl.
 //! the radionuclide (TracerRadionuclide or the half-life of a PET
-//! radionuclide, as ECAT7 isotope name and radionuclide code) and the
-//! injection time (TimeZero, ScanStart and InjectionStart)
+//! radionuclide, as ECAT7 isotope name and radionuclide code), the
+//! injection time (TimeZero, ScanStart and InjectionStart), the time the values
+//! are decay corrected to (TimeZero and ImageDecayCorrectionTime, unless
+//! DecayCorrection is given) and the FrameReferenceTime (s) of the frames
+//! (as frame attribute in ms)
 QJsonObject attributesOfNiftiJson(const QJsonObject& json);
 
 //! JSON to store in a NIfTI file: the attributes (without the native NIfTI
@@ -118,7 +121,9 @@ QJsonObject attributesOfNiftiJson(const QJsonObject& json);
 //! InjectedRadioactivity, InjectedRadioactivityUnits, ManufacturersModelName,
 //! ReconMethodName, ImageDecayCorrected, ImageDecayCorrectionTime,
 //! DecayCorrectionFactor, TimeZero, ScanStart, InjectionStart; Units in BIDS
-//! notation, e.g. "Bq/mL"), empty if there is nothing to store
+//! notation, e.g. "Bq/mL"), empty if there is nothing to store.
+//! ImageDecayCorrectionTime is DecayCorrectionDateTime relative to the scan
+//! start, without it the time DecayCorrection (START, ADMIN) stands for
 QJsonObject niftiJson(const QJsonObject& attributes);
 
 //! read the attributes of an opened NIfTI file into its main header

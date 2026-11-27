@@ -79,9 +79,8 @@ tests:
           - bin/ecat2nifti
           - bin/anonymize
   - script:
-      # the command line tools, linked against libmedio, Qt and zlib; nifti2ecat and
-      # nifti2philips are links to ecat2nifti and philips2nifti, which select the
-      # direction by the name they are called with
+      # the command line tools, linked against libmedio, Qt and zlib; the converters are
+      # links to medioConvert, which selects the conversion by the name it is called with
       - ecat2nifti-${{ version }} --help | grep "Called as nifti2ecat"
       - nifti2ecat-${{ version }} --help | grep "Called as ecat2nifti"
       - philips2nifti-${{ version }} --help | grep "Called as nifti2philips"

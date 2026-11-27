@@ -351,6 +351,22 @@ CInterfileImageLayout::CInterfileImageLayout()
 {
 }
 
+bool CInterfileImageLayout::stirSigns(const QString& orientation, const QString& rotation, double sign[3])
+{
+  const QString o = orientation.trimmed().toLower();
+  const QString r = rotation.trimmed().toLower();
+  const bool known = (o.isEmpty() || o == "head_in" || o == "feet_in") && (r.isEmpty() || r == "supine" || r == "prone");
+  const bool feetIn = known && (o == "feet_in");
+  const bool prone = known && (r == "prone");
+
+  // head_in supine: x towards left, y towards posterior, z towards inferior
+  sign[0] = (feetIn != prone) ? -1.0 : 1.0;
+  sign[1] = prone ? -1.0 : 1.0;
+  sign[2] = feetIn ? 1.0 : -1.0;
+
+  return known;
+}
+
 qint64 CInterfileImageLayout::requiredDataSize() const
 {
   qint64 size = 0;

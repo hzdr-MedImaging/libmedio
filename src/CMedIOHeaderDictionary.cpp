@@ -96,6 +96,7 @@ const CMedIOHeaderDictionary::Entry entryTable[] = {
   // image
   { "Units",                            0x00541001, "CS", "1",   0, M, STR,  ""   }, // (0054,1001) e.g. BQML
   { "DecayCorrection",                  0x00541102, "CS", "1",   0, M, STR,  ""   }, // (0054,1102) NONE, START, ADMIN
+  { "DecayCorrectionDateTime",          0x00189701, "DT", "1",   0, M, DTM,  ""   }, // (0018,9701) time the values are decay corrected to
   { "CorrectedImage",                   0x00280051, "CS", "1-n", 0, M, STRS, ""   }, // (0028,0051) e.g. ATTN, DECY
   { "ReconstructionMethod",             0x00541103, "LO", "1",   0, M, STR,  ""   }, // (0054,1103)
   { "AttenuationCorrectionMethod",      0x00541101, "LO", "1",   0, M, STR,  ""   }, // (0054,1101)
@@ -103,6 +104,7 @@ const CMedIOHeaderDictionary::Entry entryTable[] = {
 
   // frame
   { "ActualFrameDuration",              0x00181242, "IS", "1",   0, F, NUM,  "ms" }, // (0018,1242)
+  { "FrameReferenceTime",               0x00541300, "DS", "1",   0, F, NUM,  "ms" }, // (0054,1300)
   { "DecayFactor",                      0x00541321, "DS", "1",   0, F, NUM,  ""   }, // (0054,1321)
   { "DeadTimeFactor",                   0x00541324, "DS", "1",   0, F, NUM,  ""   }, // (0054,1324)
 };

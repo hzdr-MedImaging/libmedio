@@ -93,6 +93,7 @@ def test_stubs_are_precise():
         "overwrite: bool | None = False, frames: int | None = None, "
         "attributes: dict[str, Any] | None = None) -> File:",
         "def dictionary_entry(keyword_or_tag: str) -> dict[str, Any] | None:",
+        "def hdf5_version() -> str | None:",
         "def load(path: str | os.PathLike[str], frames: Sequence[int] | None = None, "
         "orientation: str | None = None) -> Image:",
         "def save(path: str | os.PathLike[str], image: Image | numpy.typing.ArrayLike, like: File | None = None, "

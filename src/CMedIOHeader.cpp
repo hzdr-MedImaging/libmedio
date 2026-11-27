@@ -286,6 +286,7 @@ bool CMedIOHeader::convertFrom(CMedIOData* pData)
 
       case CMedIOData::PhilipsBin:
       case CMedIOData::Interfile:
+      case CMedIOData::HDF5:
         E("medio datatype %d conversion not implemented!", pData->dataFormat());
         result = false;
       break;
@@ -312,6 +313,7 @@ bool CMedIOHeader::isMainHeader(void) const
     case CMedIOHeader::PhilipsMainHeader:
     case CMedIOHeader::NIFTIMainHeader:
     case CMedIOHeader::InterfileMainHeader:
+    case CMedIOHeader::HDF5MainHeader:
       result = true;
     break;
     
@@ -320,6 +322,7 @@ bool CMedIOHeader::isMainHeader(void) const
     case CMedIOHeader::PhilipsSubHeader:
     case CMedIOHeader::PhilipsListviewHeader:
     case CMedIOHeader::InterfileFrameHeader:
+    case CMedIOHeader::HDF5FrameHeader:
       result = false;
     break;
   }

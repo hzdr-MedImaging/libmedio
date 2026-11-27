@@ -45,7 +45,8 @@ class CInterfileMainHeaderPrivate;
 //! study, radiopharmaceutical, reconstruction); the keys that do not describe the
 //! layout of the image data are in the section "Interfile" (repeated keys as array).
 //!
-//! Interfile files can be read only: save() fails.
+//! For a new file (CInterfileFile::writeMainHeader()), numFrames() and the attributes
+//! give the header written; the keys are not used.
 class CInterfileMainHeader : public CMedIOHeader
 {
   public:
@@ -63,7 +64,8 @@ class CInterfileMainHeader : public CMedIOHeader
     void clear();
     //! @brief read the header from the CInterfileFile it belongs to
     bool load();
-    //! @brief Interfile files can be read only: false
+    //! @brief write the header into the new CInterfileFile it belongs to
+    //!        (CInterfileFile::writeMainHeader())
     bool save() const;
     CMedIOHeader::Format headerFormat() const;
     using CMedIOHeader::convertFrom;

@@ -43,8 +43,9 @@ pipelines and conversions do not have to know the formats they work with.
 | ECAT 6 | `.v` | | main headers |
 | NIfTI-1, NIfTI-2 | `.nii`, `.nii.gz`, `.hdr`/`.img` (also `.gz`) | read, write (NIfTI-1) | both byte orders, JSON and DICOM header extensions |
 | Philips PET | `.img` (image), `.syn` (Syntegra) | read, write | images, sinograms, list mode |
-| Interfile (3.3, STIR, PMOD, Siemens reconstructions) | header (`.hdr`, `.hv`, `.h33`, Siemens `.mhdr`/`.v.hdr`) with data file or single file | read | images ([docs/interfile.md](docs/interfile.md)) |
+| Interfile (3.3, STIR, PMOD, Siemens reconstructions) | header (`.hdr`, `.hv`, `.h33`, Siemens `.mhdr`/`.v.hdr`) with data file or single file | read, write (`.hv`/`.v` as STIR) | images ([docs/interfile.md](docs/interfile.md)) |
 | Siemens Concorde microPET | `.img` + `.img.hdr` | read | images, sinograms |
+| HDF5 (layout of libmedio, [docs/hdf5.md](docs/hdf5.md); optional) | `.h5`, `.hdf5`, `.hdf` | read, write | images with frames, gates and bed positions |
 
 "All languages" is the format independent interface of C++, Python and R;
 the C++ format classes (`CECATFile`, `CNIFTIFile`, `CPhilipsFile`,
@@ -123,11 +124,14 @@ writeMedio(image, "pet.nii.gz")
 
 Command line tools convert complete files between ECAT7 or Philips and NIfTI
 with all metadata, e.g. `ecat2nifti pet.v pet.nii.gz` and
-`nifti2ecat pet.nii.gz pet.v` (also `philips2nifti` and `nifti2philips`; each
-pair is one program that selects the direction by the name it is called with.
-They are installed with the version of libmedio as suffix, e.g.
-`ecat2nifti-<version>`, and with a link without version to the version
-installed last, see [NIfTI](docs/nifti.md)).
+`nifti2ecat pet.nii.gz pet.v` (also `philips2nifti` and `nifti2philips`, see
+[NIfTI](docs/nifti.md)). They are names of one program, `medioConvert`, which
+converts between all formats, e.g. `medioConvert pet.hv pet.h5`, and is
+installed under a name per conversion (`ecat2nifti`, `ecat2hdf5`,
+`hdf52nifti`, `interfile2ecat`, ...) that selects the conversion, see
+[medioConvert](docs/medioConvert.md). The tools are installed with the version
+of libmedio as suffix, e.g. `ecat2nifti-<version>`, and with a link without
+version to the version installed last.
 
 ## Installation
 
@@ -182,6 +186,15 @@ The command line tools are installed with their version in the name (e.g.
 side, and with a link without version (`bin/ecat2nifti`) to the version
 installed last. `-DMEDIO_INSTALL_TOOL_LINKS=OFF` installs no links; Windows
 builds have none.
+
+HDF5 support is being built and optional: HDF5 files are identified in every
+build (`CMedIOData::HDF5`, `CHDF5File`). With the HDF5 library, images of the
+layout of [docs/hdf5.md](docs/hdf5.md) are read and written like the other
+formats. With the serial HDF5 library (C API, 1.10 or newer; Debian/Ubuntu:
+`libhdf5-dev`) libmedio is built with it, as `CHDF5File::hasSupport()` and
+`libmedio_HAS_HDF5` of the CMake package tell. `-DMEDIO_WITH_HDF5=ON` requires
+the library, `OFF` builds without it; the default `AUTO` uses it if it is found
+(not when cross-compiling).
 
 ### Use the installed library in C++
 

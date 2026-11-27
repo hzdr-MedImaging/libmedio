@@ -10,5 +10,5 @@ URL: https://github.com/hzdr-MedImaging/libmedio
 Version: @PROJECT_VERSION@
 Requires: Qt5Core
 Libs: -L${libdir} -lmedio
-Libs.private: -lz -lpthread
+Libs.private: -lz -lpthread@MEDIO_PC_HDF5_LIBS@
 Cflags: -I${includedir}

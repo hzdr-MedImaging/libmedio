@@ -81,6 +81,48 @@ find_package(RTDEBUG REQUIRED)
 
 find_package(ZLIB REQUIRED)
 
+# HDF5 support (CHDF5File) is optional, as it needs the HDF5 library (C API,
+# serial build, version 1.10 or newer):
+#   AUTO  with HDF5 support if the library is found (not when cross-compiling)
+#   ON    with HDF5 support, the configuration fails without the library
+#   OFF   without HDF5 support
+# The class and the format exist in every build, see src/hdf5/CHDF5File.h.
+set(MEDIO_WITH_HDF5 "AUTO" CACHE STRING "HDF5 support: AUTO, ON or OFF")
+set_property(CACHE MEDIO_WITH_HDF5 PROPERTY STRINGS AUTO ON OFF)
+string(TOUPPER "${MEDIO_WITH_HDF5}" MEDIO_WITH_HDF5_MODE)
+if(MEDIO_WITH_HDF5_MODE MATCHES "^(ON|TRUE|YES|1)$")
+  set(MEDIO_WITH_HDF5_MODE ON)
+elseif(MEDIO_WITH_HDF5_MODE MATCHES "^(OFF|FALSE|NO|0)$")
+  set(MEDIO_WITH_HDF5_MODE OFF)
+elseif(NOT MEDIO_WITH_HDF5_MODE STREQUAL "AUTO")
+  message(FATAL_ERROR "MEDIO_WITH_HDF5 has to be AUTO, ON or OFF (not '${MEDIO_WITH_HDF5}')")
+endif()
+
+set(MEDIO_HAVE_HDF5 FALSE)
+set(MEDIO_HDF5_REASON "disabled with MEDIO_WITH_HDF5=OFF")
+if(MEDIO_WITH_HDF5_MODE STREQUAL "AUTO" AND CMAKE_CROSSCOMPILING)
+  set(MEDIO_HDF5_REASON "not enabled automatically when cross-compiling (MEDIO_WITH_HDF5=ON)")
+elseif(NOT MEDIO_WITH_HDF5_MODE STREQUAL "OFF")
+  find_package(HDF5 COMPONENTS C)
+  if(NOT HDF5_FOUND)
+    set(MEDIO_HDF5_REASON "the HDF5 library was not found")
+  elseif(HDF5_IS_PARALLEL)
+    set(MEDIO_HDF5_REASON "the HDF5 library found is a parallel (MPI) build, the serial one is needed")
+  elseif(HDF5_VERSION VERSION_LESS "1.10")
+    set(MEDIO_HDF5_REASON "HDF5 ${HDF5_VERSION} was found, 1.10 or newer is needed")
+  else()
+    set(MEDIO_HAVE_HDF5 TRUE)
+  endif()
+  if(NOT MEDIO_HAVE_HDF5 AND MEDIO_WITH_HDF5_MODE STREQUAL "ON")
+    message(FATAL_ERROR "MEDIO_WITH_HDF5=ON: ${MEDIO_HDF5_REASON}")
+  endif()
+endif()
+if(MEDIO_HAVE_HDF5)
+  message("HDF5 support: yes (HDF5 ${HDF5_VERSION})")
+else()
+  message("HDF5 support: no (${MEDIO_HDF5_REASON})")
+endif()
+
 # add some special libraries in case we are build for windows
 # WARNING: This seems to be a workaround because Qt5 itself should
 # include them?!?!
@@ -108,7 +150,7 @@ add_subdirectory(src)
 add_subdirectory(examples/img2ecat)
 add_subdirectory(examples/image2ecat)
 add_subdirectory(examples/mp2ecat)
-add_subdirectory(examples/ecat2nifti)
+add_subdirectory(examples/medioConvert)
 add_subdirectory(examples/bin2txt)
 add_subdirectory(examples/ecat/anonymize)
 add_subdirectory(examples/ecat/assembleBeds)
@@ -118,7 +160,6 @@ add_subdirectory(examples/ecat/ecatutil)
 add_subdirectory(examples/ecat/showheader)
 add_subdirectory(examples/ecat/sumSino)
 add_subdirectory(examples/nifti/showheader)
-add_subdirectory(examples/philips2nifti)
 
 # Enable CTest support and add the test suite
 enable_testing()

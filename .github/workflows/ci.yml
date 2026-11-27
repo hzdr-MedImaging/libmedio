@@ -39,19 +39,26 @@ concurrency:
 env:
   # librtdebug (https://github.com/hzdr-MedImaging/librtdebug) release used for the builds
   RTDEBUG_VERSION: 3.0.0
-  APT_PACKAGES: cmake g++ clang qtbase5-dev zlib1g-dev pkg-config tzdata
+  # with libhdf5-dev the builds have HDF5 support (MEDIO_WITH_HDF5=AUTO); the job
+  # "without HDF5" and the macOS job build without it
+  APT_PACKAGES: cmake g++ clang qtbase5-dev zlib1g-dev pkg-config tzdata libhdf5-dev
 
 jobs:
   #-------------------------------------------------------------------------------------------
   # build and run the test suite with GCC and Clang in Release and Debug mode
   build-test:
-    name: build & test (${{ matrix.compiler }}, ${{ matrix.build_type }})
+    name: build & test (${{ matrix.compiler }}, ${{ matrix.build_type }}${{ matrix.hdf5 == 'OFF' && ', without HDF5' || '' }})
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         compiler: [ gcc, clang ]
         build_type: [ Release, Debug ]
+        hdf5: [ 'ON' ]
+        include:
+          - compiler: gcc
+            build_type: Release
+            hdf5: 'OFF'
 
     steps:
       - uses: actions/checkout@v4
@@ -83,7 +90,9 @@ jobs:
           cmake --install "$RUNNER_TEMP/librtdebug-build"
 
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DPREFIX_PATH="$PETLIB"
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DPREFIX_PATH="$PETLIB" \
+                -DMEDIO_WITH_HDF5=${{ matrix.hdf5 }}
 
       - name: Build
         run: cmake --build build -j"$(nproc)"
@@ -157,7 +166,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends $APT_PACKAGES
           python -m pip install --upgrade pip
-          python -m pip install nanobind pytest numpy nibabel pydicom
+          python -m pip install nanobind pytest numpy nibabel pydicom h5py
           echo "PETLIB=$RUNNER_TEMP/petlib" >> "$GITHUB_ENV"
 
       - name: Build librtdebug ${{ env.RTDEBUG_VERSION }}
@@ -253,7 +262,7 @@ jobs:
       - name: Install the Python package with pip and test it
         run: |
           python -m venv "$RUNNER_TEMP/venv"
-          BUILD_PREFIX="$PETLIB" "$RUNNER_TEMP/venv/bin/pip" install "./python[test]" nibabel pydicom
+          BUILD_PREFIX="$PETLIB" "$RUNNER_TEMP/venv/bin/pip" install "./python[test]" nibabel pydicom h5py
           "$RUNNER_TEMP/venv/bin/python" -m pytest -v python/tests
 
       # the type stubs installed with the package (pmedio-stubs) describe the interface:
@@ -297,8 +306,9 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          # tidy (HTML check of the manual) and checkbashisms (devscripts) for R CMD check --as-cran
-          sudo apt-get install -y --no-install-recommends qtbase5-dev zlib1g-dev pkg-config tidy devscripts
+          # tidy (HTML check of the manual) and checkbashisms (devscripts) for R CMD check --as-cran;
+          # with libhdf5-dev the package is built with HDF5 support (RMEDIO_HDF5=auto)
+          sudo apt-get install -y --no-install-recommends qtbase5-dev zlib1g-dev pkg-config tidy devscripts libhdf5-dev
 
       - uses: r-lib/actions/setup-r@v2
         with:
@@ -324,10 +334,26 @@ jobs:
             echo "::error::R CMD check reported warnings or errors, see the log above"
             exit 1
           fi
+          # HDF5 support is optional: this check has to be the one with it
+          grep -F "using the HDF5 library" Rmedio.Rcheck/00install.out
+
+      # the HDF5 library is optional: the package also has to build and pass its tests without it
+      - name: Check the source package without HDF5 support
+        env:
+          _R_CHECK_CRAN_INCOMING_REMOTE_: false
+          RMEDIO_HDF5: 'no'
+        run: |
+          mkdir without-hdf5
+          R CMD check --as-cran --no-manual -o without-hdf5 Rmedio_*.tar.gz
+          if grep -E "^Status: .*(WARNING|ERROR)" without-hdf5/Rmedio.Rcheck/00check.log; then
+            echo "::error::R CMD check without HDF5 support reported warnings or errors, see the log above"
+            exit 1
+          fi
+          grep -F "building without HDF5 support" without-hdf5/Rmedio.Rcheck/00install.out
 
       - name: Show the output of the tests
         if: failure()
-        run: cat Rmedio.Rcheck/tests/*.Rout* || true
+        run: cat Rmedio.Rcheck/tests/*.Rout* without-hdf5/Rmedio.Rcheck/tests/*.Rout* || true
 
   #-------------------------------------------------------------------------------------------
   # the expected values of the test data and the NIfTI test fixtures must be reproducible

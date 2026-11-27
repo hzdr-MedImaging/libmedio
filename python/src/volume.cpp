@@ -32,6 +32,7 @@
 
 #include <nanobind/stl/unique_ptr.h>
 
+#include <CHDF5File>
 #include <CMedIOData>
 #include <CMedIODataFactory>
 #include <CMedIOHeader>
@@ -263,6 +264,13 @@ class MedIOFile
     void close()
     {
       if(m_pData != nullptr) {
+        // an HDF5 file is completed, and gets its name, when it is closed: that can fail
+        // (a file without main header and volume is handled below)
+        if(m_writable && m_pData->dataFormat() == CMedIOData::HDF5) {
+          CHDF5File* hdf5 = static_cast<CHDF5File*>(m_pData.get());
+          if(hdf5->finish() == false && m_pending == nullptr)
+            m_failure = QString("unable to complete '%1': %2").arg(m_fileName, hdf5->openError());
+        }
         m_pData->close();
         m_pData.reset();
 
@@ -279,6 +287,9 @@ class MedIOFile
 
     // the message of close() if it removed an incomplete NIfTI file (taken once)
     QString takeIncomplete() { const QString message = m_incomplete; m_incomplete.clear(); return message; }
+
+    // the message of close() if the file could not be completed (taken once)
+    QString takeFailure() { const QString message = m_failure; m_failure.clear(); return message; }
 
     // frames written into a NIfTI file
     void written(short frame) { if(m_frames > 0) m_written.insert(frame == -1 ? 1 : frame); }
@@ -324,6 +335,7 @@ class MedIOFile
     int m_frames = 0;
     QSet<short> m_written;
     QString m_incomplete;
+    QString m_failure;
     QJsonObject m_mainAttributes;         // attributes of the main header written
 };
 
@@ -340,7 +352,7 @@ CMedIOData::Format createFormat(const QString& fileName, const py::object& forma
   const CMedIOData::Format result = CMedIODataFactory::formatOfFileName(fileName);
   if(result == CMedIOData::Unknown)
     raise(PyExc_ValueError, "unknown file format of '" + fileName + "' (.v: ECAT7, .nii/.nii.gz/.hdr: NIfTI, "
-                            ".img/.syn: Philips); give the format explicitly");
+                            ".img/.syn: Philips, .hv: Interfile, .h5/.hdf5/.hdf: HDF5); give the format explicitly");
   return result;
 }
 
@@ -544,8 +556,12 @@ std::unique_ptr<MedIOFile> openFile(const py::object& path)
     raise(PyExc_ValueError, "'" + fileName + "' is not a supported image file");
 
   std::unique_ptr<MedIOFile> file(new MedIOFile(data, fileName, false));
-  if(data->open(QIODevice::ReadOnly) == false)
+  if(data->open(QIODevice::ReadOnly) == false) {
+    // HDF5 files of another layout, or a build without HDF5 support
+    if(data->dataFormat() == CMedIOData::HDF5)
+      raise(PyExc_ValueError, "'" + fileName + "' is an HDF5 file: " + static_cast<CHDF5File*>(data)->openError());
     raise(PyExc_OSError, "unable to open '" + fileName + "'");
+  }
   return file;
 }
 
@@ -823,6 +839,9 @@ void saveImage(const py::object& path, const Image& image, const py::object& lik
     for(size_t k=0; k < frames; k++)
       writeVolume(*file, volumes[k], static_cast<short>(k + 1));
     file->close();
+    const QString failure = file->takeFailure();
+    if(failure.isEmpty() == false)
+      raise(PyExc_OSError, failure);
     const QString incomplete = file->takeIncomplete();
     if(incomplete.isEmpty() == false)
       raise(PyExc_ValueError, incomplete);
@@ -1026,18 +1045,25 @@ written, without the frames.
 
     .def("close", [](MedIOFile& self) {
       self.close();
+      const QString failure = self.takeFailure();
+      if(failure.isEmpty() == false)
+        raise(PyExc_OSError, failure);
       const QString incomplete = self.takeIncomplete();
       if(incomplete.isEmpty() == false)
         raise(PyExc_ValueError, incomplete);
     }, R"doc(
 close the file (files created for writing are completed); a file created without a
 source file is removed if no volume was written, a NIfTI file of several frames if not
-all of them were written (ValueError)
+all of them were written (ValueError). An HDF5 file gets its name now: if it cannot be
+completed, there is no new file (OSError).
 )doc")
     .def("__enter__", [](py::object self) { return self; }, py::sig("def __enter__(self) -> File"))
     .def("__exit__", [](MedIOFile& self, const py::object& type, const py::object&, const py::object&) {
       self.close();
-      // an incomplete file is reported unless an exception is on its way anyway
+      // a file that is not complete is reported unless an exception is on its way anyway
+      const QString failure = self.takeFailure();
+      if(failure.isEmpty() == false && type.is_none())
+        raise(PyExc_OSError, failure);
       const QString incomplete = self.takeIncomplete();
       if(incomplete.isEmpty() == false && type.is_none())
         raise(PyExc_ValueError, incomplete);
@@ -1077,6 +1103,16 @@ or tag ("(0010,1030)"): keyword, tag, VR, VM, unit, sequence holding it and scop
 ("main" or "frame"); None if the dictionary has no entry for it.
 )doc");
 
+  m.def("hdf5_version", []() -> py::object {
+    if(CHDF5File::hasSupport() == false)
+      return py::none();
+    return py::object(py::str(CHDF5File::libraryVersion().toStdString().c_str()));
+  }, py::sig("def hdf5_version() -> str | None"), R"doc(
+Version of the HDF5 library libmedio was built with, e.g. "1.10.10"; None if it was built
+without HDF5 support. HDF5 files (.h5, .hdf5, .hdf) can only be read and written with
+HDF5 support: without it, open() and create() fail for them with an error saying so.
+)doc");
+
   m.def("create", &createFile, py::arg("path"), py::arg("like").none() = py::none(),
         py::arg("format").none() = py::none(), py::arg("overwrite").none() = Flag{false},
         py::arg("frames").none() = py::none(), py::arg("attributes").none() = py::none(),
@@ -1084,8 +1120,8 @@ or tag ("(0010,1030)"): keyword, tag, VR, VM, unit, sequence holding it and scop
                 "overwrite: bool | None = False, frames: int | None = None, "
                 "attributes: dict[str, typing.Any] | None = None) -> File"), R"doc(
 Create a file for writing. The format is taken from the file name (.v: ECAT7,
-.nii/.nii.gz/.hdr: NIfTI-1, .img/.syn: Philips image/Syntegra) unless ``format``
-(pmedio.Format) is given. An existing file is replaced only with ``overwrite=True``.
+.nii/.nii.gz/.hdr: NIfTI-1, .img/.syn: Philips image/Syntegra, .hv: Interfile as written by
+STIR, with the data file .v, .h5/.hdf5/.hdf: HDF5 if libmedio has HDF5 support) unless ``format`` (pmedio.Format) is given. An existing file is replaced only with ``overwrite=True``.
 
 - With ``like`` (a file opened with ``pmedio.open()``) the file gets the main header of the
   source, converted into the target format: number of frames, patient and isotope data,
@@ -1239,8 +1275,8 @@ order of the file). All frames need the same geometry; read other files with pme
       py::arg("overwrite").none() = Flag{false},
       py::sig("def save(path: str | os.PathLike[str], image: Image | numpy.typing.ArrayLike, like: File | None = None, "
               "format: str | None = None, overwrite: bool | None = False) -> None"), R"doc(
-Write an image (pmedio.Image, or an array with identity affine) into an ECAT7, NIfTI or Philips
-file; the format is taken from the file name unless ``format`` is given. The main header is
+Write an image (pmedio.Image, or an array with identity affine) into an ECAT7, NIfTI, Philips or
+Interfile file; the format is taken from the file name unless ``format`` is given. The main header is
 made from the image (see pmedio.create()) or converted from ``like``; the attributes of the
 image are set in it. Integer data is stored as integers, float data as float (NIfTI files of
 several frames: float32/float64). Nothing is written if the image is invalid, and no file is

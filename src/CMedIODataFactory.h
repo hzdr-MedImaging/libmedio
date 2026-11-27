@@ -51,10 +51,11 @@ class CMedIODataFactory
     static CMedIOData* create(const QString& fileName);
 
     //-------------------------------------------------------------------------------------
-    // New files of the writable formats (ECAT7, NIfTI, Philips)
+    // New files of the writable formats (ECAT7, NIfTI, Philips, Interfile, HDF5)
 
     //! @brief format of a new file, taken from the extension of its name (any letter case):
-    //!        ".v" ECAT, ".nii", ".nii.gz", ".hdr" and ".hdr.gz" NIFTI, ".img" and ".syn" Philips
+    //!        ".v" ECAT, ".nii", ".nii.gz", ".hdr" and ".hdr.gz" NIFTI, ".img" and ".syn" Philips,
+    //!        ".hv" Interfile, ".h5", ".hdf5" and ".hdf" HDF5
     //! @return Unknown for other names; identify() determines the format of an existing
     //!         file from its content
     static CMedIOData::Format formatOfFileName(const QString& fileName);
@@ -64,7 +65,9 @@ class CMedIODataFactory
     //! @param format ECAT: ECAT7 image volumes (CECATMainHeader::ECAT7_Volume16), NIFTI:
     //!        NIfTI-1, as single file or header/image pair depending on the name (see
     //!        CNIFTIFile), Philips: an image file, a Syntegra file for names ending with
-    //!        ".syn"; Unknown: the format of formatOfFileName()
+    //!        ".syn", Interfile: the header with this name and the data file <name>.v (as STIR,
+    //!        see CInterfileFile), HDF5: an image of the layout of docs/hdf5.md (see CHDF5File;
+    //!        it can only be opened with HDF5 support); Unknown: the format of formatOfFileName()
     //! @return the new object (not opened, to be deleted by the caller), NULL if the format
     //!         is unknown or cannot be written
     //!
@@ -79,12 +82,12 @@ class CMedIODataFactory
     // Names of the formats, as used by the language bindings (Python, R)
 
     //! @brief name of a format: "unknown", "ecat", "micropet", "philips", "philipsbin",
-    //!        "nifti" or "interfile" (a string literal)
+    //!        "nifti", "interfile" or "hdf5" (a string literal)
     static const char* formatName(CMedIOData::Format format);
 
     //! @brief format of a name, in any letter case: names starting with "e" are ECAT, with
     //!        "n" NIFTI, with "philipsbin" PhilipsBin, with other "p" Philips, with "c" or "m"
-    //!        ConcordeMicropet, with "i" Interfile and with "u" Unknown, so that the names of
+    //!        ConcordeMicropet, with "i" Interfile, with "h" HDF5 and with "u" Unknown, so that the names of
     //!        formatName() and abbreviations like "NIfTI" or "micropet" are accepted
     //! @return false (format unchanged) for other names
     static bool formatFromName(const QString& name, CMedIOData::Format& format);

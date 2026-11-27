@@ -28,7 +28,7 @@
 # medio_tool_alias(<target> <alias>)
 #
 # A second name of a tool that selects another operation by the name it is called with
-# (e.g. nifti2ecat for ecat2nifti): <alias>-<version> is a relative symbolic link to
+# (e.g. ecat2nifti for medioConvert): <alias>-<version> is a relative symbolic link to
 # <target>-<version> (a copy on Windows) in the build tree and in the installation, and
 # the installation also gets the link without the version (bin/nifti2ecat ->
 # nifti2ecat-4.0.0), like medio_install_tool_link().

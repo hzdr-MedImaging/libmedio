@@ -25,14 +25,17 @@
 // format independent access to images of all formats of libmedio (readMedio(),
 // writeMedio(), see R/medio.R); called from R using the .Call interface
 
-// all frames of an ECAT7, NIfTI, Philips or microPET file: list with the physical
+// all frames of an ECAT7, NIfTI, Philips, Interfile, microPET or HDF5 file: list with the physical
 // values (4D array x, y, z, frame), affine, frame timing, header attributes,
 // format and file name
 RcppExport SEXP readMedio(SEXP fileName, SEXP frames, SEXP orientation);
 
-// writes the frames of an image into an ECAT7, NIfTI or Philips file; the
+// writes the frames of an image into an ECAT7, NIfTI, Philips, Interfile or HDF5 file; the
 // arguments are checked by writeMedio() in R
 RcppExport SEXP writeMedio(SEXP fileName, SEXP data, SEXP affine, SEXP frameStart, SEXP frameDuration,
                            SEXP attributes, SEXP like, SEXP format, SEXP overwrite);
+
+// version of the HDF5 library Rmedio was built with, NA without HDF5 support
+RcppExport SEXP medioHDF5();
 
 #endif

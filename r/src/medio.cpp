@@ -38,6 +38,7 @@
 #include <QString>
 #include <QStringList>
 
+#include <CHDF5File>
 #include <CMedIOData>
 #include <CMedIODataFactory>
 #include <CMedIOHeader>
@@ -188,17 +189,20 @@ CMedIOData::Format targetFormat(const QString& fileName, SEXP format)
   CMedIOData::Format result = CMedIOData::Unknown;
   if(Rf_isNull(format) == false) {
     if(CMedIODataFactory::formatFromName(stringOf(format), result) == false)
-      fail("unknown format '" + stringOf(format) + "' (\"ecat\", \"nifti\" or \"philips\")");
+      fail("unknown format '" + stringOf(format) + "' (\"ecat\", \"nifti\", \"philips\", \"interfile\" or \"hdf5\")");
   } else {
     result = CMedIODataFactory::formatOfFileName(fileName);
     if(result == CMedIOData::Unknown)
       fail("unknown file format of '" + fileName + "' (.v: ECAT7, .nii/.nii.gz/.hdr: NIfTI, "
-           ".img/.syn: Philips); give the format explicitly");
+           ".img/.syn: Philips, .hv: Interfile, .h5/.hdf5/.hdf: HDF5); give the format explicitly");
   }
 
-  if(result != CMedIOData::ECAT && result != CMedIOData::NIFTI && result != CMedIOData::Philips)
-    fail(QString("files of format '%1' cannot be written (formats: \"ecat\", \"nifti\", \"philips\")")
-         .arg(CMedIODataFactory::formatName(result)));
+  if(result != CMedIOData::ECAT && result != CMedIOData::NIFTI && result != CMedIOData::Philips &&
+     result != CMedIOData::Interfile && result != CMedIOData::HDF5)
+    fail(QString("files of format '%1' cannot be written (formats: \"ecat\", \"nifti\", \"philips\", \"interfile\", "
+                 "\"hdf5\")").arg(CMedIODataFactory::formatName(result)));
+  if(result == CMedIOData::HDF5 && CHDF5File::hasSupport() == false)
+    fail("HDF5 files cannot be written: Rmedio was built without HDF5 support (see medioHDF5())");
   return result;
 }
 
@@ -219,8 +223,12 @@ RcppExport SEXP readMedio(SEXP fileName, SEXP frames, SEXP orientation)
   file.data.reset(CMedIODataFactory::create(name));
   if(file.data == nullptr)
     fail("'" + name + "' is not a supported image file");
-  if(file.data->open(QIODevice::ReadOnly) == false)
+  if(file.data->open(QIODevice::ReadOnly) == false) {
+    // HDF5 files of another layout, or a build without HDF5 support
+    if(file.data->dataFormat() == CMedIOData::HDF5)
+      fail("'" + name + "' is an HDF5 file: " + static_cast<CHDF5File*>(file.data.get())->openError());
     fail("unable to open '" + name + "'");
+  }
 
   // the frames to read, by their numbers
   const QList<short> numbers = file.data->frameNumbers();
@@ -403,7 +411,10 @@ RcppExport SEXP writeMedio(SEXP fileName, SEXP data, SEXP affine, SEXP frameStar
     for(int k=0; k < frames; k++)
       if(file.data->writeVolume(volumes[k], static_cast<short>(k + 1)) == false)
         fail(QString("unable to write frame %1 into '%2'").arg(k + 1).arg(name));
+    // an HDF5 file is completed, and gets its name, when it is closed
     file.data->close();
+    if(file.data->errorStatus() != CMedIOData::MERR_Ok)
+      fail("unable to complete '" + name + "'");
     file.data.reset();
   } catch(...) {
     if(file.data) {
@@ -415,6 +426,17 @@ RcppExport SEXP writeMedio(SEXP fileName, SEXP data, SEXP affine, SEXP frameStar
   }
 
   return stringValue(QFileInfo(name).absoluteFilePath());
+
+  END_RCPP
+}
+
+SEXP medioHDF5()
+{
+  BEGIN_RCPP
+
+  if(CHDF5File::hasSupport() == false)
+    return Rcpp::CharacterVector::create(NA_STRING);
+  return stringValue(CHDF5File::libraryVersion());
 
   END_RCPP
 }

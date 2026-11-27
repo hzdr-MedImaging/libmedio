@@ -12,7 +12,7 @@ image$affine                         # 3 x 4, voxel (i, j, k) counted from 0 -> 
 image$frame_start                    # s, also frame_duration
 image$attributes$PatientWeight       # header attributes (named list)
 image$data <- image$data * 2
-writeMedio(image, "image.nii.gz")    # format from the file name (.v, .nii, .nii.gz, .hdr, .img, .syn)
+writeMedio(image, "image.nii.gz")    # format from the file name (.v, .nii, .nii.gz, .hdr, .img, .syn, .hv, .h5)
 writeMedio(image, "image.v", like = "source.v", overwrite = TRUE)  # main header of a source file
 ```
 
@@ -72,6 +72,17 @@ export PKG_CONFIG_PATH="$(brew --prefix qt@5)/lib/pkgconfig"
 ```
 
 `QT_CFLAGS`/`QT_LIBS` and `ZLIB_CFLAGS`/`ZLIB_LIBS` override the detection.
+
+HDF5 support is optional: if the serial HDF5 library (C API, 1.10 or newer;
+Debian/Ubuntu: `libhdf5-dev`, Homebrew: `hdf5`) is found with `pkg-config`
+when the package is installed, images of the layout of
+[docs/hdf5.md](../docs/hdf5.md) are read and written like the other formats,
+and `medioHDF5()` returns the version of the library; otherwise it returns
+`NA`, and HDF5 files are refused with an error saying so. The environment
+variable `RMEDIO_HDF5=yes` requires the library (the installation fails
+without it), `RMEDIO_HDF5=no` builds without it, and `HDF5_CFLAGS`/`HDF5_LIBS`
+override the detection. Windows builds have no HDF5 support unless
+`RMEDIO_HDF5` asks for it, which is untested.
 
 With `LIBMEDIO_PREFIX`, the package is compiled against an installed libmedio
 (`<prefix>/include/medio`, `<prefix>/lib/libmedio`) instead of the bundled

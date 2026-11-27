@@ -9,8 +9,8 @@ before changing code. Human contributors should start with
 libmedio is a portable C++/Qt5 library to read and write medical imaging data
 formats, primarily from nuclear medicine (PET): ECAT 6/7, NIfTI-1/NIfTI-2
 (single files and header/image pairs, also gzip compressed), Philips PET
-(image, Syntegra, sinograms, list mode), Interfile (read only, incl. Siemens
-reconstructions) and Siemens Concorde microPET. It also
+(image, Syntegra, sinograms, list mode), Interfile (incl. Siemens
+reconstructions; written as STIR writes images) and Siemens Concorde microPET. It also
 converts complete images between ECAT7/Philips and NIfTI (`CNIFTIConverter`).
 
 - Licensed under Apache-2.0. Python bindings (`pmedio`, nanobind) live in `python/`,
@@ -33,19 +33,24 @@ src/                       # the library
   CMedIO*.{h,cpp}          # base classes (CMedIOData, CMedIOHeader) and the format factory
   ecat/, ecat/ecat6/, ecat/ecat7/   # ECAT 6/7
   nifti/, nifti/nifti1/, nifti/nifti2/  # NIfTI and CNIFTIConverter (ECAT7/Philips <-> NIfTI)
-  interfile/               # Interfile, read only (see docs/interfile.md)
+  interfile/               # Interfile (see docs/interfile.md)
+  hdf5/                    # HDF5 (optional, CMake option MEDIO_WITH_HDF5; reading and writing the layout of docs/hdf5.md)
   philips/                 # Philips PET formats
   micropet/                # Siemens Concorde microPET
   helpers/                 # shared utilities
   include/                 # bswap.h, config.h.in and the extension-less public stubs (stubs/)
-examples/                  # command line tools (ecat2nifti, philips2nifti, img2ecat, ecatutil, ...)
+examples/                  # command line tools (medioConvert with the names ecat2nifti, ecat2hdf5, ...; img2ecat, ecatutil, ...)
 testsuite/                 # QtTest/CTest test suite
   data/                    # test datasets in several formats + expected values (see data/README.md)
   common/MedIOTestData.h   # enumerates the test data for data-driven tests
   ecat/, nifti/, philips/  # tests per format; nifti/data holds synthetic NIfTI fixtures
-  matrix/, attributes/     # format independent matrix access and attributes (CMedIOVolume, CMedIOHeaderDictionary)
-  tools/                   # the command line tools (both names of the converters ecat2nifti, philips2nifti)
-  interfile/               # Interfile header syntax, image layout and reading the test datasets
+  matrix/, attributes/     # format independent matrix access and attributes (CMedIOVolume, CMedIOHeaderDictionary),
+                           # conversions between all writable formats (testConversions)
+  tools/                   # the command line tools (medioConvert and its names <source>2<target>, e.g. ecat2nifti)
+  interfile/               # Interfile header syntax, image layout, reading the test datasets and writing
+  hdf5/                    # identification, reading and writing of HDF5 files, with and without HDF5 support
+                           # (data/: fixtures made with h5py);
+                           # tools/: prototype and checker of the planned HDF5 layout (docs/hdf5.md), Python
 python/                    # Python bindings and their tests
 r/                         # R package Rmedio (bundles src/ via r/tools/vendor.sh, see r/README.md)
 conda.recipe/              # conda recipes for conda-forge (libmedio; pmedio, r-rmedio in python/, r/conda.recipe), build-local.sh
@@ -75,7 +80,9 @@ ctest --test-dir build --output-on-failure
 `PREFIX_PATH` (default `/usr/local/petlib`, must exist) is the search and
 install prefix. The example `image2ecat` needs the non-public COREG library and
 is only built if it is found. The test data directory can be changed with
-`-DMEDIO_TEST_DATA_DIR=...`.
+`-DMEDIO_TEST_DATA_DIR=...`. HDF5 support is optional (`-DMEDIO_WITH_HDF5=AUTO|ON|OFF`,
+default `AUTO`: with the serial HDF5 library if it is found, `libhdf5-dev`);
+the sources have to compile and the tests have to pass with and without it.
 
 The `Makefile` wraps CMake with build directories named `build-$(OS)` (e.g.
 `build-l64`): `make`, `make install`, `make DEBUG=1`, `make PREFIX=...`.
@@ -114,14 +121,16 @@ Run the checks that match the files you touched:
 | Changed files | Check |
 | --- | --- |
 | Library, examples, tests (C++) | build in Release **and** Debug (`-DCMAKE_BUILD_TYPE=Debug` compiles the `D()` debug output) and run `ctest --test-dir build --output-on-failure` |
+| `src/hdf5/`, the HDF5 build option | additionally build and test with `-DMEDIO_WITH_HDF5=ON` and with `-DMEDIO_WITH_HDF5=OFF` |
 | Public headers, install rules | `cmake --install build` and build a small program against the installed headers only, also with the CMake package and pkg-config file (`conda.recipe/test`, see the CI step "Use the installed CMake package and pkg-config file") |
 | `python/` or API used by it | build the bindings (`cmake -S python ...`, see `ci.yml`) and run `pytest python/tests`; they are compiled with `-Werror` |
 | Python interface (functions, arguments, return types of `python/src`) | the type stubs are generated from the module: give signatures that would only say `object` with `nb::sig`, extend `python/tests/typing/usage.py` and run `mypy --strict python/tests/typing/usage.py` with the installed package |
 | `python/pyproject.toml`, `python/CMakeLists.txt` (packaging) | `pip install ./python` into a fresh virtual environment (`BUILD_PREFIX` selects the prefix of libmedio) and run `pytest python/tests` with it |
-| `r/`, or library sources/API used by it | `r/tools/vendor.sh && R CMD build r && R CMD check --as-cran Rmedio_*.tar.gz` (no warnings or errors) |
+| `r/`, or library sources/API used by it | `r/tools/vendor.sh && R CMD build r && R CMD check --as-cran Rmedio_*.tar.gz` (no warnings or errors); for `src/hdf5/` and the HDF5 detection of `r/configure` with the HDF5 library and with `RMEDIO_HDF5=no` |
 | `testsuite/data/` | `python3 testsuite/data/tools/make_expected.py --check` and the `testdata_layout` test |
 | `testsuite/nifti/data/` | regenerate with `generate_fixtures.py` into a temporary directory and compare byte by byte |
 | `testsuite/attributes/data/` | regenerate with `generate_dictionary.py` into a temporary directory and compare byte by byte |
+| `testsuite/hdf5/data/` | regenerate with `generate_fixtures.py` (h5py) into a temporary directory: `expected.json` has to be identical, and the tests have to pass with the regenerated files (`-DMEDIO_WITH_HDF5=ON`) |
 | `conda.recipe/`, `python/conda.recipe/`, `r/conda.recipe/`, `conda-packages.yml`, versions | `conda.recipe/build-local.sh <librtdebug checkout>` (rattler-build, `conda-forge-pinning`); the workflow `conda-packages.yml` builds and tests them in the pull request. `PKG_VERSION`, the recipes, `python/pyproject.toml` and `r/DESCRIPTION` have the same version |
 | Time or date handling | run the tests with several time zones, e.g. `TZ=UTC`, `TZ=Europe/Berlin`, `TZ=Asia/Tokyo` |
 
@@ -136,7 +145,8 @@ because librtdebug or COREG were not available).
 - **Do not hand-edit generated files:** the expected values `testsuite/data/**/<file>.json`
   are generated with `testsuite/data/tools/make_expected.py` (except those marked
   `"generator": "manual"`), the NIfTI fixtures in `testsuite/nifti/data/` with
-  `generate_fixtures.py`, `testsuite/attributes/data/dicom_dictionary.json` with
+  `generate_fixtures.py`, the HDF5 fixtures and `expected.json` in `testsuite/hdf5/data/`
+  with their `generate_fixtures.py`, `testsuite/attributes/data/dicom_dictionary.json` with
   `generate_dictionary.py`. Change the script or the data and regenerate.
 - **Expected values come from independent implementations** (nibabel, numpy,
   pydicom, documented manual values), never from libmedio itself, so libmedio

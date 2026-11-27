@@ -69,7 +69,7 @@ class CInterfileFrameHeader : public CMedIOHeader
     void clear();
     //! @brief read the header of frame() from the CInterfileFile it belongs to
     bool load();
-    //! @brief Interfile files can be read only: false
+    //! @brief frames are written with CInterfileFile::writeMatrix(): false
     bool save() const;
     CMedIOHeader::Format headerFormat() const;
     using CMedIOHeader::convertFrom;
@@ -103,9 +103,8 @@ class CInterfileFrameHeader : public CMedIOHeader
     double slope() const;
     double intercept() const;
     void setScaling(double slope, double intercept);
-    //! @brief units of the physical values: "BQML" (Bq/ml) where the units of the
-    //!        header are a unit of activity concentration (they are converted into
-    //!        Bq/ml by the slope), otherwise as given in the header
+    //! @brief units of the physical values: "BQML" for Bq/ml (also Bq/cc), "KBQCC" for
+    //!        kBq/cc (also kBq/ml), otherwise as given in the header
     QString units() const;
     void setUnits(const QString& units);
 

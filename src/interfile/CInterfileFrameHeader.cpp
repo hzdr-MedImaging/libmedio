@@ -117,7 +117,7 @@ bool CInterfileFrameHeader::load()
 
 bool CInterfileFrameHeader::save() const
 {
-  E("Interfile files can be read only");
+  E("Interfile frames are written with CInterfileFile::writeMatrix()");
   return false;
 }
 

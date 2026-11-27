@@ -58,8 +58,10 @@ READABLE = [
     ("interfile/pet-static.pair/pet-static.hdr", "interfile/pet-static.pair", "interfile/pet-static.pair.json"),
     ("interfile/pet-dynamic.hdr", "interfile/pet-dynamic.hdr", "interfile/pet-dynamic.hdr.json"),
     ("interfile/pet-dynamic.pair/pet-dynamic.img", "interfile/pet-dynamic.pair", "interfile/pet-dynamic.pair.json"),
-    ("interfile/pet-wholebody.siemens/pet-wholebody.mhdr", "interfile/pet-wholebody.siemens",
-     "interfile/pet-wholebody.siemens.json"),
+    ("interfile/pet-bladder-static.siemens/pet-bladder-static.mhdr", "interfile/pet-bladder-static.siemens",
+     "interfile/pet-bladder-static.siemens.json"),
+    ("interfile/pet-bladder-dynamic.siemens/pet-bladder-dynamic.mhdr", "interfile/pet-bladder-dynamic.siemens",
+     "interfile/pet-bladder-dynamic.siemens.json"),
 ]
 
 
@@ -88,16 +90,15 @@ class Expected:
         dataset = dataset_of(key)
         self.intercept = 0.0
         if e["format"] == "interfile":
-            # own parser of make_expected.py; libmedio converts the units of activity
-            # concentration into Bq/ml (PMOD writes kBq/cc for pet-dynamic)
+            # own parser of make_expected.py (the values in the units of the file, e.g.
+            # kBq/cc for pet-dynamic of PMOD)
             frames = e["frames"]
-            factor = [1000.0 if f["units"].lower().startswith("kbq") else 1.0 for f in frames]
             self.dims = frames[0]["dims"]
             self.dtype = np.dtype(frames[0]["number_format"]).type
             self.voxel_size = frames[0]["pixel_size_mm"]
             self.stats = [(f["raw_min"], f["raw_max"], f["raw_sum"]) for f in frames]
-            self.scales = [f["rescale_slope"] * k for f, k in zip(frames, factor)]
-            self.intercept = frames[0]["rescale_offset"] * factor[0]
+            self.scales = [f["rescale_slope"] for f in frames]
+            self.intercept = frames[0]["rescale_offset"]
             if (DATA_DIR / f"ecat/{dataset}.v.json").is_file():
                 ecat_frames = load_json(f"ecat/{dataset}.v.json")["matrices"]
                 self.timing = [(f["frame_start_time_ms"] / 1000.0, f["frame_duration_ms"] / 1000.0) for f in ecat_frames]
@@ -241,6 +242,13 @@ def test_read_errors(tmp_path):
         pmedio.open(DATA_DIR / "datasets.json")
     with pytest.raises(TypeError):
         pmedio.open(42)
+    # HDF5 files (here only the signature of the format, also after a user block) are
+    # identified; these are no images
+    for name, offset in (("image.h5", 0), ("userblock.h5", 512)):
+        (tmp_path / name).write_bytes(bytes(offset) + b"\x89HDF\r\n\x1a\n" + bytes(504))
+        with pytest.raises(ValueError, match="is an HDF5 file"):
+            pmedio.open(tmp_path / name)
+    assert pmedio.Format.HDF5 == "hdf5"
 
     f = pmedio.open(DATA_DIR / "ecat/pet-dynamic.v")
     for frame in (0, 4):

@@ -20,15 +20,22 @@
 //! @file CInterfileMatrix.cpp
 //! @brief Interfile adapter of the matrix conversion (see CMedIOMatrix.h)
 //!
-//! Interfile files can be read only. A frame is read as CMedIOVolume in the voxel
-//! order of the file with the position of its voxels (CInterfileFrameHeader::affine())
-//! and converted into the ECAT7 representation with frameFromVolume().
+//! A frame is read as CMedIOVolume in the voxel order of the file with the position of
+//! its voxels (CInterfileFrameHeader::affine()) and converted into the ECAT7
+//! representation with frameFromVolume(). Frames are written as STIR writes images:
+//! the voxels reordered into the axes of STIR for the patient position (HFS: "LPI"),
+//! signed 16 bit integers with a scale factor or float32 (the type of the first frame
+//! of a file).
 
 #include "CMedIOMatrix.h"
 #include "CInterfileFile.h"
 #include "CInterfileFrameHeader.h"
+#include "CInterfileMainHeader.h"
+#include "CMedIOHeaderMapping.h"
 
 #include <QScopedPointer>
+
+#include <cmath>
 
 #include <rtdebug.h>
 
@@ -55,6 +62,66 @@ bool volumeOfMatrix(const QByteArray& data, const CInterfileFrameHeader& header,
 
   return true;
 }
+
+// the orientation code of the voxel axes of STIR for the patient position (DICOM)
+QString stirOrientation(const QJsonObject& attributes)
+{
+  const QString position = attributes.value("PatientPosition").toString();
+  if(position == "FFS")
+    return "RPS";
+  if(position == "HFP")
+    return "RAI";
+  if(position == "FFP")
+    return "LAS";
+  return "LPI";
+}
+
+// the frame as Interfile matrix: voxels in the given orientation, data type of the allowed
+// types (signed 16 bit integers with a scale factor or float32)
+bool interfileMatrix(const CMedIOFrame& f, const QString& orientation, unsigned allowed, QByteArray& data,
+                     CInterfileFrameHeader& header)
+{
+  CMedIOVolume v = f.volume;
+  bool oblique = false;
+  if(v.reorient(orientation, &oblique) == false || fitDataType(v, allowed, false, false) == false)
+    return false;
+  if(oblique)
+    W("oblique voxel axes are stored as the closest axes of STIR");
+
+  // the closest axes of STIR: an affine without rotation, the position of the first voxel kept
+  double m[3][4];
+  v.affine(m);
+  double axes[3][4];
+  for(int i = 0; i < 3; i++)
+  {
+    for(int j = 0; j < 3; j++)
+      axes[i][j] = 0.0;
+    axes[i][3] = m[i][3];
+  }
+  for(int j = 0; j < 3; j++)
+  {
+    int row = 0;
+    for(int i = 1; i < 3; i++)
+    {
+      if(std::fabs(m[i][j]) > std::fabs(m[row][j]))
+        row = i;
+    }
+    axes[row][j] = (m[row][j] < 0.0 ? -1.0 : 1.0) * v.voxelSize(j);
+  }
+
+  header.setDimensions(v.dimension(0), v.dimension(1), v.dimension(2));
+  header.setDataType(v.dataType());
+  header.setScaling(v.scaleFactor(), 0.0);
+  header.setUnits(f.mainAttributes.value("Units").toString());
+  header.setAffine(axes);
+  header.setTiming(v.frameStart(), v.frameDuration());
+  MedIOHeaderMapping::transfer(f.frameAttributes, header);
+  data = v.data();
+
+  return true;
+}
+
+const unsigned interfileTypes = typeBit(CMedIOVolume::Int16) | typeBit(CMedIOVolume::Float32);
 
 } // namespace
 
@@ -87,6 +154,51 @@ bool readInterfileFrame(CInterfileFile* file, short frame, CMedIOFrame& f)
 
   CMedIOVolume v;
   bool result = readInterfileVolume(file, frame, v) && frameFromVolume(v, f);
+
+  RETURN(result);
+  return result;
+}
+
+bool interfileMatrixFromFrame(const CMedIOFrame& f, QByteArray& data, CMedIOHeader*& header)
+{
+  ENTER();
+
+  CInterfileFrameHeader* frameHeader = new CInterfileFrameHeader();
+  bool result = interfileMatrix(f, stirOrientation(f.mainAttributes), interfileTypes, data, *frameHeader);
+  if(result)
+    header = frameHeader;
+  else
+    delete frameHeader;
+
+  RETURN(result);
+  return result;
+}
+
+bool interfileMainHeaderFromFrame(const CMedIOFrame& f, CMedIOHeader*& header)
+{
+  ENTER();
+
+  CInterfileMainHeader* mainHeader = new CInterfileMainHeader();
+  mainHeader->setNumFrames(f.mainHeader.num_Frames() > 0 ? f.mainHeader.num_Frames() : 1);
+  header = mainHeader;
+
+  RETURN(true);
+  return true;
+}
+
+bool writeInterfileFrame(CInterfileFile* file, short frame, const CMedIOFrame& f)
+{
+  ENTER();
+
+  // the frames of a file have the number format of the first one
+  unsigned allowed = interfileTypes;
+  if(file->writtenDataType() != CMedIOVolume::UnknownDataType)
+    allowed = typeBit(file->writtenDataType());
+
+  QByteArray data;
+  CInterfileFrameHeader header;
+  bool result = interfileMatrix(f, file->writtenOrientation(), allowed, data, header) &&
+                file->writeMatrix(data, header, frame);
 
   RETURN(result);
   return result;

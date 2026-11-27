@@ -7,7 +7,7 @@ independent access with numpy arrays.
 ```python
 import pmedio
 
-image = pmedio.load("image.v", orientation="RAS")    # ECAT7, NIfTI, Philips, microPET
+image = pmedio.load("image.v", orientation="RAS")    # ECAT7, NIfTI, Philips, Interfile, microPET
 image.data                                            # physical values (nx, ny, nz, frames), float32
 image.affine                                          # 3 x 4, voxel -> LPS (mm)
 image.frame_start, image.frame_duration               # s, one per frame
@@ -40,7 +40,7 @@ image.save("image.nii.gz")                            # or pmedio.save(path, ima
 import numpy as np
 import pmedio
 
-with pmedio.open("image.nii.gz") as f:              # ECAT7, NIfTI, Philips, microPET
+with pmedio.open("image.nii.gz") as f:              # ECAT7, NIfTI, Philips, Interfile, microPET
     for frame in f.frame_numbers():
         v = f.read_volume(frame)                      # pmedio.Volume, voxel order of the file
         values = v.values()                           # physical values, shape (nx, ny, nz)
@@ -64,7 +64,7 @@ with pmedio.create("new.nii.gz", frames=2, attributes={"PatientWeight": 72.5}) a
   `intercept`, `affine`, `position()`, `voxel_size`, `orientation`,
   `reorient()` and the frame timing.
 - `pmedio.create(path, like=source)` takes the format from the file name
-  (`.v`, `.nii`/`.nii.gz`/`.hdr`, `.img`/`.syn`) or from `format=pmedio.Format...`,
+  (`.v`, `.nii`/`.nii.gz`/`.hdr`, `.img`/`.syn`, `.hv`, and with HDF5 support `.h5`/`.hdf5`/`.hdf`) or from `format=pmedio.Format...`,
   and replaces an existing file only with `overwrite=True`. The volumes
   written are converted into the representation of the file (e.g. the
   datatype and scaling of a NIfTI main header).
@@ -102,6 +102,14 @@ new code uses `load()`/`save()`, which also read and write ECAT7 files:
 dict (DICOM keywords, native fields in the section of the format, frame
 attributes in `Frames`), and `pmedio.dictionary_entry("(0010,1030)")` returns
 an entry of the dictionary, see [Format independent header attributes](header-attributes.md).
+
+## HDF5
+HDF5 files (`.h5`, `.hdf5`, `.hdf`, see [hdf5.md](hdf5.md)) are read and
+written like the other formats if libmedio was built with the HDF5 library:
+`pmedio.hdf5_version()` returns the version of that library, or `None` without
+HDF5 support, where `open()` and `create()` fail for HDF5 files with an error
+saying so. A new HDF5 file gets its name when it is closed; `close()` raises
+`OSError` if it cannot be completed.
 
 ## Installation and build
 Install libmedio into `PREFIX_PATH` first, then install the package

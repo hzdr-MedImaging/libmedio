@@ -53,7 +53,9 @@ class CMedIOHeader {
       PhilipsListviewHeader,        //!< listview header of philips scanners
       NIFTIMainHeader,              //!< main header of NIfTI1/2 data format
       InterfileMainHeader,          //!< main header of an Interfile file
-      InterfileFrameHeader          //!< description of a frame of an Interfile file
+      InterfileFrameHeader,         //!< description of a frame of an Interfile file
+      HDF5MainHeader,               //!< main header of an HDF5 image file
+      HDF5FrameHeader               //!< description of a volume of an HDF5 image file
     };
 
     // constructors

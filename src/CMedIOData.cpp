@@ -34,6 +34,9 @@
 #include "CPhilipsFile.h"
 #include "CPhilipsMainHeader.h"
 #include "CInterfileFile.h"
+#include "CInterfileMainHeader.h"
+#include "CHDF5File.h"
+#include "CHDF5MainHeader.h"
 
 #include <QString>
 
@@ -304,6 +307,8 @@ bool CMedIOData::writeMainHeader(CMedIOHeader& mainHeader)
     case CMedIOData::ECAT:    expected = CMedIOHeader::ECATMainHeader;    break;
     case CMedIOData::NIFTI:   expected = CMedIOHeader::NIFTIMainHeader;   break;
     case CMedIOData::Philips: expected = CMedIOHeader::PhilipsMainHeader; break;
+    case CMedIOData::Interfile: expected = CMedIOHeader::InterfileMainHeader; break;
+    case CMedIOData::HDF5:    expected = CMedIOHeader::HDF5MainHeader;    break;
     default:                  break;
   }
 
@@ -336,6 +341,14 @@ bool CMedIOData::writeMainHeader(CMedIOHeader& mainHeader)
           philips.setFiltyp(type);
         result = static_cast<CPhilipsFile*>(this)->writeMainHeader(philips);
       }
+      break;
+
+      case CMedIOData::Interfile:
+        result = static_cast<CInterfileFile*>(this)->writeMainHeader(static_cast<CInterfileMainHeader&>(mainHeader));
+      break;
+
+      case CMedIOData::HDF5:
+        result = static_cast<CHDF5File*>(this)->writeMainHeader(static_cast<const CHDF5MainHeader&>(mainHeader));
       break;
 
       default:
@@ -434,7 +447,9 @@ int CMedIOData::requiredFrames(const CMedIOHeader& mainHeader)
   ENTER();
   int result = 0;
 
-  if(const CNIFTI1MainHeader* nifti1 = dynamic_cast<const CNIFTI1MainHeader*>(&mainHeader))
+  if(const CInterfileMainHeader* interfile = dynamic_cast<const CInterfileMainHeader*>(&mainHeader))
+    result = interfile->numFrames();
+  else if(const CNIFTI1MainHeader* nifti1 = dynamic_cast<const CNIFTI1MainHeader*>(&mainHeader))
     result = (nifti1->dim(0) > 3) ? nifti1->dim(4) : 1;
   else if(const CNIFTI2MainHeader* nifti2 = dynamic_cast<const CNIFTI2MainHeader*>(&mainHeader))
     result = (nifti2->dim(0) > 3) ? static_cast<int>(nifti2->dim(4)) : 1;
