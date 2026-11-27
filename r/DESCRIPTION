@@ -11,8 +11,8 @@ Description: Interface to the 'libmedio' C++ library
     medical imaging data formats used in nuclear medicine (PET). The
     package reads images of the formats ECAT 7, NIfTI, Philips PET,
     Interfile and Siemens Concorde microPET as arrays with their geometry, frame timing
-    and header attributes, and writes ECAT 7, NIfTI and Philips PET
-    images; the older ECAT interface also reads ECAT 6 image volumes. The 'libmedio' sources are bundled with the package.
+    and header attributes, and writes ECAT 7, NIfTI, Philips PET and Interfile
+    images, with the optional 'HDF5' library also images stored in 'HDF5' files; the older ECAT interface also reads ECAT 6 image volumes. The 'libmedio' sources are bundled with the package.
 License: Apache License (== 2.0)
 Copyright: see file COPYRIGHTS
 URL: https://github.com/hzdr-MedImaging/libmedio
@@ -20,5 +20,5 @@ BugReports: https://github.com/hzdr-MedImaging/libmedio/issues
 Imports: Rcpp (>= 0.11.2)
 LinkingTo: Rcpp
 Suggests: jsonlite
-SystemRequirements: Qt5 (Core module), zlib, pkg-config
+SystemRequirements: Qt5 (Core module), zlib, pkg-config; optional: HDF5 (serial C library, >= 1.10) for images stored in HDF5 files
 Encoding: UTF-8

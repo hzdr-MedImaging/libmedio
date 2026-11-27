@@ -21,4 +21,5 @@
 # links Qt5Core and zlib statically as provided by Rtools.
 #
 
-RMEDIO_MAKEVARS=src/Makevars.ucrt RMEDIO_PKG_CONFIG_STATIC=1 sh ./configure
+# HDF5 support is not built on Windows unless RMEDIO_HDF5 asks for it (untested there)
+RMEDIO_HDF5=${RMEDIO_HDF5:-no} RMEDIO_MAKEVARS=src/Makevars.ucrt RMEDIO_PKG_CONFIG_STATIC=1 sh ./configure

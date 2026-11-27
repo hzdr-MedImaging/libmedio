@@ -23,7 +23,8 @@
 \description{
   Writes an image (as returned by \code{\link{readMedio}} or made with
   \code{\link{medioImage}}) or a 3D/4D array into an ECAT7, NIfTI,
-  Philips PET or Interfile image file.
+  Philips PET, Interfile or (with HDF5 support, see
+  \code{\link{medioHDF5}}) HDF5 image file.
 }
 \usage{
 writeMedio(image, fname, like = NULL, format = NULL, overwrite = FALSE)
@@ -38,7 +39,7 @@ writeMedio(image, fname, like = NULL, format = NULL, overwrite = FALSE)
     \code{.v} ECAT7, \code{.nii}, \code{.nii.gz} or \code{.hdr} NIfTI
     (\code{.hdr} with the image file \code{.img}), \code{.img} or
     \code{.syn} Philips, \code{.hv} Interfile (as written by STIR, with
-    the data file \code{.v}).
+    the data file \code{.v}), \code{.h5}, \code{.hdf5} or \code{.hdf} HDF5.
   }
   \item{like}{
     path of a source file of any format whose main header is converted
@@ -47,7 +48,7 @@ writeMedio(image, fname, like = NULL, format = NULL, overwrite = FALSE)
     \code{NULL}: the main header is made from the image.
   }
   \item{format}{
-    \code{"ecat"}, \code{"nifti"}, \code{"philips"} or \code{"interfile"} to give the format
+    \code{"ecat"}, \code{"nifti"}, \code{"philips"}, \code{"interfile"} or \code{"hdf5"} to give the format
     independent of the file name; the letter case does not matter and the
     names can be abbreviated (e.g. \code{"NIfTI"}, \code{"e"}), like in the
     Python bindings.
@@ -61,8 +62,10 @@ writeMedio(image, fname, like = NULL, format = NULL, overwrite = FALSE)
   in the main header; invalid values are an error. Double data is stored
   as 32 bit floating point values, integer data as 32 bit integers, every
   frame with scale factor 1 (Interfile: integers that fit into 16 bits as
-  16 bit integers, otherwise 32 bit floating point values). Philips files
-  store no position within the planes: the planes are centered.
+  16 bit integers, otherwise 32 bit floating point values; HDF5: always
+  32 bit floating point values). Philips files store no position within
+  the planes: the planes are centered. An HDF5 file gets its name when it
+  is written completely.
 
   All arguments are checked before the file is created, and the file is
   removed again if writing fails, so no partial file is left behind.

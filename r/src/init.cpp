@@ -33,6 +33,7 @@ static const R_CallMethodDef callMethods[] =
   { "writeEcat", (DL_FUNC)&writeEcat, 4 },
   { "readMedio",  (DL_FUNC)&readMedio,  3 },
   { "writeMedio", (DL_FUNC)&writeMedio, 9 },
+  { "medioHDF5",  (DL_FUNC)&medioHDF5,  0 },
   { NULL, NULL, 0 }
 };
 

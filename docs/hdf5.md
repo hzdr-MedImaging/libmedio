@@ -333,8 +333,10 @@ and writes it like this:
 - All calls into the HDF5 library are serialised by one mutex, and its error
   messages are passed to librtdebug.
 - R package: the sources compile without HDF5 (R compiles all vendored
-  sources); `Rmedio` supports HDF5 if the HDF5 library is found when the
-  package is installed.
+  sources). `Rmedio` has HDF5 support if its `configure` finds the serial
+  HDF5 library with `pkg-config` when the package is installed
+  (`RMEDIO_HDF5=auto|yes|no`, see [r/README.md](../r/README.md)); `medioHDF5()`
+  tells whether it has. Windows builds have none by default.
 - Tests: the expected values of HDF5 test files come from `h5py`
   (`make_expected.py`), and files written by libmedio are read back with
   `h5py`, as the other formats are checked with nibabel and numpy.
@@ -346,7 +348,7 @@ and writes it like this:
 | 1 (done) | this specification; a prototype in Python (`testsuite/hdf5/tools/medio2hdf5.py`, `pmedio` + `h5py`) that writes the test datasets in this layout and a checker for it (`check_hdf5.py`, `h5py` only) | review of the example files, reading them with MATLAB/Octave and R |
 | 2 (done) | attribute dictionary: `DecayCorrectionDateTime` and `FrameReferenceTime` for all formats | attribute tests, several time zones |
 | 3 (done) | build option `MEDIO_WITH_HDF5`, format `CMedIOData::HDF5` and class `CHDF5File` as stub, identification by the signature | CI with and without HDF5, R package |
-| 4 (done, without R) | reading and writing (C++ and Python; R has no HDF5 support yet) and the conversion from and into all writable formats | fixtures of `testsuite/hdf5/data` with the values `h5py` reads (`generate_fixtures.py`), files of the prototype compared with `h5py`; `testConversions` with HDF5 as target, files written by libmedio checked with `check_hdf5.py` and read with `h5py` |
+| 4 (done) | reading and writing (C++, Python and R) and the conversion from and into all writable formats | fixtures of `testsuite/hdf5/data` with the values `h5py` reads (`generate_fixtures.py`), files of the prototype compared with `h5py`; `testConversions` with HDF5 as target, files written by libmedio checked with `check_hdf5.py` and read with `h5py` |
 | 5 | optional: reading and writing the ITK layout; MINC 2 with libminc as further optional dependency | comparison with SimpleITK and the MINC tools |
 
 ## Decisions

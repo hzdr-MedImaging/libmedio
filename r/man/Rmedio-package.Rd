@@ -25,14 +25,16 @@
 \description{
   Reads and writes medical imaging data with the 'libmedio' C++ library
   (\url{https://github.com/hzdr-MedImaging/libmedio}): images of the
-  formats used in nuclear medicine, ECAT7, NIfTI, Philips PET and (read
-  only) Interfile and Siemens Concorde microPET.
+  formats used in nuclear medicine, ECAT7, NIfTI, Philips PET, Interfile,
+  (read only) Siemens Concorde microPET and, if the package was built with
+  the HDF5 library (\code{\link{medioHDF5}}), HDF5.
 }
 \details{
   \code{\link{readMedio}} reads all frames of an image file of any format
   as one 4D array with its geometry, frame timing and header attributes
   (\code{\link{medioImage}}). \code{\link{writeMedio}} writes such an
-  image, or a plain array, into an ECAT7, NIfTI or Philips file.
+  image, or a plain array, into an ECAT7, NIfTI, Philips, Interfile or
+  HDF5 file.
 
   \code{\link{readEcat}} and \code{\link{writeEcat}} are the older
   interface for ECAT files only, kept for existing scripts: they read an

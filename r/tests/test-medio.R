@@ -270,6 +270,63 @@ hdf5 <- file.path(dir, "image.h5")
 writeBin(as.raw(c(0x89, 0x48, 0x44, 0x46, 0x0d, 0x0a, 0x1a, 0x0a, rep(0, 504))), hdf5)
 fails(readMedio(hdf5), "is an HDF5 file")
 unlink(hdf5)
+
+# HDF5 support is optional (medioHDF5()): with it, images are written and read like
+# those of the other formats, without it both fail saying so
+version <- medioHDF5()
+stopifnot(is.character(version), length(version) == 1L)
+if (is.na(version)) {
+  fails(writeMedio(values, hdf5), "without HDF5 support")
+  fails(writeMedio(values, file.path(dir, "image.dat"), format = "hdf5"), "without HDF5 support")
+  stopifnot(length(list.files(dir)) == 0L)
+} else {
+  stopifnot(grepl("^[0-9]+\\.[0-9]+\\.[0-9]+$", version))
+  for (name in c("image.h5", "image.hdf5", "image.hdf")) {
+    path <- file.path(dir, name)
+    image <- medioImage(array(as.double(1:120) / 8, dim = c(5, 4, 3, 2)),
+                        affine = rbind(c(2, 0, 0, -4), c(0, 2.5, 0, -3), c(0, 0, -3, 10)),
+                        frame_start = c(0, 60), frame_duration = c(60, 120),
+                        attributes = list(PatientWeight = 72.5, Units = "BQML", SeriesNumber = 7))
+    stopifnot(identical(writeMedio(image, path), normalizePath(path)))
+    stopifnot(identical(list.files(dir), name))
+    back <- readMedio(path)
+    stopifnot(identical(back$format, "hdf5"),
+              identical(dim(back$data), dim(image$data)),
+              isTRUE(all.equal(back$data, image$data, tolerance = 1e-7, check.attributes = FALSE)),
+              isTRUE(all.equal(back$affine, image$affine, check.attributes = FALSE)),
+              identical(back$frame_start, c(0, 60)), identical(back$frame_duration, c(60, 120)),
+              identical(back$attributes$PatientWeight, 72.5), identical(back$attributes$Units, "BQML"),
+              isTRUE(all.equal(back$attributes$SeriesNumber, 7)))
+    # an existing file is only replaced with overwrite = TRUE
+    fails(writeMedio(image, path), "exists")
+    stopifnot(isTRUE(all.equal(readMedio(path)$data, image$data, tolerance = 1e-7, check.attributes = FALSE)))
+    doubled <- image
+    doubled$data <- image$data * 2
+    writeMedio(doubled, path, overwrite = TRUE)
+    stopifnot(isTRUE(all.equal(readMedio(path)$data, doubled$data, tolerance = 1e-7, check.attributes = FALSE)))
+    unlink(path)
+  }
+  # the format given explicitly
+  writeMedio(values, file.path(dir, "image.dat"), format = "hdf5")
+  stopifnot(identical(readMedio(file.path(dir, "image.dat"))$format, "hdf5"))
+  unlink(file.path(dir, "image.dat"))
+
+  # the test files of the other formats converted into HDF5 and back: the same values,
+  # positions, timing and attributes
+  for (name in list.files(system.file("extdata", package = "Rmedio"), pattern = "\\.(v|gz|img|hdr)$", full.names = TRUE)) {
+    source <- readMedio(name, orientation = "LPI")
+    writeMedio(source, hdf5, like = name)
+    back <- readMedio(hdf5)
+    stopifnot(isTRUE(all.equal(back$data, source$data, tolerance = 1e-6, check.attributes = FALSE)),
+              isTRUE(all.equal(back$affine, source$affine, tolerance = 1e-6, check.attributes = FALSE)),
+              isTRUE(all.equal(back$frame_start, source$frame_start)),
+              isTRUE(all.equal(back$frame_duration, source$frame_duration)))
+    for (key in intersect(c("PatientName", "PatientWeight", "RadionuclideTotalDose", "Units"), names(source$attributes)))
+      stopifnot(identical(back$attributes[[key]], source$attributes[[key]]))
+    unlink(hdf5)
+  }
+  stopifnot(length(list.files(dir)) == 0L)
+}
 # the format given explicitly
 writeMedio(values, file.path(dir, "image.data"), format = "nifti")
 stopifnot(identical(readMedio(file.path(dir, "image.data"))$format, "nifti"))

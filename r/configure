@@ -69,6 +69,42 @@ else
   MEDIO_LIBS=""
 fi
 
+# HDF5 support of the bundled libmedio is optional (an installed libmedio has its own):
+# RMEDIO_HDF5=auto (default) uses the serial HDF5 library (C API, 1.10 or newer) if it is
+# found with pkg-config or given with HDF5_CFLAGS and HDF5_LIBS, RMEDIO_HDF5=yes requires
+# it, RMEDIO_HDF5=no builds without it. It is checked below.
+RMEDIO_HDF5=${RMEDIO_HDF5:-auto}
+case "${RMEDIO_HDF5}" in
+  auto|yes|no) ;;
+  *) echo "ERROR: RMEDIO_HDF5 has to be auto, yes or no (not '${RMEDIO_HDF5}')" >&2; exit 1 ;;
+esac
+HAVE_HDF5=no
+if [ -z "${LIBMEDIO_PREFIX}" ] && [ "${RMEDIO_HDF5}" != "no" ]; then
+  if [ -n "${HDF5_LIBS}" ]; then
+    HAVE_HDF5=yes
+  else
+    # Debian and Ubuntu name the serial library hdf5-serial (hdf5 can be a parallel build there)
+    for module in hdf5-serial hdf5; do
+      if [ "${HAVE_HDF5}" = "no" ] && "${PKG_CONFIG}" --exists "${module}" 2>/dev/null; then
+        HDF5_CFLAGS=$("${PKG_CONFIG}" --cflags ${PKG_CONFIG_ARGS} "${module}")
+        HDF5_LIBS=$("${PKG_CONFIG}" --libs ${PKG_CONFIG_ARGS} "${module}")
+        HAVE_HDF5=yes
+      fi
+    done
+  fi
+  if [ "${HAVE_HDF5}" = "no" ] && [ "${RMEDIO_HDF5}" = "yes" ]; then
+    cat >&2 <<EOF
+ERROR: RMEDIO_HDF5=yes, but the HDF5 library was not found with '${PKG_CONFIG}'. Install
+       it, e.g.
+         Debian/Ubuntu: sudo apt-get install libhdf5-dev
+         Fedora:        sudo dnf install hdf5-devel
+         macOS:         brew install hdf5
+       or set HDF5_CFLAGS and HDF5_LIBS.
+EOF
+    exit 1
+  fi
+fi
+
 #--------------------------------------------------------------------------
 # Qt5 (Core)
 if [ -z "${QT_LIBS}" ]; then
@@ -119,6 +155,44 @@ if ! ${CXX} ${CPPFLAGS} ${QT_CFLAGS} ${ZLIB_CFLAGS} ${CXXFLAGS} ${CXXPICFLAGS} -
 fi
 
 # the headers of an installed libmedio
+# the HDF5 library: a program using it has to compile, link and run; a parallel (MPI)
+# build and versions before 1.10 are not used
+if [ "${HAVE_HDF5}" = "yes" ]; then
+  cat > conftest.cpp <<EOF
+#include <hdf5.h>
+#ifdef H5_HAVE_PARALLEL
+#error "parallel (MPI) build of HDF5"
+#endif
+#if !H5_VERSION_GE(1, 10, 0)
+#error "HDF5 older than 1.10"
+#endif
+int main() { unsigned a = 0, b = 0, c = 0; return H5get_libversion(&a, &b, &c) < 0 ? 1 : 0; }
+EOF
+  if ${CXX} ${CPPFLAGS} ${HDF5_CFLAGS} ${CXXFLAGS} ${CXXPICFLAGS} conftest.cpp -o conftest ${HDF5_LIBS} >conftest.log 2>&1 &&
+     ./conftest; then
+    echo "* using the HDF5 library (HDF5 support)"
+    MEDIO_CPPFLAGS="${MEDIO_CPPFLAGS} -DMEDIO_HAVE_HDF5"
+  else
+    if [ "${RMEDIO_HDF5}" = "yes" ]; then
+      cat conftest.log >&2
+      echo "ERROR: RMEDIO_HDF5=yes, but a program using the serial HDF5 library (1.10 or newer) cannot be" >&2
+      echo "       built and run (HDF5_CFLAGS='${HDF5_CFLAGS}' HDF5_LIBS='${HDF5_LIBS}')" >&2
+      rm -f conftest.cpp conftest.o conftest conftest.log
+      exit 1
+    fi
+    echo "* the HDF5 library found cannot be used: building without HDF5 support"
+    HAVE_HDF5=no
+  fi
+  rm -f conftest conftest.log
+fi
+if [ "${HAVE_HDF5}" = "no" ]; then
+  HDF5_CFLAGS=""
+  HDF5_LIBS=""
+  if [ -z "${LIBMEDIO_PREFIX}" ]; then
+    echo "* building without HDF5 support"
+  fi
+fi
+
 if [ -n "${LIBMEDIO_PREFIX}" ]; then
   cat > conftest.cpp <<EOF
 #include <CMedIOData>
@@ -159,6 +233,8 @@ done
       -e "s|@QT_LIBS@|${QT_LIBS}|" \
       -e "s|@ZLIB_CFLAGS@|${ZLIB_CFLAGS}|" \
       -e "s|@ZLIB_LIBS@|${ZLIB_LIBS}|" \
+      -e "s|@HDF5_CFLAGS@|${HDF5_CFLAGS}|" \
+      -e "s|@HDF5_LIBS@|${HDF5_LIBS}|" \
       src/Makevars.in
 } > "${MAKEVARS}"
 

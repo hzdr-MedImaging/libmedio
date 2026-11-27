@@ -306,8 +306,9 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          # tidy (HTML check of the manual) and checkbashisms (devscripts) for R CMD check --as-cran
-          sudo apt-get install -y --no-install-recommends qtbase5-dev zlib1g-dev pkg-config tidy devscripts
+          # tidy (HTML check of the manual) and checkbashisms (devscripts) for R CMD check --as-cran;
+          # with libhdf5-dev the package is built with HDF5 support (RMEDIO_HDF5=auto)
+          sudo apt-get install -y --no-install-recommends qtbase5-dev zlib1g-dev pkg-config tidy devscripts libhdf5-dev
 
       - uses: r-lib/actions/setup-r@v2
         with:
@@ -333,10 +334,26 @@ jobs:
             echo "::error::R CMD check reported warnings or errors, see the log above"
             exit 1
           fi
+          # HDF5 support is optional: this check has to be the one with it
+          grep -F "using the HDF5 library" Rmedio.Rcheck/00install.out
+
+      # the HDF5 library is optional: the package also has to build and pass its tests without it
+      - name: Check the source package without HDF5 support
+        env:
+          _R_CHECK_CRAN_INCOMING_REMOTE_: false
+          RMEDIO_HDF5: 'no'
+        run: |
+          mkdir without-hdf5
+          R CMD check --as-cran --no-manual -o without-hdf5 Rmedio_*.tar.gz
+          if grep -E "^Status: .*(WARNING|ERROR)" without-hdf5/Rmedio.Rcheck/00check.log; then
+            echo "::error::R CMD check without HDF5 support reported warnings or errors, see the log above"
+            exit 1
+          fi
+          grep -F "building without HDF5 support" without-hdf5/Rmedio.Rcheck/00install.out
 
       - name: Show the output of the tests
         if: failure()
-        run: cat Rmedio.Rcheck/tests/*.Rout* || true
+        run: cat Rmedio.Rcheck/tests/*.Rout* without-hdf5/Rmedio.Rcheck/tests/*.Rout* || true
 
   #-------------------------------------------------------------------------------------------
   # the expected values of the test data and the NIfTI test fixtures must be reproducible

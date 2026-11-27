@@ -23,8 +23,9 @@
 \description{
   Reads all frames of an ECAT7, NIfTI (\code{.nii}, \code{.nii.gz},
   \code{.hdr}/\code{.img}), Philips PET (\code{.img}, \code{.syn}),
-  Interfile (a header, a Siemens main header \code{.mhdr} or a data file) or
-  Siemens Concorde microPET image file as one 4D array, together with the
+  Interfile (a header, a Siemens main header \code{.mhdr} or a data file),
+  Siemens Concorde microPET or (with HDF5 support, see \code{\link{medioHDF5}})
+  HDF5 image file as one 4D array, together with the
   geometry, the frame timing and the header attributes.
 }
 \usage{
@@ -78,7 +79,7 @@ readMedio(fname, frames = NULL, orientation = NULL)
     seconds.}
   \item{attributes}{the header attributes as named list.}
   \item{format}{the format of the file: \code{"ecat"}, \code{"nifti"},
-    \code{"philips"}, \code{"interfile"} or \code{"micropet"}.}
+    \code{"philips"}, \code{"interfile"}, \code{"micropet"} or \code{"hdf5"}.}
   \item{filename}{the absolute path of the file.}
 }
 \author{
