@@ -1,9 +1,9 @@
 # HDF5 support (design draft)
 
-**Status: draft for discussion. libmedio reads images of this layout if it is
-built with the HDF5 library (`CHDF5File`, see [Reading](#reading)), but does
-not write them yet. The layout may change until the first version of libmedio
-that writes it is released.**
+**Status: draft for discussion. libmedio reads and writes images of this layout
+if it is built with the HDF5 library (`CHDF5File`, see
+[Reading and writing](#reading-and-writing)). The layout may still change until
+the first release of libmedio with HDF5 support.**
 
 This document describes how libmedio is going to store PET images in HDF5
 files, why it defines a layout of its own for that, and the phases of the
@@ -96,7 +96,8 @@ Objects that are not described here may be present; readers ignore them.
   the physical value. Integer data with scale factors is converted when it is
   written.
 - All volumes have the same dimensions. An image whose volumes differ in
-  size cannot be written into one file.
+  size cannot be written into one file. The first dimension may be extendable
+  (libmedio writes a dataset that grows by the volumes written).
 - Storage: chunked, with the filters shuffle and deflate. A chunk holds whole
   planes of one volume and never spans volumes; the number of planes per
   chunk is chosen so that a chunk has at most 1 MiB of raw data (at least one
@@ -249,7 +250,7 @@ with h5py.File("image.h5", "r") as f:
     everything = json.loads(f["header/json"][()])
 ```
 
-## Reading
+## Reading and writing
 
 libmedio reads the layout as follows (`CHDF5File`, `src/hdf5/`):
 
@@ -272,6 +273,34 @@ libmedio reads the layout as follows (`CHDF5File`, `src/hdf5/`):
   volume in `Frames` of the JSON object without a dataset.
 - All calls into the HDF5 library are serialised by one lock, and the error
   handler of the application is not changed.
+
+and writes it like this:
+
+- A new file is written like the files of the other formats: the main header
+  with the attributes, then the volumes (`writeMainHeader()`, `writeVolume()`
+  or `writeMatrix()`, in Python `pmedio.create()` and `pmedio.save()`). File
+  names ending with `.h5`, `.hdf5` or `.hdf` are HDF5 files.
+- The values are the physical values as float32 (float64 for float64 data);
+  integers with scale factors are converted. The format independent
+  interface writes the voxels in the order of ECAT7 (x towards left, y
+  towards posterior, planes from superior to inferior).
+- All volumes have the dimensions and data type of the first one. The file
+  takes any number of volumes; `CHDF5File::writeMatrix()` also takes gates and
+  bed positions. `Gate`, `Bed` and `/image/volumes/affine` are only written if
+  the volumes differ in them.
+- The attributes of the dictionary are typed attributes of `/header`, all
+  attributes are in `/header/json`. A value every volume has (`DecayFactor`,
+  `DeadTimeFactor`, `FrameReferenceTime`, `TriggerTime`, `TablePosition`) is a
+  dataset of `/image/volumes`.
+- `Units` and `units` are written for the terms libmedio knows in UCUM
+  notation (`BQML`, `KBQCC`, `CNTS`, `CPS`, `NONE`, `CM2`, `PCNT`, `GML`); other
+  terms are only in `/header`.
+- The file is written under a temporary name in its directory and gets its
+  name when it is closed with its main header and at least one volume. Until
+  then, and if writing fails, there is no file of that name, and an existing
+  one is left as it is.
+- The `QFile` of a file opened for writing is not opened (that would create or
+  truncate the file of that name); only its open state is set.
 
 ## Identification
 
@@ -317,7 +346,7 @@ libmedio reads the layout as follows (`CHDF5File`, `src/hdf5/`):
 | 1 (done) | this specification; a prototype in Python (`testsuite/hdf5/tools/medio2hdf5.py`, `pmedio` + `h5py`) that writes the test datasets in this layout and a checker for it (`check_hdf5.py`, `h5py` only) | review of the example files, reading them with MATLAB/Octave and R |
 | 2 (done) | attribute dictionary: `DecayCorrectionDateTime` and `FrameReferenceTime` for all formats | attribute tests, several time zones |
 | 3 (done) | build option `MEDIO_WITH_HDF5`, format `CMedIOData::HDF5` and class `CHDF5File` as stub, identification by the signature | CI with and without HDF5, R package |
-| 4 (reading done) | reading (C++ and Python; R has no HDF5 support yet), then writing and the conversion from and into all writable formats | fixtures of `testsuite/hdf5/data` with the values `h5py` reads (`generate_fixtures.py`), files of the prototype compared with `h5py`; for writing: `testConversions`, reading back with `h5py` |
+| 4 (done, without R) | reading and writing (C++ and Python; R has no HDF5 support yet) and the conversion from and into all writable formats | fixtures of `testsuite/hdf5/data` with the values `h5py` reads (`generate_fixtures.py`), files of the prototype compared with `h5py`; `testConversions` with HDF5 as target, files written by libmedio checked with `check_hdf5.py` and read with `h5py` |
 | 5 | optional: reading and writing the ITK layout; MINC 2 with libminc as further optional dependency | comparison with SimpleITK and the MINC tools |
 
 ## Decisions
@@ -334,6 +363,8 @@ libmedio reads the layout as follows (`CHDF5File`, `src/hdf5/`):
 | Group of the study attributes | `/header`, as the attributes are those of the main header of libmedio |
 | File name extensions | `.h5`, `.hdf5`, `.hdf` |
 | Bed position | optional dataset `TablePosition` per volume; the affine alone defines the geometry |
+| Matrix index | frame, gate and bed position; no column for the fifth part of the ECAT matrix index (data), which images do not use |
+| Number of volumes | not fixed in advance: the dataset grows by the volumes written |
 | Further layouts | ITK and MINC 2 in phase 5 |
 
 ## Open points
@@ -372,8 +403,6 @@ Still to be checked or decided:
   (PS3.3 C.8.9 and C.8.22); the data dictionary only confirms names, tags and
   types.
 - The UCUM notation of the SUV variants of `Units` (`GML`, `CM2ML`, ...).
-- Whether a `Data` column is needed for the fifth part of the ECAT matrix
-  index.
 - Chunks of images with planes larger than 1 MiB (more than 512 × 512 voxels):
   one plane per chunk, or planes split into several chunks.
 - Whether the frame attributes get further datasets (e.g. the scatter

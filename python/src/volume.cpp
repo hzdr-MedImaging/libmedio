@@ -341,7 +341,7 @@ CMedIOData::Format createFormat(const QString& fileName, const py::object& forma
   const CMedIOData::Format result = CMedIODataFactory::formatOfFileName(fileName);
   if(result == CMedIOData::Unknown)
     raise(PyExc_ValueError, "unknown file format of '" + fileName + "' (.v: ECAT7, .nii/.nii.gz/.hdr: NIfTI, "
-                            ".img/.syn: Philips, .hv: Interfile); give the format explicitly");
+                            ".img/.syn: Philips, .hv: Interfile, .h5/.hdf5/.hdf: HDF5); give the format explicitly");
   return result;
 }
 
@@ -1090,7 +1090,7 @@ or tag ("(0010,1030)"): keyword, tag, VR, VM, unit, sequence holding it and scop
                 "attributes: dict[str, typing.Any] | None = None) -> File"), R"doc(
 Create a file for writing. The format is taken from the file name (.v: ECAT7,
 .nii/.nii.gz/.hdr: NIfTI-1, .img/.syn: Philips image/Syntegra, .hv: Interfile as written by
-STIR, with the data file .v) unless ``format`` (pmedio.Format) is given. An existing file is replaced only with ``overwrite=True``.
+STIR, with the data file .v, .h5/.hdf5/.hdf: HDF5 if libmedio has HDF5 support) unless ``format`` (pmedio.Format) is given. An existing file is replaced only with ``overwrite=True``.
 
 - With ``like`` (a file opened with ``pmedio.open()``) the file gets the main header of the
   source, converted into the target format: number of frames, patient and isotope data,

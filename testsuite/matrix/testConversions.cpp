@@ -32,6 +32,7 @@
 #include <cmath>
 
 #include "CMedIOData.h"
+#include "CHDF5File.h"
 #include "CMedIODataFactory.h"
 #include "CMedIOHeader.h"
 #include "CMedIOVolume.h"
@@ -53,7 +54,8 @@ const Target Targets[] = {
   { "ECAT7", ".v", CMedIOData::ECAT },
   { "NIfTI", ".nii", CMedIOData::NIFTI },
   { "Philips", ".img", CMedIOData::Philips },
-  { "Interfile", ".hv", CMedIOData::Interfile }
+  { "Interfile", ".hv", CMedIOData::Interfile },
+  { "HDF5", ".h5", CMedIOData::HDF5 }   // only with HDF5 support
 };
 
 // the attributes compared, and those a format cannot store (they are not in its files)
@@ -189,9 +191,16 @@ void compareFiles(const QString& sourceName, const QString& targetName, CMedIODa
     QVERIFY2(maxDifference <= 1e-6 * maxValue,
              qPrintable(QString("frame %1: max. difference %2 (max. value %3)").arg(f + 1).arg(maxDifference).arg(maxValue)));
 
-    // 16 bit integers stay integers (NIfTI files of several frames: the physical values)
+    // 16 bit integers stay integers (NIfTI files of several frames: the physical values);
+    // HDF5 files always hold the physical values as float32 (docs/hdf5.md), so an image
+    // that was stored as HDF5 on its way has no integers anymore
     const bool niftiFrames = (format == CMedIOData::NIFTI && numbers.size() > 1);
-    if(v.dataType() == CMedIOVolume::Int16 && niftiFrames == false)
+    if(format == CMedIOData::HDF5)
+    {
+      QCOMPARE(w.dataType(), v.dataType() == CMedIOVolume::Float64 ? CMedIOVolume::Float64 : CMedIOVolume::Float32);
+      QCOMPARE(w.scaleFactor(), 1.0);
+    }
+    else if(v.dataType() == CMedIOVolume::Int16 && niftiFrames == false && through.contains(CMedIOData::HDF5) == false)
       QCOMPARE(w.dataType(), CMedIOVolume::Int16);
 
     QVERIFY2(std::fabs(w.frameStart() - v.frameStart()) < 1e-3, qPrintable(QString("frame %1: start").arg(f + 1)));
@@ -284,6 +293,8 @@ void TestConversions::allFormats()
     QSKIP("no test data");
 
   const Target& t = Targets[target];
+  if(t.format == CMedIOData::HDF5 && CHDF5File::hasSupport() == false)
+    QSKIP("no HDF5 support");
   const QString source = fileToOpen(file);
   const QString name = m_tmp.filePath(QString(file.relativePath).replace('/', '_') + t.suffix);
   QString error;
@@ -301,6 +312,9 @@ void TestConversions::chains_data()
   QTest::newRow("ECAT7 dynamic and back") << "ecat/pet-dynamic.v" << (QStringList() << ".hv" << ".v");
   QTest::newRow("Siemens Interfile and back")
       << "interfile/pet-bladder-dynamic.siemens/pet-bladder-dynamic.mhdr" << (QStringList() << ".v" << ".hv");
+  QTest::newRow("ECAT7 dynamic through HDF5") << "ecat/pet-dynamic.v" << (QStringList() << ".h5" << ".nii" << ".hdf5" << ".v");
+  QTest::newRow("Siemens Interfile through HDF5")
+      << "interfile/pet-bladder-dynamic.siemens/pet-bladder-dynamic.mhdr" << (QStringList() << ".h5" << ".hv" << ".hdf");
 }
 
 void TestConversions::chains()
@@ -311,6 +325,8 @@ void TestConversions::chains()
   const QString first = medioTestDataDir() + "/" + source;
   if(QFileInfo::exists(first) == false)
     QSKIP("no test data");
+  if(suffixes.contains(".h5") && CHDF5File::hasSupport() == false)
+    QSKIP("no HDF5 support");
 
   // every file of the chain has the values, positions and timing of the source
   QString current = first;

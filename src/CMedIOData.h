@@ -229,7 +229,7 @@ class CMedIOData : public QFile {
                                      int numFrames, CMedIOHeader*& mainHeader);
 
     //---------------------------------------------------------------------------------------
-    // Writing new files of any writable format (ECAT7, NIfTI, Philips, Interfile): create the object
+    // Writing new files of any writable format (ECAT7, NIfTI, Philips, Interfile, HDF5): create the object
     // with CMedIODataFactory::createForWriting(), check fileNames() for existing files,
     // open() it for writing, write the main header with writeMainHeader() and the frames
     // with writeVolume(), and removeFiles() if writing fails.

@@ -34,7 +34,7 @@ src/                       # the library
   ecat/, ecat/ecat6/, ecat/ecat7/   # ECAT 6/7
   nifti/, nifti/nifti1/, nifti/nifti2/  # NIfTI and CNIFTIConverter (ECAT7/Philips <-> NIfTI)
   interfile/               # Interfile (see docs/interfile.md)
-  hdf5/                    # HDF5 (optional, CMake option MEDIO_WITH_HDF5; reading the layout of docs/hdf5.md)
+  hdf5/                    # HDF5 (optional, CMake option MEDIO_WITH_HDF5; reading and writing the layout of docs/hdf5.md)
   philips/                 # Philips PET formats
   micropet/                # Siemens Concorde microPET
   helpers/                 # shared utilities
@@ -48,7 +48,7 @@ testsuite/                 # QtTest/CTest test suite
                            # conversions between all writable formats (testConversions)
   tools/                   # the command line tools (both names of the converters ecat2nifti, philips2nifti)
   interfile/               # Interfile header syntax, image layout, reading the test datasets and writing
-  hdf5/                    # identification and reading of HDF5 files, with and without HDF5 support
+  hdf5/                    # identification, reading and writing of HDF5 files, with and without HDF5 support
                            # (data/: fixtures made with h5py);
                            # tools/: prototype and checker of the planned HDF5 layout (docs/hdf5.md), Python
 python/                    # Python bindings and their tests

@@ -57,7 +57,18 @@ class CHDF5FilePrivate;
 //! readMatrix(), readAttributes()) gives the frames of the first gate and bed
 //! position; numVolumes() and the methods taking the index of a volume give all
 //! of them. The voxels are returned in the order of the file with their position
-//! (CHDF5FrameHeader::affine()). Files cannot be written yet.
+//! (CHDF5FrameHeader::affine()).
+//!
+//! A new file is written like the files of the other formats: open() it with
+//! QIODevice::WriteOnly, write the main header (its attributes) and then the
+//! volumes with writeMatrix(), or use the format independent methods of
+//! CMedIOData (writeMainHeader(), writeVolume(), writeMatrix()). All volumes have
+//! the dimensions and data type of the first one; a volume written for a frame,
+//! gate and bed position that was written before replaces it. The file is
+//! written under a temporary name in its directory and gets its name when it is
+//! closed: until then, and if writing fails, there is no file of that name (an
+//! existing one is left as it is). finish() closes the file and tells whether it
+//! was written.
 //!
 //! HDF5 support is an optional feature of the build (CMake option
 //! MEDIO_WITH_HDF5), as it needs the HDF5 library. The class and the format
@@ -88,14 +99,20 @@ class CHDF5File : public CMedIOData
     static QString libraryVersion();
 
     //! @brief open an image file of the layout MEDIO-IMAGE for reading
-    //!        (QIODevice::ReadOnly); other modes fail, as files cannot be written yet
+    //!        (QIODevice::ReadOnly) or a new file for writing (QIODevice::WriteOnly)
     //! @return false if the file cannot be opened, openError() gives the reason
     bool open(QIODevice::OpenModeFlag mode);
+    //! @brief close the file; a new file is completed as by finish()
     void close();
+    //! @brief close the file. A new file gets its name now, if its main header and at
+    //!        least one volume were written without an error.
+    //! @return false if a new file could not be written (there is no new file then,
+    //!         openError() gives the reason); true for a file opened for reading
+    bool finish();
 
     CMedIOData::Format dataFormat() const;
 
-    //! @brief the reason why the last open() failed (empty if it did not)
+    //! @brief the reason why the last open() or finish() failed (empty if it did not)
     QString openError() const;
 
     //! @brief number of volumes: all frames, gates and bed positions (0 if the file is not open)
@@ -123,9 +140,25 @@ class CHDF5File : public CMedIOData
     //! @brief the voxels and the header of a volume given by its index
     bool readVolumeMatrix(QByteArray*& data, CHDF5FrameHeader*& frameHeader, int volume);
 
+    //! @brief the attributes of a new file: has to be written once, before the volumes.
+    //!        "Frames" of the attributes (the frame attributes of all frames, as
+    //!        CMedIOData::readAttributes() gives them) are the attributes of the volumes
+    //!        written with a frame header without attributes, in the order they are written.
+    bool writeMainHeader(const CHDF5MainHeader& mainHeader);
+    //! @brief write a volume of a new file
+    //! @param data nx * ny * nz physical values of frameHeader.dataType() (Float32 or
+    //!        Float64) in the byte order of this machine, x running fastest
+    //! @param frameHeader dimensions, data type, affine, frame timing, gate, bed position
+    //!        and frame attributes of the volume
+    //! @param frame number of the frame; -1: frameHeader.frame(), or the number of
+    //!        volumes written so far + 1 if that is not set
+    bool writeMatrix(const QByteArray& data, const CHDF5FrameHeader& frameHeader, short frame = -1);
+
     // the format independent methods of CMedIOData with the same names
     using CMedIOData::readMainHeader;
     using CMedIOData::readMatrix;
+    using CMedIOData::writeMainHeader;
+    using CMedIOData::writeMatrix;
 
   private:
     CHDF5File(const CHDF5File&);

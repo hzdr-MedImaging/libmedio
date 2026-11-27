@@ -35,6 +35,8 @@
 #include "CPhilipsMainHeader.h"
 #include "CInterfileFile.h"
 #include "CInterfileMainHeader.h"
+#include "CHDF5File.h"
+#include "CHDF5MainHeader.h"
 
 #include <QString>
 
@@ -306,6 +308,7 @@ bool CMedIOData::writeMainHeader(CMedIOHeader& mainHeader)
     case CMedIOData::NIFTI:   expected = CMedIOHeader::NIFTIMainHeader;   break;
     case CMedIOData::Philips: expected = CMedIOHeader::PhilipsMainHeader; break;
     case CMedIOData::Interfile: expected = CMedIOHeader::InterfileMainHeader; break;
+    case CMedIOData::HDF5:    expected = CMedIOHeader::HDF5MainHeader;    break;
     default:                  break;
   }
 
@@ -342,6 +345,10 @@ bool CMedIOData::writeMainHeader(CMedIOHeader& mainHeader)
 
       case CMedIOData::Interfile:
         result = static_cast<CInterfileFile*>(this)->writeMainHeader(static_cast<CInterfileMainHeader&>(mainHeader));
+      break;
+
+      case CMedIOData::HDF5:
+        result = static_cast<CHDF5File*>(this)->writeMainHeader(static_cast<const CHDF5MainHeader&>(mainHeader));
       break;
 
       default:

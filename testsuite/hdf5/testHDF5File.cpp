@@ -21,7 +21,8 @@
 // build, with and without HDF5 support. With HDF5 support, images of the layout
 // of docs/hdf5.md are read; the fixtures of testsuite/hdf5/data and the values
 // expected from them (expected.json) are made with h5py (generate_fixtures.py).
-// Writing is not implemented yet.
+// Files written by libmedio are read back here; the Python tests check them with
+// h5py and the checker of the layout (testsuite/hdf5/tools/check_hdf5.py).
 //
 // The files of the tests are written byte by byte: the signature of the HDF5
 // file format specification ("\211HDF\r\n\032\n") at the start of the file or,
@@ -63,6 +64,10 @@ class TestHDF5File : public QObject
     void genericInterface();
     void headers();
     void closedFile();
+    void writeNewFile();
+    void writeErrors();
+    void writeGeneric();
+    void fileNames();
 };
 
 // the fixtures and the values expected from them
@@ -263,16 +268,26 @@ void TestHDF5File::openFails()
   QVERIFY(header == NULL);
   QVERIFY(file.frameNumbers().isEmpty());
 
-  // writing: nothing is created, an existing file is not changed
+  // a new file without content: nothing is created, an existing file is not changed
+  // (without HDF5 support it cannot even be opened)
   const QString created = tmpDir.filePath("new.h5");
   CHDF5File out(created);
-  QVERIFY(out.open(QIODevice::WriteOnly) == false);
+  QCOMPARE(out.open(QIODevice::WriteOnly), CHDF5File::hasSupport());
+  QVERIFY(QFile::exists(created) == false);
+  QVERIFY(out.finish() == false || CHDF5File::hasSupport() == false);
   QVERIFY(QFile::exists(created) == false);
   CHDF5File overwrite(existing);
-  QVERIFY(overwrite.open(QIODevice::WriteOnly) == false);
+  QCOMPARE(overwrite.open(QIODevice::WriteOnly), CHDF5File::hasSupport());
+  overwrite.close();
   QFile check(existing);
   QVERIFY(check.open(QIODevice::ReadOnly));
   QCOMPARE(check.readAll(), content);
+  QCOMPARE(QDir(tmpDir.path()).entryList(QDir::Files), QStringList() << "image.h5");
+
+  // other modes
+  QVERIFY(out.open(QIODevice::ReadWrite) == false);
+  QVERIFY(out.open(QIODevice::Append) == false);
+  QCOMPARE(QDir(tmpDir.path()).entryList(QDir::Files), QStringList() << "image.h5");
 }
 
 // the test datasets of the other formats are no HDF5 files
@@ -499,8 +514,12 @@ void TestHDF5File::genericInterface()
   QCOMPARE(frameAttributes[1].toObject().value("ActualFrameDuration").toDouble(), 60250.0);
   QCOMPARE(frameAttributes[1].toObject().value("FrameReferenceTime").toDouble(), 120100.0);
 
-  // nothing can be written
-  QVERIFY(file->writeVolume(none, 1) == false);
+  // nothing can be written into a file opened for reading
+  CMedIOVolume first;
+  QVERIFY(file->readVolume(first, 1));
+  QVERIFY(file->writeVolume(first, 1) == false);
+  CHDF5MainHeader newHeader;
+  QVERIFY(hdf5->writeMainHeader(newHeader) == false);
 }
 
 // the header classes: load(), copies and conversions
@@ -596,7 +615,7 @@ void TestHDF5File::closedFile()
   QVERIFY(file.open(QIODevice::ReadOnly));
   QVERIFY(file.open(QIODevice::ReadOnly));
   QCOMPARE(file.numVolumes(), 4);
-  QVERIFY(file.open(QIODevice::WriteOnly) == false);
+  QVERIFY(file.open(QIODevice::ReadWrite) == false);
   QVERIFY(file.isOpen() == false);
   QCOMPARE(file.numVolumes(), 0);
 
@@ -606,6 +625,337 @@ void TestHDF5File::closedFile()
   CMedIOVolume a, b;
   QVERIFY(file.readVolume(a, 3) && other.readVolume(b, 3));
   QVERIFY(a.data() == b.data());
+}
+
+// a volume of the test images: nx * ny * nz values counting from first
+static QByteArray floatVolume(int count, float first)
+{
+  QByteArray data(count * 4, '\0');
+  for(int i = 0; i < count; i++)
+  {
+    const float value = first + 0.25f * i;
+    memcpy(data.data() + i * 4, &value, 4);
+  }
+  return data;
+}
+
+static CHDF5FrameHeader frameHeaderOf(short frame, short gate, short bed, double start, double duration, double z)
+{
+  const double m[3][4] = { { 2.0, 0.0, 0.0, -3.0 }, { 0.0, 2.5, 0.0, -2.5 }, { 0.0, 0.0, -3.0, z } };
+  CHDF5FrameHeader header;
+  header.setIndex(frame, gate, bed);
+  header.setDimensions(4, 3, 2);
+  header.setDataType(CMedIOVolume::Float32);
+  header.setAffine(m);
+  header.setTiming(start, duration);
+  return header;
+}
+
+// a new file with frames, gates and attributes, read again
+void TestHDF5File::writeNewFile()
+{
+  if(CHDF5File::hasSupport() == false)
+    QSKIP("no HDF5 support");
+
+  QTemporaryDir tmpDir;
+  QVERIFY(tmpDir.isValid());
+  const QString fileName = tmpDir.filePath(QString::fromUtf8("bild \xc3\xa4.h5"));
+  QVERIFY(writeFile(fileName, "an existing file"));
+
+  QJsonObject attributes;
+  attributes["PatientName"] = QString::fromUtf8("M\xc3\xbcller^Hans");
+  attributes["PatientWeight"] = 72.5;
+  attributes["SeriesNumber"] = 4;
+  attributes["AcquisitionDateTime"] = QString("2026-06-03T17:04:56+02:00");
+  attributes["DecayCorrectionDateTime"] = QString("2026-06-03T17:04:50+02:00");
+  attributes["Units"] = QString("BQML");
+  attributes["CorrectedImage"] = QJsonArray{QString("DECY"), QString("ATTN")};
+  attributes["RadionuclideCodeSequence"] = QJsonObject{{"CodeValue", "C-111A1"}, {"CodingSchemeDesignator", "SRT"},
+                                                       {"CodeMeaning", "^18^Fluorine"}};
+  attributes["(0029,1010)"] = QString("private");
+  attributes["ECAT7"] = QJsonObject{{"Study_Type", "GATED"}};
+
+  const short frames[] = { 1, 1, 3, 3 };
+  const short gates[] = { 1, 2, 1, 2 };
+  const double starts[] = { 0.0, 0.0, 90.5, 90.5 };
+  const double durations[] = { 30.0, 30.0, 60.25, 60.25 };
+  {
+    CHDF5File file(fileName);
+    QVERIFY2(file.open(QIODevice::WriteOnly), qPrintable(file.openError()));
+    QVERIFY(file.isOpen() && file.isWritable());
+    QCOMPARE(file.fileName(), fileName);
+
+    // the QFile of the object is not the file written: its own methods fail
+    QVERIFY(file.write("x", 1) < 0);
+    char c = 0;
+    QVERIFY(file.read(&c, 1) < 0);
+
+    CHDF5MainHeader mainHeader;
+    QVERIFY(mainHeader.updateAttributes(attributes));
+    QVERIFY(file.writeMainHeader(mainHeader));
+    QVERIFY(file.writeMainHeader(mainHeader) == false);   // once
+
+    for(int k = 0; k < 4; k++)
+    {
+      CHDF5FrameHeader header = frameHeaderOf(frames[k], gates[k], 0, starts[k], durations[k], 10.0);
+      QVERIFY(header.updateAttributes(QJsonObject{{"DecayFactor", 1.0 + 0.01 * frames[k]}, {"TriggerTime", 400.0 * (gates[k] - 1)},
+                                                  {"ECAT7", QJsonObject{{"Annotation", QString("volume %1").arg(k)}}}}));
+      // the first volume is written twice: the second matrix replaces the first one
+      if(k == 0)
+        QVERIFY(file.writeMatrix(floatVolume(24, -1.0f), header));
+      QVERIFY(file.writeMatrix(floatVolume(24, 1000.0f * k), header));
+      QCOMPARE(file.numVolumes(), k + 1);
+    }
+
+    // nothing can be read from a new file, and it has not got its name yet
+    CHDF5MainHeader* none = NULL;
+    QVERIFY(file.readMainHeader(none) == false && none == NULL);
+    QFile existing(fileName);
+    QVERIFY(existing.open(QIODevice::ReadOnly));
+    QCOMPARE(existing.readAll(), QByteArray("an existing file"));
+    existing.close();
+    QCOMPARE(QDir(tmpDir.path()).entryList(QDir::Files).size(), 2);
+
+    QVERIFY2(file.finish(), qPrintable(file.openError()));
+    QVERIFY(file.isOpen() == false);
+    QCOMPARE(file.openError(), QString());
+    QVERIFY(file.finish());   // nothing to do
+  }
+  QCOMPARE(QDir(tmpDir.path()).entryList(QDir::Files), QStringList() << QFileInfo(fileName).fileName());
+  QVERIFY(CHDF5File::isOfType(fileName));
+
+  CHDF5File file(fileName);
+  QVERIFY2(file.open(QIODevice::ReadOnly), qPrintable(file.openError()));
+  QCOMPARE(file.numVolumes(), 4);
+  QCOMPARE(file.firstGateFrames(), QList<short>() << 1 << 3);
+
+  CHDF5MainHeader* mainHeader = NULL;
+  QVERIFY(file.readMainHeader(mainHeader) && mainHeader != NULL);
+  QScopedPointer<CHDF5MainHeader> mainGuard(mainHeader);
+  QCOMPARE(mainHeader->formatVersion(), QString("0.1"));
+  QCOMPARE(jsonText(mainHeader->attributes()), jsonText(attributes));
+
+  for(int k = 0; k < 4; k++)
+  {
+    QByteArray* data = NULL;
+    CHDF5FrameHeader* header = NULL;
+    QVERIFY(file.readVolumeMatrix(data, header, k) && data != NULL && header != NULL);
+    QScopedPointer<QByteArray> dataGuard(data);
+    QScopedPointer<CHDF5FrameHeader> headerGuard(header);
+    QCOMPARE(*data, floatVolume(24, 1000.0f * k));
+    QCOMPARE(static_cast<int>(header->frame()), static_cast<int>(frames[k]));
+    QCOMPARE(static_cast<int>(header->gate()), static_cast<int>(gates[k]));
+    QCOMPARE(static_cast<int>(header->bed()), 0);
+    QCOMPARE(header->dimension(0), 4);
+    QCOMPARE(header->dimension(1), 3);
+    QCOMPARE(header->dimension(2), 2);
+    QCOMPARE(header->dataType(), CMedIOVolume::Float32);
+    QCOMPARE(header->units(), QString("BQML"));
+    QCOMPARE(header->frameStart(), starts[k]);
+    QCOMPARE(header->frameDuration(), durations[k]);
+    double m[3][4];
+    header->affine(m);
+    QCOMPARE(m[0][0], 2.0);
+    QCOMPARE(m[1][1], 2.5);
+    QCOMPARE(m[2][2], -3.0);
+    QCOMPARE(m[2][3], 10.0);
+    QCOMPARE(header->attribute("DecayFactor").toDouble(), 1.0 + 0.01 * frames[k]);
+    QCOMPARE(header->attribute("TriggerTime").toDouble(), 400.0 * (gates[k] - 1));
+    QCOMPARE(header->attribute("ActualFrameDuration").toDouble(), durations[k] * 1000.0);
+    QCOMPARE(header->attributes().value("ECAT7").toObject().value("Annotation").toString(), QString("volume %1").arg(k));
+  }
+}
+
+// what cannot be written is refused; a file that was not written completely does not exist
+void TestHDF5File::writeErrors()
+{
+  if(CHDF5File::hasSupport() == false)
+    QSKIP("no HDF5 support");
+
+  QTemporaryDir tmpDir;
+  QVERIFY(tmpDir.isValid());
+  const QString fileName = tmpDir.filePath("image.h5");
+  const QByteArray data = floatVolume(24, 0.0f);
+  const CHDF5FrameHeader header = frameHeaderOf(1, 1, 0, 0.0, 60.0, 10.0);
+  CHDF5MainHeader mainHeader;
+
+  {
+    // no matrix before the main header
+    CHDF5File file(fileName);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    QVERIFY(file.writeMatrix(data, header) == false);
+    QVERIFY(file.writeMainHeader(mainHeader));
+
+    // invalid matrices and headers
+    QVERIFY(file.writeMatrix(data.left(92), header) == false);
+    CHDF5FrameHeader invalid = header;
+    invalid.setDataType(CMedIOVolume::Int16);
+    QVERIFY(file.writeMatrix(data.left(48), invalid) == false);
+    invalid = header;
+    invalid.setDimensions(4, 3, 0);
+    QVERIFY(file.writeMatrix(QByteArray(), invalid) == false);
+    invalid = header;
+    invalid.setTiming(0.0, -1.0);
+    QVERIFY(file.writeMatrix(data, invalid) == false);
+    invalid = header;
+    invalid.setIndex(1, 0, 0);
+    QVERIFY(file.writeMatrix(data, invalid) == false);
+    invalid.setIndex(1, 1, -1);
+    QVERIFY(file.writeMatrix(data, invalid) == false);
+    invalid.setIndex(0, 1, 0);
+    QVERIFY(file.writeMatrix(data, invalid, 0) == false);
+    QCOMPARE(file.numVolumes(), 0);
+
+    // all volumes have the dimensions and data type of the first one
+    QVERIFY(file.writeMatrix(data, header));
+    CHDF5FrameHeader other = frameHeaderOf(2, 1, 0, 60.0, 60.0, 10.0);
+    other.setDimensions(2, 3, 4);
+    QVERIFY(file.writeMatrix(data, other) == false);
+    other.setDimensions(4, 3, 2);
+    other.setDataType(CMedIOVolume::Float64);
+    QVERIFY(file.writeMatrix(floatVolume(48, 0.0f), other) == false);
+    QCOMPARE(file.numVolumes(), 1);
+
+    // the refused matrices did not spoil the file
+    QVERIFY(file.finish());
+  }
+  {
+    CHDF5File file(fileName);
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    QCOMPARE(file.numVolumes(), 1);
+  }
+  QVERIFY(QFile::remove(fileName));
+
+  // a file without main header, or without a volume, is not written
+  for(int run = 0; run < 2; run++)
+  {
+    CHDF5File file(fileName);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    if(run == 1)
+      QVERIFY(file.writeMainHeader(mainHeader));
+    QVERIFY(file.finish() == false);
+    QVERIFY(file.openError().isEmpty() == false);
+    QVERIFY(file.errorStatus() != CMedIOData::MERR_Ok);
+    QVERIFY(QDir(tmpDir.path()).entryList(QDir::Files).isEmpty());
+  }
+
+  // a file that is not closed is discarded with its object
+  {
+    CHDF5File file(fileName);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    QVERIFY(file.writeMainHeader(mainHeader));
+  }
+  QVERIFY(QDir(tmpDir.path()).entryList(QDir::Files).isEmpty());
+
+  // no directory to write into
+  CHDF5File nowhere(tmpDir.filePath("missing/image.h5"));
+  QVERIFY(nowhere.open(QIODevice::WriteOnly) == false);
+  QVERIFY(nowhere.isOpen() == false);
+  QVERIFY(nowhere.openError().isEmpty() == false);
+
+  // opening for writing again completes the file, as close() does, and starts a new one;
+  // the new one is not written without content and leaves the first one as it is
+  CHDF5File again(fileName);
+  QVERIFY(again.open(QIODevice::WriteOnly));
+  QVERIFY(again.writeMainHeader(mainHeader) && again.writeMatrix(data, header));
+  QVERIFY(again.open(QIODevice::WriteOnly));
+  QCOMPARE(again.numVolumes(), 0);
+  QVERIFY(QFile::exists(fileName));
+  QCOMPARE(QDir(tmpDir.path()).entryList(QDir::Files).size(), 2);   // and the temporary file
+  again.close();
+  QCOMPARE(QDir(tmpDir.path()).entryList(QDir::Files), QStringList() << "image.h5");
+  CHDF5File first(fileName);
+  QVERIFY(first.open(QIODevice::ReadOnly));
+  QCOMPARE(first.numVolumes(), 1);
+}
+
+// a new file written with the format independent interface: integers with scale factors
+// per plane become the physical values
+void TestHDF5File::writeGeneric()
+{
+  if(CHDF5File::hasSupport() == false)
+    QSKIP("no HDF5 support");
+
+  QTemporaryDir tmpDir;
+  QVERIFY(tmpDir.isValid());
+  const QString fileName = tmpDir.filePath("image.hdf5");
+
+  const int nx = 4, ny = 3, nz = 2;
+  QByteArray stored(nx * ny * nz * 2, '\0');
+  for(int i = 0; i < nx * ny * nz; i++)
+  {
+    const qint16 value = static_cast<qint16>(i * 7 - 50);
+    memcpy(stored.data() + i * 2, &value, 2);
+  }
+  const double m[3][4] = { { 2.0, 0.0, 0.0, -3.0 }, { 0.0, 2.5, 0.0, -2.5 }, { 0.0, 0.0, -3.0, 10.0 } };
+  CMedIOVolume volumes[2];
+  for(int k = 0; k < 2; k++)
+  {
+    QVERIFY(volumes[k].setData(nx, ny, nz, CMedIOVolume::Int16, stored));
+    volumes[k].setScaleFactor(0, 0.5 * (k + 1));
+    volumes[k].setScaleFactor(1, 0.25);
+    volumes[k].setAffine(m);
+    volumes[k].setFrameStart(60.0 * k);
+    volumes[k].setFrameDuration(60.0);
+  }
+
+  {
+    QScopedPointer<CMedIOData> out(CMedIODataFactory::createForWriting(fileName));
+    QVERIFY(out.isNull() == false);
+    QCOMPARE(out->dataFormat(), CMedIOData::HDF5);
+    QCOMPARE(out->fileNames(), QStringList() << fileName);
+    CMedIOHeader* header = NULL;
+    QVERIFY(CMedIOData::mainHeaderFromVolume(volumes[0], CMedIOData::HDF5, 2, header) && header != NULL);
+    QScopedPointer<CMedIOHeader> headerGuard(header);
+    QCOMPARE(header->headerFormat(), CMedIOHeader::HDF5MainHeader);
+    QCOMPARE(CMedIOData::requiredFrames(*header), 0);
+    QVERIFY(header->updateAttributes(QJsonObject{{"PatientWeight", 72.5}, {"Units", "CNTS"}}));
+
+    QVERIFY(out->open(QIODevice::WriteOnly));
+    QVERIFY(out->writeVolume(volumes[0], 1) == false);   // no main header yet
+    QVERIFY(out->writeMainHeader(*header));
+    QVERIFY(out->writeVolume(volumes[0], 1));
+    QVERIFY(out->writeVolume(volumes[1], 2));
+    out->close();
+    QCOMPARE(out->errorStatus(), static_cast<int>(CMedIOData::MERR_Ok));
+  }
+
+  QScopedPointer<CMedIOData> in(CMedIODataFactory::create(fileName));
+  QVERIFY(in.isNull() == false && in->dataFormat() == CMedIOData::HDF5 && in->open(QIODevice::ReadOnly));
+  QCOMPARE(in->frameNumbers(), QList<short>() << 1 << 2);
+  for(int k = 0; k < 2; k++)
+  {
+    CMedIOVolume v;
+    QVERIFY(in->readVolume(v, static_cast<short>(k + 1)));
+    QCOMPARE(v.dataType(), CMedIOVolume::Float32);
+    QCOMPARE(v.scaleFactor(), 1.0);
+    QVERIFY(v.hasSameGeometry(volumes[k]));
+    QCOMPARE(v.frameStart(), 60.0 * k);
+    QCOMPARE(v.frameDuration(), 60.0);
+    for(int i = 0; i < nx * ny * nz; i++)
+      QCOMPARE(v.value(i), volumes[k].value(i));
+  }
+  QJsonObject attributes;
+  QVERIFY(in->readAttributes(attributes));
+  QCOMPARE(attributes.value("PatientWeight").toDouble(), 72.5);
+  QCOMPARE(attributes.value("Units").toString(), QString("CNTS"));
+  in->close();
+  QVERIFY(in->removeFiles());
+  QVERIFY(QDir(tmpDir.path()).entryList(QDir::Files).isEmpty());
+}
+
+// the names of HDF5 files
+void TestHDF5File::fileNames()
+{
+  foreach(const QString& name, QStringList() << "image.h5" << "image.hdf5" << "image.hdf" << "IMAGE.H5" << "/a/b.c/image.Hdf5")
+    QCOMPARE(CMedIODataFactory::formatOfFileName(name), CMedIOData::HDF5);
+  foreach(const QString& name, QStringList() << "image.h5.gz" << "image.h" << "h5" << "image.hdf5.v")
+    QVERIFY2(CMedIODataFactory::formatOfFileName(name) != CMedIOData::HDF5, qPrintable(name));
+
+  QScopedPointer<CMedIOData> file(CMedIODataFactory::createForWriting("image.h5"));
+  QVERIFY(file.isNull() == false && file->dataFormat() == CMedIOData::HDF5);
+  QScopedPointer<CMedIOData> explicitFormat(CMedIODataFactory::createForWriting("image.dat", CMedIOData::HDF5));
+  QVERIFY(explicitFormat.isNull() == false && explicitFormat->dataFormat() == CMedIOData::HDF5);
 }
 
 QTEST_GUILESS_MAIN(TestHDF5File)

@@ -26,8 +26,10 @@
 #include "CMedIOHeaderDictionary.h"
 #include "CMedIOHeaderMapping.h"
 #include "MedIOLimits.h"
+#include "config.h"
 
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -36,6 +38,7 @@
 #include <QMutexLocker>
 #include <QSet>
 #include <QStringList>
+#include <QTemporaryFile>
 #include <QVector>
 
 #include <cmath>
@@ -57,14 +60,39 @@ const qint64 signatureSize = sizeof(signature);
 // 512, 1024, 2048, ... (the size of a user block is a power of two from 512)
 const qint64 firstUserBlockSize = 512;
 
-// the layout read (docs/hdf5.md)
+// the layout read and written (docs/hdf5.md)
 const char* const layoutName = "MEDIO-IMAGE";
 const int layoutMajorVersion = 0;
+const char* const layoutVersion = "0.1";
+
+#ifdef MEDIO_HAVE_HDF5
+
+// a chunk of the voxels holds whole planes of one volume with at most this much data
+const qint64 maxChunkBytes = 1 << 20;
+const unsigned deflateLevel = 4;
+
+// the datasets of /image/volumes with a value of the frame attributes and their units
+struct FrameDataset { const char* name; const char* units; };
+const FrameDataset frameDatasets[] = { { "FrameReferenceTime", "ms" }, { "DecayFactor", "1" }, { "DeadTimeFactor", "1" },
+                                       { "TriggerTime", "ms" }, { "TablePosition", "mm" } };
+const int frameDatasetCount = sizeof(frameDatasets) / sizeof(frameDatasets[0]);
+
+// DICOM Units (and the further terms of libmedio) in UCUM notation, NULL for other terms
+const char* ucumOfUnits(const QString& units)
+{
+  static const char* const table[][2] = { { "BQML", "Bq/mL" }, { "KBQCC", "kBq/mL" }, { "CNTS", "{counts}" },
+                                          { "CPS", "{counts}/s" }, { "NONE", "1" }, { "CM2", "cm2" },
+                                          { "PCNT", "%" }, { "GML", "g/mL{SUVbw}" } };
+  for(unsigned i = 0; i < sizeof(table) / sizeof(table[0]); i++)
+  {
+    if(units == QLatin1String(table[i][0]))
+      return table[i][1];
+  }
+  return NULL;
+}
 
 // largest number of values of an attribute or of a dataset with one value per volume
 const qint64 maxValues = 32767;
-
-#ifdef MEDIO_HAVE_HDF5
 
 // the HDF5 library is used by one thread at a time
 Q_GLOBAL_STATIC(QMutex, hdf5Mutex)
@@ -330,6 +358,84 @@ bool allFinite(const QVector<double>& numbers)
   return true;
 }
 
+//---------------------------------------------------------------------------------------------
+// writing
+
+// a variable-length UTF-8 string type
+hid_t createTextType()
+{
+  const hid_t type = H5Tcopy(H5T_C_S1);
+  if(type >= 0 && (H5Tset_size(type, H5T_VARIABLE) < 0 || H5Tset_cset(type, H5T_CSET_UTF8) < 0))
+  {
+    H5Tclose(type);
+    return -1;
+  }
+  return type;
+}
+
+// a string attribute (scalar) or an attribute with one dimension of strings
+bool writeTextAttribute(hid_t object, const char* name, const QStringList& strings, bool scalar)
+{
+  QList<QByteArray> utf8;
+  QVector<const char*> pointers;
+  foreach(const QString& string, strings)
+    utf8.append(string.toUtf8());
+  for(int i = 0; i < utf8.size(); i++)
+    pointers.append(utf8[i].constData());
+
+  const hsize_t count = static_cast<hsize_t>(pointers.size());
+  HDF5Id type(HDF5Id::Type, createTextType());
+  HDF5Id space(HDF5Id::Space, scalar ? H5Screate(H5S_SCALAR) : H5Screate_simple(1, &count, NULL));
+  if(type.isValid() == false || space.isValid() == false || count == 0)
+    return false;
+  HDF5Id attribute(HDF5Id::Attribute, H5Acreate2(object, name, type, space, H5P_DEFAULT, H5P_DEFAULT));
+  return attribute.isValid() && H5Awrite(attribute, type, pointers.constData()) >= 0;
+}
+
+bool writeTextAttribute(hid_t object, const char* name, const QString& string)
+{
+  return writeTextAttribute(object, name, QStringList() << string, true);
+}
+
+// a scalar number attribute: little-endian float64, or int32 for whole numbers of integer attributes
+bool writeNumberAttribute(hid_t object, const char* name, double number, bool integer)
+{
+  const bool int32 = integer && number == std::floor(number) &&
+                     number >= static_cast<double>(std::numeric_limits<qint32>::min()) &&
+                     number <= static_cast<double>(std::numeric_limits<qint32>::max());
+  HDF5Id space(HDF5Id::Space, H5Screate(H5S_SCALAR));
+  if(space.isValid() == false)
+    return false;
+  HDF5Id attribute(HDF5Id::Attribute, H5Acreate2(object, name, int32 ? H5T_STD_I32LE : H5T_IEEE_F64LE, space,
+                                                 H5P_DEFAULT, H5P_DEFAULT));
+  return attribute.isValid() && H5Awrite(attribute, H5T_NATIVE_DOUBLE, &number) >= 0;
+}
+
+// a dataset of numbers with the given dimensions and, if given, the attribute units
+bool writeNumbers(hid_t location, const char* name, hid_t fileType, const QVector<hsize_t>& dimensions,
+                  const QVector<double>& numbers, const char* units)
+{
+  HDF5Id space(HDF5Id::Space, H5Screate_simple(dimensions.size(), dimensions.constData(), NULL));
+  if(space.isValid() == false)
+    return false;
+  HDF5Id dataset(HDF5Id::Dataset, H5Dcreate2(location, name, fileType, space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+  return dataset.isValid() &&
+         H5Dwrite(dataset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, numbers.constData()) >= 0 &&
+         (units == NULL || writeTextAttribute(dataset, "units", QString::fromLatin1(units)));
+}
+
+// true if the two affines (12 values) give the same position of the voxels, as
+// CMedIOVolume::hasSameGeometry() compares them
+bool sameAffine(const double* a, const double* b)
+{
+  for(int i = 0; i < 12; i++)
+  {
+    if(std::fabs(a[i] - b[i]) > 1e-3 + 1e-6 * std::fabs(a[i]))
+      return false;
+  }
+  return true;
+}
+
 #endif // MEDIO_HAVE_HDF5
 
 } // namespace
@@ -360,6 +466,11 @@ class CHDF5FilePrivate
       mainAttributes = QJsonObject();
       frameObjects = QJsonArray();
       firstGate.clear();
+      writing = false;
+      headerWritten = false;
+      failed = false;
+      temporaryName.clear();
+      frameDefaults = QJsonArray();
     }
 
     int volumes() const { return frames.size(); }
@@ -367,6 +478,11 @@ class CHDF5FilePrivate
 #ifdef MEDIO_HAVE_HDF5
     bool read(QString& reason);
     bool readHeader(QString& reason);
+    bool create(const QString& fileName, QString& reason);
+    bool createDataset();
+    bool writeVolume(int volume, const QByteArray& data);
+    bool writeTables();
+    bool writeHeader();
 
     hid_t file;                          //!< the open file, -1 if none
     hid_t dataset;                       //!< /image/data
@@ -384,6 +500,13 @@ class CHDF5FilePrivate
     QJsonObject mainAttributes;          //!< attributes of the main header
     QJsonArray frameObjects;             //!< "Frames" of the JSON object, one entry per volume or empty
     QList<int> firstGate;                //!< volumes of the first gate and bed position
+
+    // a new file
+    bool writing;                        //!< opened for writing
+    bool headerWritten;                  //!< the main header (mainAttributes) was given
+    bool failed;                         //!< writing failed: the file is discarded
+    QString temporaryName;               //!< the name the file is written under
+    QJsonArray frameDefaults;            //!< "Frames" of the main header written
 };
 
 #ifdef MEDIO_HAVE_HDF5
@@ -550,11 +673,9 @@ bool CHDF5FilePrivate::read(QString& reason)
   }
 
   // further values of the volumes
-  static const char* const optional[] = { "FrameReferenceTime", "DecayFactor", "DeadTimeFactor", "TriggerTime",
-                                          "TablePosition" };
-  for(unsigned i = 0; i < sizeof(optional) / sizeof(optional[0]); i++)
+  for(int i = 0; i < frameDatasetCount; i++)
   {
-    const QByteArray path = QByteArray("image/volumes/") + optional[i];
+    const QByteArray path = QByteArray("image/volumes/") + frameDatasets[i].name;
     if(exists(file, path) == false)
       continue;
     QVector<double> numbers;
@@ -563,7 +684,7 @@ bool CHDF5FilePrivate::read(QString& reason)
       reason = QString("/%1 has not one number per volume").arg(QString::fromLatin1(path));
       return false;
     }
-    frameValues[QString::fromLatin1(optional[i])] = numbers;
+    frameValues[QString::fromLatin1(frameDatasets[i].name)] = numbers;
   }
 
   return readHeader(reason);
@@ -641,6 +762,243 @@ bool CHDF5FilePrivate::readHeader(QString& reason)
     mainAttributes["Units"] = units;
 
   return true;
+}
+
+// create the new file under a temporary name in the directory of fileName (the lock is held)
+bool CHDF5FilePrivate::create(const QString& fileName, QString& reason)
+{
+  // a unique name: the HDF5 library creates the file by its name
+  {
+    QTemporaryFile temporary(fileName + ".XXXXXX.tmp");
+    temporary.setAutoRemove(false);
+    if(temporary.open() == false)
+    {
+      reason = QString("cannot create a file in the directory of %1: %2").arg(fileName, temporary.errorString());
+      return false;
+    }
+    temporaryName = temporary.fileName();
+  }
+
+  // the lowest file format versions, so that every HDF5 library reads the file
+  const hid_t properties = H5Pcreate(H5P_FILE_ACCESS);
+  if(properties >= 0)
+  {
+#if H5_VERSION_GE(1, 10, 2)
+    if(H5Pset_libver_bounds(properties, H5F_LIBVER_EARLIEST, H5F_LIBVER_V18) < 0)
+      H5Pset_libver_bounds(properties, H5F_LIBVER_V18, H5F_LIBVER_V18);
+#endif
+    file = H5Fcreate(QFile::encodeName(temporaryName).constData(), H5F_ACC_TRUNC, H5P_DEFAULT, properties);
+    H5Pclose(properties);
+  }
+  if(file < 0)
+  {
+    reason = "the HDF5 library cannot create the file";
+    return false;
+  }
+
+  HDF5Id image(HDF5Id::Group, H5Gcreate2(file, "image", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+  HDF5Id volumes(HDF5Id::Group, image.isValid() ? H5Gcreate2(image, "volumes", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT) : -1);
+  if(volumes.isValid() == false ||
+     writeTextAttribute(file, "Format", QString::fromLatin1(layoutName)) == false ||
+     writeTextAttribute(file, "FormatVersion", QString::fromLatin1(layoutVersion)) == false ||
+     writeTextAttribute(file, "Creator", QString("%1 %2").arg(PROJECT_LONGNAME, PROJECT_VERSION)) == false)
+  {
+    reason = "cannot write the HDF5 file";
+    return false;
+  }
+
+  return true;
+}
+
+// /image/data for volumes of dimensions and dataType: chunks of whole planes of one
+// volume, shuffle and deflate, any number of volumes
+bool CHDF5FilePrivate::createDataset()
+{
+  const hsize_t nz = static_cast<hsize_t>(dimensions[2]);
+  const hsize_t ny = static_cast<hsize_t>(dimensions[1]);
+  const hsize_t nx = static_cast<hsize_t>(dimensions[0]);
+  const qint64 planeBytes = static_cast<qint64>(nx * ny) * CMedIOVolume::bytesPerVoxel(dataType);
+  const hsize_t planes = static_cast<hsize_t>(qBound<qint64>(1, maxChunkBytes / planeBytes, static_cast<qint64>(nz)));
+  const hsize_t size[4] = { 0, nz, ny, nx };
+  const hsize_t maximum[4] = { H5S_UNLIMITED, nz, ny, nx };
+  const hsize_t chunk[4] = { 1, planes, ny, nx };
+
+  HDF5Id space(HDF5Id::Space, H5Screate_simple(4, size, maximum));
+  const hid_t properties = H5Pcreate(H5P_DATASET_CREATE);
+  bool result = space.isValid() && properties >= 0 && H5Pset_chunk(properties, 4, chunk) >= 0;
+  if(result && H5Zfilter_avail(H5Z_FILTER_DEFLATE) > 0)
+    result = H5Pset_shuffle(properties) >= 0 && H5Pset_deflate(properties, deflateLevel) >= 0;
+  if(result)
+    dataset = H5Dcreate2(file, "image/data", dataType == CMedIOVolume::Float64 ? H5T_IEEE_F64LE : H5T_IEEE_F32LE, space,
+                         H5P_DEFAULT, properties, H5P_DEFAULT);
+  if(properties >= 0)
+    H5Pclose(properties);
+
+  return result && dataset >= 0;
+}
+
+// the voxels of a volume; the dataset grows by the volumes written
+bool CHDF5FilePrivate::writeVolume(int volume, const QByteArray& data)
+{
+  const hsize_t nz = static_cast<hsize_t>(dimensions[2]);
+  const hsize_t ny = static_cast<hsize_t>(dimensions[1]);
+  const hsize_t nx = static_cast<hsize_t>(dimensions[0]);
+
+  HDF5Id current(HDF5Id::Space, H5Dget_space(dataset));
+  hsize_t size[4] = { 0, 0, 0, 0 };
+  if(current.isValid() == false || H5Sget_simple_extent_dims(current, size, NULL) != 4)
+    return false;
+  if(static_cast<hsize_t>(volume) >= size[0])
+  {
+    size[0] = static_cast<hsize_t>(volume) + 1;
+    if(H5Dset_extent(dataset, size) < 0)
+      return false;
+  }
+
+  const hsize_t start[4] = { static_cast<hsize_t>(volume), 0, 0, 0 };
+  const hsize_t count[4] = { 1, nz, ny, nx };
+  const hsize_t memorySize[3] = { nz, ny, nx };
+  HDF5Id fileSpace(HDF5Id::Space, H5Dget_space(dataset));
+  HDF5Id memorySpace(HDF5Id::Space, H5Screate_simple(3, memorySize, NULL));
+  return fileSpace.isValid() && memorySpace.isValid() &&
+         H5Sselect_hyperslab(fileSpace, H5S_SELECT_SET, start, NULL, count, NULL) >= 0 &&
+         H5Dwrite(dataset, dataType == CMedIOVolume::Float64 ? H5T_NATIVE_DOUBLE : H5T_NATIVE_FLOAT, memorySpace,
+                  fileSpace, H5P_DEFAULT, data.constData()) >= 0;
+}
+
+// the unit of the values, the affines and the rows of the volumes
+bool CHDF5FilePrivate::writeTables()
+{
+  const int count = volumes();
+  const QVector<hsize_t> perVolume = QVector<hsize_t>() << static_cast<hsize_t>(count);
+
+  // the unit in both notations, or none
+  const QString unitsTerm = mainAttributes.value("Units").toString();
+  if(ucumOfUnits(unitsTerm) != NULL &&
+     (writeTextAttribute(dataset, "Units", unitsTerm) == false ||
+      writeTextAttribute(dataset, "units", QString::fromLatin1(ucumOfUnits(unitsTerm))) == false))
+    return false;
+
+  bool sameGeometry = true;
+  for(int i = 1; i < count; i++)
+    sameGeometry = sameGeometry && sameAffine(affines.constData(), affines.constData() + i * 12);
+  if(writeNumbers(file, "image/affine", H5T_IEEE_F64LE, QVector<hsize_t>() << 3 << 4, affines.mid(0, 12), "mm") == false ||
+     (sameGeometry == false &&
+      writeNumbers(file, "image/volumes/affine", H5T_IEEE_F64LE, QVector<hsize_t>() << static_cast<hsize_t>(count) << 3 << 4,
+                   affines, "mm") == false))
+    return false;
+
+  // the index: gates and bed positions only if there are several
+  const QVector<int>* const indices[] = { &frames, &gates, &beds };
+  static const char* const indexNames[] = { "image/volumes/Frame", "image/volumes/Gate", "image/volumes/Bed" };
+  for(int i = 0; i < 3; i++)
+  {
+    QVector<double> numbers;
+    bool needed = (i == 0);
+    foreach(int number, *indices[i])
+    {
+      numbers.append(number);
+      needed = needed || number != (i == 1 ? 1 : 0);
+    }
+    if(needed && writeNumbers(file, indexNames[i], H5T_STD_I32LE, perVolume, numbers, NULL) == false)
+      return false;
+  }
+
+  if(writeNumbers(file, "image/volumes/FrameTimesStart", H5T_IEEE_F64LE, perVolume, starts, "s") == false ||
+     writeNumbers(file, "image/volumes/FrameDuration", H5T_IEEE_F64LE, perVolume, durations, "s") == false)
+    return false;
+
+  // the values of the frame attributes every volume has
+  for(int i = 0; i < frameDatasetCount; i++)
+  {
+    const QString name = QString::fromLatin1(frameDatasets[i].name);
+    QVector<double> numbers;
+    foreach(const QJsonValue& frame, frameObjects)
+    {
+      const QJsonValue value = frame.toObject().value(name);
+      if(value.isDouble() && std::isfinite(value.toDouble()))
+        numbers.append(value.toDouble());
+    }
+    if(numbers.size() == count &&
+       writeNumbers(file, (QByteArray("image/volumes/") + frameDatasets[i].name).constData(), H5T_IEEE_F64LE, perVolume,
+                    numbers, frameDatasets[i].units) == false)
+      return false;
+  }
+
+  return true;
+}
+
+// /header: the attributes of the dictionary as typed attributes, and all attributes
+// incl. those of the volumes ("Frames") as JSON object
+bool CHDF5FilePrivate::writeHeader()
+{
+  HDF5Id header(HDF5Id::Group, H5Gcreate2(file, "header", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+  if(header.isValid() == false)
+    return false;
+
+  for(QJsonObject::const_iterator it = mainAttributes.constBegin(); it != mainAttributes.constEnd(); ++it)
+  {
+    const CMedIOHeaderDictionary::Entry* entry = CMedIOHeaderDictionary::entry(it.key());
+    if(entry == NULL || entry->scope != CMedIOHeaderDictionary::MainHeader ||
+       CMedIOHeaderDictionary::isValid(*entry, it.value()) == false)
+      continue;   // native sections, unknown keys: in the JSON object only
+
+    const QJsonValue value = it.value();
+    const QString vr = QString::fromLatin1(entry->vr);
+    bool written = true;
+    switch(entry->type)
+    {
+      case CMedIOHeaderDictionary::Number:
+        if(value.isDouble())
+          written = writeNumberAttribute(header, entry->keyword, value.toDouble(),
+                                         vr == "IS" || vr == "US" || vr == "UL" || vr == "SS" || vr == "SL");
+      break;
+
+      case CMedIOHeaderDictionary::String:
+      case CMedIOHeaderDictionary::Date:
+      case CMedIOHeaderDictionary::Time:
+      case CMedIOHeaderDictionary::DateTime:
+        if(value.isString())
+          written = writeTextAttribute(header, entry->keyword, value.toString());
+      break;
+
+      case CMedIOHeaderDictionary::Strings:
+      {
+        QStringList strings;
+        foreach(const QJsonValue& string, value.toArray())
+          strings.append(string.toString());
+        if(strings.isEmpty() == false)
+          written = writeTextAttribute(header, entry->keyword, strings, false);
+      }
+      break;
+
+      case CMedIOHeaderDictionary::Code:
+      {
+        const QJsonObject code = value.toObject();
+        HDF5Id group(HDF5Id::Group, code.isEmpty() ? -1 : H5Gcreate2(header, entry->keyword, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+        written = code.isEmpty() || group.isValid();
+        for(QJsonObject::const_iterator item = code.constBegin(); written && item != code.constEnd(); ++item)
+        {
+          if(item.value().isString())
+            written = writeTextAttribute(group, item.key().toLatin1().constData(), item.value().toString());
+        }
+      }
+      break;
+    }
+    if(written == false)
+      return false;
+  }
+
+  QJsonObject all = mainAttributes;
+  all[QString::fromLatin1(CMedIOHeaderDictionary::FramesKey)] = frameObjects;
+  const QByteArray json = QJsonDocument(all).toJson(QJsonDocument::Compact);
+  const char* const text = json.constData();
+  HDF5Id type(HDF5Id::Type, createTextType());
+  HDF5Id space(HDF5Id::Space, H5Screate(H5S_SCALAR));
+  if(type.isValid() == false || space.isValid() == false)
+    return false;
+  HDF5Id dataset(HDF5Id::Dataset, H5Dcreate2(header, "json", type, space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
+  return dataset.isValid() && H5Dwrite(dataset, type, H5S_ALL, H5S_ALL, H5P_DEFAULT, &text) >= 0;
 }
 
 #endif // MEDIO_HAVE_HDF5
@@ -728,8 +1086,33 @@ bool CHDF5File::open(QIODevice::OpenModeFlag mode)
   bool result = false;
 
 #ifdef MEDIO_HAVE_HDF5
-  if(mode != QIODevice::ReadOnly)
-    m_pData->error = QString("HDF5 files cannot be written yet");
+  if(mode == QIODevice::WriteOnly)
+  {
+    {
+      const HDF5Lock lock;
+      result = m_pData->create(fileName(), m_pData->error);
+    }
+    if(result)
+    {
+      // The file is written by the HDF5 library under its temporary name. The QFile of
+      // this object, which has the name of the new file, is not opened (that would
+      // create or truncate it): only its open state is set, unbuffered and after exists()
+      // has made its file engine, so that its own read and write methods fail.
+      exists();
+      m_pData->writing = true;
+      result = QIODevice::open(QIODevice::WriteOnly | QIODevice::Unbuffered);
+    }
+    if(result == false)
+    {
+      const QString error = m_pData->error.isEmpty() ? QString("cannot open the file") : m_pData->error;
+      m_pData->writing = true;   // remove the temporary file
+      m_pData->failed = true;
+      finish();
+      m_pData->error = error;
+    }
+  }
+  else if(mode != QIODevice::ReadOnly)
+    m_pData->error = QString("HDF5 files are opened for reading or as new file for writing");
   else if(isOfType(fileName()) == false)
     m_pData->error = QString("no HDF5 file");
   else
@@ -773,24 +1156,86 @@ void CHDF5File::close()
 {
   ENTER();
 
+  finish();
+
+  LEAVE();
+}
+
+bool CHDF5File::finish()
+{
+  ENTER();
+  bool result = true;
+  QString error = m_pData->error;
+
 #ifdef MEDIO_HAVE_HDF5
+  const bool writing = m_pData->writing;
+  const QString temporaryName = m_pData->temporaryName;
+  if(writing)
+  {
+    // a new file is complete with its main header and at least one volume
+    error.clear();
+    if(m_pData->failed)
+      error = QString("writing the file failed");
+    else if(m_pData->headerWritten == false || m_pData->volumes() == 0)
+      error = QString("no main header or no volume was written");
+    result = error.isEmpty();
+  }
+
   if(m_pData->file >= 0 || m_pData->dataset >= 0)
   {
     const HDF5Lock lock;
-    if(m_pData->dataset >= 0)
-      H5Dclose(m_pData->dataset);
-    if(m_pData->file >= 0)
-      H5Fclose(m_pData->file);
+    if(writing && result && (m_pData->writeTables() == false || m_pData->writeHeader() == false))
+    {
+      error = QString("cannot write the HDF5 file");
+      result = false;
+    }
+    if(m_pData->dataset >= 0 && H5Dclose(m_pData->dataset) < 0 && writing && result)
+      result = false;
+    if(m_pData->file >= 0 && H5Fclose(m_pData->file) < 0 && writing && result)
+      result = false;
+    if(writing && result == false && error.isEmpty())
+      error = QString("cannot write the HDF5 file");
+  }
+
+  if(writing)
+  {
+    // the complete file gets its name, replacing an existing file; otherwise nothing is left
+    if(result && QFile::exists(fileName()) && QFile::remove(fileName()) == false)
+    {
+      error = QString("cannot replace the existing file");
+      result = false;
+    }
+    if(result && QFile::rename(temporaryName, fileName()) == false)
+    {
+      error = QString("cannot rename the temporary file %1").arg(temporaryName);
+      result = false;
+    }
+    if(result == false && temporaryName.isEmpty() == false)
+      QFile::remove(temporaryName);
   }
 #endif
-  const QString error = m_pData->error;
+
+  const bool wasWriting = m_pData->writing;
   m_pData->clear();
   m_pData->error = error;
 
+  // a file opened for writing has only the open state of the QFile set (see open())
   if(isOpen())
-    QFile::close();
+  {
+    if(wasWriting)
+      QIODevice::close();
+    else
+      QFile::close();
+  }
 
-  LEAVE();
+  if(result == false)
+  {
+    m_iErrStatus = MERR_Unspecified;
+    E("%s: %s", qPrintable(fileName()), qPrintable(error));
+  }
+
+  RETURN(result);
+  return result;
 }
 
 CMedIOData::Format CHDF5File::dataFormat() const
@@ -831,9 +1276,9 @@ bool CHDF5File::readMainHeader(CHDF5MainHeader*& mainHeader)
   ENTER();
   mainHeader = NULL;
 
-  if(isOpen() == false || m_pData->volumes() == 0)
+  if(isOpen() == false || m_pData->writing || m_pData->volumes() == 0)
   {
-    E("the file %s is not open", qPrintable(fileName()));
+    E("the file %s is not open for reading", qPrintable(fileName()));
     RETURN(false);
     return false;
   }
@@ -863,7 +1308,7 @@ bool CHDF5File::readVolumeHeader(CHDF5FrameHeader*& frameHeader, int volume)
   ENTER();
   frameHeader = NULL;
 
-  if(isOpen() == false || volume < 0 || volume >= m_pData->volumes())
+  if(isOpen() == false || m_pData->writing || volume < 0 || volume >= m_pData->volumes())
   {
     E("no volume %d in the file %s", volume, qPrintable(fileName()));
     RETURN(false);
@@ -948,6 +1393,130 @@ bool CHDF5File::readVolumeMatrix(QByteArray*& data, CHDF5FrameHeader*& frameHead
     frameHeader = NULL;
   }
 
+  RETURN(result);
+  return result;
+}
+
+bool CHDF5File::writeMainHeader(const CHDF5MainHeader& mainHeader)
+{
+  ENTER();
+  bool result = false;
+
+  if(isOpen() == false || m_pData->writing == false)
+    E("the file %s is not open for writing", qPrintable(fileName()));
+  else if(m_pData->headerWritten)
+    E("the main header of %s was written already", qPrintable(fileName()));
+  else
+  {
+    // written when the file is closed, with the attributes of the volumes; "Frames" of the
+    // main header gives the attributes of the volumes written without attributes
+    m_pData->mainAttributes = mainHeader.attributes();
+    m_pData->frameDefaults = m_pData->mainAttributes.take(QString::fromLatin1(CMedIOHeaderDictionary::FramesKey)).toArray();
+    m_pData->headerWritten = true;
+    result = true;
+  }
+
+  m_iErrStatus = result ? MERR_Ok : MERR_Unspecified;
+  RETURN(result);
+  return result;
+}
+
+bool CHDF5File::writeMatrix(const QByteArray& data, const CHDF5FrameHeader& frameHeader, short frame)
+{
+  ENTER();
+  bool result = false;
+
+#ifdef MEDIO_HAVE_HDF5
+  const CMedIOVolume::DataType type = frameHeader.dataType();
+  const int nx = frameHeader.dimension(0), ny = frameHeader.dimension(1), nz = frameHeader.dimension(2);
+  const qint64 bytes = static_cast<qint64>(nx) * ny * nz * CMedIOVolume::bytesPerVoxel(type);
+  double m[3][4];
+  frameHeader.affine(m);
+  bool finite = std::isfinite(frameHeader.frameStart()) && std::isfinite(frameHeader.frameDuration());
+  for(int i = 0; i < 12; i++)
+    finite = finite && std::isfinite(m[i / 4][i % 4]);
+  const int count = m_pData->volumes();
+
+  // the index of the volume
+  if(frame == -1)
+    frame = frameHeader.frame() > 0 ? frameHeader.frame() : static_cast<short>(qMin(count + 1, static_cast<int>(maxValues)));
+  const short gate = frameHeader.gate(), bed = frameHeader.bed();
+
+  if(isOpen() == false || m_pData->writing == false || m_pData->headerWritten == false || m_pData->failed)
+    E("the file %s is not open for writing, or its main header was not written", qPrintable(fileName()));
+  else if((type != CMedIOVolume::Float32 && type != CMedIOVolume::Float64) || nx < 1 || ny < 1 || nz < 1 ||
+          MedIOLimits::fitsByteArray(bytes) == false || data.size() != bytes)
+    E("the matrix (%d bytes) is no volume of %d x %d x %d float32 or float64 values", data.size(), nx, ny, nz);
+  else if(count > 0 && (type != m_pData->dataType || nx != m_pData->dimensions[0] || ny != m_pData->dimensions[1] ||
+                        nz != m_pData->dimensions[2]))
+    E("the volumes of an HDF5 file have the same dimensions and data type");
+  else if(finite == false || frameHeader.frameDuration() < 0.0 || frame < 1 || gate < 1 || bed < 0)
+    E("invalid affine, frame timing or index (frame %d, gate %d, bed %d) of the volume", frame, gate, bed);
+  else
+  {
+    // a volume of the same frame, gate and bed position is replaced
+    int volume = count;
+    for(int i = 0; i < count; i++)
+    {
+      if(m_pData->frames[i] == frame && m_pData->gates[i] == gate && m_pData->beds[i] == bed)
+        volume = i;
+    }
+
+    if(volume >= maxValues)
+      E("too many volumes");
+    else
+    {
+      {
+        const HDF5Lock lock;
+        if(count == 0)
+        {
+          m_pData->dataType = type;
+          m_pData->dimensions[0] = nx;
+          m_pData->dimensions[1] = ny;
+          m_pData->dimensions[2] = nz;
+          result = m_pData->createDataset();
+        }
+        else
+          result = true;
+        result = result && m_pData->writeVolume(volume, data);
+      }
+
+      if(result)
+      {
+        if(volume == count)
+        {
+          m_pData->frames.append(frame);
+          m_pData->gates.append(gate);
+          m_pData->beds.append(bed);
+          m_pData->starts.append(0.0);
+          m_pData->durations.append(0.0);
+          m_pData->affines.resize((count + 1) * 12);
+          m_pData->frameObjects.append(QJsonObject());
+        }
+        m_pData->starts[volume] = frameHeader.frameStart();
+        m_pData->durations[volume] = frameHeader.frameDuration();
+        for(int i = 0; i < 12; i++)
+          m_pData->affines[volume * 12 + i] = m[i / 4][i % 4];
+        QJsonObject attributes = frameHeader.attributes();
+        if(attributes.isEmpty())
+          attributes = m_pData->frameDefaults.at(volume).toObject();
+        m_pData->frameObjects[volume] = attributes;
+      }
+      else
+      {
+        // the file cannot be completed anymore
+        m_pData->failed = true;
+        E("cannot write volume %d of the file %s", volume, qPrintable(fileName()));
+      }
+    }
+  }
+#else
+  Q_UNUSED(data);
+  Q_UNUSED(frameHeader);
+  Q_UNUSED(frame);
+#endif
+
+  m_iErrStatus = result ? MERR_Ok : MERR_Unspecified;
   RETURN(result);
   return result;
 }
