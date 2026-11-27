@@ -1,9 +1,9 @@
 # HDF5 support (design draft)
 
-**Status: draft for discussion. libmedio identifies HDF5 files and can be built
-with the HDF5 library (phases 1 to 3), but does not read or write the layout
-yet. The layout may change until the first version of libmedio that writes it
-is released.**
+**Status: draft for discussion. libmedio reads images of this layout if it is
+built with the HDF5 library (`CHDF5File`, see [Reading](#reading)), but does
+not write them yet. The layout may change until the first version of libmedio
+that writes it is released.**
 
 This document describes how libmedio is going to store PET images in HDF5
 files, why it defines a layout of its own for that, and the phases of the
@@ -219,7 +219,8 @@ the JSON are taken from there. The dataset is optional.
   `H5T_CSET_UTF8`). Readers also accept fixed-length and ASCII strings, as
   some tools write them.
 - Scalars have a scalar dataspace (not an array with one element).
-- Numbers are stored little-endian; HDF5 converts them when reading.
+- Numbers are stored little-endian. Readers accept what the HDF5 library
+  converts (other byte orders, integers for the numbers of `/image/volumes`).
 - No compound types, references, external links, virtual datasets, user
   block, SWMR and no filters other than shuffle and deflate, so that every
   program built with any HDF5 library since 1.8 can read the files. For this
@@ -247,6 +248,30 @@ with h5py.File("image.h5", "r") as f:
     weight = f["header"].attrs["PatientWeight"]
     everything = json.loads(f["header/json"][()])
 ```
+
+## Reading
+
+libmedio reads the layout as follows (`CHDF5File`, `src/hdf5/`):
+
+- A file is opened if its root attribute `Format` is `MEDIO-IMAGE` and the
+  major version of `FormatVersion` is 0. A file that violates the layout is
+  refused, with the reason in `CHDF5File::openError()`; objects that are not
+  part of the layout are ignored.
+- The format independent interface (`frameNumbers()`, `readVolume()`,
+  `readMatrix()`, `readAttributes()`, in Python `pmedio.open()` and
+  `pmedio.load()`) gives the frames of the first gate and bed position of the
+  file. `CHDF5File::numVolumes()`, `readVolumeHeader()` and
+  `readVolumeMatrix()` give every volume with its frame, gate and bed
+  position (`CHDF5FrameHeader`).
+- The voxels are returned in the order of the file as float32 or float64 with
+  the affine of the volume; other formats get them reordered as usual.
+- The attributes of the main header are the typed attributes of `/header` and
+  the keys of `/header/json` without a typed attribute. The attributes of a
+  volume are `ActualFrameDuration` (from `FrameDuration`), the values of the
+  further datasets of `/image/volumes` and the keys of the entry of the
+  volume in `Frames` of the JSON object without a dataset.
+- All calls into the HDF5 library are serialised by one lock, and the error
+  handler of the application is not changed.
 
 ## Identification
 
@@ -292,7 +317,7 @@ with h5py.File("image.h5", "r") as f:
 | 1 (done) | this specification; a prototype in Python (`testsuite/hdf5/tools/medio2hdf5.py`, `pmedio` + `h5py`) that writes the test datasets in this layout and a checker for it (`check_hdf5.py`, `h5py` only) | review of the example files, reading them with MATLAB/Octave and R |
 | 2 (done) | attribute dictionary: `DecayCorrectionDateTime` and `FrameReferenceTime` for all formats | attribute tests, several time zones |
 | 3 (done) | build option `MEDIO_WITH_HDF5`, format `CMedIOData::HDF5` and class `CHDF5File` as stub, identification by the signature | CI with and without HDF5, R package |
-| 4 | reading (C++, Python, R), then writing and the conversion from and into all writable formats | test data with expected values of `h5py`, `testConversions`, reading back with `h5py` |
+| 4 (reading done) | reading (C++ and Python; R has no HDF5 support yet), then writing and the conversion from and into all writable formats | fixtures of `testsuite/hdf5/data` with the values `h5py` reads (`generate_fixtures.py`), files of the prototype compared with `h5py`; for writing: `testConversions`, reading back with `h5py` |
 | 5 | optional: reading and writing the ITK layout; MINC 2 with libminc as further optional dependency | comparison with SimpleITK and the MINC tools |
 
 ## Decisions

@@ -9,8 +9,8 @@
   in JSON and DICOM header extensions, writing NIfTI files from applications
 - [Interfile support (design)](interfile.md): the Interfile variants (3.3,
   the PET proposal/STIR, Siemens, PMOD) and the phases of their support
-- [HDF5 support (design draft)](hdf5.md): the planned layout for PET images
-  in HDF5 files, its metadata and the phases of the implementation
+- [HDF5 support (design draft)](hdf5.md): the layout for PET images in HDF5
+  files, its metadata, what libmedio reads and the phases of the implementation
 - [Python: pmedio](python.md): `load()`/`save()`, `open()`/`create()`, nibabel
   images, the legacy ECAT7 interface, installation
 - [R: Rmedio](../r/README.md)

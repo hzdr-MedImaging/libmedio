@@ -86,6 +86,81 @@ def test_datasets_follow_the_layout(path, key, json_name, tmp_path, medio2hdf5, 
                 assert (value.decode() if isinstance(value, bytes) else value) == attributes[name]
 
 
+def hdf5_support(tmp_path):
+    """True if libmedio was built with HDF5 support (it cannot open HDF5 files otherwise)"""
+    path = tmp_path / "support.h5"
+    with h5py.File(path, "w") as f:
+        f.attrs["Format"] = "other"
+    with pytest.raises(ValueError, match="is an HDF5 file") as error:
+        pmedio.open(path)
+    path.unlink()
+    return "without HDF5 support" not in str(error.value)
+
+
+# libmedio reads the files written by the prototype as h5py reads them
+@needs_data
+@pytest.mark.parametrize(("path", "key", "json_name"), READABLE, ids=[r[1] for r in READABLE])
+def test_libmedio_reads_the_layout(path, key, json_name, tmp_path, medio2hdf5):
+    if not hdf5_support(tmp_path):
+        pytest.skip("libmedio was built without HDF5 support")
+    target = tmp_path / "image.h5"
+    medio2hdf5.convert(DATA_DIR / path, target)
+
+    with h5py.File(target, "r") as f, pmedio.open(target) as image:
+        assert image.format == pmedio.Format.HDF5
+        data = f["image/data"]
+        frames = f["image/volumes/Frame"][()].tolist()
+        assert image.frame_numbers() == frames
+        orientation = image.read_volume(frames[0]).orientation
+        for k, n in enumerate(frames):
+            volume = image.read_volume(n)
+            values = volume.values()
+            assert values.dtype == data.dtype
+            np.testing.assert_array_equal(values, data[k].transpose(2, 1, 0))
+            np.testing.assert_array_equal(volume.stored(), values)
+            np.testing.assert_array_equal(volume.affine, f["image/affine"][()])
+            assert volume.frame_start == f["image/volumes/FrameTimesStart"][k]
+            assert volume.frame_duration == f["image/volumes/FrameDuration"][k]
+
+        # the typed attributes of the file, and every key of its JSON object without one
+        attributes = image.attributes()
+        for name, value in f["header"].attrs.items():
+            if isinstance(value, np.ndarray):
+                assert attributes[name] == [v.decode() if isinstance(v, bytes) else v for v in value]
+            else:
+                assert attributes[name] == (value.decode() if isinstance(value, bytes) else value)
+        stored = json.loads(f["header/json"][()])
+        for name, value in stored.items():
+            if name not in ("Frames", "NIfTI", "FrameTimesStart", "FrameDuration"):
+                assert attributes[name] == value, name
+        assert len(attributes["Frames"]) == len(frames)
+        for k, frame in enumerate(attributes["Frames"]):
+            assert frame["ActualFrameDuration"] == round(f["image/volumes/FrameDuration"][k] * 1000)
+            for name in ("DecayFactor", "FrameReferenceTime"):
+                if name in f["image/volumes"]:
+                    assert frame[name] == pytest.approx(f["image/volumes/" + name][k], rel=1e-12)
+
+    # the whole image at once, and converted into another format
+    loaded = pmedio.load(target)
+    with h5py.File(target, "r") as f:
+        np.testing.assert_array_equal(loaded.data, np.transpose(f["image/data"][()], (3, 2, 1, 0)))
+    converted = tmp_path / "image.nii.gz"
+    loaded.save(converted)
+    np.testing.assert_array_equal(pmedio.load(converted, orientation=orientation).data, loaded.data)
+
+
+def test_other_hdf5_files_are_refused(tmp_path):
+    if not hdf5_support(tmp_path):
+        pytest.skip("libmedio was built without HDF5 support")
+    path = tmp_path / "other.h5"
+    with h5py.File(path, "w") as f:
+        f.create_dataset("ITKImage/0/VoxelData", data=np.zeros((2, 3, 4), dtype="<f4"))
+    with pytest.raises(ValueError, match="is an HDF5 file.*another layout"):
+        pmedio.open(path)
+    with pytest.raises(ValueError, match="is an HDF5 file"):
+        pmedio.load(path)
+
+
 @needs_data
 def test_no_file_is_left_behind(tmp_path, medio2hdf5):
     with pytest.raises(Exception):

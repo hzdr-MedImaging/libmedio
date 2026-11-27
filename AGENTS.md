@@ -34,7 +34,7 @@ src/                       # the library
   ecat/, ecat/ecat6/, ecat/ecat7/   # ECAT 6/7
   nifti/, nifti/nifti1/, nifti/nifti2/  # NIfTI and CNIFTIConverter (ECAT7/Philips <-> NIfTI)
   interfile/               # Interfile (see docs/interfile.md)
-  hdf5/                    # HDF5 (optional, CMake option MEDIO_WITH_HDF5; identification only so far)
+  hdf5/                    # HDF5 (optional, CMake option MEDIO_WITH_HDF5; reading the layout of docs/hdf5.md)
   philips/                 # Philips PET formats
   micropet/                # Siemens Concorde microPET
   helpers/                 # shared utilities
@@ -48,7 +48,8 @@ testsuite/                 # QtTest/CTest test suite
                            # conversions between all writable formats (testConversions)
   tools/                   # the command line tools (both names of the converters ecat2nifti, philips2nifti)
   interfile/               # Interfile header syntax, image layout, reading the test datasets and writing
-  hdf5/                    # identification of HDF5 files, with and without HDF5 support;
+  hdf5/                    # identification and reading of HDF5 files, with and without HDF5 support
+                           # (data/: fixtures made with h5py);
                            # tools/: prototype and checker of the planned HDF5 layout (docs/hdf5.md), Python
 python/                    # Python bindings and their tests
 r/                         # R package Rmedio (bundles src/ via r/tools/vendor.sh, see r/README.md)
@@ -129,6 +130,7 @@ Run the checks that match the files you touched:
 | `testsuite/data/` | `python3 testsuite/data/tools/make_expected.py --check` and the `testdata_layout` test |
 | `testsuite/nifti/data/` | regenerate with `generate_fixtures.py` into a temporary directory and compare byte by byte |
 | `testsuite/attributes/data/` | regenerate with `generate_dictionary.py` into a temporary directory and compare byte by byte |
+| `testsuite/hdf5/data/` | regenerate with `generate_fixtures.py` (h5py) into a temporary directory: `expected.json` has to be identical, and the tests have to pass with the regenerated files (`-DMEDIO_WITH_HDF5=ON`) |
 | `conda.recipe/`, `python/conda.recipe/`, `r/conda.recipe/`, `conda-packages.yml`, versions | `conda.recipe/build-local.sh <librtdebug checkout>` (rattler-build, `conda-forge-pinning`); the workflow `conda-packages.yml` builds and tests them in the pull request. `PKG_VERSION`, the recipes, `python/pyproject.toml` and `r/DESCRIPTION` have the same version |
 | Time or date handling | run the tests with several time zones, e.g. `TZ=UTC`, `TZ=Europe/Berlin`, `TZ=Asia/Tokyo` |
 
@@ -143,7 +145,8 @@ because librtdebug or COREG were not available).
 - **Do not hand-edit generated files:** the expected values `testsuite/data/**/<file>.json`
   are generated with `testsuite/data/tools/make_expected.py` (except those marked
   `"generator": "manual"`), the NIfTI fixtures in `testsuite/nifti/data/` with
-  `generate_fixtures.py`, `testsuite/attributes/data/dicom_dictionary.json` with
+  `generate_fixtures.py`, the HDF5 fixtures and `expected.json` in `testsuite/hdf5/data/`
+  with their `generate_fixtures.py`, `testsuite/attributes/data/dicom_dictionary.json` with
   `generate_dictionary.py`. Change the script or the data and regenerate.
 - **Expected values come from independent implementations** (nibabel, numpy,
   pydicom, documented manual values), never from libmedio itself, so libmedio

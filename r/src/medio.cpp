@@ -222,7 +222,7 @@ RcppExport SEXP readMedio(SEXP fileName, SEXP frames, SEXP orientation)
   if(file.data == nullptr)
     fail("'" + name + "' is not a supported image file");
   if(file.data->open(QIODevice::ReadOnly) == false) {
-    // HDF5 files are identified, but cannot be read yet
+    // HDF5 files of another layout, or a build without HDF5 support
     if(file.data->dataFormat() == CMedIOData::HDF5)
       fail("'" + name + "' is an HDF5 file: " + static_cast<CHDF5File*>(file.data.get())->openError());
     fail("unable to open '" + name + "'");

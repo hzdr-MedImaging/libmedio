@@ -37,6 +37,9 @@
 #include "CInterfileFile.h"
 #include "CInterfileFrameHeader.h"
 #include "CInterfileMainHeader.h"
+#include "CHDF5File.h"
+#include "CHDF5FrameHeader.h"
+#include "CHDF5MainHeader.h"
 #include "MedIOLimits.h"
 
 #include <QJsonArray>
@@ -315,6 +318,8 @@ CMedIOData::Format headerDataFormat(const CMedIOHeader& header)
     case CMedIOHeader::ConcordeMicroPetFrameHeader: return CMedIOData::ConcordeMicropet;
     case CMedIOHeader::InterfileMainHeader:
     case CMedIOHeader::InterfileFrameHeader:        return CMedIOData::Interfile;
+    case CMedIOHeader::HDF5MainHeader:
+    case CMedIOHeader::HDF5FrameHeader:             return CMedIOData::HDF5;
     default: break;
   }
   return CMedIOData::Unknown;
@@ -332,6 +337,7 @@ bool mainHeaderFitsMatrix(const CMedIOHeader& subHeader, const CMedIOHeader* mai
     case CMedIOData::Philips:          expected = CMedIOHeader::PhilipsMainHeader; break;
     case CMedIOData::ConcordeMicropet: expected = CMedIOHeader::ConcordeMicroPetMainHeader; break;
     case CMedIOData::Interfile:        expected = CMedIOHeader::InterfileMainHeader; break;
+    case CMedIOData::HDF5:             expected = CMedIOHeader::HDF5MainHeader; break;
     default: break;
   }
 
@@ -350,6 +356,7 @@ QList<short> frameNumbers(CMedIOData* file)
     case CMedIOData::Philips:          numbers = philipsFrameNumbers(static_cast<CPhilipsFile*>(file)); break;
     case CMedIOData::ConcordeMicropet: numbers = concordeFrameNumbers(static_cast<CConcordeFile*>(file)); break;
     case CMedIOData::Interfile:        numbers = interfileFrameNumbers(static_cast<CInterfileFile*>(file)); break;
+    case CMedIOData::HDF5:             numbers = hdf5FrameNumbers(static_cast<CHDF5File*>(file)); break;
     default: break;
   }
   return numbers;
@@ -403,6 +410,14 @@ void fileAttributes(CMedIOData* file, short frame, QJsonObject& mainAttributes, 
     }
     break;
 
+    case CMedIOData::HDF5: {
+      CHDF5FrameHeader* fh = NULL;
+      if(static_cast<CHDF5File*>(file)->readSubHeader(fh, frame) && fh != NULL)
+        frameAttributes = fh->attributes();
+      delete fh;
+    }
+    break;
+
     case CMedIOData::NIFTI: {
       // the frame attributes of all frames are stored with the main header
       const QJsonArray frames = mainAttributes.take(QString::fromLatin1(CMedIOHeaderDictionary::FramesKey)).toArray();
@@ -446,6 +461,10 @@ bool readVolume(CMedIOData* file, short frame, CMedIOVolume& volume)
 
     case CMedIOData::Interfile:
       result = readInterfileVolume(static_cast<CInterfileFile*>(file), frame, volume);
+    break;
+
+    case CMedIOData::HDF5:
+      result = readHdf5Volume(static_cast<CHDF5File*>(file), frame, volume);
     break;
 
     default: {
@@ -501,6 +520,10 @@ bool readFrame(CMedIOData* file, short frame, CMedIOFrame& f)
 
     case CMedIOData::Interfile:
       result = readInterfileFrame(static_cast<CInterfileFile*>(file), frame, f);
+    break;
+
+    case CMedIOData::HDF5:
+      result = readHdf5Frame(static_cast<CHDF5File*>(file), frame, f);
     break;
 
     default:
@@ -732,6 +755,18 @@ bool readNativeMatrix(CMedIOData* file, short frame, QByteArray& data, CMedIOHea
     }
     break;
 
+    case CMedIOData::HDF5: {
+      QByteArray* matrix = NULL;
+      CHDF5FrameHeader* frameHeader = NULL;
+      result = static_cast<CHDF5File*>(file)->readMatrix(matrix, frameHeader, frame);
+      if(result) {
+        data = *matrix;
+        header = frameHeader;
+      }
+      delete matrix;
+    }
+    break;
+
     case CMedIOData::NIFTI: {
       // one volume in the voxel order and datatype of the file and the header
       // of the file with the timing of the frame
@@ -798,6 +833,13 @@ bool readNativeMainHeader(CMedIOData* file, CMedIOHeader*& header)
     case CMedIOData::Interfile: {
       CInterfileMainHeader* mainHeader = NULL;
       result = static_cast<CInterfileFile*>(file)->readMainHeader(mainHeader);
+      header = mainHeader;
+    }
+    break;
+
+    case CMedIOData::HDF5: {
+      CHDF5MainHeader* mainHeader = NULL;
+      result = static_cast<CHDF5File*>(file)->readMainHeader(mainHeader);
       header = mainHeader;
     }
     break;

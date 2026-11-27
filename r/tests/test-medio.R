@@ -264,7 +264,8 @@ fails(writeMedio(values, file.path(dir, "image.xyz"), format = "dicom"), "unknow
 fails(writeMedio(array(c(1L, NA), dim = c(2, 1, 1)), out), "NA")
 fails(writeMedio(values, out, like = file.path(dir, "missing.v")), "unable to open the source file")
 stopifnot(length(list.files(dir)) == 0L)
-# HDF5 files (here only the signature of the format) are identified, but cannot be read yet
+# HDF5 files (here only the signature of the format) are identified; they cannot be read
+# without HDF5 support, and this one is no image
 hdf5 <- file.path(dir, "image.h5")
 writeBin(as.raw(c(0x89, 0x48, 0x44, 0x46, 0x0d, 0x0a, 0x1a, 0x0a, rep(0, 504))), hdf5)
 fails(readMedio(hdf5), "is an HDF5 file")

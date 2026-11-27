@@ -67,7 +67,8 @@ for(int k=0; k < frames.size(); k++) {
   without writing if a value does not fit.
 - Philips matrices hold all slices of a frame with one scale factor;
   Philips frames can be written in any order and overwritten with data of
-  the same slices. microPET files can only be read.
+  the same slices. microPET and HDF5 files can only be read; of HDF5 files
+  (see [hdf5.md](hdf5.md)) the frames of the first gate and bed position.
 - Without a format, `readMainHeader(header)` and `readMatrix(data, header, frame)`
   return the main header and frames in the format of the file itself, e.g.
   for a file created by `CMedIODataFactory` whose format is not known.
