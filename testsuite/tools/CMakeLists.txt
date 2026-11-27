@@ -28,3 +28,26 @@ add_test(NAME converter_names
                  -DWORK=${CMAKE_CURRENT_BINARY_DIR}/converter_names
                  -P ${CMAKE_CURRENT_SOURCE_DIR}/ConverterNames.cmake
 )
+
+# medioconvert and the names <source>2<target> it is installed with, run on the test data
+include_directories(${RTDEBUG_INCLUDES}
+                    ${MEDIO_CONFIG}
+                    ${MEDIO_INCLUDES}
+)
+add_executable(testMedioConvert testMedioConvert.cpp)
+add_dependencies(testMedioConvert medioconvert)
+target_include_directories(testMedioConvert PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../common)
+target_compile_definitions(testMedioConvert PRIVATE __MEDIO_PRIVATE__
+                                                    MEDIO_TEST_DATA_DIR="${MEDIO_TEST_DATA_DIR}"
+                                                    MEDIO_TOOL_DIR="$<TARGET_FILE_DIR:medioconvert>"
+                                                    MEDIO_TOOL_VERSION="${PROJECT_VERSION}")
+target_link_libraries(testMedioConvert Qt5::Core
+                                       Qt5::Test
+                                       ZLIB::ZLIB
+                                       ${CMAKE_PROJECT_NAME}-static
+                                       ${RTDEBUG_STATIC_LIB}
+)
+add_test(NAME medioconvert
+         COMMAND testMedioConvert
+         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

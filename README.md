@@ -128,7 +128,10 @@ with all metadata, e.g. `ecat2nifti pet.v pet.nii.gz` and
 pair is one program that selects the direction by the name it is called with.
 They are installed with the version of libmedio as suffix, e.g.
 `ecat2nifti-<version>`, and with a link without version to the version
-installed last, see [NIfTI](docs/nifti.md)).
+installed last, see [NIfTI](docs/nifti.md)). `medioconvert` converts between
+all formats, e.g. `medioconvert pet.hv pet.h5`, and is also installed under a
+name per conversion (`ecat2hdf5`, `hdf52nifti`, `interfile2ecat`, ...), see
+[medioconvert](docs/medioconvert.md).
 
 ## Installation
 
