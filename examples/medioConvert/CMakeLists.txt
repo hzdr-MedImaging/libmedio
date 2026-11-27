@@ -30,28 +30,27 @@ include_directories(${RTDEBUG_INCLUDES}
 )
 
 # specify the executable we are going to build
-add_executable(medioconvert medioconvert.cpp)
+add_executable(medioConvert medioConvert.cpp)
 
 # define link libraries dependencies
-target_link_libraries(medioconvert Qt5::Core
+target_link_libraries(medioConvert Qt5::Core
                                    ${CMAKE_PROJECT_NAME}-static
                                    ${RTDEBUG_STATIC_LIB}
 )
 
 # set target properties so that install only installs with
 # version postfix
-set_target_properties(medioconvert PROPERTIES OUTPUT_NAME medioconvert-${PROJECT_VERSION})
+set_target_properties(medioConvert PROPERTIES OUTPUT_NAME medioConvert-${PROJECT_VERSION})
 
 # definition of install targets
-install(TARGETS medioconvert
+install(TARGETS medioConvert
         RUNTIME DESTINATION bin
 )
-medio_install_tool_link(medioconvert)
+medio_install_tool_link(medioConvert)
 
-# the conversions as programs of their own: <source>2<target> are links to medioconvert
-# (copies on Windows), which converts as the name it is called with says. ecat2nifti,
-# nifti2ecat, philips2nifti and nifti2philips are the programs of examples/ecat2nifti and
-# examples/philips2nifti; the names with hdf5 are only installed with HDF5 support.
+# the conversions as programs of their own: <source>2<target> are links to medioConvert
+# (copies on Windows), which converts as the name it is called with says. The names with
+# hdf5 are only installed with HDF5 support.
 set(MEDIOCONVERT_SOURCES ecat nifti philips interfile micropet)
 set(MEDIOCONVERT_TARGETS ecat nifti philips interfile)
 if(MEDIO_HAVE_HDF5)
@@ -62,14 +61,13 @@ set(MEDIOCONVERT_ALIASES)
 foreach(source ${MEDIOCONVERT_SOURCES})
   foreach(target ${MEDIOCONVERT_TARGETS})
     set(alias "${source}2${target}")
-    if(NOT source STREQUAL target AND
-       NOT alias MATCHES "^(ecat2nifti|nifti2ecat|philips2nifti|nifti2philips)$")
-      medio_tool_alias(medioconvert ${alias})
+    if(NOT source STREQUAL target)
+      medio_tool_alias(medioConvert ${alias})
       list(APPEND MEDIOCONVERT_ALIASES ${alias})
     endif()
   endforeach()
 endforeach()
-set(MEDIOCONVERT_ALIASES ${MEDIOCONVERT_ALIASES} CACHE INTERNAL "names medioconvert is also installed with")
+set(MEDIOCONVERT_ALIASES ${MEDIOCONVERT_ALIASES} CACHE INTERNAL "names medioConvert is also installed with")
 
 # make sure to bundle all runtime dll libs which the generated
 # executable might require using the 'mingw-bundleddlls-wine" tool
@@ -78,7 +76,7 @@ if(WIN32)
   if(MINGW_BUNDLEDLLS_WINE)
     install(CODE [[
       execute_process(COMMAND
-        mingw-bundledlls-wine ${CMAKE_BINARY_DIR}/bin/$<TARGET_FILE_NAME:medioconvert> --copy $ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin
+        mingw-bundledlls-wine ${CMAKE_BINARY_DIR}/bin/$<TARGET_FILE_NAME:medioConvert> --copy $ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin
       )
     ]])
   else()
@@ -88,7 +86,7 @@ if(WIN32)
   if(MINGW_BUNDLEDLLS)
     install(CODE [[
       execute_process(COMMAND
-        mingw-bundledlls $ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/$<TARGET_FILE_NAME:medioconvert> --copy
+        mingw-bundledlls $ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/$<TARGET_FILE_NAME:medioConvert> --copy
       )
     ]])
   else()

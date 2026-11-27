@@ -17,7 +17,7 @@
   limitations under the License.
 */
 
-// Tests of the command line tool medioconvert and of the names <source>2<target> it is
+// Tests of the command line tool medioConvert and of the names <source>2<target> it is
 // also installed with: the programs are run on the test datasets, and the files they
 // write are read with the library and compared with their sources.
 
@@ -77,6 +77,12 @@ Result run(const QString& program, const QStringList& arguments)
   result.output = QString::fromLocal8Bit(process.readAllStandardOutput());
   result.error = QString::fromLocal8Bit(process.readAllStandardError());
   return result;
+}
+
+QByteArray content(const QString& fileName)
+{
+  QFile file(fileName);
+  return file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray();
 }
 
 CMedIOData* openFile(const QString& fileName)
@@ -150,6 +156,9 @@ class TestMedioConvert : public QObject
     void help();
     void conversions_data();
     void conversions();
+    void niftiOptions_data();
+    void niftiOptions();
+    void niftiOptionsOfOtherConversions();
     void defaultOutput();
     void formatOption();
     void existingOutput();
@@ -173,13 +182,13 @@ QString TestMedioConvert::sourceOf(const Format& format) const
 void TestMedioConvert::initTestCase()
 {
   QVERIFY(m_tmp.isValid());
-  QVERIFY2(QFileInfo::exists(tool("medioconvert")), qPrintable(tool("medioconvert")));
+  QVERIFY2(QFileInfo::exists(tool("medioConvert")), qPrintable(tool("medioConvert")));
   m_data = QFileInfo::exists(sourceOf(Formats[0]));
 
   if(m_data && CHDF5File::hasSupport())
   {
     m_hdf5 = m_tmp.filePath("source.h5");
-    const Result result = run(tool("medioconvert"), QStringList() << sourceOf(Formats[0]) << m_hdf5);
+    const Result result = run(tool("medioConvert"), QStringList() << sourceOf(Formats[0]) << m_hdf5);
     QVERIFY2(result.exitCode == 0, qPrintable(result.error));
   }
 }
@@ -188,7 +197,7 @@ void TestMedioConvert::help()
 {
   foreach(const QString& option, QStringList() << "-h" << "--help")
   {
-    const Result result = run(tool("medioconvert"), QStringList() << option);
+    const Result result = run(tool("medioConvert"), QStringList() << option);
     QCOMPARE(result.exitCode, 0);
     QVERIFY(result.output.contains("<input> <output>") && result.output.contains("--format"));
     QCOMPARE(result.output.contains("(this one was)"), CHDF5File::hasSupport());
@@ -202,13 +211,12 @@ void TestMedioConvert::help()
   QVERIFY(alias.output.contains("extension .v"));
 
   // without files: the usage and an error status
-  QCOMPARE(run(tool("medioconvert"), QStringList()).exitCode, 1);
+  QCOMPARE(run(tool("medioConvert"), QStringList()).exitCode, 1);
   QCOMPARE(run(tool("philips2ecat"), QStringList()).exitCode, 1);
 }
 
 // every format into every other format, with the program named after the conversion
-// (ecat2nifti, nifti2ecat, philips2nifti and nifti2philips are programs of their own:
-// medioconvert is called for these)
+// and with medioConvert itself
 void TestMedioConvert::conversions_data()
 {
   QTest::addColumn<int>("source");
@@ -234,7 +242,6 @@ void TestMedioConvert::conversions()
   const Format& t = Formats[target];
   const bool hdf5 = (s.format == CMedIOData::HDF5 || t.format == CMedIOData::HDF5);
   const QString alias = QString("%1 2%2").arg(s.name, t.name).remove(' ');
-  const bool own = QStringList({"ecat2nifti", "nifti2ecat", "philips2nifti", "nifti2philips"}).contains(alias);
 
   // the names with hdf5 exist with HDF5 support only
   if(hdf5 && CHDF5File::hasSupport() == false)
@@ -245,11 +252,136 @@ void TestMedioConvert::conversions()
 
   const QString input = sourceOf(s);
   const QString output = m_tmp.filePath(alias + t.extension);
-  const Result result = own ? run(tool("medioconvert"), QStringList() << input << output)
-                            : run(tool(alias), QStringList() << input << output);
+  Result result = run(tool(alias), QStringList() << input << output);
   QVERIFY2(result.exitCode == 0, qPrintable(result.error));
   QVERIFY(result.output.contains(" -> "));
   QCOMPARE(difference(input, output, t.format), QString());
+
+  // medioConvert writes the same files
+  const QString general = m_tmp.filePath(alias + "-general" + t.extension);
+  result = run(tool("medioConvert"), QStringList() << input << general);
+  QVERIFY2(result.exitCode == 0, qPrintable(result.error));
+  QCOMPARE(difference(input, general, t.format), QString());
+  if(t.format != CMedIOData::HDF5 && t.format != CMedIOData::Interfile)   // these store a time or the file name
+    QCOMPARE(content(general), content(output));
+}
+
+// the options for NIfTI files of ecat2nifti and philips2nifti, which medioConvert takes
+// as well: both write the same files
+void TestMedioConvert::niftiOptions_data()
+{
+  QTest::addColumn<int>("source");
+  QTest::addColumn<QStringList>("options");
+
+  for(int s = 0; s <= 2; s += 2)
+  {
+    const QString name = Formats[s].name;
+    QTest::newRow(qPrintable(name + ": none")) << s << QStringList();
+    QTest::newRow(qPrintable(name + ": -2")) << s << (QStringList() << "-2");
+    QTest::newRow(qPrintable(name + ": --float")) << s << (QStringList() << "--float");
+    QTest::newRow(qPrintable(name + ": --normalize")) << s << (QStringList() << "--normalize");
+    QTest::newRow(qPrintable(name + ": --sidecar")) << s << (QStringList() << "--sidecar");
+    QTest::newRow(qPrintable(name + ": --no-extension")) << s << (QStringList() << "--no-extension");
+    QTest::newRow(qPrintable(name + ": all")) << s << (QStringList() << "-2" << "--float" << "--sidecar" << "--no-extension");
+  }
+}
+
+void TestMedioConvert::niftiOptions()
+{
+  QFETCH(int, source);
+  QFETCH(QStringList, options);
+  if(m_data == false)
+    QSKIP("no test data");
+
+  const Format& s = Formats[source];
+  const QString input = sourceOf(s);
+  const QString base = m_tmp.filePath(QString("options-%1-%2").arg(s.name, QString(QTest::currentDataTag()).section(' ', 1).remove('-')));
+  const QString named = base + "-named.nii";
+  const QString general = base + "-general.nii";
+  QVERIFY(QDir().mkpath(base + "-default"));
+  const QString copy = base + "-default/image" + s.extension;
+  QVERIFY(QFile::copy(input, copy));
+
+  QCOMPARE(run(tool(QString(s.name) + "2nifti"), options + (QStringList() << input << named)).exitCode, 0);
+  QCOMPARE(run(tool("medioConvert"), options + (QStringList() << input << general)).exitCode, 0);
+
+  const QByteArray file = content(named);
+  QVERIFY(file.size() > 348);
+  QCOMPARE(content(general), file);
+
+  // the default output of the named program: the name of the input with .nii (the
+  // metadata of the file names its source, so the same source is converted for that)
+  QCOMPARE(run(tool(QString(s.name) + "2nifti"), options + (QStringList() << copy)).exitCode, 0);
+  QCOMPARE(run(tool("medioConvert"), options + (QStringList() << copy << base + "-default/named.nii")).exitCode, 0);
+  QVERIFY(content(base + "-default/image.nii").size() > 348);
+  QCOMPARE(content(base + "-default/image.nii"), content(base + "-default/named.nii"));
+
+  // what the options change: the NIfTI version (size of the header), the data type,
+  // the sidecar file and the header extensions (the offset of the data)
+  const bool nifti2 = options.contains("-2");
+  const qint32 headerSize = *reinterpret_cast<const qint32*>(file.constData());
+  QCOMPARE(headerSize, nifti2 ? 540 : 348);
+  const qint16 datatype = *reinterpret_cast<const qint16*>(file.constData() + (nifti2 ? 12 : 70));
+  if(options.contains("--float") || options.contains("--normalize"))
+    QCOMPARE(int(datatype), 16);   // float32
+  const QString sidecar = base + "-general.json";
+  QCOMPARE(QFileInfo::exists(sidecar), options.contains("--sidecar"));
+  QCOMPARE(QFileInfo::exists(base + "-named.json"), options.contains("--sidecar"));
+  if(options.contains("--sidecar"))
+    QCOMPARE(content(sidecar), content(base + "-named.json"));
+  const qint64 offset = nifti2 ? *reinterpret_cast<const qint64*>(file.constData() + 168)
+                               : qint64(*reinterpret_cast<const float*>(file.constData() + 108));
+  if(options.contains("--no-extension"))
+    QCOMPARE(offset, qint64(headerSize + 4));
+  else
+    QVERIFY(offset > headerSize + 4);
+
+  // the file is converted back by both programs alike
+  const QString back = base + "-back" + s.extension;
+  const QString generalBack = base + "-general-back" + s.extension;
+  QCOMPARE(run(tool(QString("nifti2") + s.name), QStringList() << named << back).exitCode, 0);
+  QCOMPARE(run(tool("medioConvert"), QStringList() << named << generalBack).exitCode, 0);
+  QVERIFY(content(back).isEmpty() == false);
+  QCOMPARE(content(generalBack), content(back));
+  // the frame timing is part of the metadata, which --no-extension leaves out
+  if(options.contains("--no-extension") == false || options.contains("--sidecar"))
+    QCOMPARE(difference(input, back, s.format), QString());
+}
+
+// the options are for ECAT7 and Philips files converted into NIfTI only
+void TestMedioConvert::niftiOptionsOfOtherConversions()
+{
+  if(m_data == false)
+    QSKIP("no test data");
+
+  QDir(m_tmp.path()).mkdir("other");
+  const QDir dir(m_tmp.filePath("other"));
+  const QStringList options = QStringList() << "-2" << "--float" << "--sidecar" << "--no-extension";
+  foreach(const QString& option, options)
+  {
+    // into another format, and from another format into NIfTI
+    Result result = run(tool("medioConvert"), QStringList() << option << sourceOf(Formats[0]) << dir.filePath("a.img"));
+    QCOMPARE(result.exitCode, 1);
+    QVERIFY2(result.error.contains("for ECAT7 and Philips files converted into NIfTI only"), qPrintable(result.error));
+    result = run(tool("medioConvert"), QStringList() << option << sourceOf(Formats[3]) << dir.filePath("a.nii"));
+    QCOMPARE(result.exitCode, 1);
+    QVERIFY2(result.error.contains("for ECAT7 and Philips files converted into NIfTI only"), qPrintable(result.error));
+    // the names of the other conversions do not know them
+    QCOMPARE(run(tool("nifti2ecat"), QStringList() << option << sourceOf(Formats[1]) << dir.filePath("a.v")).exitCode, 1);
+    result = run(tool("interfile2nifti"), QStringList() << option << sourceOf(Formats[3]) << dir.filePath("a.nii"));
+    QCOMPARE(result.exitCode, 1);
+    QVERIFY2(result.error.contains("unknown option"), qPrintable(result.error));
+  }
+  QCOMPARE(dir.entryList(QDir::Files), QStringList());
+
+  // the input is not replaced by its own conversion
+  const QString file = dir.filePath("same.nii");
+  QCOMPARE(run(tool("ecat2nifti"), QStringList() << sourceOf(Formats[0]) << file).exitCode, 0);
+  const QByteArray before = content(file);
+  const Result result = run(tool("medioConvert"), QStringList() << "-f" << "ecat" << file << file);
+  QCOMPARE(result.exitCode, 1);
+  QVERIFY2(result.error.contains("is a file of the input"), qPrintable(result.error));
+  QCOMPARE(content(file), before);
 }
 
 // the output of <source>2<target> defaults to the name of the input with the extension of the target
@@ -290,14 +422,14 @@ void TestMedioConvert::formatOption()
     QStringList arguments = QStringList() << options[i];
     if(options[i].contains('=') == false)
       arguments << "ecat";
-    const Result result = run(tool("medioconvert"), arguments << input << output);
+    const Result result = run(tool("medioConvert"), arguments << input << output);
     QVERIFY2(result.exitCode == 0, qPrintable(result.error));
     QCOMPARE(difference(input, output, CMedIOData::ECAT), QString());
   }
 
   // the option wins over the extension
   const QString output = m_tmp.filePath("format.nii");
-  QCOMPARE(run(tool("medioconvert"), QStringList() << "-f" << "ecat" << input << output).exitCode, 0);
+  QCOMPARE(run(tool("medioConvert"), QStringList() << "-f" << "ecat" << input << output).exitCode, 0);
   QCOMPARE(CMedIODataFactory::identify(output), CMedIOData::ECAT);
 }
 
@@ -316,7 +448,7 @@ void TestMedioConvert::existingOutput()
     QVERIFY(file.open(QIODevice::WriteOnly) && file.write("existing") == 8);
     file.close();
     const QString input = sourceOf(Formats[1]);
-    QCOMPARE(run(tool("medioconvert"), QStringList() << input << output).exitCode, 0);
+    QCOMPARE(run(tool("medioConvert"), QStringList() << input << output).exitCode, 0);
     QCOMPARE(difference(input, output, CMedIODataFactory::formatOfFileName(output)), QString());
   }
 }
@@ -337,14 +469,15 @@ void TestMedioConvert::errors()
 
   struct Case { const char* program; QStringList arguments; const char* message; };
   const Case cases[] = {
-    { "medioconvert", QStringList() << dir.filePath("missing.v") << dir.filePath("a.nii"), "does not exist" },
-    { "medioconvert", QStringList() << text << dir.filePath("a.nii"), "not a supported image file" },
-    { "medioconvert", QStringList() << ecat << dir.filePath("a.xyz"), "unknown file format" },
-    { "medioconvert", QStringList() << "-f" << "dicom" << ecat << dir.filePath("a.dat"), "is no format to write" },
-    { "medioconvert", QStringList() << "-f" << "micropet" << ecat << dir.filePath("a.dat"), "is no format to write" },
-    { "medioconvert", QStringList() << ecat << dir.filePath("a.nii") << "-f", "needs a format" },
-    { "medioconvert", QStringList() << "--unknown" << ecat << dir.filePath("a.nii"), "unknown option" },
-    { "medioconvert", QStringList() << ecat << dir.filePath("missing/a.nii"), "unable to create" },
+    { "medioConvert", QStringList() << dir.filePath("missing.v") << dir.filePath("a.nii"), "does not exist" },
+    { "medioConvert", QStringList() << text << dir.filePath("a.nii"), "not a supported image file" },
+    { "medioConvert", QStringList() << ecat << dir.filePath("a.xyz"), "unknown file format" },
+    { "medioConvert", QStringList() << "-f" << "dicom" << ecat << dir.filePath("a.dat"), "is no format to write" },
+    { "medioConvert", QStringList() << "-f" << "micropet" << ecat << dir.filePath("a.dat"), "is no format to write" },
+    { "medioConvert", QStringList() << ecat << dir.filePath("a.nii") << "-f", "needs a format" },
+    { "medioConvert", QStringList() << "--unknown" << ecat << dir.filePath("a.nii"), "unknown option" },
+    { "medioConvert", QStringList() << ecat << dir.filePath("missing/a.nii"), "unable to open" },
+    { "medioConvert", QStringList() << ecat << dir.filePath("missing/a.hv"), "unable to create" },
     // the input has to be a file of the source format of the name
     { "philips2ecat", QStringList() << ecat << dir.filePath("a.v"), "is no philips file (it is a ecat file)" },
     { "philips2ecat", QStringList() << "--float" << ecat, "unknown option" },
@@ -359,8 +492,8 @@ void TestMedioConvert::errors()
   QCOMPARE(dir.entryList(QDir::Files), QStringList() << "text.v");
 
   // too many or too few files
-  QCOMPARE(run(tool("medioconvert"), QStringList() << ecat).exitCode, 1);
-  QCOMPARE(run(tool("medioconvert"), QStringList() << ecat << dir.filePath("a.nii") << dir.filePath("b.nii")).exitCode, 1);
+  QCOMPARE(run(tool("medioConvert"), QStringList() << ecat).exitCode, 1);
+  QCOMPARE(run(tool("medioConvert"), QStringList() << ecat << dir.filePath("a.nii") << dir.filePath("b.nii")).exitCode, 1);
   QCOMPARE(dir.entryList(QDir::Files), QStringList() << "text.v");
 }
 
@@ -374,7 +507,7 @@ void TestMedioConvert::inputIsKept()
   QDir(m_tmp.path()).mkdir("kept");
   const QString header = m_tmp.filePath("kept/image.hv");
   const QString data = m_tmp.filePath("kept/image.v");
-  QCOMPARE(run(tool("medioconvert"), QStringList() << sourceOf(Formats[0]) << header).exitCode, 0);
+  QCOMPARE(run(tool("medioConvert"), QStringList() << sourceOf(Formats[0]) << header).exitCode, 0);
   QFile file(data);
   QVERIFY(file.open(QIODevice::ReadOnly));
   const QByteArray content = file.readAll();
@@ -383,7 +516,7 @@ void TestMedioConvert::inputIsKept()
   Result result = run(tool("interfile2ecat"), QStringList() << header);
   QCOMPARE(result.exitCode, 1);
   QVERIFY2(result.error.contains("is a file of the input"), qPrintable(result.error));
-  result = run(tool("medioconvert"), QStringList() << "-f" << "nifti" << header << header);
+  result = run(tool("medioConvert"), QStringList() << "-f" << "nifti" << header << header);
   QCOMPARE(result.exitCode, 1);
   QVERIFY2(result.error.contains("is a file of the input"), qPrintable(result.error));
 
@@ -401,7 +534,7 @@ void TestMedioConvert::withoutHdf5Support()
     QSKIP("no test data");
 
   const QString output = m_tmp.filePath("none.h5");
-  Result result = run(tool("medioconvert"), QStringList() << sourceOf(Formats[0]) << output);
+  Result result = run(tool("medioConvert"), QStringList() << sourceOf(Formats[0]) << output);
   QCOMPARE(result.exitCode, 1);
   QVERIFY2(result.error.contains("without HDF5 support"), qPrintable(result.error));
   QVERIFY(QFileInfo::exists(output) == false);
@@ -410,7 +543,7 @@ void TestMedioConvert::withoutHdf5Support()
   QFile file(output);
   QVERIFY(file.open(QIODevice::WriteOnly) && file.write(QByteArray("\x89HDF\r\n\x1a\n", 8) + QByteArray(504, '\0')) == 512);
   file.close();
-  result = run(tool("medioconvert"), QStringList() << output << m_tmp.filePath("none.v"));
+  result = run(tool("medioConvert"), QStringList() << output << m_tmp.filePath("none.v"));
   QCOMPARE(result.exitCode, 1);
   QVERIFY2(result.error.contains("is an HDF5 file") && result.error.contains("without HDF5 support"), qPrintable(result.error));
   QVERIFY(QFileInfo::exists(m_tmp.filePath("none.v")) == false);

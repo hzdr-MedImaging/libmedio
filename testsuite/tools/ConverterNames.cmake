@@ -18,8 +18,9 @@
 #
 
 # Converts the ECAT7 and Philips test datasets into NIfTI and back, calling the reverse
-# direction by the second name of the program (nifti2ecat, nifti2philips: a link to
-# ecat2nifti/philips2nifti, a copy on Windows), and checks the help of both names.
+# direction by the second name of the program (nifti2ecat, nifti2philips: like
+# ecat2nifti and philips2nifti a link to medioConvert, a copy on Windows), and checks the
+# help of both names.
 #
 # cmake -DECAT2NIFTI=<program> -DPHILIPS2NIFTI=<program> -DDATA=<test data> -DWORK=<dir>
 #       -P ConverterNames.cmake

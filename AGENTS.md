@@ -39,15 +39,14 @@ src/                       # the library
   micropet/                # Siemens Concorde microPET
   helpers/                 # shared utilities
   include/                 # bswap.h, config.h.in and the extension-less public stubs (stubs/)
-examples/                  # command line tools (medioconvert, ecat2nifti, philips2nifti, img2ecat, ecatutil, ...)
+examples/                  # command line tools (medioConvert with the names ecat2nifti, ecat2hdf5, ...; img2ecat, ecatutil, ...)
 testsuite/                 # QtTest/CTest test suite
   data/                    # test datasets in several formats + expected values (see data/README.md)
   common/MedIOTestData.h   # enumerates the test data for data-driven tests
   ecat/, nifti/, philips/  # tests per format; nifti/data holds synthetic NIfTI fixtures
   matrix/, attributes/     # format independent matrix access and attributes (CMedIOVolume, CMedIOHeaderDictionary),
                            # conversions between all writable formats (testConversions)
-  tools/                   # the command line tools (both names of the converters ecat2nifti, philips2nifti;
-                           # medioconvert and its names <source>2<target>)
+  tools/                   # the command line tools (medioConvert and its names <source>2<target>, e.g. ecat2nifti)
   interfile/               # Interfile header syntax, image layout, reading the test datasets and writing
   hdf5/                    # identification, reading and writing of HDF5 files, with and without HDF5 support
                            # (data/: fixtures made with h5py);
