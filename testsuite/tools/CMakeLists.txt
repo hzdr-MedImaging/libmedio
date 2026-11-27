@@ -17,14 +17,37 @@
 # limitations under the License.
 #
 
-# the conversion programs through both of their names: ecat2nifti/nifti2ecat and
-# philips2nifti/nifti2philips are one program each, which selects the direction by the
-# name it is called with (see examples/ecat2nifti, cmake/MedioToolLink.cmake)
+# ecat2nifti/nifti2ecat and philips2nifti/nifti2philips, which were programs of their own
+# and are names of medioConvert now (see examples/medioConvert, cmake/MedioToolLink.cmake):
+# their help and conversions in both directions
 add_test(NAME converter_names
          COMMAND ${CMAKE_COMMAND}
-                 -DECAT2NIFTI=$<TARGET_FILE:ecat2nifti>
-                 -DPHILIPS2NIFTI=$<TARGET_FILE:philips2nifti>
+                 -DECAT2NIFTI=$<TARGET_FILE_DIR:medioConvert>/ecat2nifti-${PROJECT_VERSION}${CMAKE_EXECUTABLE_SUFFIX}
+                 -DPHILIPS2NIFTI=$<TARGET_FILE_DIR:medioConvert>/philips2nifti-${PROJECT_VERSION}${CMAKE_EXECUTABLE_SUFFIX}
                  -DDATA=${MEDIO_TEST_DATA_DIR}
                  -DWORK=${CMAKE_CURRENT_BINARY_DIR}/converter_names
                  -P ${CMAKE_CURRENT_SOURCE_DIR}/ConverterNames.cmake
+)
+
+# medioConvert and the names <source>2<target> it is installed with, run on the test data
+include_directories(${RTDEBUG_INCLUDES}
+                    ${MEDIO_CONFIG}
+                    ${MEDIO_INCLUDES}
+)
+add_executable(testMedioConvert testMedioConvert.cpp)
+add_dependencies(testMedioConvert medioConvert)
+target_include_directories(testMedioConvert PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../common)
+target_compile_definitions(testMedioConvert PRIVATE __MEDIO_PRIVATE__
+                                                    MEDIO_TEST_DATA_DIR="${MEDIO_TEST_DATA_DIR}"
+                                                    MEDIO_TOOL_DIR="$<TARGET_FILE_DIR:medioConvert>"
+                                                    MEDIO_TOOL_VERSION="${PROJECT_VERSION}")
+target_link_libraries(testMedioConvert Qt5::Core
+                                       Qt5::Test
+                                       ZLIB::ZLIB
+                                       ${CMAKE_PROJECT_NAME}-static
+                                       ${RTDEBUG_STATIC_LIB}
+)
+add_test(NAME medioConvert
+         COMMAND testMedioConvert
+         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )

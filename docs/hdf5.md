@@ -348,7 +348,7 @@ and writes it like this:
 | 1 (done) | this specification; a prototype in Python (`testsuite/hdf5/tools/medio2hdf5.py`, `pmedio` + `h5py`) that writes the test datasets in this layout and a checker for it (`check_hdf5.py`, `h5py` only) | review of the example files, reading them with MATLAB/Octave and R |
 | 2 (done) | attribute dictionary: `DecayCorrectionDateTime` and `FrameReferenceTime` for all formats | attribute tests, several time zones |
 | 3 (done) | build option `MEDIO_WITH_HDF5`, format `CMedIOData::HDF5` and class `CHDF5File` as stub, identification by the signature | CI with and without HDF5, R package |
-| 4 (done) | reading and writing (C++, Python and R) and the conversion from and into all writable formats | fixtures of `testsuite/hdf5/data` with the values `h5py` reads (`generate_fixtures.py`), files of the prototype compared with `h5py`; `testConversions` with HDF5 as target, files written by libmedio checked with `check_hdf5.py` and read with `h5py` |
+| 4 (done) | reading and writing (C++, Python and R) and the conversion from and into all writable formats, on the command line with [`medioConvert`](medioConvert.md) (`ecat2hdf5`, `hdf52nifti`, ...) | fixtures of `testsuite/hdf5/data` with the values `h5py` reads (`generate_fixtures.py`), files of the prototype compared with `h5py`; `testConversions` with HDF5 as target, files written by libmedio checked with `check_hdf5.py` and read with `h5py` |
 | 5 | optional: reading and writing the ITK layout; MINC 2 with libminc as further optional dependency | comparison with SimpleITK and the MINC tools |
 
 ## Decisions

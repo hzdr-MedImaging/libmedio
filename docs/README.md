@@ -7,6 +7,8 @@
   of every header as JSON object with DICOM keywords
 - [Conversion to and from NIfTI](nifti.md): the command line tools, the metadata
   in JSON and DICOM header extensions, writing NIfTI files from applications
+- [Converting between all formats](medioConvert.md): the command line tool
+  `medioConvert` and its names `<source>2<target>`
 - [Interfile support (design)](interfile.md): the Interfile variants (3.3,
   the PET proposal/STIR, Siemens, PMOD) and the phases of their support
 - [HDF5 support (design draft)](hdf5.md): the layout for PET images in HDF5

@@ -74,6 +74,9 @@ def convert(source: pathlib.Path, target: "os.PathLike[str]") -> list[str]:
     entry: dict[str, Any] | None = pmedio.dictionary_entry("PatientWeight")
     if entry is not None:
         orientations.append(str(entry["unit"]))
+    hdf5: str | None = pmedio.hdf5_version()
+    if hdf5 is not None:
+        orientations.append(hdf5.split(".")[0])
     return orientations
 
 

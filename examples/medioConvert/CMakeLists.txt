@@ -30,25 +30,44 @@ include_directories(${RTDEBUG_INCLUDES}
 )
 
 # specify the executable we are going to build
-add_executable(ecat2nifti ecat2nifti.cpp)
+add_executable(medioConvert medioConvert.cpp)
 
 # define link libraries dependencies
-target_link_libraries(ecat2nifti Qt5::Core
-                                 ${CMAKE_PROJECT_NAME}-static
-                                 ${RTDEBUG_STATIC_LIB}
+target_link_libraries(medioConvert Qt5::Core
+                                   ${CMAKE_PROJECT_NAME}-static
+                                   ${RTDEBUG_STATIC_LIB}
 )
 
 # set target properties so that install only installs with
 # version postfix
-set_target_properties(ecat2nifti PROPERTIES OUTPUT_NAME ecat2nifti-${PROJECT_VERSION})
+set_target_properties(medioConvert PROPERTIES OUTPUT_NAME medioConvert-${PROJECT_VERSION})
 
 # definition of install targets
-install(TARGETS ecat2nifti
+install(TARGETS medioConvert
         RUNTIME DESTINATION bin
 )
-medio_install_tool_link(ecat2nifti)
-# the same program converts in the other direction when called as nifti2ecat
-medio_tool_alias(ecat2nifti nifti2ecat)
+medio_install_tool_link(medioConvert)
+
+# the conversions as programs of their own: <source>2<target> are links to medioConvert
+# (copies on Windows), which converts as the name it is called with says. The names with
+# hdf5 are only installed with HDF5 support.
+set(MEDIOCONVERT_SOURCES ecat nifti philips interfile micropet)
+set(MEDIOCONVERT_TARGETS ecat nifti philips interfile)
+if(MEDIO_HAVE_HDF5)
+  list(APPEND MEDIOCONVERT_SOURCES hdf5)
+  list(APPEND MEDIOCONVERT_TARGETS hdf5)
+endif()
+set(MEDIOCONVERT_ALIASES)
+foreach(source ${MEDIOCONVERT_SOURCES})
+  foreach(target ${MEDIOCONVERT_TARGETS})
+    set(alias "${source}2${target}")
+    if(NOT source STREQUAL target)
+      medio_tool_alias(medioConvert ${alias})
+      list(APPEND MEDIOCONVERT_ALIASES ${alias})
+    endif()
+  endforeach()
+endforeach()
+set(MEDIOCONVERT_ALIASES ${MEDIOCONVERT_ALIASES} CACHE INTERNAL "names medioConvert is also installed with")
 
 # make sure to bundle all runtime dll libs which the generated
 # executable might require using the 'mingw-bundleddlls-wine" tool
@@ -57,7 +76,7 @@ if(WIN32)
   if(MINGW_BUNDLEDLLS_WINE)
     install(CODE [[
       execute_process(COMMAND
-        mingw-bundledlls-wine ${CMAKE_BINARY_DIR}/bin/$<TARGET_FILE_NAME:ecat2nifti> --copy $ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin
+        mingw-bundledlls-wine ${CMAKE_BINARY_DIR}/bin/$<TARGET_FILE_NAME:medioConvert> --copy $ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin
       )
     ]])
   else()
@@ -67,7 +86,7 @@ if(WIN32)
   if(MINGW_BUNDLEDLLS)
     install(CODE [[
       execute_process(COMMAND
-        mingw-bundledlls $ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/$<TARGET_FILE_NAME:ecat2nifti> --copy
+        mingw-bundledlls $ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/$<TARGET_FILE_NAME:medioConvert> --copy
       )
     ]])
   else()

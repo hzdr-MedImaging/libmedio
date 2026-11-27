@@ -89,13 +89,30 @@ def test_datasets_follow_the_layout(path, key, json_name, tmp_path, medio2hdf5, 
 
 def hdf5_support(tmp_path):
     """True if libmedio was built with HDF5 support (it cannot open HDF5 files otherwise)"""
-    path = tmp_path / "support.h5"
+    return pmedio.hdf5_version() is not None
+
+
+# pmedio.hdf5_version() tells whether HDF5 files can be read and written
+def test_hdf5_version(tmp_path):
+    version = pmedio.hdf5_version()
+    path = tmp_path / "other.h5"
     with h5py.File(path, "w") as f:
         f.attrs["Format"] = "other"
     with pytest.raises(ValueError, match="is an HDF5 file") as error:
         pmedio.open(path)
-    path.unlink()
-    return "without HDF5 support" not in str(error.value)
+
+    if version is None:
+        assert "without HDF5 support" in str(error.value)
+        with pytest.raises(Exception):
+            pmedio.save(tmp_path / "image.h5", np.zeros((2, 2, 2), dtype=np.float32))
+        assert [p.name for p in tmp_path.iterdir()] == ["other.h5"]
+    else:
+        # major.minor.release of a version libmedio supports (1.10 or newer)
+        numbers = [int(n) for n in version.split(".")]
+        assert len(numbers) == 3 and (numbers[0], numbers[1]) >= (1, 10)
+        assert "without HDF5 support" not in str(error.value)
+        pmedio.save(tmp_path / "image.h5", np.zeros((2, 2, 2), dtype=np.float32))
+        assert pmedio.load(tmp_path / "image.h5").format == pmedio.Format.HDF5
 
 
 # libmedio reads the files written by the prototype as h5py reads them
