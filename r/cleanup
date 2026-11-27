@@ -22,7 +22,7 @@
 # (remove them with tools/vendor.sh --clean).
 #
 
-rm -f src/Makevars src/Makevars.ucrt conftest.cpp conftest.o conftest.log
+rm -f src/Makevars src/Makevars.ucrt conftest.cpp conftest.o conftest conftest.log
 rm -f src/*.o src/*.so src/*.dll
 if [ -d src/libmedio ]; then
   find src/libmedio -name '*.o' -exec rm -f {} +

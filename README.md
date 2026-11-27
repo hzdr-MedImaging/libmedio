@@ -45,7 +45,7 @@ pipelines and conversions do not have to know the formats they work with.
 | Philips PET | `.img` (image), `.syn` (Syntegra) | read, write | images, sinograms, list mode |
 | Interfile (3.3, STIR, PMOD, Siemens reconstructions) | header (`.hdr`, `.hv`, `.h33`, Siemens `.mhdr`/`.v.hdr`) with data file or single file | read, write (`.hv`/`.v` as STIR) | images ([docs/interfile.md](docs/interfile.md)) |
 | Siemens Concorde microPET | `.img` + `.img.hdr` | read | images, sinograms |
-| HDF5 (layout of libmedio, [docs/hdf5.md](docs/hdf5.md); optional) | `.h5`, `.hdf5`, `.hdf` | read, write (C++, Python) | images with frames, gates and bed positions |
+| HDF5 (layout of libmedio, [docs/hdf5.md](docs/hdf5.md); optional) | `.h5`, `.hdf5`, `.hdf` | read, write | images with frames, gates and bed positions |
 
 "All languages" is the format independent interface of C++, Python and R;
 the C++ format classes (`CECATFile`, `CNIFTIFile`, `CPhilipsFile`,

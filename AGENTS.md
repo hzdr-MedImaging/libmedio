@@ -126,7 +126,7 @@ Run the checks that match the files you touched:
 | `python/` or API used by it | build the bindings (`cmake -S python ...`, see `ci.yml`) and run `pytest python/tests`; they are compiled with `-Werror` |
 | Python interface (functions, arguments, return types of `python/src`) | the type stubs are generated from the module: give signatures that would only say `object` with `nb::sig`, extend `python/tests/typing/usage.py` and run `mypy --strict python/tests/typing/usage.py` with the installed package |
 | `python/pyproject.toml`, `python/CMakeLists.txt` (packaging) | `pip install ./python` into a fresh virtual environment (`BUILD_PREFIX` selects the prefix of libmedio) and run `pytest python/tests` with it |
-| `r/`, or library sources/API used by it | `r/tools/vendor.sh && R CMD build r && R CMD check --as-cran Rmedio_*.tar.gz` (no warnings or errors) |
+| `r/`, or library sources/API used by it | `r/tools/vendor.sh && R CMD build r && R CMD check --as-cran Rmedio_*.tar.gz` (no warnings or errors); for `src/hdf5/` and the HDF5 detection of `r/configure` with the HDF5 library and with `RMEDIO_HDF5=no` |
 | `testsuite/data/` | `python3 testsuite/data/tools/make_expected.py --check` and the `testdata_layout` test |
 | `testsuite/nifti/data/` | regenerate with `generate_fixtures.py` into a temporary directory and compare byte by byte |
 | `testsuite/attributes/data/` | regenerate with `generate_dictionary.py` into a temporary directory and compare byte by byte |
