@@ -243,7 +243,7 @@ def test_read_errors(tmp_path):
     with pytest.raises(TypeError):
         pmedio.open(42)
     # HDF5 files (here only the signature of the format, also after a user block) are
-    # identified, but cannot be read yet
+    # identified; these are no images
     for name, offset in (("image.h5", 0), ("userblock.h5", 512)):
         (tmp_path / name).write_bytes(bytes(offset) + b"\x89HDF\r\n\x1a\n" + bytes(504))
         with pytest.raises(ValueError, match="is an HDF5 file"):

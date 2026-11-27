@@ -28,7 +28,8 @@ include_directories(${RTDEBUG_INCLUDES}
 
 add_executable(testHDF5File testHDF5File.cpp)
 target_include_directories(testHDF5File PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../common)
-target_compile_definitions(testHDF5File PRIVATE MEDIO_TEST_DATA_DIR="${MEDIO_TEST_DATA_DIR}")
+target_compile_definitions(testHDF5File PRIVATE MEDIO_TEST_DATA_DIR="${MEDIO_TEST_DATA_DIR}"
+                                                MEDIO_HDF5_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
 if(MEDIO_HAVE_HDF5)
   # the test expects the HDF5 support the build was configured with
   target_compile_definitions(testHDF5File PRIVATE MEDIO_TEST_HAVE_HDF5 MEDIO_TEST_HDF5_VERSION="${HDF5_VERSION}")

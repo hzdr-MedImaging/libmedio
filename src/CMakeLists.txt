@@ -85,6 +85,8 @@ set(PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/CMedIO.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/interfile/CInterfileKeys.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/interfile/CInterfileMainHeader.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/hdf5/CHDF5File.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/hdf5/CHDF5FrameHeader.h
+                  ${CMAKE_CURRENT_SOURCE_DIR}/hdf5/CHDF5MainHeader.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/micropet/CConcordeMainHeader.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/micropet/CConcordeMainHeaderSinogram.h
                   ${CMAKE_CURRENT_SOURCE_DIR}/micropet/CConcordeMainHeaderImage.h

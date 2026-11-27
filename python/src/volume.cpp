@@ -546,7 +546,7 @@ std::unique_ptr<MedIOFile> openFile(const py::object& path)
 
   std::unique_ptr<MedIOFile> file(new MedIOFile(data, fileName, false));
   if(data->open(QIODevice::ReadOnly) == false) {
-    // HDF5 files are identified, but cannot be read yet
+    // HDF5 files of another layout, or a build without HDF5 support
     if(data->dataFormat() == CMedIOData::HDF5)
       raise(PyExc_ValueError, "'" + fileName + "' is an HDF5 file: " + static_cast<CHDF5File*>(data)->openError());
     raise(PyExc_OSError, "unable to open '" + fileName + "'");

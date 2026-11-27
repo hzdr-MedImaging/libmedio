@@ -590,9 +590,11 @@ bool CNIFTI1MainHeader::convertFrom(const CMedIOHeader* mainHeader, const CMedIO
     break;
 
     // Conversion from unknown or unsupported main header types to NIFTI1 main header is not supported
-    // Interfile headers are converted with the matrix conversion (CMedIOData::readMatrix())
+    // Interfile and HDF5 headers are converted with the matrix conversion (CMedIOData::readMatrix())
     case CMedIOHeader::InterfileMainHeader:
     case CMedIOHeader::InterfileFrameHeader:
+    case CMedIOHeader::HDF5MainHeader:
+    case CMedIOHeader::HDF5FrameHeader:
     case CMedIOHeader::Unknown:
     case CMedIOHeader::ECATSubHeader:
     case CMedIOHeader::PhilipsSubHeader:

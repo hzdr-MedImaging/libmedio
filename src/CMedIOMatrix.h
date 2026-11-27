@@ -70,6 +70,7 @@ class CConcordeFile;
 class CConcordeFrameHeader;
 class CInterfileFile;
 class CInterfileFrameHeader;
+class CHDF5File;
 class QJsonObject;
 
 //! ECAT7 representation of one frame
@@ -235,6 +236,15 @@ bool writeInterfileFrame(CInterfileFile* file, short frame, const CMedIOFrame& f
 bool readInterfileVolume(CInterfileFile* file, short frame, CMedIOVolume& v);
 bool readInterfileFrame(CInterfileFile* file, short frame, CMedIOFrame& f);
 bool interfileFrameFromMatrix(const QByteArray& data, const CInterfileFrameHeader& header, CMedIOFrame& f);
+
+//---------------------------------------------------------------------------------------------
+// HDF5 adapter (src/hdf5/CHDF5Matrix.cpp), reading only
+
+//! frames of the first gate and bed position of the file
+QList<short> hdf5FrameNumbers(CHDF5File* file);
+//! frame in the voxel order of the file with the position of its voxels
+bool readHdf5Volume(CHDF5File* file, short frame, CMedIOVolume& v);
+bool readHdf5Frame(CHDF5File* file, short frame, CMedIOFrame& f);
 
 } // namespace MedIOMatrix
 

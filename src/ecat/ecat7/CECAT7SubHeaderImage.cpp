@@ -819,9 +819,11 @@ if (mainHeader != NULL && mainHeader->headerFormat() == CMedIOHeader::NIFTIMainH
     }
     break;
 
-    // Interfile headers are converted with the matrix conversion (CMedIOData::readMatrix())
+    // Interfile and HDF5 headers are converted with the matrix conversion (CMedIOData::readMatrix())
     case CMedIOHeader::InterfileMainHeader:
     case CMedIOHeader::InterfileFrameHeader:
+    case CMedIOHeader::HDF5MainHeader:
+    case CMedIOHeader::HDF5FrameHeader:
     case CMedIOHeader::Unknown:
       // for an unknown header type we do nothing
     break;
