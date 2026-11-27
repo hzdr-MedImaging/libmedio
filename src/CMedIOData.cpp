@@ -426,10 +426,9 @@ bool CMedIOData::readAttributes(QJsonObject& attributes)
   bool result = false;
 
   // the NIfTI representation of the main header holds the attributes of all frames
+  // (readMainHeader() fails without reading if the file is not open)
   CMedIOHeader* header = NULL;
-  if(isOpen() == false)
-    E("the file is not open");
-  else if(readMainHeader(header, CMedIOData::NIFTI) && header != NULL)
+  if(readMainHeader(header, CMedIOData::NIFTI) && header != NULL)
   {
     attributes = header->attributes();
     if(dataFormat() != CMedIOData::NIFTI)
