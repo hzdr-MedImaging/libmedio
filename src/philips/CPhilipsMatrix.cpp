@@ -369,10 +369,14 @@ bool philipsMatrixFromFrame(const CMedIOFrame& f, QByteArray& data, CMedIOHeader
     return false;
   }
 
-  // the main header of the Philips representation (scale factors)
+  // the main header of the Philips representation (scale factors, acquisition start): the
+  // one mainHeaderFromFrame() gives, including the attributes of the source. The frame
+  // times of the sub header are absolute times relative to its acquisition start, which
+  // sources without ECAT7 scan start time (Interfile, HDF5) give as attribute only.
   CPhilipsMainHeader mainHeader(NULL, CPhilipsMainHeader::Image);
   const CECAT7SubHeaderImage s = ecatSubHeaderFor(f, v);
   mainHeader.convertFrom(&f.mainHeader, &s);
+  MedIOHeaderMapping::transfer(f.mainAttributes, mainHeader, MedIOHeaderMapping::frameKeys());
 
   QScopedPointer<CPhilipsSubHeaderImage> subHeader(new CPhilipsSubHeaderImage());
   bool result = philipsSubHeader(f, v, &mainHeader, subHeader.data());

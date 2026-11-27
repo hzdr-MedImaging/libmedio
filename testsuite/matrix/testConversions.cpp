@@ -19,7 +19,8 @@
 
 // Conversions between all writable formats with the format independent interface:
 // every image test file is written into every other writable format (ECAT7, NIfTI,
-// Philips, Interfile) and read again. The physical values, the positions of the voxels,
+// Philips, Interfile) and read again, with readVolume()/writeVolume() and with
+// readMatrix()/writeMatrix(). The physical values, the positions of the voxels,
 // the frame timing, the stored data type and the attributes have to be those of the
 // source, except where a format cannot store them (see the exceptions below). Chains
 // of conversions through all formats keep them as well.
@@ -100,9 +101,18 @@ CMedIOData* openFile(const QString& fileName)
   return file;
 }
 
+// how the frames of a file are transferred into the target
+enum Transfer
+{
+  Volumes,  // readVolume()/writeVolume()
+  Matrices  // readMatrix() in the representation of the target and writeMatrix()
+};
+
 // write all frames of a file into a new file of another format: the main header of the
-// source in the representation of the target, every frame as volume
-bool convert(const QString& source, const QString& target, CMedIOData::Format format, QString* error)
+// source in the representation of the target, every frame as volume or as matrix with
+// its sub header in the representation of the target
+bool convert(const QString& source, const QString& target, CMedIOData::Format format, QString* error,
+             Transfer transfer = Volumes)
 {
   QScopedPointer<CMedIOData> in(openFile(source));
   QScopedPointer<CMedIOData> out(CMedIODataFactory::createForWriting(target, format));
@@ -129,8 +139,22 @@ bool convert(const QString& source, const QString& target, CMedIOData::Format fo
   const QList<short> numbers = in->frameNumbers();
   for(int f = 0; f < numbers.size(); f++)
   {
-    CMedIOVolume v;
-    if(in->readVolume(v, numbers.at(f)) == false || out->writeVolume(v, short(f + 1)) == false)
+    bool written = false;
+    if(transfer == Matrices)
+    {
+      QByteArray* data = NULL;
+      CMedIOHeader* subHeader = NULL;
+      written = in->readMatrix(data, subHeader, format, numbers.at(f)) && data != NULL && subHeader != NULL &&
+                out->writeMatrix(*data, *subHeader, short(f + 1), mainHeader.data());
+      delete data;
+      delete subHeader;
+    }
+    else
+    {
+      CMedIOVolume v;
+      written = in->readVolume(v, numbers.at(f)) && out->writeVolume(v, short(f + 1));
+    }
+    if(written == false)
     {
       *error = QString("cannot write frame %1").arg(f + 1);
       return false;
@@ -250,6 +274,10 @@ class TestConversions : public QObject
     void initTestCase();
     void allFormats_data();
     void allFormats();
+    void allFormatsMatrices_data();
+    void allFormatsMatrices();
+    void hdf5Matrices_data();
+    void hdf5Matrices();
     void chains_data();
     void chains();
 };
@@ -300,6 +328,71 @@ void TestConversions::allFormats()
   QString error;
   QVERIFY2(convert(source, name, t.format, &error), qPrintable(error));
   compareFiles(source, name, t.format, QList<CMedIOData::Format>() << t.format);
+}
+
+// The same conversions with readMatrix()/writeMatrix(): the matrix of every frame is read
+// in the representation of the target, with a sub header that is converted from the
+// source independently of the main header. The frame timing, the positions and the values
+// of the written files have to be those of the source as well.
+void TestConversions::allFormatsMatrices_data()
+{
+  allFormats_data();
+}
+
+void TestConversions::allFormatsMatrices()
+{
+  QFETCH(MedIOTestFile, file);
+  QFETCH(int, target);
+  if(file.path.isEmpty())
+    QSKIP("no test data");
+
+  const Target& t = Targets[target];
+  if(t.format == CMedIOData::HDF5 && CHDF5File::hasSupport() == false)
+    QSKIP("no HDF5 support");
+  const QString source = fileToOpen(file);
+  const QString name = m_tmp.filePath("matrix_" + QString(file.relativePath).replace('/', '_') + t.suffix);
+  QString error;
+  QVERIFY2(convert(source, name, t.format, &error, Matrices), qPrintable(error));
+  compareFiles(source, name, t.format, QList<CMedIOData::Format>() << t.format);
+}
+
+// The test data holds no HDF5 images: HDF5 files written from other formats are the
+// sources of the conversions with readMatrix()/writeMatrix() into every other format
+void TestConversions::hdf5Matrices_data()
+{
+  QTest::addColumn<QString>("source");
+  QTest::addColumn<int>("target");
+
+  const char* const sources[] = { "ecat/pet-dynamic.v", "interfile/pet-bladder-dynamic.siemens/pet-bladder-dynamic.mhdr" };
+  for(unsigned s = 0; s < sizeof(sources) / sizeof(sources[0]); s++)
+  {
+    for(unsigned t = 0; t < sizeof(Targets) / sizeof(Targets[0]); t++)
+    {
+      if(Targets[t].format != CMedIOData::HDF5)
+        QTest::newRow(qPrintable(QString("%1 -> HDF5 -> %2").arg(sources[s], Targets[t].name))) << QString(sources[s]) << int(t);
+    }
+  }
+}
+
+void TestConversions::hdf5Matrices()
+{
+  QFETCH(QString, source);
+  QFETCH(int, target);
+
+  const QString first = medioTestDataDir() + "/" + source;
+  if(QFileInfo::exists(first) == false)
+    QSKIP("no test data");
+  if(CHDF5File::hasSupport() == false)
+    QSKIP("no HDF5 support");
+
+  const Target& t = Targets[target];
+  const QString base = m_tmp.filePath("hdf5_" + QString(source).replace('/', '_'));
+  const QString hdf5 = base + ".h5";
+  const QString name = base + t.suffix;
+  QString error;
+  QVERIFY2(convert(first, hdf5, CMedIOData::HDF5, &error), qPrintable(error));
+  QVERIFY2(convert(hdf5, name, t.format, &error, Matrices), qPrintable(error));
+  compareFiles(first, name, t.format, QList<CMedIOData::Format>() << CMedIOData::HDF5 << t.format);
 }
 
 void TestConversions::chains_data()
