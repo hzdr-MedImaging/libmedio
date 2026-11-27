@@ -272,6 +272,64 @@ def test_save_and_create_hdf5(tmp_path, check_hdf5):
     assert pmedio.load(other).format == pmedio.Format.HDF5
 
 
+# an HDF5 file gets its name when it is closed: if that fails, close() says so
+@needs_data
+def test_failed_completion_is_reported(tmp_path):
+    if not hdf5_support(tmp_path):
+        pytest.skip("libmedio was built without HDF5 support")
+    volume = pmedio.Volume(np.ones((4, 3, 2), dtype=np.float32), affine=np.eye(3, 4))
+
+    def occupy(path):
+        # a directory that cannot be replaced by the new file
+        path.mkdir()
+        (path / "content").write_text("kept")
+
+    # close()
+    target = tmp_path / "close.h5"
+    out = pmedio.create(target)
+    out.write_volume(volume, 1)
+    occupy(target)
+    with pytest.raises(OSError, match="unable to complete .*close.h5"):
+        out.close()
+    assert out.closed
+    out.close()   # reported once
+
+    # leaving the with block
+    target = tmp_path / "with.h5"
+    with pytest.raises(OSError, match="unable to complete"):
+        with pmedio.create(target) as out:
+            out.write_volume(volume, 1)
+            occupy(target)
+
+    # an exception on its way is not replaced
+    target = tmp_path / "exception.h5"
+    with pytest.raises(KeyError):
+        with pmedio.create(target) as out:
+            out.write_volume(volume, 1)
+            occupy(target)
+            raise KeyError("other")
+
+    # nothing but the directories is left, with their content
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["close.h5", "exception.h5", "with.h5"]
+    for name in ("close.h5", "exception.h5", "with.h5"):
+        assert [p.name for p in (tmp_path / name).iterdir()] == ["content"]
+
+    # a file with the main header of a source but without a volume is not written
+    target = tmp_path / "empty.h5"
+    with pmedio.open(DATA_DIR / "ecat/pet-static.v") as source:
+        with pytest.raises(OSError, match="unable to complete .*no volume"):
+            with pmedio.create(target, like=source):
+                pass
+    assert not target.exists()
+
+    # a file created without a source and without a volume is removed silently, like the
+    # files of the other formats
+    target = tmp_path / "pending.h5"
+    with pmedio.create(target):
+        pass
+    assert not target.exists()
+
+
 def test_other_hdf5_files_are_refused(tmp_path):
     if not hdf5_support(tmp_path):
         pytest.skip("libmedio was built without HDF5 support")

@@ -264,6 +264,13 @@ class MedIOFile
     void close()
     {
       if(m_pData != nullptr) {
+        // an HDF5 file is completed, and gets its name, when it is closed: that can fail
+        // (a file without main header and volume is handled below)
+        if(m_writable && m_pData->dataFormat() == CMedIOData::HDF5) {
+          CHDF5File* hdf5 = static_cast<CHDF5File*>(m_pData.get());
+          if(hdf5->finish() == false && m_pending == nullptr)
+            m_failure = QString("unable to complete '%1': %2").arg(m_fileName, hdf5->openError());
+        }
         m_pData->close();
         m_pData.reset();
 
@@ -280,6 +287,9 @@ class MedIOFile
 
     // the message of close() if it removed an incomplete NIfTI file (taken once)
     QString takeIncomplete() { const QString message = m_incomplete; m_incomplete.clear(); return message; }
+
+    // the message of close() if the file could not be completed (taken once)
+    QString takeFailure() { const QString message = m_failure; m_failure.clear(); return message; }
 
     // frames written into a NIfTI file
     void written(short frame) { if(m_frames > 0) m_written.insert(frame == -1 ? 1 : frame); }
@@ -325,6 +335,7 @@ class MedIOFile
     int m_frames = 0;
     QSet<short> m_written;
     QString m_incomplete;
+    QString m_failure;
     QJsonObject m_mainAttributes;         // attributes of the main header written
 };
 
@@ -828,6 +839,9 @@ void saveImage(const py::object& path, const Image& image, const py::object& lik
     for(size_t k=0; k < frames; k++)
       writeVolume(*file, volumes[k], static_cast<short>(k + 1));
     file->close();
+    const QString failure = file->takeFailure();
+    if(failure.isEmpty() == false)
+      raise(PyExc_OSError, failure);
     const QString incomplete = file->takeIncomplete();
     if(incomplete.isEmpty() == false)
       raise(PyExc_ValueError, incomplete);
@@ -1031,18 +1045,25 @@ written, without the frames.
 
     .def("close", [](MedIOFile& self) {
       self.close();
+      const QString failure = self.takeFailure();
+      if(failure.isEmpty() == false)
+        raise(PyExc_OSError, failure);
       const QString incomplete = self.takeIncomplete();
       if(incomplete.isEmpty() == false)
         raise(PyExc_ValueError, incomplete);
     }, R"doc(
 close the file (files created for writing are completed); a file created without a
 source file is removed if no volume was written, a NIfTI file of several frames if not
-all of them were written (ValueError)
+all of them were written (ValueError). An HDF5 file gets its name now: if it cannot be
+completed, there is no new file (OSError).
 )doc")
     .def("__enter__", [](py::object self) { return self; }, py::sig("def __enter__(self) -> File"))
     .def("__exit__", [](MedIOFile& self, const py::object& type, const py::object&, const py::object&) {
       self.close();
-      // an incomplete file is reported unless an exception is on its way anyway
+      // a file that is not complete is reported unless an exception is on its way anyway
+      const QString failure = self.takeFailure();
+      if(failure.isEmpty() == false && type.is_none())
+        raise(PyExc_OSError, failure);
       const QString incomplete = self.takeIncomplete();
       if(incomplete.isEmpty() == false && type.is_none())
         raise(PyExc_ValueError, incomplete);
