@@ -103,6 +103,14 @@ dict (DICOM keywords, native fields in the section of the format, frame
 attributes in `Frames`), and `pmedio.dictionary_entry("(0010,1030)")` returns
 an entry of the dictionary, see [Format independent header attributes](header-attributes.md).
 
+## HDF5
+HDF5 files (`.h5`, `.hdf5`, `.hdf`, see [hdf5.md](hdf5.md)) are read and
+written like the other formats if libmedio was built with the HDF5 library:
+`pmedio.hdf5_version()` returns the version of that library, or `None` without
+HDF5 support, where `open()` and `create()` fail for HDF5 files with an error
+saying so. A new HDF5 file gets its name when it is closed; `close()` raises
+`OSError` if it cannot be completed.
+
 ## Installation and build
 Install libmedio into `PREFIX_PATH` first, then install the package
 from the checkout with pip, which builds it with scikit-build-core:

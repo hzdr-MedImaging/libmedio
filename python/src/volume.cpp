@@ -1103,6 +1103,16 @@ or tag ("(0010,1030)"): keyword, tag, VR, VM, unit, sequence holding it and scop
 ("main" or "frame"); None if the dictionary has no entry for it.
 )doc");
 
+  m.def("hdf5_version", []() -> py::object {
+    if(CHDF5File::hasSupport() == false)
+      return py::none();
+    return py::object(py::str(CHDF5File::libraryVersion().toStdString().c_str()));
+  }, py::sig("def hdf5_version() -> str | None"), R"doc(
+Version of the HDF5 library libmedio was built with, e.g. "1.10.10"; None if it was built
+without HDF5 support. HDF5 files (.h5, .hdf5, .hdf) can only be read and written with
+HDF5 support: without it, open() and create() fail for them with an error saying so.
+)doc");
+
   m.def("create", &createFile, py::arg("path"), py::arg("like").none() = py::none(),
         py::arg("format").none() = py::none(), py::arg("overwrite").none() = Flag{false},
         py::arg("frames").none() = py::none(), py::arg("attributes").none() = py::none(),
