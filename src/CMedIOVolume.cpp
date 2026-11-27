@@ -50,6 +50,7 @@ class CMedIOVolumePrivate {
           affine[i][j] = (i == j) ? 1.0 : 0.0;
       frameStart = 0.0;
       frameDuration = 0.0;
+      attributes = QJsonObject();
     }
 
     int dims[3];
@@ -60,6 +61,7 @@ class CMedIOVolumePrivate {
     double affine[3][4];
     double frameStart;
     double frameDuration;
+    QJsonObject attributes;
 };
 
 //=============================================================================================
@@ -441,6 +443,16 @@ void CMedIOVolume::setFrameDuration(double seconds)
 double CMedIOVolume::frameDuration() const
 {
   return m_pData->frameDuration;
+}
+
+void CMedIOVolume::setAttributes(const QJsonObject& attributes)
+{
+  m_pData->attributes = attributes;
+}
+
+QJsonObject CMedIOVolume::attributes() const
+{
+  return m_pData->attributes;
 }
 
 bool CMedIOVolume::hasSameGeometry(const CMedIOVolume& other) const

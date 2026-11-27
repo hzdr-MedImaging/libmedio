@@ -106,6 +106,9 @@ def load_save(source: str, target: pathlib.Path) -> float:
     image.frame_duration = (60.0, 60.0)
     image.attributes = {"PatientWeight": 72.5}
     volume: pmedio.Volume = image.volume(0)
+    frame_attributes: dict[str, Any] = volume.attributes
+    volume.attributes = {"DecayFactor": 1.25}
+    volume.attributes = None
     image.save(target, format=pmedio.Format.NIFTI, overwrite=True)
     pmedio.save(target, image, overwrite=True)
     pmedio.save(target, np.zeros((4, 4, 2), dtype=np.int16), overwrite=True)

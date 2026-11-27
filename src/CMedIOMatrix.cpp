@@ -453,6 +453,7 @@ bool readVolume(CMedIOData* file, short frame, CMedIOVolume& volume)
 {
   ENTER();
   bool result = false;
+  bool attributes = true;   // still to be read
 
   switch(file->dataFormat()) {
     case CMedIOData::NIFTI:
@@ -471,10 +472,20 @@ bool readVolume(CMedIOData* file, short frame, CMedIOVolume& volume)
       // formats storing their images in the ECAT7 voxel order
       CMedIOFrame f;
       result = readFrame(file, frame, f);
-      if(result)
+      if(result) {
         volume = f.volume;
+        volume.setAttributes(f.frameAttributes);
+        attributes = false;
+      }
     }
     break;
+  }
+
+  // the attributes of the frame, which writeVolume() gives to the file written
+  if(result && attributes) {
+    QJsonObject mainAttributes, frameAttributes;
+    fileAttributes(file, frame, mainAttributes, frameAttributes);
+    volume.setAttributes(frameAttributes);
   }
 
   RETURN(result);

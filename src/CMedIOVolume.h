@@ -24,6 +24,7 @@
 #define CMEDIOVOLUME_H
 
 #include <QByteArray>
+#include <QJsonObject>
 #include <QString>
 
 // forward declarations
@@ -43,6 +44,8 @@ class CMedIOVolumePrivate;
 //!   DICOM patient coordinates (LPS, mm): x towards the patient's left, y
 //!   towards posterior, z towards superior
 //! - the frame timing (s)
+//! - the header attributes of the frame (DICOM keywords, e.g. "DecayFactor", and the
+//!   native fields of the format it was read from), see attributes()
 //!
 //! It is the common representation used by CMedIOData::readMatrix() and
 //! CMedIOData::writeMatrix() to convert matrix data between the file formats
@@ -134,6 +137,19 @@ class CMedIOVolume {
     double frameStart() const;
     void setFrameDuration(double seconds);
     double frameDuration() const;
+
+    //! header attributes of the frame, as CMedIOHeader::attributes() of its sub header
+    //! returns them: DICOM keywords (e.g. "DecayFactor", "DeadTimeFactor",
+    //! "FrameReferenceTime") and the native fields of the format in a section named
+    //! after it (e.g. "ECAT7"). CMedIOData::readVolume() sets the attributes of the
+    //! frame read, and CMedIOData::writeVolume() stores those the format of the file
+    //! has a place for, so that a frame keeps them when it is written into another
+    //! file. They do not describe the volume itself: its voxels, scaling, geometry and
+    //! timing are what the methods above return, also where an attribute says something
+    //! else (see CMedIOData::writeVolume()). The attributes are kept as they are when
+    //! the volume is changed (e.g. by reorient()).
+    void setAttributes(const QJsonObject& attributes);
+    QJsonObject attributes() const;
 
   private:
     CMedIOVolumePrivate* m_pData;

@@ -517,6 +517,63 @@ def test_write_errors(tmp_path):
         assert f.format == pmedio.Format.ECAT
 
 
+def test_volume_attributes():
+    """A volume holds the header attributes of its frame as dict."""
+    v = pmedio.Volume(np.zeros((4, 3, 2), dtype=np.float32))
+    assert v.attributes == {}
+    v.attributes = {"DecayFactor": 1.25, "ECAT7": {"Filter_Code": 1}}
+    assert v.attributes == {"DecayFactor": 1.25, "ECAT7": {"Filter_Code": 1}}
+    # a copy: changes of it do not change the volume
+    v.attributes["DecayFactor"] = 2.0
+    assert v.attributes["DecayFactor"] == 1.25
+    v.reorient("RAS")
+    assert v.attributes["DecayFactor"] == 1.25
+    v.attributes = None
+    assert v.attributes == {}
+    with pytest.raises(TypeError):
+        v.attributes = [1, 2]
+
+
+@pytest.mark.parametrize("suffix, stored", [
+    (".v", {"DecayFactor"}),            # ECAT7 image sub header
+    (".img", {"DeadTimeFactor"}),       # Philips sub header
+    (".hv", set()),                     # Interfile as STIR writes it: no key for them
+    (".h5", {"DecayFactor", "DeadTimeFactor", "FrameReferenceTime"}),
+])
+def test_write_volume_attributes(tmp_path, suffix, stored):
+    """write_volume() stores the attributes the format has a place for; the volume wins
+    over the attributes that describe it."""
+    if suffix == ".h5" and pmedio.hdf5_version() is None:
+        pytest.skip("pmedio without HDF5 support")
+    values = {"DecayFactor": 1.25, "DeadTimeFactor": 1.5, "FrameReferenceTime": 19000.0}
+    data = np.arange(24, dtype=np.float32).reshape(4, 3, 2) + 1
+    path = tmp_path / ("attributes" + suffix)
+    with pmedio.create(path, frames=2) as out:
+        for k in range(2):
+            v = pmedio.Volume(data, affine=np.eye(3, 4), frame_start=10.0 + 20.0 * k, frame_duration=20.0)
+            attributes = {key: value + k for key, value in values.items()}
+            attributes.update({"ActualFrameDuration": 99000, "ECAT7": {"X_Dimension": 99, "Scale_Factor": 99.0},
+                               "Philips": {"xdim": 99}, "Interfile": {"matrix size [1]": 99}})
+            v.attributes = attributes
+            out.write_volume(v, k + 1)
+
+    with pmedio.open(path) as f:
+        frames = f.attributes()["Frames"]
+        for k, number in enumerate(f.frame_numbers()):
+            v = f.read_volume(number)
+            v.reorient("LPS")
+            assert v.shape == (4, 3, 2)
+            np.testing.assert_array_equal(v.values(), data)
+            assert v.frame_duration == 20.0
+            assert v.attributes == frames[k]
+            assert v.attributes["ActualFrameDuration"] == 20000
+            for key, value in values.items():
+                if key in stored:
+                    assert v.attributes[key] == pytest.approx(value + k, rel=1e-6)
+                else:
+                    assert v.attributes.get(key) != pytest.approx(value + k, rel=1e-6)
+
+
 def test_formats():
     assert pmedio.Format is pmedio.MedIOImage.FormatType
     assert pmedio.Format.NIFTI != pmedio.Format.ECAT

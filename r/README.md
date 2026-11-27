@@ -19,6 +19,9 @@ writeMedio(image, "image.v", like = "source.v", overwrite = TRUE)  # main header
 - `readMedio(fname, frames = c(3, 1), orientation = ...)` selects frames by
   their numbers and reorders the voxels (default: the voxel order of the
   file). All frames need the same geometry.
+- `writeMedio()` stores the attributes of the frames (`attributes$Frames`, one
+  entry per frame, e.g. `DecayFactor`) with the frames as far as the format
+  has a place for them.
 - `medioImage(data, affine, frame_start, frame_duration, attributes)` makes
   an image from an array; `writeMedio()` also takes a plain 3D/4D array
   (identity affine). Double data is stored as float32, integer data as

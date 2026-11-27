@@ -59,7 +59,12 @@ writeMedio(image, fname, like = NULL, format = NULL, overwrite = FALSE)
 }
 \details{
   The header attributes of the image (e.g. \code{PatientWeight}) are set
-  in the main header; invalid values are an error. Double data is stored
+  in the main header; invalid values are an error. If the attributes have
+  one entry per frame in \code{Frames}, as those of an image read with
+  \code{\link{readMedio}}, the attributes of the frames (e.g.
+  \code{DecayFactor}) are stored with the frames as far as the format has
+  a place for them; the frame timing and the data are always those of the
+  image. Double data is stored
   as 32 bit floating point values, integer data as 32 bit integers, every
   frame with scale factor 1 (Interfile: integers that fit into 16 bits as
   16 bit integers, otherwise 32 bit floating point values; HDF5: always

@@ -24,8 +24,10 @@ image.save("image.nii.gz")                            # or pmedio.save(path, ima
   array)` writes an array with identity affine. `save()` writes like
   `pmedio.create()` (see below), with `like=`, `format=` and `overwrite=`: the
   main header is made from the image or converted from `like`, the attributes
-  of the image are set in it. Invalid images create no file, and no file is
-  left behind if writing fails.
+  of the image are set in it. The attributes of the frames (`"Frames"`, one
+  entry per frame as `load()` returns them, e.g. `"DecayFactor"`) are stored
+  with the frames as far as the format has a place for them. Invalid images
+  create no file, and no file is left behind if writing fails.
 - `image.to_nibabel()` returns the image as `nibabel.Nifti1Image` (the affine
   in the RAS coordinates of nibabel, 3D for one frame), and
   `pmedio.Image.from_nibabel(nibabel_image, frame_start=..., frame_duration=...,
@@ -62,7 +64,9 @@ with pmedio.create("new.nii.gz", frames=2, attributes={"PatientWeight": 72.5}) a
 - `pmedio.Volume` corresponds to `CMedIOVolume`: `stored()` and `values()`
   return copies of the voxels (x running fastest), `scale_factors`,
   `intercept`, `affine`, `position()`, `voxel_size`, `orientation`,
-  `reorient()` and the frame timing.
+  `reorient()` and the frame timing. `attributes` holds the header
+  attributes of the frame as dict (e.g. `"DecayFactor"`): `read_volume()`
+  sets them, `write_volume()` stores those the format has a place for.
 - `pmedio.create(path, like=source)` takes the format from the file name
   (`.v`, `.nii`/`.nii.gz`/`.hdr`, `.img`/`.syn`, `.hv`, and with HDF5 support `.h5`/`.hdf5`/`.hdf`) or from `format=pmedio.Format...`,
   and replaces an existing file only with `overwrite=True`. The volumes

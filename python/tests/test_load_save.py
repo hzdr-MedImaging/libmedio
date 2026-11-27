@@ -440,3 +440,41 @@ def test_image_errors():
         pmedio.Image(np.zeros((*SHAPE, 2), dtype=np.int16), frame_start=[0.0])
     with pytest.raises(ValueError):
         pmedio.Image(np.zeros(SHAPE, dtype=np.int16), affine=np.eye(3))
+
+
+
+def test_save_frame_attributes(tmp_path):
+    """save() stores the attributes of the frames ("Frames") with the frames: an image keeps
+    the decay factors of an ECAT7 file through an HDF5 file and back."""
+    source = DATA_DIR / "ecat" / "pet-dynamic.v"
+    if not source.exists():
+        pytest.skip("no test data")
+    image = pmedio.load(source)
+    factors = [frame["DecayFactor"] for frame in image.attributes["Frames"]]
+    assert len(factors) == len(image) > 1 and len(set(factors)) > 1
+    assert image.volume(1).attributes["DecayFactor"] == factors[1]
+
+    paths = [tmp_path / "copy.v"]
+    if pmedio.hdf5_version() is not None:
+        image.save(tmp_path / "frames.h5")
+        through = pmedio.load(tmp_path / "frames.h5")
+        assert [frame["DecayFactor"] for frame in through.attributes["Frames"]] == factors
+        through.save(tmp_path / "back.v")
+        paths.append(tmp_path / "back.v")
+    image.save(paths[0])
+    for path in paths:
+        saved = pmedio.load(path)
+        assert [frame["DecayFactor"] for frame in saved.attributes["Frames"]] == factors
+        np.testing.assert_array_equal(saved.data, image.data)
+        assert saved.frame_duration == image.frame_duration
+
+    # the image wins over the attributes: other values, timing and number of frames
+    image.frame_duration = [10.0 * (k + 1) for k in range(len(image))]
+    image.data = image.data * 2
+    image.save(tmp_path / "changed.v")
+    changed = pmedio.load(tmp_path / "changed.v")
+    assert changed.frame_duration == image.frame_duration
+    np.testing.assert_allclose(changed.data, image.data, rtol=1e-6)
+    part = pmedio.Image(image.data[..., :2], affine=image.affine, attributes=image.attributes)
+    part.save(tmp_path / "part.v")      # "Frames" has another length: not used
+    assert len(pmedio.load(tmp_path / "part.v")) == 2

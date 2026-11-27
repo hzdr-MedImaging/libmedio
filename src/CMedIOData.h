@@ -199,9 +199,23 @@ class CMedIOData : public QFile {
     QList<short> frameNumbers();
 
     //! @brief frame as format independent volume in the voxel order of the file
+    //!
+    //! The volume also holds the header attributes of the frame
+    //! (CMedIOVolume::attributes()), e.g. "DecayFactor".
     bool readVolume(CMedIOVolume& volume, short frame=-1);
 
     //! @brief write a volume as frame of the file (main header written before)
+    //!
+    //! The attributes of the volume (CMedIOVolume::attributes(), DICOM keywords such as
+    //! "DecayFactor" or "DeadTimeFactor") are stored with the frame as far as the format
+    //! has a place for them, so that a volume read with readVolume() keeps them in a file
+    //! of another format; attributes the format cannot store are left out. The volume
+    //! itself always wins: its frame duration is written whatever "ActualFrameDuration"
+    //! says, and the native fields of the format of this file (e.g. the section "ECAT7"
+    //! of a volume written into an ECAT7 file) are not taken from the attributes, as they
+    //! describe the dimensions, data type, scaling and geometry of the frame read. NIfTI
+    //! files store the frame attributes with their main header ("Frames"), not with the
+    //! volumes written.
     bool writeVolume(const CMedIOVolume& volume, short frame=-1);
 
     //! @brief main header for a new file, made from a volume instead of a source file

@@ -338,6 +338,23 @@ stopifnot(identical(readMedio(file.path(dir, "image2.data"))$format, "nifti"),
 unlink(dir, recursive = TRUE)
 
 #-----------------------------------------------------------------------------------------------
+# the attributes of the frames ("Frames") are stored with the frames written
+
+framed <- dynamic
+factors <- c(1.5, 2.5, 3.5)
+for(k in seq_along(factors)) framed$attributes$Frames[[k]]$DecayFactor <- factors[k]
+out <- tempfile(fileext = ".v")
+writeMedio(framed, out)
+written <- readMedio(out)
+stopifnot(near(vapply(written$attributes$Frames, function(f) f$DecayFactor, 0), factors),
+          near(written$data, dynamic$data), near(written$frame_duration, dynamic$frame_duration))
+# the image wins over the attributes that describe it (the frame duration)
+framed$frame_duration <- c(10, 20, 30)
+writeMedio(framed, out, overwrite = TRUE)
+stopifnot(near(readMedio(out)$frame_duration, c(10, 20, 30)))
+unlink(out)
+
+#-----------------------------------------------------------------------------------------------
 # medioImage()
 
 default <- medioImage(array(0, dim = shape))

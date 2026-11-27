@@ -84,6 +84,14 @@ for(int k=0; k < frames.size(); k++) {
 - `readVolume()`/`writeVolume()` exchange frames as `CMedIOVolume`: voxel
   data, scaling, the position of every voxel (DICOM patient coordinates)
   and the frame timing; `CMedIOVolume::reorient()` reorders the voxels.
+  A volume also carries the header attributes of its frame
+  (`CMedIOVolume::attributes()`, e.g. `DecayFactor`, `DeadTimeFactor`):
+  `readVolume()` sets them and `writeVolume()` stores those the format of the
+  file has a place for (ECAT7: `DecayFactor`; Philips: `DeadTimeFactor`;
+  HDF5: both and `FrameReferenceTime`; Interfile: none; NIfTI files store
+  the frame attributes with their main header), so that frames keep them
+  through a conversion. The volume itself wins: its frame duration and the
+  native fields of the format written are not taken from the attributes.
 - `CMedIOData::mainHeaderFromVolume(volume, format, numFrames, header)` makes
   the main header of a new ECAT7, NIfTI or Philips file from a volume, for
   writing volumes without a source file. The header has the geometry and

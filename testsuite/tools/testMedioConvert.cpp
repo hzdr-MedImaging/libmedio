@@ -22,6 +22,7 @@
 // write are read with the library and compared with their sources.
 
 #include <QtTest/QtTest>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QProcess>
 #include <QScopedPointer>
@@ -133,6 +134,22 @@ QString difference(const QString& sourceName, const QString& targetName, CMedIOD
       return QString("the values of frame %1 differ by %2 (max. value %3)").arg(f + 1).arg(maxDifference).arg(maxValue);
     if(std::fabs(w.frameStart() - v.frameStart()) > 1e-3 || std::fabs(w.frameDuration() - v.frameDuration()) > 1e-3)
       return QString("the timing of frame %1 differs").arg(f + 1);
+  }
+
+  // the decay factors of the frames, in the formats that store them
+  if(format == CMedIOData::ECAT || format == CMedIOData::NIFTI || format == CMedIOData::HDF5)
+  {
+    QJsonObject from, to;
+    if(source->readAttributes(from) == false || target->readAttributes(to) == false)
+      return "cannot read the attributes";
+    const QJsonArray sourceFrames = from.value("Frames").toArray();
+    const QJsonArray targetFrames = to.value("Frames").toArray();
+    for(int f = 0; f < sourceFrames.size(); f++)
+    {
+      const QJsonValue factor = sourceFrames.at(f).toObject().value("DecayFactor");
+      if(factor.isDouble() && targetFrames.at(f).toObject().value("DecayFactor") != factor)
+        return QString("DecayFactor of frame %1 differs").arg(f + 1);
+    }
   }
 
   // an attribute every format stores

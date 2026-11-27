@@ -288,8 +288,22 @@ bool CMedIOData::writeVolume(const CMedIOVolume& volume, short frame)
 {
   ENTER();
   CMedIOFrame f;
-  bool result = MedIOMatrix::frameFromVolume(volume, f) &&
-                MedIOMatrix::writeFrame(this, frame, f);
+  bool result = MedIOMatrix::frameFromVolume(volume, f);
+  if(result) {
+    // the attributes of the volume for the sub header of the frame, without what the
+    // volume itself describes: the frame duration, and the native fields of the format
+    // of this file (dimensions, data type, scaling, geometry, timing)
+    f.frameAttributes = volume.attributes();
+    f.frameAttributes.remove("ActualFrameDuration");
+    switch(dataFormat()) {
+      case CMedIOData::ECAT:      f.frameAttributes.remove("ECAT7");     break;
+      case CMedIOData::NIFTI:     f.frameAttributes.remove("NIfTI");     break;
+      case CMedIOData::Philips:   f.frameAttributes.remove("Philips");   break;
+      case CMedIOData::Interfile: f.frameAttributes.remove("Interfile"); break;
+      default: break;
+    }
+    result = MedIOMatrix::writeFrame(this, frame, f);
+  }
   m_iErrStatus = result ? MERR_Ok : MERR_Unspecified;
   RETURN(result);
   return result;

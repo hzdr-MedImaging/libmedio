@@ -26,6 +26,7 @@
 // of conversions through all formats keep them as well.
 
 #include <QtTest/QtTest>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QScopedPointer>
 #include <QTemporaryDir>
@@ -280,6 +281,10 @@ class TestConversions : public QObject
     void hdf5Matrices();
     void chains_data();
     void chains();
+    void volumeAttributes_data();
+    void volumeAttributes();
+    void volumeAttributesOfFiles_data();
+    void volumeAttributesOfFiles();
 };
 
 void TestConversions::initTestCase()
@@ -436,6 +441,177 @@ void TestConversions::chains()
     if(QTest::currentTestFailed())
       return;
     current = next;
+  }
+}
+
+// the attributes of a volume are stored with the frame written, as far as the format has
+// a place for them, and the volume itself wins over attributes that describe it
+void TestConversions::volumeAttributes_data()
+{
+  QTest::addColumn<int>("target");
+  QTest::addColumn<QStringList>("stored");
+
+  // DecayFactor: ECAT7 image sub header (decay_corr_fctr); DeadTimeFactor: Philips sub
+  // header (deadtimefac); HDF5: datasets per volume for both and FrameReferenceTime.
+  // Interfile headers as STIR writes them have no key for them, and NIfTI files store
+  // the frame attributes with their main header, not with the volumes written.
+  QTest::newRow("ECAT7") << 0 << (QStringList() << "DecayFactor");
+  QTest::newRow("NIfTI") << 1 << QStringList();
+  QTest::newRow("Philips") << 2 << (QStringList() << "DeadTimeFactor");
+  QTest::newRow("Interfile") << 3 << QStringList();
+  QTest::newRow("HDF5") << 4 << (QStringList() << "DecayFactor" << "DeadTimeFactor" << "FrameReferenceTime");
+}
+
+void TestConversions::volumeAttributes()
+{
+  QFETCH(int, target);
+  QFETCH(QStringList, stored);
+  const Target& t = Targets[target];
+  if(t.format == CMedIOData::HDF5 && CHDF5File::hasSupport() == false)
+    QSKIP("no HDF5 support");
+
+  // two frames with different attributes
+  const int nx = 4, ny = 3, nz = 2;
+  QByteArray data(nx * ny * nz * int(sizeof(float)), '\0');
+  float* values = reinterpret_cast<float*>(data.data());
+  for(int i = 0; i < nx * ny * nz; i++)
+    values[i] = float(i + 1);
+  const double affine[3][4] = { { 2.0, 0.0, 0.0, -3.0 }, { 0.0, 2.0, 0.0, -2.0 }, { 0.0, 0.0, -3.0, 30.0 } };
+
+  CMedIOVolume volumes[2];
+  for(int f = 0; f < 2; f++)
+  {
+    CMedIOVolume& v = volumes[f];
+    QVERIFY(v.setData(nx, ny, nz, CMedIOVolume::Float32, data));
+    v.setAffine(affine);
+    v.setFrameStart(10.0 + 20.0 * f);
+    v.setFrameDuration(20.0);
+    QVERIFY(v.attributes().isEmpty());
+    QJsonObject attributes;
+    attributes["DecayFactor"] = 1.25 + f;
+    attributes["DeadTimeFactor"] = 1.5 + f;
+    attributes["FrameReferenceTime"] = 19000.0 + 20000.0 * f;
+    // what describes the volume is not taken from the attributes: the frame duration
+    // and the native fields of every format
+    attributes["ActualFrameDuration"] = 99000;
+    attributes["ECAT7"] = QJsonObject{{"X_Dimension", 99}, {"Frame_Duration", 99000}, {"Scale_Factor", 99.0}};
+    attributes["Philips"] = QJsonObject{{"xdim", 99}, {"scale_factor", 99.0}};
+    attributes["Interfile"] = QJsonObject{{"matrix size [1]", 99}};
+    attributes["NIfTI"] = QJsonObject{{"scl_slope", 99.0}};
+    v.setAttributes(attributes);
+    QCOMPARE(v.attributes(), attributes);
+
+    // copies have the attributes, and changes of the volume keep them
+    CMedIOVolume copy(v);
+    QCOMPARE(copy.attributes(), attributes);
+    CMedIOVolume assigned;
+    assigned = v;
+    QCOMPARE(assigned.attributes(), attributes);
+    QVERIFY(copy.reorient("RAS") && copy.convertToPhysicalValues());
+    QCOMPARE(copy.attributes(), attributes);
+    copy.clear();
+    QVERIFY(copy.attributes().isEmpty());
+  }
+
+  const QString name = m_tmp.filePath(QString("attributes-%1%2").arg(t.name, t.suffix));
+  {
+    QScopedPointer<CMedIOData> out(CMedIODataFactory::createForWriting(name, t.format));
+    QVERIFY(out.isNull() == false);
+    CMedIOHeader* header = NULL;
+    QVERIFY(CMedIOData::mainHeaderFromVolume(volumes[0], t.format, 2, header) && header != NULL);
+    QScopedPointer<CMedIOHeader> mainHeader(header);
+    QVERIFY(out->open(QIODevice::WriteOnly) && out->writeMainHeader(*mainHeader));
+    QVERIFY(out->writeVolume(volumes[0], 1));
+    QVERIFY(out->writeVolume(volumes[1], 2));
+    out->close();
+  }
+
+  QScopedPointer<CMedIOData> in(openFile(name));
+  QVERIFY(in.isNull() == false);
+  QCOMPARE(in->frameNumbers().size(), 2);
+  QJsonObject fileAttributes;
+  QVERIFY(in->readAttributes(fileAttributes));
+  const QJsonArray frames = fileAttributes.value("Frames").toArray();
+  for(int f = 0; f < 2; f++)
+  {
+    CMedIOVolume v;
+    QVERIFY(in->readVolume(v, in->frameNumbers().at(f)));
+
+    // the volume as written
+    QCOMPARE(v.dimension(0), nx);
+    QCOMPARE(v.dimension(1), ny);
+    QCOMPARE(v.dimension(2), nz);
+    QVERIFY(v.reorient(volumes[f].orientation()));
+    for(int i = 0; i < nx * ny * nz; i++)
+      QCOMPARE(v.value(i), double(i + 1));
+    QCOMPARE(v.frameStart(), 10.0 + 20.0 * f);
+    QCOMPARE(v.frameDuration(), 20.0);
+
+    // its attributes: those of the frame in the file, with the stored ones of the volume
+    const QJsonObject attributes = v.attributes();
+    QCOMPARE(attributes, frames.at(f).toObject());
+    // (NIfTI files give the durations of all frames with their main header: FrameDuration)
+    if(t.format != CMedIOData::NIFTI)
+      QCOMPARE(attributes.value("ActualFrameDuration").toDouble(), 20000.0);
+    const double expected[] = { 1.25 + f, 1.5 + f, 19000.0 + 20000.0 * f };
+    const char* const keys[] = { "DecayFactor", "DeadTimeFactor", "FrameReferenceTime" };
+    for(int k = 0; k < 3; k++)
+    {
+      if(stored.contains(keys[k]))
+        QVERIFY2(qAbs(attributes.value(keys[k]).toDouble() - expected[k]) < 1e-6 * expected[k], keys[k]);
+      else
+        QVERIFY2(attributes.contains(keys[k]) == false ||
+                 qAbs(attributes.value(keys[k]).toDouble() - expected[k]) > 1e-6 * expected[k], keys[k]);
+    }
+  }
+}
+
+// a frame read as volume has the attributes of its sub header, and keeps those the target
+// stores when it is written into a file of another format
+void TestConversions::volumeAttributesOfFiles_data()
+{
+  allFormats_data();
+}
+
+void TestConversions::volumeAttributesOfFiles()
+{
+  QFETCH(MedIOTestFile, file);
+  QFETCH(int, target);
+  if(file.path.isEmpty())
+    QSKIP("no test data");
+  const Target& t = Targets[target];
+  if(t.format == CMedIOData::HDF5 && CHDF5File::hasSupport() == false)
+    QSKIP("no HDF5 support");
+
+  const QString sourceName = fileToOpen(file);
+  const QString name = m_tmp.filePath(QString("volume-") + QString(file.relativePath).replace('/', '_') + t.suffix);
+  QString error;
+  QVERIFY2(convert(sourceName, name, t.format, &error), qPrintable(error));
+
+  QScopedPointer<CMedIOData> source(openFile(sourceName));
+  QScopedPointer<CMedIOData> written(openFile(name));
+  QVERIFY(source.isNull() == false && written.isNull() == false);
+  QJsonObject sourceAttributes;
+  QVERIFY(source->readAttributes(sourceAttributes));
+  const QJsonArray sourceFrames = sourceAttributes.value("Frames").toArray();
+  const QList<short> numbers = source->frameNumbers();
+  const QList<short> writtenNumbers = written->frameNumbers();
+  QCOMPARE(writtenNumbers.size(), numbers.size());
+
+  for(int f = 0; f < numbers.size(); f++)
+  {
+    CMedIOVolume v, w;
+    QVERIFY(source->readVolume(v, numbers.at(f)) && written->readVolume(w, writtenNumbers.at(f)));
+    // the attributes of the frame as readAttributes() gives them
+    QCOMPARE(v.attributes(), f < sourceFrames.size() ? sourceFrames.at(f).toObject() : QJsonObject());
+
+    // ECAT7 and HDF5 files store the decay factor, Philips and HDF5 files the dead time factor
+    const bool decay = (t.format == CMedIOData::ECAT || t.format == CMedIOData::NIFTI || t.format == CMedIOData::HDF5);
+    const bool deadTime = (t.format == CMedIOData::Philips || t.format == CMedIOData::NIFTI || t.format == CMedIOData::HDF5);
+    if(decay && v.attributes().contains("DecayFactor"))
+      QCOMPARE(w.attributes().value("DecayFactor"), v.attributes().value("DecayFactor"));
+    if(deadTime && v.attributes().contains("DeadTimeFactor"))
+      QCOMPARE(w.attributes().value("DeadTimeFactor"), v.attributes().value("DeadTimeFactor"));
   }
 }
 

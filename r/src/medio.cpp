@@ -400,6 +400,14 @@ RcppExport SEXP writeMedio(SEXP fileName, SEXP data, SEXP affine, SEXP frameStar
     fail("invalid header attributes: a value does not fit its key or the format (see the attributes of a "
           "file of the format read with readMedio())");
 
+  // the attributes of the frames ("Frames" of the attributes, one entry per frame), which
+  // the formats with sub headers store with the frames
+  const QJsonValue frameAttributes = json.value("Frames");
+  if(frameAttributes.isArray() && frameAttributes.toArray().size() == frames) {
+    for(int k=0; k < frames; k++)
+      volumes[k].setAttributes(frameAttributes.toArray().at(k).toObject());
+  }
+
   // the file; nothing is left behind if writing fails
   OpenFile file;
   file.data = std::move(newFile);

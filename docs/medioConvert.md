@@ -47,9 +47,9 @@ is converted into the one of the target format:
   of every frame and the header attributes the target format stores are kept;
 - the values are stored as the target writes volumes (e.g. float32 in HDF5
   files and in NIfTI files of several frames);
-- attributes of single frames other than their timing (e.g. `DecayFactor`)
-  are only kept by the targets NIfTI and HDF5, and Philips files store no
-  unit;
+- the attributes of the frames are kept as far as the target has a place
+  for them (`DecayFactor`: ECAT7, NIfTI, HDF5; `DeadTimeFactor`: Philips,
+  NIfTI, HDF5), and Philips files store no unit;
 - of files with several gates or bed positions, the frames of the first gate
   and bed are converted.
 

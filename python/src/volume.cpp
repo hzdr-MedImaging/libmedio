@@ -750,7 +750,17 @@ CMedIOVolume imageVolume(const Image& image, size_t k)
   if(image.frameStart.size() != frames || image.frameDuration.size() != frames)
     raise(PyExc_ValueError, QString("frame_start and frame_duration have to give one value per frame (%1)").arg(frames));
   const py::object volume = image.data.attr("__getitem__")(py::make_tuple(py::ellipsis(), k));
-  return volumeFromArray(volume, image.affine, 1.0, 0.0, image.frameStart[k], image.frameDuration[k]);
+  CMedIOVolume result = volumeFromArray(volume, image.affine, 1.0, 0.0, image.frameStart[k], image.frameDuration[k]);
+
+  // the attributes of the frame ("Frames" of the attributes, one entry per frame), which
+  // the formats with sub headers store with the frames
+  if(py::isinstance<py::dict>(image.attributes) && py::borrow<py::dict>(image.attributes).contains("Frames")) {
+    const py::object entries = py::borrow<py::dict>(image.attributes)["Frames"];
+    if((py::isinstance<py::list>(entries) || py::isinstance<py::tuple>(entries)) && py::len(entries) == frames &&
+       py::isinstance<py::dict>(entries[k]))
+      result.setAttributes(attributesOf(entries[k]));
+  }
+  return result;
 }
 
 // pmedio.load()
@@ -987,6 +997,23 @@ patient axis.
 
     .def_prop_rw("frame_start", &CMedIOVolume::frameStart, &CMedIOVolume::setFrameStart, "frame start (s)")
     .def_prop_rw("frame_duration", &CMedIOVolume::frameDuration, &CMedIOVolume::setFrameDuration, "frame duration (s)")
+    .def_prop_rw("attributes",
+      [](const CMedIOVolume& self) {
+        const QByteArray text = QJsonDocument(self.attributes()).toJson(QJsonDocument::Compact);
+        return py::module_::import_("json").attr("loads")(py::str(text.constData(), text.size()));
+      },
+      [](CMedIOVolume& self, const py::object& attributes) { self.setAttributes(attributesOf(attributes)); },
+      py::for_getter(py::sig("def attributes(self, /) -> dict[str, typing.Any]")),
+      py::for_setter(py::arg("attributes").none()),
+      py::for_setter(py::sig("def attributes(self, attributes: dict[str, typing.Any] | None, /) -> None")),
+      R"doc(
+Header attributes of the frame as dict (a copy; assign a dict to change them): DICOM
+keywords such as "DecayFactor" or "DeadTimeFactor", and the native fields of the format
+the volume was read from in a section named after it. ``File.read_volume()`` sets them,
+and ``File.write_volume()`` stores those the format of the file has a place for. The
+volume itself wins over them: its frame duration, and the native fields of the format
+written, are not taken from the attributes.
+)doc")
 
     .def("__repr__", [](const CMedIOVolume& self) {
       if(self.isEmpty())
