@@ -67,8 +67,11 @@ for(int k=0; k < frames.size(); k++) {
   without writing if a value does not fit.
 - Philips matrices hold all slices of a frame with one scale factor;
   Philips frames can be written in any order and overwritten with data of
-  the same slices. microPET and HDF5 files can only be read; of HDF5 files
-  (see [hdf5.md](hdf5.md)) the frames of the first gate and bed position.
+  the same slices. microPET files can only be read.
+- HDF5 files (see [hdf5.md](hdf5.md), with HDF5 support only) hold the
+  physical values as float32 or float64: integers do not stay integers.
+  Reading gives the frames of the first gate and bed position. A new file
+  gets its name when it is closed.
 - Without a format, `readMainHeader(header)` and `readMatrix(data, header, frame)`
   return the main header and frames in the format of the file itself, e.g.
   for a file created by `CMedIODataFactory` whose format is not known.
@@ -98,7 +101,7 @@ for(int k=0; k < frames.size(); k++) {
   ```
 - New files of any writable format: `CMedIODataFactory::formatOfFileName()`
   gives the format of a file name (`.v`, `.nii`, `.nii.gz`, `.hdr`, `.img`,
-  `.syn`, `.hv`), `CMedIODataFactory::createForWriting()` the file object,
+  `.syn`, `.hv`, `.h5`, `.hdf5`, `.hdf`), `CMedIODataFactory::createForWriting()` the file object,
   `CMedIOData::writeMainHeader(header)` writes a main header of any format
   with the class of the file, `fileNames()` lists all files a file consists
   of (both files of a NIfTI header/image pair, header and data file of

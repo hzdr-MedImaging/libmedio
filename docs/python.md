@@ -64,7 +64,7 @@ with pmedio.create("new.nii.gz", frames=2, attributes={"PatientWeight": 72.5}) a
   `intercept`, `affine`, `position()`, `voxel_size`, `orientation`,
   `reorient()` and the frame timing.
 - `pmedio.create(path, like=source)` takes the format from the file name
-  (`.v`, `.nii`/`.nii.gz`/`.hdr`, `.img`/`.syn`) or from `format=pmedio.Format...`,
+  (`.v`, `.nii`/`.nii.gz`/`.hdr`, `.img`/`.syn`, `.hv`, and with HDF5 support `.h5`/`.hdf5`/`.hdf`) or from `format=pmedio.Format...`,
   and replaces an existing file only with `overwrite=True`. The volumes
   written are converted into the representation of the file (e.g. the
   datatype and scaling of a NIfTI main header).

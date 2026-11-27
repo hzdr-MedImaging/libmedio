@@ -117,6 +117,8 @@ CMedIOData::Format CMedIODataFactory::formatOfFileName(const QString& fileName)
     result = CMedIOData::Philips;
   else if(name.endsWith(".hv"))
     result = CMedIOData::Interfile;
+  else if(name.endsWith(".h5") || name.endsWith(".hdf5") || name.endsWith(".hdf"))
+    result = CMedIOData::HDF5;
 
   RETURN(result);
   return result;
@@ -147,6 +149,10 @@ CMedIOData* CMedIODataFactory::createForWriting(const QString& fileName, CMedIOD
 
     case CMedIOData::Interfile:
       result = new CInterfileFile(fileName);
+    break;
+
+    case CMedIOData::HDF5:
+      result = new CHDF5File(fileName);
     break;
 
     default:

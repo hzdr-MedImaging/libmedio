@@ -574,6 +574,11 @@ bool frameFromMatrix(const QByteArray& data, const CMedIOHeader& header, const C
                interfileFrameFromMatrix(data, static_cast<const CInterfileFrameHeader&>(header), f);
     break;
 
+    case CMedIOData::HDF5:
+      result = (header.headerFormat() == CMedIOHeader::HDF5FrameHeader) &&
+               hdf5FrameFromMatrix(data, static_cast<const CHDF5FrameHeader&>(header), f);
+    break;
+
     default:
       result = unsupported(headerDataFormat(header), "writing matrices of this format into another format");
     break;
@@ -619,6 +624,10 @@ bool matrixFromFrame(const CMedIOFrame& f, CMedIOData::Format format, QByteArray
       result = interfileMatrixFromFrame(f, data, header);
     break;
 
+    case CMedIOData::HDF5:
+      result = hdf5MatrixFromFrame(f, data, header);
+    break;
+
     default:
       result = unsupported(format, "converting matrices into this format");
     break;
@@ -649,6 +658,10 @@ bool mainHeaderFromFrame(const CMedIOFrame& f, CMedIOData::Format format, CMedIO
 
     case CMedIOData::Interfile:
       result = interfileMainHeaderFromFrame(f, header);
+    break;
+
+    case CMedIOData::HDF5:
+      result = hdf5MainHeaderFromFrame(f, source, header);
     break;
 
     default:
@@ -689,6 +702,10 @@ bool writeFrame(CMedIOData* file, short frame, const CMedIOFrame& f)
 
     case CMedIOData::Interfile:
       result = writeInterfileFrame(static_cast<CInterfileFile*>(file), frame, f);
+    break;
+
+    case CMedIOData::HDF5:
+      result = writeHdf5Frame(static_cast<CHDF5File*>(file), frame, f);
     break;
 
     default:

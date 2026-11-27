@@ -17,11 +17,12 @@
 # limitations under the License.
 #
 
-# Tests of the prototype of the HDF5 layout (docs/hdf5.md): the test datasets
-# written by testsuite/hdf5/tools/medio2hdf5.py are checked with
-# testsuite/hdf5/tools/check_hdf5.py and read back with h5py, both
-# independent of libmedio. Files that violate the layout have to be refused
-# by the checker.
+# Tests of the HDF5 layout (docs/hdf5.md) with h5py as independent implementation:
+# - the test datasets written by the prototype testsuite/hdf5/tools/medio2hdf5.py are
+#   checked with testsuite/hdf5/tools/check_hdf5.py and read back with h5py; the checker
+#   has to refuse files that violate the layout,
+# - libmedio reads these files as h5py reads them,
+# - the files libmedio writes pass the checker and are read with h5py.
 
 import importlib.util
 import json
@@ -147,6 +148,128 @@ def test_libmedio_reads_the_layout(path, key, json_name, tmp_path, medio2hdf5):
     converted = tmp_path / "image.nii.gz"
     loaded.save(converted)
     np.testing.assert_array_equal(pmedio.load(converted, orientation=orientation).data, loaded.data)
+
+
+# files written by libmedio follow the layout: the checker (h5py, independent of libmedio)
+# accepts them, and h5py reads the values, positions, timing and attributes of the source
+@needs_data
+@pytest.mark.parametrize(("path", "key", "json_name"), READABLE, ids=[r[1] for r in READABLE])
+def test_libmedio_writes_the_layout(path, key, json_name, tmp_path, check_hdf5):
+    if not hdf5_support(tmp_path):
+        pytest.skip("libmedio was built without HDF5 support")
+    target = tmp_path / "image.h5"
+
+    with pmedio.open(DATA_DIR / path) as source:
+        frames = source.frame_numbers()
+        attributes = source.attributes()
+        with pmedio.create(target, like=source) as out:
+            assert out.format == pmedio.Format.HDF5
+            for n in frames:
+                out.write_volume(source.read_volume(n), n)
+            # the file gets its name when it is complete
+            assert not target.exists()
+        assert [p.name for p in tmp_path.iterdir()] == ["image.h5"]
+
+        result = check_hdf5.check(target)
+        assert result.errors == []
+        assert not [w for w in result.warnings if "variable-length" in w or "not part of the layout" in w]
+
+        with h5py.File(target, "r") as f:
+            assert f.attrs["Format"] == "MEDIO-IMAGE"
+            assert f.attrs["Creator"].startswith("libmedio ")
+            data = f["image/data"]
+            assert data.dtype == np.dtype("<f4")
+            assert f["image/volumes/Frame"][()].tolist() == list(frames)
+            assert "Gate" not in f["image/volumes"] and "Bed" not in f["image/volumes"]
+            for k, n in enumerate(frames):
+                # written in the voxel order of ECAT7 with the physical values
+                volume = source.read_volume(n)
+                volume.reorient("LPI")
+                np.testing.assert_array_equal(data[k].transpose(2, 1, 0), volume.values().astype(np.float32))
+                np.testing.assert_allclose(f["image/affine"][()], volume.affine, rtol=1e-6, atol=1e-3)
+                assert f["image/volumes/FrameTimesStart"][k] == pytest.approx(volume.frame_start, abs=1e-3)
+                assert f["image/volumes/FrameDuration"][k] == pytest.approx(volume.frame_duration, abs=1e-3)
+
+            # the unit in both notations, or none
+            assert ("Units" in data.attrs) == ("units" in data.attrs)
+            if attributes.get("Units") in ("BQML", "KBQCC"):
+                assert data.attrs["Units"] == attributes["Units"]
+                assert data.attrs["units"] == {"BQML": "Bq/mL", "KBQCC": "kBq/mL"}[attributes["Units"]]
+
+            # the attributes of the dictionary are typed attributes
+            typed = dict(f["header"].attrs)
+            for name, value in attributes.items():
+                entry = pmedio.dictionary_entry(name)
+                if entry is None or entry["scope"] != "main" or entry["vr"] == "SQ":
+                    continue
+                stored = typed.pop(name)
+                if isinstance(value, list):
+                    assert list(stored) == value
+                elif isinstance(value, str):
+                    assert stored == value
+                else:
+                    assert stored == value and stored.dtype == (np.int32 if entry["vr"] in ("IS", "US", "UL") else np.float64)
+            assert typed == {}
+
+            # and all attributes are in the JSON object, with those of the frames
+            stored = json.loads(f["header/json"][()])
+            for name, value in attributes.items():
+                if name not in ("Frames", "NIfTI", "FrameTimesStart", "FrameDuration"):
+                    assert stored[name] == value, name
+            assert len(stored["Frames"]) == len(frames)
+            for name in ("DecayFactor", "FrameReferenceTime"):
+                source_frames = attributes.get("Frames", [])
+                if source_frames and all(name in frame for frame in source_frames):
+                    np.testing.assert_allclose(f["image/volumes/" + name][()], [frame[name] for frame in source_frames],
+                                               rtol=1e-12)
+
+        # read again by libmedio: the attributes of the source
+        with pmedio.open(target) as back:
+            for name, value in attributes.items():
+                if name not in ("Frames", "NIfTI", "FrameTimesStart", "FrameDuration"):
+                    assert back.attributes()[name] == value, name
+
+
+def test_save_and_create_hdf5(tmp_path, check_hdf5):
+    if not hdf5_support(tmp_path):
+        pytest.skip("libmedio was built without HDF5 support")
+    rng = np.random.default_rng(1)
+    values = (rng.random((5, 4, 3, 2)) * 1000).astype(np.float64)
+    affine = np.array([[2.0, 0, 0, -4], [0, 2.5, 0, -3], [0, 0, -3.0, 10]])
+    image = pmedio.Image(values, affine=affine, frame_start=[0, 60], frame_duration=[60, 120],
+                         attributes={"PatientWeight": 72.5, "Units": "BQML", "SeriesNumber": 7})
+    for name in ("image.h5", "image.hdf5", "image.hdf"):
+        path = tmp_path / name
+        image.save(path)
+        assert check_hdf5.check(path).errors == []
+        with h5py.File(path, "r") as f:
+            # float64 values stay float64
+            assert f["image/data"].dtype == np.dtype("<f8")
+            assert f["header"].attrs["SeriesNumber"] == 7 and f["header"].attrs["SeriesNumber"].dtype == np.int32
+            assert f["image/volumes/FrameDuration"][()].tolist() == [60, 120]
+        back = pmedio.load(path)
+        assert back.format == pmedio.Format.HDF5
+        assert back.attributes["PatientWeight"] == 72.5
+        assert back.frame_start == [0, 60] and back.frame_duration == [60, 120]
+        # the voxels of the image are in the order libmedio writes (LPI): the same values
+        np.testing.assert_array_equal(back.data, values)
+        np.testing.assert_array_equal(back.affine, affine)
+        path.unlink()
+
+    # existing files are replaced only with overwrite=True, and only by a complete file
+    path = tmp_path / "image.h5"
+    path.write_bytes(b"existing")
+    with pytest.raises(FileExistsError):
+        image.save(path)
+    assert path.read_bytes() == b"existing"
+    image.save(path, overwrite=True)
+    assert check_hdf5.check(path).errors == []
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["image.h5"]
+
+    # the format given explicitly
+    other = tmp_path / "image.dat"
+    image.save(other, format=pmedio.Format.HDF5)
+    assert pmedio.load(other).format == pmedio.Format.HDF5
 
 
 def test_other_hdf5_files_are_refused(tmp_path):
